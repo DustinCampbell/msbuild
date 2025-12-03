@@ -15,31 +15,26 @@ namespace MSBuild.Benchmarks;
 [MaxIterationCount(20)]
 public partial class CacheReuseBenchmark
 {
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _projectPath = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         for (int i = 0; i < 50; i++)
         {
-            File.WriteAllText(Path.Combine(_tempDirectory, $"File{i}.cs"), "// Code");
+            _tempDirectory.WriteFile($"File{i}.cs", "// Code");
         }
 
-        _projectPath = Path.Combine(_tempDirectory, "Project.csproj");
-        File.WriteAllText(_projectPath, TestData.ProjectContentXml);
+        _projectPath = _tempDirectory.WriteFile("Project.csproj", TestData.ProjectContentXml);
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "New collection per evaluation", Baseline = true, OperationsPerInvoke = 64)]

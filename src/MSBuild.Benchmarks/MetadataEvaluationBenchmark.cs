@@ -16,7 +16,7 @@ namespace MSBuild.Benchmarks;
 public partial class MetadataEvaluationBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _simpleMetadataPath = null!;
     private string _wellKnownMetadataPath = null!;
     private string _customMetadataPath = null!;
@@ -24,23 +24,17 @@ public partial class MetadataEvaluationBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         // Create test files
         for (int i = 0; i < 50; i++)
         {
-            File.WriteAllText(Path.Combine(_tempDirectory, $"File{i}.cs"), "// Code");
+            _tempDirectory.WriteFile($"File{i}.cs", "// Code");
         }
 
-        _simpleMetadataPath = Path.Combine(_tempDirectory, "SimpleMetadata.csproj");
-        File.WriteAllText(_simpleMetadataPath, TestData.SimpleMetadataProjectXml);
-
-        _wellKnownMetadataPath = Path.Combine(_tempDirectory, "WellKnownMetadata.csproj");
-        File.WriteAllText(_wellKnownMetadataPath, TestData.WellKnownMetadataProjectXml);
-
-        _customMetadataPath = Path.Combine(_tempDirectory, "CustomMetadata.csproj");
-        File.WriteAllText(_customMetadataPath, TestData.CustomMetadataProjectXml);
+        _simpleMetadataPath = _tempDirectory.WriteFile("SimpleMetadata.csproj", TestData.SimpleMetadataProjectXml);
+        _wellKnownMetadataPath = _tempDirectory.WriteFile("WellKnownMetadata.csproj", TestData.WellKnownMetadataProjectXml);
+        _customMetadataPath = _tempDirectory.WriteFile("CustomMetadata.csproj", TestData.CustomMetadataProjectXml);
     }
 
     [IterationSetup]
@@ -59,10 +53,7 @@ public partial class MetadataEvaluationBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Evaluate items without metadata", OperationsPerInvoke = 128)]

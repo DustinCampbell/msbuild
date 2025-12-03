@@ -16,7 +16,7 @@ namespace MSBuild.Benchmarks;
 public partial class PropertyFunctionBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _simplePropertiesPath = null!;
     private string _propertyFunctionsPath = null!;
     private string _itemTransformsPath = null!;
@@ -25,26 +25,18 @@ public partial class PropertyFunctionBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         // Create test files
         for (int i = 0; i < 50; i++)
         {
-            File.WriteAllText(Path.Combine(_tempDirectory, $"File{i}.cs"), "// Code");
+            _tempDirectory.WriteFile($"File{i}.cs", "// Code");
         }
 
-        _simplePropertiesPath = Path.Combine(_tempDirectory, "SimpleProperties.csproj");
-        File.WriteAllText(_simplePropertiesPath, TestData.SimplePropertiesProjectXml);
-
-        _propertyFunctionsPath = Path.Combine(_tempDirectory, "PropertyFunctions.csproj");
-        File.WriteAllText(_propertyFunctionsPath, TestData.PropertyFunctionsProjectXml);
-
-        _itemTransformsPath = Path.Combine(_tempDirectory, "ItemTransforms.csproj");
-        File.WriteAllText(_itemTransformsPath, TestData.ItemTransformsProjectXml);
-
-        _complexFunctionsPath = Path.Combine(_tempDirectory, "ComplexFunctions.csproj");
-        File.WriteAllText(_complexFunctionsPath, TestData.ComplexFunctionsProjectXml);
+        _simplePropertiesPath = _tempDirectory.WriteFile("SimpleProperties.csproj", TestData.SimplePropertiesProjectXml);
+        _propertyFunctionsPath = _tempDirectory.WriteFile("PropertyFunctions.csproj", TestData.PropertyFunctionsProjectXml);
+        _itemTransformsPath = _tempDirectory.WriteFile("ItemTransforms.csproj", TestData.ItemTransformsProjectXml);
+        _complexFunctionsPath = _tempDirectory.WriteFile("ComplexFunctions.csproj", TestData.ComplexFunctionsProjectXml);
     }
 
     [IterationSetup]
@@ -63,10 +55,7 @@ public partial class PropertyFunctionBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Evaluate simple properties", OperationsPerInvoke = 128)]

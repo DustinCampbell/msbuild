@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using Microsoft.Build.Evaluation;
@@ -17,29 +16,27 @@ namespace MSBuild.Benchmarks;
 public partial class MultiProjectBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string[] _projectPaths = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         // Create multiple project files simulating a solution
         _projectPaths = new string[10];
+
         for (int i = 0; i < 10; i++)
         {
-            var projectPath = Path.Combine(_tempDirectory, $"Project{i}.csproj");
-            File.WriteAllText(projectPath, TestData.GetProjectContent(i));
-            _projectPaths[i] = projectPath;
+            var projectName = $"Project{i}";
+
+            _projectPaths[i] = _tempDirectory.WriteFile($"{projectName}.csproj", TestData.GetProjectContent(i));
 
             // Create some source files for each project
-            var projectDir = Path.Combine(_tempDirectory, $"Project{i}");
-            Directory.CreateDirectory(projectDir);
             for (int j = 0; j < 5; j++)
             {
-                File.WriteAllText(Path.Combine(projectDir, $"File{j}.cs"), "// Code");
+                _tempDirectory.WriteFile(projectName, $"File{j}.cs", "// Code");
             }
         }
     }
@@ -60,10 +57,7 @@ public partial class MultiProjectBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Load single project", OperationsPerInvoke = 128)]

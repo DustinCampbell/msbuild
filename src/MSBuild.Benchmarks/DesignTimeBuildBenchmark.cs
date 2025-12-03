@@ -16,27 +16,23 @@ namespace MSBuild.Benchmarks;
 public partial class DesignTimeBuildBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _normalProjectPath = null!;
     private string _designTimeProjectPath = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         // Create test files
         for (int i = 0; i < 50; i++)
         {
-            File.WriteAllText(Path.Combine(_tempDirectory, $"File{i}.cs"), "// Code");
+            _tempDirectory.WriteFile($"File{i}.cs", "// Code");
         }
 
-        _normalProjectPath = Path.Combine(_tempDirectory, "Normal.csproj");
-        File.WriteAllText(_normalProjectPath, TestData.NormalProjectXml);
-
-        _designTimeProjectPath = Path.Combine(_tempDirectory, "DesignTime.csproj");
-        File.WriteAllText(_designTimeProjectPath, TestData.DesignTimeProject);
+        _normalProjectPath = _tempDirectory.WriteFile("Normal.csproj", TestData.NormalProjectXml);
+        _designTimeProjectPath = _tempDirectory.WriteFile("DesignTime.csproj", TestData.DesignTimeProject);
     }
 
     [IterationSetup]
@@ -55,10 +51,7 @@ public partial class DesignTimeBuildBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Evaluate normal build", Baseline = true, OperationsPerInvoke = 112)]

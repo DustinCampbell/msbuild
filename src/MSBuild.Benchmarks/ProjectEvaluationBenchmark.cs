@@ -16,7 +16,7 @@ namespace MSBuild.Benchmarks;
 public partial class ProjectEvaluationBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _simpleProjectPath = null!;
     private string _complexProjectPath = null!;
     private string _largeProjectPath = null!;
@@ -24,18 +24,12 @@ public partial class ProjectEvaluationBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         // Write project files to disk (required for evaluation)
-        _simpleProjectPath = Path.Combine(_tempDirectory, "Simple.csproj");
-        File.WriteAllText(_simpleProjectPath, TestData.SimpleProjectXml);
-
-        _complexProjectPath = Path.Combine(_tempDirectory, "Complex.csproj");
-        File.WriteAllText(_complexProjectPath, TestData.ComplexProjectXml);
-
-        _largeProjectPath = Path.Combine(_tempDirectory, "Large.csproj");
-        File.WriteAllText(_largeProjectPath, TestData.LargeProjectXml);
+        _simpleProjectPath = _tempDirectory.WriteFile("Simple.csproj", TestData.SimpleProjectXml);
+        _complexProjectPath = _tempDirectory.WriteFile("Complex.csproj", TestData.ComplexProjectXml);
+        _largeProjectPath = _tempDirectory.WriteFile("Large.csproj", TestData.LargeProjectXml);
     }
 
     [IterationSetup]
@@ -56,10 +50,7 @@ public partial class ProjectEvaluationBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Evaluate simple project", OperationsPerInvoke = 160)]
