@@ -16,7 +16,7 @@ namespace MSBuild.Benchmarks;
 public partial class TargetDependencyBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _simpleTargetsPath = null!;
     private string _complexTargetsPath = null!;
     private string _deepDependenciesPath = null!;
@@ -24,17 +24,11 @@ public partial class TargetDependencyBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
-        _simpleTargetsPath = Path.Combine(_tempDirectory, "SimpleTargets.csproj");
-        File.WriteAllText(_simpleTargetsPath, TestData.SimpleTargetsProjectXml);
-
-        _complexTargetsPath = Path.Combine(_tempDirectory, "ComplexTargets.csproj");
-        File.WriteAllText(_complexTargetsPath, TestData.ComplexTargetsProjectXml);
-
-        _deepDependenciesPath = Path.Combine(_tempDirectory, "DeepDependencies.csproj");
-        File.WriteAllText(_deepDependenciesPath, TestData.DeepDependenciesProjectXml);
+        _simpleTargetsPath = _tempDirectory.WriteFile("SimpleTargets.csproj", TestData.SimpleTargetsProjectXml);
+        _complexTargetsPath = _tempDirectory.WriteFile("ComplexTargets.csproj", TestData.ComplexTargetsProjectXml);
+        _deepDependenciesPath = _tempDirectory.WriteFile("DeepDependencies.csproj", TestData.DeepDependenciesProjectXml);
     }
 
     [IterationSetup]
@@ -53,10 +47,7 @@ public partial class TargetDependencyBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Evaluate project with simple targets", OperationsPerInvoke = 160)]

@@ -15,7 +15,7 @@ namespace MSBuild.Benchmarks;
 public partial class ProjectImportBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _projectWithImportsPath = null!;
     private string _projectWithMultipleImportsPath = null!;
     private string _commonPropsPath = null!;
@@ -24,28 +24,20 @@ public partial class ProjectImportBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         // Create common imported files
-        _commonPropsPath = Path.Combine(_tempDirectory, "Common.props");
-        File.WriteAllText(_commonPropsPath, TestData.CommonPropsXml);
-
-        _commonTargetsPath = Path.Combine(_tempDirectory, "Common.targets");
-        File.WriteAllText(_commonTargetsPath, TestData.CommonTargetsXml);
+        _commonPropsPath = _tempDirectory.WriteFile("Common.props", TestData.CommonPropsXml);
+        _commonTargetsPath = _tempDirectory.WriteFile("Common.targets", TestData.CommonTargetsXml);
 
         // Create project files
-        _projectWithImportsPath = Path.Combine(_tempDirectory, "ProjectWithImports.csproj");
-        File.WriteAllText(_projectWithImportsPath, TestData.GetProjectWithImportsXml(_commonPropsPath, _commonTargetsPath));
-
-        _projectWithMultipleImportsPath = Path.Combine(_tempDirectory, "ProjectWithMultipleImports.csproj");
-        File.WriteAllText(_projectWithMultipleImportsPath, TestData.GetProjectWithMultipleImportsXml(_tempDirectory));
+        _projectWithImportsPath = _tempDirectory.WriteFile("ProjectWithImports.csproj", TestData.GetProjectWithImportsXml(_commonPropsPath, _commonTargetsPath));
+        _projectWithMultipleImportsPath = _tempDirectory.WriteFile("ProjectWithMultipleImports.csproj", TestData.GetProjectWithMultipleImportsXml(_tempDirectory.FullName));
 
         // Create additional import files for multiple imports test
         for (int i = 0; i < 5; i++)
         {
-            var importPath = Path.Combine(_tempDirectory, $"Import{i}.props");
-            File.WriteAllText(importPath, TestData.GetGenericImportXml(i));
+            _tempDirectory.WriteFile($"Import{i}.props", TestData.GetGenericImportXml(i));
         }
     }
 
@@ -65,10 +57,7 @@ public partial class ProjectImportBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Evaluate project with single import", OperationsPerInvoke = 96)]

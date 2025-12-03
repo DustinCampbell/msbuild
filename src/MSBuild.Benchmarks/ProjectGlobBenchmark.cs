@@ -16,7 +16,7 @@ namespace MSBuild.Benchmarks;
 public partial class ProjectGlobBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _projectWithSimpleGlobPath = null!;
     private string _projectWithRecursiveGlobPath = null!;
     private string _projectWithMultipleGlobsPath = null!;
@@ -27,30 +27,18 @@ public partial class ProjectGlobBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         // Create a realistic directory structure with files
         CreateFileStructure();
 
         // Create project files with different glob patterns
-        _projectWithSimpleGlobPath = Path.Combine(_tempDirectory, "SimpleGlob.csproj");
-        File.WriteAllText(_projectWithSimpleGlobPath, TestData.ProjectWithSimpleGlobXml);
-
-        _projectWithRecursiveGlobPath = Path.Combine(_tempDirectory, "RecursiveGlob.csproj");
-        File.WriteAllText(_projectWithRecursiveGlobPath, TestData.ProjectWithRecursiveGlobsXml);
-
-        _projectWithMultipleGlobsPath = Path.Combine(_tempDirectory, "MultipleGlobs.csproj");
-        File.WriteAllText(_projectWithMultipleGlobsPath, TestData.ProjectWithMultipleGlobsXml);
-
-        _projectWithExcludesPath = Path.Combine(_tempDirectory, "WithExcludes.csproj");
-        File.WriteAllText(_projectWithExcludesPath, TestData.ProjectWithExcludesXml);
-
-        _projectWithGlobAndRemovePath = Path.Combine(_tempDirectory, "GlobAndRemove.csproj");
-        File.WriteAllText(_projectWithGlobAndRemovePath, TestData.ProjectWithGlobAndRemoveXml);
-
-        _projectWithGlobAndMetadataPath = Path.Combine(_tempDirectory, "GlobAndMetadata.csproj");
-        File.WriteAllText(_projectWithGlobAndMetadataPath, TestData.ProjectWithGlobAndMetadataXml);
+        _projectWithSimpleGlobPath = _tempDirectory.WriteFile("SimpleGlob.csproj", TestData.ProjectWithSimpleGlobXml);
+        _projectWithRecursiveGlobPath = _tempDirectory.WriteFile("RecursiveGlob.csproj", TestData.ProjectWithRecursiveGlobsXml);
+        _projectWithMultipleGlobsPath = _tempDirectory.WriteFile("MultipleGlobs.csproj", TestData.ProjectWithMultipleGlobsXml);
+        _projectWithExcludesPath = _tempDirectory.WriteFile("WithExcludes.csproj", TestData.ProjectWithExcludesXml);
+        _projectWithGlobAndRemovePath = _tempDirectory.WriteFile("GlobAndRemove.csproj", TestData.ProjectWithGlobAndRemoveXml);
+        _projectWithGlobAndMetadataPath = _tempDirectory.WriteFile("GlobAndMetadata.csproj", TestData.ProjectWithGlobAndMetadataXml);
     }
 
     private void CreateFileStructure()
@@ -59,46 +47,39 @@ public partial class ProjectGlobBenchmark
         // Root level - 10 files
         for (int i = 0; i < 10; i++)
         {
-            File.WriteAllText(Path.Combine(_tempDirectory, $"File{i}.cs"), "// Code file");
+            _tempDirectory.WriteFile($"File{i}.cs", "// Code file");
         }
 
         // Create subdirectories with files (3 levels deep)
         for (int i = 0; i < 5; i++)
         {
-            var subDir = Path.Combine(_tempDirectory, $"Folder{i}");
-            Directory.CreateDirectory(subDir);
+            var folderName = $"Folder{i}";
 
             // 10 files per subdirectory
             for (int j = 0; j < 10; j++)
             {
-                File.WriteAllText(Path.Combine(subDir, $"File{j}.cs"), "// Code file");
-                File.WriteAllText(Path.Combine(subDir, $"Resource{j}.resx"), "<!-- Resource -->");
+                _tempDirectory.WriteFile(folderName, $"File{j}.cs", "// Code file");
+                _tempDirectory.WriteFile(folderName, $"Resource{j}.resx", "<!-- Resource -->");
             }
 
             // Nested subdirectories
             for (int k = 0; k < 3; k++)
             {
-                var nestedDir = Path.Combine(subDir, $"Nested{k}");
-                Directory.CreateDirectory(nestedDir);
+                var nestedName = Path.Combine(folderName, $"Nested{k}");
 
                 for (int j = 0; j < 10; j++)
                 {
-                    File.WriteAllText(Path.Combine(nestedDir, $"File{j}.cs"), "// Code file");
-                    File.WriteAllText(Path.Combine(nestedDir, $"Designer{j}.Designer.cs"), "// Designer file");
+                    _tempDirectory.WriteFile(nestedName, $"File{j}.cs", "// Code file");
+                    _tempDirectory.WriteFile(nestedName, $"Designer{j}.Designer.cs", "// Designer file");
                 }
             }
         }
 
         // Create bin and obj directories (should be excluded)
-        var binDir = Path.Combine(_tempDirectory, "bin");
-        var objDir = Path.Combine(_tempDirectory, "obj");
-        Directory.CreateDirectory(binDir);
-        Directory.CreateDirectory(objDir);
-
         for (int i = 0; i < 20; i++)
         {
-            File.WriteAllText(Path.Combine(binDir, $"Output{i}.dll"), "Binary");
-            File.WriteAllText(Path.Combine(objDir, $"Intermediate{i}.obj"), "Object");
+            _tempDirectory.WriteFile("bin", $"Output{i}.dll", "Binary");
+            _tempDirectory.WriteFile("obj", $"Intermediate{i}.obj", "Object");
         }
     }
 
@@ -118,10 +99,7 @@ public partial class ProjectGlobBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Evaluate project with simple glob", OperationsPerInvoke = 128)]

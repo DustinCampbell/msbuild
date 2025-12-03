@@ -16,7 +16,7 @@ namespace MSBuild.Benchmarks;
 public partial class ConditionEvaluationBenchmark
 {
     private ProjectCollection _projectCollection = null!;
-    private string _tempDirectory = null!;
+    private TempDirectory _tempDirectory = null!;
     private string _simpleConditionsPath = null!;
     private string _complexConditionsPath = null!;
     private string _existsConditionsPath = null!;
@@ -24,23 +24,17 @@ public partial class ConditionEvaluationBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "MSBuildBenchmarks_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
+        _tempDirectory = new TempDirectory();
 
         // Create test files for Exists() checks
         for (int i = 0; i < 20; i++)
         {
-            File.WriteAllText(Path.Combine(_tempDirectory, $"File{i}.cs"), "// Code");
+            _tempDirectory.WriteFile($"File{i}.cs", "// Code");
         }
 
-        _simpleConditionsPath = Path.Combine(_tempDirectory, "SimpleConditions.csproj");
-        File.WriteAllText(_simpleConditionsPath, TestData.SimpleConditionsProjectXml);
-
-        _complexConditionsPath = Path.Combine(_tempDirectory, "ComplexConditions.csproj");
-        File.WriteAllText(_complexConditionsPath, TestData.ComplexConditionsProjectXml);
-
-        _existsConditionsPath = Path.Combine(_tempDirectory, "ExistsConditions.csproj");
-        File.WriteAllText(_existsConditionsPath, TestData.ExistsConditionsProjectXml);
+        _simpleConditionsPath = _tempDirectory.WriteFile("SimpleConditions.csproj", TestData.SimpleConditionsProjectXml);
+        _complexConditionsPath = _tempDirectory.WriteFile("ComplexConditions.csproj", TestData.ComplexConditionsProjectXml);
+        _existsConditionsPath = _tempDirectory.WriteFile("ExistsConditions.csproj", TestData.ExistsConditionsProjectXml);
     }
 
     [IterationSetup]
@@ -59,10 +53,7 @@ public partial class ConditionEvaluationBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, recursive: true);
-        }
+        _tempDirectory?.Dispose();
     }
 
     [Benchmark(Description = "Evaluate simple conditions", OperationsPerInvoke = 160)]
