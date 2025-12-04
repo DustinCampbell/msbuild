@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Globbing;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
@@ -136,9 +138,9 @@ namespace Microsoft.Build.Evaluation
         public string ItemSpecString { get; }
 
         /// <summary>
-        ///     The fragments that compose an item spec string (values, globs, item references)
+        ///  The fragments that compose an item spec string (e.g. values, globs, item references).
         /// </summary>
-        public List<ItemSpecFragment> Fragments { get; }
+        public ImmutableArray<ItemSpecFragment> Fragments { get; }
 
         /// <summary>
         ///     The expander needs to have a default item factory set.
@@ -170,27 +172,27 @@ namespace Microsoft.Build.Evaluation
             Fragments = BuildItemFragments(itemSpecLocation, projectDirectory, expandProperties);
         }
 
-        private List<ItemSpecFragment> BuildItemFragments(IElementLocation itemSpecLocation, string projectDirectory, bool expandProperties)
+        private ImmutableArray<ItemSpecFragment> BuildItemFragments(IElementLocation itemSpecLocation, string projectDirectory, bool expandProperties)
         {
             // Code corresponds to Evaluator.CreateItemsFromInclude
-            var evaluatedItemspecEscaped = ItemSpecString;
+            var evaluatedItemSpecEscaped = ItemSpecString;
 
-            if (string.IsNullOrEmpty(evaluatedItemspecEscaped))
+            if (string.IsNullOrEmpty(evaluatedItemSpecEscaped))
             {
-                return new List<ItemSpecFragment>();
+                return [];
             }
 
             // STEP 1: Expand properties in Include
             if (expandProperties)
             {
-                evaluatedItemspecEscaped = Expander.ExpandIntoStringLeaveEscaped(
+                evaluatedItemSpecEscaped = Expander.ExpandIntoStringLeaveEscaped(
                     ItemSpecString,
                     ExpanderOptions.ExpandProperties,
                     itemSpecLocation);
             }
 
             var semicolonCount = 0;
-            foreach (var c in evaluatedItemspecEscaped)
+            foreach (var c in evaluatedItemSpecEscaped)
             {
                 if (c == ';')
                 {
@@ -199,12 +201,12 @@ namespace Microsoft.Build.Evaluation
             }
 
             // estimate the number of fragments with the number of semicolons. This is will overestimate in case of transforms with semicolons, but won't underestimate.
-            var fragments = new List<ItemSpecFragment>(semicolonCount + 1);
+            using var fragments = new RefArrayBuilder<ItemSpecFragment>(semicolonCount + 1);
 
             // STEP 2: Split Include on any semicolons, and take each split in turn
-            if (evaluatedItemspecEscaped.Length > 0)
+            if (evaluatedItemSpecEscaped.Length > 0)
             {
-                var splitsEscaped = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedItemspecEscaped);
+                var splitsEscaped = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedItemSpecEscaped);
 
                 foreach (var splitEscaped in splitsEscaped)
                 {
@@ -250,7 +252,7 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            return fragments;
+            return fragments.ToImmutable();
         }
 
         private ItemExpressionFragment ProcessItemExpression(
@@ -312,7 +314,7 @@ namespace Microsoft.Build.Evaluation
         /// </param>
         public IEnumerable<ItemSpecFragment> FragmentsMatchingItem(string itemToMatch, out int matches)
         {
-            var result = new List<ItemSpecFragment>(Fragments.Count);
+            var result = new List<ItemSpecFragment>(Fragments.Length);
             matches = 0;
 
             foreach (var fragment in Fragments)
@@ -376,13 +378,13 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         public IMSBuildGlob ToMSBuildGlob()
         {
-            if (Fragments.Count == 1)
+            if (Fragments.Length == 1)
             {
                 // Optimize the common case, avoiding allocation of enumerable/enumerator.
                 return Fragments[0].ToMSBuildGlob();
             }
 
-            return CompositeGlob.Create(Fragments.Select(f => f.ToMSBuildGlob()));
+            return CompositeGlob.Create(Fragments.Select(static f => f.ToMSBuildGlob()));
         }
 
         /// <summary>

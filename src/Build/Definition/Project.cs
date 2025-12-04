@@ -2629,7 +2629,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (fragment is GlobFragment && fragment.TextFragment.AsSpan().IndexOfAny(s_invalidGlobChars) < 0)
                     {
-                        includeGlobFragmentsList ??= new List<ItemSpecFragment>(includeItemspec.Fragments.Count);
+                        includeGlobFragmentsList ??= new List<ItemSpecFragment>(includeItemspec.Fragments.Length);
                         includeGlobFragmentsList.Add(fragment);
                     }
                 }

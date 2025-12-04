@@ -25,7 +25,7 @@ namespace Microsoft.Build.Evaluation
                 _matchOnMetadata = builder.MatchOnMetadata.ToImmutable();
 
                 ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
-                    _matchOnMetadata.IsEmpty || _itemSpec.Fragments.All(f => f is ItemSpec<P, I>.ItemExpressionFragment),
+                    _matchOnMetadata.IsEmpty || _itemSpec.Fragments.All(static f => f is ItemSpec<P, I>.ItemExpressionFragment),
                     new BuildEventFileInfo(string.Empty),
                     "OM_MatchOnMetadataIsRestrictedToReferencedItems");
 
@@ -101,7 +101,7 @@ namespace Microsoft.Build.Evaluation
                     return builder;
                 }
 
-                var globs = _itemSpec.Fragments.OfType<GlobFragment>().Select(g => g.TextFragment);
+                var globs = _itemSpec.Fragments.OfType<GlobFragment>().Select(static g => g.TextFragment);
 
                 builder.UnionWith(globs);
 

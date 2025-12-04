@@ -116,7 +116,7 @@ namespace Microsoft.Build.Evaluation
                          && !Traits.Instance.EscapeHatches.DoNotExpandQualifiedMetadataInUpdateOperation)
                 {
                     var itemReferenceFragments = _itemSpec.Fragments.OfType<ItemSpec<P, I>.ItemExpressionFragment>().ToArray();
-                    var nonItemReferenceFragments = _itemSpec.Fragments.Where(f => !(f is ItemSpec<P, I>.ItemExpressionFragment)).ToArray();
+                    var nonItemReferenceFragments = _itemSpec.Fragments.Where(static f => f is not ItemSpec<P, I>.ItemExpressionFragment).ToArray();
 
                     _matchItemSpec = (itemSpec, item) =>
                     {
@@ -169,7 +169,7 @@ namespace Microsoft.Build.Evaluation
 
             private static bool ItemSpecContainsItemReferences(ItemSpec<P, I> itemSpec)
             {
-                return itemSpec.Fragments.Any(f => f is ItemSpec<P, I>.ItemExpressionFragment);
+                return itemSpec.Fragments.Any(static f => f is ItemSpec<P, I>.ItemExpressionFragment);
             }
         }
     }

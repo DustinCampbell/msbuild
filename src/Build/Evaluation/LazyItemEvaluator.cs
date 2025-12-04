@@ -373,8 +373,9 @@ namespace Microsoft.Build.Evaluation
                     {
                         bool addToBatch = true;
                         int i;
+
                         // The TextFragments are things like abc.def or x*y.*z.
-                        for (i = 0; i < op.Spec.Fragments.Count; i++)
+                        for (i = 0; i < op.Spec.Fragments.Length; i++)
                         {
                             ItemSpecFragment frag = op.Spec.Fragments[i];
                             if (MSBuildConstants.CharactersForExpansion.Any(frag.TextFragment.Contains))
@@ -396,6 +397,7 @@ namespace Microsoft.Build.Evaluation
                                 itemsWithNoWildcards.Add(fullPath, op);
                             }
                         }
+
                         if (!addToBatch)
                         {
                             // We found a wildcard. Remove any fragments associated with the current operation and process them later.
