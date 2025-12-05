@@ -577,7 +577,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
 
             Assert.False(expressions.MoveNext());
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("i", capture.ItemType);
             Assert.Equal("%(Meta0)", capture.Captures[0].Value);
             Assert.Equal("%(Filename)", capture.Captures[1].Value);
@@ -609,7 +609,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
                     Group transformGroup = match.Groups["TRANSFORM"];
 
-                    if (capture.Captures != null)
+                    if (capture.HasCaptures)
                     {
                         for (int i = 0; i < transformGroup.Captures.Count; i++)
                         {
@@ -658,10 +658,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.True(expressions.MoveNext());
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
-            Assert.Null(capture.Separator);
-            Assert.Null(capture.Captures);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
-            Assert.Null(capture.Captures);
+            Assert.False(capture.HasCaptures);
         }
 
         [Fact]
@@ -676,10 +675,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.True(expressions.MoveNext());
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
-            Assert.Null(capture.Captures);
             Assert.Equal(";", capture.Separator);
             Assert.Equal("Foo", capture.ItemType);
-            Assert.Null(capture.Captures);
+            Assert.False(capture.HasCaptures);
         }
 
         [Fact]
@@ -694,8 +692,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.True(expressions.MoveNext());
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
-            Assert.Single(capture.Captures);
-            Assert.Null(capture.Separator);
+            Assert.True(capture.HasCaptures);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Single(capture.Captures);
             Assert.Equal("%(Fullpath)", capture.Captures[0].Value);
@@ -733,7 +731,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Single(capture.Captures);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Single(capture.Captures);
             Assert.Equal("Bar(a,b)", capture.Captures[0].Value);
@@ -775,7 +773,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("Metadata('Meta0')", capture.Captures[0].Value);
             Assert.Equal("Metadata", capture.Captures[0].FunctionName);
@@ -867,7 +865,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Single(capture.Captures);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("$(SOMEPROP)%(Fullpath)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -887,7 +885,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -910,7 +908,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -933,7 +931,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -956,7 +954,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -979,7 +977,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -1002,7 +1000,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -1028,9 +1026,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             capture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal("Bar", firstCapture.ItemType);
-            Assert.Null(firstCapture.Captures);
+            Assert.False(firstCapture.HasCaptures);
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -1056,9 +1054,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             secondCapture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal("Bar", secondCapture.ItemType);
-            Assert.Null(secondCapture.Captures);
+            Assert.False(secondCapture.HasCaptures);
             Assert.Equal(2, firstCapture.Captures.Count);
-            Assert.Null(firstCapture.Separator);
+            Assert.False(firstCapture.HasSeparator);
             Assert.Equal("Foo", firstCapture.ItemType);
             Assert.Equal("%(Filename)", firstCapture.Captures[0].Value);
             Assert.Null(firstCapture.Captures[0].FunctionName);
@@ -1084,9 +1082,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             secondCapture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal("Bar", secondCapture.ItemType);
-            Assert.Null(secondCapture.Captures);
+            Assert.False(secondCapture.HasCaptures);
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -1112,9 +1110,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             secondCapture = expressions.Current;
             Assert.False(expressions.MoveNext());
             Assert.Equal("Bar", secondCapture.ItemType);
-            Assert.Null(secondCapture.Captures);
+            Assert.False(secondCapture.HasCaptures);
             Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
+            Assert.False(capture.HasSeparator);
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
@@ -1135,7 +1133,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             Assert.True(expressions.MoveNext());
             Assert.Equal("foo", expressions.Current.ItemType);
-            Assert.Null(expressions.Current.Separator);
+            Assert.False(expressions.Current.HasSeparator);
 
             Assert.True(expressions.MoveNext());
             Assert.Equal("foo", expressions.Current.ItemType);
@@ -1143,7 +1141,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             Assert.True(expressions.MoveNext());
             Assert.Equal("foo", expressions.Current.ItemType);
-            Assert.Null(expressions.Current.Separator);
+            Assert.False(expressions.Current.HasSeparator);
 
             Assert.True(expressions.MoveNext());
             Assert.Equal("foo", expressions.Current.ItemType);
@@ -1151,7 +1149,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             Assert.True(expressions.MoveNext());
             Assert.Equal("foo", expressions.Current.ItemType);
-            Assert.Null(expressions.Current.Separator);
+            Assert.False(expressions.Current.HasSeparator);
 
             Assert.False(expressions.MoveNext());
         }

@@ -318,7 +318,7 @@ namespace Microsoft.Build.Evaluation
                 // If the itemSpec is a single call to an item function, like @(X->Something(...)), it may get this
                 // far, but shouldn't be treated as a single reference: the item function may return entirely
                 // different results from a bare reference like @(X).
-                return capture.Captures is null;
+                return !capture.HasCaptures;
             }
         }
     }
