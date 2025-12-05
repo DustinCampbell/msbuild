@@ -2459,6 +2459,9 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
   <data name="RefArrayBuilder_Empty" xml:space="preserve">
     <value>RefArrayBuilder is empty.</value>
   </data>
+  <data name="RefStack_Empty" xml:space="preserve">
+    <value>RefStack is empty.</value>
+  </data>
   <data name="RefArrayBuilder_NoMatch" xml:space="preserve">
     <value>RefArrayBuilder does not contain matching element.</value>
   </data>

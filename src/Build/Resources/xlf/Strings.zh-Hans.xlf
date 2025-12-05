@@ -850,6 +850,11 @@
         <target state="new">RefArrayBuilder does not contain matching element.</target>
         <note />
       </trans-unit>
+      <trans-unit id="RefStack_Empty">
+        <source>RefStack is empty.</source>
+        <target state="new">RefStack is empty.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ReportFileAccessesX64Only">
         <source>Reporting file accesses is only currently supported using the x64 flavor of MSBuild.</source>
         <target state="translated">当前仅支持使用 x64 风格的 MSBuild 来报告文件访问情况。</target>
