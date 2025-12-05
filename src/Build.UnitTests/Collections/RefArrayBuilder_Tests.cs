@@ -322,6 +322,51 @@ public class RefArrayBuilder_Tests
     }
 
     [Fact]
+    public void IsEmpty_NewBuilder_ReturnsTrue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsEmpty_AfterAdd_ReturnsFalse()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.Add(1);
+
+        builder.IsEmpty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsEmpty_AfterRemovingAllElements_ReturnsTrue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.Add(1);
+        builder.RemoveAt(0);
+
+        builder.IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsEmpty_AfterSettingCountToZero_ReturnsTrue()
+    {
+        var builder = new RefArrayBuilder<int>(4);
+        try
+        {
+            builder.Add(1);
+            builder.Add(2);
+            builder.Count = 0;
+
+            builder.IsEmpty.ShouldBeTrue();
+        }
+        finally
+        {
+            builder.Dispose();
+        }
+    }
+
+    [Fact]
     public void AsSpan_ReturnsCorrectSlice()
     {
         using RefArrayBuilder<int> builder = new(4);
@@ -752,5 +797,649 @@ public class RefArrayBuilder_Tests
         {
             builder.Dispose();
         }
+    }
+
+    [Fact]
+    public void Any_EmptyBuilder_ReturnsFalse()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.Any().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Any_WithElements_ReturnsTrue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.Add(1);
+
+        builder.Any().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Any_WithPredicate_NoMatch_ReturnsFalse()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.Any(x => x > 5).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Any_WithPredicate_HasMatch_ReturnsTrue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.Any(x => x > 3).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Any_WithPredicate_EmptyBuilder_ReturnsFalse()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.Any(x => x > 0).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Any_WithPredicateAndArg_NoMatch_ReturnsFalse()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.Any(5, (x, threshold) => x > threshold).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Any_WithPredicateAndArg_HasMatch_ReturnsTrue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.Any(3, (x, threshold) => x > threshold).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Any_WithNullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.Any(null!);
+        });
+    }
+
+    [Fact]
+    public void Any_WithPredicateAndArg_NullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.Any(5, null!);
+        });
+    }
+
+    [Fact]
+    public void All_EmptyBuilder_ReturnsTrue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.All(x => x > 0).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void All_AllElementsMatch_ReturnsTrue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([2, 4, 6, 8]);
+
+        builder.All(x => x % 2 == 0).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void All_SomeElementsDontMatch_ReturnsFalse()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([2, 3, 4, 6]);
+
+        builder.All(x => x % 2 == 0).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void All_NoElementsMatch_ReturnsFalse()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 3, 5, 7]);
+
+        builder.All(x => x % 2 == 0).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void All_WithPredicateAndArg_AllMatch_ReturnsTrue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([5, 10, 15, 20]);
+
+        builder.All(5, (x, divisor) => x % divisor == 0).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void All_WithPredicateAndArg_SomeDontMatch_ReturnsFalse()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([5, 10, 12, 20]);
+
+        builder.All(5, (x, divisor) => x % divisor == 0).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void All_WithNullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.All(null!);
+        });
+    }
+
+    [Fact]
+    public void All_WithPredicateAndArg_NullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.All(5, null!);
+        });
+    }
+
+    [Fact]
+    public void First_EmptyBuilder_ThrowsInvalidOperationException()
+    {
+        Should.Throw<InvalidOperationException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+
+            return builder.First();
+        });
+    }
+
+    [Fact]
+    public void First_WithElements_ReturnsFirstElement()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.First().ShouldBe(1);
+    }
+
+    [Fact]
+    public void First_SingleElement_ReturnsThatElement()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.Add(42);
+
+        builder.First().ShouldBe(42);
+    }
+
+    [Fact]
+    public void First_WithPredicate_NoMatch_ThrowsInvalidOperationException()
+    {
+        Should.Throw<InvalidOperationException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.AddRange([1, 2, 3]);
+
+            return builder.First(x => x > 5);
+        });
+    }
+
+    [Fact]
+    public void First_WithPredicate_HasMatch_ReturnsFirstMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.First(x => x > 2).ShouldBe(3);
+    }
+
+    [Fact]
+    public void First_WithPredicate_EmptyBuilder_ThrowsInvalidOperationException()
+    {
+        Should.Throw<InvalidOperationException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+
+            return builder.First(x => x > 0);
+        });
+    }
+
+    [Fact]
+    public void First_WithPredicateAndArg_NoMatch_ThrowsInvalidOperationException()
+    {
+        Should.Throw<InvalidOperationException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.AddRange([1, 2, 3]);
+
+            return builder.First(5, (x, threshold) => x > threshold);
+        });
+    }
+
+    [Fact]
+    public void First_WithPredicateAndArg_HasMatch_ReturnsFirstMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.First(2, (x, threshold) => x > threshold).ShouldBe(3);
+    }
+
+    [Fact]
+    public void First_WithNullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.First(null!);
+        });
+    }
+
+    [Fact]
+    public void First_WithPredicateAndArg_NullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.First(5, null!);
+        });
+    }
+
+    [Fact]
+    public void FirstOrDefault_EmptyBuilder_ReturnsDefault()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.FirstOrDefault().ShouldBe(0);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithElements_ReturnsFirstElement()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.FirstOrDefault().ShouldBe(1);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithDefaultValue_EmptyBuilder_ReturnsDefaultValue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.FirstOrDefault(99).ShouldBe(99);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithDefaultValue_WithElements_ReturnsFirstElement()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.FirstOrDefault(99).ShouldBe(1);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithPredicate_NoMatch_ReturnsDefault()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.FirstOrDefault(x => x > 5).ShouldBe(0);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithPredicate_HasMatch_ReturnsFirstMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.FirstOrDefault(x => x > 2).ShouldBe(3);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithPredicateAndDefaultValue_NoMatch_ReturnsDefaultValue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.FirstOrDefault(x => x > 5, 99).ShouldBe(99);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithPredicateAndDefaultValue_HasMatch_ReturnsFirstMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.FirstOrDefault(x => x > 2, 99).ShouldBe(3);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithPredicateAndArg_NoMatch_ReturnsDefault()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.FirstOrDefault(5, (x, threshold) => x > threshold).ShouldBe(0);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithPredicateAndArg_HasMatch_ReturnsFirstMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.FirstOrDefault(2, (x, threshold) => x > threshold).ShouldBe(3);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithPredicateArgAndDefaultValue_NoMatch_ReturnsDefaultValue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.FirstOrDefault(5, (x, threshold) => x > threshold, 99).ShouldBe(99);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithPredicateArgAndDefaultValue_HasMatch_ReturnsFirstMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.FirstOrDefault(2, (x, threshold) => x > threshold, 99).ShouldBe(3);
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithNullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.FirstOrDefault(null!);
+        });
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithReferenceType_EmptyBuilder_ReturnsNull()
+    {
+        using RefArrayBuilder<string> builder = new(4);
+
+        builder.FirstOrDefault().ShouldBeNull();
+    }
+
+    [Fact]
+    public void FirstOrDefault_WithReferenceType_WithElements_ReturnsFirstElement()
+    {
+        using RefArrayBuilder<string> builder = new(4);
+        builder.AddRange(["hello", "world"]);
+
+        builder.FirstOrDefault().ShouldBe("hello");
+    }
+
+    [Fact]
+    public void Last_EmptyBuilder_ThrowsInvalidOperationException()
+    {
+        Should.Throw<InvalidOperationException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+
+            return builder.Last();
+        });
+    }
+
+    [Fact]
+    public void Last_WithElements_ReturnsLastElement()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.Last().ShouldBe(3);
+    }
+
+    [Fact]
+    public void Last_SingleElement_ReturnsThatElement()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.Add(42);
+
+        builder.Last().ShouldBe(42);
+    }
+
+    [Fact]
+    public void Last_WithPredicate_NoMatch_ThrowsInvalidOperationException()
+    {
+        Should.Throw<InvalidOperationException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.AddRange([1, 2, 3]);
+
+            return builder.Last(x => x > 5);
+        });
+    }
+
+    [Fact]
+    public void Last_WithPredicate_HasMatch_ReturnsLastMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.Last(x => x < 4).ShouldBe(3);
+    }
+
+    [Fact]
+    public void Last_WithPredicate_EmptyBuilder_ThrowsInvalidOperationException()
+    {
+        Should.Throw<InvalidOperationException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+
+            return builder.Last(x => x > 0);
+        });
+    }
+
+    [Fact]
+    public void Last_WithPredicateAndArg_NoMatch_ThrowsInvalidOperationException()
+    {
+        Should.Throw<InvalidOperationException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.AddRange([1, 2, 3]);
+
+            return builder.Last(5, (x, threshold) => x > threshold);
+        });
+    }
+
+    [Fact]
+    public void Last_WithPredicateAndArg_HasMatch_ReturnsLastMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.Last(3, (x, threshold) => x < threshold).ShouldBe(2);
+    }
+
+    [Fact]
+    public void Last_WithNullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.Last(null!);
+        });
+    }
+
+    [Fact]
+    public void Last_WithPredicateAndArg_NullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.Last(5, null!);
+        });
+    }
+
+    [Fact]
+    public void LastOrDefault_EmptyBuilder_ReturnsDefault()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.LastOrDefault().ShouldBe(0);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithElements_ReturnsLastElement()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.LastOrDefault().ShouldBe(3);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithDefaultValue_EmptyBuilder_ReturnsDefaultValue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.LastOrDefault(99).ShouldBe(99);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithDefaultValue_WithElements_ReturnsLastElement()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.LastOrDefault(99).ShouldBe(3);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithPredicate_NoMatch_ReturnsDefault()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.LastOrDefault(x => x > 5).ShouldBe(0);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithPredicate_HasMatch_ReturnsLastMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.LastOrDefault(x => x < 4).ShouldBe(3);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithPredicateAndDefaultValue_NoMatch_ReturnsDefaultValue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.LastOrDefault(x => x > 5, 99).ShouldBe(99);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithPredicateAndDefaultValue_HasMatch_ReturnsLastMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.LastOrDefault(x => x < 4, 99).ShouldBe(3);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithPredicateAndArg_NoMatch_ReturnsDefault()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.LastOrDefault(5, (x, threshold) => x > threshold).ShouldBe(0);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithPredicateAndArg_HasMatch_ReturnsLastMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.LastOrDefault(3, (x, threshold) => x < threshold).ShouldBe(2);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithPredicateArgAndDefaultValue_NoMatch_ReturnsDefaultValue()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+
+        builder.LastOrDefault(5, (x, threshold) => x > threshold, 99).ShouldBe(99);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithPredicateArgAndDefaultValue_HasMatch_ReturnsLastMatch()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.LastOrDefault(3, (x, threshold) => x < threshold, 99).ShouldBe(2);
+    }
+
+    [Fact]
+    public void LastOrDefault_WithNullPredicate_ThrowsArgumentNullException()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+        {
+            using RefArrayBuilder<int> builder = new(4);
+            builder.Add(1);
+
+            return builder.LastOrDefault(null!);
+        });
+    }
+
+    [Fact]
+    public void LastOrDefault_WithReferenceType_EmptyBuilder_ReturnsNull()
+    {
+        using RefArrayBuilder<string> builder = new(4);
+
+        builder.LastOrDefault().ShouldBeNull();
+    }
+
+    [Fact]
+    public void LastOrDefault_WithReferenceType_WithElements_ReturnsLastElement()
+    {
+        using RefArrayBuilder<string> builder = new(4);
+        builder.AddRange(["hello", "world"]);
+
+        builder.LastOrDefault().ShouldBe("world");
     }
 }

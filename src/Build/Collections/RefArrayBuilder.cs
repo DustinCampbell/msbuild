@@ -1,11 +1,14 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+// This code is adapted from https://github.com/dotnet/runtime/blob/284c0ae38e3eac0f6ad5cdaa0156d22fc6fc3915/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/ValueListBuilder.cs.
+
 using System;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Collections;
 
@@ -21,7 +24,7 @@ internal ref struct RefArrayBuilder<T>
     private int _count;
 
     /// <summary>
-    ///  Initializes a new instance of the <see cref="RefArrayBuilder{T}"/> with the specified initial capacity.
+    ///  Initializes a new instance of the <see cref="RefArrayBuilder{T}"/> struct with the specified initial capacity.
     /// </summary>
     /// <param name="initialCapacity">The initial capacity of the builder.</param>
     public RefArrayBuilder(int initialCapacity)
@@ -30,9 +33,12 @@ internal ref struct RefArrayBuilder<T>
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RefArrayBuilder{T}"/> with the specified initial buffer.
+    /// Initializes a new instance of the <see cref="RefArrayBuilder{T}"/> struct with the specified scratch buffer.
     /// </summary>
     /// <param name="scratchBuffer">The initial buffer to use for storing elements.</param>
+    /// <remarks>
+    ///  <paramref name="scratchBuffer"/> should generally be stack-allocated to avoid heap allocations.
+    /// </remarks>
     public RefArrayBuilder(Span<T> scratchBuffer)
     {
         _span = scratchBuffer;
@@ -55,6 +61,29 @@ internal ref struct RefArrayBuilder<T>
         }
     }
 
+    private static void ReturnToPool(T[] toReturn, int count)
+    {
+#if NET
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        {
+            toReturn.AsSpan(0, count).Clear();
+        }
+#else
+        if (!typeof(T).IsPrimitive)
+        {
+            Array.Clear(toReturn, 0, count);
+        }
+#endif
+
+        ArrayPool<T>.Shared.Return(toReturn);
+    }
+
+    /// <summary>
+    ///  Gets a value indicating whether the builder contains no elements.
+    /// </summary>
+    /// <value>
+    ///  <see langword="true"/> if the builder contains no elements; otherwise, <see langword="false"/>.
+    /// </value>
     public readonly bool IsEmpty => _count == 0;
 
     /// <summary>
@@ -65,8 +94,8 @@ internal ref struct RefArrayBuilder<T>
         readonly get => _count;
         set
         {
-            Debug.Assert(value >= 0);
-            Debug.Assert(value <= _span.Length);
+            Debug.Assert(value >= 0, "Count must be non-negative.");
+            Debug.Assert(value <= _span.Length, "Count must not exceed the span length.");
 
             _count = value;
         }
@@ -81,7 +110,7 @@ internal ref struct RefArrayBuilder<T>
     {
         get
         {
-            Debug.Assert(index < _count);
+            Debug.Assert(index < _count, "Index must be less than Count.");
 
             return ref _span[index];
         }
@@ -126,7 +155,7 @@ internal ref struct RefArrayBuilder<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void AddWithResize(T item)
     {
-        Debug.Assert(_count == _span.Length);
+        Debug.Assert(_count == _span.Length, "AddWithResize should only be called when the span is full.");
 
         int count = _count;
 
@@ -180,8 +209,8 @@ internal ref struct RefArrayBuilder<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Insert(int index, T item)
     {
-        Debug.Assert(index >= 0);
-        Debug.Assert(index <= _count);
+        Debug.Assert(index >= 0, "Insert index must be non-negative.");
+        Debug.Assert(index <= _count, "Insert index must not exceed Count.");
 
         int count = _count;
         Span<T> span = _span;
@@ -205,7 +234,7 @@ internal ref struct RefArrayBuilder<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void InsertWithResize(int index, T item)
     {
-        Debug.Assert(_count == _span.Length);
+        Debug.Assert(_count == _span.Length, "InsertWithResize should only be called when the span is full.");
 
         Grow(size: 1, startIndex: index);
 
@@ -221,8 +250,8 @@ internal ref struct RefArrayBuilder<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void InsertRange(int index, scoped ReadOnlySpan<T> source)
     {
-        Debug.Assert(index >= 0);
-        Debug.Assert(index <= _count);
+        Debug.Assert(index >= 0, "Insert index must be non-negative.");
+        Debug.Assert(index <= _count, "Insert index must not exceed Count.");
 
         int count = _count;
         Span<T> span = _span;
@@ -258,46 +287,10 @@ internal ref struct RefArrayBuilder<T>
         _count = count + source.Length;
     }
 
-    /// <summary>
-    ///  Removes the element at the specified index, shifting subsequent elements.
-    /// </summary>
-    /// <param name="index">The zero-based index of the element to remove.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RemoveAt(int index)
-    {
-        Debug.Assert(index >= 0);
-        Debug.Assert(index < _count);
-
-        int count = _count;
-        Span<T> span = _span;
-
-        // Shift subsequent elements down by one
-        int toCopy = count - index - 1;
-        if (toCopy > 0)
-        {
-            span.Slice(index + 1, toCopy).CopyTo(span.Slice(index, toCopy));
-        }
-
-        // Clear the last element if it contains references
-#if NET
-        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-        {
-            span[count - 1] = default!;
-        }
-#else
-        if (!typeof(T).IsPrimitive)
-        {
-            span[count - 1] = default!;
-        }
-#endif
-
-        _count = count - 1;
-    }
-
     private void Grow(int size = 1, int startIndex = -1)
     {
-        Debug.Assert(startIndex >= -1);
-        Debug.Assert(startIndex <= _count);
+        Debug.Assert(startIndex >= -1, "Start index must be -1 or non-negative.");
+        Debug.Assert(startIndex <= _count, "Start index must not exceed Count.");
 
         const int ArrayMaxLength = 0x7FFFFFC7; // Same as Array.MaxLength;
 
@@ -326,7 +319,7 @@ internal ref struct RefArrayBuilder<T>
         }
         else
         {
-            var destination = newArray.AsSpan();
+            Span<T> destination = newArray.AsSpan();
 
             if (startIndex > 0)
             {
@@ -346,21 +339,40 @@ internal ref struct RefArrayBuilder<T>
         }
     }
 
-    private static void ReturnToPool(T[] toReturn, int count)
+    /// <summary>
+    ///  Removes the element at the specified index, shifting subsequent elements.
+    /// </summary>
+    /// <param name="index">The zero-based index of the element to remove.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void RemoveAt(int index)
     {
+        Debug.Assert(index >= 0, "Remove index must be non-negative.");
+        Debug.Assert(index < _count, "Remove index must be less than Count.");
+
+        int count = _count;
+        Span<T> span = _span;
+
+        // Shift subsequent elements down by one
+        int toCopy = count - index - 1;
+        if (toCopy > 0)
+        {
+            span.Slice(index + 1, toCopy).CopyTo(span.Slice(index, toCopy));
+        }
+
+        // Clear the last element if it contains references
 #if NET
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
         {
-            toReturn.AsSpan(0, count).Clear();
+            span[count - 1] = default!;
         }
 #else
         if (!typeof(T).IsPrimitive)
         {
-            Array.Clear(toReturn, 0, count);
+            span[count - 1] = default!;
         }
 #endif
 
-        ArrayPool<T>.Shared.Return(toReturn);
+        _count = count - 1;
     }
 
     /// <summary>
@@ -369,4 +381,492 @@ internal ref struct RefArrayBuilder<T>
     /// <returns>An immutable array containing the elements.</returns>
     public readonly ImmutableArray<T> ToImmutable()
         => ImmutableArray.Create(AsSpan());
+
+    /// <summary>
+    ///  Determines whether the builder contains any elements.
+    /// </summary>
+    /// <returns>
+    ///  <see langword="true"/> if the builder contains any elements; otherwise, <see langword="false"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool Any()
+        => !IsEmpty;
+
+    /// <summary>
+    ///  Determines whether any element in the builder satisfies a condition.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>
+    ///  <see langword="true"/> if any element satisfies the condition; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool Any(Func<T, bool> predicate)
+    {
+        ErrorUtilities.VerifyThrowArgumentNull(predicate);
+
+        foreach (T item in AsSpan())
+        {
+            if (predicate(item))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///  Determines whether any element in the builder satisfies a condition using an additional argument.
+    /// </summary>
+    /// <typeparam name="TArg">The type of the additional argument.</typeparam>
+    /// <param name="arg">The additional argument to pass to the predicate.</param>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>
+    ///  <see langword="true"/> if any element satisfies the condition; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool Any<TArg>(TArg arg, Func<T, TArg, bool> predicate)
+    {
+        ErrorUtilities.VerifyThrowArgumentNull(predicate);
+
+        foreach (T item in AsSpan())
+        {
+            if (predicate(item, arg))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///  Determines whether all elements in the builder satisfy a condition.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>
+    ///  <see langword="true"/> if all elements satisfy the condition; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool All(Func<T, bool> predicate)
+    {
+        ErrorUtilities.VerifyThrowArgumentNull(predicate);
+
+        foreach (T item in AsSpan())
+        {
+            if (!predicate(item))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///  Determines whether all elements in the builder satisfy a condition using an additional argument.
+    /// </summary>
+    /// <typeparam name="TArg">The type of the additional argument.</typeparam>
+    /// <param name="arg">The additional argument to pass to the predicate.</param>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>
+    ///  <see langword="true"/> if all elements satisfy the condition; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool All<TArg>(TArg arg, Func<T, TArg, bool> predicate)
+    {
+        ErrorUtilities.VerifyThrowArgumentNull(predicate);
+
+        foreach (T item in AsSpan())
+        {
+            if (!predicate(item, arg))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///  Returns the first element in the builder.
+    /// </summary>
+    /// <returns>The first element in the builder.</returns>
+    /// <exception cref="InvalidOperationException">The builder is empty.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T First()
+    {
+        T? first = TryGetFirst(out bool found);
+
+        if (!found)
+        {
+            ErrorUtilities.ThrowInvalidOperation("RefArrayBuilder_Empty");
+        }
+
+        return first!;
+    }
+
+    /// <summary>
+    ///  Returns the first element in the builder that satisfies a condition.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>The first element that satisfies the condition.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">No element satisfies the condition.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T First(Func<T, bool> predicate)
+    {
+        T? first = TryGetFirst(predicate, out bool found);
+
+        if (!found)
+        {
+            ErrorUtilities.ThrowInvalidOperation("RefArrayBuilder_NoMatch");
+        }
+
+        return first!;
+    }
+
+    /// <summary>
+    ///  Returns the first element in the builder that satisfies a condition using an additional argument.
+    /// </summary>
+    /// <typeparam name="TArg">The type of the additional argument.</typeparam>
+    /// <param name="arg">The additional argument to pass to the predicate.</param>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>The first element that satisfies the condition.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">No element satisfies the condition.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T First<TArg>(TArg arg, Func<T, TArg, bool> predicate)
+    {
+        T? first = TryGetFirst(predicate, arg, out bool found);
+
+        if (!found)
+        {
+            ErrorUtilities.ThrowInvalidOperation("RefArrayBuilder_NoMatch");
+        }
+
+        return first!;
+    }
+
+    /// <summary>
+    ///  Returns the first element in the builder, or a default value if the builder is empty.
+    /// </summary>
+    /// <returns>The first element in the builder, or <see langword="default"/>(<typeparamref name="T"/>) if the builder is empty.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T? FirstOrDefault()
+        => TryGetFirst(out _);
+
+    /// <summary>
+    ///  Returns the first element in the builder, or a specified default value if the builder is empty.
+    /// </summary>
+    /// <param name="defaultValue">The default value to return if the builder is empty.</param>
+    /// <returns>
+    ///  The first element in the builder, or <paramref name="defaultValue"/> if the builder is empty.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T FirstOrDefault(T defaultValue)
+    {
+        T? first = TryGetFirst(out bool found);
+        return found ? first! : defaultValue;
+    }
+
+    /// <summary>
+    ///  Returns the first element that satisfies a condition, or a default value if no such element is found.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>
+    ///  The first element that satisfies the condition, or <see langword="default"/>(<typeparamref name="T"/>) if no such element is found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T? FirstOrDefault(Func<T, bool> predicate)
+        => TryGetFirst(predicate, out _);
+
+    /// <summary>
+    ///  Returns the first element that satisfies a condition, or a specified default value if no such element is found.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <param name="defaultValue">The default value to return if no element satisfies the condition.</param>
+    /// <returns>
+    ///  The first element that satisfies the condition, or <paramref name="defaultValue"/> if no such element is found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T FirstOrDefault(Func<T, bool> predicate, T defaultValue)
+    {
+        T? first = TryGetFirst(predicate, out bool found);
+        return found ? first! : defaultValue;
+    }
+
+    /// <summary>
+    ///  Returns the first element that satisfies a condition using an additional argument, or a default value if no such element is found.
+    /// </summary>
+    /// <typeparam name="TArg">The type of the additional argument.</typeparam>
+    /// <param name="arg">The additional argument to pass to the predicate.</param>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>
+    ///  The first element that satisfies the condition, or <see langword="default"/>(<typeparamref name="T"/>) if no such element is found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T? FirstOrDefault<TArg>(TArg arg, Func<T, TArg, bool> predicate)
+        => TryGetFirst(predicate, arg, out _);
+
+    /// <summary>
+    ///  Returns the first element that satisfies a condition using an additional argument, or a specified default value if no such element is found.
+    /// </summary>
+    /// <typeparam name="TArg">The type of the additional argument.</typeparam>
+    /// <param name="arg">The additional argument to pass to the predicate.</param>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <param name="defaultValue">The default value to return if no element satisfies the condition.</param>
+    /// <returns>
+    ///  The first element that satisfies the condition, or <paramref name="defaultValue"/> if no such element is found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T FirstOrDefault<TArg>(TArg arg, Func<T, TArg, bool> predicate, T defaultValue)
+    {
+        T? first = TryGetFirst(predicate, arg, out bool found);
+        return found ? first! : defaultValue;
+    }
+
+    /// <summary>
+    ///  Returns the last element in the builder.
+    /// </summary>
+    /// <returns>The last element in the builder.</returns>
+    /// <exception cref="InvalidOperationException">The builder is empty.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T Last()
+    {
+        T? last = TryGetLast(out bool found);
+
+        if (!found)
+        {
+            ErrorUtilities.ThrowInvalidOperation("RefArrayBuilder_Empty");
+        }
+
+        return last!;
+    }
+
+    /// <summary>
+    ///  Returns the last element in the builder that satisfies a condition.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>The last element that satisfies the condition.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">No element satisfies the condition.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T Last(Func<T, bool> predicate)
+    {
+        T? last = TryGetLast(predicate, out bool found);
+
+        if (!found)
+        {
+            ErrorUtilities.ThrowInvalidOperation("RefArrayBuilder_NoMatch");
+        }
+
+        return last!;
+    }
+
+    /// <summary>
+    ///  Returns the last element in the builder that satisfies a condition using an additional argument.
+    /// </summary>
+    /// <typeparam name="TArg">The type of the additional argument.</typeparam>
+    /// <param name="arg">The additional argument to pass to the predicate.</param>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>The last element that satisfies the condition.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">No element satisfies the condition.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T Last<TArg>(TArg arg, Func<T, TArg, bool> predicate)
+    {
+        T? last = TryGetLast(predicate, arg, out bool found);
+
+        if (!found)
+        {
+            ErrorUtilities.ThrowInvalidOperation("RefArrayBuilder_NoMatch");
+        }
+
+        return last!;
+    }
+
+    /// <summary>
+    ///  Returns the last element in the builder, or a default value if the builder is empty.
+    /// </summary>
+    /// <returns>The last element in the builder, or <see langword="default"/>(<typeparamref name="T"/>) if the builder is empty.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T? LastOrDefault()
+        => TryGetLast(out _);
+
+    /// <summary>
+    ///  Returns the last element in the builder, or a specified default value if the builder is empty.
+    /// </summary>
+    /// <param name="defaultValue">The default value to return if the builder is empty.</param>
+    /// <returns>
+    ///  The last element in the builder, or <paramref name="defaultValue"/> if the builder is empty.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T LastOrDefault(T defaultValue)
+    {
+        T? last = TryGetLast(out bool found);
+        return found ? last! : defaultValue;
+    }
+
+    /// <summary>
+    ///  Returns the last element that satisfies a condition, or a default value if no such element is found.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>
+    ///  The last element that satisfies the condition, or <see langword="default"/>(<typeparamref name="T"/>) if no such element is found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T? LastOrDefault(Func<T, bool> predicate)
+        => TryGetLast(predicate, out _);
+
+    /// <summary>
+    ///  Returns the last element that satisfies a condition, or a specified default value if no such element is found.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <param name="defaultValue">The default value to return if no element satisfies the condition.</param>
+    /// <returns>
+    ///  The last element that satisfies the condition, or <paramref name="defaultValue"/> if no such element is found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T LastOrDefault(Func<T, bool> predicate, T defaultValue)
+    {
+        T? last = TryGetLast(predicate, out bool found);
+        return found ? last! : defaultValue;
+    }
+
+    /// <summary>
+    ///  Returns the last element that satisfies a condition using an additional argument, or a default value if no such element is found.
+    /// </summary>
+    /// <typeparam name="TArg">The type of the additional argument.</typeparam>
+    /// <param name="arg">The additional argument to pass to the predicate.</param>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <returns>
+    ///  The last element that satisfies the condition, or <see langword="default"/>(<typeparamref name="T"/>) if no such element is found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T? LastOrDefault<TArg>(TArg arg, Func<T, TArg, bool> predicate)
+        => TryGetLast(predicate, arg, out _);
+
+    /// <summary>
+    ///  Returns the last element that satisfies a condition using an additional argument, or a specified default value if no such element is found.
+    /// </summary>
+    /// <typeparam name="TArg">The type of the additional argument.</typeparam>
+    /// <param name="arg">The additional argument to pass to the predicate.</param>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <param name="defaultValue">The default value to return if no element satisfies the condition.</param>
+    /// <returns>
+    ///  The last element that satisfies the condition, or <paramref name="defaultValue"/> if no such element is found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly T LastOrDefault<TArg>(TArg arg, Func<T, TArg, bool> predicate, T defaultValue)
+    {
+        T? last = TryGetLast(predicate, arg, out bool found);
+        return found ? last! : defaultValue;
+    }
+
+    private readonly T? TryGetFirst(out bool found)
+    {
+        if (!IsEmpty)
+        {
+            found = true;
+            return _span[0];
+        }
+
+        found = false;
+        return default;
+    }
+
+    private readonly T? TryGetFirst(Func<T, bool> predicate, out bool found)
+    {
+        ErrorUtilities.VerifyThrowArgumentNull(predicate);
+
+        foreach (T item in AsSpan())
+        {
+            if (predicate(item))
+            {
+                found = true;
+                return item;
+            }
+        }
+
+        found = false;
+        return default;
+    }
+
+    private readonly T? TryGetFirst<TArg>(Func<T, TArg, bool> predicate, TArg arg, out bool found)
+    {
+        ErrorUtilities.VerifyThrowArgumentNull(predicate);
+
+        foreach (T item in AsSpan())
+        {
+            if (predicate(item, arg))
+            {
+                found = true;
+                return item;
+            }
+        }
+
+        found = false;
+        return default;
+    }
+
+    private readonly T? TryGetLast(out bool found)
+    {
+        if (!IsEmpty)
+        {
+            found = true;
+            return _span[_count - 1];
+        }
+
+        found = false;
+        return default;
+    }
+
+    private readonly T? TryGetLast(Func<T, bool> predicate, out bool found)
+    {
+        ErrorUtilities.VerifyThrowArgumentNull(predicate);
+
+        for (int i = _count - 1; i >= 0; i--)
+        {
+            T item = _span[i];
+            if (predicate(item))
+            {
+                found = true;
+                return item;
+            }
+        }
+
+        found = false;
+        return default;
+    }
+
+    private readonly T? TryGetLast<TArg>(Func<T, TArg, bool> predicate, TArg arg, out bool found)
+    {
+        ErrorUtilities.VerifyThrowArgumentNull(predicate);
+
+        for (int i = _count - 1; i >= 0; i--)
+        {
+            T item = _span[i];
+            if (predicate(item, arg))
+            {
+                found = true;
+                return item;
+            }
+        }
+
+        found = false;
+        return default;
+    }
 }
