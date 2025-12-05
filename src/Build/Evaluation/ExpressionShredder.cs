@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 
@@ -177,11 +179,9 @@ namespace Microsoft.Build.Evaluation
                         {
                             int startQuoted = startTransform + 1;
                             int endQuoted = currentIndex - 1;
-                            if (transformExpressions == null)
-                            {
-                                // PERF: Almost all expressions have only one capture, so optimize for that case
-                                transformExpressions = new List<ItemExpressionCapture>(1);
-                            }
+
+                            // PERF: Almost all expressions have only one capture, so optimize for that case
+                            transformExpressions ??= new List<ItemExpressionCapture>(1);
 
                             transformExpressions.Add(new ItemExpressionCapture(startQuoted, endQuoted - startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
                             SinkWhitespace(expression, ref currentIndex);
@@ -192,11 +192,8 @@ namespace Microsoft.Build.Evaluation
                         ItemExpressionCapture? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref currentIndex, end);
                         if (functionCapture != null)
                         {
-                            if (transformExpressions == null)
-                            {
-                                // PERF: Almost all expressions have only one capture, so optimize for that case
-                                transformExpressions = new List<ItemExpressionCapture>(1);
-                            }
+                            // PERF: Almost all expressions have only one capture, so optimize for that case
+                            transformExpressions ??= new List<ItemExpressionCapture>(1);
 
                             transformExpressions.Add(functionCapture.Value);
                             SinkWhitespace(expression, ref currentIndex);
@@ -258,7 +255,14 @@ namespace Microsoft.Build.Evaluation
                     // Create an expression capture that encompasses the entire expression between the @( and the )
                     // with the item name and any separator contained within it
                     // and each transform expression contained within it (i.e. each ->XYZ)
-                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(startPoint, endPoint - startPoint, Microsoft.NET.StringTools.Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), itemName, separator, separatorStart, transformExpressions);
+                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(
+                        startPoint,
+                        endPoint - startPoint,
+                        Microsoft.NET.StringTools.Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)),
+                        itemName,
+                        separator,
+                        separatorStart,
+                        transformExpressions);
 
                     Current = expressionCapture;
                     ++currentIndex;
@@ -623,7 +627,7 @@ namespace Microsoft.Build.Evaluation
                         functionArguments = Microsoft.NET.StringTools.Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                     }
 
-                    ItemExpressionCapture capture = new ItemExpressionCapture(startTransform, i - startTransform, expression.Substring(startTransform, i - startTransform), null, null, -1, null, functionName, functionArguments);
+                    ItemExpressionCapture capture = new ItemExpressionCapture(startTransform, i - startTransform, expression.Substring(startTransform, i - startTransform), functionName, functionArguments);
 
                     return capture;
                 }
@@ -707,47 +711,12 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
+#nullable enable
         /// <summary>
         /// Represents one substring for a single successful capture.
         /// </summary>
-        internal struct ItemExpressionCapture
+        internal readonly struct ItemExpressionCapture
         {
-            /// <summary>
-            /// Create an Expression Capture instance
-            /// Represents a sub expression, shredded from a larger expression
-            /// </summary>
-            public ItemExpressionCapture(int index, int length, string subExpression)
-                : this(index, length, subExpression, null, null, -1, null, null, null)
-            {
-            }
-
-            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures)
-                : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
-            {
-            }
-
-            /// <summary>
-            /// Create an Expression Capture instance
-            /// Represents a sub expression, shredded from a larger expression
-            /// </summary>
-            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures, string functionName, string functionArguments)
-            {
-                Index = index;
-                Length = length;
-                Value = subExpression;
-                ItemType = itemType;
-                Separator = separator;
-                SeparatorStart = separatorStart;
-                Captures = captures;
-                FunctionName = functionName;
-                FunctionArguments = functionArguments;
-            }
-
-            /// <summary>
-            /// Captures within this capture
-            /// </summary>
-            public List<ItemExpressionCapture> Captures { get; }
-
             /// <summary>
             /// The position in the original string where the first character of the captured
             /// substring was found.
@@ -767,12 +736,12 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             /// Gets the captured itemtype.
             /// </summary>
-            public string ItemType { get; }
+            public string? ItemType { get; }
 
             /// <summary>
             /// Gets the captured itemtype.
             /// </summary>
-            public string Separator { get; }
+            public string? Separator { get; }
 
             /// <summary>
             /// The starting character of the separator.
@@ -780,14 +749,75 @@ namespace Microsoft.Build.Evaluation
             public int SeparatorStart { get; }
 
             /// <summary>
-            /// The function name, if any, within this expression
+            /// Captures within this capture.
             /// </summary>
-            public string FunctionName { get; }
+            public List<ItemExpressionCapture>? Captures { get; }
 
             /// <summary>
-            /// The function arguments, if any, within this expression
+            /// The function name, if any, within this expression.
             /// </summary>
-            public string FunctionArguments { get; }
+            public string? FunctionName { get; }
+
+            /// <summary>
+            /// The function arguments, if any, within this expression.
+            /// </summary>
+            public string? FunctionArguments { get; }
+
+            [MemberNotNullWhen(true, nameof(Separator))]
+            public bool HasSeparator => Separator != null && SeparatorStart >= 0;
+
+            [MemberNotNullWhen(true, nameof(Captures))]
+            public bool HasCaptures => Captures != null && Captures.Count > 0;
+
+            /// <summary>
+            /// Create an Expression Capture instance
+            /// Represents a sub expression, shredded from a larger expression.
+            /// </summary>
+            private ItemExpressionCapture(
+                int index,
+                int length,
+                string subExpression,
+                string? itemType,
+                string? separator,
+                int separatorStart,
+                List<ItemExpressionCapture>? captures,
+                string? functionName,
+                string? functionArguments)
+            {
+                Debug.Assert(index >= 0);
+                Debug.Assert(length >= 0);
+                Debug.Assert(captures is null || captures.Count > 0);
+                Debug.Assert((separator is null && separatorStart == -1) || (separator != null && separatorStart >= 0));
+
+                Index = index;
+                Length = length;
+                Value = subExpression;
+                ItemType = itemType;
+                Separator = separator;
+                SeparatorStart = separatorStart;
+                Captures = captures;
+                FunctionName = functionName;
+                FunctionArguments = functionArguments;
+            }
+
+            /// <summary>
+            /// Create an Expression Capture instance
+            /// Represents a sub expression, shredded from a larger expression.
+            /// </summary>
+            public ItemExpressionCapture(int index, int length, string subExpression)
+                : this(index, length, subExpression, null, null, -1, null, null, null)
+            {
+            }
+
+            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures)
+                : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
+            {
+            }
+
+            public ItemExpressionCapture(int index, int length, string subExpression, string functionName, string? functionArguments)
+                : this(index, length, subExpression, null, null, -1, null, functionName, functionArguments)
+            {
+            }
 
             /// <summary>
             /// Gets the captured substring from the input string.

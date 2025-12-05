@@ -1038,7 +1038,7 @@ namespace Microsoft.Build.Evaluation
                             else
                             {
                                 // There is only one item. Check to see if we're in the common case.
-                                if (firstItemExpressionCapture.Value == expression && firstItemExpressionCapture.Separator == null)
+                                if (firstItemExpressionCapture.Value == expression && !firstItemExpressionCapture.HasSeparator)
                                 {
                                     // The most common case is where the transform is the whole expression
                                     // Also if there were no valid item vector expressions found, then go ahead and do the replacement on
@@ -1093,7 +1093,7 @@ namespace Microsoft.Build.Evaluation
                     RegularExpressions.ReplaceAndAppend(subExpressionToReplaceIn, MetadataMatchEvaluator.ExpandSingleMetadata, matchEvaluator, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
 
                     // Expand any metadata that appears in the item vector expression's separator
-                    if (itemExpressionCapture.Separator != null)
+                    if (itemExpressionCapture.HasSeparator)
                     {
                         RegularExpressions.ReplaceAndAppend(itemExpressionCapture.Value, MetadataMatchEvaluator.ExpandSingleMetadata, matchEvaluator, -1, itemExpressionCapture.SeparatorStart, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
                     }
@@ -2136,7 +2136,7 @@ namespace Microsoft.Build.Evaluation
 
 
                 IList<T> result;
-                if (expressionCapture.Separator != null)
+                if (expressionCapture.HasSeparator)
                 {
                     // Reference contains a separator, for example @(Compile, ';').
                     // We need to flatten the list into
@@ -2298,7 +2298,7 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
 
-                if (expressionCapture.Separator != null)
+                if (expressionCapture.HasSeparator)
                 {
                     var joinedItems = string.Join(expressionCapture.Separator, itemsFromCapture.Select(i => i.Key));
                     itemsFromCapture.Clear();
