@@ -317,16 +317,19 @@ namespace Microsoft.Build.Evaluation
             private static OrderedItemDataCollection.Builder ComputeItems(LazyItemList lazyItemList, ImmutableHashSet<string> globsToIgnore)
             {
                 // Stack of operations up to the first one that's cached (exclusive)
-                Stack<LazyItemList> itemListStack = new Stack<LazyItemList>();
+                using RefStack<LazyItemList> itemListStack = new();
 
                 OrderedItemDataCollection.Builder items = null;
 
                 // Keep a separate stack of lists of globs to ignore that only gets modified for Remove operations
-                Stack<ImmutableHashSet<string>> globsToIgnoreStack = null;
+                using RefStack<ImmutableHashSet<string>> globsToIgnoreStack = new();
 
                 for (var currentList = lazyItemList; currentList != null; currentList = currentList._previous)
                 {
-                    var globsToIgnoreFromFutureOperations = globsToIgnoreStack?.Peek() ?? globsToIgnore;
+                    if (!globsToIgnoreStack.TryPeek(out var globsToIgnoreFromFutureOperations))
+                    {
+                        globsToIgnoreFromFutureOperations = globsToIgnore;
+                    }
 
                     OrderedItemDataCollection itemsFromCache;
                     if (currentList._memoizedOperation.TryGetFromCache(globsToIgnoreFromFutureOperations, out itemsFromCache))
@@ -340,8 +343,6 @@ namespace Microsoft.Build.Evaluation
                     //  to a list of globs to ignore in previous operations
                     if (currentList._memoizedOperation.Operation is RemoveOperation removeOperation)
                     {
-                        globsToIgnoreStack ??= new Stack<ImmutableHashSet<string>>();
-
                         var globsToIgnoreForPreviousOperations = removeOperation.GetRemovedGlobs();
                         foreach (var globToRemove in globsToIgnoreFromFutureOperations)
                         {
@@ -359,16 +360,17 @@ namespace Microsoft.Build.Evaluation
                     items = OrderedItemDataCollection.CreateBuilder();
                 }
 
-                ImmutableHashSet<string> currentGlobsToIgnore = globsToIgnoreStack == null ? globsToIgnore : globsToIgnoreStack.Peek();
+                if (!globsToIgnoreStack.TryPeek(out var currentGlobsToIgnore))
+                {
+                    currentGlobsToIgnore = globsToIgnore;
+                }
 
                 Dictionary<string, UpdateOperation> itemsWithNoWildcards = new Dictionary<string, UpdateOperation>(StringComparer.OrdinalIgnoreCase);
                 bool addedToBatch = false;
 
                 // Walk back down the stack of item lists applying operations
-                while (itemListStack.Count > 0)
+                while (itemListStack.TryPop(out var currentList))
                 {
-                    var currentList = itemListStack.Pop();
-
                     if (currentList._memoizedOperation.Operation is UpdateOperation op)
                     {
                         bool addToBatch = true;
@@ -423,8 +425,12 @@ namespace Microsoft.Build.Evaluation
                     //  modified entry off the stack of globs to ignore
                     if (currentList._memoizedOperation.Operation is RemoveOperation)
                     {
-                        globsToIgnoreStack.Pop();
-                        currentGlobsToIgnore = globsToIgnoreStack.Count == 0 ? globsToIgnore : globsToIgnoreStack.Peek();
+                        _ = globsToIgnoreStack.Pop();
+
+                        if (!globsToIgnoreStack.TryPeek(out currentGlobsToIgnore))
+                        {
+                            currentGlobsToIgnore = globsToIgnore;
+                        }
                     }
 
                     currentList._memoizedOperation.Apply(items, currentGlobsToIgnore);
