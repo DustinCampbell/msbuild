@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 #if NET
@@ -1921,7 +1922,7 @@ namespace Microsoft.Build.Evaluation
                     IElementLocation elementLocation,
                     ExpanderOptions options,
                     bool includeNullEntries,
-                    List<ExpressionShredder.ItemExpressionCapture> captures,
+                    ImmutableArray<ExpressionShredder.ItemExpressionCapture> captures,
                     ICollection<S> itemsOfType,
                     out bool brokeEarly)
                 where S : class, IItem
@@ -1933,7 +1934,7 @@ namespace Microsoft.Build.Evaluation
 
                 // Create a TransformFunction for each transform in the chain by extracting the relevant information
                 // from the regex parsing results
-                for (int i = 0; i < captures.Count; i++)
+                for (int i = 0; i < captures.Length; i++)
                 {
                     ExpressionShredder.ItemExpressionCapture capture = captures[i];
                     string function = capture.Value;
@@ -2031,7 +2032,7 @@ namespace Microsoft.Build.Evaluation
                     }
 
                     // If we have another transform, swap the source and transform lists.
-                    if (i < captures.Count - 1)
+                    if (i < captures.Length - 1)
                     {
                         (transformedItems, sourceItems) = (sourceItems, transformedItems);
                         transformedItems.Clear();
@@ -2246,27 +2247,23 @@ namespace Microsoft.Build.Evaluation
                 isTransformExpression = false;
 
                 ICollection<S> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
-                List<ExpressionShredder.ItemExpressionCapture> captures = expressionCapture.Captures;
 
-                // If there are no items of the given type, then bail out early
+                // If there are no items of the given type, then bail out early...
                 if (itemsOfType.Count == 0)
                 {
-                    // ... but only if there isn't a function "Count", since that will want to return something (zero) for an empty list
-                    if (captures?.Any(capture => string.Equals(capture.FunctionName, "Count", StringComparison.OrdinalIgnoreCase)) != true)
+                    // ...but only if there aren't any captures - OR - if there are captures,7
+                    // but none of them is a "Count" function (which will want to return zero for an empty list)
+                    // or an "AnyHaveMetadataValue" function (which will want to return false for an empty list).
+                    if (!expressionCapture.HasCaptures ||
+                        !expressionCapture.Captures.Any(static capture => string.Equals(capture.FunctionName, "Count", StringComparison.OrdinalIgnoreCase) ||
+                                                                          string.Equals(capture.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
                     {
-                        // ...or a function "AnyHaveMetadataValue", since that will want to return false for an empty list.
-                        if (captures?.Any(capture => string.Equals(capture.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)) != true)
-                        {
-                            itemsFromCapture = null;
-                            return false;
-                        }
+                        itemsFromCapture = null;
+                        return false;
                     }
                 }
 
-                if (captures != null)
-                {
-                    isTransformExpression = true;
-                }
+                isTransformExpression = expressionCapture.HasCaptures;
 
                 if (!isTransformExpression)
                 {
@@ -2287,8 +2284,10 @@ namespace Microsoft.Build.Evaluation
                 }
                 else
                 {
+                    var captures = expressionCapture.Captures;
+
                     // There's something wrong with the expression, and we ended up with no function names
-                    ProjectErrorUtilities.VerifyThrowInvalidProject(captures.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
+                    ProjectErrorUtilities.VerifyThrowInvalidProject(captures.Length > 0, elementLocation, "InvalidFunctionPropertyExpression");
 
                     itemsFromCapture = Transform(expander, elementLocation, options, includeNullEntries, captures, itemsOfType, out bool brokeEarly);
 
