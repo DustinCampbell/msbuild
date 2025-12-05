@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 
@@ -166,7 +168,9 @@ namespace Microsoft.Build.Evaluation
 
                     SinkWhitespace(expression, ref currentIndex);
                     bool transformOrFunctionFound = true;
-                    List<ItemExpressionCapture> transformExpressions = null;
+
+                    // PERF: Almost all expressions have only one capture, so optimize for that case
+                    using RefArrayBuilder<ItemExpressionCapture> transformExpressions = new(1);
 
                     // If there's an '->' eat it and the subsequent quoted expression or transform function
                     while (Sink(expression, ref currentIndex, end, '-', '>') && transformOrFunctionFound)
@@ -180,9 +184,6 @@ namespace Microsoft.Build.Evaluation
                             int startQuoted = startTransform + 1;
                             int endQuoted = currentIndex - 1;
 
-                            // PERF: Almost all expressions have only one capture, so optimize for that case
-                            transformExpressions ??= new List<ItemExpressionCapture>(1);
-
                             transformExpressions.Add(new ItemExpressionCapture(startQuoted, endQuoted - startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
@@ -192,9 +193,6 @@ namespace Microsoft.Build.Evaluation
                         ItemExpressionCapture? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref currentIndex, end);
                         if (functionCapture != null)
                         {
-                            // PERF: Almost all expressions have only one capture, so optimize for that case
-                            transformExpressions ??= new List<ItemExpressionCapture>(1);
-
                             transformExpressions.Add(functionCapture.Value);
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
@@ -262,7 +260,7 @@ namespace Microsoft.Build.Evaluation
                         itemName,
                         separator,
                         separatorStart,
-                        transformExpressions);
+                        transformExpressions.ToImmutable());
 
                     Current = expressionCapture;
                     ++currentIndex;
@@ -717,6 +715,8 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal readonly struct ItemExpressionCapture
         {
+            private readonly ItemExpressionCapture[]? _captures;
+
             /// <summary>
             /// The position in the original string where the first character of the captured
             /// substring was found.
@@ -751,7 +751,8 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             /// Captures within this capture.
             /// </summary>
-            public List<ItemExpressionCapture>? Captures { get; }
+            public ImmutableArray<ItemExpressionCapture> Captures
+                => ImmutableCollectionsMarshal.AsImmutableArray(_captures);
 
             /// <summary>
             /// The function name, if any, within this expression.
@@ -767,7 +768,7 @@ namespace Microsoft.Build.Evaluation
             public bool HasSeparator => Separator != null && SeparatorStart >= 0;
 
             [MemberNotNullWhen(true, nameof(Captures))]
-            public bool HasCaptures => Captures != null && Captures.Count > 0;
+            public bool HasCaptures => _captures != null && _captures.Length > 0;
 
             /// <summary>
             /// Create an Expression Capture instance
@@ -780,13 +781,12 @@ namespace Microsoft.Build.Evaluation
                 string? itemType,
                 string? separator,
                 int separatorStart,
-                List<ItemExpressionCapture>? captures,
+                ImmutableArray<ItemExpressionCapture> captures,
                 string? functionName,
                 string? functionArguments)
             {
                 Debug.Assert(index >= 0);
                 Debug.Assert(length >= 0);
-                Debug.Assert(captures is null || captures.Count > 0);
                 Debug.Assert((separator is null && separatorStart == -1) || (separator != null && separatorStart >= 0));
 
                 Index = index;
@@ -795,7 +795,7 @@ namespace Microsoft.Build.Evaluation
                 ItemType = itemType;
                 Separator = separator;
                 SeparatorStart = separatorStart;
-                Captures = captures;
+                _captures = ImmutableCollectionsMarshal.AsArray(captures);
                 FunctionName = functionName;
                 FunctionArguments = functionArguments;
             }
@@ -805,17 +805,17 @@ namespace Microsoft.Build.Evaluation
             /// Represents a sub expression, shredded from a larger expression.
             /// </summary>
             public ItemExpressionCapture(int index, int length, string subExpression)
-                : this(index, length, subExpression, null, null, -1, null, null, null)
+                : this(index, length, subExpression, null, null, -1, default, null, null)
             {
             }
 
-            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures)
+            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string? separator, int separatorStart, ImmutableArray<ItemExpressionCapture> captures)
                 : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
             {
             }
 
             public ItemExpressionCapture(int index, int length, string subExpression, string functionName, string? functionArguments)
-                : this(index, length, subExpression, null, null, -1, null, functionName, functionArguments)
+                : this(index, length, subExpression, null, null, -1, default, functionName, functionArguments)
             {
             }
 
