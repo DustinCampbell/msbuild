@@ -840,6 +840,16 @@
         <target state="translated">MSB4274: Zakázání uzlu inproc způsobí snížení výkonu při používání modulů plug-in mezipaměti projektu, které vysílají žádosti o sestavení proxy serveru.</target>
         <note />
       </trans-unit>
+      <trans-unit id="RefArrayBuilder_Empty">
+        <source>RefArrayBuilder is empty.</source>
+        <target state="new">RefArrayBuilder is empty.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefArrayBuilder_NoMatch">
+        <source>RefArrayBuilder does not contain matching element.</source>
+        <target state="new">RefArrayBuilder does not contain matching element.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ReportFileAccessesX64Only">
         <source>Reporting file accesses is only currently supported using the x64 flavor of MSBuild.</source>
         <target state="translated">Přístupy k souborům sestav se v současné době podporují jenom pomocí varianty x64 nástroje MSBuild.</target>
