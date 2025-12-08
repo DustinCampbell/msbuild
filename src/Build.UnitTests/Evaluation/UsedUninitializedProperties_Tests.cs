@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Engine.UnitTests;
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.UnitTests;
 
 using Xunit;
 
-namespace Microsoft.Build.Evaluation;
+namespace Microsoft.Build.UnitTests.Evaluation;
 
 public sealed class UsedUninitializedProperties_Tests
 {

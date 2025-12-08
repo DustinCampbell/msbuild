@@ -10,117 +10,116 @@ using Xunit;
 
 #nullable disable
 
-namespace Microsoft.Build.Engine.UnitTests.Evaluation
+namespace Microsoft.Build.UnitTests.Evaluation;
+
+public class SimpleProjectRootElementCache_Tests : IDisposable
 {
-    public class SimpleProjectRootElementCache_Tests : IDisposable
+    public SimpleProjectRootElementCache_Tests()
     {
-        public SimpleProjectRootElementCache_Tests()
+        // Empty the cache
+        ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
+    }
+
+    public void Dispose()
+    {
+        // Empty the cache
+        ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
+    }
+
+    [Fact]
+    public void Get_GivenCachedProjectFile_ReturnsRootElement()
+    {
+        string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
+        string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
+        ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
+
+        var cache = new SimpleProjectRootElementCache();
+        cache.AddEntry(rootElementToCache);
+
+        ProjectRootElement actualRootElement = cache.Get(projectFile, null, false, null);
+        actualRootElement.ShouldBe(rootElementToCache);
+    }
+
+    [Fact]
+    public void Get_GivenCachedProjectFileWithDifferentCasing_ReturnsRootElement()
+    {
+        string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
+        string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/Foo" : "c:\\Foo";
+        ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
+
+        var cache = new SimpleProjectRootElementCache();
+        cache.AddEntry(rootElementToCache);
+
+        ProjectRootElement actualRootElement = cache.Get(projectFile, null, false, null);
+        actualRootElement.ShouldBe(rootElementToCache);
+    }
+
+    [Fact]
+    public void Get_GivenOpenFuncWhichAddsRootElement_ReturnsRootElement()
+    {
+        string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
+        string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
+        ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
+        ProjectRootElement OpenFunc(string pathArg, ProjectRootElementCacheBase cacheArg)
         {
-            // Empty the cache
-            ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
+            return rootElementToCache;
         }
 
-        public void Dispose()
+        var cache = new SimpleProjectRootElementCache();
+        cache.AddEntry(rootElementToCache);
+
+        ProjectRootElement actualRootElement = cache.Get(projectFile, OpenFunc, false, null);
+        actualRootElement.ShouldBe(rootElementToCache);
+    }
+
+    [Fact]
+    public void Get_GivenOpenFuncWhichAddsRootElementWithDifferentCasing_ReturnsRootElement()
+    {
+        string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
+        string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/Foo" : "c:\\Foo";
+        ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
+        ProjectRootElement OpenFunc(string pathArg, ProjectRootElementCacheBase cacheArg)
         {
-            // Empty the cache
-            ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
+            return rootElementToCache;
         }
 
-        [Fact]
-        public void Get_GivenCachedProjectFile_ReturnsRootElement()
+        var cache = new SimpleProjectRootElementCache();
+        cache.AddEntry(rootElementToCache);
+
+        ProjectRootElement actualRootElement = cache.Get(projectFile, OpenFunc, false, null);
+        actualRootElement.ShouldBe(rootElementToCache);
+    }
+
+    [Fact]
+    public void Get_GivenOpenFuncWhichReturnsNull_ThrowsInternalErrorException()
+    {
+        string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
+        ProjectRootElement OpenFunc(string pathArg, ProjectRootElementCacheBase cacheArg) => null;
+
+        var cache = new SimpleProjectRootElementCache();
+
+        Should.Throw<InternalErrorException>(() =>
         {
-            string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
-            string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
-            ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
+            cache.Get(projectFile, OpenFunc, false, null);
+        });
+    }
 
-            var cache = new SimpleProjectRootElementCache();
-            cache.AddEntry(rootElementToCache);
-
-            ProjectRootElement actualRootElement = cache.Get(projectFile, null, false, null);
-            actualRootElement.ShouldBe(rootElementToCache);
+    [Fact]
+    public void Get_GivenOpenFuncWhichReturnsIncorrectProject_ThrowsInternalErrorException()
+    {
+        string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
+        string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/bar" : "c:\\bar";
+        ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
+        ProjectRootElement OpenFunc(string pathArg, ProjectRootElementCacheBase cacheArg)
+        {
+            return rootElementToCache;
         }
 
-        [Fact]
-        public void Get_GivenCachedProjectFileWithDifferentCasing_ReturnsRootElement()
+        var cache = new SimpleProjectRootElementCache();
+
+        Should.Throw<InternalErrorException>(() =>
         {
-            string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
-            string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/Foo" : "c:\\Foo";
-            ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
-
-            var cache = new SimpleProjectRootElementCache();
-            cache.AddEntry(rootElementToCache);
-
-            ProjectRootElement actualRootElement = cache.Get(projectFile, null, false, null);
-            actualRootElement.ShouldBe(rootElementToCache);
-        }
-
-        [Fact]
-        public void Get_GivenOpenFuncWhichAddsRootElement_ReturnsRootElement()
-        {
-            string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
-            string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
-            ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
-            ProjectRootElement OpenFunc(string pathArg, ProjectRootElementCacheBase cacheArg)
-            {
-                return rootElementToCache;
-            }
-
-            var cache = new SimpleProjectRootElementCache();
-            cache.AddEntry(rootElementToCache);
-
-            ProjectRootElement actualRootElement = cache.Get(projectFile, OpenFunc, false, null);
-            actualRootElement.ShouldBe(rootElementToCache);
-        }
-
-        [Fact]
-        public void Get_GivenOpenFuncWhichAddsRootElementWithDifferentCasing_ReturnsRootElement()
-        {
-            string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
-            string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/Foo" : "c:\\Foo";
-            ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
-            ProjectRootElement OpenFunc(string pathArg, ProjectRootElementCacheBase cacheArg)
-            {
-                return rootElementToCache;
-            }
-
-            var cache = new SimpleProjectRootElementCache();
-            cache.AddEntry(rootElementToCache);
-
-            ProjectRootElement actualRootElement = cache.Get(projectFile, OpenFunc, false, null);
-            actualRootElement.ShouldBe(rootElementToCache);
-        }
-
-        [Fact]
-        public void Get_GivenOpenFuncWhichReturnsNull_ThrowsInternalErrorException()
-        {
-            string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
-            ProjectRootElement OpenFunc(string pathArg, ProjectRootElementCacheBase cacheArg) => null;
-
-            var cache = new SimpleProjectRootElementCache();
-
-            Should.Throw<InternalErrorException>(() =>
-            {
-                cache.Get(projectFile, OpenFunc, false, null);
-            });
-        }
-
-        [Fact]
-        public void Get_GivenOpenFuncWhichReturnsIncorrectProject_ThrowsInternalErrorException()
-        {
-            string projectFile = NativeMethodsShared.IsUnixLike ? "/foo" : "c:\\foo";
-            string projectFileToCache = NativeMethodsShared.IsUnixLike ? "/bar" : "c:\\bar";
-            ProjectRootElement rootElementToCache = ProjectRootElement.Create(projectFileToCache);
-            ProjectRootElement OpenFunc(string pathArg, ProjectRootElementCacheBase cacheArg)
-            {
-                return rootElementToCache;
-            }
-
-            var cache = new SimpleProjectRootElementCache();
-
-            Should.Throw<InternalErrorException>(() =>
-            {
-                cache.Get(projectFile, OpenFunc, false, null);
-            });
-        }
+            cache.Get(projectFile, OpenFunc, false, null);
+        });
     }
 }

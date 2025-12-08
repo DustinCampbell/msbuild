@@ -12,128 +12,128 @@ using Shouldly;
 using Xunit;
 using Xunit.NetCore.Extensions;
 
-namespace Microsoft.Build.Engine.UnitTests.Evaluation
+namespace Microsoft.Build.UnitTests.Evaluation;
+
+[UseInvariantCulture]
+public class IntrinsicFunctionOverload_Tests
 {
-    [UseInvariantCulture]
-    public class IntrinsicFunctionOverload_Tests
+    [Fact]
+    public void MSBuildAddInteger()
     {
-        [Fact]
-        public void MSBuildAddInteger()
-        {
-            const string projectContent = @"
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Add($([System.Int64]::MaxValue), 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = unchecked(long.MaxValue + 1).ToString();
+        string expected = unchecked(long.MaxValue + 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildAddIntegerGreaterThanMax()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildAddIntegerGreaterThanMax()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Add(9223372036854775808, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MaxValue + 1D) + 1).ToString();
+        string expected = ((long.MaxValue + 1D) + 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildAddIntegerLessThanMin()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildAddIntegerLessThanMin()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Add(-9223372036854775809, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MinValue - 1D) + 1).ToString();
+        string expected = ((long.MinValue - 1D) + 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildAddReal()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildAddReal()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Add(1.0, 2.0))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = 3.0.ToString();
+        string expected = 3.0.ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildSubtractInteger()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildSubtractInteger()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Subtract($([System.Int64]::MaxValue), 9223372036854775806))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = 1.ToString();
+        string expected = 1.ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void FileExists_WhenFileExists_ReturnsTrue()
-        {          
-            using TestEnvironment env = TestEnvironment.Create();
+    [Fact]
+    public void FileExists_WhenFileExists_ReturnsTrue()
+    {          
+        using TestEnvironment env = TestEnvironment.Create();
 
-            string testFilePath = Path.Combine(env.DefaultTestDirectory.Path, "TestFile.txt");
-            File.WriteAllText(testFilePath, "Test content");
+        string testFilePath = Path.Combine(env.DefaultTestDirectory.Path, "TestFile.txt");
+        File.WriteAllText(testFilePath, "Test content");
 
-            string projectContent = $@"
+        string projectContent = $@"
                 <Project>
                     <PropertyGroup>
                         <TestFilePath>{testFilePath.Replace(@"\", @"\\")}</TestFilePath>
@@ -141,17 +141,17 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
                     </PropertyGroup>
                 </Project>";
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
 
-            ProjectProperty actualProperty = project.GetProperty("FileExists");
-            actualProperty.EvaluatedValue.ShouldBe("True");
-        }
+        ProjectProperty actualProperty = project.GetProperty("FileExists");
+        actualProperty.EvaluatedValue.ShouldBe("True");
+    }
 
-        [Fact]
-        public void FileExists_WhenFileDoesNotExist_ReturnsFalse()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void FileExists_WhenFileDoesNotExist_ReturnsFalse()
+    {
+        const string projectContent = @"
             <Project>
                 <PropertyGroup>
                     <TestFilePath>NonExistentFile.txt</TestFilePath>
@@ -159,22 +159,22 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
                 </PropertyGroup>
             </Project>";
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
 
-            ProjectProperty actualProperty = project.GetProperty("FileExists");
-            actualProperty.EvaluatedValue.ShouldBe("False");
-        }
+        ProjectProperty actualProperty = project.GetProperty("FileExists");
+        actualProperty.EvaluatedValue.ShouldBe("False");
+    }
 
-        [Fact]
-        public void SystemIODirectoryExists_WhenDirectoryExists_ReturnsTrue()
-        {
-            using TestEnvironment env = TestEnvironment.Create();
-            string testDirPath = Path.Combine(env.DefaultTestDirectory.Path, "TestDir");
+    [Fact]
+    public void SystemIODirectoryExists_WhenDirectoryExists_ReturnsTrue()
+    {
+        using TestEnvironment env = TestEnvironment.Create();
+        string testDirPath = Path.Combine(env.DefaultTestDirectory.Path, "TestDir");
 
-            Directory.CreateDirectory(testDirPath);
+        Directory.CreateDirectory(testDirPath);
 
-            string projectContent = $@"
+        string projectContent = $@"
                 <Project>
                     <PropertyGroup>
                         <TestDirPath>{testDirPath.Replace(@"\", @"\\")}</TestDirPath>
@@ -182,17 +182,17 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
                     </PropertyGroup>
                 </Project>";
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
 
-            ProjectProperty actualProperty = project.GetProperty("DirExists");
-            actualProperty.EvaluatedValue.ShouldBe("True");
-        }
+        ProjectProperty actualProperty = project.GetProperty("DirExists");
+        actualProperty.EvaluatedValue.ShouldBe("True");
+    }
 
-        [Fact]
-        public void SystemIODirectoryExists_WhenDirectoryDoesNotExist_ReturnsFalse()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void SystemIODirectoryExists_WhenDirectoryDoesNotExist_ReturnsFalse()
+    {
+        const string projectContent = @"
             <Project>
                 <PropertyGroup>
                     <TestDirPath>TestDir</TestDirPath>
@@ -200,22 +200,22 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
                 </PropertyGroup>
             </Project>";
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
 
-            ProjectProperty actualProperty = project.GetProperty("DirExists");
-            actualProperty.EvaluatedValue.ShouldBe("False");
-        }
+        ProjectProperty actualProperty = project.GetProperty("DirExists");
+        actualProperty.EvaluatedValue.ShouldBe("False");
+    }
 
-        [Fact]
-        public void DirectoryExists_WhenDirectoryExists_ReturnsTrue()
-        {
-            using TestEnvironment env = TestEnvironment.Create();
-            string testDirPath = Path.Combine(env.DefaultTestDirectory.Path, "TestDir");
+    [Fact]
+    public void DirectoryExists_WhenDirectoryExists_ReturnsTrue()
+    {
+        using TestEnvironment env = TestEnvironment.Create();
+        string testDirPath = Path.Combine(env.DefaultTestDirectory.Path, "TestDir");
 
-            Directory.CreateDirectory(testDirPath);
+        Directory.CreateDirectory(testDirPath);
 
-            string projectContent = $@"
+        string projectContent = $@"
             <Project>
                 <PropertyGroup>
                     <TestDirPath>{testDirPath.Replace(@"\", @"\\")}</TestDirPath>
@@ -223,17 +223,17 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
                 </PropertyGroup>
             </Project>";
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
 
-            ProjectProperty actualProperty = project.GetProperty("DirExists");
-            actualProperty.EvaluatedValue.ShouldBe("True");
-        }
+        ProjectProperty actualProperty = project.GetProperty("DirExists");
+        actualProperty.EvaluatedValue.ShouldBe("True");
+    }
 
-        [Fact]
-        public void DirectoryExists_WhenDirectoryDoesNotExists_ReturnsFalse()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void DirectoryExists_WhenDirectoryDoesNotExists_ReturnsFalse()
+    {
+        const string projectContent = @"
             <Project>
                 <PropertyGroup>
                     <TestDirPath>TestDir</TestDirPath>
@@ -241,341 +241,341 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
                 </PropertyGroup>
             </Project>";
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
 
-            ProjectProperty actualProperty = project.GetProperty("DirExists");
-            actualProperty.EvaluatedValue.ShouldBe("False");
-        }
+        ProjectProperty actualProperty = project.GetProperty("DirExists");
+        actualProperty.EvaluatedValue.ShouldBe("False");
+    }
 
-        [Fact]
-        public void MSBuildSubtractIntegerGreaterThanMax()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildSubtractIntegerGreaterThanMax()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Subtract(9223372036854775808, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MaxValue + 1D) - 1).ToString();
+        string expected = ((long.MaxValue + 1D) - 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildSubtractIntegerLessThanMin()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildSubtractIntegerLessThanMin()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Subtract(-9223372036854775809, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MinValue - 1D) - 1).ToString();
+        string expected = ((long.MinValue - 1D) - 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildSubtractReal()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildSubtractReal()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Subtract(2.0, 1.0))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = 1.0.ToString();
+        string expected = 1.0.ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildMultiplyInteger()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildMultiplyInteger()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Multiply($([System.Int64]::MaxValue), 2))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = unchecked(long.MaxValue * 2).ToString();
+        string expected = unchecked(long.MaxValue * 2).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildMultiplyIntegerGreaterThanMax()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildMultiplyIntegerGreaterThanMax()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Multiply(9223372036854775808, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MaxValue + 1D) * 1).ToString();
+        string expected = ((long.MaxValue + 1D) * 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildMultiplyIntegerLessThanMin()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildMultiplyIntegerLessThanMin()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Multiply(-9223372036854775809, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MinValue - 1D) * 1).ToString();
+        string expected = ((long.MinValue - 1D) * 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildMultiplyReal()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildMultiplyReal()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Multiply(2.0, 1.0))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = 2.0.ToString();
+        string expected = 2.0.ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildDivideInteger()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildDivideInteger()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Divide(10, 3))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = (10 / 3).ToString();
+        string expected = (10 / 3).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildDivideIntegerGreaterThanMax()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildDivideIntegerGreaterThanMax()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Divide(9223372036854775808, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MaxValue + 1D) / 1).ToString();
+        string expected = ((long.MaxValue + 1D) / 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildDivideIntegerLessThanMin()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildDivideIntegerLessThanMin()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Divide(-9223372036854775809, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MinValue - 1D) / 1).ToString();
+        string expected = ((long.MinValue - 1D) / 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildDivideReal()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildDivideReal()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Divide(1, 0.5))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = 2.0.ToString();
+        string expected = 2.0.ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildModuloInteger()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildModuloInteger()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Modulo(10, 3))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = 1.ToString();
+        string expected = 1.ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildModuloIntegerGreaterThanMax()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildModuloIntegerGreaterThanMax()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Modulo(9223372036854775808, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MaxValue + 1D) % 1).ToString();
+        string expected = ((long.MaxValue + 1D) % 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildModuloIntegerLessThanMin()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildModuloIntegerLessThanMin()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Modulo(-9223372036854775809, 1))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = ((long.MinValue - 1D) % 1).ToString();
+        string expected = ((long.MinValue - 1D) % 1).ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void MSBuildModuloReal()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void MSBuildModuloReal()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <Actual>$([MSBuild]::Modulo(11.0, 2.5))</Actual>
                         </PropertyGroup>
                     </Project>";
 
-            string expected = 1.ToString();
+        string expected = 1.ToString();
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            ChangeWaves.ResetStateForTests();
+        ChangeWaves.ResetStateForTests();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Actual");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Actual");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
+    }
 
-        [Fact]
-        public void SystemUriEscapeDataString()
-        {
-            const string projectContent = @"
+    [Fact]
+    public void SystemUriEscapeDataString()
+    {
+        const string projectContent = @"
                     <Project>
                         <PropertyGroup>
                             <TestInput>hello world &amp; friends</TestInput>
@@ -583,14 +583,13 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
                         </PropertyGroup>
                     </Project>";
 
-            string expected = Uri.EscapeDataString("hello world & friends");
+        string expected = Uri.EscapeDataString("hello world & friends");
 
-            using TestEnvironment env = TestEnvironment.Create();
+        using TestEnvironment env = TestEnvironment.Create();
 
-            using ProjectFromString projectFromString = new(projectContent.Cleanup());
-            Project project = projectFromString.Project;
-            ProjectProperty? actualProperty = project.GetProperty("Escaped");
-            actualProperty.EvaluatedValue.ShouldBe(expected);
-        }
+        using ProjectFromString projectFromString = new(projectContent.Cleanup());
+        Project project = projectFromString.Project;
+        ProjectProperty? actualProperty = project.GetProperty("Escaped");
+        actualProperty.EvaluatedValue.ShouldBe(expected);
     }
 }
