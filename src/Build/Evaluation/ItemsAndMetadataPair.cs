@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
-
-#nullable disable
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.Build.Collections;
 
 namespace Microsoft.Build.Evaluation
 {
@@ -12,61 +12,37 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal struct ItemsAndMetadataPair
     {
-        /// <summary>
-        /// The item set
-        /// </summary>
-        private HashSet<string> _items;
+        private HashSet<string>? _items;
+        private Dictionary<string, MetadataReference>? _metadata;
 
         /// <summary>
-        /// The metadata dictionary.
-        /// The key is the possibly qualified metadata name, for example
-        /// "EmbeddedResource.Culture" or "Culture"
+        /// Gets the item set.
         /// </summary>
-        private Dictionary<string, MetadataReference> _metadata;
-
-        /// <summary>
-        /// Constructs a pair from an item set and metadata
-        /// </summary>
-        /// <param name="items">The item set</param>
-        /// <param name="metadata">The metadata dictionary</param>
-        internal ItemsAndMetadataPair(HashSet<string> items, Dictionary<string, MetadataReference> metadata)
-        {
-            _items = items;
-            _metadata = metadata;
-        }
-
-        /// <summary>
-        /// Gets or sets the item set
-        /// </summary>
-        internal HashSet<string> Items
-        {
-            readonly get
-            {
-                return _items;
-            }
-
-            set
-            {
-                _items = value;
-            }
-        }
+        public readonly HashSet<string>? Items => _items;
 
         /// <summary>
         /// Gets or sets the metadata dictionary
         /// The key is the possibly qualified metadata name, for example
-        /// "EmbeddedResource.Culture" or "Culture"
+        /// "EmbeddedResource.Culture" or "Culture".
         /// </summary>
-        internal Dictionary<string, MetadataReference> Metadata
-        {
-            readonly get
-            {
-                return _metadata;
-            }
+        public Dictionary<string, MetadataReference>? Metadata => _metadata;
 
-            set
-            {
-                _metadata = value;
-            }
+        [MemberNotNullWhen(true, nameof(_items), nameof(Items))]
+        public readonly bool HasItems => _items?.Count > 0;
+
+        [MemberNotNullWhen(true, nameof(_metadata), nameof(Metadata))]
+        public readonly bool HasMetadata => _metadata?.Count > 0;
+
+        public void AddItem(string value)
+        {
+            _items ??= new HashSet<string>(MSBuildNameIgnoreCaseComparer.Default);
+            _items.Add(value);
+        }
+
+        public void AddMetadata(string key, MetadataReference metadata)
+        {
+            _metadata ??= new Dictionary<string, MetadataReference>(MSBuildNameIgnoreCaseComparer.Default);
+            _metadata[key] = metadata;
         }
     }
 }

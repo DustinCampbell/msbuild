@@ -1,8 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation
 {
     /// <summary>
@@ -11,29 +9,22 @@ namespace Microsoft.Build.Evaluation
     /// "EmbeddedResource" is the item name, and "Culture" is the metadata name.
     /// The item name is optional.
     /// </summary>
-    internal struct MetadataReference
+    internal readonly struct MetadataReference
     {
         /// <summary>
-        /// The item name
+        /// The item name.
         /// </summary>
-        internal string ItemName;       // Could be null if the %(...) is not qualified with an item name.
+        internal string? ItemName { get; } // Could be null if the %(...) is not qualified with an item name.
 
         /// <summary>
-        /// The metadata name
+        /// The metadata name.
         /// </summary>
-        internal string MetadataName;
+        internal string MetadataName { get; }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="itemName">Name of the item</param>
-        /// <param name="metadataName">Name of the metadata</param>
-        internal MetadataReference(
-            string itemName,
-            string metadataName)
+        internal MetadataReference(string? itemName, string metadataName)
         {
-            this.ItemName = itemName;
-            this.MetadataName = metadataName;
+            ItemName = itemName;
+            MetadataName = metadataName;
         }
     }
 }

@@ -70,13 +70,13 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal static ItemsAndMetadataPair GetReferencedItemNamesAndMetadata(IReadOnlyList<string> expressions)
         {
-            ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
+            ItemsAndMetadataPair pair = default;
 
             // PERF: Use for to avoid boxing expressions enumerator
             for (int i = 0; i < expressions.Count; i++)
             {
                 string expression = expressions[i];
-                GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.All);
+                GetReferencedItemNamesAndMetadata(expression, ref pair, ShredderOptions.All);
             }
 
             return pair;
@@ -87,24 +87,20 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal static bool ContainsMetadataExpressionOutsideTransform(string expression)
         {
-            ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
+            ItemsAndMetadataPair pair = default;
 
-            GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.MetadataOutsideTransforms);
+            GetReferencedItemNamesAndMetadata(expression, ref pair, ShredderOptions.MetadataOutsideTransforms);
 
-            bool result = (pair.Metadata?.Count > 0);
-
-            return result;
+            return pair.HasMetadata;
         }
 
         /// <summary>
         /// Given a subexpression, finds referenced sub transform expressions
         /// itemName and separator will be null if they are not found
-        /// return value will be null if no transform expressions are found
+        /// return value will be null if no transform expressions are found.
         /// </summary>
         internal static ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression)
-        {
-            return GetReferencedItemExpressions(expression, 0, expression.Length);
-        }
+            => GetReferencedItemExpressions(expression, 0, expression.Length);
 
         internal struct ReferencedItemExpressionsEnumerator
         {
@@ -279,10 +275,8 @@ namespace Microsoft.Build.Evaluation
         /// itemName and separator will be null if they are not found
         /// return value will be null if no transform expressions are found
         /// </summary>
-        internal static ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression, int start, int end)
-        {
-            return new ReferencedItemExpressionsEnumerator(expression, start, end);
-        }
+        private static ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression, int start, int end)
+            => new(expression, start, end);
 
         /// <summary>
         /// Given a subexpression, finds referenced item names and inserts them into the table
@@ -291,7 +285,17 @@ namespace Microsoft.Build.Evaluation
         /// <remarks>
         /// We can ignore any semicolons in the expression, since we're not itemizing it.
         /// </remarks>
-        internal static void GetReferencedItemNamesAndMetadata(string expression, int start, int end, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
+        internal static void GetReferencedItemNamesAndMetadata(string expression, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
+            => GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, whatToShredFor);
+
+        /// <summary>
+        /// Given a subexpression, finds referenced item names and inserts them into the table
+        /// as K=Name, V=String.Empty.
+        /// </summary>
+        /// <remarks>
+        /// We can ignore any semicolons in the expression, since we're not itemizing it.
+        /// </remarks>
+        private static void GetReferencedItemNamesAndMetadata(string expression, int start, int end, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
         {
             for (int i = start; i < end; i++)
             {
@@ -402,8 +406,7 @@ namespace Microsoft.Build.Evaluation
                     // well formed, so make sure the name's in the table
                     if ((whatToShredFor & ShredderOptions.ItemTypes) != 0)
                     {
-                        pair.Items ??= new HashSet<string>(MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Items.Add(expression.Substring(startOfName, nameLength));
+                        pair.AddItem(expression.Substring(startOfName, nameLength));
                     }
 
                     i--;
@@ -471,8 +474,7 @@ namespace Microsoft.Build.Evaluation
 
                     if ((whatToShredFor & ShredderOptions.MetadataOutsideTransforms) != 0)
                     {
-                        pair.Metadata ??= new Dictionary<string, MetadataReference>(MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, metadataName);
+                        pair.AddMetadata(qualifiedMetadataName, new MetadataReference(itemName, metadataName));
                     }
 
                     i--;

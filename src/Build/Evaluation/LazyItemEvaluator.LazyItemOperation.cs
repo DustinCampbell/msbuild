@@ -272,29 +272,22 @@ namespace Microsoft.Build.Evaluation
 
             protected bool NeedToExpandMetadataForEachItem(ImmutableArray<ProjectMetadataElement> metadata, out ItemsAndMetadataPair itemsAndMetadataFound)
             {
-                itemsAndMetadataFound = new ItemsAndMetadataPair(null, null);
+                itemsAndMetadataFound = default;
 
                 foreach (var metadataElement in metadata)
                 {
                     string expression = metadataElement.Value;
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
 
                     expression = metadataElement.Condition;
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
                 }
 
-                bool needToExpandMetadataForEachItem = false;
-
-                if (itemsAndMetadataFound.Metadata?.Values.Count > 0)
-                {
-                    // If there is any metadata present, we need to expand items individually.
-                    // This ensures correct results for:
-                    // - Built-in metadata expressions (like %(FileName)) which vary between items
-                    // - Custom metadata when item list references are involved
-                    needToExpandMetadataForEachItem = true;
-                }
-
-                return needToExpandMetadataForEachItem;
+                // If there is any metadata present, we need to expand items individually.
+                // This ensures correct results for:
+                // - Built-in metadata expressions (like %(FileName)) which vary between items
+                // - Custom metadata when item list references are involved
+                return itemsAndMetadataFound.HasMetadata;
             }
 
             /// <summary>

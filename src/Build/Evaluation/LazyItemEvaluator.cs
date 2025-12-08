@@ -639,7 +639,7 @@ namespace Microsoft.Build.Evaluation
             {
                 operationBuilder.Metadata.AddRange(itemElement.Metadata);
 
-                ItemsAndMetadataPair itemsAndMetadataFound = new ItemsAndMetadataPair(null, null);
+                ItemsAndMetadataPair itemsAndMetadataFound = default;
 
                 // Since we're just attempting to expand properties in order to find referenced items and not expanding metadata,
                 // unexpected errors may occur when evaluating property functions on unexpanded metadata. Just ignore them if that happens.
@@ -652,17 +652,17 @@ namespace Microsoft.Build.Evaluation
                         expanderOptions,
                         metadatumElement.Location);
 
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
 
                     expression = _expander.ExpandIntoStringLeaveEscaped(
                         metadatumElement.Condition,
                         expanderOptions,
                         metadatumElement.ConditionLocation);
 
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
                 }
 
-                if (itemsAndMetadataFound.Items != null)
+                if (itemsAndMetadataFound.HasItems)
                 {
                     foreach (var itemType in itemsAndMetadataFound.Items)
                     {

@@ -151,7 +151,7 @@ namespace Microsoft.Build.Evaluation
             {
                 needToExpandMetadataForEachItem = NeedToExpandMetadataForEachItem(metadata, out var itemsAndMetadataFound);
 
-                if (itemsAndMetadataFound.Metadata == null)
+                if (!itemsAndMetadataFound.HasMetadata)
                 {
                     return false;
                 }
