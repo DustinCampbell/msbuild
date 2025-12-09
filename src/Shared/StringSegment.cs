@@ -5,6 +5,8 @@ using System;
 using System.Diagnostics;
 using Microsoft.NET.StringTools;
 
+#pragma warning disable IDE0302
+
 namespace Microsoft.Build.Shared;
 
 /// <summary>

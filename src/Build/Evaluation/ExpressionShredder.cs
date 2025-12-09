@@ -620,7 +620,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     int endFunctionArguments = i - 1;
 
-                    string functionName = expression.Substring(startTransform, endFunctionName - startTransform);
+                    var functionName = new StringSegment(expression, startTransform, endFunctionName - startTransform);
                     string functionArguments = null;
                     if (endFunctionArguments > startFunctionArguments)
                     {
@@ -759,7 +759,7 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             /// The function name, if any, within this expression.
             /// </summary>
-            public string? FunctionName { get; }
+            public StringSegment FunctionName { get; }
 
             /// <summary>
             /// The function arguments, if any, within this expression.
@@ -784,7 +784,7 @@ namespace Microsoft.Build.Evaluation
                 string? separator,
                 int separatorStart,
                 ImmutableArray<ItemExpressionCapture> captures,
-                string? functionName,
+                StringSegment functionName,
                 string? functionArguments)
             {
                 Debug.Assert(index >= 0);
@@ -807,16 +807,16 @@ namespace Microsoft.Build.Evaluation
             /// Represents a sub expression, shredded from a larger expression.
             /// </summary>
             public ItemExpressionCapture(int index, int length, string subExpression)
-                : this(index, length, subExpression, null, null, -1, default, null, null)
+                : this(index, length, subExpression, null, null, -1, default, default, null)
             {
             }
 
             public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string? separator, int separatorStart, ImmutableArray<ItemExpressionCapture> captures)
-                : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
+                : this(index, length, subExpression, itemType, separator, separatorStart, captures, default, null)
             {
             }
 
-            public ItemExpressionCapture(int index, int length, string subExpression, string functionName, string? functionArguments)
+            public ItemExpressionCapture(int index, int length, string subExpression, StringSegment functionName, string? functionArguments)
                 : this(index, length, subExpression, null, null, -1, default, functionName, functionArguments)
             {
             }

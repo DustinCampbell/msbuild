@@ -1861,7 +1861,7 @@ namespace Microsoft.Build.Evaluation
         /// </remarks>
         private static class ItemExpander
         {
-            private static readonly FrozenDictionary<string, ItemTransformFunctions> s_intrinsicItemFunctions = new Dictionary<string, ItemTransformFunctions>(StringComparer.OrdinalIgnoreCase)
+            private static readonly FrozenDictionary<StringSegment, ItemTransformFunctions> s_intrinsicItemFunctions = new Dictionary<StringSegment, ItemTransformFunctions>(StringSegmentComparer.OrdinalIgnoreCase)
             {
                 { "Count", ItemTransformFunctions.Count },
                 { "Exists", ItemTransformFunctions.Exists },
@@ -1879,7 +1879,7 @@ namespace Microsoft.Build.Evaluation
                 { "WithMetadataValue", ItemTransformFunctions.WithMetadataValue },
                 { "WithoutMetadataValue", ItemTransformFunctions.WithoutMetadataValue },
                 { "AnyHaveMetadataValue", ItemTransformFunctions.AnyHaveMetadataValue },
-            }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+            }.ToFrozenDictionary(StringSegmentComparer.OrdinalIgnoreCase);
 
             private enum ItemTransformFunctions
             {
@@ -1938,12 +1938,12 @@ namespace Microsoft.Build.Evaluation
                 {
                     ExpressionShredder.ItemExpressionCapture capture = captures[i];
                     string function = capture.Value;
-                    string functionName = capture.FunctionName;
+                    StringSegment functionName = capture.FunctionName;
                     string argumentsExpression = capture.FunctionArguments;
 
                     string[] arguments = null;
 
-                    if (functionName == null)
+                    if (functionName.IsEmpty)
                     {
                         functionName = "ExpandQuotedExpressionFunction";
                         arguments = [function];
@@ -2255,8 +2255,8 @@ namespace Microsoft.Build.Evaluation
                     // but none of them is a "Count" function (which will want to return zero for an empty list)
                     // or an "AnyHaveMetadataValue" function (which will want to return false for an empty list).
                     if (!expressionCapture.HasCaptures ||
-                        !expressionCapture.Captures.Any(static capture => string.Equals(capture.FunctionName, "Count", StringComparison.OrdinalIgnoreCase) ||
-                                                                          string.Equals(capture.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
+                        !expressionCapture.Captures.Any(static capture => capture.FunctionName.Equals("Count", StringComparison.OrdinalIgnoreCase) ||
+                                                                          capture.FunctionName.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
                     {
                         itemsFromCapture = null;
                         return false;
@@ -2525,7 +2525,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds the specified built-in modifer value of the items in itemsOfType
                 /// Tuple is {current item include, item under transformation}.
                 /// </summary>
-                internal static void ItemSpecModifierFunction(IElementLocation elementLocation, bool includeNullEntries, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void ItemSpecModifierFunction(IElementLocation elementLocation, bool includeNullEntries, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -2573,7 +2573,7 @@ namespace Microsoft.Build.Evaluation
                 /// <summary>
                 /// Intrinsic function that adds the subset of items that actually exist on disk.
                 /// </summary>
-                internal static void Exists(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void Exists(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -2620,7 +2620,7 @@ namespace Microsoft.Build.Evaluation
                 /// <summary>
                 /// Intrinsic function that combines the existing paths of the input items with a given relative path.
                 /// </summary>
-                internal static void Combine(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void Combine(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -2644,7 +2644,7 @@ namespace Microsoft.Build.Evaluation
                 /// <summary>
                 /// Intrinsic function that adds all ancestor directories of the given items.
                 /// </summary>
-                internal static void GetPathsOfAllDirectoriesAbove(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void GetPathsOfAllDirectoriesAbove(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -2720,7 +2720,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds the DirectoryName of the items in itemsOfType
                 /// UNDONE: This can be removed in favor of a built-in %(DirectoryName) metadata in future.
                 /// </summary>
-                internal static void DirectoryName(IElementLocation elementLocation, bool includeNullEntries, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void DirectoryName(IElementLocation elementLocation, bool includeNullEntries, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -2787,7 +2787,7 @@ namespace Microsoft.Build.Evaluation
                 /// <summary>
                 /// Intrinsic function that adds the contents of the metadata in specified in argument[0].
                 /// </summary>
-                internal static void Metadata(IElementLocation elementLocation, bool includeNullEntries, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void Metadata(IElementLocation elementLocation, bool includeNullEntries, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -2841,7 +2841,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds only the items from itemsOfType that have distinct Item1 in the Tuple
                 /// Using a case sensitive comparison.
                 /// </summary>
-                internal static void DistinctWithCase(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void DistinctWithCase(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     DistinctWithComparer(elementLocation, functionName, itemsOfType, arguments, StringComparer.Ordinal, transformedItems);
                 }
@@ -2850,7 +2850,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds only the items from itemsOfType that have distinct Item1 in the Tuple
                 /// Using a case insensitive comparison.
                 /// </summary>
-                internal static void Distinct(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void Distinct(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     DistinctWithComparer(elementLocation, functionName, itemsOfType, arguments, StringComparer.OrdinalIgnoreCase, transformedItems);
                 }
@@ -2859,7 +2859,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds only the items from itemsOfType that have distinct Item1 in the Tuple
                 /// Using a case insensitive comparison.
                 /// </summary>
-                internal static void DistinctWithComparer(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, StringComparer comparer, List<KeyValuePair<string, S>> transformedItems)
+                internal static void DistinctWithComparer(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, StringComparer comparer, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -2878,7 +2878,7 @@ namespace Microsoft.Build.Evaluation
                 /// <summary>
                 /// Intrinsic function reverses the item list.
                 /// </summary>
-                internal static void Reverse(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void Reverse(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -2891,7 +2891,7 @@ namespace Microsoft.Build.Evaluation
                 /// <summary>
                 /// Intrinsic function that transforms expressions like the %(foo) in @(Compile->'%(foo)').
                 /// </summary>
-                internal static void ExpandQuotedExpressionFunction(IElementLocation elementLocation, bool includeNullEntries, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void ExpandQuotedExpressionFunction(IElementLocation elementLocation, bool includeNullEntries, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -3084,7 +3084,7 @@ namespace Microsoft.Build.Evaluation
                     Expander<P, I> expander,
                     IElementLocation elementLocation,
                     bool includeNullEntries,
-                    string functionName,
+                    StringSegment functionName,
                     List<KeyValuePair<string, S>> itemsOfType,
                     string[] arguments,
                     List<KeyValuePair<string, S>> transformedItems)
@@ -3124,7 +3124,7 @@ namespace Microsoft.Build.Evaluation
                 /// <summary>
                 /// Intrinsic function that adds the items from itemsOfType with their metadata cleared, i.e. only the itemspec is retained.
                 /// </summary>
-                internal static void ClearMetadata(IElementLocation elementLocation, bool includeNullEntries, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void ClearMetadata(IElementLocation elementLocation, bool includeNullEntries, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -3141,7 +3141,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds only those items that have a not-blank value for the metadata specified
                 /// Using a case insensitive comparison.
                 /// </summary>
-                internal static void HasMetadata(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void HasMetadata(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -3175,7 +3175,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds only those items have the given metadata value
                 /// Using a case insensitive comparison.
                 /// </summary>
-                internal static void WithMetadataValue(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void WithMetadataValue(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -3208,7 +3208,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds those items don't have the given metadata value
                 /// Using a case insensitive comparison.
                 /// </summary>
-                internal static void WithoutMetadataValue(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void WithoutMetadataValue(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -3241,7 +3241,7 @@ namespace Microsoft.Build.Evaluation
                 /// Intrinsic function that adds a boolean to indicate if any of the items have the given metadata value
                 /// Using a case insensitive comparison.
                 /// </summary>
-                internal static void AnyHaveMetadataValue(IElementLocation elementLocation, string functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
+                internal static void AnyHaveMetadataValue(IElementLocation elementLocation, StringSegment functionName, List<KeyValuePair<string, S>> itemsOfType, string[] arguments, List<KeyValuePair<string, S>> transformedItems)
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
@@ -3760,7 +3760,7 @@ namespace Microsoft.Build.Evaluation
                 Type receiverType,
                 string expression,
                 string receiver,
-                string methodName,
+                StringSegment methodName,
                 string[] arguments,
                 BindingFlags bindingFlags,
                 string remainder,
@@ -3768,7 +3768,7 @@ namespace Microsoft.Build.Evaluation
                 IFileSystem fileSystem,
                 LoggingContext loggingContext)
             {
-                _methodMethodName = methodName;
+                _methodMethodName = methodName.ToString();
                 if (arguments == null)
                 {
                     _arguments = [];
