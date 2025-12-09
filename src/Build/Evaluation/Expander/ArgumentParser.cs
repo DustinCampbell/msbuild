@@ -2,421 +2,639 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 #if NETFRAMEWORK
-using Microsoft.IO;
+using static Microsoft.NET.StringTools.Strings;
 #endif
 
-namespace Microsoft.Build.Evaluation.Expander
+namespace Microsoft.Build.Evaluation.Expander;
+
+/// <summary>
+///  Provides helper methods for parsing and validating arguments passed to intrinsic functions.
+/// </summary>
+internal static class ArgumentParser
 {
-    internal class ArgumentParser
+    /// <summary>
+    ///  Tries to parse a single string argument from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly one string argument was successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArg(
+        ReadOnlySpan<object?> args,
+        [NotNullWhen(true)] out string? arg0)
     {
-        internal static bool TryGetArgs(object[] args, out string? arg0, out string? arg1, bool enforceLength = true)
+        if (args is [string value0])
         {
-            arg0 = null;
-            arg1 = null;
-
-            if (enforceLength && args.Length != 2)
-            {
-                return false;
-            }
-
-            if (args[0] is string value0 &&
-                args[1] is string value1)
-            {
-                arg0 = value0;
-                arg1 = value1;
-
-                return true;
-            }
-
-            return false;
-        }
-
-        internal static bool TryGetArgs(object[] args, out string? arg0, out string? arg1, out string? arg2)
-        {
-            arg0 = null;
-            arg1 = null;
-            arg2 = null;
-
-            if (args.Length != 3)
-            {
-                return false;
-            }
-
-            if (args[0] is string value0 &&
-                args[1] is string value1 &&
-                args[2] is string value2)
-            {
-                arg0 = value0;
-                arg1 = value1;
-                arg2 = value2;
-
-                return true;
-            }
-
-            return false;
-        }
-
-        internal static bool TryGetArgs(object[] args, out string? arg0, out string? arg1, out string? arg2, out string? arg3)
-        {
-            arg0 = null;
-            arg1 = null;
-            arg2 = null;
-            arg3 = null;
-
-            if (args.Length != 4)
-            {
-                return false;
-            }
-
-            if (args[0] is string value0 &&
-                args[1] is string value1 &&
-                args[2] is string value2 &&
-                args[3] is string value3)
-            {
-                arg0 = value0;
-                arg1 = value1;
-                arg2 = value2;
-                arg3 = value3;
-
-                return true;
-            }
-
-            return false;
-        }
-
-        internal static bool TryGetArgs(object[] args, out string? arg0, out string? arg1)
-        {
-            arg0 = null;
-            arg1 = null;
-
-            if (args.Length != 2)
-            {
-                return false;
-            }
-
-            if (args[0] is string value0 &&
-                args[1] is string value1)
-            {
-                arg0 = value0;
-                arg1 = value1;
-
-                return true;
-            }
-
-            return false;
-        }
-
-        internal static bool TryGetArgs(object[] args, out string? arg0, out int arg1, out int arg2)
-        {
-            arg0 = null;
-            arg1 = 0;
-            arg2 = 0;
-
-            if (args.Length != 3)
-            {
-                return false;
-            }
-
-            var value1 = args[1] as string;
-            var value2 = args[2] as string;
-            arg0 = args[0] as string;
-            if (value1 != null &&
-                value2 != null &&
-                arg0 != null &&
-                int.TryParse(value1, out arg1) &&
-                int.TryParse(value2, out arg2))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        internal static bool TryGetArg(object[] args, out int arg0)
-        {
-            if (args.Length != 1)
-            {
-                arg0 = 0;
-                return false;
-            }
-
-            return TryConvertToInt(args[0], out arg0);
-        }
-
-        internal static bool TryGetArg(object[] args, out Version? arg0)
-        {
-            if (args.Length != 1)
-            {
-                arg0 = default;
-                return false;
-            }
-
-            return TryConvertToVersion(args[0], out arg0);
-        }
-
-        internal static bool TryConvertToVersion(object value, out Version? arg0)
-        {
-            string? val = value as string;
-
-            if (string.IsNullOrEmpty(val) || !Version.TryParse(val, out arg0))
-            {
-                arg0 = default;
-                return false;
-            }
-
+            arg0 = value0;
             return true;
         }
 
-        /// <summary>
-        /// Try to convert value to int.
-        /// </summary>
-        internal static bool TryConvertToInt(object? value, out int arg)
+        arg0 = null;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse two string arguments from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The first parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg1">The second parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly two string arguments were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(
+        ReadOnlySpan<object?> args,
+        [NotNullWhen(true)] out string? arg0,
+        [NotNullWhen(true)] out string? arg1)
+    {
+        if (args is [string value0, string value1])
         {
-            switch (value)
-            {
-                case double d:
-                    if (d >= int.MinValue && d <= int.MaxValue)
-                    {
-                        arg = Convert.ToInt32(d);
-                        if (Math.Abs(arg - d) == 0)
-                        {
-                            return true;
-                        }
-                    }
-
-                    break;
-                case long l:
-                    if (l >= int.MinValue && l <= int.MaxValue)
-                    {
-                        arg = Convert.ToInt32(l);
-                        return true;
-                    }
-
-                    break;
-                case int i:
-                    arg = i;
-                    return true;
-                case string s when int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat, out arg):
-                    return true;
-            }
-
-            arg = 0;
-            return false;
+            arg0 = value0;
+            arg1 = value1;
+            return true;
         }
 
-        /// <summary>
-        /// Try to convert value to long.
-        /// </summary>
-        internal static bool TryConvertToLong(object? value, out long arg)
+        arg0 = null;
+        arg1 = null;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse three string arguments from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The first parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg1">The second parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg2">The third parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly three string arguments were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(
+        ReadOnlySpan<object?> args,
+        [NotNullWhen(true)] out string? arg0,
+        [NotNullWhen(true)] out string? arg1,
+        [NotNullWhen(true)] out string? arg2)
+    {
+        if (args is [string value0, string value1, string value2])
         {
-            switch (value)
-            {
-                case double d:
-                    if (d >= long.MinValue && d <= long.MaxValue)
-                    {
-                        arg = (long)d;
-                        if (Math.Abs(arg - d) == 0)
-                        {
-                            return true;
-                        }
-                    }
-
-                    break;
-                case long l:
-                    arg = l;
-                    return true;
-                case int i:
-                    arg = i;
-                    return true;
-                case string s when long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat, out arg):
-                    return true;
-            }
-
-            arg = 0;
-            return false;
+            arg0 = value0;
+            arg1 = value1;
+            arg2 = value2;
+            return true;
         }
 
-        /// <summary>
-        /// Try to convert value to double.
-        /// </summary>
-        internal static bool TryConvertToDouble(object? value, out double arg)
+        arg0 = null;
+        arg1 = null;
+        arg2 = null;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse four string arguments from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The first parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg1">The second parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg2">The third parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg3">The fourth parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly four string arguments were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(
+        ReadOnlySpan<object?> args,
+        [NotNullWhen(true)] out string? arg0,
+        [NotNullWhen(true)] out string? arg1,
+        [NotNullWhen(true)] out string? arg2,
+        [NotNullWhen(true)] out string? arg3)
+    {
+        if (args is [string value0, string value1, string value2, string value3])
         {
-            switch (value)
-            {
-                case double unboxed:
-                    arg = unboxed;
-                    return true;
-                case long l:
-                    arg = l;
-                    return true;
-                case int i:
-                    arg = i;
-                    return true;
-                case string str when double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out arg):
-                    return true;
-                default:
-                    arg = 0;
-                    return false;
-            }
+            arg0 = value0;
+            arg1 = value1;
+            arg2 = value2;
+            arg3 = value3;
+            return true;
         }
 
-        internal static bool TryGetArg(object[] args, out string? arg0)
+        arg0 = null;
+        arg1 = null;
+        arg2 = null;
+        arg3 = null;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse one string argument and two integer arguments from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg1">The first parsed integer argument, or <see langword="default"/> if parsing failed.</param>
+    /// <param name="arg2">The second parsed integer argument, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if one string and two integer arguments were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(
+        ReadOnlySpan<object?> args,
+        [NotNullWhen(true)] out string? arg0,
+        out int arg1,
+        out int arg2)
+    {
+        if (args is [string value0, string value1, string value2] &&
+            TryParseInt(value1, out arg1) &&
+            TryParseInt(value2, out arg2))
         {
-            if (args.Length != 1)
-            {
-                arg0 = null;
+            arg0 = value0;
+            return true;
+        }
+
+        arg0 = null;
+        arg1 = default;
+        arg2 = default;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse a single <see cref="Version"/> argument from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The parsed Version argument, or <see langword="null"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly one Version argument was successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArg(
+        ReadOnlySpan<object?> args,
+        [NotNullWhen(true)] out Version? arg0)
+    {
+        if (args is [string value0] &&
+            Version.TryParse(value0, out arg0))
+        {
+            return true;
+        }
+
+        arg0 = null;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse a single char argument from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The parsed char argument, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly one char argument was successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArg(ReadOnlySpan<object?> args, out char arg0)
+    {
+        if (args is [var value0] &&
+            TryConvertToChar(value0, out arg0))
+        {
+            return true;
+        }
+
+        arg0 = default;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse a single integer argument from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The parsed integer argument, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly one integer argument was successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArg(ReadOnlySpan<object?> args, out int arg0)
+    {
+        if (args is [var value0] &&
+            TryConvertToInt(value0, out arg0))
+        {
+            return true;
+        }
+
+        arg0 = default;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse two integer arguments from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The first parsed integer argument, or <see langword="default"/> if parsing failed.</param>
+    /// <param name="arg1">The second parsed integer argument, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly two integer arguments were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(ReadOnlySpan<object?> args, out int arg0, out int arg1)
+    {
+        if (args is [var value0, var value1] &&
+            TryConvertToInt(value0, out arg0) &&
+            TryConvertToInt(value1, out arg1))
+        {
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse two double arguments from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The first parsed double argument, or <see langword="default"/> if parsing failed.</param>
+    /// <param name="arg1">The second parsed double argument, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if exactly two double arguments were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(ReadOnlySpan<object?> args, out double arg0, out double arg1)
+    {
+        if (args is [var value0, var value1] &&
+            TryConvertToDouble(value0, out arg0) &&
+            TryConvertToDouble(value1, out arg1))
+        {
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse one integer argument and one char argument from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The parsed integer argument, or <see langword="default"/> if parsing failed.</param>
+    /// <param name="arg1">The parsed char argument, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if one integer and one char argument were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(ReadOnlySpan<object?> args, out int arg0, out char arg1)
+    {
+        if (args is [var value0, var value1] &&
+            TryConvertToInt(value0, out arg0) &&
+            TryConvertToChar(value1, out arg1))
+        {
+            return true;
+        }
+
+        arg0 = default;
+        arg1 = default;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse one string argument and one integer argument from the provided arguments.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg1">The parsed integer argument, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if one string and one integer argument were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(
+        ReadOnlySpan<object?> args,
+        [NotNullWhen(true)] out string? arg0,
+        out int arg1)
+    {
+        if (args is [string value0, string value1] &&
+            TryParseInt(value1, out arg1))
+        {
+            arg0 = value0;
+            return true;
+        }
+
+        arg0 = null;
+        arg1 = default;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse one string argument and one <see cref="StringComparison"/> enum argument from the provided arguments.
+    ///  Supports both fully-qualified and unqualified enum names (e.g., "Ordinal" or "System.StringComparison.Ordinal").
+    ///  Rejects integer values to maintain type safety.
+    /// </summary>
+    /// <param name="args">The arguments to parse.</param>
+    /// <param name="arg0">The parsed string argument, or <see langword="null"/> if parsing failed.</param>
+    /// <param name="arg1">The parsed StringComparison argument, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if one string and one StringComparison argument were successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryGetArgs(
+        ReadOnlySpan<object?> args,
+        [NotNullWhen(true)] out string? arg0,
+        out StringComparison arg1)
+    {
+        if (args is [string value0, string value1] &&
+            TryParseEnum(value1, out arg1))
+        {
+            arg0 = value0;
+            return true;
+        }
+
+        arg0 = null;
+        arg1 = default;
+        return false;
+    }
+
+    /// <summary>
+    ///  Try to convert value to char.
+    ///  Accepts char values directly or single-character strings.
+    /// </summary>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="arg">The converted char value, or <see langword="default"/> if conversion failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the value was successfully converted to char; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryConvertToChar(object? value, out char arg)
+    {
+        switch (value)
+        {
+            case char c:
+                arg = c;
+                return true;
+
+            case string { Length: 1 } s:
+                arg = s[0];
+                return true;
+
+            default:
+                arg = default;
                 return false;
-            }
-
-            arg0 = args[0] as string;
-            return arg0 != null;
         }
+    }
 
-        internal static bool TryGetArgs(object[] args, out string? arg0, out StringComparison arg1)
+    /// <summary>
+    ///  Try to convert value to int.
+    ///  Accepts int values directly, parseable strings, longs within int range, and doubles that are exact integers within int range.
+    /// </summary>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="arg">The converted int value, or <see langword="default"/> if conversion failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the value was successfully converted to int; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryConvertToInt(object? value, out int arg)
+    {
+        switch (value)
         {
-            if (args.Length != 2)
-            {
-                arg0 = null;
-                arg1 = default;
+            case string s when TryParseInt(s, out arg):
+                return true;
 
+            case int i:
+                arg = i;
+                return true;
+
+            case long l and >= int.MinValue and <= int.MaxValue:
+                arg = Convert.ToInt32(l);
+                return true;
+
+            case double d and >= int.MinValue and <= int.MaxValue:
+                arg = Convert.ToInt32(d);
+
+                if (Math.Abs(arg - d) == 0)
+                {
+                    return true;
+                }
+
+                goto default;
+
+            default:
+                arg = default;
                 return false;
-            }
-
-            arg0 = args[0] as string;
-
-            // reject enums as ints. In C# this would require a cast, which is not supported in msbuild expressions
-            if (arg0 == null || !(args[1] is string comparisonTypeName) || int.TryParse(comparisonTypeName, out _))
-            {
-                arg1 = default;
-                return false;
-            }
-
-            // Allow fully-qualified enum, e.g. "System.StringComparison.OrdinalIgnoreCase"
-            if (comparisonTypeName.Contains('.'))
-            {
-                comparisonTypeName = comparisonTypeName.Replace("System.StringComparison.", "").Replace("StringComparison.", "");
-            }
-
-            return Enum.TryParse(comparisonTypeName, out arg1);
         }
+    }
 
-        internal static bool TryGetArgs(object[] args, out int arg0)
+    /// <summary>
+    ///  Try to convert value to long.
+    ///  Accepts long values directly, parseable strings, ints, and doubles that are exact integers within long range.
+    /// </summary>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="arg">The converted long value, or <see langword="default"/> if conversion failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the value was successfully converted to long; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryConvertToLong(object? value, out long arg)
+    {
+        switch (value)
         {
-            arg0 = 0;
+            case string s when TryParseLong(s, out arg):
+                return true;
 
-            if (args.Length != 1)
-            {
+            case int i:
+                arg = i;
+                return true;
+
+            case long l:
+                arg = l;
+                return true;
+
+            case double d and >= long.MinValue and <= long.MaxValue:
+                arg = (long)d;
+                if (Math.Abs(arg - d) == 0)
+                {
+                    return true;
+                }
+
+                goto default;
+
+            default:
+                arg = default;
                 return false;
-            }
-
-            return TryConvertToInt(args[0], out arg0);
         }
+    }
 
-        internal static bool TryGetArgs(object[] args, out int arg0, out int arg1)
+    /// <summary>
+    ///  Try to convert value to double.
+    ///  Accepts double values directly, parseable strings, ints, and longs.
+    /// </summary>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="arg">The converted double value, or <see langword="default"/> if conversion failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the value was successfully converted to double; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryConvertToDouble(object? value, out double arg)
+    {
+        switch (value)
         {
-            arg0 = 0;
-            arg1 = 0;
+            case string str when TryParseDouble(str, out arg):
+                return true;
 
-            if (args.Length != 2)
-            {
+            case double d:
+                arg = d;
+                return true;
+
+            case int i:
+                arg = i;
+                return true;
+
+            case long l:
+                arg = l;
+                return true;
+
+            default:
+                arg = default;
                 return false;
-            }
-
-            return TryConvertToInt(args[0], out arg0) &&
-                   TryConvertToInt(args[1], out arg1);
         }
+    }
 
-        internal static bool TryGetArgs(object[] args, out double arg0, out double arg1)
+    /// <summary>
+    ///  Determines whether the value is or can be interpreted as a floating-point number.
+    /// </summary>
+    /// <param name="value">The value to check.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the value is a double or a string that can be parsed as a double; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool IsFloatingPointRepresentation(object? value)
+        => value is double || (value is string str && TryParseDouble(str, out _));
+
+    /// <summary>
+    ///  Executes an arithmetic operation on two arguments, automatically selecting between integer and floating-point overloads.
+    ///  Prefers integer arithmetic if both arguments can be converted to long; otherwise, uses double arithmetic.
+    /// </summary>
+    /// <param name="args">The array of arguments (must contain exactly two elements).</param>
+    /// <param name="integerOperation">The operation to perform for integer arithmetic.</param>
+    /// <param name="realOperation">The operation to perform for floating-point arithmetic.</param>
+    /// <param name="resultValue">The result of the operation, or <see langword="null"/> if execution failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the operation was successfully executed; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryExecuteArithmeticOverload(
+        ReadOnlySpan<object?> args,
+        Func<long, long, long> integerOperation,
+        Func<double, double, double> realOperation,
+        [NotNullWhen(true)] out object? resultValue)
+    {
+        if (args is [var value0, var value1])
         {
-            arg0 = 0;
-            arg1 = 0;
-
-            if (args.Length != 2)
+            if (TryConvertToLong(value0, out long longArg0) && TryConvertToLong(value1, out long longArg1))
             {
-                return false;
-            }
-
-            return TryConvertToDouble(args[0], out arg0) &&
-                   TryConvertToDouble(args[1], out arg1);
-        }
-
-        internal static bool TryGetArgs(object[] args, out int arg0, out string? arg1)
-        {
-            arg0 = 0;
-            arg1 = null;
-
-            if (args.Length != 2)
-            {
-                return false;
-            }
-
-            arg1 = args[1] as string;
-            if (arg1 == null && args[1] is char ch)
-            {
-                arg1 = ch.ToString();
-            }
-
-            if (TryConvertToInt(args[0], out arg0) &&
-                arg1 != null)
-            {
+                resultValue = integerOperation(longArg0, longArg1);
                 return true;
             }
 
+            if (TryConvertToDouble(value0, out double doubleArg0) && TryConvertToDouble(value1, out double doubleArg1))
+            {
+                resultValue = realOperation(doubleArg0, doubleArg1);
+                return true;
+            }
+        }
+
+        resultValue = null;
+        return false;
+    }
+
+    /// <summary>
+    ///  Tries to parse a string as a double using invariant culture.
+    /// </summary>
+    /// <param name="value">The string to parse.</param>
+    /// <param name="result">The parsed double value, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the string was successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryParseDouble(string value, out double result)
+        => double.TryParse(value, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out result);
+
+    /// <summary>
+    ///  Tries to parse a string as an int using invariant culture.
+    /// </summary>
+    /// <param name="value">The string to parse.</param>
+    /// <param name="result">The parsed int value, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the string was successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryParseInt(string value, out int result)
+        => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat, out result);
+
+    /// <summary>
+    ///  Tries to parse a string as a long using invariant culture.
+    /// </summary>
+    /// <param name="value">The string to parse.</param>
+    /// <param name="result">The parsed long value, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the string was successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryParseLong(string value, out long result)
+        => long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat, out result);
+
+    /// <summary>
+    ///  Tries to parse a string as an enum value of the specified type.
+    ///  Supports both fully-qualified and unqualified enum names (e.g., "Value" or "System.EnumType.Value").
+    ///  Rejects integer values to maintain type safety, as casting integers to enums requires explicit casts in C#.
+    /// </summary>
+    /// <typeparam name="TEnum">The enum type to parse. Must be a struct and an enum.</typeparam>
+    /// <param name="value">The string to parse.</param>
+    /// <param name="result">The parsed enum value, or <see langword="default"/> if parsing failed.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the string was successfully parsed as an enum value; otherwise, <see langword="false"/>.
+    /// </returns>
+    internal static bool TryParseEnum<TEnum>(string value, out TEnum result)
+        where TEnum : struct
+    {
+        var enumType = typeof(TEnum);
+
+        if (!enumType.IsEnum)
+        {
+            result = default;
             return false;
         }
 
-        internal static bool TryGetArgs(object[] args, out string? arg0, out int arg1)
+        // Reject int values for enums. In C#, this would require a cast, which is not supported in MSBuild expressions.
+        if (TryParseInt(value, out _))
         {
-            arg0 = null;
-            arg1 = 0;
-
-            if (args.Length != 2)
-            {
-                return false;
-            }
-
-            var value1 = args[1] as string;
-            arg0 = args[0] as string;
-            if (value1 != null &&
-                arg0 != null &&
-                int.TryParse(value1, out arg1))
-            {
-                return true;
-            }
-
+            result = default;
             return false;
         }
 
-        internal static bool IsFloatingPointRepresentation(object value)
+        ReadOnlySpan<char> span = value.AsSpan();
+
+        span = SkipTextAndDot(span, enumType.Namespace);
+        span = SkipTextAndDot(span, enumType.Name);
+
+#if NET
+        // Should this pass 'ignoreCase: true' to be consistent with how MSBuild
+        // handles type::method names in property functions?
+        if (Enum.TryParse(span, out result))
         {
-            return value is double || (value is string str && double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double _));
+            return true;
         }
-
-        internal static bool TryExecuteArithmeticOverload(object[] args, Func<long, long, long> integerOperation, Func<double, double, double> realOperation, out object? resultValue)
+#else
+        // Should this pass 'ignoreCase: true' to be consistent with how MSBuild
+        // handles type::method names in property functions?
+        if (Enum.TryParse(WeakIntern(span), out result))
         {
-            resultValue = null;
+            return true;
+        }
+#endif
 
-            if (args.Length != 2)
+        result = default;
+        return false;
+
+        static ReadOnlySpan<char> SkipTextAndDot(ReadOnlySpan<char> span, ReadOnlySpan<char> text)
+        {
+            // Should this compare with OrdinalIgnoreCase to be consistent with how MSBuild
+            // handles type::method names in property functions?
+            if (span.StartsWith(text))
             {
-                return false;
+                span = span[..text.Length];
+
+                // Skip trailing dot.
+                if (span is ['.', ..])
+                {
+                    span = span[1..];
+                }
             }
 
-            if (TryConvertToLong(args[0], out long argLong0) && TryConvertToLong(args[1], out long argLong1))
-            {
-                resultValue = integerOperation(argLong0, argLong1);
-                return true;
-            }
-
-            if (TryConvertToDouble(args[0], out double argDouble0) && TryConvertToDouble(args[1], out double argDouble1))
-            {
-                resultValue = realOperation(argDouble0, argDouble1);
-                return true;
-            }
-
-            return false;
+            return span;
         }
     }
 }
