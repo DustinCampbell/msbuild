@@ -4014,13 +4014,11 @@ namespace Microsoft.Build.Evaluation
                     if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
                     {
                         // Support comparison when the lhs is an integer
-                        if (ParseArgs.IsFloatingPointRepresentation(args[0]))
+                        if (ParseArgs.IsFloatingPointRepresentation(args[0]) &&
+                            ParseArgs.TryParseDouble(objectInstance.ToString(), out double result))
                         {
-                            if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
-                            {
-                                objectInstance = result;
-                                _receiverType = objectInstance.GetType();
-                            }
+                            objectInstance = result;
+                            _receiverType = objectInstance.GetType();
                         }
 
                         // change the type of the final unescaped string into the destination

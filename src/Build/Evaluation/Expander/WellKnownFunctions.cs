@@ -49,47 +49,62 @@ namespace Microsoft.Build.Evaluation.Expander
             returnVal = default;
             if (string.Equals(methodName, nameof(Path.Combine), StringComparison.OrdinalIgnoreCase))
             {
-                string? arg0, arg1, arg2, arg3;
-
                 // Combine has fast implementations for up to 4 parameters: https://github.com/dotnet/corefx/blob/2c55db90d622fa6279184e6243f0470a3755d13c/src/Common/src/CoreLib/System/IO/Path.cs#L293-L317
                 switch (args.Length)
                 {
                     case 0:
                         return false;
+
                     case 1:
-                        if (ParseArgs.TryGetArg(args, out arg0) && arg0 != null)
                         {
-                            returnVal = Path.Combine(arg0);
-                            return true;
+                            if (ParseArgs.TryGetArg(args, out string? arg0))
+                            {
+                                returnVal = Path.Combine(arg0);
+                                return true;
+                            }
                         }
+
                         break;
                     case 2:
-                        if (ParseArgs.TryGetArgs(args, out arg0, out arg1) && arg0 != null && arg1 != null)
                         {
-                            returnVal = Path.Combine(arg0, arg1);
-                            return true;
+                            if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
+                            {
+                                returnVal = Path.Combine(arg0, arg1);
+                                return true;
+                            }
                         }
+
                         break;
+
                     case 3:
-                        if (ParseArgs.TryGetArgs(args, out arg0, out arg1, out arg2) && arg0 != null && arg1 != null && arg2 != null)
                         {
-                            returnVal = Path.Combine(arg0, arg1, arg2);
-                            return true;
+                            if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1, out string? arg2))
+                            {
+                                returnVal = Path.Combine(arg0, arg1, arg2);
+                                return true;
+                            }
                         }
+
                         break;
+
                     case 4:
-                        if (ParseArgs.TryGetArgs(args, out arg0, out arg1, out arg2, out arg3) && arg0 != null && arg1 != null && arg2 != null && arg3 != null)
                         {
-                            returnVal = Path.Combine(arg0, arg1, arg2, arg3);
-                            return true;
+                            if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1, out string? arg2, out string? arg3))
+                            {
+                                returnVal = Path.Combine(arg0, arg1, arg2, arg3);
+                                return true;
+                            }
                         }
+
                         break;
+
                     default:
                         if (ElementsOfType(args, typeof(string)))
                         {
                             returnVal = Path.Combine(Array.ConvertAll(args, o => (string)o));
                             return true;
                         }
+
                         break;
                 }
             }
@@ -103,7 +118,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(Path.GetFullPath), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = Path.GetFullPath(arg0);
                     return true;
@@ -111,7 +126,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(Path.IsPathRooted), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = Path.IsPathRooted(arg0);
                     return true;
@@ -127,7 +142,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(Path.GetFileName), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = Path.GetFileName(arg0);
                     return true;
@@ -135,7 +150,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(Path.GetDirectoryName), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = Path.GetDirectoryName(arg0);
                     return true;
@@ -143,7 +158,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(Path.GetFileNameWithoutExtension), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = Path.GetFileNameWithoutExtension(arg0);
                     return true;
@@ -165,7 +180,7 @@ namespace Microsoft.Build.Evaluation.Expander
             returnVal = null;
             if (string.Equals(methodName, nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = text.StartsWith(arg0);
                     return true;
@@ -173,7 +188,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.Replace), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1) && arg0 != null)
+                if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
                 {
                     returnVal = text.Replace(arg0, arg1);
                     return true;
@@ -181,7 +196,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.Contains), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = text.Contains(arg0);
                     return true;
@@ -205,12 +220,12 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.EndsWith), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = text.EndsWith(arg0);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out arg0, out StringComparison arg1) && arg0 != null)
+                else if (ParseArgs.TryGetArgs(args, out arg0, out StringComparison arg1))
                 {
                     returnVal = text.EndsWith(arg0, arg1);
                     return true;
@@ -226,7 +241,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.IndexOf), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArgs(args, out string? arg0, out StringComparison arg1) && arg0 != null)
+                if (ParseArgs.TryGetArgs(args, out string? arg0, out StringComparison arg1))
                 {
                     returnVal = text.IndexOf(arg0, arg1);
                     return true;
@@ -234,7 +249,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.IndexOfAny), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = text.AsSpan().IndexOfAny(arg0.AsSpan());
                     return true;
@@ -242,17 +257,17 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.LastIndexOf), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = text.LastIndexOf(arg0);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out arg0, out int startIndex) && arg0 != null)
+                else if (ParseArgs.TryGetArgs(args, out arg0, out int startIndex))
                 {
                     returnVal = text.LastIndexOf(arg0, startIndex);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out arg0, out StringComparison arg1) && arg0 != null)
+                else if (ParseArgs.TryGetArgs(args, out arg0, out StringComparison arg1))
                 {
                     returnVal = text.LastIndexOf(arg0, arg1);
                     return true;
@@ -260,7 +275,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.LastIndexOfAny), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = text.AsSpan().LastIndexOfAny(arg0.AsSpan());
                     return true;
@@ -289,7 +304,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.Split), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? separator) && separator?.Length == 1)
+                if (ParseArgs.TryGetArg(args, out string? separator) && separator.Length == 1)
                 {
                     returnVal = text.Split(separator[0]);
                     return true;
@@ -302,9 +317,9 @@ namespace Microsoft.Build.Evaluation.Expander
                     returnVal = text.PadLeft(totalWidth);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out totalWidth, out string? paddingChar) && paddingChar?.Length == 1)
+                else if (ParseArgs.TryGetArgs(args, out totalWidth, out char paddingChar))
                 {
-                    returnVal = text.PadLeft(totalWidth, paddingChar[0]);
+                    returnVal = text.PadLeft(totalWidth, paddingChar);
                     return true;
                 }
             }
@@ -315,15 +330,15 @@ namespace Microsoft.Build.Evaluation.Expander
                     returnVal = text.PadRight(totalWidth);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out totalWidth, out string? paddingChar) && paddingChar?.Length == 1)
+                else if (ParseArgs.TryGetArgs(args, out totalWidth, out char paddingChar))
                 {
-                    returnVal = text.PadRight(totalWidth, paddingChar[0]);
+                    returnVal = text.PadRight(totalWidth, paddingChar);
                     return true;
                 }
             }
             else if (string.Equals(methodName, nameof(string.TrimStart), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? trimChars) && trimChars?.Length > 0)
+                if (ParseArgs.TryGetArg(args, out string? trimChars) && trimChars.Length > 0)
                 {
                     returnVal = text.TrimStart(trimChars.ToCharArray());
                     return true;
@@ -331,7 +346,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.TrimEnd), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? trimChars) && trimChars?.Length > 0)
+                if (ParseArgs.TryGetArg(args, out string? trimChars) && trimChars.Length > 0)
                 {
                     returnVal = text.TrimEnd(trimChars.ToCharArray());
                     return true;
@@ -647,7 +662,7 @@ namespace Microsoft.Build.Evaluation.Expander
                         : IntrinsicFunctions.StableStringHashLegacy(arg0);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out string? arg1, out string? arg2) && Enum.TryParse<IntrinsicFunctions.StringHashingAlgorithm>(arg2, true, out var hashAlgorithm) && arg1 != null && arg2 != null)
+                else if (ParseArgs.TryGetArgs(args, out string? arg1, out string? arg2) && Enum.TryParse<IntrinsicFunctions.StringHashingAlgorithm>(arg2, true, out var hashAlgorithm))
                 {
                     returnVal = IntrinsicFunctions.StableStringHash(arg1, hashAlgorithm);
                     return true;
@@ -655,7 +670,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(IntrinsicFunctions.AreFeaturesEnabled), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out Version? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out Version? arg0))
                 {
                     returnVal = IntrinsicFunctions.AreFeaturesEnabled(arg0);
                     return true;
@@ -663,7 +678,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(IntrinsicFunctions.SubstringByAsciiChars), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArgs(args, out string? arg0, out int arg1, out int arg2) && arg0 != null)
+                if (ParseArgs.TryGetArgs(args, out string? arg0, out int arg1, out int arg2))
                 {
                     returnVal = IntrinsicFunctions.SubstringByAsciiChars(arg0, arg1, arg2);
                     return true;
@@ -671,7 +686,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(IntrinsicFunctions.CheckFeatureAvailability), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = IntrinsicFunctions.CheckFeatureAvailability(arg0);
                     return true;
@@ -735,7 +750,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(IntrinsicFunctions.NormalizeDirectory), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = IntrinsicFunctions.NormalizeDirectory(arg0);
                     return true;
@@ -743,7 +758,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(IntrinsicFunctions.IsOSPlatform), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = IntrinsicFunctions.IsOSPlatform(arg0);
                     return true;
@@ -862,7 +877,7 @@ namespace Microsoft.Build.Evaluation.Expander
                 {
                     if (string.Equals(methodName, nameof(Version.Parse), StringComparison.OrdinalIgnoreCase))
                     {
-                        if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                        if (ParseArgs.TryGetArg(args, out string? arg0))
                         {
                             returnVal = Version.Parse(arg0);
                             return true;
@@ -885,17 +900,16 @@ namespace Microsoft.Build.Evaluation.Expander
                     if (string.Equals(methodName, nameof(char.IsDigit), StringComparison.OrdinalIgnoreCase))
                     {
                         bool? result = null;
-                        
-                        if (ParseArgs.TryGetArg(args, out string? arg0) && arg0?.Length == 1)
+
+                        if (ParseArgs.TryGetArg(args, out char c))
                         {
-                            char c = arg0[0];
                             result = char.IsDigit(c);
                         }
-                        else if (ParseArgs.TryGetArgs(args, out string? str, out int index) && str != null)
+                        else if (ParseArgs.TryGetArgs(args, out string? str, out int index))
                         {
                             result = char.IsDigit(str, index);
                         }
-                        
+
                         if (result.HasValue)
                         {
                             returnVal = result.Value;
@@ -905,7 +919,7 @@ namespace Microsoft.Build.Evaluation.Expander
                 }
                 else if (string.Equals(methodName, nameof(Regex.Replace), StringComparison.OrdinalIgnoreCase) && args.Length == 3)
                 {
-                    if (ParseArgs.TryGetArgs(args, out string? arg1, out string? arg2, out string? arg3) && arg1 != null && arg2 != null && arg3 != null)
+                    if (ParseArgs.TryGetArgs(args, out string? arg1, out string? arg2, out string? arg3))
                     {
                         returnVal = Regex.Replace(arg1, arg2, arg3);
                         return true;
@@ -922,7 +936,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(Int32.ToString), StringComparison.OrdinalIgnoreCase) && objectInstance is int i)
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = i.ToString(arg0);
                     return true;
@@ -948,7 +962,7 @@ namespace Microsoft.Build.Evaluation.Expander
                 {
                     string projectPath = properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
                     ErrorUtilities.VerifyThrow(loggingContext != null, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
-                    if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                    if (ParseArgs.TryGetArg(args, out string? arg0))
                     {
                         returnVal = IntrinsicFunctions.RegisterBuildCheck(projectPath, arg0, loggingContext);
                         return true;
@@ -978,7 +992,7 @@ namespace Microsoft.Build.Evaluation.Expander
                     returnVal = String.Empty;
                     return true;
                 }
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (ParseArgs.TryGetArg(args, out string? arg0))
                 {
                     returnVal = arg0;
                     return true;
