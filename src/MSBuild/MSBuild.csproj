@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -130,6 +130,8 @@
     <Compile Include="..\Shared\AssemblyNameExtension.cs" />
     <Compile Include="..\Shared\ThreadPoolExtensions.cs" />
     <Compile Include="..\Shared\StringExtensions.cs" />
+    <Compile Include="..\Shared\StringSegment.cs" />
+    <Compile Include="..\Shared\StringSegmentComparer.cs" />
     <Compile Include="..\Shared\ConversionUtilities.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="AssemblyResources.cs" />

@@ -6,7 +6,7 @@ using Microsoft.Build.Evaluation;
 using Shouldly;
 using Xunit;
 
-namespace Microsoft.Build.UnitTests.Evaluation;
+namespace Microsoft.Build.Shared.UnitTests;
 
 public class StringSegment_Tests
 {

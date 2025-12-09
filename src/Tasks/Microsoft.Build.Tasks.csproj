@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -162,6 +162,8 @@
     <Compile Include="..\Shared\PlatformNegotiation.cs">
       <Link>PlatformNegotiation.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\StringSegment.cs" />
+    <Compile Include="..\Shared\StringSegmentComparer.cs" />
     <Compile Include="..\Shared\TaskFactoryUtilities.cs" />
     <Compile Include="..\Shared\XMakeAttributes.cs" />
     <Compile Include="..\Shared\XMakeElements.cs" />

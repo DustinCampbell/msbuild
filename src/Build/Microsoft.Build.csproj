@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -88,6 +88,12 @@
     <Compile Include="..\Shared\StringExtensions.cs">
       <Link>SharedUtilities\StringExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\StringSegment.cs">
+      <Link>SharedUtilities\StringSegment.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\StringSegmentComparer.cs">
+      <Link>SharedUtilities\StringSegmentComparer.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\StringUtils.cs">
       <Link>SharedUtilities\StringUtils.cs</Link>
     </Compile>
@@ -172,7 +178,6 @@
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
-    <Compile Include="Evaluation\StringSegment.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
     <Compile Include="FileAccess\FileAccessData.cs" />
     <Compile Include="FileAccess\FlagsAndAttributes.cs" />
