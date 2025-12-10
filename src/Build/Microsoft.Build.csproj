@@ -171,6 +171,7 @@
     <Compile Include="Evaluation\Expander\WellKnownFunctions.DirectoryLibrary.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.RegexLibrary.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
+    <Compile Include="Evaluation\IntrinsicFunctionOverload.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
     <Compile Include="FileAccess\FileAccessData.cs" />
