@@ -3512,7 +3512,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 ObjectModelHelpers.CreateInMemoryProject("<Project><PropertyGroup><foo>$([MSBuild]::GetPathOfFileAbove('foo'))</foo></PropertyGroup></Project>");
             });
 
-            Assert.StartsWith("The expression \"[MSBuild]::GetPathOfFileAbove(foo, \'\')\" cannot be evaluated.", exception.Message);
+            Assert.StartsWith(
+                """The expression "[MSBuild]::GetPathOfFileAbove(foo, '', Microsoft.Build.Shared.FileSystem.CachingFileSystemWrapper)" cannot be evaluated.""",
+                exception.Message);
         }
 
         /// <summary>

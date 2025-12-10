@@ -228,28 +228,12 @@ namespace Microsoft.Build.Evaluation
         }
 
         internal static object GetRegistryValueFromView(string keyName, string valueName, object defaultValue, params object[] views)
-        {
-#if RUNTIME_TYPE_NETCORE
-            // .NET Core MSBuild used to always return empty, so match that behavior
-            // on non-Windows (no registry).
-            if (!NativeMethodsShared.IsWindows)
-            {
-                return defaultValue;
-            }
-#endif
-
-            if (views == null || views.Length == 0)
-            {
-                views = DefaultRegistryViews;
-            }
-
-            return GetRegistryValueFromView(keyName, valueName, defaultValue, new ArraySegment<object>(views));
-        }
+            => GetRegistryValueFromView(keyName, valueName, defaultValue, views.AsSpan());
 
         /// <summary>
         /// Get the value of the registry key from one of the RegistryView's specified
         /// </summary>
-        internal static object GetRegistryValueFromView(string keyName, string valueName, object defaultValue, ArraySegment<object> views)
+        internal static object GetRegistryValueFromView(string keyName, string valueName, object defaultValue, params ReadOnlySpan<object> views)
         {
 #if RUNTIME_TYPE_NETCORE
             // .NET Core MSBuild used to always return empty, so match that behavior
@@ -266,9 +250,9 @@ namespace Microsoft.Build.Evaluation
             object result = defaultValue;
 
             // If we haven't been passed any views, then we'll just use the default view
-            if (views.Count == 0)
+            if (views.Length == 0)
             {
-                views = new ArraySegment<object>(DefaultRegistryViews);
+                views = DefaultRegistryViews;
             }
 
             foreach (object viewObject in views)
