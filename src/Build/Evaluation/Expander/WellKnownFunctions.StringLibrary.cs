@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using static Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -39,6 +39,7 @@ internal static partial class WellKnownFunctions
             builder.Add<string>(nameof(string.Substring), String_Substring);
             builder.Add<string>(nameof(string.PadLeft), String_PadLeft);
             builder.Add<string>(nameof(string.PadRight), String_PadRight);
+            builder.Add<string>(nameof(string.Trim), String_Trim);
             builder.Add<string>(nameof(string.TrimStart), String_TrimStart);
             builder.Add<string>(nameof(string.TrimEnd), String_TrimEnd);
             builder.Add<string>("get_Chars", String_Get_Chars);
@@ -47,9 +48,10 @@ internal static partial class WellKnownFunctions
 
         private static bool String_IsNullOrWhiteSpace(ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string or null])
             {
-                result = string.IsNullOrWhiteSpace(arg0);
+                var value = (string?)args[0];
+                result = string.IsNullOrWhiteSpace(value);
                 return true;
             }
 
@@ -59,9 +61,10 @@ internal static partial class WellKnownFunctions
 
         private static bool String_IsNullOrEmpty(ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string or null])
             {
-                result = string.IsNullOrEmpty(arg0);
+                var value = (string?)args[0];
+                result = string.IsNullOrEmpty(value);
                 return true;
             }
 
@@ -71,10 +74,10 @@ internal static partial class WellKnownFunctions
 
         private static bool String_Copy(ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string str])
             {
 #pragma warning disable CS0618 // Type or member is obsolete
-                result = string.Copy(arg0);
+                result = string.Copy(str);
 #pragma warning restore CS0618 // Type or member is obsolete
                 return true;
             }
@@ -85,27 +88,27 @@ internal static partial class WellKnownFunctions
 
         private static bool String_New(ReadOnlySpan<object?> args, out object? result)
         {
-            if (args.Length == 0)
+            switch (args)
             {
-                result = string.Empty;
-                return true;
-            }
+                case []:
+                    result = string.Empty;
+                    return true;
 
-            if (ParseArgs.TryGetArg(args, out string? arg0))
-            {
-                result = arg0;
-                return true;
-            }
+                case [string value]:
+                    result = value;
+                    return true;
 
-            result = null;
-            return false;
+                default:
+                    result = null;
+                    return false;
+            }
         }
 
         private static bool String_StartsWith(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string value])
             {
-                result = instance.StartsWith(arg0);
+                result = instance.StartsWith(value);
                 return true;
             }
 
@@ -115,9 +118,10 @@ internal static partial class WellKnownFunctions
 
         private static bool String_Replace(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args is [string oldValue, string or null])
             {
-                result = instance.Replace(arg0, arg1);
+                var newValue = (string?)args[1];
+                result = instance.Replace(oldValue, newValue);
                 return true;
             }
 
@@ -127,9 +131,9 @@ internal static partial class WellKnownFunctions
 
         private static bool String_Contains(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string value])
             {
-                result = instance.Contains(arg0);
+                result = instance.Contains(value);
                 return true;
             }
 
@@ -139,7 +143,7 @@ internal static partial class WellKnownFunctions
 
         private static bool String_ToUpperInvariant(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (args.Length == 0)
+            if (args is [])
             {
                 result = instance.ToUpperInvariant();
                 return true;
@@ -151,7 +155,7 @@ internal static partial class WellKnownFunctions
 
         private static bool String_ToLowerInvariant(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (args.Length == 0)
+            if (args is [])
             {
                 result = instance.ToLowerInvariant();
                 return true;
@@ -163,25 +167,25 @@ internal static partial class WellKnownFunctions
 
         private static bool String_EndsWith(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            switch (args)
             {
-                result = instance.EndsWith(arg0);
-                return true;
-            }
+                case [string value]:
+                    result = instance.EndsWith(value);
+                    return true;
 
-            if (ParseArgs.TryGetArgs(args, out arg0, out StringComparison arg1))
-            {
-                result = instance.EndsWith(arg0, arg1);
-                return true;
-            }
+                case [string value, string arg1] when TryConvertToEnum<StringComparison>(arg1, out var comparisonType):
+                    result = instance.EndsWith(value, comparisonType);
+                    return true;
 
-            result = null;
-            return false;
+                default:
+                    result = null;
+                    return false;
+            }
         }
 
         private static bool String_ToLower(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (args.Length == 0)
+            if (args is [])
             {
                 result = instance.ToLower();
                 return true;
@@ -193,21 +197,31 @@ internal static partial class WellKnownFunctions
 
         private static bool String_IndexOf(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArgs(args, out string? arg0, out StringComparison arg1))
+            switch (args)
             {
-                result = instance.IndexOf(arg0, arg1);
-                return true;
-            }
+                case [string value]:
+                    result = instance.IndexOf(value);
+                    return true;
 
-            result = null;
-            return false;
+                case [string value, var arg1] when TryConvertToInt(arg1, out var startIndex):
+                    result = instance.IndexOf(value, startIndex);
+                    return true;
+
+                case [string value, string arg1] when TryConvertToEnum<StringComparison>(arg1, out var comparisonType):
+                    result = instance.IndexOf(value, comparisonType);
+                    return true;
+
+                default:
+                    result = null;
+                    return false;
+            }
         }
 
         private static bool String_IndexOfAny(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string values])
             {
-                result = instance.AsSpan().IndexOfAny(arg0.AsSpan());
+                result = instance.AsSpan().IndexOfAny(values);
                 return true;
             }
 
@@ -217,33 +231,31 @@ internal static partial class WellKnownFunctions
 
         private static bool String_LastIndexOf(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            switch (args)
             {
-                result = instance.LastIndexOf(arg0);
-                return true;
-            }
+                case [string value]:
+                    result = instance.LastIndexOf(value);
+                    return true;
 
-            if (ParseArgs.TryGetArgs(args, out arg0, out int startIndex))
-            {
-                result = instance.LastIndexOf(arg0, startIndex);
-                return true;
-            }
+                case [string value, var arg1] when TryConvertToInt(arg1, out var startIndex):
+                    result = instance.LastIndexOf(value, startIndex);
+                    return true;
 
-            if (ParseArgs.TryGetArgs(args, out arg0, out StringComparison arg1))
-            {
-                result = instance.LastIndexOf(arg0, arg1);
-                return true;
-            }
+                case [string value, string arg1] when TryConvertToEnum<StringComparison>(arg1, out var comparisonType):
+                    result = instance.LastIndexOf(value, comparisonType);
+                    return true;
 
-            result = null;
-            return false;
+                default:
+                    result = null;
+                    return false;
+            }
         }
 
         private static bool String_LastIndexOfAny(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string values])
             {
-                result = instance.AsSpan().LastIndexOfAny(arg0.AsSpan());
+                result = instance.AsSpan().LastIndexOfAny(values);
                 return true;
             }
 
@@ -253,7 +265,7 @@ internal static partial class WellKnownFunctions
 
         private static bool String_Length(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (args.Length == 0)
+            if (args is [])
             {
                 result = instance.Length;
                 return true;
@@ -265,63 +277,77 @@ internal static partial class WellKnownFunctions
 
         private static bool String_Substring(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out int startIndex))
+            switch (args)
             {
-                result = instance.Substring(startIndex);
-                return true;
-            }
+                case [var arg0] when TryConvertToInt(arg0, out var startIndex):
+                    result = instance.Substring(startIndex);
+                    return true;
 
-            if (ParseArgs.TryGetArgs(args, out startIndex, out int length))
-            {
-                result = instance.Substring(startIndex, length);
-                return true;
-            }
+                case [var arg0, var arg1] when TryConvertToInt(arg0, out var startIndex) && TryConvertToInt(arg1, out var length):
+                    result = instance.Substring(startIndex, length);
+                    return true;
 
-            result = null;
-            return false;
+                default:
+                    result = null;
+                    return false;
+            }
         }
 
         private static bool String_Split(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out char separator))
+            switch (args)
             {
-                result = instance.Split(separator);
-                return true;
-            }
+                case [var value] when TryConvertToChar(value, out var separator):
+                    result = instance.Split(separator);
+                    return true;
 
-            result = null;
-            return false;
+                default:
+                    result = null;
+                    return false;
+            }
         }
 
         private static bool String_PadLeft(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out int totalWidth))
+            switch (args)
             {
-                result = instance.PadLeft(totalWidth);
-                return true;
-            }
+                case [var arg0] when TryConvertToInt(arg0, out var totalWidth):
+                    result = instance.PadLeft(totalWidth);
+                    return true;
 
-            if (ParseArgs.TryGetArgs(args, out totalWidth, out char paddingChar))
-            {
-                result = instance.PadLeft(totalWidth, paddingChar);
-                return true;
-            }
+                case [var arg0, var arg1] when TryConvertToInt(arg0, out var totalWidth) && TryConvertToChar(arg1, out var paddingChar):
+                    result = instance.PadLeft(totalWidth, paddingChar);
+                    return true;
 
-            result = null;
-            return false;
+                default:
+                    result = null;
+                    return false;
+            }
         }
 
         private static bool String_PadRight(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out int totalWidth))
+            switch (args)
             {
-                result = instance.PadRight(totalWidth);
-                return true;
-            }
+                case [var arg0] when TryConvertToInt(arg0, out var totalWidth):
+                    result = instance.PadRight(totalWidth);
+                    return true;
 
-            if (ParseArgs.TryGetArgs(args, out totalWidth, out char paddingChar))
+                case [var arg0, var arg1] when TryConvertToInt(arg0, out var totalWidth) && TryConvertToChar(arg1, out var paddingChar):
+                    result = instance.PadRight(totalWidth, paddingChar);
+                    return true;
+
+                default:
+                    result = null;
+                    return false;
+            }
+        }
+
+        private bool String_Trim(string instance, ReadOnlySpan<object?> args, out object? result)
+        {
+            if (args is [])
             {
-                result = instance.PadRight(totalWidth, paddingChar);
+                result = instance.Trim();
                 return true;
             }
 
@@ -331,9 +357,12 @@ internal static partial class WellKnownFunctions
 
         private static bool String_TrimStart(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? trimChars) && trimChars.Length > 0)
+            if (args is [string trimChars] && trimChars.Length > 0)
             {
-                result = instance.TrimStart(trimChars.ToCharArray());
+                result = trimChars.Length == 1
+                    ? instance.TrimStart(trimChars[0])
+                    : instance.TrimStart(trimChars.ToCharArray());
+
                 return true;
             }
 
@@ -343,9 +372,12 @@ internal static partial class WellKnownFunctions
 
         private static bool String_TrimEnd(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? trimChars) && trimChars.Length > 0)
+            if (args is [string trimChars] && trimChars.Length > 0)
             {
-                result = instance.TrimEnd(trimChars.ToCharArray());
+                result = trimChars.Length == 1
+                    ? instance.TrimEnd(trimChars[0])
+                    : instance.TrimEnd(trimChars.ToCharArray());
+
                 return true;
             }
 
@@ -355,7 +387,7 @@ internal static partial class WellKnownFunctions
 
         private static bool String_Get_Chars(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out int index))
+            if (args is [var arg0] && TryConvertToInt(arg0, out var index))
             {
                 result = instance[index];
                 return true;
@@ -367,9 +399,10 @@ internal static partial class WellKnownFunctions
 
         private static bool String_Equals(string instance, ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string or null])
             {
-                result = instance.Equals(arg0);
+                var value = (string?)args[0];
+                result = instance.Equals(value);
                 return true;
             }
 

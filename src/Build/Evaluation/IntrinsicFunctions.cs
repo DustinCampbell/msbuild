@@ -520,6 +520,17 @@ namespace Microsoft.Build.Evaluation
         /// Gets the canonicalized full path of the provided directory and ensures it contains the correct directory separator characters for the current operating system
         /// while ensuring it has a trailing slash.
         /// </summary>
+        /// <param name="path">A directory path to normalize.</param>
+        /// <returns>A canonicalized full directory path with the correct directory separators and a trailing slash.</returns>
+        internal static string NormalizeDirectory(string path)
+        {
+            return EnsureTrailingSlash(NormalizePath(path));
+        }
+
+        /// <summary>
+        /// Gets the canonicalized full path of the provided directory and ensures it contains the correct directory separator characters for the current operating system
+        /// while ensuring it has a trailing slash.
+        /// </summary>
         /// <param name="path">One or more directory paths to combine and normalize.</param>
         /// <returns>A canonicalized full directory path with the correct directory separators and a trailing slash.</returns>
         internal static string NormalizeDirectory(params string[] path)
@@ -545,6 +556,16 @@ namespace Microsoft.Build.Evaluation
         internal static bool DirectoryExists(string path)
         {
             return FileUtilities.DirectoryExistsNoThrow(path);
+        }
+
+        /// <summary>
+        /// Gets the canonicalized full path of the provided path and ensures it contains the correct directory separator characters for the current operating system.
+        /// </summary>
+        /// <param name="path">A path to normalize.</param>
+        /// <returns>A canonicalized full path with the correct directory separators.</returns>
+        internal static string NormalizePath(string path)
+        {
+            return FileUtilities.NormalizePath(path);
         }
 
         /// <summary>

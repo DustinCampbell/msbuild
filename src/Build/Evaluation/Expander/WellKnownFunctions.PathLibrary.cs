@@ -3,8 +3,7 @@
 
 using System;
 using System.IO;
-
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using static Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -33,80 +32,39 @@ internal static partial class WellKnownFunctions
         private static bool Path_Combine(ReadOnlySpan<object?> args, out object? result)
         {
             // Combine has fast implementations for up to 4 parameters: https://github.com/dotnet/corefx/blob/2c55db90d622fa6279184e6243f0470a3755d13c/src/Common/src/CoreLib/System/IO/Path.cs#L293-L317
-            switch (args.Length)
+            switch (args)
             {
-                case 0:
-                    result = null;
-                    return false;
+                case []:
+                    result = Path.Combine([]);
+                    return true;
 
-                case 1:
-                    {
-                        if (ParseArgs.TryGetArg(args, out string? arg0))
-                        {
-                            result = Path.Combine(arg0);
-                            return true;
-                        }
-                    }
+                case [string path1, string path2]:
+                    result = Path.Combine(path1, path2);
+                    return true;
 
-                    break;
-                case 2:
-                    {
-                        if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
-                        {
-                            result = Path.Combine(arg0, arg1);
-                            return true;
-                        }
-                    }
+                case [string path1, string path2, string path3]:
+                    result = Path.Combine(path1, path2, path3);
+                    return true;
 
-                    break;
-
-                case 3:
-                    {
-                        if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1, out string? arg2))
-                        {
-                            result = Path.Combine(arg0, arg1, arg2);
-                            return true;
-                        }
-                    }
-
-                    break;
-
-                case 4:
-                    {
-                        if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1, out string? arg2, out string? arg3))
-                        {
-                            result = Path.Combine(arg0, arg1, arg2, arg3);
-                            return true;
-                        }
-                    }
-
-                    break;
+                case [string path1, string path2, string path3, string path4]:
+                    result = Path.Combine(path1, path2, path3, path4);
+                    return true;
 
                 default:
-                    string[] paths = new string[args.Length];
-
-                    for (int i = 0; i < args.Length; i++)
+                    if (TryConvertToStringArray(args, out string[]? paths))
                     {
-                        if (args[i] is not string stringArg)
-                        {
-                            result = null;
-                            return false;
-                        }
-
-                        paths[i] = stringArg;
+                        result = Path.Combine(paths);
+                        return true;
                     }
 
-                    result = Path.Combine(paths);
-                    return true;
+                    result = null;
+                    return false;
             }
-
-            result = null;
-            return false;
         }
 
         private static bool Path_DirectorySeparatorChar(ReadOnlySpan<object?> args, out object? result)
         {
-            if (args.Length == 0)
+            if (args is [])
             {
                 result = Path.DirectorySeparatorChar;
                 return true;
@@ -118,9 +76,9 @@ internal static partial class WellKnownFunctions
 
         private static bool Path_GetFullPath(ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [string path])
             {
-                result = Path.GetFullPath(arg0);
+                result = Path.GetFullPath(path);
                 return true;
             }
 
@@ -130,9 +88,10 @@ internal static partial class WellKnownFunctions
 
         private static bool Path_IsPathRooted(ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [var arg0] && arg0 is string or null)
             {
-                result = Path.IsPathRooted(arg0);
+                var path = (string?)arg0;
+                result = Path.IsPathRooted(path);
                 return true;
             }
 
@@ -142,7 +101,7 @@ internal static partial class WellKnownFunctions
 
         private static bool Path_GetTempPath(ReadOnlySpan<object?> args, out object? result)
         {
-            if (args.Length == 0)
+            if (args is [])
             {
                 result = Path.GetTempPath();
                 return true;
@@ -154,9 +113,10 @@ internal static partial class WellKnownFunctions
 
         private static bool Path_GetFileName(ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [var arg0] && arg0 is string or null)
             {
-                result = Path.GetFileName(arg0);
+                var path = (string?)arg0;
+                result = Path.GetFileName(path);
                 return true;
             }
 
@@ -166,9 +126,10 @@ internal static partial class WellKnownFunctions
 
         private static bool Path_GetDirectoryName(ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [var arg0] && arg0 is string or null)
             {
-                result = Path.GetDirectoryName(arg0);
+                var path = (string?)arg0;
+                result = Path.GetDirectoryName(path);
                 return true;
             }
 
@@ -178,9 +139,10 @@ internal static partial class WellKnownFunctions
 
         private static bool Path_GetFileNameWithoutExtension(ReadOnlySpan<object?> args, out object? result)
         {
-            if (ParseArgs.TryGetArg(args, out string? arg0))
+            if (args is [var arg0] && arg0 is string or null)
             {
-                result = Path.GetFileNameWithoutExtension(arg0);
+                var path = (string?)arg0;
+                result = Path.GetFileNameWithoutExtension(path);
                 return true;
             }
 

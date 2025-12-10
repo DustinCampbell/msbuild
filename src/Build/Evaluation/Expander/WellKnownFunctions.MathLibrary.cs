@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander
 {
@@ -10,6 +9,9 @@ namespace Microsoft.Build.Evaluation.Expander
     {
         private sealed class MathLibrary : FunctionLibrary
         {
+            private static readonly Func<double, double, double> s_max = Math.Max;
+            private static readonly Func<double, double, double> s_min = Math.Min;
+
             public static readonly MathLibrary Instance = new();
 
             private MathLibrary()
@@ -23,28 +25,10 @@ namespace Microsoft.Build.Evaluation.Expander
             }
 
             private static bool Math_Max(ReadOnlySpan<object?> args, out object? result)
-            {
-                if (ParseArgs.TryGetArgs(args, out double arg0, out double arg1))
-                {
-                    result = Math.Max(arg0, arg1);
-                    return true;
-                }
-
-                result = null;
-                return false;
-            }
+                => TryExecuteArithmeticFunction(args, s_max, out result);
 
             private static bool Math_Min(ReadOnlySpan<object?> args, out object? result)
-            {
-                if (ParseArgs.TryGetArgs(args, out double arg0, out double arg1))
-                {
-                    result = Math.Min(arg0, arg1);
-                    return true;
-                }
-
-                result = null;
-                return false;
-            }
+                => TryExecuteArithmeticFunction(args, s_min, out result);
         }
     }
 }

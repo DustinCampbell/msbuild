@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using static Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander
 {
@@ -23,7 +23,7 @@ namespace Microsoft.Build.Evaluation.Expander
 
             private static bool StringArray_GetValue(string[] instance, ReadOnlySpan<object?> args, out object? result)
             {
-                if (ParseArgs.TryGetArg(args, out int index))
+                if (args is [var arg0] && TryConvertToInt(arg0, out var index))
                 {
                     result = instance[index];
                     return true;

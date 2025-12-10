@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander
 {
@@ -23,14 +22,20 @@ namespace Microsoft.Build.Evaluation.Expander
 
             private static bool Int32_ToString(int i, ReadOnlySpan<object?> args, out object? result)
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0))
+                switch (args)
                 {
-                    result = i.ToString(arg0);
-                    return true;
-                }
+                    case []:
+                        result = i.ToString();
+                        return true;
 
-                result = null;
-                return false;
+                    case [string format]:
+                        result = i.ToString(format);
+                        return true;
+
+                    default:
+                        result = null;
+                        return false;
+                }
             }
         }
     }

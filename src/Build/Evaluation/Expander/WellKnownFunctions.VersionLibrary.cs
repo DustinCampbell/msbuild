@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using static Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander
 {
@@ -19,14 +19,42 @@ namespace Microsoft.Build.Evaluation.Expander
             protected override void Initialize(ref Builder builder)
             {
                 builder.Add(nameof(Version.Parse), Version_Parse);
+
+                builder.Add<Version>(nameof(Version.CompareTo), Version_CompareTo);
+                builder.Add<Version>(nameof(Version.Revision), Version_Revision);
                 builder.Add<Version>(nameof(Version.ToString), Version_ToString);
             }
 
             private static bool Version_Parse(ReadOnlySpan<object?> args, out object? result)
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0))
+                if (args is [string input])
                 {
-                    result = Version.Parse(arg0);
+                    result = Version.Parse(input);
+                    return true;
+                }
+
+                result = null;
+                return false;
+            }
+
+            private static bool Version_CompareTo(Version v, ReadOnlySpan<object?> args, out object? result)
+            {
+                if (args is [var arg0] && arg0 is Version or null)
+                {
+                    var value = (Version?)arg0;
+                    result = v.CompareTo(value);
+                    return true;
+                }
+
+                result = null;
+                return false;
+            }
+
+            private static bool Version_Revision(Version v, ReadOnlySpan<object?> args, out object? result)
+            {
+                if (args is [])
+                {
+                    result = v.Revision;
                     return true;
                 }
 
@@ -36,14 +64,20 @@ namespace Microsoft.Build.Evaluation.Expander
 
             private static bool Version_ToString(Version v, ReadOnlySpan<object?> args, out object? result)
             {
-                if (ParseArgs.TryGetArg(args, out int arg0))
+                switch (args)
                 {
-                    result = v.ToString(arg0);
-                    return true;
-                }
+                    case []:
+                        result = v.ToString();
+                        return true;
 
-                result = null;
-                return false;
+                    case [var arg0] when TryConvertToInt(arg0, out var fieldCount):
+                        result = v.ToString(fieldCount);
+                        return true;
+
+                    default:
+                        result = null;
+                        return false;
+                }
             }
         }
     }

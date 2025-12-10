@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using static Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander
 {
@@ -23,20 +23,20 @@ namespace Microsoft.Build.Evaluation.Expander
 
             private static bool Char_IsDigit(ReadOnlySpan<object?> args, out object? result)
             {
-                if (ParseArgs.TryGetArg(args, out char c))
+                switch (args)
                 {
-                    result = char.IsDigit(c);
-                    return true;
-                }
+                    case [var arg0] when TryConvertToChar(arg0, out char c):
+                        result = char.IsDigit(c);
+                        return true;
 
-                if (ParseArgs.TryGetArgs(args, out string? str, out int index))
-                {
-                    result = char.IsDigit(str, index);
-                    return true;
-                }
+                    case [string s, var arg1] when TryConvertToInt(arg1, out int index):
+                        result = char.IsDigit(s, index);
+                        return true;
 
-                result = false;
-                return false;
+                    default:
+                        result = false;
+                        return false;
+                }
             }
         }
     }

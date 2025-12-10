@@ -3,7 +3,6 @@
 
 using System;
 using System.Text.RegularExpressions;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander
 {
@@ -19,14 +18,53 @@ namespace Microsoft.Build.Evaluation.Expander
 
             protected override void Initialize(ref Builder builder)
             {
+                builder.Add(nameof(Regex.Escape), Regex_Escape);
+                builder.Add(nameof(Regex.IsMatch), Regex_IsMatch);
+                builder.Add(nameof(Regex.Match), Regex_Match);
                 builder.Add(nameof(Regex.Replace), Regex_Replace);
+            }
+
+            private static bool Regex_Escape(ReadOnlySpan<object?> args, out object? result)
+            {
+                if (args is [string str])
+                {
+                    result = Regex.Escape(str);
+                    return true;
+                }
+
+                result = null;
+                return false;
+            }
+
+            private static bool Regex_IsMatch(ReadOnlySpan<object?> args, out object? result)
+            {
+                if (args is [string input, string pattern])
+                {
+                    result = Regex.IsMatch(input, pattern);
+                    return true;
+                }
+
+                result = null;
+                return false;
+            }
+
+            private static bool Regex_Match(ReadOnlySpan<object?> args, out object? result)
+            {
+                if (args is [string input, string pattern])
+                {
+                    result = Regex.Match(input, pattern);
+                    return true;
+                }
+
+                result = null;
+                return false;
             }
 
             private static bool Regex_Replace(ReadOnlySpan<object?> args, out object? result)
             {
-                if (ParseArgs.TryGetArgs(args, out string? arg1, out string? arg2, out string? arg3))
+                if (args is [string input, string pattern, string replacement])
                 {
-                    result = Regex.Replace(arg1, arg2, arg3);
+                    result = Regex.Replace(input, pattern, replacement);
                     return true;
                 }
 

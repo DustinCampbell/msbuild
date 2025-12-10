@@ -4028,16 +4028,23 @@ namespace Microsoft.Build.Evaluation
                     if (_receiverType == typeof(IntrinsicFunctions))
                     {
                         // Special case a few methods that take extra parameters that can't be passed in by the user
-                        if (string.Equals(_methodMethodName, nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase) && args.Length == 1)
+                        if (string.Equals(_methodMethodName, nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase))
                         {
-                            // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
-                            // specified the file name.  This is syntactic sugar so they don't have to always
-                            // include $(MSBuildThisFileDirectory) as a parameter.
-                            string startingDirectory = !string.IsNullOrWhiteSpace(elementLocation.File)
-                                ? Path.GetDirectoryName(elementLocation.File)
-                                : string.Empty;
+                            if (args.Length == 1)
+                            {
+                                // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
+                                // specified the file name.  This is syntactic sugar so they don't have to always
+                                // include $(MSBuildThisFileDirectory) as a parameter.
+                                string startingDirectory = !string.IsNullOrWhiteSpace(elementLocation.File)
+                                    ? Path.GetDirectoryName(elementLocation.File)
+                                    : string.Empty;
 
-                            args = [args[0], startingDirectory, _fileSystem];
+                                args = [args[0], startingDirectory, _fileSystem];
+                            }
+                            else if (args.Length == 2)
+                            {
+                                args = [args[0], args[1], _fileSystem];
+                            }
                         }
                         else if (string.Equals(_methodMethodName, nameof(IntrinsicFunctions.GetDirectoryNameOfFileAbove), StringComparison.OrdinalIgnoreCase) && args.Length == 2)
                         {

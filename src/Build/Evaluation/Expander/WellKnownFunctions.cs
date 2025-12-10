@@ -129,6 +129,12 @@ namespace Microsoft.Build.Evaluation.Expander
                 return true;
             }
 
+            if (type == typeof(Directory))
+            {
+                library = DirectoryLibrary.Instance;
+                return true;
+            }
+
             if (type == typeof(char))
             {
                 library = CharLibrary.Instance;

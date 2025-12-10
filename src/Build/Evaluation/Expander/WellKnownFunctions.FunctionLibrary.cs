@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using static Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander
 {
@@ -62,6 +63,78 @@ namespace Microsoft.Build.Evaluation.Expander
                 if (_nameToStaticFuncMap.TryGetValue(methodName, out var staticFunc))
                 {
                     return staticFunc(args, out result);
+                }
+
+                result = null;
+                return false;
+            }
+
+            protected static bool TryExecuteArithmeticFunction(
+                ReadOnlySpan<object?> args,
+                Func<int, int, int> integerFunc,
+                out object? result)
+            {
+                if (args is [var arg0, var arg1] &&
+                    TryConvertToInt(arg0, out var a) &&
+                    TryConvertToInt(arg1, out var b))
+                {
+                    result = integerFunc(a, b);
+                    return true;
+                }
+
+                result = null;
+                return false;
+            }
+
+            protected static bool TryExecuteArithmeticFunction(
+                ReadOnlySpan<object?> args,
+                Func<double, double, double> realFunc,
+                out object? result)
+            {
+                if (args is [var arg0, var arg1] &&
+                    TryConvertToDouble(arg0, out var a) &&
+                    TryConvertToDouble(arg1, out var b))
+                {
+                    result = realFunc(a, b);
+                    return true;
+                }
+
+                result = null;
+                return false;
+            }
+
+            /// <summary>
+            ///  Executes an arithmetic operation on two arguments, automatically selecting between integer and floating-point overloads.
+            ///  Prefers integer arithmetic if both arguments can be converted to long; otherwise, uses double arithmetic.
+            /// </summary>
+            /// <param name="args">The array of arguments (must contain exactly two elements).</param>
+            /// <param name="integerFunc">The operation to perform for integer arithmetic.</param>
+            /// <param name="realFunc">The operation to perform for floating-point arithmetic.</param>
+            /// <param name="result">The result of the operation, or <see langword="null"/> if execution failed.</param>
+            /// <returns>
+            ///  <see langword="true"/> if the operation was successfully executed; otherwise, <see langword="false"/>.
+            /// </returns>
+            protected static bool TryExecuteArithmeticFunctionWithOverflow(
+                ReadOnlySpan<object?> args,
+                Func<long, long, long> integerFunc,
+                Func<double, double, double> realFunc,
+                out object? result)
+            {
+                if (args is [var arg0, var arg1])
+                {
+                    if (TryConvertToLong(arg0, out var longA) &&
+                        TryConvertToLong(arg1, out var longB))
+                    {
+                        result = integerFunc(longA, longB);
+                        return true;
+                    }
+
+                    if (TryConvertToDouble(arg0, out var doubleA) &&
+                        TryConvertToDouble(arg1, out var doubleB))
+                    {
+                        result = realFunc(doubleA, doubleB);
+                        return true;
+                    }
                 }
 
                 result = null;
