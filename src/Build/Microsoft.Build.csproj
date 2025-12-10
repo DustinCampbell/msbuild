@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -168,6 +168,7 @@
     <Compile Include="BuildCheck\**\*.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.RegexLibrary.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
@@ -514,6 +515,16 @@
     <Compile Include="Evaluation\ToolsetProvider.cs" />
     <Compile Include="Evaluation\Expander\ArgumentParser.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.CharLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.FunctionLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.GuidLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.Int32Library.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.IntrinsicLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.MathLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.PathLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.StringArrayLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.StringLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.VersionLibrary.cs" />
     <Compile Include="Globbing\CompositeGlob.cs" />
     <Compile Include="Globbing\Extensions\MSBuildGlobExtensions.cs" />
     <Compile Include="Globbing\Visitor\GlobVisitor.cs" />

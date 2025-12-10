@@ -4028,22 +4028,35 @@ namespace Microsoft.Build.Evaluation
                     if (_receiverType == typeof(IntrinsicFunctions))
                     {
                         // Special case a few methods that take extra parameters that can't be passed in by the user
-                        if (_methodMethodName.Equals("GetPathOfFileAbove") && args.Length == 1)
+                        if (string.Equals(_methodMethodName, nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase) && args.Length == 1)
                         {
                             // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
                             // specified the file name.  This is syntactic sugar so they don't have to always
                             // include $(MSBuildThisFileDirectory) as a parameter.
-                            string startingDirectory = String.IsNullOrWhiteSpace(elementLocation.File) ? String.Empty : Path.GetDirectoryName(elementLocation.File);
+                            string startingDirectory = !string.IsNullOrWhiteSpace(elementLocation.File)
+                                ? Path.GetDirectoryName(elementLocation.File)
+                                : string.Empty;
 
-                            args = [args[0], startingDirectory];
+                            args = [args[0], startingDirectory, _fileSystem];
+                        }
+                        else if (string.Equals(_methodMethodName, nameof(IntrinsicFunctions.GetDirectoryNameOfFileAbove), StringComparison.OrdinalIgnoreCase) && args.Length == 2)
+                        {
+                            args = [args[0], args[1], _fileSystem];
+                        }
+                        else if (string.Equals(_methodMethodName, nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase) && args.Length == 1)
+                        {
+                            string projectPath = properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
+                            ErrorUtilities.VerifyThrow(_loggingContext != null, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
+
+                            args = [projectPath, args[0], _loggingContext];
                         }
                     }
 
                     // If we've been asked to construct an instance, then we
                     // need to locate an appropriate constructor and invoke it
-                    if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                     {
-                        if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                        if (!WellKnownFunctions.TryExecute(_receiverType, _methodMethodName, instance: null, args, out functionResult))
                         {
                             functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
                         }
@@ -4056,17 +4069,12 @@ namespace Microsoft.Build.Evaluation
                         {
                             // First attempt to recognize some well-known functions to avoid binding
                             // and potential first-chance MissingMethodExceptions.
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodMethodName, _receiverType, _fileSystem, out functionResult, objectInstance, args);
-
-                            if (!wellKnownFunctionSuccess)
-                            {
-                                // Some well-known functions need evaluated value from properties.
-                                wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(_methodMethodName, _receiverType, _loggingContext, properties, out functionResult, objectInstance, args);
-                            }
+                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecute(
+                                _receiverType, _methodMethodName, objectInstance, args, out functionResult);
                         }
-                        // we need to preserve the same behavior on exceptions as the actual binder
                         catch (Exception ex)
                         {
+                            // we need to preserve the same behavior on exceptions as the actual binder
                             string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
                             if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                             {
