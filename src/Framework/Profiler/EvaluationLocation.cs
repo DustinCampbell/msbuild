@@ -34,7 +34,9 @@ namespace Microsoft.Build.Framework.Profiler
         /// <nodoc/>
         UsingTasks = 7,
         /// <nodoc/>
-        Targets = 8
+        Targets = 8,
+        /// <nodoc/>
+        TotalFunctionCalls = 9,
     }
 
     /// <summary>
@@ -47,7 +49,11 @@ namespace Microsoft.Build.Framework.Profiler
         /// <nodoc/>
         Condition = 1,
         /// <nodoc/>
-        Glob = 2
+        Glob = 2,
+        /// <nodoc/>
+        Expansion = 3,
+        /// <nodoc/>
+        FunctionCall = 4
     }
 
     /// <summary>
@@ -64,6 +70,7 @@ namespace Microsoft.Build.Framework.Profiler
             {
                 {EvaluationPass.TotalEvaluation, "Total evaluation"},
                 {EvaluationPass.TotalGlobbing, "Total evaluation for globbing"},
+                {EvaluationPass.TotalFunctionCalls, "Total evaluation for function calls" },
                 {EvaluationPass.InitialProperties, "Initial properties (pass 0)"},
                 {EvaluationPass.Properties, "Properties (pass 1)"},
                 {EvaluationPass.ItemDefinitionGroups, "Item definition groups (pass 2)"},
@@ -111,6 +118,13 @@ namespace Microsoft.Build.Framework.Profiler
         }
 
         /// <nodoc/>
+        public static EvaluationLocation CreateLocationForExpansion(long? parentId, EvaluationPass evaluationPass, string evaluationDescription, string file,
+            int? line, string expression)
+        {
+            return new EvaluationLocation(parentId, evaluationPass, evaluationDescription, file, line, "Expansion", expression, kind: EvaluationLocationKind.Expansion);
+        }
+
+        /// <nodoc/>
         public static EvaluationLocation CreateLocationForProject(long? parentId, EvaluationPass evaluationPass, string evaluationDescription, string file,
             int? line, IProjectElement element)
         {
@@ -131,6 +145,21 @@ namespace Microsoft.Build.Framework.Profiler
             return new EvaluationLocation(EvaluationPass.TotalGlobbing,
                 PassDefaultDescription[EvaluationPass.TotalGlobbing], file: null, kind: EvaluationLocationKind.Glob,
                 line: null, elementName: null, elementDescription: null);
+        }
+
+        /// <nodoc/>
+        public static EvaluationLocation CreateLocationForAggregatedFunctionCalls()
+        {
+            return new EvaluationLocation(EvaluationPass.TotalFunctionCalls,
+                PassDefaultDescription[EvaluationPass.TotalFunctionCalls], file: null, kind: EvaluationLocationKind.FunctionCall,
+                line: null, elementName: null, elementDescription: null);
+        }
+
+        /// <nodoc/>
+        public static EvaluationLocation CreateLocationForFunctionCall(long? parentId, EvaluationPass evaluationPass,
+            string evaluationDescription, string file, int? line, string functionCall)
+        {
+            return new EvaluationLocation(parentId, evaluationPass, evaluationDescription, file, line, "Function Call", functionCall, kind: EvaluationLocationKind.FunctionCall);
         }
 
         /// <summary>
@@ -224,6 +253,18 @@ namespace Microsoft.Build.Framework.Profiler
         public EvaluationLocation WithGlob(string globDescription)
         {
             return CreateLocationForGlob(this.Id, this.EvaluationPass, this.EvaluationPassDescription, this.File, this.Line, globDescription);
+        }
+
+        /// <nodoc/>
+        public EvaluationLocation WithFileLineAndExpansion(string file, int? line, string expression)
+        {
+            return CreateLocationForExpansion(this.Id, this.EvaluationPass, this.EvaluationPassDescription, file, line, expression);
+        }
+
+        /// <nodoc/>
+        public EvaluationLocation WithFunctionCall(string functionCall)
+        {
+            return CreateLocationForFunctionCall(this.Id, this.EvaluationPass, this.EvaluationPassDescription, this.File, this.Line, functionCall);
         }
 
         /// <nodoc/>

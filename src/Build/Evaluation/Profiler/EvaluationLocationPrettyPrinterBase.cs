@@ -52,14 +52,29 @@ namespace Microsoft.Build.Evaluation
                 return null;
             }
 
+            if (description.AsSpan().IndexOfAny('\r', '\n', '`') >= 0)
+            {
+                description = description.Replace("\r", "\\r").Replace("\n", "\\n").Replace("`", "'");
+            }
+
             if (kind == EvaluationLocationKind.Condition)
             {
                 return $"Condition=\"{description}\")";
             }
 
+            if (kind == EvaluationLocationKind.Expansion)
+            {
+                return $"Expansion=\"{description}\")";
+            }
+
             if (kind == EvaluationLocationKind.Glob)
             {
                 return $"Glob=\"{description}\")";
+            }
+
+            if (kind == EvaluationLocationKind.FunctionCall)
+            {
+                return $"Function Call=\"{description}\")";
             }
 
             var outerXml = description;

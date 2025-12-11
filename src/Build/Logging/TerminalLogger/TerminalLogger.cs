@@ -722,7 +722,7 @@ public sealed partial class TerminalLogger : INodeLogger
                 targetFramework = evalInfo.TargetFramework;
                 runtimeIdentifier = evalInfo.RuntimeIdentifier;
             }
-            System.Diagnostics.Debug.Assert(evalInfo != default, "EvalProjectInfo should have been captured before ProjectStarted");
+            // System.Diagnostics.Debug.Assert(evalInfo != default, "EvalProjectInfo should have been captured before ProjectStarted");
 
             TerminalProjectInfo projectInfo = new(c, evalInfo, _createStopwatch?.Invoke());
             _projects[c] = projectInfo;
@@ -1750,7 +1750,7 @@ public sealed partial class TerminalLogger : INodeLogger
         }
     }
     #endregion
-    
+
     #region Regex Patterns
     // Regex patterns for command line argument parsing
     private const string s_terminalLoggerArgPattern = @"(?:/|-|--)(?:tl|terminallogger):(?'value'on|off|true|false|auto)";

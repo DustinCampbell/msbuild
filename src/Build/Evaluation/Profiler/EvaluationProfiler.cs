@@ -79,6 +79,20 @@ namespace Microsoft.Build.Evaluation
             return _shouldTrackElements ? new EvaluationFrame(this, CurrentLocation.WithFileLineAndCondition(location.File, location.Line, condition)) : null;
         }
 
+        /// <nodoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public IDisposable TrackExpansion(IElementLocation location, string expression)
+        {
+            return _shouldTrackElements ? new EvaluationFrame(this, CurrentLocation.WithFileLineAndExpansion(location.File, location.Line, expression)) : null;
+        }
+
+        /// <nodoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public IDisposable TrackFunctionCall(IElementLocation location, string functionCall)
+        {
+            return _shouldTrackElements ? new EvaluationFrame(this, CurrentLocation.WithFunctionCall(functionCall)) : null;
+        }
+
         /// <summary>
         /// Returns true when the evaluation stack is empty.
         /// </summary>

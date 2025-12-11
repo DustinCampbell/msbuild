@@ -244,7 +244,8 @@ namespace Microsoft.Build.Evaluation
             // Create containers for the evaluation results
             data.InitializeForEvaluation(toolsetProvider, _evaluationContext, _evaluationLoggingContext);
 
-            _expander = new Expander<P, I>(data, data, _evaluationContext, _evaluationLoggingContext);
+            _evaluationProfiler = new EvaluationProfiler(profileEvaluation);
+            _expander = new Expander<P, I>(data, data, _evaluationContext, _evaluationLoggingContext, _evaluationProfiler);
 
             _data = data;
             _itemGroupElements = new List<ProjectItemGroupElement>();
@@ -263,7 +264,6 @@ namespace Microsoft.Build.Evaluation
             _projectRootElementCache = projectRootElementCache;
             _sdkResolverService = sdkResolverService;
             _submissionId = submissionId;
-            _evaluationProfiler = new EvaluationProfiler(profileEvaluation);
             _isRunningInVisualStudio = string.Equals("true", _data.GlobalPropertiesDictionary.GetProperty("BuildingInsideVisualStudio")?.EvaluatedValue, StringComparison.OrdinalIgnoreCase);
 
             // In 15.9 we added support for the global property "NuGetInteractive" to allow SDK resolvers to be interactive.

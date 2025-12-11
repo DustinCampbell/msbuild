@@ -10,7 +10,7 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-
+using Microsoft.NET.StringTools;
 using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 
@@ -35,6 +35,74 @@ namespace Microsoft.Build.Evaluation.Expander
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void LogFunctionCall(Type receiverType, string methodName, string fileName, object? objectInstance, object[] args)
         {
+#if DEBUG
+            {
+                string parameters = args.Length > 0
+                    ? BuildParameterList(args)
+                    : string.Empty;
+
+                System.Diagnostics.Debug.WriteLine($"Reflection Call: {receiverType.FullName}::{methodName}({parameters})");
+
+                static string BuildParameterList(ReadOnlySpan<object?> args)
+                {
+                    using var builder = new SpanBasedStringBuilder();
+
+                    bool first = true;
+
+                    foreach (object? arg in args)
+                    {
+                        if (first)
+                        {
+                            first = false;
+                        }
+                        else
+                        {
+                            builder.Append(", ");
+                        }
+
+                        switch (arg)
+                        {
+                            case null:
+                                builder.Append("null");
+                                break;
+
+                            case string s:
+                                var text = s.Replace("\t", "\\t").Replace("\r", "\\r").Replace("\n", "\\n");
+                                builder.Append($"[string] \"{text}\"");
+                                break;
+
+                            case int i:
+                                builder.Append($"[int] {i}");
+                                break;
+
+                            case bool b:
+                                builder.Append($"[bool] {b}");
+                                break;
+
+                            case long l:
+                                builder.Append($"[long] {l}");
+                                break;
+
+                            case double d:
+                                builder.Append($"[double] {d}");
+                                break;
+
+                            case var x:
+                                builder.Append($"[{x.GetType().FullName}]");
+                                break;
+                        }
+                    }
+
+                    return builder.ToString();
+                }
+            }
+#endif
+
+            if (!Traits.Instance.LogPropertyFunctionsRequiringReflection)
+            {
+                return;
+            }
+
             var logFile = Path.Combine(Directory.GetCurrentDirectory(), fileName);
 
             var argSignature = args != null
@@ -885,7 +953,7 @@ namespace Microsoft.Build.Evaluation.Expander
                     if (string.Equals(methodName, nameof(char.IsDigit), StringComparison.OrdinalIgnoreCase))
                     {
                         bool? result = null;
-                        
+
                         if (ParseArgs.TryGetArg(args, out string? arg0) && arg0?.Length == 1)
                         {
                             char c = arg0[0];
@@ -895,7 +963,7 @@ namespace Microsoft.Build.Evaluation.Expander
                         {
                             result = char.IsDigit(str, index);
                         }
-                        
+
                         if (result.HasValue)
                         {
                             returnVal = result.Value;
@@ -928,10 +996,8 @@ namespace Microsoft.Build.Evaluation.Expander
                     return true;
                 }
             }
-            if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
-            {
-                LogFunctionCall(receiverType, methodName, "PropertyFunctionsRequiringReflection", objectInstance, args);
-            }
+
+            LogFunctionCall(receiverType, methodName, "PropertyFunctionsRequiringReflection", objectInstance, args);
 
             return false;
         }

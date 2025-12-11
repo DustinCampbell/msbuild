@@ -311,6 +311,10 @@ namespace Microsoft.Build.Evaluation
 
         private readonly LoggingContext _loggingContext;
 
+#nullable enable
+        private readonly EvaluationProfiler? _evaluationProfiler;
+#nullable disable
+
         /// <summary>
         /// Non-null if the expander was constructed for evaluation.
         /// </summary>
@@ -375,6 +379,17 @@ namespace Microsoft.Build.Evaluation
             : this(properties, evaluationContext, loggingContext)
         {
             _items = items;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Expander{P, I}"/> class.
+        /// Creates an expander passing it some properties and items to use, and the evaluation context.
+        /// Either or both may be null.
+        /// </summary>
+        internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, EvaluationContext evaluationContext, LoggingContext loggingContext, EvaluationProfiler evaluationProfiler)
+            : this(properties, items, evaluationContext, loggingContext)
+        {
+            _evaluationProfiler = evaluationProfiler;
         }
 
         /// <summary>
@@ -494,7 +509,7 @@ namespace Microsoft.Build.Evaluation
             ErrorUtilities.VerifyThrowInternalNull(elementLocation);
 
             string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
-            result = PropertyExpander<P>.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+            result = PropertyExpander<P>.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem, _evaluationProfiler);
             result = ItemExpander.ExpandItemVectorsIntoString<I>(this, result, _items, options, elementLocation);
             result = FileUtilities.MaybeAdjustFilePath(result);
 
@@ -515,7 +530,7 @@ namespace Microsoft.Build.Evaluation
             ErrorUtilities.VerifyThrowInternalNull(elementLocation);
 
             string metaExpanded = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
-            return PropertyExpander<P>.ExpandPropertiesLeaveTypedAndEscaped(metaExpanded, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+            return PropertyExpander<P>.ExpandPropertiesLeaveTypedAndEscaped(metaExpanded, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem, _evaluationProfiler);
         }
 
         /// <summary>
@@ -563,7 +578,7 @@ namespace Microsoft.Build.Evaluation
             ErrorUtilities.VerifyThrowInternalNull(elementLocation);
 
             expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
-            expression = PropertyExpander<P>.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+            expression = PropertyExpander<P>.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem, _evaluationProfiler);
             expression = FileUtilities.MaybeAdjustFilePath(expression);
 
             List<T> result = new List<T>();
@@ -1234,7 +1249,8 @@ namespace Microsoft.Build.Evaluation
                 ExpanderOptions options,
                 IElementLocation elementLocation,
                 PropertiesUseTracker propertiesUseTracker,
-                IFileSystem fileSystem)
+                IFileSystem fileSystem,
+                EvaluationProfiler evaluationProfiler)
             {
                 return
                     ConvertToString(
@@ -1244,7 +1260,8 @@ namespace Microsoft.Build.Evaluation
                             options,
                             elementLocation,
                             propertiesUseTracker,
-                            fileSystem));
+                            fileSystem,
+                            evaluationProfiler));
             }
 
             /// <summary>
@@ -1270,7 +1287,8 @@ namespace Microsoft.Build.Evaluation
                 ExpanderOptions options,
                 IElementLocation elementLocation,
                 PropertiesUseTracker propertiesUseTracker,
-                IFileSystem fileSystem)
+                IFileSystem fileSystem,
+                EvaluationProfiler evaluationProfiler)
             {
                 if (((options & ExpanderOptions.ExpandProperties) == 0) || String.IsNullOrEmpty(expression))
                 {
@@ -1380,7 +1398,8 @@ namespace Microsoft.Build.Evaluation
                                 options,
                                 elementLocation,
                                 propertiesUseTracker,
-                                fileSystem);
+                                fileSystem,
+                                evaluationProfiler);
                         }
                         else // This is a regular property
                         {
@@ -1428,7 +1447,8 @@ namespace Microsoft.Build.Evaluation
                 ExpanderOptions options,
                 IElementLocation elementLocation,
                 PropertiesUseTracker propertiesUseTracker,
-                IFileSystem fileSystem)
+                IFileSystem fileSystem,
+                EvaluationProfiler evaluationProfiler)
             {
                 Function<T> function = null;
                 string propertyName = propertyBody;
@@ -1460,7 +1480,8 @@ namespace Microsoft.Build.Evaluation
                             propertyValue,
                             propertiesUseTracker,
                             fileSystem,
-                            propertiesUseTracker.LoggingContext);
+                            propertiesUseTracker.LoggingContext,
+                            evaluationProfiler);
 
                         // We may not have been able to parse out a function
                         if (function != null)
@@ -1499,7 +1520,8 @@ namespace Microsoft.Build.Evaluation
                                 options,
                                 elementLocation,
                                 propertiesUseTracker,
-                                fileSystem);
+                                fileSystem,
+                                evaluationProfiler);
                         }
                     }
                     else
@@ -3681,6 +3703,8 @@ namespace Microsoft.Build.Evaluation
 
             public LoggingContext LoggingContext { get; set; }
 
+            public EvaluationProfiler EvaluationProfiler { get; set; }
+
             /// <summary>
             /// List of properties which have been used but have not been initialized yet.
             /// </summary>
@@ -3698,7 +3722,8 @@ namespace Microsoft.Build.Evaluation
                     Remainder,
                     PropertiesUseTracker,
                     FileSystem,
-                    LoggingContext);
+                    LoggingContext,
+                    EvaluationProfiler);
             }
         }
 
@@ -3754,6 +3779,8 @@ namespace Microsoft.Build.Evaluation
 
             private readonly LoggingContext _loggingContext;
 
+            private readonly EvaluationProfiler _evaluationProfiler;
+
             /// <summary>
             /// Construct a function that will be executed during property evaluation.
             /// </summary>
@@ -3767,7 +3794,8 @@ namespace Microsoft.Build.Evaluation
                 string remainder,
                 PropertiesUseTracker propertiesUseTracker,
                 IFileSystem fileSystem,
-                LoggingContext loggingContext)
+                LoggingContext loggingContext,
+                EvaluationProfiler evaluationProfiler = null)
             {
                 _methodMethodName = methodName;
                 if (arguments == null)
@@ -3787,6 +3815,7 @@ namespace Microsoft.Build.Evaluation
                 _propertiesUseTracker = propertiesUseTracker;
                 _fileSystem = fileSystem;
                 _loggingContext = loggingContext;
+                _evaluationProfiler = evaluationProfiler;
             }
 
             /// <summary>
@@ -3810,10 +3839,16 @@ namespace Microsoft.Build.Evaluation
                 object propertyValue,
                 PropertiesUseTracker propertiesUseTracker,
                 IFileSystem fileSystem,
-                LoggingContext loggingContext)
+                LoggingContext loggingContext,
+                EvaluationProfiler evaluationProfiler)
             {
                 // Used to aggregate all the components needed for a Function
-                FunctionBuilder<T> functionBuilder = new FunctionBuilder<T> { FileSystem = fileSystem, LoggingContext = loggingContext };
+                FunctionBuilder<T> functionBuilder = new FunctionBuilder<T>
+                {
+                    FileSystem = fileSystem,
+                    LoggingContext = loggingContext,
+                    EvaluationProfiler = evaluationProfiler
+                };
 
                 // By default the expression root is the whole function expression
                 ReadOnlySpan<char> expressionRoot = expressionFunction == null ? ReadOnlySpan<char>.Empty : expressionFunction.AsSpan();
@@ -3931,242 +3966,247 @@ namespace Microsoft.Build.Evaluation
             /// </summary>
             internal object Execute(object objectInstance, IPropertyProvider<T> properties, ExpanderOptions options, IElementLocation elementLocation)
             {
-                object functionResult = String.Empty;
-                object[] args = null;
-
-                try
+                using (_evaluationProfiler?.TrackFunctionCall(elementLocation, $"{_receiverType.FullName}::{_methodMethodName})"))
                 {
-                    // If there is no object instance, then the method invocation will be a static
-                    if (objectInstance == null)
+                    object functionResult = String.Empty;
+                    object[] args = null;
+
+                    try
                     {
-                        // Check that the function that we're going to call is valid to call
-                        if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
+                        // If there is no object instance, then the method invocation will be a static
+                        if (objectInstance == null)
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
+                            // Check that the function that we're going to call is valid to call
+                            if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
+                            {
+                                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
+                            }
+
+                            _bindingFlags |= BindingFlags.Static;
+
+                            // For our intrinsic function we need to support calling of internal methods
+                            // since we don't want them to be public
+                            if (_receiverType == typeof(IntrinsicFunctions))
+                            {
+                                _bindingFlags |= BindingFlags.NonPublic;
+                            }
+                        }
+                        else
+                        {
+                            // Check that the function that we're going to call is valid to call
+                            if (!IsInstanceMethodAvailable(_methodMethodName))
+                            {
+                                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
+                            }
+
+                            _bindingFlags |= BindingFlags.Instance;
+
+                            // The object that we're about to call methods on may have escaped characters
+                            // in it, we want to operate on the unescaped string in the function, just as we
+                            // want to pass arguments that are unescaped (see below)
+                            if (objectInstance is string objectInstanceString)
+                            {
+                                objectInstance = EscapingUtilities.UnescapeAll(objectInstanceString);
+                            }
                         }
 
-                        _bindingFlags |= BindingFlags.Static;
+                        // We have a methodinfo match, need to plug in the arguments
+                        args = new object[_arguments.Length];
 
-                        // For our intrinsic function we need to support calling of internal methods
-                        // since we don't want them to be public
+                        // Assemble our arguments ready for passing to our method
+                        for (int n = 0; n < _arguments.Length; n++)
+                        {
+                            object argument = PropertyExpander<T>.ExpandPropertiesLeaveTypedAndEscaped(
+                                _arguments[n],
+                                properties,
+                                options,
+                                elementLocation,
+                                _propertiesUseTracker,
+                                _fileSystem,
+                                _evaluationProfiler);
+
+                            if (argument is string argumentValue)
+                            {
+                                // Unescape the value since we're about to send it out of the engine and into
+                                // the function being called. If a file or a directory function, fix the path
+                                if (_receiverType == typeof(File) || _receiverType == typeof(Directory)
+                                    || _receiverType == typeof(Path))
+                                {
+                                    argumentValue = FileUtilities.FixFilePath(argumentValue);
+                                }
+
+                                args[n] = EscapingUtilities.UnescapeAll(argumentValue);
+                            }
+                            else
+                            {
+                                args[n] = argument;
+                            }
+                        }
+
+                        // Handle special cases where the object type needs to affect the choice of method
+                        // The default binder and method invoke, often chooses the incorrect Equals and CompareTo and
+                        // fails the comparison, because what we have on the right is generally a string.
+                        // This special casing is to realize that its a comparison that is taking place and handle the
+                        // argument type coercion accordingly; effectively pre-preparing the argument type so
+                        // that it matches the left hand side ready for the default binder’s method invoke.
+                        if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            // Support comparison when the lhs is an integer
+                            if (ParseArgs.IsFloatingPointRepresentation(args[0]))
+                            {
+                                if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
+                                {
+                                    objectInstance = result;
+                                    _receiverType = objectInstance.GetType();
+                                }
+                            }
+
+                            // change the type of the final unescaped string into the destination
+                            args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
+                        }
+
                         if (_receiverType == typeof(IntrinsicFunctions))
                         {
-                            _bindingFlags |= BindingFlags.NonPublic;
+                            // Special case a few methods that take extra parameters that can't be passed in by the user
+                            if (_methodMethodName.Equals("GetPathOfFileAbove") && args.Length == 1)
+                            {
+                                // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
+                                // specified the file name.  This is syntactic sugar so they don't have to always
+                                // include $(MSBuildThisFileDirectory) as a parameter.
+                                string startingDirectory = String.IsNullOrWhiteSpace(elementLocation.File) ? String.Empty : Path.GetDirectoryName(elementLocation.File);
+
+                                args = [args[0], startingDirectory];
+                            }
                         }
-                    }
-                    else
-                    {
-                        // Check that the function that we're going to call is valid to call
-                        if (!IsInstanceMethodAvailable(_methodMethodName))
+
+                        // If we've been asked to construct an instance, then we
+                        // need to locate an appropriate constructor and invoke it
+                        if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
+                            if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                            {
+                                functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
+                            }
                         }
-
-                        _bindingFlags |= BindingFlags.Instance;
-
-                        // The object that we're about to call methods on may have escaped characters
-                        // in it, we want to operate on the unescaped string in the function, just as we
-                        // want to pass arguments that are unescaped (see below)
-                        if (objectInstance is string objectInstanceString)
+                        else
                         {
-                            objectInstance = EscapingUtilities.UnescapeAll(objectInstanceString);
+                            bool wellKnownFunctionSuccess = false;
+
+                            try
+                            {
+                                // First attempt to recognize some well-known functions to avoid binding
+                                // and potential first-chance MissingMethodExceptions.
+                                wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodMethodName, _receiverType, _fileSystem, out functionResult, objectInstance, args);
+
+                                if (!wellKnownFunctionSuccess)
+                                {
+                                    // Some well-known functions need evaluated value from properties.
+                                    wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(_methodMethodName, _receiverType, _loggingContext, properties, out functionResult, objectInstance, args);
+                                }
+                            }
+                            // we need to preserve the same behavior on exceptions as the actual binder
+                            catch (Exception ex)
+                            {
+                                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                                if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                                {
+                                    return partiallyEvaluated;
+                                }
+
+                                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message.Replace("\r\n", " "));
+                            }
+
+                            if (!wellKnownFunctionSuccess)
+                            {
+                                // Execute the function given converted arguments
+                                // The only exception that we should catch to try a late bind here is missing method
+                                // otherwise there is the potential of running a function twice!
+                                try
+                                {
+                                    // If there are any out parameters, try to figure out their type and create defaults for them as appropriate before calling the method.
+                                    if (args.Any(a => "out _".Equals(a)))
+                                    {
+                                        IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodMethodName) && m.GetParameters().Length == args.Length);
+                                        functionResult = GetMethodResult(objectInstance, methods, args, 0);
+                                    }
+                                    else
+                                    {
+                                        // If there are no out parameters, use InvokeMember using the standard binder - this will match and coerce as needed
+                                        functionResult = _receiverType.InvokeMember(_methodMethodName, _bindingFlags, Type.DefaultBinder, objectInstance, args, CultureInfo.InvariantCulture);
+                                    }
+                                }
+                                // If we're invoking a method, then there are deeper attempts that can be made to invoke the method.
+                                // If not, we were asked to get a property or field but found that we cannot locate it. No further argument coercion is possible, so throw.
+                                catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+                                {
+                                    // The standard binder failed, so do our best to coerce types into the arguments for the function
+                                    // This may happen if the types need coercion, but it may also happen if the object represents a type that contains open type parameters, that is, ContainsGenericParameters returns true.
+                                    functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, false /* is not constructor */);
+                                }
+                            }
                         }
-                    }
 
-                    // We have a methodinfo match, need to plug in the arguments
-                    args = new object[_arguments.Length];
+                        // If the result of the function call is a string, then we need to escape the result
+                        // so that we maintain the "engine contains escaped data" state.
+                        // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
+                        if (functionResult is string functionResultString &&
+                            !String.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
+                            !String.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
+                            !String.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            functionResult = EscapingUtilities.Escape(functionResultString);
+                        }
 
-                    // Assemble our arguments ready for passing to our method
-                    for (int n = 0; n < _arguments.Length; n++)
-                    {
-                        object argument = PropertyExpander<T>.ExpandPropertiesLeaveTypedAndEscaped(
-                            _arguments[n],
+                        // We have nothing left to parse, so we'll return what we have
+                        if (String.IsNullOrEmpty(_remainder))
+                        {
+                            return functionResult;
+                        }
+
+                        // Recursively expand the remaining property body after execution
+                        return PropertyExpander<T>.ExpandPropertyBody(
+                            _remainder,
+                            functionResult,
                             properties,
                             options,
                             elementLocation,
                             _propertiesUseTracker,
-                            _fileSystem);
-
-                        if (argument is string argumentValue)
-                        {
-                            // Unescape the value since we're about to send it out of the engine and into
-                            // the function being called. If a file or a directory function, fix the path
-                            if (_receiverType == typeof(File) || _receiverType == typeof(Directory)
-                                || _receiverType == typeof(Path))
-                            {
-                                argumentValue = FileUtilities.FixFilePath(argumentValue);
-                            }
-
-                            args[n] = EscapingUtilities.UnescapeAll(argumentValue);
-                        }
-                        else
-                        {
-                            args[n] = argument;
-                        }
+                            _fileSystem,
+                            _evaluationProfiler);
                     }
 
-                    // Handle special cases where the object type needs to affect the choice of method
-                    // The default binder and method invoke, often chooses the incorrect Equals and CompareTo and
-                    // fails the comparison, because what we have on the right is generally a string.
-                    // This special casing is to realize that its a comparison that is taking place and handle the
-                    // argument type coercion accordingly; effectively pre-preparing the argument type so
-                    // that it matches the left hand side ready for the default binder’s method invoke.
-                    if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        // Support comparison when the lhs is an integer
-                        if (ParseArgs.IsFloatingPointRepresentation(args[0]))
-                        {
-                            if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
-                            {
-                                objectInstance = result;
-                                _receiverType = objectInstance.GetType();
-                            }
-                        }
-
-                        // change the type of the final unescaped string into the destination
-                        args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
-                    }
-
-                    if (_receiverType == typeof(IntrinsicFunctions))
-                    {
-                        // Special case a few methods that take extra parameters that can't be passed in by the user
-                        if (_methodMethodName.Equals("GetPathOfFileAbove") && args.Length == 1)
-                        {
-                            // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
-                            // specified the file name.  This is syntactic sugar so they don't have to always
-                            // include $(MSBuildThisFileDirectory) as a parameter.
-                            string startingDirectory = String.IsNullOrWhiteSpace(elementLocation.File) ? String.Empty : Path.GetDirectoryName(elementLocation.File);
-
-                            args = [args[0], startingDirectory];
-                        }
-                    }
-
-                    // If we've been asked to construct an instance, then we
-                    // need to locate an appropriate constructor and invoke it
-                    if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
-                        {
-                            functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
-                        }
-                    }
-                    else
-                    {
-                        bool wellKnownFunctionSuccess = false;
-
-                        try
-                        {
-                            // First attempt to recognize some well-known functions to avoid binding
-                            // and potential first-chance MissingMethodExceptions.
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodMethodName, _receiverType, _fileSystem, out functionResult, objectInstance, args);
-
-                            if (!wellKnownFunctionSuccess)
-                            {
-                                // Some well-known functions need evaluated value from properties.
-                                wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(_methodMethodName, _receiverType, _loggingContext, properties, out functionResult, objectInstance, args);
-                            }
-                        }
-                        // we need to preserve the same behavior on exceptions as the actual binder
-                        catch (Exception ex)
-                        {
-                            string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
-                            if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                            {
-                                return partiallyEvaluated;
-                            }
-
-                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message.Replace("\r\n", " "));
-                        }
-
-                        if (!wellKnownFunctionSuccess)
-                        {
-                            // Execute the function given converted arguments
-                            // The only exception that we should catch to try a late bind here is missing method
-                            // otherwise there is the potential of running a function twice!
-                            try
-                            {
-                                // If there are any out parameters, try to figure out their type and create defaults for them as appropriate before calling the method.
-                                if (args.Any(a => "out _".Equals(a)))
-                                {
-                                    IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodMethodName) && m.GetParameters().Length == args.Length);
-                                    functionResult = GetMethodResult(objectInstance, methods, args, 0);
-                                }
-                                else
-                                {
-                                    // If there are no out parameters, use InvokeMember using the standard binder - this will match and coerce as needed
-                                    functionResult = _receiverType.InvokeMember(_methodMethodName, _bindingFlags, Type.DefaultBinder, objectInstance, args, CultureInfo.InvariantCulture);
-                                }
-                            }
-                            // If we're invoking a method, then there are deeper attempts that can be made to invoke the method.
-                            // If not, we were asked to get a property or field but found that we cannot locate it. No further argument coercion is possible, so throw.
-                            catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                            {
-                                // The standard binder failed, so do our best to coerce types into the arguments for the function
-                                // This may happen if the types need coercion, but it may also happen if the object represents a type that contains open type parameters, that is, ContainsGenericParameters returns true.
-                                functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, false /* is not constructor */);
-                            }
-                        }
-                    }
-
-                    // If the result of the function call is a string, then we need to escape the result
-                    // so that we maintain the "engine contains escaped data" state.
-                    // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
-                    if (functionResult is string functionResultString &&
-                        !String.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
-                        !String.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
-                        !String.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        functionResult = EscapingUtilities.Escape(functionResultString);
-                    }
-
-                    // We have nothing left to parse, so we'll return what we have
-                    if (String.IsNullOrEmpty(_remainder))
-                    {
-                        return functionResult;
-                    }
-
-                    // Recursively expand the remaining property body after execution
-                    return PropertyExpander<T>.ExpandPropertyBody(
-                        _remainder,
-                        functionResult,
-                        properties,
-                        options,
-                        elementLocation,
-                        _propertiesUseTracker,
-                        _fileSystem);
-                }
-
-                // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
-                catch (TargetInvocationException ex)
-                {
-                    // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
-                    if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                    {
-                        // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
-                        return partiallyEvaluated;
-                    }
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.InnerException.Message.Replace("\r\n", " "));
-                    return null;
-                }
-
-                // Any other exception was thrown by trying to call it
-                catch (Exception ex) when (!ExceptionHandling.NotExpectedFunctionException(ex))
-                {
-                    // If there's a :: in the expression, they were probably trying for a static function
-                    // invocation. Give them some more relevant info in that case
-                    if (s_invariantCompareInfo.IndexOf(_expression, "::", CompareOptions.OrdinalIgnoreCase) > -1)
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionStaticMethodSyntax", _expression, ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
-                    }
-                    else
+                    // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
+                    catch (TargetInvocationException ex)
                     {
                         // We ended up with something other than a function expression
                         string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
+                        if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                        {
+                            // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
+                            return partiallyEvaluated;
+                        }
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.InnerException.Message.Replace("\r\n", " "));
+                        return null;
                     }
 
-                    return null;
+                    // Any other exception was thrown by trying to call it
+                    catch (Exception ex) when (!ExceptionHandling.NotExpectedFunctionException(ex))
+                    {
+                        // If there's a :: in the expression, they were probably trying for a static function
+                        // invocation. Give them some more relevant info in that case
+                        if (s_invariantCompareInfo.IndexOf(_expression, "::", CompareOptions.OrdinalIgnoreCase) > -1)
+                        {
+                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionStaticMethodSyntax", _expression, ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
+                        }
+                        else
+                        {
+                            // We ended up with something other than a function expression
+                            string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
+                        }
+
+                        return null;
+                    }
                 }
             }
 

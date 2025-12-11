@@ -167,6 +167,16 @@ namespace Microsoft.Build.Logging
             _aggregatedLocations[EvaluationLocation.CreateLocationForAggregatedGlob()] =
                 aggregatedGlobs;
 
+            // Add one single top-level item representing the total aggregated evaluation time for function calls.
+            var aggregatedFunctionCalls = _aggregatedLocations.Keys
+                .Where(key => key.Kind == EvaluationLocationKind.FunctionCall)
+                .Aggregate(new ProfiledLocation(),
+                    (profiledLocation, evaluationLocation) =>
+                        AggregateProfiledLocation(profiledLocation, _aggregatedLocations[evaluationLocation]));
+
+            _aggregatedLocations[EvaluationLocation.CreateLocationForAggregatedFunctionCalls()] =
+                aggregatedFunctionCalls;
+
             return new ProfilerResult(_aggregatedLocations);
         }
 
