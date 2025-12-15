@@ -17,6 +17,85 @@ namespace Microsoft.Build.Evaluation.Expander;
 /// </summary>
 internal static class ArgumentParser
 {
+    internal ref struct ArgProcessor
+    {
+        private readonly ReadOnlySpan<object?> _args;
+        private int _index;
+
+        public ArgProcessor(ReadOnlySpan<object?> args)
+        {
+            _args = args;
+            _index = 0;
+        }
+
+        public readonly bool AtEnd => _args.Length == _index;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetString([NotNullWhen(true)] out string? value)
+        {
+            if (TryGetNextArg(out object? arg) && arg is string s)
+            {
+                value = s;
+                _index++;
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetStringOrNull(out string? value)
+        {
+            if (TryGetNextArg(out object? arg) && arg is string or null)
+            {
+                value = (string?)arg;
+                _index++;
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
+
+        public bool TryGetChar(out char value)
+        {
+            if (TryGetNextArg(out object? arg))
+            {
+                if (arg is string { Length: 1 } s)
+                {
+                    value = s[0];
+                    _index++;
+                    return true;
+                }
+
+                if (arg is char c)
+                {
+                    value = c;
+                    _index++;
+                    return true;
+                }
+            }
+
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private readonly bool TryGetNextArg(out object? arg)
+        {
+            if (!AtEnd)
+            {
+                arg = _args[_index];
+                return true;
+            }
+
+            arg = null;
+            return false;
+        }
+
+    }
+
     /// <summary>
     ///  Try to convert value to char.
     ///  Accepts char values directly or single-character strings.
@@ -26,6 +105,7 @@ internal static class ArgumentParser
     /// <returns>
     ///  <see langword="true"/> if the value was successfully converted to char; otherwise, <see langword="false"/>.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool TryConvertToChar(object? value, out char arg)
     {
         switch (value)
@@ -203,25 +283,25 @@ internal static class ArgumentParser
     /// <returns>
     ///  <see langword="true"/> if the string was successfully parsed as an enum value; otherwise, <see langword="false"/>.
     /// </returns>
-    internal static bool TryConvertToEnum<TEnum>(string value, out TEnum result)
+    internal static bool TryConvertToEnum<TEnum>(object? value, out TEnum result)
         where TEnum : struct
     {
         var enumType = typeof(TEnum);
 
-        if (!enumType.IsEnum)
+        if (!enumType.IsEnum || value is not string s)
         {
             result = default;
             return false;
         }
 
         // Reject int values for enums. In C#, this would require a cast, which is not supported in MSBuild expressions.
-        if (TryParseInt(value, out _))
+        if (TryParseInt(s, out _))
         {
             result = default;
             return false;
         }
 
-        ReadOnlySpan<char> span = value.AsSpan();
+        ReadOnlySpan<char> span = s.AsSpan();
 
         span = SkipTextAndDot(span, enumType.Namespace);
         span = SkipTextAndDot(span, enumType.Name);

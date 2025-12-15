@@ -13,6 +13,51 @@
         <note>{StrBegin="MSB4001: "}UE: This message is shown when a task has more than one .NET property with the same name -- it's unclear which of
     those properties the task wants to use as a parameter in project files.</note>
       </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeEqual">
+        <source>{0} ('{1}') must be equal to '{2}'.</source>
+        <target state="new">{0} ('{1}') must be equal to '{2}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeGreater">
+        <source>{0} ('{1}') must be greater than '{2}'.</source>
+        <target state="new">{0} ('{1}') must be greater than '{2}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeGreaterOrEqual">
+        <source>{0} ('{1}') must be greater than or equal to '{2}'.</source>
+        <target state="new">{0} ('{1}') must be greater than or equal to '{2}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeLess">
+        <source>{0} ('{1}') must be less than '{2}'.</source>
+        <target state="new">{0} ('{1}') must be less than '{2}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeLessOrEqual">
+        <source>{0} ('{1}') must be less than or equal to '{2}'.</source>
+        <target state="new">{0} ('{1}') must be less than or equal to '{2}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeNonNegative">
+        <source>{0} ('{1}') must be a non-negative value.</source>
+        <target state="new">{0} ('{1}') must be a non-negative value.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeNonNegativeNonZero">
+        <source>{0} ('{1}') must be a non-negative and non-zero value.</source>
+        <target state="new">{0} ('{1}') must be a non-negative and non-zero value.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeNonZero">
+        <source>{0} ('{1}') must be a non-zero value.</source>
+        <target state="new">{0} ('{1}') must be a non-zero value.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ArgumentOutOfRange_Generic_MustBeNotEqual">
+        <source>{0} ('{1}') must not be equal to '{2}'.</source>
+        <target state="new">{0} ('{1}') must not be equal to '{2}'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspNetCompiler.UnsupportedMSBuildVersion">
         <source>MSB4249: Unable to build website project "{0}". The ASP.NET compiler is only available on the .NET Framework version of MSBuild.</source>
         <target state="translated">MSB4249: Não foi possível compilar o projeto do site da Web "{0}". O compilador do ASP.NET está disponível apenas na versão .NET Framework do MSBuild.</target>

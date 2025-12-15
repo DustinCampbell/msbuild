@@ -3,34 +3,38 @@
 
 using System;
 
-namespace Microsoft.Build.Evaluation.Expander
+namespace Microsoft.Build.Evaluation.Expander;
+
+internal static partial class WellKnownFunctions
 {
-    internal static partial class WellKnownFunctions
+    private sealed class GuidLibrary : BaseMemberLibrary, IStaticMethodLibrary, ICustomToStringProvider<Guid>
     {
-        private sealed class GuidLibrary : FunctionLibrary
+        public static readonly GuidLibrary Instance = new();
+
+        private enum StaticId
         {
-            public static readonly GuidLibrary Instance = new();
-
-            private GuidLibrary()
-            {
-            }
-
-            protected override void Initialize(ref Builder builder)
-            {
-                builder.Add(nameof(Guid.NewGuid), Guid_NewGuid);
-            }
-
-            private static bool Guid_NewGuid(ReadOnlySpan<object?> args, out object? result)
-            {
-                if (args.Length == 0)
-                {
-                    result = Guid.NewGuid();
-                    return true;
-                }
-
-                result = null;
-                return false;
-            }
+            NewGuid
         }
+
+        private static readonly FunctionIdLookup<StaticId> s_staticIds = FunctionIdLookup<StaticId>.Instance;
+
+        private GuidLibrary()
+        {
+        }
+
+        public Result TryExecute(string name, ReadOnlySpan<object?> args)
+            => s_staticIds.TryFindMatch(name, StaticId.NewGuid)
+                ? Guid_NewGuid(args)
+                : Result.None;
+
+        public Result TryExecuteToString(Guid g, ReadOnlySpan<object?> args)
+            => args is [string format]
+                ? Result.From(g.ToString(format))
+                : Result.None;
+
+        private static Result Guid_NewGuid(ReadOnlySpan<object?> args)
+            => args is []
+                ? Result.From(Guid.NewGuid())
+                : Result.None;
     }
 }

@@ -4,34 +4,33 @@
 using System;
 using System.IO;
 
-namespace Microsoft.Build.Evaluation.Expander
+namespace Microsoft.Build.Evaluation.Expander;
+
+internal static partial class WellKnownFunctions
 {
-    internal static partial class WellKnownFunctions
+    private sealed class DirectoryLibrary : BaseMemberLibrary, IStaticMethodLibrary
     {
-        private sealed class DirectoryLibrary : FunctionLibrary
+        public static readonly DirectoryLibrary Instance = new();
+
+        private enum StaticId
         {
-            public static readonly DirectoryLibrary Instance = new();
-
-            private DirectoryLibrary()
-            {
-            }
-
-            protected override void Initialize(ref Builder builder)
-            {
-                builder.Add(nameof(Directory.GetParent), Directory_GetParent);
-            }
-
-            private bool Directory_GetParent(ReadOnlySpan<object?> args, out object? result)
-            {
-                if (args is [string path])
-                {
-                    result = Directory.GetParent(path);
-                    return true;
-                }
-
-                result = false;
-                return false;
-            }
+            GetParent
         }
+
+        private static readonly FunctionIdLookup<StaticId> s_staticIds = FunctionIdLookup<StaticId>.Instance;
+
+        private DirectoryLibrary()
+        {
+        }
+
+        public Result TryExecute(string name, ReadOnlySpan<object?> args)
+            => s_staticIds.TryFindMatch(name, StaticId.GetParent)
+                ? Directory_GetParent(args)
+                : Result.None;
+
+        private static Result Directory_GetParent(ReadOnlySpan<object?> args)
+            => args is [string path]
+                ? Result.From(Directory.GetParent(path))
+                : Result.None;
     }
 }

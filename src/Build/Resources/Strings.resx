@@ -2456,6 +2456,33 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
     <value>The task "{0}" failed to acquire its host object. {1} Contact the author of the task to report this problem.</value>
     <comment>{0} is the task name, {1} is the detailed error message from the HostObjectException. This error occurs when a task that expects a host object (typically from an IDE like Visual Studio) cannot obtain it, often due to COM interop issues, incorrect moniker registration, or platform incompatibility. The user should contact the task author as this is typically a task implementation issue.</comment>
   </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeEqual" xml:space="preserve">
+    <value>{0} ('{1}') must be equal to '{2}'.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeGreater" xml:space="preserve">
+    <value>{0} ('{1}') must be greater than '{2}'.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeGreaterOrEqual" xml:space="preserve">
+    <value>{0} ('{1}') must be greater than or equal to '{2}'.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeLess" xml:space="preserve">
+    <value>{0} ('{1}') must be less than '{2}'.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeLessOrEqual" xml:space="preserve">
+    <value>{0} ('{1}') must be less than or equal to '{2}'.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeNonNegative" xml:space="preserve">
+    <value>{0} ('{1}') must be a non-negative value.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeNonNegativeNonZero" xml:space="preserve">
+    <value>{0} ('{1}') must be a non-negative and non-zero value.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeNonZero" xml:space="preserve">
+    <value>{0} ('{1}') must be a non-zero value.</value>
+  </data>
+  <data name="ArgumentOutOfRange_Generic_MustBeNotEqual" xml:space="preserve">
+    <value>{0} ('{1}') must not be equal to '{2}'.</value>
+  </data>
   <!--
         The Build message bucket is: MSB4000 - MSB4999
 

@@ -4,169 +4,211 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
 using Microsoft.NET.StringTools;
 
-namespace Microsoft.Build.Evaluation.Expander
+namespace Microsoft.Build.Evaluation.Expander;
+
+internal static partial class WellKnownFunctions
 {
-    internal static partial class WellKnownFunctions
-    {
-        /// <summary>
-        /// Shortcut to avoid calling into binding if we recognize some most common functions.
-        /// Binding is expensive and throws first-chance MissingMethodExceptions, which is
-        /// bad for debugging experience and has a performance cost.
-        /// A typical binding operation with exception can take ~1.500 ms; this call is ~0.050 ms
-        /// (rough numbers just for comparison).
-        /// See https://github.com/dotnet/msbuild/issues/2217.
-        /// </summary>
-        /// <param name="receiverType"> </param>
-        /// <param name="methodName"> </param>
-        /// <param name="instance">Object that the function is called on.</param>
-        /// <param name="args">arguments.</param>
-        /// <param name="result">The value returned from the function call.</param>
-        /// <returns>True if the well known function call binding was successful.</returns>
-        internal static bool TryExecute(Type receiverType, string methodName, object? instance, ReadOnlySpan<object?> args, out object? result)
-            => instance switch
-            {
-                null when TryExecute(receiverType, methodName, args, out result) => true,
-                string s when TryExecute(s, methodName, args, out result) => true,
-                string[] s when TryExecute(s, methodName, args, out result) => true,
-                Version v when TryExecute(v, methodName, args, out result) => true,
-                int i when TryExecute(i, methodName, args, out result) => true,
-
-                _ => LogReflectionRequired(receiverType, methodName, instance, args, out result),
-            };
-
-        private static bool LogReflectionRequired(Type receiverType, string methodName, object? instance, ReadOnlySpan<object?> args, out object? returnVal)
+    /// <summary>
+    /// Shortcut to avoid calling into binding if we recognize some most common functions.
+    /// Binding is expensive and throws first-chance MissingMethodExceptions, which is
+    /// bad for debugging experience and has a performance cost.
+    /// A typical binding operation with exception can take ~1.500 ms; this call is ~0.050 ms
+    /// (rough numbers just for comparison).
+    /// See https://github.com/dotnet/msbuild/issues/2217.
+    /// </summary>
+    /// <param name="receiverType"> </param>
+    /// <param name="methodName"> </param>
+    /// <param name="instance">Object that the function is called on.</param>
+    /// <param name="args">arguments.</param>
+    internal static Result TryExecute(Type receiverType, string methodName, object? instance, ReadOnlySpan<object?> args)
+        => instance switch
         {
-            if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
+            null => TryExecute(receiverType, methodName, args),
+            string s => TryExecute(s, methodName, args),
+            string[] s => TryExecute(s, methodName, args),
+            Version v => TryExecute(v, methodName, args),
+            int i => TryExecute(i, methodName, args),
+
+            _ => LogReflectionRequired(receiverType, methodName, instance, args),
+        };
+
+    private static Result LogReflectionRequired(Type receiverType, string methodName, object? instance, ReadOnlySpan<object?> args)
+    {
+        if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
+        {
+            string logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
+
+            using var builder = new SpanBasedStringBuilder();
+
+            bool first = true;
+
+            foreach (object? arg in args)
             {
-                string logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
-
-                using var builder = new SpanBasedStringBuilder();
-
-                bool first = true;
-
-                foreach (object? arg in args)
+                if (first)
                 {
-                    if (first)
-                    {
-                        first = false;
-                    }
-                    else
-                    {
-                        builder.Append(", ");
-                    }
-
-                    builder.Append(arg?.GetType().Name ?? "null");
+                    first = false;
+                }
+                else
+                {
+                    builder.Append(", ");
                 }
 
-                string signature = builder.ToString();
-
-                File.AppendAllText(logFilePath, $"ReceiverType={receiverType.FullName}; ObjectInstanceType={instance?.GetType().FullName}; MethodName={methodName}({signature})\n");
+                builder.Append(arg?.GetType().Name ?? "null");
             }
 
-            returnVal = null;
-            return false;
+            string signature = builder.ToString();
+
+            File.AppendAllText(logFilePath, $"ReceiverType={receiverType.FullName}; ObjectInstanceType={instance?.GetType().FullName}; MethodName={methodName}({signature})\n");
         }
 
-        private static bool TryExecute<T>(T instance, string methodName, ReadOnlySpan<object?> args, out object? result)
+        return Result.None;
+    }
+
+    private static Result TryExecute<T>(T instance, string methodName, ReadOnlySpan<object?> args)
+    {
+        if (methodName.Equals("ToString", StringComparison.OrdinalIgnoreCase))
         {
-            if (TryGetLibrary(typeof(T), out var library))
-            {
-                return library.TryExecute(instance, methodName, args, out result);
-            }
-
-            result = default;
-            return false;
+            return TryExecuteToString(instance, args);
         }
 
-        private static bool TryExecute(Type receiverType, string methodName, ReadOnlySpan<object?> args, out object? result)
+        if (TryGetLibrary(out IInstanceMethodLibrary<T>? library))
         {
-            if (TryGetLibrary(receiverType, out var library))
-            {
-                return library.TryExecute(methodName, args, out result);
-            }
-
-            result = null;
-            return false;
+            return library.TryExecute(instance, methodName, args);
         }
 
-        private static bool TryGetLibrary(Type type, [NotNullWhen(true)] out FunctionLibrary? library)
+        return Result.None;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Result TryExecuteToString<T>(T instance, ReadOnlySpan<object?> args)
+    {
+        if (instance is null)
         {
-            // PERF: For this small set of types, it is considerably faster to use a series of if
-            // statements rather than a dictionary lookup. The JIT is able to optimize this well.
-            // If the set of types grows significantly, consider switching to a dictionary.
-
-            if (type == typeof(string))
-            {
-                library = StringLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(string[]))
-            {
-                library = StringArrayLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(Path))
-            {
-                library = PathLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(IntrinsicFunctions))
-            {
-                library = IntrinsicLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(Math))
-            {
-                library = MathLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(Directory))
-            {
-                library = DirectoryLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(char))
-            {
-                library = CharLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(int))
-            {
-                library = Int32Library.Instance;
-                return true;
-            }
-
-            if (type == typeof(Guid))
-            {
-                library = GuidLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(Version))
-            {
-                library = VersionLibrary.Instance;
-                return true;
-            }
-
-            if (type == typeof(Regex))
-            {
-                library = RegexLibrary.Instance;
-                return true;
-            }
-
-            library = null;
-            return false;
+            return Result.None;
         }
+
+        // PERF: Handle no args case first to avoid dispatch.
+        if (args is [])
+        {
+            return Result.From(instance.ToString());
+        }
+
+        return instance switch
+        {
+            int i => Int32Library.Instance.TryExecuteToString(i, args),
+            Version v => VersionLibrary.Instance.TryExecuteToString(v, args),
+            Guid g => GuidLibrary.Instance.TryExecuteToString(g, args),
+
+            _ => Result.None,
+        };
+    }
+
+    private static Result TryExecute(Type receiverType, string methodName, ReadOnlySpan<object?> args)
+        => TryGetLibrary(receiverType, out IStaticMethodLibrary? library)
+            ? library.TryExecute(methodName, args)
+            : Result.None;
+
+    private static bool TryGetLibrary(Type type, [NotNullWhen(true)] out IStaticMethodLibrary? library)
+    {
+        // PERF: For this small set of types, it is considerably faster to use a series of if
+        // statements rather than a dictionary lookup. The JIT is able to optimize this well.
+        // If the set of types grows significantly, consider switching to a dictionary.
+
+        if (type == typeof(string))
+        {
+            library = StringLibrary.Instance;
+            return true;
+        }
+
+        if (type == typeof(Path))
+        {
+            library = PathLibrary.Instance;
+            return true;
+        }
+
+        if (type == typeof(IntrinsicFunctions))
+        {
+            library = IntrinsicLibrary.Instance;
+            return true;
+        }
+
+        if (type == typeof(Math))
+        {
+            library = MathLibrary.Instance;
+            return true;
+        }
+
+        if (type == typeof(Directory))
+        {
+            library = DirectoryLibrary.Instance;
+            return true;
+        }
+
+        if (type == typeof(char))
+        {
+            library = CharLibrary.Instance;
+            return true;
+        }
+
+        if (type == typeof(Guid))
+        {
+            library = GuidLibrary.Instance;
+            return true;
+        }
+
+        if (type == typeof(Version))
+        {
+            library = VersionLibrary.Instance;
+            return true;
+        }
+
+        if (type == typeof(Regex))
+        {
+            library = RegexLibrary.Instance;
+            return true;
+        }
+
+        library = null;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryGetLibrary<T>([NotNullWhen(true)] out IInstanceMethodLibrary<T>? library)
+    {
+        // PERF: For this small set of types, it is considerably faster to use a series of if
+        // statements rather than a dictionary lookup. The JIT is able to optimize this well.
+        // If the set of types grows significantly, consider switching to a dictionary.
+
+        if (typeof(T) == typeof(string))
+        {
+            library = (IInstanceMethodLibrary<T>)(object)StringLibrary.Instance;
+            return true;
+        }
+
+        if (typeof(T) == typeof(string[]))
+        {
+            library = (IInstanceMethodLibrary<T>)(object)StringArrayLibrary.Instance;
+            return true;
+        }
+
+        if (typeof(T) == typeof(int))
+        {
+            library = (IInstanceMethodLibrary<T>)(object)Int32Library.Instance;
+            return true;
+        }
+
+        if (typeof(T) == typeof(Version))
+        {
+            library = (IInstanceMethodLibrary<T>)(object)VersionLibrary.Instance;
+            return true;
+        }
+
+        library = null;
+        return false;
     }
 }

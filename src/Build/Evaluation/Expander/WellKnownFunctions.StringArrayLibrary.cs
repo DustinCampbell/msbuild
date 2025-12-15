@@ -4,34 +4,33 @@
 using System;
 using static Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
-namespace Microsoft.Build.Evaluation.Expander
+namespace Microsoft.Build.Evaluation.Expander;
+
+internal static partial class WellKnownFunctions
 {
-    internal static partial class WellKnownFunctions
+    private sealed class StringArrayLibrary : BaseMemberLibrary, IInstanceMethodLibrary<string[]>
     {
-        private sealed class StringArrayLibrary : FunctionLibrary
+        public static readonly StringArrayLibrary Instance = new();
+
+        private enum InstanceId
         {
-            public static readonly StringArrayLibrary Instance = new();
-
-            private StringArrayLibrary()
-            {
-            }
-
-            protected override void Initialize(ref Builder builder)
-            {
-                builder.Add<string[]>("GetValue", StringArray_GetValue);
-            }
-
-            private static bool StringArray_GetValue(string[] instance, ReadOnlySpan<object?> args, out object? result)
-            {
-                if (args is [var arg0] && TryConvertToInt(arg0, out var index))
-                {
-                    result = instance[index];
-                    return true;
-                }
-
-                result = null;
-                return false;
-            }
+            GetValue
         }
+
+        private static readonly FunctionIdLookup<InstanceId> s_instanceIds = FunctionIdLookup<InstanceId>.Instance;
+
+        private StringArrayLibrary()
+        {
+        }
+
+        public Result TryExecute(string[] instance, string name, ReadOnlySpan<object?> args)
+            => s_instanceIds.TryFindMatch(name, InstanceId.GetValue)
+                ? StringArray_GetValue(instance, args)
+                : Result.None;
+
+        private static Result StringArray_GetValue(string[] instance, ReadOnlySpan<object?> args)
+            => args is [var arg0] && TryConvertToInt(arg0, out var index)
+                ? Result.From(instance[index])
+                : Result.None;
     }
 }

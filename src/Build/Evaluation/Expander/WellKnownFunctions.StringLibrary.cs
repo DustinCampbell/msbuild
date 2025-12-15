@@ -2,412 +2,470 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
+using Microsoft.Build.Buffers;
 using static Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
 internal static partial class WellKnownFunctions
 {
-    private sealed class StringLibrary : FunctionLibrary
+    private sealed class StringLibrary : BaseMemberLibrary, IStaticMethodLibrary, IInstanceMethodLibrary<string>
     {
         public static readonly StringLibrary Instance = new();
+
+        private enum StaticId
+        {
+            IsNullOrWhiteSpace,
+            IsNullOrEmpty,
+            Copy,
+            New
+        }
+
+        private enum InstanceId
+        {
+            StartsWith,
+            Replace,
+            Contains,
+            ToUpperInvariant,
+            ToLowerInvariant,
+            EndsWith,
+            ToLower,
+            IndexOf,
+            IndexOfAny,
+            LastIndexOf,
+            LastIndexOfAny,
+            Length,
+            Split,
+            Substring,
+            PadLeft,
+            PadRight,
+            Trim,
+            TrimStart,
+            TrimEnd,
+            Get_Chars,
+            Equals
+        }
+
+        private static readonly FunctionIdLookup<StaticId> s_staticIds = FunctionIdLookup<StaticId>.Instance;
+        private static readonly FunctionIdLookup<InstanceId> s_instanceIds = FunctionIdLookup<InstanceId>.Instance;
 
         private StringLibrary()
         {
         }
 
-        protected override void Initialize(ref Builder builder)
-        {
-            builder.Add(nameof(string.IsNullOrWhiteSpace), String_IsNullOrWhiteSpace);
-            builder.Add(nameof(string.IsNullOrEmpty), String_IsNullOrEmpty);
-            builder.Add(nameof(string.Copy), String_Copy);
-            builder.Add("new", String_New);
+        public Result TryExecute(string name, ReadOnlySpan<object?> args)
+            => s_staticIds.TryFind(name, out StaticId id)
+                ? id switch
+                {
+                    StaticId.IsNullOrWhiteSpace => String_IsNullOrWhiteSpace(args),
+                    StaticId.IsNullOrEmpty => String_IsNullOrEmpty(args),
+                    StaticId.Copy => String_Copy(args),
+                    StaticId.New => String_New(args),
+                    _ => Result.None,
+                }
+                : Result.None;
 
-            builder.Add<string>(nameof(string.StartsWith), String_StartsWith);
-            builder.Add<string>(nameof(string.Replace), String_Replace);
-            builder.Add<string>(nameof(string.Contains), String_Contains);
-            builder.Add<string>(nameof(string.ToUpperInvariant), String_ToUpperInvariant);
-            builder.Add<string>(nameof(string.ToLowerInvariant), String_ToLowerInvariant);
-            builder.Add<string>(nameof(string.EndsWith), String_EndsWith);
-            builder.Add<string>(nameof(string.ToLower), String_ToLower);
-            builder.Add<string>(nameof(string.IndexOf), String_IndexOf);
-            builder.Add<string>(nameof(string.IndexOfAny), String_IndexOfAny);
-            builder.Add<string>(nameof(string.LastIndexOf), String_LastIndexOf);
-            builder.Add<string>(nameof(string.LastIndexOfAny), String_LastIndexOfAny);
-            builder.Add<string>(nameof(string.Length), String_Length);
-            builder.Add<string>(nameof(string.Split), String_Split);
-            builder.Add<string>(nameof(string.Substring), String_Substring);
-            builder.Add<string>(nameof(string.PadLeft), String_PadLeft);
-            builder.Add<string>(nameof(string.PadRight), String_PadRight);
-            builder.Add<string>(nameof(string.Trim), String_Trim);
-            builder.Add<string>(nameof(string.TrimStart), String_TrimStart);
-            builder.Add<string>(nameof(string.TrimEnd), String_TrimEnd);
-            builder.Add<string>("get_Chars", String_Get_Chars);
-            builder.Add<string>(nameof(string.Equals), String_Equals);
-        }
+        public Result TryExecute(string instance, string name, ReadOnlySpan<object?> args)
+            => s_instanceIds.TryFind(name, out InstanceId id)
+                ? id switch
+                {
+                    InstanceId.StartsWith => String_StartsWith(instance, args),
+                    InstanceId.Replace => String_Replace(instance, args),
+                    InstanceId.Contains => String_Contains(instance, args),
+                    InstanceId.ToUpperInvariant => String_ToUpperInvariant(instance, args),
+                    InstanceId.ToLowerInvariant => String_ToLowerInvariant(instance, args),
+                    InstanceId.EndsWith => String_EndsWith(instance, args),
+                    InstanceId.ToLower => String_ToLower(instance, args),
+                    InstanceId.IndexOf => String_IndexOf(instance, args),
+                    InstanceId.IndexOfAny => String_IndexOfAny(instance, args),
+                    InstanceId.LastIndexOf => String_LastIndexOf(instance, args),
+                    InstanceId.LastIndexOfAny => String_LastIndexOfAny(instance, args),
+                    InstanceId.Length => String_Length(instance, args),
+                    InstanceId.Split => String_Split(instance, args),
+                    InstanceId.Substring => String_Substring(instance, args),
+                    InstanceId.PadLeft => String_PadLeft(instance, args),
+                    InstanceId.PadRight => String_PadRight(instance, args),
+                    InstanceId.Trim => String_Trim(instance, args),
+                    InstanceId.TrimStart => String_TrimStart(instance, args),
+                    InstanceId.TrimEnd => String_TrimEnd(instance, args),
+                    InstanceId.Get_Chars => String_Get_Chars(instance, args),
+                    InstanceId.Equals => String_Equals(instance, args),
+                    _ => Result.None,
+                }
+                : Result.None;
 
-        private static bool String_IsNullOrWhiteSpace(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string or null])
-            {
-                var value = (string?)args[0];
-                result = string.IsNullOrWhiteSpace(value);
-                return true;
-            }
+        private static Result String_IsNullOrWhiteSpace(ReadOnlySpan<object?> args)
+            => args is [string or null]
+                ? Result.From(string.IsNullOrWhiteSpace((string?)args[0]))
+                : Result.None;
 
-            result = null;
-            return false;
-        }
+        private static Result String_IsNullOrEmpty(ReadOnlySpan<object?> args)
+            => args is [string or null]
+                ? Result.From(string.IsNullOrEmpty((string?)args[0]))
+                : Result.None;
 
-        private static bool String_IsNullOrEmpty(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string or null])
-            {
-                var value = (string?)args[0];
-                result = string.IsNullOrEmpty(value);
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        private static bool String_Copy(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string str])
-            {
 #pragma warning disable CS0618 // Type or member is obsolete
-                result = string.Copy(str);
+        private static Result String_Copy(ReadOnlySpan<object?> args)
+            => args is [string str]
+                ? Result.From(string.Copy(str))
+            : Result.None;
 #pragma warning restore CS0618 // Type or member is obsolete
-                return true;
-            }
 
-            result = null;
-            return false;
-        }
-
-        private static bool String_New(ReadOnlySpan<object?> args, out object? result)
-        {
-            switch (args)
+        private static Result String_New(ReadOnlySpan<object?> args)
+            => args switch
             {
-                case []:
-                    result = string.Empty;
-                    return true;
+                [] => Result.From(string.Empty),
+                [string value] => Result.From(value),
+                _ => Result.None,
+            };
 
-                case [string value]:
-                    result = value;
-                    return true;
+        private static Result String_StartsWith(string instance, ReadOnlySpan<object?> args)
+            => args is [string value]
+            ? Result.From(instance.StartsWith(value))
+            : Result.None;
 
-                default:
-                    result = null;
-                    return false;
-            }
-        }
+        private static Result String_Replace(string instance, ReadOnlySpan<object?> args)
+            => args is [string oldValue, string or null]
+            ? Result.From(instance.Replace(oldValue, (string?)args[1]))
+            : Result.None;
 
-        private static bool String_StartsWith(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string value])
+        private static Result String_Contains(string instance, ReadOnlySpan<object?> args)
+            => args is [string value]
+                ? Result.From(instance.Contains(value))
+                : Result.None;
+
+        private static Result String_ToUpperInvariant(string instance, ReadOnlySpan<object?> args)
+            => args is []
+                ? Result.From(instance.ToUpperInvariant())
+                : Result.None;
+
+        private static Result String_ToLowerInvariant(string instance, ReadOnlySpan<object?> args)
+            => args is []
+                ? Result.From(instance.ToLowerInvariant())
+                : Result.None;
+
+        private static Result String_EndsWith(string instance, ReadOnlySpan<object?> args)
+            => args switch
             {
-                result = instance.StartsWith(value);
-                return true;
-            }
+                [string value] => Result.From(instance.EndsWith(value)),
+                [string value, string arg1] when TryConvertToEnum<StringComparison>(arg1, out var comparisonType) => Result.From(instance.EndsWith(value, comparisonType)),
+                _ => Result.None,
+            };
 
-            result = null;
-            return false;
-        }
+        private static Result String_ToLower(string instance, ReadOnlySpan<object?> args)
+            => args is []
+                ? Result.From(instance.ToLower())
+                : Result.None;
 
-        private static bool String_Replace(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string oldValue, string or null])
+        private static Result String_IndexOf(string instance, ReadOnlySpan<object?> args)
+            => args switch
             {
-                var newValue = (string?)args[1];
-                result = instance.Replace(oldValue, newValue);
-                return true;
-            }
+                // Handle 1-argument overloads:
+                // - IndexOf(char)
+                // - IndexOf(string)
+                [var arg0] => arg0 switch
+                {
+                    string and [var c] => Result.From(instance.IndexOf(c)),
+                    string s => Result.From(instance.IndexOf(s)),
+                    char c => Result.From(instance.IndexOf(c)),
 
-            result = null;
-            return false;
-        }
+                    _ => Result.None
+                },
 
-        private static bool String_Contains(string instance, ReadOnlySpan<object?> args, out object? result)
+                // Handle 2-argument overloads:
+                // - IndexOf(char, int)
+                // - IndexOf(string, int)
+                // - IndexOf(string, StringComparison)
+                [var arg0, var arg1] => arg0 switch
+                {
+                    string and [var c] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.IndexOf(c, startIndex)),
+                    string s when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.IndexOf(s, startIndex)),
+                    string s when TryConvertToEnum(arg1, out StringComparison comparisonType)
+                        => Result.From(instance.IndexOf(s, comparisonType)),
+                    char c when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.IndexOf(c, startIndex)),
+
+                    _ => Result.None
+                },
+
+                // Handle 3-argument overloads:
+                // - IndexOf(char, int, int)
+                // - IndexOf(string, int, int)
+                // - IndexOf(string, int, StringComparison)
+                [var arg0, var arg1, var arg2] => arg0 switch
+                {
+                    string and [var c] when TryConvertToInt(arg1, out int startIndex) &&
+                                            TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.IndexOf(c, startIndex, count)),
+                    string s when TryConvertToInt(arg1, out int startIndex) &&
+                                  TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.IndexOf(s, startIndex, count)),
+                    string s when TryConvertToInt(arg1, out int startIndex) &&
+                                  TryConvertToEnum(arg2, out StringComparison comparisonType)
+                        => Result.From(instance.IndexOf(s, startIndex, comparisonType)),
+                    char c when TryConvertToInt(arg1, out int startIndex) &&
+                                TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.IndexOf(c, startIndex, count)),
+
+                    _ => Result.None
+                },
+
+                // Handle 4-argument overload:
+                // - IndexOf(char, int, int, StringComparison)
+                [var arg0, var arg1, var arg2, var arg3] => arg0 switch
+                {
+                    string s when TryConvertToInt(arg1, out int startIndex) &&
+                                  TryConvertToInt(arg2, out int count) &&
+                                  TryConvertToEnum(arg3, out StringComparison comparisonType)
+                        => Result.From(instance.IndexOf(s, startIndex, count, comparisonType)),
+
+                    _ => Result.None
+                },
+
+                _ => Result.None
+            };
+
+        private static Result String_IndexOfAny(string instance, ReadOnlySpan<object?> args)
         {
-            if (args is [string value])
+            return args switch
             {
-                result = instance.Contains(value);
-                return true;
-            }
+                // Handle 1-argument overloads:
+                // - IndexOfAny(string) -> Treat arg0 as ReadOnlySpan<char>
+                // - IndexOfAny(char[])
+                // - IndexOfAny(string[]) -> Only when all elements are of length 1.
+                [var arg0] => arg0 switch
+                {
+                    string and [var c] => Result.From(instance.IndexOf(c)),
+                    string and [var c1, var c2] => Result.From(instance.IndexOfAny(c1, c2)),
+                    string and [var c1, var c2, var c3] => Result.From(instance.IndexOf(c1, c2, c3)),
 
-            result = null;
-            return false;
-        }
+                    string values => Result.From(instance.AsSpan().IndexOfAny(values.AsSpan())),
 
-        private static bool String_ToUpperInvariant(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [])
+                    char[] and [var c] => Result.From(instance.IndexOf(c)),
+                    char[] and [var c1, var c2] => Result.From(instance.AsSpan().IndexOfAny(c1, c2)),
+                    char[] and [var c1, var c2, var c3] => Result.From(instance.AsSpan().IndexOfAny(c1, c2, c3)),
+                    char[] anyOf => Result.From(instance.IndexOfAny(anyOf)),
+
+                    string[] and [[var c]] => Result.From(instance.IndexOf(c)),
+                    string[] and [[var c1], [var c2]] => Result.From(instance.AsSpan().IndexOfAny(c1, c2)),
+                    string[] and [[var c1], [var c2], [var c3]] => Result.From(instance.AsSpan().IndexOfAny(c1, c2, c3)),
+
+                    string[] and [[_], [_], [_], ..] anyOf when CanBeTreatedAsCharArray(anyOf)
+                        => Result.From(IndexOfAny(instance, anyOf)),
+
+                    _ => Result.None
+                },
+
+                // Handle 2-argument overloads:
+                // - IndexOfAny(string, int) -> Treat arg0 as ReadOnlySpan<char>
+                // - IndexOfAny(char[], int)
+                // - IndexOfAny(string[], int) -> Only when all elements are of length 1.
+                [var arg0, var arg1] => arg0 switch
+                {
+                    string and [var c] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.IndexOf(c, startIndex)),
+                    string and [var c1, var c2] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.AsSpan(startIndex).IndexOfAny(c1, c2)),
+                    string and [var c1, var c2, var c3] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.AsSpan(startIndex).IndexOfAny(c1, c2, c3)),
+
+                    string values when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.AsSpan(startIndex).IndexOfAny(values.AsSpan())),
+
+                    char[] and [var c] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.IndexOf(c, startIndex)),
+                    char[] and [var c1, var c2] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.AsSpan(startIndex).IndexOfAny(c1, c2)),
+                    char[] and [var c1, var c2, var c3] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.AsSpan(startIndex).IndexOfAny(c1, c2, c3)),
+                    char[] anyOf when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.IndexOfAny(anyOf, startIndex)),
+
+                    string[] and [[var c]] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.IndexOf(c, startIndex)),
+                    string[] and [[var c1], [var c2]] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.AsSpan(startIndex).IndexOfAny(c1, c2)),
+                    string[] and [[var c1], [var c2], [var c3]] when TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(instance.AsSpan(startIndex).IndexOfAny(c1, c2, c3)),
+
+                    string[] and [[_], [_], [_], ..] anyOf when CanBeTreatedAsCharArray(anyOf) &&
+                                                                TryConvertToInt(arg1, out int startIndex)
+                        => Result.From(IndexOfAny(instance.AsSpan(startIndex), anyOf)),
+
+                    _ => Result.None
+                },
+
+                // Handle 3-argument overloads:
+                // - IndexOfAny(string, int, int) -> Treat arg0 as ReadOnlySpan<char>
+                // - IndexOfAny(char[], int, int)
+                // - IndexOfAny(string[], int, int) -> Only when all elements are of length 1.
+                [var arg0, var arg1, var arg2] => arg0 switch
+                {
+                    string values when TryConvertToInt(arg1, out int startIndex) &&
+                                       TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.AsSpan(startIndex, count).IndexOfAny(values.AsSpan())),
+
+                    char[] and [var c] when TryConvertToInt(arg1, out int startIndex) &&
+                                            TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.IndexOf(c, startIndex)),
+                    char[] and [var c1, var c2] when TryConvertToInt(arg1, out int startIndex) &&
+                                                     TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.AsSpan(startIndex, count).IndexOfAny(c1, c2)),
+                    char[] and [var c1, var c2, var c3] when TryConvertToInt(arg1, out int startIndex) &&
+                                                             TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.AsSpan(startIndex, count).IndexOfAny(c1, c2, c3)),
+                    char[] anyOf when TryConvertToInt(arg1, out int startIndex) &&
+                                      TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.IndexOfAny(anyOf, startIndex, count)),
+
+                    string[] and [[var c]] when TryConvertToInt(arg1, out int startIndex) &&
+                                                TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.IndexOf(c, startIndex, count)),
+                    string[] and [[var c1], [var c2]] when TryConvertToInt(arg1, out int startIndex) &&
+                                                           TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.AsSpan(startIndex, count).IndexOfAny(c1, c2)),
+                    string[] and [[var c1], [var c2], [var c3]] when TryConvertToInt(arg1, out int startIndex) &&
+                                                                     TryConvertToInt(arg2, out int count)
+                        => Result.From(instance.AsSpan(startIndex, count).IndexOfAny(c1, c2, c3)),
+
+                    string[] and [[_], [_], [_], ..] anyOf when CanBeTreatedAsCharArray(anyOf) &&
+                                                                TryConvertToInt(arg1, out int startIndex) &&
+                                                                TryConvertToInt(arg2, out int count)
+                        => Result.From(IndexOfAny(instance.AsSpan(startIndex, count), anyOf)),
+
+                    _ => Result.None
+                },
+
+                _ => Result.None,
+            };
+
+            static int IndexOfAny(ReadOnlySpan<char> s, string[] values)
             {
-                result = instance.ToUpperInvariant();
-                return true;
-            }
+                Debug.Assert(CanBeTreatedAsCharArray(values));
 
-            result = null;
-            return false;
-        }
+                using BufferScope<char> scope = values.Length <= 256
+                    ? new(stackalloc char[values.Length])
+                    : new(minimumLength: values.Length);
 
-        private static bool String_ToLowerInvariant(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [])
-            {
-                result = instance.ToLowerInvariant();
-                return true;
-            }
+                Span<char> chars = scope[..values.Length];
+                var writer = new SpanWriter<char>(chars);
 
-            result = null;
-            return false;
-        }
+                foreach (string value in values)
+                {
+                    writer.TryWrite(value[0]);
+                }
 
-        private static bool String_EndsWith(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            switch (args)
-            {
-                case [string value]:
-                    result = instance.EndsWith(value);
-                    return true;
+                Debug.Assert(writer.Position == writer.Length);
 
-                case [string value, string arg1] when TryConvertToEnum<StringComparison>(arg1, out var comparisonType):
-                    result = instance.EndsWith(value, comparisonType);
-                    return true;
-
-                default:
-                    result = null;
-                    return false;
-            }
-        }
-
-        private static bool String_ToLower(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [])
-            {
-                result = instance.ToLower();
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        private static bool String_IndexOf(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            switch (args)
-            {
-                case [string value]:
-                    result = instance.IndexOf(value);
-                    return true;
-
-                case [string value, var arg1] when TryConvertToInt(arg1, out var startIndex):
-                    result = instance.IndexOf(value, startIndex);
-                    return true;
-
-                case [string value, string arg1] when TryConvertToEnum<StringComparison>(arg1, out var comparisonType):
-                    result = instance.IndexOf(value, comparisonType);
-                    return true;
-
-                default:
-                    result = null;
-                    return false;
-            }
-        }
-
-        private static bool String_IndexOfAny(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string values])
-            {
-                result = instance.AsSpan().IndexOfAny(values);
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        private static bool String_LastIndexOf(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            switch (args)
-            {
-                case [string value]:
-                    result = instance.LastIndexOf(value);
-                    return true;
-
-                case [string value, var arg1] when TryConvertToInt(arg1, out var startIndex):
-                    result = instance.LastIndexOf(value, startIndex);
-                    return true;
-
-                case [string value, string arg1] when TryConvertToEnum<StringComparison>(arg1, out var comparisonType):
-                    result = instance.LastIndexOf(value, comparisonType);
-                    return true;
-
-                default:
-                    result = null;
-                    return false;
-            }
-        }
-
-        private static bool String_LastIndexOfAny(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string values])
-            {
-                result = instance.AsSpan().LastIndexOfAny(values);
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        private static bool String_Length(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [])
-            {
-                result = instance.Length;
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        private static bool String_Substring(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            switch (args)
-            {
-                case [var arg0] when TryConvertToInt(arg0, out var startIndex):
-                    result = instance.Substring(startIndex);
-                    return true;
-
-                case [var arg0, var arg1] when TryConvertToInt(arg0, out var startIndex) && TryConvertToInt(arg1, out var length):
-                    result = instance.Substring(startIndex, length);
-                    return true;
-
-                default:
-                    result = null;
-                    return false;
-            }
-        }
-
-        private static bool String_Split(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            switch (args)
-            {
-                case [var value] when TryConvertToChar(value, out var separator):
-                    result = instance.Split(separator);
-                    return true;
-
-                default:
-                    result = null;
-                    return false;
-            }
-        }
-
-        private static bool String_PadLeft(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            switch (args)
-            {
-                case [var arg0] when TryConvertToInt(arg0, out var totalWidth):
-                    result = instance.PadLeft(totalWidth);
-                    return true;
-
-                case [var arg0, var arg1] when TryConvertToInt(arg0, out var totalWidth) && TryConvertToChar(arg1, out var paddingChar):
-                    result = instance.PadLeft(totalWidth, paddingChar);
-                    return true;
-
-                default:
-                    result = null;
-                    return false;
-            }
-        }
-
-        private static bool String_PadRight(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            switch (args)
-            {
-                case [var arg0] when TryConvertToInt(arg0, out var totalWidth):
-                    result = instance.PadRight(totalWidth);
-                    return true;
-
-                case [var arg0, var arg1] when TryConvertToInt(arg0, out var totalWidth) && TryConvertToChar(arg1, out var paddingChar):
-                    result = instance.PadRight(totalWidth, paddingChar);
-                    return true;
-
-                default:
-                    result = null;
-                    return false;
+                return s.IndexOfAny(chars);
             }
         }
 
-        private bool String_Trim(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [])
+        private static Result String_LastIndexOf(string instance, ReadOnlySpan<object?> args)
+            => args switch
             {
-                result = instance.Trim();
-                return true;
-            }
+                [string value] => Result.From(instance.LastIndexOf(value)),
+                [string value, var arg1] when TryConvertToInt(arg1, out int startIndex)
+                    => Result.From(instance.LastIndexOf(value, startIndex)),
+                [string value, string arg1] when TryConvertToEnum(arg1, out StringComparison comparisonType)
+                    => Result.From(instance.LastIndexOf(value, comparisonType)),
 
-            result = null;
-            return false;
-        }
+                _ => Result.None,
+            };
 
-        private static bool String_TrimStart(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string trimChars] && trimChars.Length > 0)
+        private static Result String_LastIndexOfAny(string instance, ReadOnlySpan<object?> args)
+            => args is [string values]
+                ? Result.From(instance.AsSpan().LastIndexOfAny(values))
+                : Result.None;
+
+        private static Result String_Length(string instance, ReadOnlySpan<object?> args)
+            => args is []
+                ? Result.From(instance.Length)
+                : Result.None;
+
+        private static Result String_Substring(string instance, ReadOnlySpan<object?> args)
+            => args switch
             {
-                result = trimChars.Length == 1
+                [var arg0] when TryConvertToInt(arg0, out int startIndex)
+                    => Result.From(instance.Substring(startIndex)),
+                [var arg0, var arg1] when TryConvertToInt(arg0, out int startIndex) &&
+                                          TryConvertToInt(arg1, out int length)
+                    => Result.From(instance.Substring(startIndex, length)),
+                _ => Result.None,
+            };
+
+        private static Result String_Split(string instance, ReadOnlySpan<object?> args)
+            => args is [var value] && TryConvertToChar(value, out char separator)
+                ? Result.From(instance.Split(separator))
+                : Result.None;
+
+        private static Result String_PadLeft(string instance, ReadOnlySpan<object?> args)
+            => args switch
+            {
+                [var arg0] when TryConvertToInt(arg0, out int totalWidth)
+                    => Result.From(instance.PadLeft(totalWidth)),
+                [var arg0, var arg1] when TryConvertToInt(arg0, out int totalWidth) &&
+                                          TryConvertToChar(arg1, out char paddingChar)
+                    => Result.From(instance.PadLeft(totalWidth, paddingChar)),
+
+                _ => Result.None,
+            };
+
+        private static Result String_PadRight(string instance, ReadOnlySpan<object?> args)
+            => args switch
+            {
+                [var arg0] when TryConvertToInt(arg0, out int totalWidth)
+                    => Result.From(instance.PadRight(totalWidth)),
+                [var arg0, var arg1] when TryConvertToInt(arg0, out int totalWidth) &&
+                                          TryConvertToChar(arg1, out char paddingChar)
+                    => Result.From(instance.PadRight(totalWidth, paddingChar)),
+
+                _ => Result.None,
+            };
+
+        private Result String_Trim(string instance, ReadOnlySpan<object?> args)
+            => args is []
+                ? Result.From(instance.Trim())
+                : Result.None;
+
+        private static Result String_TrimStart(string instance, ReadOnlySpan<object?> args)
+            => args is [string trimChars] && trimChars.Length > 0
+                ? Result.From(trimChars.Length == 1
                     ? instance.TrimStart(trimChars[0])
-                    : instance.TrimStart(trimChars.ToCharArray());
+                    : instance.TrimStart(trimChars.ToCharArray()))
+                : Result.None;
 
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        private static bool String_TrimEnd(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string trimChars] && trimChars.Length > 0)
-            {
-                result = trimChars.Length == 1
+        private static Result String_TrimEnd(string instance, ReadOnlySpan<object?> args)
+            => args is [string trimChars] && trimChars.Length > 0
+                ? Result.From(trimChars.Length == 1
                     ? instance.TrimEnd(trimChars[0])
-                    : instance.TrimEnd(trimChars.ToCharArray());
+                    : instance.TrimEnd(trimChars.ToCharArray()))
+                : Result.None;
 
-                return true;
-            }
+        private static Result String_Get_Chars(string instance, ReadOnlySpan<object?> args)
+            => args is [var arg0] && TryConvertToInt(arg0, out int index)
+                ? Result.From(instance[index])
+                : Result.None;
 
-            result = null;
-            return false;
-        }
+        private static Result String_Equals(string instance, ReadOnlySpan<object?> args)
+            => args is [string or null]
+                ? Result.From(instance.Equals((string?)args[0]))
+                : Result.None;
 
-        private static bool String_Get_Chars(string instance, ReadOnlySpan<object?> args, out object? result)
+        private static bool CanBeTreatedAsCharArray(string[] values)
         {
-            if (args is [var arg0] && TryConvertToInt(arg0, out var index))
+            foreach (string value in values)
             {
-                result = instance[index];
-                return true;
+                if (value.Length != 1)
+                {
+                    return false;
+                }
             }
 
-            result = null;
-            return false;
-        }
-
-        private static bool String_Equals(string instance, ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string or null])
-            {
-                var value = (string?)args[0];
-                result = instance.Equals(value);
-                return true;
-            }
-
-            result = null;
-            return false;
+            return true;
         }
     }
 }

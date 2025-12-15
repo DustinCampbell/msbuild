@@ -166,8 +166,12 @@
     <Compile Include="FileSystem\*.cs" />
     <Compile Include="BackEnd\Shared\BuildResultBase.cs" />
     <Compile Include="BuildCheck\**\*.cs" />
+    <Compile Include="Buffers\BufferScope.cs" />
+    <Compile Include="Buffers\SpanWriter.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Errors\ArgumentOutOfRangeExtensions.cs" />
+    <Compile Include="Evaluation\Expander\Result.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.DirectoryLibrary.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.RegexLibrary.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
@@ -518,7 +522,7 @@
     <Compile Include="Evaluation\Expander\ArgumentParser.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.CharLibrary.cs" />
-    <Compile Include="Evaluation\Expander\WellKnownFunctions.FunctionLibrary.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions.BaseMemberLibrary.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.GuidLibrary.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.Int32Library.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.IntrinsicLibrary.cs" />

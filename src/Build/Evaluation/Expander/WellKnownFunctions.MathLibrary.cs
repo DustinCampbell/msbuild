@@ -3,32 +3,43 @@
 
 using System;
 
-namespace Microsoft.Build.Evaluation.Expander
+namespace Microsoft.Build.Evaluation.Expander;
+
+internal static partial class WellKnownFunctions
 {
-    internal static partial class WellKnownFunctions
+    private sealed class MathLibrary : BaseMemberLibrary, IStaticMethodLibrary
     {
-        private sealed class MathLibrary : FunctionLibrary
+        public static readonly MathLibrary Instance = new();
+
+        private enum StaticId
         {
-            private static readonly Func<double, double, double> s_max = Math.Max;
-            private static readonly Func<double, double, double> s_min = Math.Min;
-
-            public static readonly MathLibrary Instance = new();
-
-            private MathLibrary()
-            {
-            }
-
-            protected override void Initialize(ref Builder builder)
-            {
-                builder.Add(nameof(Math.Max), Math_Max);
-                builder.Add(nameof(Math.Min), Math_Min);
-            }
-
-            private static bool Math_Max(ReadOnlySpan<object?> args, out object? result)
-                => TryExecuteArithmeticFunction(args, s_max, out result);
-
-            private static bool Math_Min(ReadOnlySpan<object?> args, out object? result)
-                => TryExecuteArithmeticFunction(args, s_min, out result);
+            Max,
+            Min
         }
+
+        private static readonly FunctionIdLookup<StaticId> s_staticIds = FunctionIdLookup<StaticId>.Instance;
+
+        private static readonly Func<int, int, int> s_max = Math.Max;
+        private static readonly Func<int, int, int> s_min = Math.Min;
+
+        private MathLibrary()
+        {
+        }
+
+        public Result TryExecute(string name, ReadOnlySpan<object?> args)
+            => s_staticIds.TryFind(name, out StaticId id)
+                ? id switch
+                {
+                    StaticId.Max => Math_Max(args),
+                    StaticId.Min => Math_Min(args),
+                    _ => Result.None,
+                }
+                : Result.None;
+
+        private static Result Math_Max(ReadOnlySpan<object?> args)
+            => TryExecuteArithmeticFunction(args, s_max);
+
+        private static Result Math_Min(ReadOnlySpan<object?> args)
+            => TryExecuteArithmeticFunction(args, s_min);
     }
 }

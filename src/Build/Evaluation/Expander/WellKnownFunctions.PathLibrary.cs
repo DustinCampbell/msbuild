@@ -9,145 +9,90 @@ namespace Microsoft.Build.Evaluation.Expander;
 
 internal static partial class WellKnownFunctions
 {
-    private sealed class PathLibrary : FunctionLibrary
+    private sealed class PathLibrary : BaseMemberLibrary, IStaticMethodLibrary
     {
         public static readonly PathLibrary Instance = new();
+
+        private enum StaticId
+        {
+            Combine,
+            DirectorySeparatorChar,
+            GetFullPath,
+            IsPathRooted,
+            GetTempPath,
+            GetFileName,
+            GetDirectoryName,
+            GetFileNameWithoutExtension
+        }
+
+        private static readonly FunctionIdLookup<StaticId> s_staticIds = FunctionIdLookup<StaticId>.Instance;
 
         private PathLibrary()
         {
         }
 
-        protected override void Initialize(ref Builder builder)
-        {
-            builder.Add(nameof(Path.Combine), Path_Combine);
-            builder.Add(nameof(Path.DirectorySeparatorChar), Path_DirectorySeparatorChar);
-            builder.Add(nameof(Path.GetFullPath), Path_GetFullPath);
-            builder.Add(nameof(Path.IsPathRooted), Path_IsPathRooted);
-            builder.Add(nameof(Path.GetTempPath), Path_GetTempPath);
-            builder.Add(nameof(Path.GetFileName), Path_GetFileName);
-            builder.Add(nameof(Path.GetDirectoryName), Path_GetDirectoryName);
-            builder.Add(nameof(Path.GetFileNameWithoutExtension), Path_GetFileNameWithoutExtension);
-        }
+        public Result TryExecute(string name, ReadOnlySpan<object?> args)
+            => s_staticIds.TryFind(name, out StaticId id)
+                ? id switch
+                {
+                    StaticId.Combine => Path_Combine(args),
+                    StaticId.DirectorySeparatorChar => Path_DirectorySeparatorChar(args),
+                    StaticId.GetFullPath => Path_GetFullPath(args),
+                    StaticId.IsPathRooted => Path_IsPathRooted(args),
+                    StaticId.GetTempPath => Path_GetTempPath(args),
+                    StaticId.GetFileName => Path_GetFileName(args),
+                    StaticId.GetDirectoryName => Path_GetDirectoryName(args),
+                    StaticId.GetFileNameWithoutExtension => Path_GetFileNameWithoutExtension(args),
+                    _ => Result.None,
+                }
+                : Result.None;
 
-        private static bool Path_Combine(ReadOnlySpan<object?> args, out object? result)
-        {
+        private static Result Path_Combine(ReadOnlySpan<object?> args)
             // Combine has fast implementations for up to 4 parameters: https://github.com/dotnet/corefx/blob/2c55db90d622fa6279184e6243f0470a3755d13c/src/Common/src/CoreLib/System/IO/Path.cs#L293-L317
-            switch (args)
+            => args switch
             {
-                case []:
-                    result = Path.Combine([]);
-                    return true;
+                [] => Result.From(Path.Combine([])),
+                [string path1, string path2] => Result.From(Path.Combine(path1, path2)),
+                [string path1, string path2, string path3] => Result.From(Path.Combine(path1, path2, path3)),
+                [string path1, string path2, string path3, string path4] => Result.From(Path.Combine(path1, path2, path3, path4)),
+                _ => TryConvertToStringArray(args, out string[]? paths)
+                    ? Result.From(Path.Combine(paths))
+                    : Result.None,
+            };
 
-                case [string path1, string path2]:
-                    result = Path.Combine(path1, path2);
-                    return true;
+        private static Result Path_DirectorySeparatorChar(ReadOnlySpan<object?> args)
+            => args is []
+            ? Result.From(Path.DirectorySeparatorChar)
+                : Result.None;
 
-                case [string path1, string path2, string path3]:
-                    result = Path.Combine(path1, path2, path3);
-                    return true;
+        private static Result Path_GetFullPath(ReadOnlySpan<object?> args)
+            => args is [string path]
+                ? Result.From(Path.GetFullPath(path))
+                : Result.None;
 
-                case [string path1, string path2, string path3, string path4]:
-                    result = Path.Combine(path1, path2, path3, path4);
-                    return true;
+        private static Result Path_IsPathRooted(ReadOnlySpan<object?> args)
+            => args is [string path]
+                ? Result.From(Path.IsPathRooted(path))
+                : Result.None;
 
-                default:
-                    if (TryConvertToStringArray(args, out string[]? paths))
-                    {
-                        result = Path.Combine(paths);
-                        return true;
-                    }
+        private static Result Path_GetTempPath(ReadOnlySpan<object?> args)
+            => args is []
+                ? Result.From(Path.GetTempPath())
+                : Result.None;
 
-                    result = null;
-                    return false;
-            }
-        }
+        private static Result Path_GetFileName(ReadOnlySpan<object?> args)
+            => args is [string path]
+                ? Result.From(Path.GetFileName(path))
+                : Result.None;
 
-        private static bool Path_DirectorySeparatorChar(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [])
-            {
-                result = Path.DirectorySeparatorChar;
-                return true;
-            }
+        private static Result Path_GetDirectoryName(ReadOnlySpan<object?> args)
+            => args is [string path]
+                ? Result.From(Path.GetDirectoryName(path))
+                : Result.None;
 
-            result = false;
-            return false;
-        }
-
-        private static bool Path_GetFullPath(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [string path])
-            {
-                result = Path.GetFullPath(path);
-                return true;
-            }
-
-            result = false;
-            return false;
-        }
-
-        private static bool Path_IsPathRooted(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [var arg0] && arg0 is string or null)
-            {
-                var path = (string?)arg0;
-                result = Path.IsPathRooted(path);
-                return true;
-            }
-
-            result = false;
-            return false;
-        }
-
-        private static bool Path_GetTempPath(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [])
-            {
-                result = Path.GetTempPath();
-                return true;
-            }
-
-            result = false;
-            return false;
-        }
-
-        private static bool Path_GetFileName(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [var arg0] && arg0 is string or null)
-            {
-                var path = (string?)arg0;
-                result = Path.GetFileName(path);
-                return true;
-            }
-
-            result = false;
-            return false;
-        }
-
-        private static bool Path_GetDirectoryName(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [var arg0] && arg0 is string or null)
-            {
-                var path = (string?)arg0;
-                result = Path.GetDirectoryName(path);
-                return true;
-            }
-
-            result = false;
-            return false;
-        }
-
-        private static bool Path_GetFileNameWithoutExtension(ReadOnlySpan<object?> args, out object? result)
-        {
-            if (args is [var arg0] && arg0 is string or null)
-            {
-                var path = (string?)arg0;
-                result = Path.GetFileNameWithoutExtension(path);
-                return true;
-            }
-
-            result = false;
-            return false;
-        }
+        private static Result Path_GetFileNameWithoutExtension(ReadOnlySpan<object?> args)
+            => args is [string path]
+                ? Result.From(Path.GetFileNameWithoutExtension(path))
+                : Result.None;
     }
 }

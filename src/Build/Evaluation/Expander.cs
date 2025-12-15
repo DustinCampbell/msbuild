@@ -4063,10 +4063,11 @@ namespace Microsoft.Build.Evaluation
                     // need to locate an appropriate constructor and invoke it
                     if (string.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                     {
-                        if (!WellKnownFunctions.TryExecute(_receiverType, _methodMethodName, instance: null, args, out functionResult))
-                        {
-                            functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
-                        }
+                        var result = WellKnownFunctions.TryExecute(_receiverType, _methodMethodName, instance: null, args);
+
+                        functionResult = result.Success
+                            ? result.Value
+                            : LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
                     }
                     else
                     {
@@ -4076,8 +4077,13 @@ namespace Microsoft.Build.Evaluation
                         {
                             // First attempt to recognize some well-known functions to avoid binding
                             // and potential first-chance MissingMethodExceptions.
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecute(
-                                _receiverType, _methodMethodName, objectInstance, args, out functionResult);
+                            var result = WellKnownFunctions.TryExecute(_receiverType, _methodMethodName, objectInstance, args);
+
+                            wellKnownFunctionSuccess = result.Success;
+                            if (wellKnownFunctionSuccess)
+                            {
+                                functionResult = result.Value;
+                            }
                         }
                         catch (Exception ex)
                         {
