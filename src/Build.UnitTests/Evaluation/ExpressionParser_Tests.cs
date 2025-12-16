@@ -622,7 +622,7 @@ public class ExpressionParser_Tests
     private void AssertItemExpressionMatches(string expression)
     {
         var oldEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        var newEnumerator = NewExpressionParser.GetReferencedItemExpressions(expression);
+        var newEnumerator = ExpressionParser.GetReferencedItemExpressions(expression);
 
         bool oldHasNext = oldEnumerator.MoveNext();
         bool newHasNext = newEnumerator.MoveNext();
@@ -644,10 +644,10 @@ public class ExpressionParser_Tests
     private void AssertMultipleItemExpressionsMatch(string expression)
     {
         var oldEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        var newEnumerator = NewExpressionParser.GetReferencedItemExpressions(expression);
+        var newEnumerator = ExpressionParser.GetReferencedItemExpressions(expression);
 
         var oldCaptures = new List<ExpressionShredder.ItemExpressionCapture>();
-        var newCaptures = new List<ExpressionShredder.ItemExpressionCapture>();
+        var newCaptures = new List<ExpressionParser.ItemExpressionCapture>();
 
         while (oldEnumerator.MoveNext())
         {
@@ -669,17 +669,17 @@ public class ExpressionParser_Tests
 
     private void AssertCapturesMatch(
         ExpressionShredder.ItemExpressionCapture oldCapture,
-        ExpressionShredder.ItemExpressionCapture newCapture,
+        ExpressionParser.ItemExpressionCapture newCapture,
         string expression)
     {
-        oldCapture.Index.ShouldBe(newCapture.Index, $"Index mismatch for: {expression}");
-        oldCapture.Length.ShouldBe(newCapture.Length, $"Length mismatch for: {expression}");
-        oldCapture.Value.ShouldBe(newCapture.Value, $"Value mismatch for: {expression}");
-        oldCapture.ItemType.ShouldBe(newCapture.ItemType, $"ItemType mismatch for: {expression}");
-        oldCapture.Separator.ShouldBe(newCapture.Separator, $"Separator mismatch for: {expression}");
-        oldCapture.SeparatorStart.ShouldBe(newCapture.SeparatorStart, $"SeparatorStart mismatch for: {expression}");
-        oldCapture.FunctionName.ShouldBe(newCapture.FunctionName, $"FunctionName mismatch for: {expression}");
-        oldCapture.FunctionArguments.ShouldBe(newCapture.FunctionArguments, $"FunctionArguments mismatch for: {expression}");
+        newCapture.Index.ShouldBe(oldCapture.Index, $"Index mismatch for: {expression}");
+        newCapture.Length.ShouldBe(oldCapture.Length, $"Length mismatch for: {expression}");
+        newCapture.Value.ShouldBe(oldCapture.Value, $"Value mismatch for: {expression}");
+        newCapture.ItemType.ShouldBe(oldCapture.ItemType, $"ItemType mismatch for: {expression}");
+        newCapture.Separator.ShouldBe(oldCapture.Separator, $"Separator mismatch for: {expression}");
+        newCapture.SeparatorStart.ShouldBe(oldCapture.SeparatorStart, $"SeparatorStart mismatch for: {expression}");
+        newCapture.FunctionName.ShouldBe(oldCapture.FunctionName, $"FunctionName mismatch for: {expression}");
+        newCapture.FunctionArguments.ShouldBe(oldCapture.FunctionArguments, $"FunctionArguments mismatch for: {expression}");
 
         // Check captures (nested transforms)
         if (oldCapture.Captures == null)
@@ -689,7 +689,7 @@ public class ExpressionParser_Tests
         else
         {
             newCapture.Captures.ShouldNotBeNull($"Captures should not be null for: {expression}");
-            oldCapture.Captures.Count.ShouldBe(newCapture.Captures.Count, $"Captures count mismatch for: {expression}");
+            newCapture.Captures.Count.ShouldBe(oldCapture.Captures.Count, $"Captures count mismatch for: {expression}");
 
             for (int i = 0; i < oldCapture.Captures.Count; i++)
             {
@@ -828,10 +828,10 @@ public class ExpressionParser_Tests
 /// </summary>
 internal static class NewExpressionParser
 {
-    internal static ExpressionShredder.ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression)
+    internal static ExpressionParser.ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression)
     {
         // TODO: Replace with new implementation
-        return ExpressionShredder.GetReferencedItemExpressions(expression);
+        return ExpressionParser.GetReferencedItemExpressions(expression);
     }
 
     internal static bool ContainsMetadataExpressionOutsideTransform(string expression)
