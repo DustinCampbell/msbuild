@@ -835,6 +835,21 @@
         <target state="translated">MSB4274: la désactivation du nœud inproc entraîne une détérioration des performances lors de l’utilisation de plug-ins de cache de projet qui émettent des requêtes de build proxy.</target>
         <note />
       </trans-unit>
+      <trans-unit id="RefArrayBuilder_Empty">
+        <source>RefArrayBuilder is empty.</source>
+        <target state="new">RefArrayBuilder is empty.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefArrayBuilder_NoMatch">
+        <source>RefArrayBuilder does not contain matching element.</source>
+        <target state="new">RefArrayBuilder does not contain matching element.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefStack_Empty">
+        <source>RefStack is empty.</source>
+        <target state="new">RefStack is empty.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ReportFileAccessesX64Only">
         <source>Reporting file accesses is only currently supported using the x64 flavor of MSBuild.</source>
         <target state="translated">Les accès aux fichiers de création de rapports sont uniquement pris en charge à l’aide de la saveur x64 de MSBuild.</target>

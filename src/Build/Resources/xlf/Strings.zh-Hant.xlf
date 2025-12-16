@@ -835,6 +835,21 @@
         <target state="translated">MSB4274: 停用 inproc 節點會在使用可發出 proxy 組建要求的專案快取外掛程式時，導致效能降低。</target>
         <note />
       </trans-unit>
+      <trans-unit id="RefArrayBuilder_Empty">
+        <source>RefArrayBuilder is empty.</source>
+        <target state="new">RefArrayBuilder is empty.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefArrayBuilder_NoMatch">
+        <source>RefArrayBuilder does not contain matching element.</source>
+        <target state="new">RefArrayBuilder does not contain matching element.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefStack_Empty">
+        <source>RefStack is empty.</source>
+        <target state="new">RefStack is empty.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ReportFileAccessesX64Only">
         <source>Reporting file accesses is only currently supported using the x64 flavor of MSBuild.</source>
         <target state="translated">目前只支援使用 MSBuild 的 x64 變體來報告檔案存取。</target>

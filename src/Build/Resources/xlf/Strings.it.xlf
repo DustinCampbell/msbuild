@@ -835,6 +835,21 @@
         <target state="translated">MSB4274: la disabilitazione del nodo InProc porta a una riduzione del livello delle prestazioni quando si usano plug-in della cache del progetto che emettono richieste di compilazione proxy.</target>
         <note />
       </trans-unit>
+      <trans-unit id="RefArrayBuilder_Empty">
+        <source>RefArrayBuilder is empty.</source>
+        <target state="new">RefArrayBuilder is empty.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefArrayBuilder_NoMatch">
+        <source>RefArrayBuilder does not contain matching element.</source>
+        <target state="new">RefArrayBuilder does not contain matching element.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefStack_Empty">
+        <source>RefStack is empty.</source>
+        <target state="new">RefStack is empty.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ReportFileAccessesX64Only">
         <source>Reporting file accesses is only currently supported using the x64 flavor of MSBuild.</source>
         <target state="translated">Gli accessi ai file di report sono attualmente supportati solo con la versione x64 di MSBuild.</target>
