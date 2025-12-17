@@ -684,12 +684,12 @@ public class ExpressionParser_Tests
         // Check captures (nested transforms)
         if (oldCapture.Captures == null)
         {
-            newCapture.Captures.ShouldBeNull($"Captures should be null for: {expression}");
+            newCapture.Captures.ShouldBeEmpty($"Captures should be empty for: {expression}");
         }
         else
         {
-            newCapture.Captures.ShouldNotBeNull($"Captures should not be null for: {expression}");
-            newCapture.Captures.Count.ShouldBe(oldCapture.Captures.Count, $"Captures count mismatch for: {expression}");
+            newCapture.Captures.ShouldNotBeEmpty($"Captures should not be empty for: {expression}");
+            newCapture.Captures.Length.ShouldBe(oldCapture.Captures.Count, $"Captures length mismatch for: {expression}");
 
             for (int i = 0; i < oldCapture.Captures.Count; i++)
             {
