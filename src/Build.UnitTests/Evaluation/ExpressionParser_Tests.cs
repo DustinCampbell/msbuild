@@ -715,7 +715,7 @@ public class ExpressionParser_Tests
         string[] expectedMetadata)
     {
         var oldPair = ExpressionShredder.GetReferencedItemNamesAndMetadata([expression]);
-        var newPair = NewExpressionParser.GetReferencedItemNamesAndMetadata([expression]);
+        var newPair = ExpressionParser.GetReferencedItemNamesAndMetadata([expression]);
 
         // Ensure old and new parsers match each other
         AssertItemsAndMetadataMatch(oldPair, newPair, expression);
@@ -801,7 +801,7 @@ public class ExpressionParser_Tests
     private void AssertSemicolonSplitMatches(string expression)
     {
         var oldTokenizer = ExpressionShredder.SplitSemiColonSeparatedList(expression);
-        var newTokenizer = NewExpressionParser.SplitSemiColonSeparatedList(expression);
+        var newTokenizer = ExpressionParser.SplitSemiColonSeparatedList(expression);
 
         var oldTokens = new List<string>();
         var newTokens = new List<string>();
@@ -816,39 +816,8 @@ public class ExpressionParser_Tests
             newTokens.Add(token);
         }
 
-        oldTokens.ShouldBe(newTokens, $"Semicolon split mismatch for: {expression}");
+        newTokens.ShouldBe(oldTokens, $"Semicolon split mismatch for: {expression}");
     }
 
     #endregion
-}
-
-/// <summary>
-/// Temporary implementation that delegates to the old parser.
-/// This will be replaced with the new allocation-efficient implementation.
-/// </summary>
-internal static class NewExpressionParser
-{
-    internal static ExpressionParser.ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression)
-    {
-        // TODO: Replace with new implementation
-        return ExpressionParser.GetReferencedItemExpressions(expression);
-    }
-
-    internal static bool ContainsMetadataExpressionOutsideTransform(string expression)
-    {
-        // TODO: Replace with new implementation
-        return ExpressionParser.ContainsMetadataExpressionOutsideTransform(expression);
-    }
-
-    internal static ItemsAndMetadataPair GetReferencedItemNamesAndMetadata(IReadOnlyList<string> expressions)
-    {
-        // TODO: Replace with new implementation
-        return ExpressionParser.GetReferencedItemNamesAndMetadata(expressions);
-    }
-
-    internal static SemiColonTokenizer SplitSemiColonSeparatedList(string expression)
-    {
-        // TODO: Replace with new implementation
-        return ExpressionShredder.SplitSemiColonSeparatedList(expression);
-    }
 }

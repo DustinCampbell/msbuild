@@ -16,6 +16,21 @@ namespace Microsoft.Build.Evaluation;
 
 internal static partial class ExpressionParser
 {
+    /// <summary>
+    /// Splits an expression into fragments at semi-colons, except where the
+    /// semi-colons are in a macro or separator expression.
+    /// Fragments are trimmed and empty fragments discarded.
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="SemiColonTokenizer"/> for rules.
+    /// </remarks>
+    /// <param name="expression">List expression to split</param>
+    /// <returns>Array of non-empty strings from split list.</returns>
+    internal static SemiColonTokenizer SplitSemiColonSeparatedList(string expression)
+    {
+        return new SemiColonTokenizer(expression.AsMemory());
+    }
+
     internal static ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression)
         => GetReferencedItemExpressions(expression, 0, expression.Length);
 
