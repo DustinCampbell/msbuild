@@ -701,7 +701,7 @@ public class ExpressionParser_Tests
     private void AssertMetadataExpressionMatches(string expression)
     {
         bool oldResult = ExpressionShredder.ContainsMetadataExpressionOutsideTransform(expression);
-        bool newResult = NewExpressionParser.ContainsMetadataExpressionOutsideTransform(expression);
+        bool newResult = ExpressionParser.ContainsMetadataExpressionOutsideTransform(expression);
 
         oldResult.ShouldBe(newResult, $"ContainsMetadataExpressionOutsideTransform mismatch for: {expression}");
 
@@ -837,7 +837,7 @@ internal static class NewExpressionParser
     internal static bool ContainsMetadataExpressionOutsideTransform(string expression)
     {
         // TODO: Replace with new implementation
-        return ExpressionShredder.ContainsMetadataExpressionOutsideTransform(expression);
+        return ExpressionParser.ContainsMetadataExpressionOutsideTransform(expression);
     }
 
     internal static ItemsAndMetadataPair GetReferencedItemNamesAndMetadata(IReadOnlyList<string> expressions)

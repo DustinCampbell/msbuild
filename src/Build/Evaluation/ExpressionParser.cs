@@ -23,6 +23,18 @@ internal static partial class ExpressionParser
         => new(expression, start, end);
 
     /// <summary>
+    /// Returns true if there is a metadata expression (outside of a transform) in the expression.
+    /// </summary>
+    internal static bool ContainsMetadataExpressionOutsideTransform(string expression)
+    {
+        ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
+
+        GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref pair, ShredderOptions.MetadataOutsideTransforms);
+
+        return pair.Metadata?.Count > 0;
+    }
+
+    /// <summary>
     /// Given a list of expressions that may contain item list expressions,
     /// returns a pair of tables of all item names found, as K=Name, V=String.Empty;
     /// and all metadata not in transforms, as K=Metadata key, V=MetadataReference,
