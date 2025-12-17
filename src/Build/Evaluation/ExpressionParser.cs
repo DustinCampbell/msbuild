@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation;
@@ -76,8 +78,9 @@ internal static class ExpressionParser
                 var itemName = TextToken.FromBounds(_expression, startOfName, _position);
 
                 SinkWhitespace(_expression, ref _position);
+
                 bool transformOrFunctionFound = true;
-                List<ItemExpressionCapture>? transformExpressions = null;
+                using RefArrayBuilder<ItemExpressionCapture> transformExpressions = new(initialCapacity: 4);
 
                 // If there's an '->' eat it and the subsequent quoted expression or transform function
                 while (Sink(_expression, ref _position, _end, '-', '>') && transformOrFunctionFound)
@@ -91,8 +94,6 @@ internal static class ExpressionParser
                         int startQuoted = startTransform + 1;
                         int endQuoted = _position - 1;
 
-                        // PERF: Almost all expressions have only one capture, so optimize for that case
-                        transformExpressions ??= new List<ItemExpressionCapture>(1);
                         transformExpressions.Add(new(TextToken.FromBounds(_expression, startQuoted, endQuoted)));
 
                         SinkWhitespace(_expression, ref _position);
@@ -103,8 +104,6 @@ internal static class ExpressionParser
                     ItemExpressionCapture? functionCapture = SinkItemFunctionExpression(_expression, startTransform, ref _position, _end);
                     if (functionCapture is ItemExpressionCapture functionCaptureValue)
                     {
-                        // PERF: Almost all expressions have only one capture, so optimize for that case
-                        transformExpressions ??= new List<ItemExpressionCapture>(1);
                         transformExpressions.Add(functionCaptureValue);
 
                         SinkWhitespace(_expression, ref _position);
@@ -165,7 +164,7 @@ internal static class ExpressionParser
                 // Create an expression capture that encompasses the entire expression between the @( and the )
                 // with the item name and any separator contained within it
                 // and each transform expression contained within it (i.e. each ->XYZ)
-                ItemExpressionCapture expressionCapture = new(TextToken.FromBounds(_expression, startPoint, endPoint), itemName, separator, transformExpressions);
+                ItemExpressionCapture expressionCapture = new(TextToken.FromBounds(_expression, startPoint, endPoint), itemName, separator, transformExpressions.ToImmutable());
 
                 Current = expressionCapture;
                 ++_position;
@@ -292,6 +291,7 @@ internal static class ExpressionParser
 
                     TextToken functionName = TextToken.FromBounds(expression, startTransform, endFunctionName);
                     TextToken functionArguments = TextToken.Missing;
+
                     if (endFunctionArguments > startFunctionArguments)
                     {
                         functionArguments = TextToken.FromBounds(expression, startFunctionArguments, endFunctionArguments);
@@ -423,19 +423,22 @@ internal static class ExpressionParser
         private readonly TextToken _separator;
         private readonly TextToken _functionName;
         private readonly TextToken _functionArguments;
+        private readonly ItemExpressionCapture[] _captures;
 
         public ItemExpressionCapture(TextToken text)
-            : this(text, TextToken.Missing, TextToken.Missing, null, TextToken.Missing, TextToken.Missing)
+            : this(text, itemType: TextToken.Missing, separator: TextToken.Missing,
+                   captures: [], functionName: TextToken.Missing, functionArguments: TextToken.Missing)
         {
         }
 
-        public ItemExpressionCapture(TextToken text, TextToken itemType, TextToken separator, List<ItemExpressionCapture>? captures)
-            : this(text, itemType, separator, captures, TextToken.Missing, TextToken.Missing)
+        public ItemExpressionCapture(TextToken text, TextToken itemType, TextToken separator, ImmutableArray<ItemExpressionCapture> captures)
+            : this(text, itemType, separator, captures, functionName: TextToken.Missing, functionArguments: TextToken.Missing)
         {
         }
 
         public ItemExpressionCapture(TextToken text, TextToken functionName, TextToken functionArguments)
-            : this(text, TextToken.Missing, TextToken.Missing, null, functionName, functionArguments)
+            : this(text, itemType: TextToken.Missing, separator: TextToken.Missing,
+                   captures: [], functionName, functionArguments)
         {
         }
 
@@ -443,14 +446,14 @@ internal static class ExpressionParser
             TextToken text,
             TextToken itemType,
             TextToken separator,
-            List<ItemExpressionCapture>? captures,
+            ImmutableArray<ItemExpressionCapture> captures,
             TextToken functionName,
             TextToken functionArguments)
         {
             _text = text;
             _itemType = itemType;
             _separator = separator;
-            Captures = captures;
+            _captures = ImmutableCollectionsMarshal.AsArray(captures)!;
             _functionName = functionName;
             _functionArguments = functionArguments;
         }
@@ -458,7 +461,7 @@ internal static class ExpressionParser
         /// <summary>
         /// Captures within this capture.
         /// </summary>
-        public List<ItemExpressionCapture>? Captures { get; }
+        public ImmutableArray<ItemExpressionCapture> Captures => ImmutableCollectionsMarshal.AsImmutableArray(_captures);
 
         /// <summary>
         /// The position in the original string where the first character of the captured
