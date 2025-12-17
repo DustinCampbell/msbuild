@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -192,6 +192,9 @@
     <Compile Include="Collections\RefArrayBuilder.cs" />
     <Compile Include="Collections\RefStack.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Evaluation\ExpressionParser.ItemExpressionCapture.cs" />
+    <Compile Include="Evaluation\ExpressionParser.ReferencedItemExpressionsEnumerator.cs" />
+    <Compile Include="Evaluation\ExpressionParser.TextToken.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
