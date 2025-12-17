@@ -757,7 +757,7 @@ public class ExpressionParser_Tests
     private void AssertReferencedItemsAndMetadataMatchOld(string expression)
     {
         var oldPair = ExpressionShredder.GetReferencedItemNamesAndMetadata([expression]);
-        var newPair = NewExpressionParser.GetReferencedItemNamesAndMetadata([expression]);
+        var newPair = ExpressionParser.GetReferencedItemNamesAndMetadata([expression]);
 
         AssertItemsAndMetadataMatch(oldPair, newPair, expression);
     }
@@ -843,7 +843,7 @@ internal static class NewExpressionParser
     internal static ItemsAndMetadataPair GetReferencedItemNamesAndMetadata(IReadOnlyList<string> expressions)
     {
         // TODO: Replace with new implementation
-        return ExpressionShredder.GetReferencedItemNamesAndMetadata(expressions);
+        return ExpressionParser.GetReferencedItemNamesAndMetadata(expressions);
     }
 
     internal static SemiColonTokenizer SplitSemiColonSeparatedList(string expression)

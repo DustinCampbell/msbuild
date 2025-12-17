@@ -14,7 +14,7 @@ internal static partial class ExpressionParser
         public ReadOnlyMemory<char> Memory { get; }
         public int Start { get; }
 
-        private TextToken(ReadOnlyMemory<char> text, int start)
+        public TextToken(ReadOnlyMemory<char> text, int start)
         {
             Memory = text;
             Start = start;
