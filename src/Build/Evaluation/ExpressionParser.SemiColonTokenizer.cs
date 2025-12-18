@@ -69,6 +69,7 @@ internal static partial class ExpressionParser
 
                             // Slice span after the ;
                             span = span[(index + 1)..];
+                            _worker = _worker[(index + 1)..];
 
                             // Set the index to 0 and continue the loop.
                             // Note: We *don't* fall through to increment the index.
