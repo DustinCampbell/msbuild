@@ -627,7 +627,7 @@ public class ExpressionParser_Tests
         bool oldHasNext = oldEnumerator.MoveNext();
         bool newHasNext = newEnumerator.MoveNext();
 
-        oldHasNext.ShouldBe(newHasNext, $"MoveNext() mismatch for expression: {expression}");
+        newHasNext.ShouldBe(oldHasNext, $"MoveNext() mismatch for expression: {expression}");
 
         if (oldHasNext)
         {
@@ -703,7 +703,7 @@ public class ExpressionParser_Tests
         bool oldResult = ExpressionShredder.ContainsMetadataExpressionOutsideTransform(expression);
         bool newResult = ExpressionParser.ContainsMetadataExpressionOutsideTransform(expression);
 
-        oldResult.ShouldBe(newResult, $"ContainsMetadataExpressionOutsideTransform mismatch for: {expression}");
+        newResult.ShouldBe(oldResult, $"ContainsMetadataExpressionOutsideTransform mismatch for: {expression}");
 
         // Also test the GetReferencedItemNamesAndMetadata path
         AssertReferencedItemsAndMetadataMatchOld(expression);
