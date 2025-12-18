@@ -162,7 +162,7 @@ public class ExpressionParser_Tests
     {
         // Property parsing is tested via the full expression parsing
         // but we keep these tests for documentation
-        Assert.True(true);
+        Assert.NotNull(expression);
     }
 
     #endregion
