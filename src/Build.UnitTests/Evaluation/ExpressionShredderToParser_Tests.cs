@@ -18,8 +18,8 @@ namespace Microsoft.Build.UnitTests.Evaluation;
 /// </summary>
 public class ExpressionShredderToParser_Tests
 {
-    public static readonly TheoryData<string> MedleyTestData = new()
-    {
+    public static readonly TheoryData<string> MedleyTestData =
+    [
         "a;@(foo,');');b",
         "x@(z);@(zz)y",
         "exists('@(u)')",
@@ -50,12 +50,10 @@ public class ExpressionShredderToParser_Tests
         "@(x1234567890_-AZaz)",
         "@(x123 4567890_-AZaz->'x1234567890_-AZaz')",
         "@(x->)",
-        "@(x->)",
         "@(x->'x','')",
         "@(x->'x',''",
         "@(x->'x','",
         "@(x->')",
-        "@(x->''",
         "@(x->''",
         "@(x->'",
         "@(x->",
@@ -131,8 +129,8 @@ public class ExpressionShredderToParser_Tests
         "@() and true",
         "@(%Compile)",
         "@(%(x)",
-        "@(", "@()", "@",
         "@(",
+        "@",
         "@( foo -> ';);' , ';);' )",
         "@( foo -> ');' )",
         "@( A -> '%(Directory)%(Filename)%(Extension)', ' ** ')",
@@ -140,7 +138,6 @@ public class ExpressionShredderToParser_Tests
         "@(   foo  )",
         "@(   foo  ",
         "@(   a1234567890_-AXZaxz   )",
-        "@",
         "@ (x)",
         "@(x,'@(y)%(x)@(z->')",
         "@(x,'@(y)')",   // verify items inside separators aren't found
@@ -248,7 +245,6 @@ public class ExpressionShredderToParser_Tests
         "% (x)",
         "$(c)@(y)>1",
         "",
-        "",
         "!@#$%^&*",
         " @(foo->'', '')",
         " ->       ';abc;def;'   ,     'ghi;jkl'   )",
@@ -256,7 +252,7 @@ public class ExpressionShredderToParser_Tests
         "  ;  a   ;b   ;   ;c",
         "                $(AssemblyOriginatorKeyFile);\n\t                @(Compile);",
         "@(_OutputPathItem->'%(FullPath)', ';');$(MSBuildAllProjects);"
-    };
+    ];
 
     [Theory]
     [MemberData(nameof(MedleyTestData))]
