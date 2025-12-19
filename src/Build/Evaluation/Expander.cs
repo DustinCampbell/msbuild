@@ -528,7 +528,7 @@ namespace Microsoft.Build.Evaluation
         {
             ErrorUtilities.VerifyThrow((options & ExpanderOptions.BreakOnNotEmpty) == 0, "not supported");
 
-            return ExpressionShredder.SplitSemiColonSeparatedList(ExpandIntoStringLeaveEscaped(expression, options, elementLocation));
+            return ExpressionParser.SplitSemiColonSeparatedList(ExpandIntoStringLeaveEscaped(expression, options, elementLocation));
         }
 
         /// <summary>
@@ -573,8 +573,7 @@ namespace Microsoft.Build.Evaluation
                 return result;
             }
 
-            var splits = ExpressionShredder.SplitSemiColonSeparatedList(expression);
-            foreach (string split in splits)
+            foreach (string split in ExpressionParser.SplitSemiColonSeparatedList(expression))
             {
                 bool isTransformExpression;
                 IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems<I, T>(this, split, _items, itemFactory, options, false /* do not include null items */, out isTransformExpression, elementLocation);
@@ -2824,9 +2823,7 @@ namespace Microsoft.Build.Evaluation
                                 // that case.
                                 if (metadataValue.Contains(';'))
                                 {
-                                    var splits = ExpressionShredder.SplitSemiColonSeparatedList(metadataValue);
-
-                                    foreach (string itemSpec in splits)
+                                    foreach (string itemSpec in ExpressionParser.SplitSemiColonSeparatedList(metadataValue))
                                     {
                                         // return a result through the enumerator
                                         transformedItems.Add(new KeyValuePair<string, S>(itemSpec, item.Value));

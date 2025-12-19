@@ -204,9 +204,7 @@ namespace Microsoft.Build.Evaluation
             // STEP 2: Split Include on any semicolons, and take each split in turn
             if (evaluatedItemspecEscaped.Length > 0)
             {
-                var splitsEscaped = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedItemspecEscaped);
-
-                foreach (var splitEscaped in splitsEscaped)
+                foreach (var splitEscaped in ExpressionParser.SplitSemiColonSeparatedList(evaluatedItemspecEscaped))
                 {
                     // STEP 3: If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
                     var itemReferenceFragment = ProcessItemExpression(

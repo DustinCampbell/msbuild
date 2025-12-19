@@ -280,7 +280,7 @@ namespace Microsoft.Build.Graph
             }
         }
 
-        private static IEnumerable<ProjectItemInstance> ConstructInnerBuildReferences(ProjectInstance outerBuild)
+        private static List<ProjectItemInstance> ConstructInnerBuildReferences(ProjectInstance outerBuild)
         {
             var globalPropertyName = GetInnerBuildPropertyName(outerBuild);
             var globalPropertyValues = GetInnerBuildPropertyValues(outerBuild);
@@ -288,15 +288,19 @@ namespace Microsoft.Build.Graph
             ErrorUtilities.VerifyThrow(!String.IsNullOrWhiteSpace(globalPropertyName), "Must have an inner build property");
             ErrorUtilities.VerifyThrow(!String.IsNullOrWhiteSpace(globalPropertyValues), "Must have values for the inner build property");
 
-            foreach (var globalPropertyValue in ExpressionShredder.SplitSemiColonSeparatedList(globalPropertyValues))
+            var result = new List<ProjectItemInstance>();
+
+            foreach (var globalPropertyValue in ExpressionParser.SplitSemiColonSeparatedList(globalPropertyValues))
             {
-                yield return new ProjectItemInstance(
+                result.Add(new ProjectItemInstance(
                     project: outerBuild,
                     itemType: InnerBuildReferenceItemName,
                     includeEscaped: outerBuild.FullPath,
                     directMetadata: [new KeyValuePair<string, string>(ItemMetadataNames.PropertiesMetadataName, $"{globalPropertyName}={globalPropertyValue}")],
-                    definingFileEscaped: outerBuild.FullPath);
+                    definingFileEscaped: outerBuild.FullPath));
             }
+
+            return result;
         }
 
         /// <summary>
@@ -505,8 +509,16 @@ namespace Microsoft.Build.Graph
                             string targetsMetadataValue = projectReferenceTarget.GetMetadataValue(ItemMetadataNames.ProjectReferenceTargetsMetadataName);
                             bool skipNonexistentTargets = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue("SkipNonexistentTargets"));
                             bool targetsAreForOuterBuild = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue(ProjectReferenceTargetIsOuterBuildMetadataName));
-                            TargetSpecification[] targets = ExpressionShredder.SplitSemiColonSeparatedList(targetsMetadataValue)
-                                .Select(t => new TargetSpecification(t, skipNonexistentTargets)).ToArray();
+
+                            using var builder = new RefArrayBuilder<TargetSpecification>();
+
+                            foreach (string target in ExpressionParser.SplitSemiColonSeparatedList(targetsMetadataValue))
+                            {
+                                builder.Add(new(target, skipNonexistentTargets));
+                            }
+
+                            var targets = builder.AsSpan().ToArray();
+
                             if (targetsAreForOuterBuild)
                             {
                                 targetsForOuterBuild.AddRange(targets);

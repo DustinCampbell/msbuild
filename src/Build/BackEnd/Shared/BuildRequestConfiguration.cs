@@ -846,12 +846,17 @@ namespace Microsoft.Build.BackEnd
                         return _ => false;
                     }
 
-                    var fragments = items.SelectMany(i => ExpressionShredder.SplitSemiColonSeparatedList(i.EvaluatedInclude));
-                    var glob = CompositeGlob.Create(
-                        fragments
-                            .Select(s => MSBuildGlob.Parse(Project.Directory, s)));
+                    using var globs = new RefArrayBuilder<MSBuildGlob>(initialCapacity: items.Count);
 
-                    return s => glob.IsMatch(s);
+                    foreach (ProjectItemInstance item in items)
+                    {
+                        foreach (string fragment in ExpressionParser.SplitSemiColonSeparatedList(item.EvaluatedInclude))
+                        {
+                            globs.Add(MSBuildGlob.Parse(Project.Directory, fragment));
+                        }
+                    }
+
+                    return CompositeGlob.Create(globs.ToImmutable()).IsMatch;
                 }
             }
         }

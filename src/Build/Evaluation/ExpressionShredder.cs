@@ -40,7 +40,7 @@ namespace Microsoft.Build.Evaluation
     /// <summary>
     /// A class which interprets and splits MSBuild expressions
     /// </summary>
-    internal static class ExpressionShredder
+    internal static partial class ExpressionShredder
     {
         /// <summary>
         /// Splits an expression into fragments at semi-colons, except where the

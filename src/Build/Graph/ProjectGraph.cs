@@ -815,7 +815,7 @@ namespace Microsoft.Build.Graph
 
                     var expandedTargets = string.IsNullOrEmpty(targetsString)
                         ? defaultTargets
-                        : ExpressionShredder.SplitSemiColonSeparatedList(targetsString).ToList();
+                        : [.. ExpressionParser.SplitSemiColonSeparatedList(targetsString)];
 
                     targets = targets
                         .RemoveAt(i)
