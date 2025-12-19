@@ -25,42 +25,39 @@ namespace Microsoft.Build.Shared
 
         // the portion of the expression that matches the item type or metadata name, eg: "foo123"
         // Note that the pattern is more strict than the rules for valid XML element names.
-        internal const string itemTypeOrMetadataNameSpecification = @"[A-Za-z_][A-Za-z_0-9\-]*";
+        internal const string ItemTypeOrMetadataNameSpecification = @"[A-Za-z_][A-Za-z_0-9\-]*";
 
         // regular expression used to match item vector transforms
         // description of an item vector transform, including the optional separator specification
-        private const string itemVectorTransformSpecification =
-            @"(?<PREFIX>@\(\s*)
-                (?<TYPE>" + itemTypeOrMetadataNameSpecification + @")
+        private const string ItemVectorTransformSpecification =
+            $@"(?<PREFIX>@\(\s*)
+                (?<TYPE>{ItemTypeOrMetadataNameSpecification})
                 (?<TRANSFORM_SPECIFICATION>(?<ARROW>\s*->\s*)(?<TRANSFORM>'[^']*'))
                 (?<SEPARATOR_SPECIFICATION>\s*,\s*'[^']*')?
               (?<SUFFIX>\s*\))";
-        // )
 
         // description of an item vector transform, including the optional separator specification, but with no (named) capturing
         // groups -- see the WriteString() method for details
         // regular expression used to match item vector transforms, with no (named) capturing groups
-        private const string itemVectorTransformRawSpecification =
-            @"@\(\s*
-                (" + itemTypeOrMetadataNameSpecification + @")
+        private const string ItemVectorTransformRawSpecification =
+            $@"@\(\s*
+                ({ItemTypeOrMetadataNameSpecification})
                 (\s*->\s*'[^']*')
                 (\s*,\s*'[^']*')?
               \s*\)";
 
 #if NET
-        [GeneratedRegex(itemVectorTransformSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture)]
+        [GeneratedRegex(ItemVectorTransformSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture)]
         private static partial Regex ItemVectorTransformRegex { get; }
 
-        [GeneratedRegex(itemVectorTransformRawSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture)]
+        [GeneratedRegex(ItemVectorTransformRawSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture)]
         private static partial Regex ItemVectorTransformRawRegex { get; }
 #else
-        private static Regex ItemVectorTransformRegex => itemVectorTransformPattern ??=
-            new Regex(itemVectorTransformSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture | RegexOptions.Compiled);
-        private static Regex itemVectorTransformPattern;
+        private static Regex ItemVectorTransformRegex => field ??=
+            new(ItemVectorTransformSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture | RegexOptions.Compiled);
 
-        private static Regex ItemVectorTransformRawRegex => itemVectorTransformRawPattern ??=
-            new Regex(itemVectorTransformRawSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture | RegexOptions.Compiled);
-        private static Regex itemVectorTransformRawPattern;
+        private static Regex ItemVectorTransformRawRegex => field ??=
+            new(ItemVectorTransformRawSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture | RegexOptions.Compiled);
 #endif
 
         /**************************************************************************************************************************
