@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -192,6 +192,8 @@
     <Compile Include="Collections\RefArrayBuilder.cs" />
     <Compile Include="Collections\RefStack.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Errors\ArgumentNullExtensions.cs" />
+    <Compile Include="Errors\ArgumentOutOfRangeExtensions.cs" />
     <Compile Include="Evaluation\ExpressionParser.ItemExpressionCapture.cs" />
     <Compile Include="Evaluation\ExpressionParser.ReferencedItemExpressionsEnumerator.cs" />
     <Compile Include="Evaluation\ExpressionParser.TextToken.cs" />
@@ -211,6 +213,13 @@
     <Compile Include="TelemetryInfra\InternalTelemetryConsumingLogger.cs" />
     <Compile Include="TelemetryInfra\ITelemetryForwarder.cs" />
     <Compile Include="TelemetryInfra\TelemetryForwarderProvider.cs" />
+    <Compile Include="Text\SpanAction.cs" />
+    <Compile Include="Text\SpanExtensions.cs" />
+    <Compile Include="Text\StringExtensions.cs" />
+    <Compile Include="Text\StringExtensions_NetFx.cs" />
+    <Compile Include="Text\StringSegment.cs" />
+    <Compile Include="Text\StringSegmentComparer.cs" />
+    <Compile Include="Text\ValueStringBuilder.cs" />
     <Compile Include="Utilities\BufferScope.cs" />
     <Compile Include="Utilities\MemoryExtensions.cs" />
     <Compile Include="Utilities\ReaderWriterLockSlimExtensions.cs" />
