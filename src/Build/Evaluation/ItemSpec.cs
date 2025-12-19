@@ -265,19 +265,14 @@ namespace Microsoft.Build.Evaluation
                 return null;
             }
 
-            var capture = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
-                expression,
-                ExpanderOptions.ExpandItems,
-                elementLocation);
-
-            if (capture == null)
+            if (!Expander<P, I>.TryExpandSingleItemVectorExpressionIntoExpressionCapture(expression, ExpanderOptions.ExpandItems, elementLocation, out var capture))
             {
                 return null;
             }
 
             isItemListExpression = true;
 
-            return new ItemExpressionFragment(capture.Value, expression, this, projectDirectory);
+            return new ItemExpressionFragment(capture, expression, containingItemSpec: this, projectDirectory);
         }
 
         /// <summary>

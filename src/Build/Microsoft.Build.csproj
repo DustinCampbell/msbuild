@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -196,6 +196,7 @@
     <Compile Include="Evaluation\ExpressionParser.ReferencedItemExpressionsEnumerator.cs" />
     <Compile Include="Evaluation\ExpressionParser.TextToken.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
+    <Compile Include="Evaluation\IntrinsicFunctionOverload.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
     <Compile Include="FileAccess\FileAccessData.cs" />
@@ -541,7 +542,15 @@
     <Compile Include="Evaluation\ExpressionShredder.SemiColonTokenizer.cs" />
     <Compile Include="Evaluation\Evaluator.cs" />
     <Compile Include="Evaluation\Expander.cs" />
+    <Compile Include="Evaluation\Expander.Function.cs" />
+    <Compile Include="Evaluation\Expander.FunctionBuilder.cs" />
+    <Compile Include="Evaluation\Expander.ItemExpander.cs" />
+    <Compile Include="Evaluation\Expander.MetadataExpander.cs" />
+    <Compile Include="Evaluation\Expander.MetadataMatchEvaluator.cs" />
+    <Compile Include="Evaluation\Expander.PropertyExpander.cs" />
+    <Compile Include="Evaluation\Expander.SpanBasedConcatenator.cs" />
     <Compile Include="Evaluation\Expander.RegularExpressions.cs" />
+    <Compile Include="Evaluation\ExpanderOptions.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
     <Compile Include="Evaluation\Expander\ArgumentParser.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
@@ -768,7 +777,8 @@
     </XmlPeek>
 
     <PropertyGroup>
-      <NuGetFrameworkWrapperRedirects_Content><![CDATA[
+      <NuGetFrameworkWrapperRedirects_Content>
+        <![CDATA[
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 

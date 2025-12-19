@@ -665,21 +665,10 @@ namespace Microsoft.Build.Evaluation
 
         private void AddItemReferences(string expression, OperationBuilder operationBuilder, IElementLocation elementLocation)
         {
-            if (expression.Length == 0)
+            if (expression.Length > 0 &&
+                Expander<P, I>.TryExpandSingleItemVectorExpressionIntoExpressionCapture(expression, ExpanderOptions.ExpandItems, elementLocation, out var match))
             {
-                return;
-            }
-            else
-            {
-                ExpressionShredder.ItemExpressionCapture? match = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
-                    expression, ExpanderOptions.ExpandItems, elementLocation);
-
-                if (match == null)
-                {
-                    return;
-                }
-
-                AddReferencedItemLists(operationBuilder, match.Value);
+                AddReferencedItemLists(operationBuilder, match);
             }
         }
 
