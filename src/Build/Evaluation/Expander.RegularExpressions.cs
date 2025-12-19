@@ -107,7 +107,7 @@ internal partial class Expander<P, I>
             MetadataMatchEvaluator metadataMatchEvaluator,
             SpanBasedStringBuilder stringBuilder,
             Regex regex)
-            => ReplaceAndAppend(input, evaluator, metadataMatchEvaluator, -1, startAt: regex.RightToLeft ? input.Length : 0, stringBuilder, regex);
+            => ReplaceAndAppend(input, evaluator, metadataMatchEvaluator, startAt: regex.RightToLeft ? input.Length : 0, stringBuilder, regex);
 
         /// <summary>
         /// Copied from <see cref="Regex.Replace(string, MatchEvaluator, int, int)"/> and modified to
@@ -117,7 +117,6 @@ internal partial class Expander<P, I>
         /// <param name="input">The string to operate on.</param>
         /// <param name="evaluator">A function to transform any matches found.</param>
         /// <param name="matchEvaluatorState">State used in the transform function.</param>
-        /// <param name="count">The number of replacements.</param>
         /// <param name="startAt">Index to start when doing replacements.</param>
         /// <param name="stringBuilder">The <see cref="SpanBasedStringBuilder"/> that will accumulate the results.</param>
         /// <param name="regex">The <see cref="Regex"/> that will perform the matching.</param>
@@ -125,22 +124,14 @@ internal partial class Expander<P, I>
             string input,
             Func<Match, MetadataMatchEvaluator, string> evaluator,
             MetadataMatchEvaluator matchEvaluatorState,
-            int count,
             int startAt,
             SpanBasedStringBuilder stringBuilder,
             Regex regex)
         {
             ErrorUtilities.VerifyThrowArgumentNull(evaluator);
             ErrorUtilities.VerifyThrowArgumentNull(stringBuilder);
-            ErrorUtilities.VerifyThrowArgumentOutOfRange(count >= -1);
             ErrorUtilities.VerifyThrowArgumentOutOfRange(startAt >= 0 && startAt <= input.Length);
             ErrorUtilities.VerifyThrowArgumentNull(regex);
-
-            if (count == 0)
-            {
-                stringBuilder.Append(input);
-                return;
-            }
 
             Match match = regex.Match(input, startAt);
             if (!match.Success)
@@ -161,11 +152,6 @@ internal partial class Expander<P, I>
 
                     prevAt = match.Index + match.Length;
                     stringBuilder.Append(evaluator(match, matchEvaluatorState));
-
-                    if (--count == 0)
-                    {
-                        break;
-                    }
 
                     match = match.NextMatch();
                 }
@@ -190,11 +176,6 @@ internal partial class Expander<P, I>
 
                     prevat = match.Index;
                     stack.Push(evaluator(match, matchEvaluatorState).AsMemory());
-
-                    if (--count == 0)
-                    {
-                        break;
-                    }
 
                     match = match.NextMatch();
                 }
