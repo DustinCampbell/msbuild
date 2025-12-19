@@ -1315,58 +1315,56 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         // the leading characters that indicate the start of an item vector
-        private const string itemVectorPrefix = "@(";
+        private const string ItemVectorPrefix = "@(";
 
         // complete description of an item vector, including the optional transform expression and separator specification
-        private const string itemVectorSpecification =
-            @"@\(\s*
-                (?<TYPE>" + ProjectWriter.itemTypeOrMetadataNameSpecification + @")
+        private const string ItemVectorSpecification =
+            $@"@\(\s*
+                (?<TYPE>{ProjectWriter.ItemTypeOrMetadataNameSpecification})
                 (?<TRANSFORM_SPECIFICATION>\s*->\s*'(?<TRANSFORM>[^']*)')?
                 (?<SEPARATOR_SPECIFICATION>\s*,\s*'(?<SEPARATOR>[^']*)')?
             \s*\)";
 
         // description of an item vector, including the optional transform expression, but not the separator specification
-        private const string itemVectorWithoutSeparatorSpecification =
-            @"@\(\s*
-                (?<TYPE>" + ProjectWriter.itemTypeOrMetadataNameSpecification + @")
+        private const string ItemVectorWithoutSeparatorSpecification =
+            $@"@\(\s*
+                (?<TYPE>{ProjectWriter.ItemTypeOrMetadataNameSpecification})
                 (?<TRANSFORM_SPECIFICATION>\s*->\s*'(?<TRANSFORM>[^']*)')?
             \s*\)";
 
         // regular expression used to match item vectors, including those embedded in strings
-        private static readonly Regex s_itemVectorPattern = new Regex(itemVectorSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
+        private static readonly Regex s_itemVectorPattern = new(ItemVectorSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
 
         // regular expression used to match a list of item vectors that have no separator specification -- the item vectors
         // themselves may be optionally separated by semi-colons, or they might be all jammed together
         private static readonly Regex s_listOfItemVectorsWithoutSeparatorsPattern =
-            new Regex(@"^\s*(;\s*)*(" +
-                      itemVectorWithoutSeparatorSpecification +
-                      @"\s*(;\s*)*)+$",
-                      RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
+            new($@"^\s*(;\s*)*({ItemVectorWithoutSeparatorSpecification}\s*(;\s*)*)+$",
+                RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
 
         // the leading characters that indicate the start of an item metadata reference
-        private const string itemMetadataPrefix = "%(";
+        private const string ItemMetadataPrefix = "%(";
 
         // complete description of an item metadata reference, including the optional qualifying item type
-        private const string itemMetadataSpecification =
-            @"%\(\s*
-                (?<ITEM_SPECIFICATION>(?<TYPE>" + ProjectWriter.itemTypeOrMetadataNameSpecification + @")\s*\.\s*)?
-                (?<NAME>" + ProjectWriter.itemTypeOrMetadataNameSpecification + @")
+        private const string ItemMetadataSpecification =
+            $@"%\(\s*
+                (?<ITEM_SPECIFICATION>(?<TYPE>{ProjectWriter.ItemTypeOrMetadataNameSpecification})\s*\.\s*)?
+                (?<NAME>{ProjectWriter.ItemTypeOrMetadataNameSpecification})
             \s*\)";
 
         // regular expression used to match item metadata references embedded in strings
-        private static readonly Regex s_itemMetadataPattern = new Regex(itemMetadataSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
+        private static readonly Regex s_itemMetadataPattern = new(ItemMetadataSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
 
         // description of an item vector with a transform, split into two halves along the transform expression
-        private const string itemVectorWithTransformLHS = @"@\(\s*" + ProjectWriter.itemTypeOrMetadataNameSpecification + @"\s*->\s*'[^']*";
-        private const string itemVectorWithTransformRHS = @"[^']*'(\s*,\s*'[^']*')?\s*\)";
+        private const string ItemVectorWithTransformLHS = $@"@\(\s*{ProjectWriter.ItemTypeOrMetadataNameSpecification}\s*->\s*'[^']*";
+        private const string ItemVectorWithTransformRHS = @"[^']*'(\s*,\s*'[^']*')?\s*\)";
 
         // PERF WARNING: this Regex is complex and tends to run slowly
         // regular expression used to match item metadata references outside of item vector expressions
         private static readonly Regex s_nonTransformItemMetadataPattern =
-            new Regex(@"((?<=" + itemVectorWithTransformLHS + @")" + itemMetadataSpecification + @"(?!" + itemVectorWithTransformRHS + @")) |
-                        ((?<!" + itemVectorWithTransformLHS + @")" + itemMetadataSpecification + @"(?=" + itemVectorWithTransformRHS + @")) |
-                        ((?<!" + itemVectorWithTransformLHS + @")" + itemMetadataSpecification + @"(?!" + itemVectorWithTransformRHS + @"))",
-                        RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
+            new($@"((?<={ItemVectorWithTransformLHS}){ItemMetadataSpecification}(?!{ItemVectorWithTransformRHS})) |
+                   ((?<!{ItemVectorWithTransformLHS}){ItemMetadataSpecification}(?={ItemVectorWithTransformRHS})) |
+                   ((?<!{ItemVectorWithTransformLHS}){ItemMetadataSpecification}(?!{ItemVectorWithTransformRHS}))",
+                RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture);
 
         /// <summary>
         /// Looks through a single parameter of the batchable object, and finds all references to item metadata
@@ -1382,10 +1380,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             // PERF NOTE: Regex matching is expensive, so if the string doesn't contain any item attribute references, just bail
             // out -- pre-scanning the string is actually cheaper than running the Regex, even when there are no matches!
 
-            if (batchableObjectParameter.IndexOf(itemMetadataPrefix, StringComparison.Ordinal) != -1)
+            if (batchableObjectParameter.IndexOf(ItemMetadataPrefix, StringComparison.Ordinal) != -1)
             {
                 // if there are no item vectors in the string
-                if (batchableObjectParameter.IndexOf(itemVectorPrefix, StringComparison.Ordinal) == -1)
+                if (batchableObjectParameter.IndexOf(ItemVectorPrefix, StringComparison.Ordinal) == -1)
                 {
                     // run a simpler Regex to find item metadata references
                     embeddedMetadataReferences = s_itemMetadataPattern.Matches(batchableObjectParameter);
