@@ -277,10 +277,10 @@ namespace Microsoft.Build.Evaluation
                 foreach (var metadataElement in metadata)
                 {
                     string expression = metadataElement.Value;
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref itemsAndMetadataFound, ShredderOptions.All);
 
                     expression = metadataElement.Condition;
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref itemsAndMetadataFound, ShredderOptions.All);
                 }
 
                 bool needToExpandMetadataForEachItem = false;
