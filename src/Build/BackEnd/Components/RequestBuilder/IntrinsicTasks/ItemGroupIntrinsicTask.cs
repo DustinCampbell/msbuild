@@ -83,28 +83,28 @@ namespace Microsoft.Build.BackEnd
 
                             if (!String.IsNullOrEmpty(child.KeepMetadata))
                             {
-                                var keepMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.KeepMetadata, ExpanderOptions.ExpandAll, child.KeepMetadataLocation).ToList();
+                                HashSet<string> keepMetadataEvaluated = [.. bucket.Expander.ExpandIntoStringListLeaveEscaped(child.KeepMetadata, ExpanderOptions.ExpandAll, child.KeepMetadataLocation)];
                                 if (keepMetadataEvaluated.Count > 0)
                                 {
-                                    keepMetadata = new HashSet<string>(keepMetadataEvaluated);
+                                    keepMetadata = keepMetadataEvaluated;
                                 }
                             }
 
                             if (!String.IsNullOrEmpty(child.RemoveMetadata))
                             {
-                                var removeMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.RemoveMetadata, ExpanderOptions.ExpandAll, child.RemoveMetadataLocation).ToList();
+                                HashSet<string> removeMetadataEvaluated = [.. bucket.Expander.ExpandIntoStringListLeaveEscaped(child.RemoveMetadata, ExpanderOptions.ExpandAll, child.RemoveMetadataLocation)];
                                 if (removeMetadataEvaluated.Count > 0)
                                 {
-                                    removeMetadata = new HashSet<string>(removeMetadataEvaluated);
+                                    removeMetadata = removeMetadataEvaluated;
                                 }
                             }
 
                             if (!String.IsNullOrEmpty(child.MatchOnMetadata))
                             {
-                                var matchOnMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.MatchOnMetadata, ExpanderOptions.ExpandAll, child.MatchOnMetadataLocation).ToList();
+                                HashSet<string> matchOnMetadataEvaluated = [.. bucket.Expander.ExpandIntoStringListLeaveEscaped(child.MatchOnMetadata, ExpanderOptions.ExpandAll, child.MatchOnMetadataLocation)];
                                 if (matchOnMetadataEvaluated.Count > 0)
                                 {
-                                    matchOnMetadata = new HashSet<string>(matchOnMetadataEvaluated);
+                                    matchOnMetadata = matchOnMetadataEvaluated;
                                 }
 
                                 Enum.TryParse(child.MatchOnMetadataOptions, out matchOnMetadataOptions);
@@ -406,24 +406,21 @@ namespace Microsoft.Build.BackEnd
 
                 if (evaluatedExclude.Length > 0)
                 {
-                    var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude);
-
-                    foreach (string excludeSplit in excludeSplits)
+                    foreach (string excludeSplit in ExpressionParser.SplitSemiColonSeparatedList(evaluatedExclude))
                     {
                         excludes.Add(excludeSplit);
                     }
                 }
             }
 
-            // Split Include on any semicolons, and take each split in turn
-            var includeSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedInclude);
             ProjectItemInstanceFactory itemFactory = new ProjectItemInstanceFactory(Project, originalItem.ItemType);
 
             // EngineFileUtilities.GetFileListEscaped api invocation evaluates excludes by default.
             // If the code process any expression like "@(x)", we need to handle excludes explicitly using EvaluateExcludePaths().
             bool anyTransformExprProceeded = false;
 
-            foreach (string includeSplit in includeSplits)
+            // Split Include on any semicolons, and take each split in turn
+            foreach (string includeSplit in ExpressionParser.SplitSemiColonSeparatedList(evaluatedInclude))
             {
                 // If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
                 IList<ProjectItemInstance> itemsFromSplit = expander.ExpandSingleItemVectorExpressionIntoItems(
@@ -502,7 +499,7 @@ namespace Microsoft.Build.BackEnd
                         }
                     }
 
-                    foreach(string metadataName in metadataToRemove)
+                    foreach (string metadataName in metadataToRemove)
                     {
                         item.RemoveMetadata(metadataName);
                     }

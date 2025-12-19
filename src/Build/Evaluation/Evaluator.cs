@@ -386,9 +386,7 @@ namespace Microsoft.Build.Evaluation
             // STEP 2: Split Include on any semicolons, and take each split in turn
             if (evaluatedIncludeEscaped.Length > 0)
             {
-                var includeSplitsEscaped = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedIncludeEscaped);
-
-                foreach (string includeSplitEscaped in includeSplitsEscaped)
+                foreach (string includeSplitEscaped in ExpressionParser.SplitSemiColonSeparatedList(evaluatedIncludeEscaped))
                 {
                     // STEP 3: If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
                     bool throwaway;
@@ -876,7 +874,11 @@ namespace Microsoft.Build.Evaluation
             {
                 // We accumulate InitialTargets from the project and each import
                 var initialTargets = _expander.ExpandIntoStringListLeaveEscaped(currentProjectOrImport.InitialTargets, ExpanderOptions.ExpandProperties, currentProjectOrImport.InitialTargetsLocation);
-                _initialTargetsList.AddRange(initialTargets);
+
+                foreach (string initialTarget in initialTargets)
+                {
+                    _initialTargetsList.Add(initialTarget);
+                }
 
                 if (!Traits.Instance.EscapeHatches.IgnoreTreatAsLocalProperty)
                 {
@@ -2056,7 +2058,7 @@ namespace Microsoft.Build.Evaluation
             bool atleastOneImportIgnored = false;
             bool atleastOneImportEmpty = false;
 
-            foreach (string importExpressionEscapedItem in ExpressionShredder.SplitSemiColonSeparatedList(importExpressionEscaped))
+            foreach (string importExpressionEscapedItem in ExpressionParser.SplitSemiColonSeparatedList(importExpressionEscaped))
             {
                 string[] importFilesEscaped = null;
 

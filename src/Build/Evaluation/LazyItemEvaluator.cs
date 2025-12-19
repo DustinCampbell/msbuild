@@ -562,9 +562,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (evaluatedExclude.Length > 0)
                 {
-                    var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude);
-
-                    foreach (var excludeSplit in excludeSplits)
+                    foreach (var excludeSplit in ExpressionParser.SplitSemiColonSeparatedList(evaluatedExclude))
                     {
                         operationBuilder.Excludes.Add(excludeSplit);
                         AddItemReferences(excludeSplit, operationBuilder, itemElement.ExcludeLocation);
@@ -591,14 +589,15 @@ namespace Microsoft.Build.Evaluation
 
                 if (evaluatedmatchOnMetadata.Length > 0)
                 {
-                    var matchOnMetadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedmatchOnMetadata);
-
-                    foreach (var matchOnMetadataSplit in matchOnMetadataSplits)
+                    foreach (var matchOnMetadataSplit in ExpressionParser.SplitSemiColonSeparatedList(evaluatedmatchOnMetadata))
                     {
                         AddItemReferences(matchOnMetadataSplit, operationBuilder, itemElement.MatchOnMetadataLocation);
                         string metadataExpanded = _expander.ExpandIntoStringLeaveEscaped(matchOnMetadataSplit, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
-                        var metadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded);
-                        operationBuilder.MatchOnMetadata.AddRange(metadataSplits);
+
+                        foreach (var metadata in ExpressionParser.SplitSemiColonSeparatedList(metadataExpanded))
+                        {
+                            operationBuilder.MatchOnMetadata.Add(metadata);
+                        }
                     }
                 }
             }

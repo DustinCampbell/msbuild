@@ -194,7 +194,6 @@
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
     <Compile Include="Evaluation\ExpressionParser.ItemExpressionCapture.cs" />
     <Compile Include="Evaluation\ExpressionParser.ReferencedItemExpressionsEnumerator.cs" />
-    <Compile Include="Evaluation\ExpressionParser.SemiColonTokenizer.cs" />
     <Compile Include="Evaluation\ExpressionParser.TextToken.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
@@ -539,6 +538,7 @@
     <Compile Include="Evaluation\StringMetadataTable.cs" />
     <Compile Include="Evaluation\ExpressionParser.cs" />
     <Compile Include="Evaluation\ExpressionShredder.cs" />
+    <Compile Include="Evaluation\ExpressionShredder.SemiColonTokenizer.cs" />
     <Compile Include="Evaluation\Evaluator.cs" />
     <Compile Include="Evaluation\Expander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />

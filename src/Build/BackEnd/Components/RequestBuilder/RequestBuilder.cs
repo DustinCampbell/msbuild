@@ -1499,9 +1499,26 @@ namespace Microsoft.Build.BackEnd
                 return null;
             }
 
-            return new HashSet<string>(ExpressionShredder.SplitSemiColonSeparatedList(warnings)
-            .SelectMany(w => w.Split([','], StringSplitOptions.RemoveEmptyEntries))
-            .Select(w => w.Trim()), StringComparer.OrdinalIgnoreCase);
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string warning in ExpressionParser.SplitSemiColonSeparatedList(warnings))
+            {
+                if (warning.AsSpan().IndexOf(',') >= 0)
+                {
+                    foreach (string individualWarning in warning.Split([','], StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        result.Add(individualWarning.Trim());
+                    }
+                }
+                else
+                {
+                    // No commas, just add the warning.
+                    // Note: SplitSemiColonSeparatedList already trims whitespace.
+                    result.Add(warning);
+                }
+            }
+
+            return result;
         }
 
         private sealed class DedicatedThreadsTaskScheduler : TaskScheduler

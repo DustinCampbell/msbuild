@@ -2,158 +2,128 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using static Microsoft.NET.StringTools.Strings;
 
-using Microsoft.NET.StringTools;
+namespace Microsoft.Build.Evaluation;
 
-#nullable disable
-
-namespace Microsoft.Build.Evaluation
+/// <summary>
+/// Splits an expression into fragments at semicolons, except where the
+/// semicolons are in a macro or separator expression.
+/// Fragments are trimmed and empty fragments discarded.
+/// </summary>
+/// <remarks>
+/// These complex cases prevent us from doing a simple split on ';':
+///  (1) Macro expression: @(foo->'xxx;xxx')
+///  (2) Separator expression: @(foo, 'xxx;xxx')
+///  (3) Combination: @(foo->'xxx;xxx', 'xxx;xxx')
+///  We must not split on semicolons in macro or separator expressions like these.
+/// </remarks>
+internal readonly ref struct SemiColonTokenizer(ReadOnlyMemory<char> expression)
 {
-    /// <summary>
-    /// Splits an expression into fragments at semicolons, except where the
-    /// semicolons are in a macro or separator expression.
-    /// Fragments are trimmed and empty fragments discarded.
-    /// </summary>
-    /// <remarks>
-    /// These complex cases prevent us from doing a simple split on ';':
-    ///  (1) Macro expression: @(foo->'xxx;xxx')
-    ///  (2) Separator expression: @(foo, 'xxx;xxx')
-    ///  (3) Combination: @(foo->'xxx;xxx', 'xxx;xxx')
-    ///  We must not split on semicolons in macro or separator expressions like these.
-    /// </remarks>
-    internal struct SemiColonTokenizer : IEnumerable<string>
+    private readonly ReadOnlyMemory<char> _expression = expression;
+
+    public Enumerator GetEnumerator()
+        => new(_expression);
+
+    internal ref struct Enumerator(ReadOnlyMemory<char> expression)
     {
-        private readonly string _expression;
+        private readonly ReadOnlyMemory<char> _expression = expression;
 
-        public SemiColonTokenizer(string expression)
+        private ReadOnlyMemory<char> _worker = expression;
+        private string? _current = null;
+
+        public readonly string Current => _current!;
+
+        public void Dispose()
         {
-            _expression = expression;
         }
 
-        public Enumerator GetEnumerator() => new Enumerator(_expression);
-
-        IEnumerator<string> IEnumerable<string>.GetEnumerator() => GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        internal struct Enumerator : IEnumerator<string>
+        public bool MoveNext()
         {
-            private readonly string _expression;
-            private string _current;
-            private int _index;
+            string? segment;
+            bool insideItemList = false;
+            bool insideQuotedPart = false;
 
-            public Enumerator(string expression)
+            // Walk along the string, keeping track of whether we are in an item list expression.
+            // If we hit a semi-colon or the end of the string and we aren't in an item list,
+            // add the segment to the list.
+
+            ReadOnlySpan<char> span = _worker.Span;
+            int index = 0;
+
+            while (index < span.Length)
             {
-                _expression = expression;
-                _index = 0;
-                _current = default(string);
-            }
-
-            public string Current
-            {
-                get { return _current; }
-            }
-
-            object IEnumerator.Current => Current;
-
-            public void Dispose()
-            {
-            }
-
-            public bool MoveNext()
-            {
-                int segmentStart = _index;
-                bool insideItemList = false;
-                bool insideQuotedPart = false;
-                string segment;
-
-                // Walk along the string, keeping track of whether we are in an item list expression.
-                // If we hit a semi-colon or the end of the string and we aren't in an item list,
-                // add the segment to the list.
-                for (; _index < _expression.Length; _index++)
+                switch (span[index])
                 {
-                    switch (_expression[_index])
-                    {
-                        case ';':
-                            if (!insideItemList)
-                            {
-                                // End of segment, so add it to the list
-                                segment = GetExpressionSubstring(segmentStart, _index - segmentStart);
-                                if (segment != null)
-                                {
-                                    _current = segment;
-                                    return true;
-                                }
+                    case ';' when !insideItemList:
+                        // End of segment
+                        if (TryGetString(span[..index], out segment))
+                        {
+                            _worker = _worker[(index + 1)..];
+                            _current = segment;
+                            return true;
+                        }
 
-                                // Move past this semicolon
-                                segmentStart = _index + 1;
-                            }
+                        // Slice span after the ;
+                        span = span[(index + 1)..];
+                        _worker = _worker[(index + 1)..];
 
-                            break;
-                        case '@':
-                            // An '@' immediately followed by a '(' is the start of an item list
-                            if (_expression.Length > _index + 1 && _expression[_index + 1] == '(')
-                            {
-                                // Start of item expression
-                                insideItemList = true;
-                            }
+                        // Set the index to 0 and continue the loop.
+                        // Note: We *don't* fall through to increment the index.
+                        index = 0;
+                        continue;
 
-                            break;
-                        case ')':
-                            if (insideItemList && !insideQuotedPart)
-                            {
-                                // End of item expression
-                                insideItemList = false;
-                            }
+                    case '@' when IndexMatches(span, index: index + 1, '('):
+                        // An '@' immediately followed by a '(' is the start of an item list
+                        insideItemList = true;
+                        break;
 
-                            break;
-                        case '\'':
-                            if (insideItemList)
-                            {
-                                // Start or end of quoted expression in item expression
-                                insideQuotedPart = !insideQuotedPart;
-                            }
+                    case ')' when insideItemList && !insideQuotedPart:
+                        // End of item expression
+                        insideItemList = false;
 
-                            break;
-                    }
+                        break;
+
+                    case '\'' when insideItemList:
+                        // Start or end of quoted expression in item expression
+                        insideQuotedPart = !insideQuotedPart;
+                        break;
                 }
 
-                // Reached the end of the string: what's left is another segment
-                _current = GetExpressionSubstring(segmentStart, _expression.Length - segmentStart);
-                return _current != null;
+                index++;
             }
 
-            public void Reset()
+            // Reached the end of the string: what's left is another segment
+            if (TryGetString(span, out segment))
             {
-                _current = default(string);
-                _index = 0;
+                _current = segment;
+                _worker = ReadOnlyMemory<char>.Empty;
+                return true;
             }
 
-            /// <summary>
-            /// Returns a whitespace-trimmed and possibly interned substring of the expression.
-            /// </summary>
-            /// <param name="startIndex">Start index of the substring.</param>
-            /// <param name="length">Length of the substring.</param>
-            /// <returns>Equivalent to _expression.Substring(startIndex, length).Trim() or null if the trimmed substring is empty.</returns>
-            private string GetExpressionSubstring(int startIndex, int length)
-            {
-                int endIndex = startIndex + length;
-                while (startIndex < endIndex && char.IsWhiteSpace(_expression[startIndex]))
-                {
-                    startIndex++;
-                }
-                while (startIndex < endIndex && char.IsWhiteSpace(_expression[endIndex - 1]))
-                {
-                    endIndex--;
-                }
-                if (startIndex < endIndex)
-                {
-                    return Strings.WeakIntern(_expression.AsSpan(startIndex, endIndex - startIndex));
-                }
-                return null;
-            }
+            return false;
         }
+
+        public void Reset()
+        {
+            _worker = _expression;
+            _current = null;
+        }
+
+        /// <summary>
+        /// Returns a whitespace-trimmed and possibly interned substring of the expression.
+        /// </summary>
+        /// <returns>Equivalent to _expression.Substring(startIndex, length).Trim() or null if the trimmed substring is empty.</returns>
+        private static bool TryGetString(ReadOnlySpan<char> span, [NotNullWhen(true)] out string? result)
+        {
+            span = span.Trim();
+            result = !span.IsEmpty ? WeakIntern(span) : null;
+
+            return result is not null;
+        }
+
+        private static bool IndexMatches(ReadOnlySpan<char> span, int index, char ch)
+            => index < span.Length && span[index] == ch;
     }
 }
