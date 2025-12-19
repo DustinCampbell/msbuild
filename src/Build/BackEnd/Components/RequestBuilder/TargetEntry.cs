@@ -342,7 +342,7 @@ namespace Microsoft.Build.BackEnd
             // batching buckets are, and if there are any which aren't empty, return our list of dependencies.
             // Only in the case where all bucket conditions fail do we want to skip the target entirely (and
             // this skip building the dependencies.)
-            if (ExpressionShredder.ContainsMetadataExpressionOutsideTransform(_target.Condition))
+            if (ExpressionParser.ContainsMetadataExpressionOutsideTransform(_target.Condition))
             {
                 ProjectErrorUtilities.ThrowInvalidProject(_target.ConditionLocation, "TargetConditionHasInvalidMetadataReference", _target.Name, _target.Condition);
             }
