@@ -243,7 +243,18 @@ namespace Microsoft.Build.UnitTests
             }
         }
 
-        public static void AssertItems(string[] expectedItems, ICollection<ProjectItem> items, Dictionary<string, string> expectedDirectMetadata = null, bool normalizeSlashes = false)
+        public static void AssertItems(
+            string[] expectedItems,
+            ICollection<ProjectItem> items,
+            Metadata expectedDirectMetadata,
+            bool normalizeSlashes = false)
+            => AssertItems(expectedItems, items, expectedDirectMetadata.ToDictionary(), normalizeSlashes);
+
+        public static void AssertItems(
+            string[] expectedItems,
+            ICollection<ProjectItem> items,
+            Dictionary<string, string> expectedDirectMetadata = null,
+            bool normalizeSlashes = false)
         {
             var converteditems = items.Select(i => (ITestItem)new ProjectItemTestItemAdapter(i)).ToList();
             AssertItems(expectedItems, converteditems, expectedDirectMetadata, normalizeSlashes);
@@ -252,12 +263,13 @@ namespace Microsoft.Build.UnitTests
         /// <summary>
         /// Asserts that the list of items has the specified evaluated includes.
         /// </summary>
-        public static void AssertItems(string[] expectedItems, IList<ITestItem> items, Dictionary<string, string> expectedDirectMetadata = null, bool normalizeSlashes = false)
+        public static void AssertItems(
+            string[] expectedItems,
+            IList<ITestItem> items,
+            Dictionary<string, string> expectedDirectMetadata = null,
+            bool normalizeSlashes = false)
         {
-            if (expectedDirectMetadata == null)
-            {
-                expectedDirectMetadata = new Dictionary<string, string>();
-            }
+            expectedDirectMetadata ??= [];
 
             // all items have the same metadata
             var metadata = new Dictionary<string, string>[expectedItems.Length];
@@ -270,13 +282,28 @@ namespace Microsoft.Build.UnitTests
             AssertItems(expectedItems, items, metadata, normalizeSlashes);
         }
 
-        public static void AssertItems(string[] expectedItems, IList<ProjectItem> items, Dictionary<string, string>[] expectedDirectMetadataPerItem, bool normalizeSlashes = false)
+        public static void AssertItems(
+            string[] expectedItems,
+            IList<ProjectItem> items,
+            Metadata[] expectedDirectMetadataPerItem,
+            bool normalizeSlashes = false)
+            => AssertItems(expectedItems, items, Array.ConvertAll(expectedDirectMetadataPerItem, m => m.ToDictionary()), normalizeSlashes);
+
+        public static void AssertItems(
+            string[] expectedItems,
+            IList<ProjectItem> items,
+            Dictionary<string, string>[] expectedDirectMetadataPerItem,
+            bool normalizeSlashes = false)
         {
             var convertedItems = items.Select(i => (ITestItem)new ProjectItemTestItemAdapter(i)).ToList();
             AssertItems(expectedItems, convertedItems, expectedDirectMetadataPerItem, normalizeSlashes);
         }
 
-        public static void AssertItems(string[] expectedItems, IList<ITestItem> items, Dictionary<string, string>[] expectedDirectMetadataPerItem, bool normalizeSlashes = false)
+        public static void AssertItems(
+            string[] expectedItems,
+            IList<ITestItem> items,
+            Dictionary<string, string>[] expectedDirectMetadataPerItem,
+            bool normalizeSlashes = false)
         {
             if (items.Count != 0 || expectedDirectMetadataPerItem.Length != 0)
             {
@@ -588,7 +615,7 @@ namespace Microsoft.Build.UnitTests
         /// <returns></returns>
         public static string CleanupFileContents([StringSyntax(StringSyntaxAttribute.Xml)] string projectFileContents)
         {
-            StringBuilder temp = new (projectFileContents);
+            StringBuilder temp = new(projectFileContents);
 
             // Replace reverse-single-quotes with double-quotes.
             temp.Replace('`', '"');
