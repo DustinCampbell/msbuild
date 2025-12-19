@@ -119,7 +119,7 @@ namespace Microsoft.Build.BackEnd
                 ErrorUtilities.ThrowInternalError("Need to specify the lookup.");
             }
 
-            ItemsAndMetadataPair pair = ExpressionShredder.GetReferencedItemNamesAndMetadata(batchableObjectParameters);
+            ItemsAndMetadataPair pair = ExpressionParser.GetReferencedItemNamesAndMetadata(batchableObjectParameters);
 
             // All the @(itemname) item list references in the tag, including transforms, etc.
             HashSet<string> consumedItemReferences = pair.Items;
