@@ -735,10 +735,6 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Text\" />
-  </ItemGroup>
-
   <PropertyGroup>
     <NuGetFrameworkWrapperRedirects_FilePath>$(IntermediateOutputPath)NuGetFrameworkWrapper.redirects.cs</NuGetFrameworkWrapperRedirects_FilePath>
   </PropertyGroup>
