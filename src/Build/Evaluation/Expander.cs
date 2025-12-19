@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -1094,7 +1094,13 @@ namespace Microsoft.Build.Evaluation
                     // Expand any metadata that appears in the item vector expression's separator
                     if (itemExpressionCapture.Separator != null)
                     {
-                        RegularExpressions.ReplaceAndAppend(itemExpressionCapture.Value, MetadataMatchEvaluator.ExpandSingleMetadata, matchEvaluator, -1, itemExpressionCapture.SeparatorStart, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
+                        RegularExpressions.ReplaceAndAppend(
+                            itemExpressionCapture.Value,
+                            MetadataMatchEvaluator.ExpandSingleMetadata,
+                            matchEvaluator,
+                            itemExpressionCapture.SeparatorStart,
+                            finalResultBuilder,
+                            RegularExpressions.NonTransformItemMetadataRegex);
                     }
                     else
                     {
