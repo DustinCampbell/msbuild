@@ -1,22 +1,18 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using Microsoft.Build.Collections;
-
-#if !NET
-using Microsoft.Build.Utilities;
-#endif
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
 internal static partial class ExpressionParser
 {
-    internal ref struct ReferencedItemExpressionsEnumerator(ReadOnlyMemory<char> expression)
+    internal ref struct ReferencedItemExpressionsEnumerator(StringSegment expression)
     {
-        private readonly ReadOnlyMemory<char> _expression = expression;
+        private readonly StringSegment _expression = expression;
 
-        private ReadOnlyMemory<char> _worker = expression;
+        private StringSegment _unprocessed = expression;
         private int _start;
         private ItemExpressionCapture _current;
 
@@ -24,23 +20,23 @@ internal static partial class ExpressionParser
 
         public bool MoveNext()
         {
-            ReadOnlyMemory<char> memory = _worker;
-            int end = _start + _worker.Length;
+            StringSegment worker = _unprocessed;
+            int end = _start + _unprocessed.Length;
 
-            while (!memory.IsEmpty)
+            while (!worker.IsEmpty)
             {
-                int start = end - memory.Length;
+                int start = end - worker.Length;
 
-                if (TryParseReferencedItemExpression(ref memory, start, out var capture))
+                if (TryParseReferencedItemExpression(ref worker, start, out var capture))
                 {
                     _current = capture;
-                    _worker = memory;
-                    _start = _expression.Length - _worker.Length;
+                    _unprocessed = worker;
+                    _start = _expression.Length - _unprocessed.Length;
                     return true;
                 }
                 else
                 {
-                    memory = memory[1..];
+                    worker = worker[1..];
                 }
             }
 
@@ -48,19 +44,19 @@ internal static partial class ExpressionParser
             return false;
         }
 
-        private static bool TryParseReferencedItemExpression(ref ReadOnlyMemory<char> memory, int start, out ItemExpressionCapture result)
+        private static bool TryParseReferencedItemExpression(ref StringSegment text, int start, out ItemExpressionCapture result)
         {
             result = default;
 
-            if (!memory.Span.StartsWith("@("))
+            if (!text.StartsWith("@("))
             {
                 return false;
             }
 
-            int end = start + memory.Length;
+            int end = start + text.Length;
 
-            var current = memory[2..].TrimStart();
-            int nameStart = end - current.Length;
+            var current = text[2..].TrimStart();
+            int nameStart = end - current.Length - start;
 
             if (!TryParseValidName(ref current, out var name))
             {
@@ -69,7 +65,7 @@ internal static partial class ExpressionParser
 
             // Grab the name, but continue to verify it's a well-formed expression
             // before we store it.
-            TextToken itemName = new(name, nameStart);
+            ExpressionSegment itemName = new(name, nameStart);
 
             current = current.TrimStart();
 
@@ -77,7 +73,7 @@ internal static partial class ExpressionParser
             using RefArrayBuilder<ItemExpressionCapture> transformExpressions = new(initialCapacity: 4);
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
-            while (transformOrFunctionFound && current.Span.StartsWith("->"))
+            while (transformOrFunctionFound && current.StartsWith("->"))
             {
                 current = current[2..].TrimStart();
 
@@ -113,35 +109,35 @@ internal static partial class ExpressionParser
 
             current = current.TrimStart();
 
-            TextToken separator = TextToken.Missing;
+            ExpressionSegment separator = ExpressionSegment.Missing;
 
             // If there's a ',', eat it and the subsequent quoted expression
-            if (current.Span is [',', ..])
+            if (current is [',', ..])
             {
                 current = current[1..].TrimStart();
 
-                if (current.Span is not ['\'', ..])
+                if (current is not ['\'', ..])
                 {
                     return false;
                 }
 
                 current = current[1..];
 
-                int closingQuote = current.Span.IndexOf('\'');
+                int closingQuote = current.IndexOf('\'');
                 if (closingQuote == -1)
                 {
                     return false;
                 }
 
                 int separatorStart = end - current.Length;
-                separator = new(current[..closingQuote], separatorStart);
+                separator = new(current[..closingQuote], separatorStart - start);
 
                 current = current[(closingQuote + 1)..].TrimStart();
             }
 
             current = current.TrimStart();
 
-            if (current.Span is not [')', ..])
+            if (current is not [')', ..])
             {
                 return false;
             }
@@ -149,9 +145,9 @@ internal static partial class ExpressionParser
             // Create an expression capture that encompasses the entire expression between the @( and the )
             // with the item name and any separator contained within it
             // and each transform expression contained within it (i.e. each ->XYZ)
-            int length = memory.Length - current.Length + 1;
-            result = new(new(memory[..length], start), itemName, separator, transformExpressions.ToImmutable());
-            memory = current[1..];
+            int length = text.Length - current.Length + 1;
+            result = new(new(text[..length], start), itemName, separator, transformExpressions.ToImmutable());
+            text = current[1..];
 
             return true;
         }

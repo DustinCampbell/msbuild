@@ -277,10 +277,10 @@ namespace Microsoft.Build.Evaluation
                 foreach (var metadataElement in metadata)
                 {
                     string expression = metadataElement.Value;
-                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
 
                     expression = metadataElement.Condition;
-                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
                 }
 
                 bool needToExpandMetadataForEachItem = false;
@@ -314,7 +314,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                if (!itemExpressionFragment.Capture.ItemType.Equals(referencedItemType, StringComparison.OrdinalIgnoreCase))
+                if (!itemExpressionFragment.Capture.ItemType.Text.Equals(referencedItemType, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
@@ -322,12 +322,7 @@ namespace Microsoft.Build.Evaluation
                 // If the itemSpec is a single call to an item function, like @(X->Something(...)), it may get this
                 // far, but shouldn't be treated as a single reference: the item function may return entirely
                 // different results from a bare reference like @(X).
-                if (itemExpressionFragment.Capture.Captures is object)
-                {
-                    return false;
-                }
-
-                return true;
+                return itemExpressionFragment.Capture.Captures.IsEmpty;
             }
         }
     }

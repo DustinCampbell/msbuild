@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Build.Text;
 using static Microsoft.NET.StringTools.Strings;
 
 namespace Microsoft.Build.Evaluation;
@@ -19,18 +20,18 @@ namespace Microsoft.Build.Evaluation;
 ///  (3) Combination: @(foo->'xxx;xxx', 'xxx;xxx')
 ///  We must not split on semicolons in macro or separator expressions like these.
 /// </remarks>
-internal readonly ref struct SemiColonTokenizer(ReadOnlyMemory<char> expression)
+internal readonly ref struct SemiColonTokenizer(StringSegment expression)
 {
-    private readonly ReadOnlyMemory<char> _expression = expression;
+    private readonly StringSegment _expression = expression;
 
     public Enumerator GetEnumerator()
         => new(_expression);
 
-    internal ref struct Enumerator(ReadOnlyMemory<char> expression)
+    internal ref struct Enumerator(StringSegment expression)
     {
-        private readonly ReadOnlyMemory<char> _expression = expression;
+        private readonly StringSegment _expression = expression;
 
-        private ReadOnlyMemory<char> _worker = expression;
+        private StringSegment _worker = expression;
         private string? _current = null;
 
         public readonly string Current => _current!;
@@ -49,7 +50,7 @@ internal readonly ref struct SemiColonTokenizer(ReadOnlyMemory<char> expression)
             // If we hit a semi-colon or the end of the string and we aren't in an item list,
             // add the segment to the list.
 
-            ReadOnlySpan<char> span = _worker.Span;
+            ReadOnlySpan<char> span = _worker.AsSpan();
             int index = 0;
 
             while (index < span.Length)
@@ -98,7 +99,7 @@ internal readonly ref struct SemiColonTokenizer(ReadOnlyMemory<char> expression)
             if (TryGetString(span, out segment))
             {
                 _current = segment;
-                _worker = ReadOnlyMemory<char>.Empty;
+                _worker = StringSegment.Empty;
                 return true;
             }
 
