@@ -9,7 +9,7 @@ using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-
+using Microsoft.NET.StringTools;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -643,14 +643,14 @@ namespace Microsoft.Build.Evaluation
                         expanderOptions,
                         metadatumElement.Location);
 
-                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
 
                     expression = _expander.ExpandIntoStringLeaveEscaped(
                         metadatumElement.Condition,
                         expanderOptions,
                         metadatumElement.ConditionLocation);
 
-                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionParser.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
                 }
 
                 if (itemsAndMetadataFound.Items != null)
@@ -672,13 +672,13 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private void AddReferencedItemLists(OperationBuilder operationBuilder, ExpressionShredder.ItemExpressionCapture match)
+        private void AddReferencedItemLists(OperationBuilder operationBuilder, ExpressionParser.ItemExpressionCapture match)
         {
-            if (match.ItemType != null)
+            if (!match.ItemType.IsEmpty)
             {
-                AddReferencedItemList(match.ItemType, operationBuilder.ReferencedItemLists);
+                AddReferencedItemList(Strings.WeakIntern(match.ItemType.Text), operationBuilder.ReferencedItemLists);
             }
-            if (match.Captures != null)
+            if (!match.Captures.IsEmpty)
             {
                 foreach (var subMatch in match.Captures)
                 {

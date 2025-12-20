@@ -6,6 +6,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Text;
 
 namespace Shouldly;
 
@@ -32,6 +34,28 @@ public static class SpanShouldBeTestExtensions
     public static void ShouldBe(
         this ReadOnlySpan<char> actual,
         ReadOnlySpan<char> expected,
+        string? customMessage,
+        StringCompareShould options)
+        => actual.ToString().ShouldBe(expected.ToString(), customMessage, options);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static void ShouldBe(
+        this StringSegment actual,
+        StringSegment expected,
+        string? customMessage = null)
+        => ShouldBe(actual, expected, customMessage, 0);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static void ShouldBe(
+        this StringSegment actual,
+        StringSegment expected,
+        StringCompareShould options)
+        => ShouldBe(actual, expected, customMessage: null, options);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static void ShouldBe(
+        this StringSegment actual,
+        StringSegment expected,
         string? customMessage,
         StringCompareShould options)
         => actual.ToString().ShouldBe(expected.ToString(), customMessage, options);

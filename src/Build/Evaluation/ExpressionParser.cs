@@ -1,15 +1,10 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Generic;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
-
-#if NETFRAMEWORK
-using Microsoft.Build.Utilities;
-#endif
-
+using Microsoft.Build.Text;
 using static Microsoft.NET.StringTools.Strings;
 
 namespace Microsoft.Build.Evaluation;
@@ -26,20 +21,20 @@ internal static partial class ExpressionParser
     /// </remarks>
     /// <param name="expression">List expression to split</param>
     /// <returns>Array of non-empty strings from split list.</returns>
-    internal static SemiColonTokenizer SplitSemiColonSeparatedList(string expression)
-        => new(expression.AsMemory());
+    internal static SemiColonTokenizer SplitSemiColonSeparatedList(StringSegment expression)
+        => new(expression);
 
-    internal static ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression)
-        => new(expression.AsMemory());
+    internal static ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(StringSegment expression)
+        => new(expression);
 
     /// <summary>
     /// Returns true if there is a metadata expression (outside of a transform) in the expression.
     /// </summary>
-    internal static bool ContainsMetadataExpressionOutsideTransform(string expression)
+    internal static bool ContainsMetadataExpressionOutsideTransform(StringSegment expression)
     {
         ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
 
-        GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref pair, ShredderOptions.MetadataOutsideTransforms);
+        GetReferencedItemNamesAndMetadata(expression, ref pair, ShredderOptions.MetadataOutsideTransforms);
 
         return pair.Metadata?.Count > 0;
     }
@@ -59,7 +54,7 @@ internal static partial class ExpressionParser
         for (int i = 0; i < expressions.Count; i++)
         {
             string expression = expressions[i];
-            GetReferencedItemNamesAndMetadata(expression.AsMemory(), ref pair, ShredderOptions.All);
+            GetReferencedItemNamesAndMetadata(expression, ref pair, ShredderOptions.All);
         }
 
         return pair;
@@ -72,41 +67,41 @@ internal static partial class ExpressionParser
     /// <remarks>
     /// We can ignore any semicolons in the expression, since we're not itemizing it.
     /// </remarks>
-    internal static void GetReferencedItemNamesAndMetadata(ReadOnlyMemory<char> expression, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
+    internal static void GetReferencedItemNamesAndMetadata(StringSegment expression, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
     {
         bool includeItemTypes = (whatToShredFor & ShredderOptions.ItemTypes) != 0;
         bool includeMetadata = (whatToShredFor & ShredderOptions.MetadataOutsideTransforms) != 0;
 
-        ReadOnlyMemory<char> memory = expression;
+        StringSegment worker = expression;
 
-        while (!memory.IsEmpty)
+        while (!worker.IsEmpty)
         {
-            if (TryParseItemName(ref memory, start: expression.Length - memory.Length, ref pair, out var itemNameMemory))
+            if (TryParseItemName(ref worker, start: expression.Length - worker.Length, ref pair, out var itemNameSegment))
             {
                 if (includeItemTypes)
                 {
-                    string itemName = WeakIntern(itemNameMemory.Span);
+                    string itemName = WeakIntern(itemNameSegment.AsSpan());
 
                     pair.Items ??= new HashSet<string>(MSBuildNameIgnoreCaseComparer.Default);
                     pair.Items.Add(itemName);
                 }
             }
-            else if (TryParseMetadataName(ref memory, out itemNameMemory, out var metadataNameMemory))
+            else if (TryParseMetadataName(ref worker, out itemNameSegment, out var metadataNameSegment))
             {
                 if (includeMetadata)
                 {
                     string? itemName;
                     string metadataKey;
-                    string metadataName = WeakIntern(metadataNameMemory.Span);
+                    string metadataName = WeakIntern(metadataNameSegment.AsSpan());
 
-                    if (itemNameMemory.IsEmpty)
+                    if (itemNameSegment.IsEmpty)
                     {
                         itemName = null;
                         metadataKey = metadataName;
                     }
                     else
                     {
-                        itemName = WeakIntern(itemNameMemory.Span);
+                        itemName = WeakIntern(itemNameSegment.AsSpan());
                         metadataKey = $"{itemName}.{metadataName}";
                     }
 
@@ -116,25 +111,25 @@ internal static partial class ExpressionParser
             }
             else
             {
-                memory = memory[1..];
+                worker = worker[1..];
             }
         }
     }
 
     private static bool TryParseItemName(
-        ref ReadOnlyMemory<char> memory,
+        ref StringSegment text,
         int start,
         ref ItemsAndMetadataPair pair,
-        out ReadOnlyMemory<char> itemNameMemory)
+        out StringSegment itemName)
     {
-        itemNameMemory = default;
+        itemName = default;
 
-        if (!memory.Span.StartsWith("@("))
+        if (!text.StartsWith("@("))
         {
             return false;
         }
 
-        var current = memory[2..].TrimStart();
+        var current = text[2..].TrimStart();
 
         if (!TryParseValidName(ref current, out var name))
         {
@@ -146,7 +141,7 @@ internal static partial class ExpressionParser
         bool transformOrFunctionFound = true;
 
         // If there's an '->' eat it and the subsequent quoted expression or transform function
-        while (transformOrFunctionFound && current.Span.StartsWith("->"))
+        while (transformOrFunctionFound && current.StartsWith("->"))
         {
             current = current[2..].TrimStart();
 
@@ -157,7 +152,7 @@ internal static partial class ExpressionParser
                 continue;
             }
 
-            int nestedStart = start + memory.Length - current.Length;
+            int nestedStart = start + text.Length - current.Length;
 
             if (TryParseItemExpressionCapture(ref current, nestedStart, out var capture))
             {
@@ -179,17 +174,17 @@ internal static partial class ExpressionParser
         current = current.TrimStart();
 
         // If there's a ',', eat it and the subsequent quoted expression
-        if (current.Span is [',', ..])
+        if (current is [',', ..])
         {
             current = current[1..].TrimStart();
 
-            if (current.Span is not ['\'', ..])
+            if (current is not ['\'', ..])
             {
                 return false;
             }
 
             current = current[1..];
-            int closingQuote = current.Span.IndexOf('\'');
+            int closingQuote = current.IndexOf('\'');
             if (closingQuote == -1)
             {
                 return false;
@@ -199,35 +194,35 @@ internal static partial class ExpressionParser
             // e.g., @(foo, '%(bar)') contains batchable metadata 'bar'
             GetReferencedItemNamesAndMetadata(current[..closingQuote], ref pair, ShredderOptions.MetadataOutsideTransforms);
 
-            current = current.Slice(start: closingQuote + 1);
+            current = current.Slice(startIndex: closingQuote + 1);
         }
 
         current = current.TrimStart();
 
-        if (current.Span is not [')', ..])
+        if (current is not [')', ..])
         {
             return false;
         }
 
-        itemNameMemory = name;
-        memory = current[1..];
+        itemName = name;
+        text = current[1..];
         return true;
     }
 
     private static bool TryParseMetadataName(
-        ref ReadOnlyMemory<char> memory,
-        out ReadOnlyMemory<char> itemNameMemory,
-        out ReadOnlyMemory<char> metadataNameMemory)
+        ref StringSegment text,
+        out StringSegment itemName,
+        out StringSegment metadataName)
     {
-        itemNameMemory = default;
-        metadataNameMemory = default;
+        itemName = default;
+        metadataName = default;
 
-        if (!memory.Span.StartsWith("%("))
+        if (!text.StartsWith("%("))
         {
             return false;
         }
 
-        var current = memory[2..].TrimStart();
+        var current = text[2..].TrimStart();
 
         if (!TryParseValidName(ref current, out var firstPart))
         {
@@ -237,7 +232,7 @@ internal static partial class ExpressionParser
         current = current.TrimStart();
 
         // We don't know if it's an item or metadata name yet
-        if (current.Span is ['.', ..])
+        if (current is ['.', ..])
         {
             current = current[1..].TrimStart();
 
@@ -247,31 +242,31 @@ internal static partial class ExpressionParser
             }
 
             current = current.TrimStart();
-            itemNameMemory = firstPart;
-            metadataNameMemory = secondPart;
+            itemName = firstPart;
+            metadataName = secondPart;
         }
         else
         {
-            metadataNameMemory = firstPart;
+            metadataName = firstPart;
         }
 
-        if (current.Span is not [')', ..])
+        if (current is not [')', ..])
         {
-            itemNameMemory = default;
-            metadataNameMemory = default;
+            itemName = default;
+            metadataName = default;
             return false;
         }
 
-        memory = current[1..];
+        text = current[1..];
         return true;
     }
 
     /// <summary>
     /// Returns true if a valid name begins at the specified index.
     /// </summary>
-    private static bool TryParseValidName(ref ReadOnlyMemory<char> memory, out ReadOnlyMemory<char> name)
+    private static bool TryParseValidName(ref StringSegment text, out StringSegment name)
     {
-        var span = memory.Span;
+        var span = text.AsSpan();
 
         if (span.IsEmpty || !XmlUtilities.IsValidInitialElementNameCharacter(span[0]))
         {
@@ -293,8 +288,8 @@ internal static partial class ExpressionParser
             i -= 1;
         }
 
-        name = memory[..i];
-        memory = memory[i..];
+        name = text[..i];
+        text = text[i..];
         return true;
     }
 
@@ -303,9 +298,9 @@ internal static partial class ExpressionParser
     /// and ends before the specified end index.
     /// Leaves index one past the end of the second quote.
     /// </summary>
-    private static bool TryParseSingleQuotedExpression(ref ReadOnlyMemory<char> memory, out ReadOnlyMemory<char> quotedExpression)
+    private static bool TryParseSingleQuotedExpression(ref StringSegment text, out StringSegment quotedExpression)
     {
-        var span = memory.Span;
+        var span = text.AsSpan();
 
         if (span is not ['\'', ..])
         {
@@ -322,14 +317,14 @@ internal static partial class ExpressionParser
 
         i++;
 
-        if (i > memory.Length)
+        if (i > text.Length)
         {
             quotedExpression = default;
             return false;
         }
 
-        quotedExpression = memory[..i];
-        memory = memory[i..];
+        quotedExpression = text[..i];
+        text = text[i..];
         return true;
     }
 
@@ -338,10 +333,10 @@ internal static partial class ExpressionParser
     /// and ends before the specified end index.
     /// Leaves index one past the end of the closing paren.
     /// </summary>
-    private static bool TryParseItemExpressionCapture(ref ReadOnlyMemory<char> memory, int start, out ItemExpressionCapture capture)
+    private static bool TryParseItemExpressionCapture(ref StringSegment text, int start, out ItemExpressionCapture capture)
     {
-        int end = start + memory.Length;
-        var current = memory;
+        int end = start + text.Length;
+        var current = text;
 
         if (TryParseValidName(ref current, out var name))
         {
@@ -361,16 +356,16 @@ internal static partial class ExpressionParser
                     arguments = arguments[1..^1];
                 }
 
-                TextToken functionName = new(name, start);
-                TextToken functionArguments = !arguments.IsEmpty
+                ExpressionSegment functionName = new(name, start);
+                ExpressionSegment functionArguments = !arguments.IsEmpty
                     ? new(arguments, argumentsStart)
-                    : TextToken.Missing;
+                    : ExpressionSegment.Missing;
 
-                int length = memory.Length - current.Length;
+                int length = text.Length - current.Length;
 
-                capture = new(new(memory[..length], start), functionName, functionArguments);
+                capture = new(new(text[..length], start), functionName, functionArguments);
 
-                memory = current;
+                text = current;
                 return true;
             }
 
@@ -388,9 +383,9 @@ internal static partial class ExpressionParser
     /// Takes the expression and the index to start at.
     /// Returns the index of the matching parenthesis, or -1 if it was not found.
     /// </summary>
-    private static bool TryParseFunctionArguments(ref ReadOnlyMemory<char> memory, out ReadOnlyMemory<char> arguments)
+    private static bool TryParseFunctionArguments(ref StringSegment text, out StringSegment arguments)
     {
-        var span = memory.Span;
+        var span = text.AsSpan();
         int index = 0;
         int nestLevel = 0;
 
@@ -443,8 +438,8 @@ internal static partial class ExpressionParser
 
         if (nestLevel == 0)
         {
-            arguments = memory[..index];
-            memory = memory[index..];
+            arguments = text[..index];
+            text = text[index..];
             return true;
         }
         else

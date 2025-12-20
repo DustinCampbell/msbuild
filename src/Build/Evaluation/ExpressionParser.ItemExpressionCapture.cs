@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 
@@ -14,37 +13,37 @@ internal static partial class ExpressionParser
     /// </summary>
     internal readonly struct ItemExpressionCapture
     {
-        private readonly TextToken _text;
-        private readonly TextToken _itemType;
-        private readonly TextToken _separator;
-        private readonly TextToken _functionName;
-        private readonly TextToken _functionArguments;
+        private readonly ExpressionSegment _text;
+        private readonly ExpressionSegment _itemType;
+        private readonly ExpressionSegment _separator;
+        private readonly ExpressionSegment _functionName;
+        private readonly ExpressionSegment _functionArguments;
         private readonly ItemExpressionCapture[] _captures;
 
-        public ItemExpressionCapture(TextToken text)
-            : this(text, itemType: TextToken.Missing, separator: TextToken.Missing,
-                   captures: [], functionName: TextToken.Missing, functionArguments: TextToken.Missing)
+        public ItemExpressionCapture(ExpressionSegment text)
+            : this(text, itemType: ExpressionSegment.Missing, separator: ExpressionSegment.Missing,
+                   captures: [], functionName: ExpressionSegment.Missing, functionArguments: ExpressionSegment.Missing)
         {
         }
 
-        public ItemExpressionCapture(TextToken text, TextToken itemType, TextToken separator, ImmutableArray<ItemExpressionCapture> captures)
-            : this(text, itemType, separator, captures, functionName: TextToken.Missing, functionArguments: TextToken.Missing)
+        public ItemExpressionCapture(ExpressionSegment text, ExpressionSegment itemType, ExpressionSegment separator, ImmutableArray<ItemExpressionCapture> captures)
+            : this(text, itemType, separator, captures, functionName: ExpressionSegment.Missing, functionArguments: ExpressionSegment.Missing)
         {
         }
 
-        public ItemExpressionCapture(TextToken text, TextToken functionName, TextToken functionArguments)
-            : this(text, itemType: TextToken.Missing, separator: TextToken.Missing,
+        public ItemExpressionCapture(ExpressionSegment text, ExpressionSegment functionName, ExpressionSegment functionArguments)
+            : this(text, itemType: ExpressionSegment.Missing, separator: ExpressionSegment.Missing,
                    captures: [], functionName, functionArguments)
         {
         }
 
         private ItemExpressionCapture(
-            TextToken text,
-            TextToken itemType,
-            TextToken separator,
+            ExpressionSegment text,
+            ExpressionSegment itemType,
+            ExpressionSegment separator,
             ImmutableArray<ItemExpressionCapture> captures,
-            TextToken functionName,
-            TextToken functionArguments)
+            ExpressionSegment functionName,
+            ExpressionSegment functionArguments)
         {
             _text = text;
             _itemType = itemType;
@@ -68,22 +67,22 @@ internal static partial class ExpressionParser
         /// <summary>
         /// The length of the captured substring.
         /// </summary>
-        public int Length => _text.Memory.Length;
+        public int Length => _text.Text.Length;
 
         /// <summary>
         /// Gets the captured substring from the input string.
         /// </summary>
-        public ReadOnlySpan<char> Value => _text.Memory.Span;
+        public ExpressionSegment Value => _text;
 
         /// <summary>
         /// Gets the captured itemtype.
         /// </summary>
-        public ReadOnlySpan<char> ItemType => _itemType.Memory.Span;
+        public ExpressionSegment ItemType => _itemType;
 
         /// <summary>
         /// Gets the captured itemtype.
         /// </summary>
-        public ReadOnlySpan<char> Separator => _separator.Memory.Span;
+        public ExpressionSegment Separator => _separator;
 
         /// <summary>
         /// The starting character of the separator.
@@ -93,17 +92,17 @@ internal static partial class ExpressionParser
         /// <summary>
         /// The function name, if any, within this expression.
         /// </summary>
-        public ReadOnlySpan<char> FunctionName => _functionName.Memory.Span;
+        public ExpressionSegment FunctionName => _functionName;
 
         /// <summary>
         /// The function arguments, if any, within this expression.
         /// </summary>
-        public ReadOnlySpan<char> FunctionArguments => _functionArguments.Memory.Span;
+        public ExpressionSegment FunctionArguments => _functionArguments;
 
         /// <summary>
         /// Gets the captured substring from the input string.
         /// </summary>
         public override string ToString()
-            => _text.Memory.ToString();
+            => _text.Text.ToString();
     }
 }

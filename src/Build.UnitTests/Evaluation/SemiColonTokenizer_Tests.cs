@@ -25,7 +25,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         {
             int index = 0;
 
-            foreach (string token in new SemiColonTokenizer(expression.AsMemory()))
+            foreach (string token in new SemiColonTokenizer(expression))
             {
                 token.ShouldBe(expectedTokens[index++]);
             }

@@ -612,6 +612,12 @@ public class ExpressionParser_Tests
     [Theory]
     [InlineData("@(Compile);@(Reference);@(Content)")]
     [InlineData("@(Compile->'%(FullPath)');@(Reference->'%(Filename)')")]
+    [InlineData("DirChain0: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct())")]
+    [InlineData("DirChain1: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct(), '%(A)')")]
+    [InlineData("DirChain2: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct(), '%(A)%(B)')")]
+    [InlineData("DirChain3: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct(), '%(A)$%(B)')")]
+    [InlineData("DirChain4: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct(), '$%(A)$%(B)')")]
+    [InlineData("DirChain5: @(Compile->'%(SomeMeta)'->'%(Directory)'->Distinct(), '$%(A)$%(B)$')")]
     public void MultipleItemLists_MatchesOldParser(string expression)
         => AssertMultipleItemExpressionsMatch(expression);
 
@@ -672,14 +678,14 @@ public class ExpressionParser_Tests
         ExpressionParser.ItemExpressionCapture newCapture,
         string expression)
     {
-        newCapture.Index.ShouldBe(oldCapture.Index, $"Index mismatch for: {expression}");
-        newCapture.Length.ShouldBe(oldCapture.Length, $"Length mismatch for: {expression}");
-        newCapture.Value.ShouldBe(oldCapture.Value, $"Value mismatch for: {expression}");
-        newCapture.ItemType.ShouldBe(oldCapture.ItemType, $"ItemType mismatch for: {expression}");
-        newCapture.Separator.ShouldBe(oldCapture.Separator, $"Separator mismatch for: {expression}");
-        newCapture.SeparatorStart.ShouldBe(oldCapture.SeparatorStart, $"SeparatorStart mismatch for: {expression}");
-        newCapture.FunctionName.ShouldBe(oldCapture.FunctionName, $"FunctionName mismatch for: {expression}");
-        newCapture.FunctionArguments.ShouldBe(oldCapture.FunctionArguments, $"FunctionArguments mismatch for: {expression}");
+        newCapture.Value.Start.ShouldBe(oldCapture.Index, $"Index mismatch for: {expression}");
+        newCapture.Value.Text.Length.ShouldBe(oldCapture.Length, $"Length mismatch for: {expression}");
+        newCapture.Value.Text.ShouldBe(oldCapture.Value, $"Value mismatch for: {expression}");
+        newCapture.ItemType.Text.ShouldBe(oldCapture.ItemType, $"ItemType mismatch for: {expression}");
+        newCapture.Separator.Text.ShouldBe(oldCapture.Separator, $"Separator mismatch for: {expression}");
+        newCapture.Separator.Start.ShouldBe(oldCapture.SeparatorStart, $"SeparatorStart mismatch for: {expression}");
+        newCapture.FunctionName.Text.ShouldBe(oldCapture.FunctionName, $"FunctionName mismatch for: {expression}");
+        newCapture.FunctionArguments.Text.ShouldBe(oldCapture.FunctionArguments, $"FunctionArguments mismatch for: {expression}");
 
         // Check captures (nested transforms)
         if (oldCapture.Captures == null)

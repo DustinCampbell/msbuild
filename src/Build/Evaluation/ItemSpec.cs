@@ -40,7 +40,7 @@ namespace Microsoft.Build.Evaluation
             private IMSBuildGlob _msbuildGlob;
 
             private List<ReferencedItem> _referencedItems;
-            public ExpressionShredder.ItemExpressionCapture Capture { get; }
+            public ExpressionParser.ItemExpressionCapture Capture { get; }
 
             public List<ReferencedItem> ReferencedItems
             {
@@ -65,7 +65,7 @@ namespace Microsoft.Build.Evaluation
             }
 
             public ItemExpressionFragment(
-                ExpressionShredder.ItemExpressionCapture capture,
+                ExpressionParser.ItemExpressionCapture capture,
                 string textFragment,
                 ItemSpec<P, I> containingItemSpec,
                 string projectDirectory)

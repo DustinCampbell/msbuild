@@ -88,7 +88,7 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    var itemVectorExpressionsEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+                    var itemVectorExpressionsEnumerator = ExpressionParser.GetReferencedItemExpressions(expression);
 
                     // otherwise, run the more complex Regex to find item metadata references not contained in transforms
                     using var finalResultBuilder = Strings.GetSpanBasedStringBuilder();
@@ -116,7 +116,7 @@ internal partial class Expander<P, I>
                         else
                         {
                             // There is only one item. Check to see if we're in the common case.
-                            if (firstItemExpressionCapture.Value == expression && firstItemExpressionCapture.Separator == null)
+                            if (firstItemExpressionCapture.Value.Text == expression && firstItemExpressionCapture.Separator.IsEmpty)
                             {
                                 // The most common case is where the transform is the whole expression
                                 // Also if there were no valid item vector expressions found, then go ahead and do the replacement on
@@ -167,7 +167,7 @@ internal partial class Expander<P, I>
 
             return null;
 
-            static int ProcessItemExpressionCapture(string expression, SpanBasedStringBuilder finalResultBuilder, MetadataMatchEvaluator matchEvaluator, int start, ExpressionShredder.ItemExpressionCapture itemExpressionCapture)
+            static int ProcessItemExpressionCapture(string expression, SpanBasedStringBuilder finalResultBuilder, MetadataMatchEvaluator matchEvaluator, int start, ExpressionParser.ItemExpressionCapture itemExpressionCapture)
             {
                 // Extract the part of the expression that appears before the item vector expression
                 // e.g. the ABC in ABC@(foo->'%(FullPath)')
@@ -181,10 +181,10 @@ internal partial class Expander<P, I>
                     RegularExpressions.NonTransformItemMetadataRegex);
 
                 // Expand any metadata that appears in the item vector expression's separator
-                if (itemExpressionCapture.Separator != null)
+                if (!itemExpressionCapture.Separator.IsEmpty)
                 {
                     RegularExpressions.ReplaceAndAppend(
-                        itemExpressionCapture.Value,
+                        itemExpressionCapture.Value.ToString(),
                         MetadataMatchEvaluator.ExpandSingleMetadata,
                         matchEvaluator,
                         itemExpressionCapture.SeparatorStart,
@@ -195,7 +195,7 @@ internal partial class Expander<P, I>
                 {
                     // Append the item vector expression as is
                     // e.g. the @(foo->'%(FullPath)') in ABC@(foo->'%(FullPath)')
-                    finalResultBuilder.Append(itemExpressionCapture.Value);
+                    finalResultBuilder.Append(itemExpressionCapture.Value.ToString());
                 }
 
                 // Move onto the next part of the expression that isn't an item vector expression

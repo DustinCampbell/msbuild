@@ -410,18 +410,17 @@ internal partial class Expander<P, I>
         string expression,
         ExpanderOptions options,
         IElementLocation elementLocation,
-        out ExpressionShredder.ItemExpressionCapture result)
+        out ExpressionParser.ItemExpressionCapture result)
         => ItemExpander.TryExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation, out result);
 
-    internal IList<T> ExpandExpressionCaptureIntoItems<S, T>(
-        ExpressionShredder.ItemExpressionCapture expressionCapture,
-        IItemProvider<S> items,
-        IItemFactory<S, T> itemFactory,
+    internal IList<T> ExpandExpressionCaptureIntoItems<T>(
+        ExpressionParser.ItemExpressionCapture expressionCapture,
+        IItemProvider<I> items,
+        IItemFactory<I, T> itemFactory,
         ExpanderOptions options,
         bool includeNullEntries,
         out bool isTransformExpression,
         IElementLocation elementLocation)
-        where S : class, IItem
         where T : class, IItem
         => ItemExpander.ExpandExpressionCaptureIntoItems(
             expressionCapture,
@@ -434,15 +433,13 @@ internal partial class Expander<P, I>
             elementLocation);
 
     internal bool ExpandExpressionCapture(
-        ExpressionShredder.ItemExpressionCapture expressionCapture,
+        ExpressionParser.ItemExpressionCapture expressionCapture,
         IElementLocation elementLocation,
         ExpanderOptions options,
         bool includeNullEntries,
         out bool isTransformExpression,
         out List<KeyValuePair<string, I>> itemsFromCapture)
-    {
-        return ItemExpander.TryExpandExpressionCapture(this, expressionCapture, _items, elementLocation, options, includeNullEntries, out isTransformExpression, out itemsFromCapture);
-    }
+        => ItemExpander.TryExpandExpressionCapture(expander: this, expressionCapture, _items, elementLocation, options, includeNullEntries, out isTransformExpression, out itemsFromCapture);
 
     private static string TruncateString(string metadataValue)
     {
