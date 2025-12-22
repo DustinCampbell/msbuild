@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
@@ -15,6 +16,13 @@ using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Collections
 {
+    internal sealed class PropertyDictionary
+    {
+        public static PropertyDictionary<T> Create<T>(ReadOnlySpan<T> items)
+            where T : class, IKeyed, IValued, IEquatable<T>
+            => new(items);
+    }
+
     /// <summary>
     /// A dictionary of unordered property or metadata name/value pairs.
     /// </summary>
@@ -36,6 +44,7 @@ namespace Microsoft.Build.Collections
     /// </remarks>
     /// <typeparam name="T">Property or Metadata class type to store</typeparam>
     [DebuggerDisplay("#Entries={Count}")]
+    [CollectionBuilder(typeof(PropertyDictionary), nameof(PropertyDictionary.Create))]
     internal sealed class PropertyDictionary<T> : IEnumerable<T>, ICollection<T>, IEquatable<PropertyDictionary<T>>, IPropertyProvider<T>, IDictionary<string, T>, IConstrainableDictionary<T>
         where T : class, IKeyed, IValued, IEquatable<T>
     {
@@ -59,7 +68,7 @@ namespace Microsoft.Build.Collections
         }
 
         /// <summary>
-        /// Creates empty dictionary, optionally specifying initial capacity
+        /// Creates empty dictionary with an initial capacity.
         /// </summary>
         internal PropertyDictionary(int capacity)
         {
@@ -67,34 +76,49 @@ namespace Microsoft.Build.Collections
         }
 
         /// <summary>
-        /// Create a new dictionary from an enumerator
+        /// Create a new dictionary from an enumerable.
         /// </summary>
         internal PropertyDictionary(IEnumerable<T> elements)
             : this()
         {
+            // No need to lock here since we are constructing the object.
             foreach (T element in elements)
+            {
+                Set_NoLock(element);
+            }
+        }
+
+        /// <summary>
+        /// Create a new dictionary from an enumerable.
+        /// </summary>
+        internal PropertyDictionary(ReadOnlySpan<T> items)
+            : this(capacity: items.Length)
+        {
+            // No need to lock here since we are constructing the object.
+            foreach (T element in items)
             {
                 Set(element);
             }
         }
 
         /// <summary>
-        /// Creates empty dictionary, specifying a comparer
+        /// Creates empty dictionary, specifying a comparer.
         /// </summary>
-        internal PropertyDictionary(MSBuildNameIgnoreCaseComparer comparer)
+        internal PropertyDictionary(IEqualityComparer<string> comparer)
         {
             _properties = new RetrievableValuedEntryHashSet<T>(comparer);
         }
 
         /// <summary>
-        /// Create a new dictionary from an enumerator
+        /// Create a new dictionary from an enumerable.
         /// </summary>
         internal PropertyDictionary(int capacity, IEnumerable<T> elements)
             : this(capacity)
         {
+            // No need to lock here since we are constructing the object.
             foreach (T element in elements)
             {
-                Set(element);
+                Set_NoLock(element);
             }
         }
 
@@ -316,7 +340,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public T GetProperty(string name)
         {
-            // The properties lock is locked in indexor
+            // The properties lock is locked in indexer
             return this[name];
         }
 
@@ -522,13 +546,12 @@ namespace Microsoft.Build.Collections
         /// To remove a property, use Remove(...) instead.
         /// </summary>
         internal void Set(T projectProperty)
+            => Set_NoLock(projectProperty);
+
+        private void Set_NoLock(T projectProperty)
         {
             ErrorUtilities.VerifyThrowArgumentNull(projectProperty);
-
-            using (_lock.EnterDisposableWriteLock())
-            {
-                _properties[projectProperty.Key] = projectProperty;
-            }
+            _properties[projectProperty.Key] = projectProperty;
         }
 
         /// <summary>
