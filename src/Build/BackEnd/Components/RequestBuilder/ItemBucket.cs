@@ -103,7 +103,7 @@ namespace Microsoft.Build.BackEnd
         /// <param name="loggingContext"></param>
         internal void Initialize(LoggingContext loggingContext)
         {
-            _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(_lookup, _lookup, new StringMetadataTable(_metadata), FileSystems.Default, loggingContext);
+            _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(_lookup, _lookup, StringMetadataTable.Create(_metadata), FileSystems.Default, loggingContext);
         }
 
         #endregion
