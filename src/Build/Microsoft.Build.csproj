@@ -197,6 +197,17 @@
     <Compile Include="Evaluation\ExpressionParser.ItemExpressionCapture.cs" />
     <Compile Include="Evaluation\ExpressionParser.ReferencedItemExpressionsEnumerator.cs" />
     <Compile Include="Evaluation\ExpressionParser.ExpressionSegment.cs" />
+    <Compile Include="Evaluation\Expressions\CharacterUtilities.cs" />
+    <Compile Include="Evaluation\Expressions\ExpressionLexer.cs" />
+    <Compile Include="Evaluation\Expressions\ExpressionNode.cs" />
+    <Compile Include="Evaluation\Expressions\ExpressionParser.cs" />
+    <Compile Include="Evaluation\Expressions\Nodes\FunctionNodes.cs" />
+    <Compile Include="Evaluation\Expressions\Nodes\LiteralNodes.cs" />
+    <Compile Include="Evaluation\Expressions\Nodes\OperatorNodes.cs" />
+    <Compile Include="Evaluation\Expressions\Nodes\ReferenceNodes.cs" />
+    <Compile Include="Evaluation\Expressions\SourceSpan.cs" />
+    <Compile Include="Evaluation\Expressions\Token.cs" />
+    <Compile Include="Evaluation\Expressions\TokenKind.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\IntrinsicFunctionOverload.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />

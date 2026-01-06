@@ -267,6 +267,9 @@ internal readonly struct StringSegment :
     public bool Contains(char value)
         => IndexOf(value) >= 0;
 
+    public bool Contains(ReadOnlySpan<char> value)
+        => AsSpan().Contains(value, StringComparison.Ordinal);
+
     /// <summary>
     ///  Returns the index of the given <see langword="char"/> or -1 if not found.
     /// </summary>
@@ -288,12 +291,19 @@ internal readonly struct StringSegment :
     /// <summary>
     ///  Returns the index of the given <see langword="char"/>s or -1 if not found.
     /// </summary>
+    public int IndexOfAny(char value0, char value1, char value2)
+        => AsSpan().IndexOfAny(value0, value1, value2);
+
+    /// <summary>
+    ///  Returns the index of the given <see langword="char"/>s or -1 if not found.
+    /// </summary>
     public int IndexOfAny(ReadOnlySpan<char> values)
         => values.Length switch
         {
             0 => -1,
             1 => IndexOf(values[0]),
             2 => IndexOfAny(values[0], values[1]),
+            3 => IndexOfAny(values[0], values[1], values[2]),
             _ => AsSpan().IndexOfAny(values),
         };
 
