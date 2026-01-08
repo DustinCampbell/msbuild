@@ -33,24 +33,6 @@ namespace Microsoft.Build.Evaluation
         private string _unexpectedlyFound = null;
         private ParserOptions _options;
         private string _errorResource = null;
-        private static string s_endOfInput = null;
-
-        /// <summary>
-        /// Lazily format resource string to help avoid (in some perf critical cases) even loading
-        /// resources at all.
-        /// </summary>
-        private string EndOfInput
-        {
-            get
-            {
-                if (s_endOfInput == null)
-                {
-                    s_endOfInput = ResourceUtilities.GetResourceString("EndOfInputTokenName");
-                }
-
-                return s_endOfInput;
-            }
-        }
 
         //
         // Constructor takes the string to parse and the culture.
@@ -92,8 +74,8 @@ namespace Microsoft.Build.Evaluation
             {
                 // I do not believe this is reachable, but provide a reasonable default.
                 Debug.Assert(false, "What code path did not set an appropriate error resource? Expression: " + _expression);
-                _unexpectedlyFound = EndOfInput;
-                return "UnexpectedCharacterInCondition";
+                _unexpectedlyFound = ConditionErrors.EndOfInputTokenName;
+                return ConditionErrors.UnexpectedCharacter;
             }
             else
             {
@@ -198,7 +180,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             if ((_parsePoint + 1) < _expression.Length && _expression[_parsePoint + 1] == '(')
                             {
-                                SetError(start + 1, "ItemListNotAllowedInThisConditional");
+                                SetError(start + 1, ConditionErrors.ItemListNotAllowed);
                                 return false;
                             }
                         }
@@ -259,11 +241,11 @@ namespace Microsoft.Build.Evaluation
 
                             if ((_parsePoint + 1) < _expression.Length)
                             {
-                                SetError(errorPosition, "IllFormedEqualsInCondition", Convert.ToString(_expression[_parsePoint + 1], CultureInfo.InvariantCulture));
+                                SetError(errorPosition, ConditionErrors.IllFormedEquals, Convert.ToString(_expression[_parsePoint + 1], CultureInfo.InvariantCulture));
                             }
                             else
                             {
-                                SetError(errorPosition, "IllFormedEqualsInCondition", EndOfInput);
+                                SetError(errorPosition, ConditionErrors.IllFormedEquals, ConditionErrors.EndOfInputTokenName);
                             }
 
                             _parsePoint++;
@@ -305,11 +287,11 @@ namespace Microsoft.Build.Evaluation
             {
                 if (isProperty)
                 {
-                    SetError(start + 1, "IllFormedPropertyOpenParenthesisInCondition", Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
+                    SetError(start + 1, ConditionErrors.IllFormedPropertyOpenParenthesis, Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
                 }
                 else
                 {
-                    SetError(start + 1, "IllFormedItemMetadataOpenParenthesisInCondition", Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
+                    SetError(start + 1, ConditionErrors.IllFormedItemMetadataOpenParenthesis, Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
                 }
 
                 return null;
@@ -318,7 +300,7 @@ namespace Microsoft.Build.Evaluation
             var result = ScanForPropertyExpressionEnd(_expression, _parsePoint++, out int indexResult);
             if (!result)
             {
-                SetError(indexResult, "IllFormedPropertySpaceInCondition", Convert.ToString(_expression[indexResult], CultureInfo.InvariantCulture));
+                SetError(indexResult, ConditionErrors.IllFormedPropertySpace, Convert.ToString(_expression[indexResult], CultureInfo.InvariantCulture));
                 return null;
             }
 
@@ -329,11 +311,11 @@ namespace Microsoft.Build.Evaluation
             {
                 if (isProperty)
                 {
-                    SetError(start + 1, "IllFormedPropertyCloseParenthesisInCondition", EndOfInput);
+                    SetError(start + 1, ConditionErrors.IllFormedPropertyCloseParenthesis, ConditionErrors.EndOfInputTokenName);
                 }
                 else
                 {
-                    SetError(start + 1, "IllFormedItemMetadataCloseParenthesisInCondition", EndOfInput);
+                    SetError(start + 1, ConditionErrors.IllFormedItemMetadataCloseParenthesis, ConditionErrors.EndOfInputTokenName);
                 }
 
                 return null;
@@ -487,14 +469,14 @@ namespace Microsoft.Build.Evaluation
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) &&
                 isItemSpecModifier)
             {
-                SetError(_parsePoint, "BuiltInMetadataNotAllowedInThisConditional", expression);
+                SetError(_parsePoint, ConditionErrors.BuiltInMetadataNotAllowed, expression);
                 return false;
             }
 
             if (((_options & ParserOptions.AllowCustomMetadata) == 0) &&
                 !isItemSpecModifier)
             {
-                SetError(_parsePoint, "CustomMetadataNotAllowedInThisConditional", expression);
+                SetError(_parsePoint, ConditionErrors.CustomMetadataNotAllowed, expression);
                 return false;
             }
 
@@ -509,7 +491,7 @@ namespace Microsoft.Build.Evaluation
             if (_parsePoint < _expression.Length && _expression[_parsePoint] != '(')
             {
                 // @ was not followed by (
-                SetError(start + 1, "IllFormedItemListOpenParenthesisInCondition");
+                SetError(start + 1, ConditionErrors.IllFormedItemListOpenParenthesis);
                 return false;
             }
             _parsePoint++;
@@ -541,9 +523,9 @@ namespace Microsoft.Build.Evaluation
             {
                 string errorResource = fInReplacement
                     // @( ... ' was never followed by a closing quote before the closing parenthesis
-                    ? "IllFormedItemListQuoteInCondition"
+                    ? ConditionErrors.IllFormedItemListQuote
                     // @( was never followed by a )
-                    : "IllFormedItemListCloseParenthesisInCondition";
+                    : ConditionErrors.IllFormedItemListCloseParenthesis;
 
                 SetError(start + 1, errorResource);
                 return false;
@@ -607,7 +589,7 @@ namespace Microsoft.Build.Evaluation
                     // If the caller specified that he DOESN'T want to allow item lists ...
                     if ((_options & ParserOptions.AllowItemLists) == 0)
                     {
-                        SetError(start + 1, "ItemListNotAllowedInThisConditional");
+                        SetError(start + 1, ConditionErrors.ItemListNotAllowed);
                         return false;
                     }
 
@@ -634,7 +616,7 @@ namespace Microsoft.Build.Evaluation
             if (_parsePoint >= _expression.Length)
             {
                 // Quoted string wasn't closed
-                SetError(start, "IllFormedQuotedStringInCondition");
+                SetError(start, ConditionErrors.IllFormedQuotedString);
                 return false;
             }
             string originalTokenString = _expression.Substring(start, _parsePoint - start);
@@ -664,7 +646,7 @@ namespace Microsoft.Build.Evaluation
             else
             {
                 // Something that wasn't a number or a letter, like a newline (%0a)
-                SetError(start + 1, "UnexpectedCharacterInCondition", Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
+                SetError(start + 1, ConditionErrors.UnexpectedCharacter, Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
                 return false;
             }
             return true;

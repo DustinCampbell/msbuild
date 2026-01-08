@@ -115,7 +115,7 @@ namespace Microsoft.Build.Evaluation
             if (!_lexer.IsNext(TokenKind.EndOfInput))
             {
                 errorPosition = _lexer.GetErrorPosition();
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, ConditionErrors.UnexpectedToken, expression, _lexer.IsNextString(), errorPosition);
             }
             return node;
         }
@@ -179,7 +179,7 @@ namespace Microsoft.Build.Evaluation
             if (node == null)
             {
                 errorPosition = _lexer.GetErrorPosition();
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ConditionErrors.UnexpectedToken, expression, _lexer.IsNextString(), errorPosition);
             }
 
             if (!_lexer.IsNext(TokenKind.EndOfInput))
@@ -201,7 +201,7 @@ namespace Microsoft.Build.Evaluation
                 if (rhs == null)
                 {
                     errorPosition = _lexer.GetErrorPosition();
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ConditionErrors.UnexpectedToken, expression, _lexer.IsNextString(), errorPosition);
                 }
 
                 OperatorExpressionNode andNode = new AndExpressionNode();
@@ -223,7 +223,7 @@ namespace Microsoft.Build.Evaluation
                 if (lhs == null)
                 {
                     errorPosition = _lexer.GetErrorPosition();
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ConditionErrors.UnexpectedToken, expression, _lexer.IsNextString(), errorPosition);
                 }
 
                 OperatorExpressionNode node = RelationalOperation(expression);
@@ -286,7 +286,7 @@ namespace Microsoft.Build.Evaluation
                 if (!Same(expression, TokenKind.LeftParenthesis))
                 {
                     errorPosition = _lexer.GetErrorPosition();
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _lexer.IsNextString(), errorPosition);
+                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ConditionErrors.UnexpectedToken, _lexer.IsNextString(), errorPosition);
                     return null;
                 }
                 var arglist = new List<GenericExpressionNode>();
@@ -294,7 +294,7 @@ namespace Microsoft.Build.Evaluation
                 if (!Same(expression, TokenKind.RightParenthesis))
                 {
                     errorPosition = _lexer.GetErrorPosition();
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ConditionErrors.UnexpectedToken, expression, _lexer.IsNextString(), errorPosition);
                     return null;
                 }
                 return new FunctionCallExpressionNode(current.Text, arglist);
@@ -309,7 +309,7 @@ namespace Microsoft.Build.Evaluation
                 else
                 {
                     errorPosition = _lexer.GetErrorPosition();
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ConditionErrors.UnexpectedToken, expression, _lexer.IsNextString(), errorPosition);
                 }
             }
             else if (Same(expression, TokenKind.Not))
@@ -319,7 +319,7 @@ namespace Microsoft.Build.Evaluation
                 if (expr == null)
                 {
                     errorPosition = _lexer.GetErrorPosition();
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ConditionErrors.UnexpectedToken, expression, _lexer.IsNextString(), errorPosition);
                 }
                 notNode.LeftChild = expr;
                 return notNode;
@@ -327,7 +327,7 @@ namespace Microsoft.Build.Evaluation
             else
             {
                 errorPosition = _lexer.GetErrorPosition();
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ConditionErrors.UnexpectedToken, expression, _lexer.IsNextString(), errorPosition);
             }
             return null;
         }

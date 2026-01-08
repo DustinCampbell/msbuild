@@ -67,7 +67,7 @@ namespace Microsoft.Build.UnitTests
         {
             Scanner lexer = new Scanner("a=b", ParserOptions.AllowProperties);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedEqualsInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedEquals, lexer.GetErrorResource());
             Assert.Equal("b", lexer.UnexpectedlyFound);
         }
 
@@ -79,11 +79,11 @@ namespace Microsoft.Build.UnitTests
         {
             Scanner lexer = new Scanner("$(", ParserOptions.AllowProperties);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedPropertyCloseParenthesisInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedPropertyCloseParenthesis, lexer.GetErrorResource());
 
             lexer = new Scanner("$x", ParserOptions.AllowProperties);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedPropertyOpenParenthesisInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedPropertyOpenParenthesis, lexer.GetErrorResource());
         }
 
         /// <summary>
@@ -94,11 +94,11 @@ namespace Microsoft.Build.UnitTests
         {
             Scanner lexer = new Scanner("%(", ParserOptions.AllowProperties | ParserOptions.AllowItemMetadata);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedItemMetadataCloseParenthesisInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedItemMetadataCloseParenthesis, lexer.GetErrorResource());
 
             lexer = new Scanner("%x", ParserOptions.AllowProperties | ParserOptions.AllowItemMetadata);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedItemMetadataOpenParenthesisInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedItemMetadataOpenParenthesis, lexer.GetErrorResource());
         }
 
         /// <summary>
@@ -113,7 +113,7 @@ namespace Microsoft.Build.UnitTests
         {
             Scanner lexer = new Scanner(pattern, ParserOptions.AllowProperties);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedPropertySpaceInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedPropertySpace, lexer.GetErrorResource());
         }
 
         /// <summary>
@@ -140,32 +140,32 @@ namespace Microsoft.Build.UnitTests
         {
             Scanner lexer = new Scanner("@(", ParserOptions.AllowAll);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedItemListCloseParenthesisInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, lexer.GetErrorResource());
             Assert.Null(lexer.UnexpectedlyFound);
 
             lexer = new Scanner("@x", ParserOptions.AllowAll);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedItemListOpenParenthesisInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedItemListOpenParenthesis, lexer.GetErrorResource());
             Assert.Null(lexer.UnexpectedlyFound);
 
             lexer = new Scanner("@(x", ParserOptions.AllowAll);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedItemListCloseParenthesisInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, lexer.GetErrorResource());
             Assert.Null(lexer.UnexpectedlyFound);
 
             lexer = new Scanner("@(x->'%(y)", ParserOptions.AllowAll);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedItemListQuoteInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedItemListQuote, lexer.GetErrorResource());
             Assert.Null(lexer.UnexpectedlyFound);
 
             lexer = new Scanner("@(x->'%(y)', 'x", ParserOptions.AllowAll);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedItemListQuoteInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedItemListQuote, lexer.GetErrorResource());
             Assert.Null(lexer.UnexpectedlyFound);
 
             lexer = new Scanner("@(x->'%(y)', 'x'", ParserOptions.AllowAll);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedItemListCloseParenthesisInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, lexer.GetErrorResource());
             Assert.Null(lexer.UnexpectedlyFound);
         }
 
@@ -178,12 +178,12 @@ namespace Microsoft.Build.UnitTests
         {
             Scanner lexer = new Scanner("false or 'abc", ParserOptions.AllowAll);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedQuotedStringInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedQuotedString, lexer.GetErrorResource());
             Assert.Null(lexer.UnexpectedlyFound);
 
             lexer = new Scanner("\'", ParserOptions.AllowAll);
             AdvanceToScannerError(lexer);
-            Assert.Equal("IllFormedQuotedStringInCondition", lexer.GetErrorResource());
+            Assert.Equal(ConditionErrors.IllFormedQuotedString, lexer.GetErrorResource());
             Assert.Null(lexer.UnexpectedlyFound);
         }
 
@@ -541,16 +541,16 @@ namespace Microsoft.Build.UnitTests
         {
             Scanner lexer = new Scanner("@(foo)", ParserOptions.AllowProperties);
             Assert.False(lexer.Advance());
-            Assert.Equal(0, String.Compare(lexer.GetErrorResource(), "ItemListNotAllowedInThisConditional"));
+            Assert.Equal(ConditionErrors.ItemListNotAllowed, lexer.GetErrorResource());
 
             lexer = new Scanner("1234 '@(foo)'", ParserOptions.AllowProperties);
             Assert.True(lexer.Advance());
             Assert.False(lexer.Advance());
-            Assert.Equal(0, String.Compare(lexer.GetErrorResource(), "ItemListNotAllowedInThisConditional"));
+            Assert.Equal(ConditionErrors.ItemListNotAllowed, lexer.GetErrorResource());
 
             lexer = new Scanner("'1234 @(foo)'", ParserOptions.AllowProperties);
             Assert.False(lexer.Advance());
-            Assert.Equal(0, String.Compare(lexer.GetErrorResource(), "ItemListNotAllowedInThisConditional"));
+            Assert.Equal(ConditionErrors.ItemListNotAllowed, lexer.GetErrorResource());
         }
 
         /// <summary>
