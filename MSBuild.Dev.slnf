@@ -8,6 +8,7 @@
       "src\\Build\\Microsoft.Build.csproj",
       "src\\Framework.UnitTests\\Microsoft.Build.Framework.UnitTests.csproj",
       "src\\Framework\\Microsoft.Build.Framework.csproj",
+      "src\\MSBuild.Benchmarks\\MSBuild.Benchmarks.csproj",
       "src\\MSBuild.UnitTests\\Microsoft.Build.CommandLine.UnitTests.csproj",
       "src\\MSBuild\\MSBuild.csproj",
       "src\\StringTools\\StringTools.csproj",
