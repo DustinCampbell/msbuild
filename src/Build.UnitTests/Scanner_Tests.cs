@@ -7,59 +7,44 @@ using Microsoft.Build.Exceptions;
 using Shouldly;
 using Xunit;
 
-
-
 #nullable disable
 
 namespace Microsoft.Build.UnitTests
 {
     public class ScannerTest
     {
-        private MockElementLocation _elementLocation = MockElementLocation.Instance;
         /// <summary>
-        /// Tests that we give a useful error position (not 0 for example)
+        /// Tests that we give a useful error position (not 0 for example).
         /// </summary>
-        [Fact]
-        public void ErrorPosition()
+        [Theory]
+        [InlineData("1==0xFG", 7)] // Position of G
+        [InlineData("1==-0xF", 6)] // Position of x
+        [InlineData("1234=5678", 6)] // Position of '5'
+        [InlineData(" ", 2)] // Position of End of Input
+        [InlineData(" (", 3)] // Position of End of Input
+        [InlineData(" false or  ", 12)] // Position of End of Input
+        [InlineData(" \"foo", 2)] // Position of open quote
+        [InlineData(" @(foo", 2)] // Position of @
+        [InlineData(" @(", 2)] // Position of @
+        [InlineData(" $", 2)] // Position of $
+        [InlineData(" $(foo", 2)] // Position of $
+        [InlineData(" $(", 2)] // Position of $
+        [InlineData(" @(foo)", 2, ParserOptions.AllowProperties)] // Position of @
+        [InlineData(" '@(foo)'", 3, ParserOptions.AllowProperties)] // Position of @
+        [InlineData("'%24%28x' == '%24(x''", 21)] // Position of extra quote
+        internal void ErrorPosition(string expression, int expectedPosition, ParserOptions options = ParserOptions.AllowAll)
         {
-            string[,] tests = {
-                { "1==1.1.",                "7",    "AllowAll"},              // Position of second '.'
-                { "1==0xFG",                "7",    "AllowAll"},              // Position of G
-                { "1==-0xF",                "6",    "AllowAll"},              // Position of x
-                { "1234=5678",              "6",    "AllowAll"},              // Position of '5'
-                { " ",                      "2",    "AllowAll"},              // Position of End of Input
-                { " (",                     "3",    "AllowAll"},              // Position of End of Input
-                { " false or  ",            "12",   "AllowAll"},              // Position of End of Input
-                { " \"foo",                 "2",    "AllowAll"},              // Position of open quote
-                { " @(foo",                 "2",    "AllowAll"},              // Position of @
-                { " @(",                    "2",    "AllowAll"},              // Position of @
-                { " $",                     "2",    "AllowAll"},              // Position of $
-                { " $(foo",                 "2",    "AllowAll"},              // Position of $
-                { " $(",                    "2",    "AllowAll"},              // Position of $
-                { " $",                     "2",    "AllowAll"},              // Position of $
-                { " @(foo)",                "2",    "AllowProperties"},       // Position of @
-                { " '@(foo)'",              "3",    "AllowProperties"},       // Position of @
-                /* test escaped chars: message shows them escaped so count should include them */
-                { "'%24%28x' == '%24(x''",   "21",  "AllowAll"}               // Position of extra quote
-            };
-
             // Some errors are caught by the Parser, not merely by the Lexer/Scanner. So we have to do a full Parse,
             // rather than just calling AdvanceToScannerError(). (The error location is still supplied by the Scanner.)
-            for (int i = 0; i < tests.GetLength(0); i++)
+            var parser = new Parser();
+
+            var ex = Assert.Throws<InvalidProjectFileException>(() =>
             {
-                Parser parser = null;
-                try
-                {
-                    parser = new Parser();
-                    ParserOptions options = (ParserOptions)Enum.Parse(typeof(ParserOptions), tests[i, 2], true /* case-insensitive */);
-                    parser.Parse(tests[i, 0], options, _elementLocation);
-                }
-                catch (InvalidProjectFileException ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    Assert.Equal(Convert.ToInt32(tests[i, 1]), parser.errorPosition);
-                }
-            }
+                parser.Parse(expression, options, MockElementLocation.Instance);
+            });
+
+            Console.WriteLine(ex.Message);
+            Assert.Equal(expectedPosition, parser.errorPosition);
         }
 
         /// <summary>
