@@ -112,7 +112,7 @@ namespace Microsoft.Build.Evaluation
                 ProjectErrorUtilities.ThrowInvalidProject(elementLocation, _lexer.GetErrorResource(), expression, errorPosition, _lexer.UnexpectedlyFound);
             }
             GenericExpressionNode node = Expr(expression);
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+            if (!_lexer.IsNext(TokenKind.EndOfInput))
             {
                 errorPosition = _lexer.GetErrorPosition();
                 ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
@@ -128,7 +128,7 @@ namespace Microsoft.Build.Evaluation
         private GenericExpressionNode Expr(string expression)
         {
             GenericExpressionNode node = BooleanTerm(expression);
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+            if (!_lexer.IsNext(TokenKind.EndOfInput))
             {
                 node = ExprPrime(expression, node);
             }
@@ -152,11 +152,11 @@ namespace Microsoft.Build.Evaluation
 
         private GenericExpressionNode ExprPrime(string expression, GenericExpressionNode lhs)
         {
-            if (Same(expression, Token.TokenType.EndOfInput))
+            if (Same(expression, TokenKind.EndOfInput))
             {
                 return lhs;
             }
-            else if (Same(expression, Token.TokenType.Or))
+            else if (Same(expression, TokenKind.Or))
             {
                 OperatorExpressionNode orNode = new OrExpressionNode();
                 GenericExpressionNode rhs = BooleanTerm(expression);
@@ -182,7 +182,7 @@ namespace Microsoft.Build.Evaluation
                 ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
             }
 
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+            if (!_lexer.IsNext(TokenKind.EndOfInput))
             {
                 node = BooleanTermPrime(expression, node);
             }
@@ -191,11 +191,11 @@ namespace Microsoft.Build.Evaluation
 
         private GenericExpressionNode BooleanTermPrime(string expression, GenericExpressionNode lhs)
         {
-            if (_lexer.IsNext(Token.TokenType.EndOfInput))
+            if (_lexer.IsNext(TokenKind.EndOfInput))
             {
                 return lhs;
             }
-            else if (Same(expression, Token.TokenType.And))
+            else if (Same(expression, TokenKind.And))
             {
                 GenericExpressionNode rhs = RelationalExpr(expression);
                 if (rhs == null)
@@ -241,27 +241,27 @@ namespace Microsoft.Build.Evaluation
         private OperatorExpressionNode RelationalOperation(string expression)
         {
             OperatorExpressionNode node = null;
-            if (Same(expression, Token.TokenType.LessThan))
+            if (Same(expression, TokenKind.LessThan))
             {
                 node = new LessThanExpressionNode();
             }
-            else if (Same(expression, Token.TokenType.GreaterThan))
+            else if (Same(expression, TokenKind.GreaterThan))
             {
                 node = new GreaterThanExpressionNode();
             }
-            else if (Same(expression, Token.TokenType.LessThanOrEqualTo))
+            else if (Same(expression, TokenKind.LessThanOrEqualTo))
             {
                 node = new LessThanOrEqualExpressionNode();
             }
-            else if (Same(expression, Token.TokenType.GreaterThanOrEqualTo))
+            else if (Same(expression, TokenKind.GreaterThanOrEqualTo))
             {
                 node = new GreaterThanOrEqualExpressionNode();
             }
-            else if (Same(expression, Token.TokenType.EqualTo))
+            else if (Same(expression, TokenKind.EqualTo))
             {
                 node = new EqualExpressionNode();
             }
-            else if (Same(expression, Token.TokenType.NotEqualTo))
+            else if (Same(expression, TokenKind.NotEqualTo))
             {
                 node = new NotEqualExpressionNode();
             }
@@ -281,9 +281,9 @@ namespace Microsoft.Build.Evaluation
 
             // If it's not one of those, check for other TokenTypes.
             Token current = _lexer.CurrentToken;
-            if (Same(expression, Token.TokenType.Function))
+            if (Same(expression, TokenKind.Function))
             {
-                if (!Same(expression, Token.TokenType.LeftParenthesis))
+                if (!Same(expression, TokenKind.LeftParenthesis))
                 {
                     errorPosition = _lexer.GetErrorPosition();
                     ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _lexer.IsNextString(), errorPosition);
@@ -291,7 +291,7 @@ namespace Microsoft.Build.Evaluation
                 }
                 var arglist = new List<GenericExpressionNode>();
                 Arglist(expression, arglist);
-                if (!Same(expression, Token.TokenType.RightParenthesis))
+                if (!Same(expression, TokenKind.RightParenthesis))
                 {
                     errorPosition = _lexer.GetErrorPosition();
                     ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
@@ -299,10 +299,10 @@ namespace Microsoft.Build.Evaluation
                 }
                 return new FunctionCallExpressionNode(current.String, arglist);
             }
-            else if (Same(expression, Token.TokenType.LeftParenthesis))
+            else if (Same(expression, TokenKind.LeftParenthesis))
             {
                 GenericExpressionNode child = Expr(expression);
-                if (Same(expression, Token.TokenType.RightParenthesis))
+                if (Same(expression, TokenKind.RightParenthesis))
                 {
                     return child;
                 }
@@ -312,7 +312,7 @@ namespace Microsoft.Build.Evaluation
                     ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
                 }
             }
-            else if (Same(expression, Token.TokenType.Not))
+            else if (Same(expression, TokenKind.Not))
             {
                 OperatorExpressionNode notNode = new NotExpressionNode();
                 GenericExpressionNode expr = Factor(expression);
@@ -334,7 +334,7 @@ namespace Microsoft.Build.Evaluation
 
         private void Arglist(string expression, List<GenericExpressionNode> arglist)
         {
-            if (!_lexer.IsNext(Token.TokenType.RightParenthesis))
+            if (!_lexer.IsNext(TokenKind.RightParenthesis))
             {
                 Args(expression, arglist);
             }
@@ -344,7 +344,7 @@ namespace Microsoft.Build.Evaluation
         {
             GenericExpressionNode arg = Arg(expression);
             arglist.Add(arg);
-            if (Same(expression, Token.TokenType.Comma))
+            if (Same(expression, TokenKind.Comma))
             {
                 Args(expression, arglist);
             }
@@ -353,23 +353,23 @@ namespace Microsoft.Build.Evaluation
         private GenericExpressionNode Arg(string expression)
         {
             Token current = _lexer.CurrentToken;
-            if (Same(expression, Token.TokenType.String))
+            if (Same(expression, TokenKind.String))
             {
                 return new StringExpressionNode(current.String, current.Expandable);
             }
-            else if (Same(expression, Token.TokenType.Numeric))
+            else if (Same(expression, TokenKind.Numeric))
             {
                 return new NumericExpressionNode(current.String);
             }
-            else if (Same(expression, Token.TokenType.Property))
+            else if (Same(expression, TokenKind.Property))
             {
                 return new StringExpressionNode(current.String, true /* requires expansion */);
             }
-            else if (Same(expression, Token.TokenType.ItemMetadata))
+            else if (Same(expression, TokenKind.ItemMetadata))
             {
                 return new StringExpressionNode(current.String, true /* requires expansion */);
             }
-            else if (Same(expression, Token.TokenType.ItemList))
+            else if (Same(expression, TokenKind.ItemList))
             {
                 return new StringExpressionNode(current.String, true /* requires expansion */);
             }
@@ -379,7 +379,7 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private bool Same(string expression, Token.TokenType token)
+        private bool Same(string expression, TokenKind token)
         {
             if (_lexer.IsNext(token))
             {

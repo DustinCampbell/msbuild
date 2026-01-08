@@ -15,61 +15,30 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal sealed class Token
     {
-        internal static readonly Token Comma = new Token(TokenType.Comma);
-        internal static readonly Token LeftParenthesis = new Token(TokenType.LeftParenthesis);
-        internal static readonly Token RightParenthesis = new Token(TokenType.RightParenthesis);
-        internal static readonly Token LessThan = new Token(TokenType.LessThan);
-        internal static readonly Token GreaterThan = new Token(TokenType.GreaterThan);
-        internal static readonly Token LessThanOrEqualTo = new Token(TokenType.LessThanOrEqualTo);
-        internal static readonly Token GreaterThanOrEqualTo = new Token(TokenType.GreaterThanOrEqualTo);
-        internal static readonly Token And = new Token(TokenType.And);
-        internal static readonly Token Or = new Token(TokenType.Or);
-        internal static readonly Token EqualTo = new Token(TokenType.EqualTo);
-        internal static readonly Token NotEqualTo = new Token(TokenType.NotEqualTo);
-        internal static readonly Token Not = new Token(TokenType.Not);
-        internal static readonly Token EndOfInput = new Token(TokenType.EndOfInput);
+        internal static readonly Token Comma = new Token(TokenKind.Comma);
+        internal static readonly Token LeftParenthesis = new Token(TokenKind.LeftParenthesis);
+        internal static readonly Token RightParenthesis = new Token(TokenKind.RightParenthesis);
+        internal static readonly Token LessThan = new Token(TokenKind.LessThan);
+        internal static readonly Token GreaterThan = new Token(TokenKind.GreaterThan);
+        internal static readonly Token LessThanOrEqualTo = new Token(TokenKind.LessThanOrEqualTo);
+        internal static readonly Token GreaterThanOrEqualTo = new Token(TokenKind.GreaterThanOrEqualTo);
+        internal static readonly Token And = new Token(TokenKind.And);
+        internal static readonly Token Or = new Token(TokenKind.Or);
+        internal static readonly Token EqualTo = new Token(TokenKind.EqualTo);
+        internal static readonly Token NotEqualTo = new Token(TokenKind.NotEqualTo);
+        internal static readonly Token Not = new Token(TokenKind.Not);
+        internal static readonly Token EndOfInput = new Token(TokenKind.EndOfInput);
 
-        /// <summary>
-        /// Valid tokens
-        /// </summary>
-        internal enum TokenType
-        {
-            Comma,
-            LeftParenthesis,
-            RightParenthesis,
-
-            LessThan,
-            GreaterThan,
-            LessThanOrEqualTo,
-            GreaterThanOrEqualTo,
-
-            And,
-            Or,
-
-            EqualTo,
-            NotEqualTo,
-            Not,
-
-            Property,
-            String,
-            Numeric,
-            ItemList,
-            ItemMetadata,
-            Function,
-
-            EndOfInput,
-        }
-
-        private TokenType _tokenType;
+        public TokenKind Kind { get; }
         private string _tokenString;
 
         /// <summary>
         /// Constructor for types that don't have values
         /// </summary>
-        /// <param name="tokenType"></param>
-        private Token(TokenType tokenType)
+        /// <param name="kind"></param>
+        private Token(TokenKind kind)
         {
-            _tokenType = tokenType;
+            Kind = kind;
             _tokenString = null;
         }
 
@@ -77,10 +46,10 @@ namespace Microsoft.Build.Evaluation
         /// Constructor takes the token type and the string that
         /// represents the token
         /// </summary>
-        /// <param name="type"></param>
+        /// <param name="kind"></param>
         /// <param name="tokenString"></param>
-        internal Token(TokenType type, string tokenString)
-            : this(type, tokenString, false /* not expandable */)
+        internal Token(TokenKind kind, string tokenString)
+            : this(kind, tokenString, false /* not expandable */)
         { }
 
         /// <summary>
@@ -88,20 +57,20 @@ namespace Microsoft.Build.Evaluation
         /// represents the token.
         /// If the string may contain content that needs expansion, expandable is set.
         /// </summary>
-        internal Token(TokenType type, string tokenString, bool expandable)
+        internal Token(TokenKind kind, string tokenString, bool expandable)
         {
             ErrorUtilities.VerifyThrow(
-                type == TokenType.Property ||
-                type == TokenType.String ||
-                type == TokenType.Numeric ||
-                type == TokenType.ItemList ||
-                type == TokenType.ItemMetadata ||
-                type == TokenType.Function,
+                kind == TokenKind.Property ||
+                kind == TokenKind.String ||
+                kind == TokenKind.Numeric ||
+                kind == TokenKind.ItemList ||
+                kind == TokenKind.ItemMetadata ||
+                kind == TokenKind.Function,
                 "Unexpected token type");
 
             ErrorUtilities.VerifyThrowInternalNull(tokenString);
 
-            _tokenType = type;
+            Kind = kind;
             _tokenString = tokenString;
             this.Expandable = expandable;
         }
@@ -119,11 +88,11 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         ///
         /// </summary>
-        /// <param name="type"></param>
+        /// <param name="kind"></param>
         /// <returns></returns>
-        internal bool IsToken(TokenType type)
+        internal bool IsKind(TokenKind kind)
         {
-            return _tokenType == type;
+            return Kind == kind;
         }
 
         internal string String
@@ -137,33 +106,33 @@ namespace Microsoft.Build.Evaluation
 
                 // Return a token string for
                 // an error message.
-                switch (_tokenType)
+                switch (Kind)
                 {
-                    case TokenType.Comma:
+                    case TokenKind.Comma:
                         return ",";
-                    case TokenType.LeftParenthesis:
+                    case TokenKind.LeftParenthesis:
                         return "(";
-                    case TokenType.RightParenthesis:
+                    case TokenKind.RightParenthesis:
                         return ")";
-                    case TokenType.LessThan:
+                    case TokenKind.LessThan:
                         return "<";
-                    case TokenType.GreaterThan:
+                    case TokenKind.GreaterThan:
                         return ">";
-                    case TokenType.LessThanOrEqualTo:
+                    case TokenKind.LessThanOrEqualTo:
                         return "<=";
-                    case TokenType.GreaterThanOrEqualTo:
+                    case TokenKind.GreaterThanOrEqualTo:
                         return ">=";
-                    case TokenType.And:
+                    case TokenKind.And:
                         return "and";
-                    case TokenType.Or:
+                    case TokenKind.Or:
                         return "or";
-                    case TokenType.EqualTo:
+                    case TokenKind.EqualTo:
                         return "==";
-                    case TokenType.NotEqualTo:
+                    case TokenKind.NotEqualTo:
                         return "!=";
-                    case TokenType.Not:
+                    case TokenKind.Not:
                         return "!";
-                    case TokenType.EndOfInput:
+                    case TokenKind.EndOfInput:
                         return null;
                     default:
                         ErrorUtilities.ThrowInternalErrorUnreachable();

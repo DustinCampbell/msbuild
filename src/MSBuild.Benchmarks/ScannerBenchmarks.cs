@@ -107,7 +107,7 @@ public class ScannerBenchmarks
     {
         int tokenCount = 0;
 
-        while (scanner.Advance() && !scanner.IsNext(TokenType.EndOfInput))
+        while (scanner.Advance() && !scanner.IsNext(TokenKind.EndOfInput))
         {
             tokenCount++;
         }
