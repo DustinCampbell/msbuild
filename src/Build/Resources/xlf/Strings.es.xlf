@@ -530,6 +530,16 @@
         <target state="translated">La tarea "{0}" no pudo adquirir su objeto host. Póngase en contacto con el autor de la tarea {1} para informar de este problema.</target>
         <note>{0} is the task name, {1} is the detailed error message from the HostObjectException. This error occurs when a task that expects a host object (typically from an IDE like Visual Studio) cannot obtain it, often due to COM interop issues, incorrect moniker registration, or platform incompatibility. The user should contact the task author as this is typically a task implementation issue.</note>
       </trans-unit>
+      <trans-unit id="IllFormedItemMetadataCloseParenthesisInCondition">
+        <source>MSB4281: Expected an item metadata name at position {1} in condition "{0}". Did you forget the closing parenthesis?</source>
+        <target state="new">MSB4281: Expected an item metadata name at position {1} in condition "{0}". Did you forget the closing parenthesis?</target>
+        <note>{StrBegin="MSB4281: "}</note>
+      </trans-unit>
+      <trans-unit id="IllFormedItemMetadataOpenParenthesisInCondition">
+        <source>MSB4280: Expected an item metadata name at position {1} in condition "{0}". Did you forget the opening parenthesis after the '%'? To use a literal '%', use '%25' instead.</source>
+        <target state="new">MSB4280: Expected an item metadata name at position {1} in condition "{0}". Did you forget the opening parenthesis after the '%'? To use a literal '%', use '%25' instead.</target>
+        <note>{StrBegin="MSB4280: "}</note>
+      </trans-unit>
       <trans-unit id="IllFormedPropertySpaceInCondition">
         <source>MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</source>
         <target state="translated">MSB4259: Espacio inesperado en la posición "{1}" de la condición "{0}". ¿Olvidó quitar un espacio?</target>

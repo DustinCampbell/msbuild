@@ -296,14 +296,22 @@ namespace Microsoft.Build.Evaluation
         /// closing parenthesis.
         /// </summary>
         /// <returns></returns>
-        private string ParsePropertyOrItemMetadata()
+        private string ParsePropertyOrItemMetadata(bool isProperty)
         {
             int start = _parsePoint; // set start so that we include "$(" or "%("
             _parsePoint++;
 
             if (_parsePoint < _expression.Length && _expression[_parsePoint] != '(')
             {
-                SetError(start + 1, "IllFormedPropertyOpenParenthesisInCondition", Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
+                if (isProperty)
+                {
+                    SetError(start + 1, "IllFormedPropertyOpenParenthesisInCondition", Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    SetError(start + 1, "IllFormedItemMetadataOpenParenthesisInCondition", Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
+                }
+
                 return null;
             }
 
@@ -319,7 +327,15 @@ namespace Microsoft.Build.Evaluation
             // For now, just wait and let the property/metadata evaluation handle the error case.
             if (_parsePoint >= _expression.Length)
             {
-                SetError(start + 1, "IllFormedPropertyCloseParenthesisInCondition", EndOfInput);
+                if (isProperty)
+                {
+                    SetError(start + 1, "IllFormedPropertyCloseParenthesisInCondition", EndOfInput);
+                }
+                else
+                {
+                    SetError(start + 1, "IllFormedItemMetadataCloseParenthesisInCondition", EndOfInput);
+                }
+
                 return null;
             }
 
@@ -405,7 +421,7 @@ namespace Microsoft.Build.Evaluation
         /// <returns></returns>
         private bool ParseProperty()
         {
-            string propertyExpression = this.ParsePropertyOrItemMetadata();
+            string propertyExpression = this.ParsePropertyOrItemMetadata(isProperty: true);
 
             if (propertyExpression == null)
             {
@@ -424,16 +440,10 @@ namespace Microsoft.Build.Evaluation
         /// <returns></returns>
         private bool ParseItemMetadata()
         {
-            string itemMetadataExpression = this.ParsePropertyOrItemMetadata();
+            string itemMetadataExpression = this.ParsePropertyOrItemMetadata(isProperty: false);
 
             if (itemMetadataExpression == null)
             {
-                // The ParsePropertyOrItemMetadata method returns the correct error resources
-                // for parsing properties such as $(propertyname).  At this stage in the Whidbey
-                // cycle, we're not allowed to add new string resources, so I can't add a new
-                // resource specific to item metadata, so here, we just change the error to
-                // the generic "UnexpectedCharacter".
-                _errorResource = "UnexpectedCharacterInCondition";
                 return false;
             }
 

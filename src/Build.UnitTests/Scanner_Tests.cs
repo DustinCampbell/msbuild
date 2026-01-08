@@ -72,7 +72,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests the special errors for "$(" and "$x" and similar cases
+        /// Tests the special errors for "$(" and "$x" and similar cases.
         /// </summary>
         [Fact]
         public void IllFormedProperty()
@@ -84,6 +84,21 @@ namespace Microsoft.Build.UnitTests
             lexer = new Scanner("$x", ParserOptions.AllowProperties);
             AdvanceToScannerError(lexer);
             Assert.Equal("IllFormedPropertyOpenParenthesisInCondition", lexer.GetErrorResource());
+        }
+
+        /// <summary>
+        /// Tests the special errors for "%(" and "%x" and similar cases.
+        /// </summary>
+        [Fact]
+        public void IllFormedItemMetadata()
+        {
+            Scanner lexer = new Scanner("%(", ParserOptions.AllowProperties | ParserOptions.AllowItemMetadata);
+            AdvanceToScannerError(lexer);
+            Assert.Equal("IllFormedItemMetadataCloseParenthesisInCondition", lexer.GetErrorResource());
+
+            lexer = new Scanner("%x", ParserOptions.AllowProperties | ParserOptions.AllowItemMetadata);
+            AdvanceToScannerError(lexer);
+            Assert.Equal("IllFormedItemMetadataOpenParenthesisInCondition", lexer.GetErrorResource());
         }
 
         /// <summary>
