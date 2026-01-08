@@ -297,7 +297,7 @@ namespace Microsoft.Build.Evaluation
                     ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
                     return null;
                 }
-                return new FunctionCallExpressionNode(current.String, arglist);
+                return new FunctionCallExpressionNode(current.Text, arglist);
             }
             else if (Same(expression, TokenKind.LeftParenthesis))
             {
@@ -355,23 +355,23 @@ namespace Microsoft.Build.Evaluation
             Token current = _lexer.CurrentToken;
             if (Same(expression, TokenKind.String))
             {
-                return new StringExpressionNode(current.String, current.Expandable);
+                return new StringExpressionNode(current.Text, current.Expandable);
             }
             else if (Same(expression, TokenKind.Numeric))
             {
-                return new NumericExpressionNode(current.String);
+                return new NumericExpressionNode(current.Text);
             }
             else if (Same(expression, TokenKind.Property))
             {
-                return new StringExpressionNode(current.String, true /* requires expansion */);
+                return new StringExpressionNode(current.Text, true /* requires expansion */);
             }
             else if (Same(expression, TokenKind.ItemMetadata))
             {
-                return new StringExpressionNode(current.String, true /* requires expansion */);
+                return new StringExpressionNode(current.Text, true /* requires expansion */);
             }
             else if (Same(expression, TokenKind.ItemList))
             {
-                return new StringExpressionNode(current.String, true /* requires expansion */);
+                return new StringExpressionNode(current.Text, true /* requires expansion */);
             }
             else
             {

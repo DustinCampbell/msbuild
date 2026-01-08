@@ -9,6 +9,11 @@ namespace Microsoft.Build.Evaluation;
 internal enum TokenKind : byte
 {
     /// <summary>
+    ///  Indicates that a token has no kind. Only used for <see langword="default"/>(<see cref="Token"/>).
+    /// </summary>
+    None,
+
+    /// <summary>
     ///  Comma separator, typically used in function arguments.
     /// </summary>
     Comma,

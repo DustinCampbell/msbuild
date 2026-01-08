@@ -3,142 +3,206 @@
 
 using ErrorUtilities = Microsoft.Build.Shared.ErrorUtilities;
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+/// <summary>
+///  Represents a token in MSBuild conditional expressions.
+///  A token is the smallest unit of syntax produced by the scanner, containing
+///  the token type and any associated text value.
+/// </summary>
+internal readonly struct Token
 {
     /// <summary>
-    /// This class represents a token in the Complex Conditionals grammar.  It's
-    /// really just a bag that contains the type of the token and the string that
-    /// was parsed into the token.  This isn't very useful for operators, but
-    /// is useful for strings and such.
+    ///  Gets a comma token ','.
     /// </summary>
-    internal sealed class Token
+    public static Token Comma => new(TokenKind.Comma);
+
+    /// <summary>
+    ///  Gets a left parenthesis token '('.
+    /// </summary>
+    public static Token LeftParenthesis => new(TokenKind.LeftParenthesis);
+
+    /// <summary>
+    ///  Gets a right parenthesis token ')'.
+    /// </summary>
+    public static Token RightParenthesis => new(TokenKind.RightParenthesis);
+
+    /// <summary>
+    ///  Gets a less than operator token '&lt;'.
+    /// </summary>
+    public static Token LessThan => new(TokenKind.LessThan);
+
+    /// <summary>
+    ///  Gets a greater than operator token '&gt;'.
+    /// </summary>
+    public static Token GreaterThan => new(TokenKind.GreaterThan);
+
+    /// <summary>
+    ///  Gets a less than or equal to operator token '&lt;='.
+    /// </summary>
+    public static Token LessThanOrEqualTo => new(TokenKind.LessThanOrEqualTo);
+
+    /// <summary>
+    ///  Gets a greater than or equal to operator token '&gt;='.
+    /// </summary>
+    public static Token GreaterThanOrEqualTo => new(TokenKind.GreaterThanOrEqualTo);
+
+    /// <summary>
+    ///  Gets a logical AND operator token 'and' (case-insensitive).
+    /// </summary>
+    public static Token And => new(TokenKind.And);
+
+    /// <summary>
+    ///  Gets a logical OR operator token 'or' (case-insensitive).
+    /// </summary>
+    public static Token Or => new(TokenKind.Or);
+
+    /// <summary>
+    ///  Gets an equality operator token '=='.
+    /// </summary>
+    public static Token EqualTo
+        => new(TokenKind.EqualTo);
+
+    /// <summary>
+    ///  Gets an inequality operator token '!='.
+    /// </summary>
+    public static Token NotEqualTo
+        => new(TokenKind.NotEqualTo);
+
+    /// <summary>
+    ///  Gets a logical NOT operator token '!'.
+    /// </summary>
+    public static Token Not
+        => new(TokenKind.Not);
+
+    /// <summary>
+    ///  Gets a token representing the end of input.
+    /// </summary>
+    public static Token EndOfInput
+        => new(TokenKind.EndOfInput);
+
+    /// <summary>
+    ///  Creates a function token with the specified function name.
+    /// </summary>
+    /// <param name="text">The name of the function.</param>
+    /// <returns>
+    ///  A token representing a function call.
+    /// </returns>
+    public static Token Function(string text)
+        => new(TokenKind.Function, text);
+
+    /// <summary>
+    ///  Creates a property reference token with the specified property expression.
+    /// </summary>
+    /// <param name="text">The property expression including $() syntax, e.g., "$(Configuration)".</param>
+    /// <returns>
+    ///  A token representing a property reference.
+    /// </returns>
+    public static Token Property(string text)
+        => new(TokenKind.Property, text);
+
+    /// <summary>
+    ///  Creates an item list reference token with the specified item expression.
+    /// </summary>
+    /// <param name="text">The item list expression including @() syntax, e.g., "@(Compile)".</param>
+    /// <returns>
+    ///  A token representing an item list reference.
+    /// </returns>
+    public static Token ItemList(string text) => new(TokenKind.ItemList, text);
+
+    /// <summary>
+    ///  Creates an item metadata reference token with the specified metadata expression.
+    /// </summary>
+    /// <param name="text">The item metadata expression including %() syntax, e.g., "%(Identity)".</param>
+    /// <returns>
+    ///  A token representing an item metadata reference.
+    /// </returns>
+    public static Token ItemMetadata(string text) => new(TokenKind.ItemMetadata, text);
+
+    /// <summary>
+    ///  Creates a numeric literal token with the specified numeric text.
+    /// </summary>
+    /// <param name="text">The numeric value as a string, e.g., "42" or "0xFF".</param>
+    /// <returns>
+    ///  A token representing a numeric literal.
+    /// </returns>
+    public static Token Numeric(string text) => new(TokenKind.Numeric, text);
+
+    /// <summary>
+    ///  Creates a string literal token with the specified text.
+    /// </summary>
+    /// <param name="text">The string value.</param>
+    /// <param name="expandable">
+    ///  Whether the string contains expandable content such as property expressions or escaped characters.
+    /// </param>
+    /// <returns>
+    ///  A token representing a string literal.
+    /// </returns>
+    public static Token String(string text, bool expandable = false) => new(TokenKind.String, text, expandable);
+
+    private readonly string _text;
+
+    /// <summary>
+    ///  Gets the kind of this token.
+    /// </summary>
+    public TokenKind Kind { get; }
+
+    /// <summary>
+    ///  Gets a value indicating whether the token content potentially contains expandable content,
+    ///  such as property expressions ($(Property)), item references (@(Item)), metadata (%(Meta)),
+    ///  or escaped characters.
+    /// </summary>
+    /// <remarks>
+    ///  This is used for string tokens to indicate whether expansion is needed during evaluation.
+    /// </remarks>
+    public bool Expandable { get; }
+
+    private Token(TokenKind kind, string? text = null, bool expandable = false)
     {
-        internal static readonly Token Comma = new Token(TokenKind.Comma);
-        internal static readonly Token LeftParenthesis = new Token(TokenKind.LeftParenthesis);
-        internal static readonly Token RightParenthesis = new Token(TokenKind.RightParenthesis);
-        internal static readonly Token LessThan = new Token(TokenKind.LessThan);
-        internal static readonly Token GreaterThan = new Token(TokenKind.GreaterThan);
-        internal static readonly Token LessThanOrEqualTo = new Token(TokenKind.LessThanOrEqualTo);
-        internal static readonly Token GreaterThanOrEqualTo = new Token(TokenKind.GreaterThanOrEqualTo);
-        internal static readonly Token And = new Token(TokenKind.And);
-        internal static readonly Token Or = new Token(TokenKind.Or);
-        internal static readonly Token EqualTo = new Token(TokenKind.EqualTo);
-        internal static readonly Token NotEqualTo = new Token(TokenKind.NotEqualTo);
-        internal static readonly Token Not = new Token(TokenKind.Not);
-        internal static readonly Token EndOfInput = new Token(TokenKind.EndOfInput);
-
-        public TokenKind Kind { get; }
-        private string _tokenString;
-
-        /// <summary>
-        /// Constructor for types that don't have values
-        /// </summary>
-        /// <param name="kind"></param>
-        private Token(TokenKind kind)
-        {
-            Kind = kind;
-            _tokenString = null;
-        }
-
-        /// <summary>
-        /// Constructor takes the token type and the string that
-        /// represents the token
-        /// </summary>
-        /// <param name="kind"></param>
-        /// <param name="tokenString"></param>
-        internal Token(TokenKind kind, string tokenString)
-            : this(kind, tokenString, false /* not expandable */)
-        { }
-
-        /// <summary>
-        /// Constructor takes the token type and the string that
-        /// represents the token.
-        /// If the string may contain content that needs expansion, expandable is set.
-        /// </summary>
-        internal Token(TokenKind kind, string tokenString, bool expandable)
-        {
-            ErrorUtilities.VerifyThrow(
-                kind == TokenKind.Property ||
-                kind == TokenKind.String ||
-                kind == TokenKind.Numeric ||
-                kind == TokenKind.ItemList ||
-                kind == TokenKind.ItemMetadata ||
-                kind == TokenKind.Function,
-                "Unexpected token type");
-
-            ErrorUtilities.VerifyThrowInternalNull(tokenString);
-
-            Kind = kind;
-            _tokenString = tokenString;
-            this.Expandable = expandable;
-        }
-
-        /// <summary>
-        /// Whether the content potentially has expandable content,
-        /// such as a property expression or escaped character.
-        /// </summary>
-        internal bool Expandable
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="kind"></param>
-        /// <returns></returns>
-        internal bool IsKind(TokenKind kind)
-        {
-            return Kind == kind;
-        }
-
-        internal string String
-        {
-            get
-            {
-                if (_tokenString != null)
-                {
-                    return _tokenString;
-                }
-
-                // Return a token string for
-                // an error message.
-                switch (Kind)
-                {
-                    case TokenKind.Comma:
-                        return ",";
-                    case TokenKind.LeftParenthesis:
-                        return "(";
-                    case TokenKind.RightParenthesis:
-                        return ")";
-                    case TokenKind.LessThan:
-                        return "<";
-                    case TokenKind.GreaterThan:
-                        return ">";
-                    case TokenKind.LessThanOrEqualTo:
-                        return "<=";
-                    case TokenKind.GreaterThanOrEqualTo:
-                        return ">=";
-                    case TokenKind.And:
-                        return "and";
-                    case TokenKind.Or:
-                        return "or";
-                    case TokenKind.EqualTo:
-                        return "==";
-                    case TokenKind.NotEqualTo:
-                        return "!=";
-                    case TokenKind.Not:
-                        return "!";
-                    case TokenKind.EndOfInput:
-                        return null;
-                    default:
-                        ErrorUtilities.ThrowInternalErrorUnreachable();
-                        return null;
-                }
-            }
-        }
+        Kind = kind;
+        _text = text ?? string.Empty;
+        Expandable = expandable;
     }
+
+    /// <summary>
+    ///  Determines whether this token is of the specified kind.
+    /// </summary>
+    /// <param name="kind">The token kind to check.</param>
+    /// <returns>
+    ///  <see langword="true"/> if this token matches the specified kind; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool IsKind(TokenKind kind)
+        => Kind == kind;
+
+    /// <summary>
+    ///  Gets the text representation of this token.
+    ///  For operator tokens, returns the operator symbol.
+    ///  For value tokens (string, numeric, property, etc.), returns the associated text.
+    /// </summary>
+    public string Text => Kind switch
+    {
+        TokenKind.Comma => ",",
+        TokenKind.LeftParenthesis => "(",
+        TokenKind.RightParenthesis => ")",
+        TokenKind.LessThan => "<",
+        TokenKind.GreaterThan => ">",
+        TokenKind.LessThanOrEqualTo => "<=",
+        TokenKind.GreaterThanOrEqualTo => ">=",
+        TokenKind.And => "and",
+        TokenKind.Or => "or",
+        TokenKind.EqualTo => "==",
+        TokenKind.NotEqualTo => "!=",
+        TokenKind.Not => "!",
+
+        TokenKind.Property or
+        TokenKind.String or
+        TokenKind.Numeric or
+        TokenKind.ItemList or
+        TokenKind.ItemMetadata or
+        TokenKind.Function => _text,
+
+        TokenKind.EndOfInput => string.Empty,
+
+        _ => ErrorUtilities.ThrowInternalErrorUnreachable<string>(),
+    };
 }
