@@ -69,6 +69,16 @@ namespace Microsoft.Build.Evaluation
             _options = options;
         }
 
+        private void SetError(int position, string resource, string unexpectedlyFound = null)
+        {
+            Debug.Assert(!_errorState, "Error state should not already be set when calling SetError.");
+
+            _errorState = true;
+            _errorPosition = position;
+            _errorResource = resource;
+            _unexpectedlyFound = unexpectedlyFound;
+        }
+
         /// <summary>
         /// If the lexer errors, it has the best knowledge of the error message to show. For example,
         /// 'unexpected character' or 'illformed operator'. This method returns the name of the resource
@@ -188,9 +198,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             if ((_parsePoint + 1) < _expression.Length && _expression[_parsePoint + 1] == '(')
                             {
-                                _errorPosition = start + 1;
-                                _errorState = true;
-                                _errorResource = "ItemListNotAllowedInThisConditional";
+                                SetError(start + 1, "ItemListNotAllowedInThisConditional");
                                 return false;
                             }
                         }
@@ -247,19 +255,18 @@ namespace Microsoft.Build.Evaluation
                         }
                         else
                         {
-                            _errorPosition = _parsePoint + 2; // expression[parsePoint + 1], counting from 1
-                            _errorResource = "IllFormedEqualsInCondition";
+                            int errorPosition = _parsePoint + 2; // expression[parsePoint + 1], counting from 1
+
                             if ((_parsePoint + 1) < _expression.Length)
                             {
-                                // store the char we found instead
-                                _unexpectedlyFound = Convert.ToString(_expression[_parsePoint + 1], CultureInfo.InvariantCulture);
+                                SetError(errorPosition, "IllFormedEqualsInCondition", Convert.ToString(_expression[_parsePoint + 1], CultureInfo.InvariantCulture));
                             }
                             else
                             {
-                                _unexpectedlyFound = EndOfInput;
+                                SetError(errorPosition, "IllFormedEqualsInCondition", EndOfInput);
                             }
+
                             _parsePoint++;
-                            _errorState = true;
                             return false;
                         }
                         break;
@@ -296,20 +303,14 @@ namespace Microsoft.Build.Evaluation
 
             if (_parsePoint < _expression.Length && _expression[_parsePoint] != '(')
             {
-                _errorState = true;
-                _errorPosition = start + 1;
-                _errorResource = "IllFormedPropertyOpenParenthesisInCondition";
-                _unexpectedlyFound = Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture);
+                SetError(start + 1, "IllFormedPropertyOpenParenthesisInCondition", Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
                 return null;
             }
 
             var result = ScanForPropertyExpressionEnd(_expression, _parsePoint++, out int indexResult);
             if (!result)
             {
-                _errorState = true;
-                _errorPosition = indexResult;
-                _errorResource = "IllFormedPropertySpaceInCondition";
-                _unexpectedlyFound = Convert.ToString(_expression[indexResult], CultureInfo.InvariantCulture);
+                SetError(indexResult, "IllFormedPropertySpaceInCondition", Convert.ToString(_expression[indexResult], CultureInfo.InvariantCulture));
                 return null;
             }
 
@@ -318,10 +319,7 @@ namespace Microsoft.Build.Evaluation
             // For now, just wait and let the property/metadata evaluation handle the error case.
             if (_parsePoint >= _expression.Length)
             {
-                _errorState = true;
-                _errorPosition = start + 1;
-                _errorResource = "IllFormedPropertyCloseParenthesisInCondition";
-                _unexpectedlyFound = EndOfInput;
+                SetError(start + 1, "IllFormedPropertyCloseParenthesisInCondition", EndOfInput);
                 return null;
             }
 
@@ -479,20 +477,14 @@ namespace Microsoft.Build.Evaluation
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) &&
                 isItemSpecModifier)
             {
-                _errorPosition = _parsePoint;
-                _errorState = true;
-                _errorResource = "BuiltInMetadataNotAllowedInThisConditional";
-                _unexpectedlyFound = expression;
+                SetError(_parsePoint, "BuiltInMetadataNotAllowedInThisConditional", expression);
                 return false;
             }
 
             if (((_options & ParserOptions.AllowCustomMetadata) == 0) &&
                 !isItemSpecModifier)
             {
-                _errorPosition = _parsePoint;
-                _errorState = true;
-                _errorResource = "CustomMetadataNotAllowedInThisConditional";
-                _unexpectedlyFound = expression;
+                SetError(_parsePoint, "CustomMetadataNotAllowedInThisConditional", expression);
                 return false;
             }
 
@@ -507,10 +499,7 @@ namespace Microsoft.Build.Evaluation
             if (_parsePoint < _expression.Length && _expression[_parsePoint] != '(')
             {
                 // @ was not followed by (
-                _errorPosition = start + 1;
-                _errorResource = "IllFormedItemListOpenParenthesisInCondition";
-                // Not useful to set unexpectedlyFound here. The message is going to be detailed enough.
-                _errorState = true;
+                SetError(start + 1, "IllFormedItemListOpenParenthesisInCondition");
                 return false;
             }
             _parsePoint++;
@@ -540,19 +529,13 @@ namespace Microsoft.Build.Evaluation
             }
             if (_parsePoint >= _expression.Length)
             {
-                _errorPosition = start + 1;
-                if (fInReplacement)
-                {
+                string errorResource = fInReplacement
                     // @( ... ' was never followed by a closing quote before the closing parenthesis
-                    _errorResource = "IllFormedItemListQuoteInCondition";
-                }
-                else
-                {
+                    ? "IllFormedItemListQuoteInCondition"
                     // @( was never followed by a )
-                    _errorResource = "IllFormedItemListCloseParenthesisInCondition";
-                }
-                // Not useful to set unexpectedlyFound here. The message is going to be detailed enough.
-                _errorState = true;
+                    : "IllFormedItemListCloseParenthesisInCondition";
+
+                SetError(start + 1, errorResource);
                 return false;
             }
             _parsePoint++;
@@ -614,9 +597,7 @@ namespace Microsoft.Build.Evaluation
                     // If the caller specified that he DOESN'T want to allow item lists ...
                     if ((_options & ParserOptions.AllowItemLists) == 0)
                     {
-                        _errorPosition = start + 1;
-                        _errorState = true;
-                        _errorResource = "ItemListNotAllowedInThisConditional";
+                        SetError(start + 1, "ItemListNotAllowedInThisConditional");
                         return false;
                     }
 
@@ -643,10 +624,7 @@ namespace Microsoft.Build.Evaluation
             if (_parsePoint >= _expression.Length)
             {
                 // Quoted string wasn't closed
-                _errorState = true;
-                _errorPosition = start; // The message is going to say "expected after position n" so don't add 1 here.
-                _errorResource = "IllFormedQuotedStringInCondition";
-                // Not useful to set unexpectedlyFound here. By definition it got to the end of the string.
+                SetError(start, "IllFormedQuotedStringInCondition");
                 return false;
             }
             string originalTokenString = _expression.Substring(start, _parsePoint - start);
@@ -676,10 +654,7 @@ namespace Microsoft.Build.Evaluation
             else
             {
                 // Something that wasn't a number or a letter, like a newline (%0a)
-                _errorState = true;
-                _errorPosition = start + 1;
-                _errorResource = "UnexpectedCharacterInCondition";
-                _unexpectedlyFound = Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture);
+                SetError(start + 1, "UnexpectedCharacterInCondition", Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
                 return false;
             }
             return true;
@@ -718,6 +693,10 @@ namespace Microsoft.Build.Evaluation
         }
         private bool ParseNumeric(int start)
         {
+            Debug.Assert(
+                CharacterUtilities.IsNumberStart(_expression[_parsePoint]),
+                "ParseNumeric should only be called when the current character is the start of a number.");
+
             if ((_expression.Length - _parsePoint) > 2 && _expression[_parsePoint] == '0' && (_expression[_parsePoint + 1] == 'x' || _expression[_parsePoint + 1] == 'X'))
             {
                 // Hex number
@@ -752,13 +731,7 @@ namespace Microsoft.Build.Evaluation
                 // For now, let the conversion generate the error.
                 _lookahead = Token.Numeric(_expression.Substring(start, _parsePoint - start));
             }
-            else
-            {
-                // Unreachable
-                _errorState = true;
-                _errorPosition = start + 1;
-                return false;
-            }
+
             return true;
         }
         private void SkipWhiteSpace()
