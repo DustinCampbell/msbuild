@@ -259,16 +259,24 @@ namespace Microsoft.Build.Evaluation
                         }
 
                         break;
+
                     default:
-                        // Simple strings, function calls, decimal numbers, hex numbers
-                        if (!ParseRemaining())
+                        if (TryParseNumeric())
                         {
-                            return false;
+                            return true;
                         }
 
-                        break;
+                        if (TryParseSimpleStringOrFunction())
+                        {
+                            return true;
+                        }
+
+                        // Something that wasn't a number or a letter, like a newline (%0a)
+                        SetError(_parsePoint + 1, ConditionErrors.UnexpectedCharacter, _expression[_parsePoint].ToString());
+                        return false;
                 }
             }
+
             return true;
         }
 
@@ -626,136 +634,122 @@ namespace Microsoft.Build.Evaluation
             return true;
         }
 
-        private bool ParseRemaining()
+        private bool TryParseSimpleStringOrFunction()
         {
-            int start = _parsePoint;
-            if (CharacterUtilities.IsNumberStart(_expression[_parsePoint])) // numeric
+            ReadOnlySpan<char> span = _expression.AsSpan(_parsePoint);
+
+            if (!TryLexIdentifier(span, out var identifier))
             {
-                if (!ParseNumeric(start))
-                {
-                    return false;
-                }
-            }
-            else if (CharacterUtilities.IsSimpleStringStart(_expression[_parsePoint])) // simple string (handle 'and' and 'or')
-            {
-                if (!ParseSimpleStringOrFunction(start))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                // Something that wasn't a number or a letter, like a newline (%0a)
-                SetError(start + 1, ConditionErrors.UnexpectedCharacter, Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture));
                 return false;
             }
-            return true;
-        }
 
-        // There is a bug here that spaces are not required around 'and' and 'or'. For example,
-        // this works perfectly well:
-        // Condition="%(a.Identity)!=''and%(a.m)=='1'"
-        // Since people now depend on this behavior, we must not change it.
-        private bool ParseSimpleStringOrFunction(int start)
-        {
-            SkipSimpleStringChars();
-            if (_expression.AsSpan(start, _parsePoint - start).Equals("and".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            _parsePoint += identifier.Length;
+
+            if (identifier.Equals("and", StringComparison.OrdinalIgnoreCase))
             {
                 _lookahead = Token.And;
+                return true;
             }
-            else if (_expression.AsSpan(start, _parsePoint - start).Equals("or".AsSpan(), StringComparison.OrdinalIgnoreCase))
+
+            if (identifier.Equals("or", StringComparison.OrdinalIgnoreCase))
             {
                 _lookahead = Token.Or;
+                return true;
             }
-            else
-            {
-                int end = _parsePoint;
-                SkipWhiteSpace();
-                if (_parsePoint < _expression.Length && _expression[_parsePoint] == '(')
-                {
-                    _lookahead = Token.Function(_expression.Substring(start, end - start));
-                }
-                else
-                {
-                    string tokenValue = _expression.Substring(start, end - start);
-                    _lookahead = Token.String(tokenValue);
-                }
-            }
+
+            // Look ahead to see if there's a '(' character. TrimStart() skips whitespace.
+            span = span[identifier.Length..].TrimStart();
+
+            _lookahead = span is ['(', ..]
+                ? Token.Function(identifier.ToString())
+                : Token.String(identifier.ToString());
+
             return true;
         }
-        private bool ParseNumeric(int start)
+
+        private bool TryParseNumeric()
         {
-            Debug.Assert(
-                CharacterUtilities.IsNumberStart(_expression[_parsePoint]),
-                "ParseNumeric should only be called when the current character is the start of a number.");
+            ReadOnlySpan<char> span = _expression.AsSpan(_parsePoint);
 
-            if ((_expression.Length - _parsePoint) > 2 && _expression[_parsePoint] == '0' && (_expression[_parsePoint + 1] == 'x' || _expression[_parsePoint + 1] == 'X'))
+            if (TryLexHexNumber(span, out var number) ||
+                TryLexDecimalNumber(span, out number))
             {
-                // Hex number
-                _parsePoint += 2;
-                SkipHexDigits();
-                _lookahead = Token.Numeric(_expression.Substring(start, _parsePoint - start));
-            }
-            else if (CharacterUtilities.IsNumberStart(_expression[_parsePoint]))
-            {
-                // Decimal number
-                if (_expression[_parsePoint] == '+')
-                {
-                    _parsePoint++;
-                }
-                else if (_expression[_parsePoint] == '-')
-                {
-                    _parsePoint++;
-                }
-                do
-                {
-                    SkipDigits();
-                    if (_parsePoint < _expression.Length && _expression[_parsePoint] == '.')
-                    {
-                        _parsePoint++;
-                    }
-                    if (_parsePoint < _expression.Length)
-                    {
-                        SkipDigits();
-                    }
-                } while (_parsePoint < _expression.Length && _expression[_parsePoint] == '.');
-                // Do we need to error on malformed input like 0.00.00)? or will the conversion handle it?
-                // For now, let the conversion generate the error.
-                _lookahead = Token.Numeric(_expression.Substring(start, _parsePoint - start));
+                _parsePoint += number.Length;
+                _lookahead = Token.Numeric(number.ToString());
+                return true;
             }
 
+            return false;
+        }
+
+        private static bool TryLexIdentifier(ReadOnlySpan<char> span, out ReadOnlySpan<char> result)
+        {
+            if (span.IsEmpty || !CharacterUtilities.IsSimpleStringStart(span[0]))
+            {
+                result = default;
+                return false;
+            }
+
+            int index = 1;
+
+            while (index < span.Length && CharacterUtilities.IsSimpleStringChar(span[index]))
+            {
+                index++;
+            }
+
+            result = span[..index];
             return true;
         }
+
+        private static bool TryLexHexNumber(ReadOnlySpan<char> span, out ReadOnlySpan<char> result)
+        {
+            // UNDONE: Verify that the character after 0x is a hex digit.
+            // Otherwise, this shouldn't be considered a hex number.
+            if (span is not ['0', ('x' or 'X'), ..])
+            {
+                result = default;
+                return false;
+            }
+
+            int index = 2;
+
+            while (index < span.Length && CharacterUtilities.IsHexDigit(span[index]))
+            {
+                index++;
+            }
+
+            result = span[..index];
+            return true;
+        }
+
+        private static bool TryLexDecimalNumber(ReadOnlySpan<char> span, out ReadOnlySpan<char> result)
+        {
+            // UNDONE: If the first character was a '+', '-', or a '.', we should check that the next character is a digit.
+            if (span.IsEmpty || !CharacterUtilities.IsNumberStart(span[0]))
+            {
+                result = default;
+                return false;
+            }
+
+            // UNDONE: The loop below allows dots and no digits, which matches the original implementation.
+            // UNDONE: Decimals with multiple dots, such as 0.0.0, should not be supported.
+            int index = 1;
+
+            while (index < span.Length && IsDigitOrDot(span[index]))
+            {
+                index++;
+            }
+
+            result = span[..index];
+            return true;
+
+            static bool IsDigitOrDot(char ch)
+                => char.IsDigit(ch) || ch == '.';
+        }
+
         private void SkipWhiteSpace()
         {
             while (_parsePoint < _expression.Length && char.IsWhiteSpace(_expression[_parsePoint]))
-            {
-                _parsePoint++;
-            }
-
-            return;
-        }
-        private void SkipDigits()
-        {
-            while (_parsePoint < _expression.Length && char.IsDigit(_expression[_parsePoint]))
-            {
-                _parsePoint++;
-            }
-
-            return;
-        }
-        private void SkipHexDigits()
-        {
-            while (_parsePoint < _expression.Length && CharacterUtilities.IsHexDigit(_expression[_parsePoint]))
-            {
-                _parsePoint++;
-            }
-
-            return;
-        }
-        private void SkipSimpleStringChars()
-        {
-            while (_parsePoint < _expression.Length && CharacterUtilities.IsSimpleStringChar(_expression[_parsePoint]))
             {
                 _parsePoint++;
             }
