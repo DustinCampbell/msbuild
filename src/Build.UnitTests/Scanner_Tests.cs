@@ -7,560 +7,467 @@ using Microsoft.Build.Exceptions;
 using Shouldly;
 using Xunit;
 
-#nullable disable
+namespace Microsoft.Build.UnitTests;
 
-namespace Microsoft.Build.UnitTests
+public class ScannerTest
 {
-    public class ScannerTest
+    /// <summary>
+    ///  Tests that we give a useful error position (not 0 for example).
+    /// </summary>
+    [Theory]
+    [InlineData("1==0xFG", 7)] // Position of G
+    [InlineData("1==-0xF", 6)] // Position of x
+    [InlineData("1234=5678", 6)] // Position of '5'
+    [InlineData(" ", 2)] // Position of End of Input
+    [InlineData(" (", 3)] // Position of End of Input
+    [InlineData(" false or  ", 12)] // Position of End of Input
+    [InlineData(" \"foo", 2)] // Position of open quote
+    [InlineData(" @(foo", 2)] // Position of @
+    [InlineData(" @(", 2)] // Position of @
+    [InlineData(" $", 2)] // Position of $
+    [InlineData(" $(foo", 2)] // Position of $
+    [InlineData(" $(", 2)] // Position of $
+    [InlineData(" @(foo)", 2, ParserOptions.AllowProperties)] // Position of @
+    [InlineData(" '@(foo)'", 3, ParserOptions.AllowProperties)] // Position of @
+    [InlineData("'%24%28x' == '%24(x''", 21)] // Position of extra quote
+    internal void ErrorPosition(string expression, int expectedPosition, ParserOptions options = ParserOptions.AllowAll)
     {
-        /// <summary>
-        /// Tests that we give a useful error position (not 0 for example).
-        /// </summary>
-        [Theory]
-        [InlineData("1==0xFG", 7)] // Position of G
-        [InlineData("1==-0xF", 6)] // Position of x
-        [InlineData("1234=5678", 6)] // Position of '5'
-        [InlineData(" ", 2)] // Position of End of Input
-        [InlineData(" (", 3)] // Position of End of Input
-        [InlineData(" false or  ", 12)] // Position of End of Input
-        [InlineData(" \"foo", 2)] // Position of open quote
-        [InlineData(" @(foo", 2)] // Position of @
-        [InlineData(" @(", 2)] // Position of @
-        [InlineData(" $", 2)] // Position of $
-        [InlineData(" $(foo", 2)] // Position of $
-        [InlineData(" $(", 2)] // Position of $
-        [InlineData(" @(foo)", 2, ParserOptions.AllowProperties)] // Position of @
-        [InlineData(" '@(foo)'", 3, ParserOptions.AllowProperties)] // Position of @
-        [InlineData("'%24%28x' == '%24(x''", 21)] // Position of extra quote
-        internal void ErrorPosition(string expression, int expectedPosition, ParserOptions options = ParserOptions.AllowAll)
+        // Some errors are caught by the Parser, not merely by the Scanner. So we have to do a full Parse,
+        // rather than just calling AdvanceToScannerError(). (The error location is still supplied by the Scanner.)
+        var parser = new Parser();
+
+        var ex = Assert.Throws<InvalidProjectFileException>(() =>
         {
-            // Some errors are caught by the Parser, not merely by the Lexer/Scanner. So we have to do a full Parse,
-            // rather than just calling AdvanceToScannerError(). (The error location is still supplied by the Scanner.)
-            var parser = new Parser();
+            parser.Parse(expression, options, MockElementLocation.Instance);
+        });
 
-            var ex = Assert.Throws<InvalidProjectFileException>(() =>
-            {
-                parser.Parse(expression, options, MockElementLocation.Instance);
-            });
+        Console.WriteLine(ex.Message);
+        Assert.Equal(expectedPosition, parser.errorPosition);
+    }
 
-            Console.WriteLine(ex.Message);
-            Assert.Equal(expectedPosition, parser.errorPosition);
-        }
+    /// <summary>
+    ///  Tests the special error for "=".
+    /// </summary>
+    [Fact]
+    public void SingleEquals()
+    {
+        Scanner scanner = CreateScannerAndAdvanceToEnd("a=b", ParserOptions.AllowProperties);
+        Assert.Equal(ConditionErrors.IllFormedEquals, scanner.GetErrorResource());
+        Assert.Equal("b", scanner.UnexpectedlyFound);
+    }
 
-        /// <summary>
-        /// Advance to the point of the lexer error. If the error is only caught by the parser, this isn't useful.
-        /// </summary>
-        /// <param name="lexer"></param>
-        private void AdvanceToScannerError(Scanner lexer)
+    /// <summary>
+    ///  Tests the special errors for "$(" and "$x" and similar cases.
+    /// </summary>
+    [Fact]
+    public void IllFormedProperty()
+    {
+        Scanner scanner = CreateScannerAndAdvanceToEnd("$(", ParserOptions.AllowProperties);
+        Assert.Equal(ConditionErrors.IllFormedPropertyCloseParenthesis, scanner.GetErrorResource());
+
+        scanner = CreateScannerAndAdvanceToEnd("$x", ParserOptions.AllowProperties);
+        Assert.Equal(ConditionErrors.IllFormedPropertyOpenParenthesis, scanner.GetErrorResource());
+    }
+
+    /// <summary>
+    ///  Tests the special errors for "%(" and "%x" and similar cases.
+    /// </summary>
+    [Fact]
+    public void IllFormedItemMetadata()
+    {
+        Scanner scanner = CreateScannerAndAdvanceToEnd("%(", ParserOptions.AllowProperties | ParserOptions.AllowItemMetadata);
+        Assert.Equal(ConditionErrors.IllFormedItemMetadataCloseParenthesis, scanner.GetErrorResource());
+
+        scanner = CreateScannerAndAdvanceToEnd("%x", ParserOptions.AllowProperties | ParserOptions.AllowItemMetadata);
+        Assert.Equal(ConditionErrors.IllFormedItemMetadataOpenParenthesis, scanner.GetErrorResource());
+    }
+
+    /// <summary>
+    ///  Tests the space errors case.
+    /// </summary>
+    [Theory]
+    [InlineData("$(x )")]
+    [InlineData("$( x)")]
+    [InlineData("$([MSBuild]::DoSomething($(space ))")]
+    [InlineData("$([MSBuild]::DoSomething($(_space ))")]
+    public void SpaceProperty(string pattern)
+    {
+        Scanner scanner = CreateScannerAndAdvanceToEnd(pattern, ParserOptions.AllowProperties);
+        Assert.Equal(ConditionErrors.IllFormedPropertySpace, scanner.GetErrorResource());
+    }
+
+    /// <summary>
+    ///  Tests the space not next to end so no errors case.
+    /// </summary>
+    [Theory]
+    [InlineData("$(x.StartsWith( 'y' ))")]
+    [InlineData("$(x.StartsWith ('y'))")]
+    [InlineData("$( x.StartsWith( $(SpacelessProperty) ) )")]
+    [InlineData("$( x.StartsWith( $(_SpacelessProperty) ) )")]
+    [InlineData("$(x.StartsWith('Foo', StringComparison.InvariantCultureIgnoreCase))")]
+    public void SpaceInMiddleOfProperty(string pattern)
+    {
+        Scanner scanner = CreateScannerAndAdvanceToEnd(pattern, ParserOptions.AllowProperties);
+        Assert.False(scanner._errorState);
+    }
+
+    /// <summary>
+    ///  Tests the special errors for "@(" and "@x" and similar cases.
+    /// </summary>
+    [Fact]
+    public void IllFormedItemList()
+    {
+        Scanner scanner = CreateScannerAndAdvanceToEnd("@(", ParserOptions.AllowAll);
+        Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, scanner.GetErrorResource());
+        Assert.Null(scanner.UnexpectedlyFound);
+
+        scanner = CreateScannerAndAdvanceToEnd("@x", ParserOptions.AllowAll);
+        Assert.Equal(ConditionErrors.IllFormedItemListOpenParenthesis, scanner.GetErrorResource());
+        Assert.Null(scanner.UnexpectedlyFound);
+
+        scanner = CreateScannerAndAdvanceToEnd("@(x", ParserOptions.AllowAll);
+        Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, scanner.GetErrorResource());
+        Assert.Null(scanner.UnexpectedlyFound);
+
+        scanner = CreateScannerAndAdvanceToEnd("@(x->'%(y)", ParserOptions.AllowAll);
+        Assert.Equal(ConditionErrors.IllFormedItemListQuote, scanner.GetErrorResource());
+        Assert.Null(scanner.UnexpectedlyFound);
+
+        scanner = CreateScannerAndAdvanceToEnd("@(x->'%(y)', 'x", ParserOptions.AllowAll);
+        Assert.Equal(ConditionErrors.IllFormedItemListQuote, scanner.GetErrorResource());
+        Assert.Null(scanner.UnexpectedlyFound);
+
+        scanner = CreateScannerAndAdvanceToEnd("@(x->'%(y)', 'x'", ParserOptions.AllowAll);
+        Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, scanner.GetErrorResource());
+        Assert.Null(scanner.UnexpectedlyFound);
+    }
+
+    /// <summary>
+    ///  Tests the special error for unterminated quotes.
+    ///  Note, scanner only understands single quotes.
+    /// </summary>
+    [Fact]
+    public void IllFormedQuotedString()
+    {
+        Scanner scanner = CreateScannerAndAdvanceToEnd("false or 'abc");
+        Assert.Equal(ConditionErrors.IllFormedQuotedString, scanner.GetErrorResource());
+        Assert.Null(scanner.UnexpectedlyFound);
+
+        scanner = CreateScannerAndAdvanceToEnd("\'");
+        Assert.Equal(ConditionErrors.IllFormedQuotedString, scanner.GetErrorResource());
+        Assert.Null(scanner.UnexpectedlyFound);
+    }
+
+    [Fact]
+    public void NumericSingleTokenTests()
+    {
+        VerifyTokens("1234", Token(TokenKind.Numeric, "1234"));
+        VerifyTokens("-1234", Token(TokenKind.Numeric, "-1234"));
+        VerifyTokens("+1234", Token(TokenKind.Numeric, "+1234"));
+        VerifyTokens("1234.1234", Token(TokenKind.Numeric, "1234.1234"));
+        VerifyTokens(".1234", Token(TokenKind.Numeric, ".1234"));
+        VerifyTokens("1234.", Token(TokenKind.Numeric, "1234."));
+        VerifyTokens("0x1234", Token(TokenKind.Numeric, "0x1234"));
+        VerifyTokens("0x1234ABCD", Token(TokenKind.Numeric, "0x1234ABCD"));
+    }
+
+    [Fact]
+    public void PropsStringsAndBooleanSingleTokenTests()
+    {
+        VerifyTokens("$(foo)", Token(TokenKind.Property));
+        VerifyTokens("@(foo)", Token(TokenKind.ItemList));
+        VerifyTokens("abcde", Token(TokenKind.String, "abcde"));
+        VerifyTokens("'abc-efg'", Token(TokenKind.String, "abc-efg"));
+        VerifyTokens("and", Token(TokenKind.And, "and"));
+        VerifyTokens("or", Token(TokenKind.Or, "or"));
+        VerifyTokens("And", Token(TokenKind.And, "and"));
+        VerifyTokens("Or", Token(TokenKind.Or, "or"));
+    }
+
+    [Fact]
+    public void SimpleSingleTokenTests()
+    {
+        VerifyTokens("(", Token(TokenKind.LeftParenthesis));
+        VerifyTokens(")", Token(TokenKind.RightParenthesis));
+        VerifyTokens(",", Token(TokenKind.Comma));
+        VerifyTokens("==", Token(TokenKind.EqualTo));
+        VerifyTokens("!=", Token(TokenKind.NotEqualTo));
+        VerifyTokens("<", Token(TokenKind.LessThan));
+        VerifyTokens(">", Token(TokenKind.GreaterThan));
+        VerifyTokens("<=", Token(TokenKind.LessThanOrEqualTo));
+        VerifyTokens(">=", Token(TokenKind.GreaterThanOrEqualTo));
+        VerifyTokens("!", Token(TokenKind.Not));
+    }
+
+    [Fact]
+    public void StringEdgeTests()
+    {
+        VerifyTokens(
+            "@(Foo, ' ')",
+            Token(TokenKind.ItemList));
+
+        VerifyTokens(
+            "'@(Foo, ' ')'",
+            Token(TokenKind.String));
+
+        VerifyTokens(
+            "'%40(( '",
+            Token(TokenKind.String));
+
+        VerifyTokens(
+            "'@(Complex_ItemType-123, ';')' == ''",
+            Token(TokenKind.String),
+            Token(TokenKind.EqualTo),
+            Token(TokenKind.String));
+    }
+
+    [Fact]
+    public void FunctionTests()
+    {
+        VerifyTokens(
+            "Foo()",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.RightParenthesis));
+
+        VerifyTokens(
+            "Foo( 1 )",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.Numeric),
+            Token(TokenKind.RightParenthesis));
+
+        VerifyTokens(
+            "Foo( $(Property) )",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.Property),
+            Token(TokenKind.RightParenthesis));
+
+        VerifyTokens(
+            "Foo( @(ItemList) )",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.ItemList),
+            Token(TokenKind.RightParenthesis));
+
+        VerifyTokens(
+            "Foo( simplestring )",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.String),
+            Token(TokenKind.RightParenthesis));
+
+        VerifyTokens(
+            "Foo( 'Not a Simple String' )",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.String),
+            Token(TokenKind.RightParenthesis));
+
+        VerifyTokens(
+            "Foo( 'Not a Simple String', 1234 )",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.String),
+            Token(TokenKind.Comma),
+            Token(TokenKind.Numeric),
+            Token(TokenKind.RightParenthesis));
+
+        VerifyTokens(
+            "Foo( $(Property), 'Not a Simple String', 1234 )",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.Property),
+            Token(TokenKind.Comma),
+            Token(TokenKind.String),
+            Token(TokenKind.Comma),
+            Token(TokenKind.Numeric),
+            Token(TokenKind.RightParenthesis));
+
+        VerifyTokens(
+            "Foo( @(ItemList), $(Property), simplestring, 'Not a Simple String', 1234 )",
+            Token(TokenKind.Function, "Foo"),
+            Token(TokenKind.LeftParenthesis),
+            Token(TokenKind.ItemList),
+            Token(TokenKind.Comma),
+            Token(TokenKind.Property),
+            Token(TokenKind.Comma),
+            Token(TokenKind.String),
+            Token(TokenKind.Comma),
+            Token(TokenKind.String),
+            Token(TokenKind.Comma),
+            Token(TokenKind.Numeric),
+            Token(TokenKind.RightParenthesis));
+    }
+
+    [Fact]
+    public void ComplexTests1()
+    {
+        VerifyTokens(
+            "'String with a $(Property) inside'",
+            Token(TokenKind.String, "String with a $(Property) inside"));
+
+        VerifyTokens(
+            "@(list, ' ')",
+            Token(TokenKind.ItemList, "@(list, ' ')"));
+        VerifyTokens(
+            "@(files->'%(Filename)')",
+            Token(TokenKind.ItemList, "@(files->'%(Filename)')"));
+    }
+
+    [Fact]
+    public void ComplexTests2()
+    {
+        VerifyTokens(
+            "1234",
+            Token(TokenKind.Numeric));
+
+        VerifyTokens(
+            "'abc-efg'==$(foo)",
+            Token(TokenKind.String),
+            Token(TokenKind.EqualTo),
+            Token(TokenKind.Property));
+
+        VerifyTokens(
+            "$(debug)!=true",
+            Token(TokenKind.Property),
+            Token(TokenKind.NotEqualTo),
+            Token(TokenKind.String));
+
+        VerifyTokens(
+            "$(VERSION)<5",
+            Token(TokenKind.Property),
+            Token(TokenKind.LessThan),
+            Token(TokenKind.Numeric));
+    }
+
+    /// <summary>
+    ///  Tests all tokens with no whitespace and whitespace.
+    /// </summary>
+    [Fact]
+    public void WhitespaceTests()
+    {
+        VerifyTokens(
+            "$(DEBUG) and $(FOO)",
+            Token(TokenKind.Property),
+            Token(TokenKind.And),
+            Token(TokenKind.Property));
+
+        // No whitespace
+        VerifyTokens(
+            "1234$(DEBUG)0xabcd@(foo)asdf<>'foo'<=false>=true==1234!=",
+            Token(TokenKind.Numeric),
+            Token(TokenKind.Property),
+            Token(TokenKind.Numeric),
+            Token(TokenKind.ItemList),
+            Token(TokenKind.String),
+            Token(TokenKind.LessThan),
+            Token(TokenKind.GreaterThan),
+            Token(TokenKind.String),
+            Token(TokenKind.LessThanOrEqualTo),
+            Token(TokenKind.String),
+            Token(TokenKind.GreaterThanOrEqualTo),
+            Token(TokenKind.String),
+            Token(TokenKind.EqualTo),
+            Token(TokenKind.Numeric),
+            Token(TokenKind.NotEqualTo));
+
+        // With whitespace
+        VerifyTokens(
+            "   1234    $(DEBUG)    0xabcd  \n@(foo)    \nasdf  \n<     \n>     \n'foo'  \n<=    \nfalse     \n>=    \ntrue  \n== \n 1234    \n!=     ",
+            Token(TokenKind.Numeric),
+            Token(TokenKind.Property),
+            Token(TokenKind.Numeric),
+            Token(TokenKind.ItemList),
+            Token(TokenKind.String),
+            Token(TokenKind.LessThan),
+            Token(TokenKind.GreaterThan),
+            Token(TokenKind.String),
+            Token(TokenKind.LessThanOrEqualTo),
+            Token(TokenKind.String),
+            Token(TokenKind.GreaterThanOrEqualTo),
+            Token(TokenKind.String),
+            Token(TokenKind.EqualTo),
+            Token(TokenKind.Numeric),
+            Token(TokenKind.NotEqualTo));
+    }
+
+    /// <summary>
+    ///  Tests the parsing of item lists.
+    /// </summary>
+    [Fact]
+    public void ItemListTests()
+    {
+        Scanner scanner = CreateScannerAndAdvanceToEnd("@(foo)", ParserOptions.AllowProperties);
+        Assert.Equal(ConditionErrors.ItemListNotAllowed, scanner.GetErrorResource());
+
+        scanner = CreateScannerAndAdvanceToEnd("1234 '@(foo)'", ParserOptions.AllowProperties);
+        Assert.Equal(ConditionErrors.ItemListNotAllowed, scanner.GetErrorResource());
+
+        scanner = CreateScannerAndAdvanceToEnd("'1234 @(foo)'", ParserOptions.AllowProperties);
+        Assert.Equal(ConditionErrors.ItemListNotAllowed, scanner.GetErrorResource());
+    }
+
+    /// <summary>
+    ///  Tests that shouldn't work.
+    /// </summary>
+    [Fact]
+    public void NegativeTests()
+    {
+        var scanner = new Scanner("'$(DEBUG) == true", ParserOptions.AllowAll);
+        Assert.False(scanner.Advance());
+    }
+
+    /// <summary>
+    ///  Advance to the point of the scanner error. If the error is only caught by the parser, this isn't useful.
+    /// </summary>
+    private Scanner CreateScannerAndAdvanceToEnd(string expression, ParserOptions options = ParserOptions.AllowAll)
+    {
+        var scanner = new Scanner(expression, options);
+        AdvanceToEnd(scanner);
+
+        return scanner;
+    }
+
+    /// <summary>
+    ///  Advance to the point of the scanner error. If the error is only caught by the parser, this isn't useful.
+    /// </summary>
+    private void AdvanceToEnd(Scanner scanner)
+    {
+        while (scanner.Advance() && !scanner.IsNext(TokenKind.EndOfInput))
         {
-            while (lexer.Advance() && !lexer.IsNext(TokenKind.EndOfInput))
-            {
-                ;
-            }
-        }
-
-        /// <summary>
-        /// Tests the special error for "=".
-        /// </summary>
-        [Fact]
-        public void SingleEquals()
-        {
-            Scanner lexer = new Scanner("a=b", ParserOptions.AllowProperties);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedEquals, lexer.GetErrorResource());
-            Assert.Equal("b", lexer.UnexpectedlyFound);
-        }
-
-        /// <summary>
-        /// Tests the special errors for "$(" and "$x" and similar cases.
-        /// </summary>
-        [Fact]
-        public void IllFormedProperty()
-        {
-            Scanner lexer = new Scanner("$(", ParserOptions.AllowProperties);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedPropertyCloseParenthesis, lexer.GetErrorResource());
-
-            lexer = new Scanner("$x", ParserOptions.AllowProperties);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedPropertyOpenParenthesis, lexer.GetErrorResource());
-        }
-
-        /// <summary>
-        /// Tests the special errors for "%(" and "%x" and similar cases.
-        /// </summary>
-        [Fact]
-        public void IllFormedItemMetadata()
-        {
-            Scanner lexer = new Scanner("%(", ParserOptions.AllowProperties | ParserOptions.AllowItemMetadata);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedItemMetadataCloseParenthesis, lexer.GetErrorResource());
-
-            lexer = new Scanner("%x", ParserOptions.AllowProperties | ParserOptions.AllowItemMetadata);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedItemMetadataOpenParenthesis, lexer.GetErrorResource());
-        }
-
-        /// <summary>
-        /// Tests the space errors case
-        /// </summary>
-        [Theory]
-        [InlineData("$(x )")]
-        [InlineData("$( x)")]
-        [InlineData("$([MSBuild]::DoSomething($(space ))")]
-        [InlineData("$([MSBuild]::DoSomething($(_space ))")]
-        public void SpaceProperty(string pattern)
-        {
-            Scanner lexer = new Scanner(pattern, ParserOptions.AllowProperties);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedPropertySpace, lexer.GetErrorResource());
-        }
-
-        /// <summary>
-        /// Tests the space not next to end so no errors case
-        /// </summary>
-        [Theory]
-        [InlineData("$(x.StartsWith( 'y' ))")]
-        [InlineData("$(x.StartsWith ('y'))")]
-        [InlineData("$( x.StartsWith( $(SpacelessProperty) ) )")]
-        [InlineData("$( x.StartsWith( $(_SpacelessProperty) ) )")]
-        [InlineData("$(x.StartsWith('Foo', StringComparison.InvariantCultureIgnoreCase))")]
-        public void SpaceInMiddleOfProperty(string pattern)
-        {
-            Scanner lexer = new Scanner(pattern, ParserOptions.AllowProperties);
-            AdvanceToScannerError(lexer);
-            lexer._errorState.ShouldBeFalse();
-        }
-
-        /// <summary>
-        /// Tests the special errors for "@(" and "@x" and similar cases.
-        /// </summary>
-        [Fact]
-        public void IllFormedItemList()
-        {
-            Scanner lexer = new Scanner("@(", ParserOptions.AllowAll);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, lexer.GetErrorResource());
-            Assert.Null(lexer.UnexpectedlyFound);
-
-            lexer = new Scanner("@x", ParserOptions.AllowAll);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedItemListOpenParenthesis, lexer.GetErrorResource());
-            Assert.Null(lexer.UnexpectedlyFound);
-
-            lexer = new Scanner("@(x", ParserOptions.AllowAll);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, lexer.GetErrorResource());
-            Assert.Null(lexer.UnexpectedlyFound);
-
-            lexer = new Scanner("@(x->'%(y)", ParserOptions.AllowAll);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedItemListQuote, lexer.GetErrorResource());
-            Assert.Null(lexer.UnexpectedlyFound);
-
-            lexer = new Scanner("@(x->'%(y)', 'x", ParserOptions.AllowAll);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedItemListQuote, lexer.GetErrorResource());
-            Assert.Null(lexer.UnexpectedlyFound);
-
-            lexer = new Scanner("@(x->'%(y)', 'x'", ParserOptions.AllowAll);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedItemListCloseParenthesis, lexer.GetErrorResource());
-            Assert.Null(lexer.UnexpectedlyFound);
-        }
-
-        /// <summary>
-        /// Tests the special error for unterminated quotes.
-        /// Note, scanner only understands single quotes.
-        /// </summary>
-        [Fact]
-        public void IllFormedQuotedString()
-        {
-            Scanner lexer = new Scanner("false or 'abc", ParserOptions.AllowAll);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedQuotedString, lexer.GetErrorResource());
-            Assert.Null(lexer.UnexpectedlyFound);
-
-            lexer = new Scanner("\'", ParserOptions.AllowAll);
-            AdvanceToScannerError(lexer);
-            Assert.Equal(ConditionErrors.IllFormedQuotedString, lexer.GetErrorResource());
-            Assert.Null(lexer.UnexpectedlyFound);
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void NumericSingleTokenTests()
-        {
-            Scanner lexer = new Scanner("1234", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare("1234", lexer.IsNextString()));
-
-            lexer = new Scanner("-1234", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare("-1234", lexer.IsNextString()));
-
-            lexer = new Scanner("+1234", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare("+1234", lexer.IsNextString()));
-
-            lexer = new Scanner("1234.1234", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare("1234.1234", lexer.IsNextString()));
-
-            lexer = new Scanner(".1234", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare(".1234", lexer.IsNextString()));
-
-            lexer = new Scanner("1234.", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare("1234.", lexer.IsNextString()));
-            lexer = new Scanner("0x1234", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare("0x1234", lexer.IsNextString()));
-            lexer = new Scanner("0X1234abcd", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare("0X1234abcd", lexer.IsNextString()));
-            lexer = new Scanner("0x1234ABCD", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            Assert.Equal(0, String.Compare("0x1234ABCD", lexer.IsNextString()));
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void PropsStringsAndBooleanSingleTokenTests()
-        {
-            Scanner lexer = new Scanner("$(foo)", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Property));
-            lexer = new Scanner("@(foo)", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.ItemList));
-            lexer = new Scanner("abcde", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.String));
-            Assert.Equal(0, String.Compare("abcde", lexer.IsNextString()));
-
-            lexer = new Scanner("'abc-efg'", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.String));
-            Assert.Equal(0, String.Compare("abc-efg", lexer.IsNextString()));
-
-            lexer = new Scanner("and", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.And));
-            Assert.Equal(0, String.Compare("and", lexer.IsNextString()));
-            lexer = new Scanner("or", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Or));
-            Assert.Equal(0, String.Compare("or", lexer.IsNextString()));
-            lexer = new Scanner("AnD", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.And));
-            Assert.Equal(0, String.Compare(Token.And.Text, lexer.IsNextString()));
-            lexer = new Scanner("Or", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Or));
-            Assert.Equal(0, String.Compare(Token.Or.Text, lexer.IsNextString()));
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void SimpleSingleTokenTests()
-        {
-            Scanner lexer = new Scanner("(", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.LeftParenthesis));
-            lexer = new Scanner(")", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.RightParenthesis));
-            lexer = new Scanner(",", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Comma));
-            lexer = new Scanner("==", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.EqualTo));
-            lexer = new Scanner("!=", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.NotEqualTo));
-            lexer = new Scanner("<", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.LessThan));
-            lexer = new Scanner(">", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.GreaterThan));
-            lexer = new Scanner("<=", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.LessThanOrEqualTo));
-            lexer = new Scanner(">=", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.GreaterThanOrEqualTo));
-            lexer = new Scanner("!", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Not));
-        }
-
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void StringEdgeTests()
-        {
-            Scanner lexer = new Scanner("@(Foo, ' ')", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.ItemList));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EndOfInput));
-
-            lexer = new Scanner("'@(Foo, ' ')'", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EndOfInput));
-
-            lexer = new Scanner("'%40(( '", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EndOfInput));
-
-            lexer = new Scanner("'@(Complex_ItemType-123, ';')' == ''", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EndOfInput));
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void FunctionTests()
-        {
-            Scanner lexer = new Scanner("Foo()", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-
-            lexer = new Scanner("Foo( 1 )", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-
-            lexer = new Scanner("Foo( $(Property) )", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Property));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-
-            lexer = new Scanner("Foo( @(ItemList) )", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.ItemList));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-
-            lexer = new Scanner("Foo( simplestring )", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-
-            lexer = new Scanner("Foo( 'Not a Simple String' )", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-
-            lexer = new Scanner("Foo( 'Not a Simple String', 1234 )", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Comma));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-
-            lexer = new Scanner("Foo( $(Property), 'Not a Simple String', 1234 )", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Property));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Comma));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Comma));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-
-            lexer = new Scanner("Foo( @(ItemList), $(Property), simplestring, 'Not a Simple String', 1234 )", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Function));
-            Assert.Equal(0, String.Compare("Foo", lexer.IsNextString()));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LeftParenthesis));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.ItemList));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Comma));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Property));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Comma));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Comma));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Comma));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.RightParenthesis));
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void ComplexTests1()
-        {
-            Scanner lexer = new Scanner("'String with a $(Property) inside'", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.Equal(0, String.Compare("String with a $(Property) inside", lexer.IsNextString()));
-
-            lexer = new Scanner("'String with an embedded \\' in it'", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            // Assert.AreEqual(String.Compare("String with an embedded ' in it", lexer.IsNextString()), 0);
-
-            lexer = new Scanner("'String with a $(Property) inside'", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.Equal(0, String.Compare("String with a $(Property) inside", lexer.IsNextString()));
-
-            lexer = new Scanner("@(list, ' ')", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.ItemList));
-            Assert.Equal(0, String.Compare("@(list, ' ')", lexer.IsNextString()));
-
-            lexer = new Scanner("@(files->'%(Filename)')", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.ItemList));
-            Assert.Equal(0, String.Compare("@(files->'%(Filename)')", lexer.IsNextString()));
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void ComplexTests2()
-        {
-            Scanner lexer = new Scanner("1234", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-
-            lexer = new Scanner("'abc-efg'==$(foo)", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.String));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.EqualTo));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.Property));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.EndOfInput));
-
-            lexer = new Scanner("$(debug)!=true", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Property));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.NotEqualTo));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.String));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.EndOfInput));
-
-            lexer = new Scanner("$(VERSION)<5", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance());
-            Assert.True(lexer.IsNext(TokenKind.Property));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.LessThan));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.Numeric));
-            lexer.Advance();
-            Assert.True(lexer.IsNext(TokenKind.EndOfInput));
-        }
-
-        /// <summary>
-        /// Tests all tokens with no whitespace and whitespace.
-        /// </summary>
-        [Fact]
-        public void WhitespaceTests()
-        {
-            Scanner lexer;
-            Console.WriteLine("here");
-            lexer = new Scanner("$(DEBUG) and $(FOO)", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Property));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.And));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Property));
-
-            lexer = new Scanner("1234$(DEBUG)0xabcd@(foo)asdf<>'foo'<=false>=true==1234!=", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Property));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.ItemList));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LessThan));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.GreaterThan));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LessThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.GreaterThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.NotEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EndOfInput));
-
-            lexer = new Scanner("   1234    $(DEBUG)    0xabcd  \n@(foo)    \nasdf  \n<     \n>     \n'foo'  \n<=    \nfalse     \n>=    \ntrue  \n== \n 1234    \n!=     ", ParserOptions.AllowAll);
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Property));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.ItemList));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LessThan));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.GreaterThan));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.LessThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.GreaterThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.String));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.Numeric));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.NotEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(TokenKind.EndOfInput));
-        }
-
-        /// <summary>
-        /// Tests the parsing of item lists.
-        /// </summary>
-        [Fact]
-        public void ItemListTests()
-        {
-            Scanner lexer = new Scanner("@(foo)", ParserOptions.AllowProperties);
-            Assert.False(lexer.Advance());
-            Assert.Equal(ConditionErrors.ItemListNotAllowed, lexer.GetErrorResource());
-
-            lexer = new Scanner("1234 '@(foo)'", ParserOptions.AllowProperties);
-            Assert.True(lexer.Advance());
-            Assert.False(lexer.Advance());
-            Assert.Equal(ConditionErrors.ItemListNotAllowed, lexer.GetErrorResource());
-
-            lexer = new Scanner("'1234 @(foo)'", ParserOptions.AllowProperties);
-            Assert.False(lexer.Advance());
-            Assert.Equal(ConditionErrors.ItemListNotAllowed, lexer.GetErrorResource());
-        }
-
-        /// <summary>
-        /// Tests that shouldn't work.
-        /// </summary>
-        [Fact]
-        public void NegativeTests()
-        {
-            Scanner lexer = new Scanner("'$(DEBUG) == true", ParserOptions.AllowAll);
-            Assert.False(lexer.Advance());
         }
     }
+
+    private static void VerifyTokens(string expression, params ReadOnlySpan<Action<Token>> verifiers)
+        => VerifyTokens(expression, ParserOptions.AllowAll, verifiers);
+
+    private static void VerifyTokens(string expression, ParserOptions options, params ReadOnlySpan<Action<Token>> verifiers)
+    {
+        var scanner = new Scanner(expression, options);
+        VerifyTokens(scanner, verifiers);
+    }
+
+    private static void VerifyTokens(Scanner scanner, params ReadOnlySpan<Action<Token>> verifiers)
+    {
+        foreach (Action<Token> verifier in verifiers)
+        {
+            Assert.True(scanner.Advance());
+            verifier(scanner.CurrentToken);
+        }
+
+        Assert.True(scanner.Advance());
+        Assert.True(scanner.IsNext(TokenKind.EndOfInput));
+    }
+
+    private static Action<Token> Token(TokenKind kind)
+        => token => Assert.Equal(kind, token.Kind);
+
+    private static Action<Token> Token(TokenKind kind, string text)
+        => token =>
+        {
+            Assert.Equal(kind, token.Kind);
+            Assert.Equal(text, token.Text);
+        };
 }
