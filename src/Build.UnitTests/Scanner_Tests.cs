@@ -171,6 +171,20 @@ public class ScannerTest
         VerifyTokens("0x1234ABCD", Token(TokenKind.Numeric, "0x1234ABCD"));
     }
 
+    /// <summary>
+    ///  The scanner incorrectly produces incorrect tokens for bad text in some cases.
+    /// </summary>
+    [Theory]
+    [InlineData(".", TokenKind.Numeric, ".")]
+    [InlineData("...", TokenKind.Numeric, "...")]
+    [InlineData("0.0.0", TokenKind.Numeric, "0.0.0")]
+    [InlineData("0x", TokenKind.Numeric, "0x")]
+    internal void BadCases(string expression, TokenKind expectedKind, string expectedText)
+    {
+        Scanner scanner = CreateScannerAndVerifyTokens(expression, Token(expectedKind, expectedText));
+        Assert.False(scanner._errorState);
+    }
+
     [Fact]
     public void PropsStringsAndBooleanSingleTokenTests()
     {
@@ -438,6 +452,17 @@ public class ScannerTest
         while (scanner.Advance() && !scanner.IsNext(TokenKind.EndOfInput))
         {
         }
+    }
+
+    private static Scanner CreateScannerAndVerifyTokens(string expression, params ReadOnlySpan<Action<Token>> verifiers)
+        => CreateScannerAndVerifyTokens(expression, ParserOptions.AllowAll, verifiers);
+
+    private static Scanner CreateScannerAndVerifyTokens(string expression, ParserOptions options, params ReadOnlySpan<Action<Token>> verifiers)
+    {
+        var scanner = new Scanner(expression, options);
+        VerifyTokens(scanner, verifiers);
+
+        return scanner;
     }
 
     private static void VerifyTokens(string expression, params ReadOnlySpan<Action<Token>> verifiers)
