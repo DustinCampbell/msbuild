@@ -50,9 +50,10 @@ namespace Microsoft.Build.UnitTests
                 Parser parser = null;
                 try
                 {
-                    parser = new Parser();
                     ParserOptions options = (ParserOptions)Enum.Parse(typeof(ParserOptions), tests[i, 2], true /* case-insensitive */);
-                    parser.Parse(tests[i, 0], options, _elementLocation);
+
+                    parser = new Parser(tests[i, 0], options, _elementLocation);
+                    parser.Parse();
                 }
                 catch (InvalidProjectFileException ex)
                 {

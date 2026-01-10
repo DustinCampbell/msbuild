@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using ElementLocation = Microsoft.Build.Construction.ElementLocation;
@@ -11,8 +12,6 @@ using ElementLocation = Microsoft.Build.Construction.ElementLocation;
 
 namespace Microsoft.Build.Evaluation
 {
-    using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
-
     [Flags]
     internal enum ParserOptions
     {
@@ -42,53 +41,42 @@ namespace Microsoft.Build.Evaluation
     /// </remarks>
     internal sealed class Parser
     {
-        private Scanner _lexer;
-        private string _expression;
-        private ParserOptions _options;
-        private ElementLocation _elementLocation;
+        private readonly string _expression;
+        private readonly ElementLocation _elementLocation;
+        private readonly Scanner _lexer;
+
         internal int errorPosition = 0; // useful for unit tests
 
         #region REMOVE_COMPAT_WARNING
 
-        private bool _warnedForExpression = false;
+        private bool _warnedForExpression;
 
-        private BuildEventContext _logBuildEventContext;
+        /// <summary>
+        ///  Engine Logging Service reference where events will be logged to.
+        /// </summary>
+        private readonly ILoggingService _loggingServices;
+
         /// <summary>
         ///  Location contextual information which are attached to logging events to
-        ///  say where they are in relation to the process, engine, project, target,task which is executing
+        ///  say where they are in relation to the process, engine, project, target,task which is executing.
         /// </summary>
-        internal BuildEventContext LogBuildEventContext
-        {
-            get
-            {
-                return _logBuildEventContext;
-            }
-            set
-            {
-                _logBuildEventContext = value;
-            }
-        }
-        private ILoggingService _loggingServices;
-        /// <summary>
-        /// Engine Logging Service reference where events will be logged to
-        /// </summary>
-        internal ILoggingService LoggingServices
-        {
-            set
-            {
-                _loggingServices = value;
-            }
+        private readonly BuildEventContext _logBuildEventContext;
 
-            get
-            {
-                return _loggingServices;
-            }
-        }
         #endregion
 
-        internal Parser()
+        public Parser(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext loggingContext = null)
         {
-            // nothing to see here, move along.
+            // We currently have no support (and no scenarios) for disallowing property references
+            // in Conditions.
+            ErrorUtilities.VerifyThrow((options & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
+
+            _expression = expression;
+            _elementLocation = elementLocation;
+
+            _loggingServices = loggingContext?.LoggingService;
+            _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
+
+            _lexer = new Scanner(expression, options);
         }
 
         //
@@ -96,18 +84,14 @@ namespace Microsoft.Build.Evaluation
         // You pass in the expression you want to parse, and you get an
         // ExpressionTree out the back end.
         //
-        internal GenericExpressionNode Parse(string expression, ParserOptions optionSettings, ElementLocation elementLocation)
+        public static GenericExpressionNode Parse(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext loggingContext = null)
         {
-            // We currently have no support (and no scenarios) for disallowing property references
-            // in Conditions.
-            ErrorUtilities.VerifyThrow(0 != (optionSettings & ParserOptions.AllowProperties),
-                "Properties should always be allowed.");
+            var parser = new Parser(expression, options, elementLocation, loggingContext);
+            return parser.Parse();
+        }
 
-            _expression = expression;
-            _options = optionSettings;
-            _elementLocation = elementLocation;
-
-            _lexer = new Scanner(expression, _options);
+        public GenericExpressionNode Parse()
+        {
             if (!Advance())
             {
                 // We should never get here because Advance always throws on error.
@@ -115,10 +99,12 @@ namespace Microsoft.Build.Evaluation
             }
 
             GenericExpressionNode node = Expr();
+
             if (!_lexer.IsNext(Token.TokenType.EndOfInput))
             {
                 ThrowUnexpectedTokenInCondition();
             }
+
             return node;
         }
 
@@ -137,7 +123,7 @@ namespace Microsoft.Build.Evaluation
 
             #region REMOVE_COMPAT_WARNING
             // Check for potential change in behavior
-            if (LoggingServices != null && !_warnedForExpression &&
+            if (_loggingServices != null && !_warnedForExpression &&
                 node.PotentialAndOrConflict())
             {
                 // We only want to warn once even if there multiple () sub expressions
@@ -145,7 +131,7 @@ namespace Microsoft.Build.Evaluation
 
                 // Log a warning regarding the fact the expression may have been evaluated
                 // incorrectly in earlier version of MSBuild
-                LoggingServices.LogWarning(_logBuildEventContext, null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", _expression);
+                _loggingServices.LogWarning(_logBuildEventContext, null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", _expression);
             }
             #endregion
 
