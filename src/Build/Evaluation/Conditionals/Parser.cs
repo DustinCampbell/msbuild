@@ -108,11 +108,12 @@ namespace Microsoft.Build.Evaluation
             _elementLocation = elementLocation;
 
             _lexer = new Scanner(expression, _options);
-            if (!_lexer.Advance())
+            if (!Advance())
             {
-                errorPosition = _lexer.GetErrorPosition();
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, _lexer.GetErrorResource(), _expression, errorPosition, _lexer.UnexpectedlyFound);
+                // We should never get here because Advance always throws on error.
+                ErrorUtilities.ThrowInternalErrorUnreachable();
             }
+
             GenericExpressionNode node = Expr();
             if (!_lexer.IsNext(Token.TokenType.EndOfInput))
             {
@@ -373,27 +374,27 @@ namespace Microsoft.Build.Evaluation
         }
 
         private bool Same(Token.TokenType token)
+            => _lexer.IsNext(token) && Advance();
+
+        private bool Advance()
         {
-            if (_lexer.IsNext(token))
+            if (_lexer.Advance())
             {
-                if (!_lexer.Advance())
-                {
-                    errorPosition = _lexer.GetErrorPosition();
-                    if (_lexer.UnexpectedlyFound != null)
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition, _lexer.UnexpectedlyFound);
-                    }
-                    else
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition);
-                    }
-                }
                 return true;
+            }
+
+            errorPosition = _lexer.GetErrorPosition();
+
+            if (_lexer.UnexpectedlyFound is string unexpectedlyFound)
+            {
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition, unexpectedlyFound);
             }
             else
             {
-                return false;
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition);
             }
+
+            return true;
         }
 
         private void ThrowUnexpectedTokenInCondition()
