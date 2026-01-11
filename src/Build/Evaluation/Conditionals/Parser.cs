@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
@@ -11,21 +10,6 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation;
-
-[Flags]
-internal enum ParserOptions
-{
-    None = 0x0,
-    AllowProperties = 0x1,
-    AllowItemLists = 0x2,
-    AllowPropertiesAndItemLists = AllowProperties | AllowItemLists,
-    AllowBuiltInMetadata = 0x4,
-    AllowCustomMetadata = 0x8,
-    AllowItemMetadata = AllowBuiltInMetadata | AllowCustomMetadata,
-    AllowPropertiesAndItemMetadata = AllowProperties | AllowItemMetadata,
-    AllowPropertiesAndCustomMetadata = AllowProperties | AllowCustomMetadata,
-    AllowAll = AllowProperties | AllowItemLists | AllowItemMetadata
-};
 
 /// <summary>
 /// This class implements the grammar for complex conditionals.

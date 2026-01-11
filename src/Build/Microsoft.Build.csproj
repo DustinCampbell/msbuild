@@ -190,10 +190,6 @@
     <Compile Include="BuildCheck\**\*.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
-    <Compile Include="Evaluation\Conditionals\BinaryOperatorNode.cs" />
-    <Compile Include="Evaluation\Conditionals\BooleanLiteralNode.cs" />
-    <Compile Include="Evaluation\Conditionals\TokenFlags.cs" />
-    <Compile Include="Evaluation\Conditionals\UnaryOperatorNode.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
@@ -493,6 +489,8 @@
     <!-- #### EVALUATION ### -->
     <Compile Include="Evaluation\ConditionEvaluator.cs" />
     <Compile Include="Evaluation\Conditionals\AndExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\BinaryOperatorNode.cs" />
+    <Compile Include="Evaluation\Conditionals\BooleanLiteralNode.cs" />
     <Compile Include="Evaluation\Conditionals\CharacterUtilities.cs" />
     <Compile Include="Evaluation\Conditionals\EqualExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\FunctionCallExpressionNode.cs" />
@@ -510,10 +508,13 @@
     <Compile Include="Evaluation\Conditionals\OperatorExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\OrExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.cs" />
+    <Compile Include="Evaluation\Conditionals\ParserOptions.cs" />
     <Compile Include="Evaluation\Conditionals\Scanner.cs" />
     <Compile Include="Evaluation\Conditionals\StringExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Token.cs" />
+    <Compile Include="Evaluation\Conditionals\TokenFlags.cs" />
     <Compile Include="Evaluation\Conditionals\TokenKind.cs" />
+    <Compile Include="Evaluation\Conditionals\UnaryOperatorNode.cs" />
     <Compile Include="Evaluation\EvaluatorMetadataTable.cs" />
     <Compile Include="Evaluation\IEvaluatorData.cs" />
     <Compile Include="Evaluation\IItem.cs" />
