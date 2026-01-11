@@ -22,6 +22,5 @@ namespace Microsoft.Build.Evaluation
             return false;
         }
         #endregion
-
     }
 }

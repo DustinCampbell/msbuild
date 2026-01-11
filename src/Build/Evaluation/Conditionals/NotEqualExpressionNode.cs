@@ -16,26 +16,20 @@ internal sealed class NotEqualExpressionNode(GenericExpressionNode left, Generic
     /// Compare numbers
     /// </summary>
     protected override bool Compare(double left, double right)
-    {
-        return left != right;
-    }
+        => left != right;
 
     /// <summary>
     /// Compare booleans
     /// </summary>
     protected override bool Compare(bool left, bool right)
-    {
-        return left != right;
-    }
+        => left != right;
 
     /// <summary>
     /// Compare strings
     /// </summary>
     protected override bool Compare(string left, string right)
-    {
-        return !string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
-    }
+        => !string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
-    internal override string DebuggerDisplay
-        => $"(!= {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
+    internal override string GetDebuggerDisplay()
+        => $"(!= {Left.GetDebuggerDisplay()} {Right.GetDebuggerDisplay()})";
 }

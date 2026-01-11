@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Diagnostics;
 
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
 /// Compares for left >= right
 /// </summary>
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class GreaterThanOrEqualExpressionNode(GenericExpressionNode left, GenericExpressionNode right) : NumericComparisonExpressionNode(left, right)
 {
     /// <summary>
@@ -55,5 +53,6 @@ internal sealed class GreaterThanOrEqualExpressionNode(GenericExpressionNode lef
         return false;
     }
 
-    internal override string DebuggerDisplay => $"(>= {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
+    internal override string GetDebuggerDisplay()
+        => $"(>= {Left.GetDebuggerDisplay()} {Right.GetDebuggerDisplay()})";
 }

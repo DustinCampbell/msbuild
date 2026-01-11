@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Construction;
@@ -254,15 +254,13 @@ internal sealed class Parser
         {
             Expect(TokenKind.LeftParenthesis);
 
-            var arglist = new List<GenericExpressionNode>();
-
-            if (!TryParseArgumentList(arglist))
+            if (!TryParseArgumentList(out var argumentList))
             {
                 result = null;
                 return false;
             }
 
-            result = new FunctionCallExpressionNode(current.Text, arglist);
+            result = new FunctionCallExpressionNode(current.Text, argumentList);
             return true;
         }
 
@@ -307,31 +305,38 @@ internal sealed class Parser
         return false;
     }
 
-    private bool TryParseArgumentList(List<GenericExpressionNode> argumentList)
+    private bool TryParseArgumentList(out ImmutableArray<GenericExpressionNode> result)
     {
         if (Same(TokenKind.RightParenthesis))
         {
+            result = [];
             return true;
         }
 
         if (!TryParseArgument(out var argument))
         {
+            result = default;
             return false;
         }
 
-        argumentList.Add(argument);
+        var builder = ImmutableArray.CreateBuilder<GenericExpressionNode>();
+
+        builder.Add(argument);
 
         while (Same(TokenKind.Comma))
         {
             if (!TryParseArgument(out argument))
             {
+                result = default;
                 return false;
             }
 
-            argumentList.Add(argument);
+            builder.Add(argument);
         }
 
         Expect(TokenKind.RightParenthesis);
+
+        result = builder.ToImmutable();
         return true;
     }
 

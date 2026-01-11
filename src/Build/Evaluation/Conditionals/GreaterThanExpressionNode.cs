@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Diagnostics;
 
 #nullable disable
 
@@ -11,7 +10,6 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 /// Compares for left > right
 /// </summary>
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class GreaterThanExpressionNode(GenericExpressionNode left, GenericExpressionNode right) : NumericComparisonExpressionNode(left, right)
 {
     /// <summary>
@@ -56,6 +54,6 @@ internal sealed class GreaterThanExpressionNode(GenericExpressionNode left, Gene
         return false;
     }
 
-    internal override string DebuggerDisplay
-        => $"(> {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
+    internal override string GetDebuggerDisplay()
+        => $"(> {Left.GetDebuggerDisplay()} {Right.GetDebuggerDisplay()})";
 }

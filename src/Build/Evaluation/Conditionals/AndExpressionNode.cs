@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation;
@@ -10,7 +9,6 @@ namespace Microsoft.Build.Evaluation;
 /// Performs logical AND on children
 /// Does not update conditioned properties table
 /// </summary>
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class AndExpressionNode : BinaryOperatorNode
 {
     public AndExpressionNode(GenericExpressionNode left, GenericExpressionNode right)
@@ -53,8 +51,8 @@ internal sealed class AndExpressionNode : BinaryOperatorNode
         return rightBool;
     }
 
-    internal override string DebuggerDisplay
-        => $"(and {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
+    internal override string GetDebuggerDisplay()
+        => $"(and {Left.GetDebuggerDisplay()} {Right.GetDebuggerDisplay()})";
 
     #region REMOVE_COMPAT_WARNING
 

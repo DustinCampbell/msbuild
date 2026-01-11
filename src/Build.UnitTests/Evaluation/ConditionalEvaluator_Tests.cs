@@ -123,6 +123,13 @@ public class ConditionalEvaluatorTests
                 data.Add($"{@true} == {@false} or {@true} == {@true}", true);
                 data.Add($"{@false} != {@true} and {@true} != {@false}", true);
                 data.Add($"({@true} == {@true}) and ({@false} == {@false})", true);
+
+                data.Add($"{@true} == 1", false);
+                data.Add($"{@false} == 0", false);
+                data.Add($"'{@true}' == 'true'", true);
+                data.Add($"'{@false}' == 'false'", true);
+                data.Add($"'{@true}' == '$(TrueValue)'", true);
+                data.Add($"'{@false}' == '$(FalseValue)'", true);
             }
         }
     }
@@ -133,6 +140,9 @@ public class ConditionalEvaluatorTests
     {
         var properties = new PropertyDictionary<ProjectPropertyInstance>();
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
+
+        properties.Set(ProjectPropertyInstance.Create(name: "TrueValue", escapedValue: "TRUE"));
+        properties.Set(ProjectPropertyInstance.Create(name: "FalseValue", escapedValue: "FALSE"));
 
         bool result = ConditionEvaluator.EvaluateCondition(
             expression,

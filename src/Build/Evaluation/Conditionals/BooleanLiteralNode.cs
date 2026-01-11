@@ -17,10 +17,10 @@ internal sealed class BooleanLiteralNode(string text, bool value) : OperandExpre
         return true;
     }
 
-    internal override string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => Text;
 
-    internal override string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => Text;
 
     internal override bool IsUnexpandedValueEmpty() => false;
@@ -37,6 +37,6 @@ internal sealed class BooleanLiteralNode(string text, bool value) : OperandExpre
         return false;
     }
 
-    internal override string DebuggerDisplay
+    internal override string GetDebuggerDisplay()
         => Value ? "(true)" : "(false)";
 }

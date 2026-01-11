@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation;
@@ -10,7 +9,6 @@ namespace Microsoft.Build.Evaluation;
 /// Performs logical NOT on left child
 /// Does not update conditioned properties table
 /// </summary>
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class NotExpressionNode(GenericExpressionNode left) : UnaryOperatorNode(left)
 {
     /// <summary>
@@ -46,6 +44,5 @@ internal sealed class NotExpressionNode(GenericExpressionNode left) : UnaryOpera
     internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => "!" + Expression.GetExpandedValue(state);
 
-    internal override string DebuggerDisplay
-        => $"(not {Expression.DebuggerDisplay})";
+    internal override string GetDebuggerDisplay() => $"(not {Expression.GetDebuggerDisplay()})";
 }

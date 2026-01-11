@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Shared;
 
@@ -10,6 +11,7 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 /// Base class for all expression nodes.
 /// </summary>
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 internal abstract class GenericExpressionNode
 {
     internal abstract bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result);
@@ -71,7 +73,7 @@ internal abstract class GenericExpressionNode
     /// <summary>
     /// Get display string for this node for use in the debugger.
     /// </summary>
-    internal abstract string DebuggerDisplay { get; }
+    internal abstract string GetDebuggerDisplay();
 
     #region REMOVE_COMPAT_WARNING
 

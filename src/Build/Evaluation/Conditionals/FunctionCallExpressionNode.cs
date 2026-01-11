@@ -3,31 +3,30 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
+using System.Runtime.InteropServices;
 using Microsoft.Build.Shared;
-
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
-
-#nullable disable
 
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Evaluates a function expression, such as "Exists('foo')"
+/// Evaluates a function expression, such as "Exists('foo')".
 /// </summary>
 internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
 {
-    private readonly List<GenericExpressionNode> _arguments;
+    private readonly ImmutableArray<GenericExpressionNode> _arguments;
     private readonly string _functionName;
 
-    public FunctionCallExpressionNode(string functionName, List<GenericExpressionNode> arguments)
+    public FunctionCallExpressionNode(string functionName, ImmutableArray<GenericExpressionNode> arguments)
     {
         _functionName = functionName;
         _arguments = arguments;
     }
 
     /// <summary>
-    /// Evaluate node as boolean
+    /// Evaluate node as boolean.
     /// </summary>
     internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
     {
@@ -41,13 +40,13 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
                 // Expand the items and use DefaultIfEmpty in case there is nothing returned
                 // Then check if everything is not null (because the list was empty), not
                 // already loaded into the cache, and exists
-                List<string> list = ExpandArgumentAsFileList(_arguments[0], state);
-                if (list == null)
+                ImmutableArray<string> list = ExpandArgumentAsFileList(_arguments[0], state);
+                if (list is [])
                 {
                     return false;
                 }
 
-                foreach (var item in list)
+                foreach (string item in list)
                 {
                     if (item == null || !(state.LoadedProjectsCache?.TryGet(item) != null || FileUtilities.FileOrDirectoryExistsNoThrow(item, state.FileSystem)))
                     {
@@ -69,7 +68,8 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
                 return false;
             }
         }
-        else if (string.Equals(_functionName, "HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
+
+        if (string.Equals(_functionName, "HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
         {
             // Check we only have one argument
             VerifyArgumentCount(1, state);
@@ -81,6 +81,7 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
             if (expandedValue.Length != 0)
             {
                 char lastCharacter = expandedValue[expandedValue.Length - 1];
+
                 // Either back or forward slashes satisfy the function: this is useful for URL's
                 return lastCharacter == Path.DirectorySeparatorChar || lastCharacter == Path.AltDirectorySeparatorChar || lastCharacter == '\\';
             }
@@ -89,17 +90,15 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
                 return false;
             }
         }
-        // We haven't implemented any other "functions"
-        else
-        {
-            ProjectErrorUtilities.ThrowInvalidProject(
-                state.ElementLocation,
-                "UndefinedFunctionCall",
-                state.Condition,
-                _functionName);
 
-            return false;
-        }
+        // We haven't implemented any other "functions"
+        ProjectErrorUtilities.ThrowInvalidProject(
+            state.ElementLocation,
+            "UndefinedFunctionCall",
+            state.Condition,
+            _functionName);
+
+        return false;
     }
 
     /// <summary>
@@ -117,7 +116,7 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
         ConditionEvaluator.IConditionEvaluationState state,
         bool isFilePath = true)
     {
-        string argument = argumentNode.GetUnexpandedValue(state);
+        string argument = argumentNode.GetUnexpandedValue(state)!;
 
         // Fix path before expansion
         if (isFilePath)
@@ -127,7 +126,7 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
 
         IList<TaskItem> items = state.ExpandIntoTaskItems(argument);
 
-        string expandedValue = String.Empty;
+        string expandedValue = string.Empty;
 
         if (items.Count == 0)
         {
@@ -149,9 +148,9 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
         return expandedValue;
     }
 
-    private List<string> ExpandArgumentAsFileList(GenericExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state, bool isFilePath = true)
+    private ImmutableArray<string> ExpandArgumentAsFileList(GenericExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state, bool isFilePath = true)
     {
-        string argument = argumentNode.GetUnexpandedValue(state);
+        string argument = argumentNode.GetUnexpandedValue(state)!;
 
         // Fix path before expansion
         if (isFilePath)
@@ -160,28 +159,28 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
         }
 
         IList<TaskItem> expanded = state.ExpandIntoTaskItems(argument);
-        var expandedCount = expanded.Count;
-
+        int expandedCount = expanded.Count;
         if (expandedCount == 0)
         {
-            return null;
+            return [];
         }
 
-        var list = new List<string>(capacity: expandedCount);
-        for (var i = 0; i < expandedCount; i++)
+        string[] array = new string[expandedCount];
+        for (int i = 0; i < expandedCount; i++)
         {
-            var item = expanded[i];
+            TaskItem item = expanded[i];
+
             if (state.EvaluationDirectory != null && !Path.IsPathRooted(item.ItemSpec))
             {
-                list.Add(Path.GetFullPath(Path.Combine(state.EvaluationDirectory, item.ItemSpec)));
+                array[i] = Path.GetFullPath(Path.Combine(state.EvaluationDirectory, item.ItemSpec));
             }
             else
             {
-                list.Add(item.ItemSpec);
+                array[i] = item.ItemSpec;
             }
         }
 
-        return list;
+        return ImmutableCollectionsMarshal.AsImmutableArray(array);
     }
 
     /// <summary>
@@ -190,18 +189,18 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
     private void VerifyArgumentCount(int expected, ConditionEvaluator.IConditionEvaluationState state)
     {
         ProjectErrorUtilities.VerifyThrowInvalidProject(
-            _arguments.Count == expected,
+            _arguments.Length == expected,
             state.ElementLocation,
             "IncorrectNumberOfFunctionArguments",
             state.Condition,
-            _arguments.Count,
+            _arguments.Length,
             expected);
     }
 
     internal override bool IsUnexpandedValueEmpty()
         => true;
 
-    internal override string DebuggerDisplay
+    internal override string GetDebuggerDisplay()
         => string.Empty;
 
     #region REMOVE_COMPAT_WARNING
