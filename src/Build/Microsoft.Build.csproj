@@ -509,6 +509,7 @@
     <Compile Include="Evaluation\Conditionals\Scanner.cs" />
     <Compile Include="Evaluation\Conditionals\StringExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Token.cs" />
+    <Compile Include="Evaluation\Conditionals\TokenKind.cs" />
     <Compile Include="Evaluation\EvaluatorMetadataTable.cs" />
     <Compile Include="Evaluation\IEvaluatorData.cs" />
     <Compile Include="Evaluation\IItem.cs" />
@@ -757,7 +758,8 @@
     </XmlPeek>
 
     <PropertyGroup>
-      <NuGetFrameworkWrapperRedirects_Content><![CDATA[
+      <NuGetFrameworkWrapperRedirects_Content>
+        <![CDATA[
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 

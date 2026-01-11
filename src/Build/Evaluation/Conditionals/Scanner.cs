@@ -91,14 +91,14 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        internal bool IsNext(Token.TokenType type)
+        internal bool IsNext(TokenKind type)
         {
-            return _lookahead.IsToken(type);
+            return _lookahead.IsKind(type);
         }
 
         internal string IsNextString()
         {
-            return _lookahead.String;
+            return _lookahead.Text;
         }
 
         internal Token CurrentToken
@@ -137,7 +137,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            if (_lookahead?.IsToken(Token.TokenType.EndOfInput) == true)
+            if (_lookahead?.IsKind(TokenKind.EndOfInput) == true)
             {
                 return true;
             }
@@ -415,7 +415,7 @@ namespace Microsoft.Build.Evaluation
             }
             else
             {
-                _lookahead = new Token(Token.TokenType.Property, propertyExpression);
+                _lookahead = Token.Property(propertyExpression);
                 return true;
             }
         }
@@ -439,7 +439,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            _lookahead = new Token(Token.TokenType.ItemMetadata, itemMetadataExpression);
+            _lookahead = Token.ItemMetadata(itemMetadataExpression);
 
             if (!CheckForUnexpectedMetadata(itemMetadataExpression))
             {
@@ -566,7 +566,7 @@ namespace Microsoft.Build.Evaluation
             {
                 return false;
             }
-            _lookahead = new Token(Token.TokenType.ItemList, _expression.Substring(start, _parsePoint - start));
+            _lookahead = Token.ItemList(_expression.Substring(start, _parsePoint - start));
             return true;
         }
 
@@ -651,7 +651,7 @@ namespace Microsoft.Build.Evaluation
             }
             string originalTokenString = _expression.Substring(start, _parsePoint - start);
 
-            _lookahead = new Token(Token.TokenType.String, originalTokenString, expandable);
+            _lookahead = Token.String(originalTokenString, expandable);
             _parsePoint++;
             return true;
         }
@@ -706,12 +706,12 @@ namespace Microsoft.Build.Evaluation
                 SkipWhiteSpace();
                 if (_parsePoint < _expression.Length && _expression[_parsePoint] == '(')
                 {
-                    _lookahead = new Token(Token.TokenType.Function, _expression.Substring(start, end - start));
+                    _lookahead = Token.Function(_expression.Substring(start, end - start));
                 }
                 else
                 {
                     string tokenValue = _expression.Substring(start, end - start);
-                    _lookahead = new Token(Token.TokenType.String, tokenValue);
+                    _lookahead = Token.String(tokenValue);
                 }
             }
             return true;
@@ -723,7 +723,7 @@ namespace Microsoft.Build.Evaluation
                 // Hex number
                 _parsePoint += 2;
                 SkipHexDigits();
-                _lookahead = new Token(Token.TokenType.Numeric, _expression.Substring(start, _parsePoint - start));
+                _lookahead = Token.Numeric(_expression.Substring(start, _parsePoint - start));
             }
             else if (CharacterUtilities.IsNumberStart(_expression[_parsePoint]))
             {
@@ -750,7 +750,7 @@ namespace Microsoft.Build.Evaluation
                 } while (_parsePoint < _expression.Length && _expression[_parsePoint] == '.');
                 // Do we need to error on malformed input like 0.00.00)? or will the conversion handle it?
                 // For now, let the conversion generate the error.
-                _lookahead = new Token(Token.TokenType.Numeric, _expression.Substring(start, _parsePoint - start));
+                _lookahead = Token.Numeric(_expression.Substring(start, _parsePoint - start));
             }
             else
             {

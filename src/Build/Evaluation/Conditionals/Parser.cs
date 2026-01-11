@@ -103,7 +103,7 @@ internal sealed class Parser
 
         GenericExpressionNode node = Expr();
 
-        Expect(Token.TokenType.EndOfInput);
+        Expect(TokenKind.EndOfInput);
 
         return node;
     }
@@ -116,7 +116,7 @@ internal sealed class Parser
     private GenericExpressionNode Expr()
     {
         GenericExpressionNode node = BooleanTerm();
-        if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+        if (!_lexer.IsNext(TokenKind.EndOfInput))
         {
             node = ExprPrime(node);
         }
@@ -140,7 +140,7 @@ internal sealed class Parser
 
     private GenericExpressionNode ExprPrime(GenericExpressionNode lhs)
     {
-        if (Same(Token.TokenType.Or))
+        if (Same(TokenKind.Or))
         {
             OperatorExpressionNode orNode = new OrExpressionNode();
             GenericExpressionNode rhs = BooleanTerm();
@@ -160,7 +160,7 @@ internal sealed class Parser
             ThrowUnexpectedTokenInCondition();
         }
 
-        if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+        if (!_lexer.IsNext(TokenKind.EndOfInput))
         {
             node = BooleanTermPrime(node);
         }
@@ -170,7 +170,7 @@ internal sealed class Parser
 
     private GenericExpressionNode BooleanTermPrime(GenericExpressionNode lhs)
     {
-        if (Same(Token.TokenType.And))
+        if (Same(TokenKind.And))
         {
             if (!TryParseRelationalExpression(out var rhs))
             {
@@ -218,27 +218,27 @@ internal sealed class Parser
     {
         result = null;
 
-        if (Same(Token.TokenType.LessThan))
+        if (Same(TokenKind.LessThan))
         {
             result = new LessThanExpressionNode();
         }
-        else if (Same(Token.TokenType.GreaterThan))
+        else if (Same(TokenKind.GreaterThan))
         {
             result = new GreaterThanExpressionNode();
         }
-        else if (Same(Token.TokenType.LessThanOrEqualTo))
+        else if (Same(TokenKind.LessThanOrEqualTo))
         {
             result = new LessThanOrEqualExpressionNode();
         }
-        else if (Same(Token.TokenType.GreaterThanOrEqualTo))
+        else if (Same(TokenKind.GreaterThanOrEqualTo))
         {
             result = new GreaterThanOrEqualExpressionNode();
         }
-        else if (Same(Token.TokenType.EqualTo))
+        else if (Same(TokenKind.EqualTo))
         {
             result = new EqualExpressionNode();
         }
-        else if (Same(Token.TokenType.NotEqualTo))
+        else if (Same(TokenKind.NotEqualTo))
         {
             result = new NotEqualExpressionNode();
         }
@@ -260,9 +260,9 @@ internal sealed class Parser
         Token current = _lexer.CurrentToken;
 
         // Function call
-        if (Same(Token.TokenType.Function))
+        if (Same(TokenKind.Function))
         {
-            Expect(Token.TokenType.LeftParenthesis);
+            Expect(TokenKind.LeftParenthesis);
 
             var arglist = new List<GenericExpressionNode>();
 
@@ -272,22 +272,22 @@ internal sealed class Parser
                 return false;
             }
 
-            result = new FunctionCallExpressionNode(current.String, arglist);
+            result = new FunctionCallExpressionNode(current.Text, arglist);
             return true;
         }
 
         // Parenthesized expression
-        if (Same(Token.TokenType.LeftParenthesis))
+        if (Same(TokenKind.LeftParenthesis))
         {
             GenericExpressionNode child = Expr();
-            Expect(Token.TokenType.RightParenthesis);
+            Expect(TokenKind.RightParenthesis);
 
             result = child;
             return true;
         }
 
         // Not expression
-        if (Same(Token.TokenType.Not))
+        if (Same(TokenKind.Not))
         {
             if (!TryParseFactor(out var expr))
             {
@@ -308,7 +308,7 @@ internal sealed class Parser
 
     private bool TryParseArgumentList(List<GenericExpressionNode> argumentList)
     {
-        if (Same(Token.TokenType.RightParenthesis))
+        if (Same(TokenKind.RightParenthesis))
         {
             return true;
         }
@@ -320,7 +320,7 @@ internal sealed class Parser
 
         argumentList.Add(argument);
 
-        while (Same(Token.TokenType.Comma))
+        while (Same(TokenKind.Comma))
         {
             if (!TryParseArgument(out argument))
             {
@@ -330,7 +330,7 @@ internal sealed class Parser
             argumentList.Add(argument);
         }
 
-        Expect(Token.TokenType.RightParenthesis);
+        Expect(TokenKind.RightParenthesis);
         return true;
     }
 
@@ -340,31 +340,31 @@ internal sealed class Parser
 
         result = null;
 
-        if (Same(Token.TokenType.String))
+        if (Same(TokenKind.String))
         {
-            result = new StringExpressionNode(current.String, current.Expandable);
+            result = new StringExpressionNode(current.Text, current.Expandable);
         }
-        else if (Same(Token.TokenType.Numeric))
+        else if (Same(TokenKind.Numeric))
         {
-            result = new NumericExpressionNode(current.String);
+            result = new NumericExpressionNode(current.Text);
         }
-        else if (Same(Token.TokenType.Property))
+        else if (Same(TokenKind.Property))
         {
-            result = new StringExpressionNode(current.String, expandable: true);
+            result = new StringExpressionNode(current.Text, expandable: true);
         }
-        else if (Same(Token.TokenType.ItemMetadata))
+        else if (Same(TokenKind.ItemMetadata))
         {
-            result = new StringExpressionNode(current.String, expandable: true);
+            result = new StringExpressionNode(current.Text, expandable: true);
         }
-        else if (Same(Token.TokenType.ItemList))
+        else if (Same(TokenKind.ItemList))
         {
-            result = new StringExpressionNode(current.String, expandable: true);
+            result = new StringExpressionNode(current.Text, expandable: true);
         }
 
         return result != null;
     }
 
-    private void Expect(Token.TokenType token)
+    private void Expect(TokenKind token)
     {
         if (!Same(token))
         {
@@ -372,7 +372,7 @@ internal sealed class Parser
         }
     }
 
-    private bool Same(Token.TokenType token)
+    private bool Same(TokenKind token)
         => _lexer.IsNext(token) && Advance();
 
     private bool Advance()
