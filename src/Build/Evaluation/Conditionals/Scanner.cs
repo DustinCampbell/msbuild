@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
+using System.Collections.Frozen;
 using System.Diagnostics;
 using Microsoft.Build.Shared;
 
@@ -21,6 +23,24 @@ namespace Microsoft.Build.Evaluation;
 /// </summary>
 internal sealed class Scanner
 {
+    private static readonly FrozenSet<string> s_truthyValues =
+        new[] { "true", "on", "yes", "!false", "!off", "!no" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly FrozenSet<string> s_falseyValues =
+        new[] { "false", "off", "no", "!true", "!on", "!yes" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly FrozenDictionary<string, Token> s_keywordMap = new Dictionary<string, Token>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "and", Token.And },
+        { "or", Token.Or },
+        { "true", Token.True },
+        { "false", Token.False },
+        { "on", Token.On },
+        { "off", Token.Off },
+        { "yes", Token.Yes },
+        { "no", Token.No },
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
     private readonly string _expression;
     private readonly ParserOptions _options;
 
@@ -572,7 +592,8 @@ internal sealed class Scanner
     {
         _position++;
         int start = _position;
-        bool expandable = false;
+        TokenFlags flags = TokenFlags.None;
+
         while (_position < _expression.Length && _expression[_position] != '\'')
         {
             // Standalone percent-sign must be allowed within a condition because it's
@@ -581,8 +602,8 @@ internal sealed class Scanner
             // that is only allowed in certain contexts.
             if ((_expression[_position] == '%') && ((_position + 1) < _expression.Length) && (_expression[_position + 1] == '('))
             {
-                expandable = true;
-                string name = String.Empty;
+                flags |= TokenFlags.Expandable;
+                string name = string.Empty;
 
                 int endOfName = _expression.IndexOf(')', _position) - 1;
                 if (endOfName < 0)
@@ -603,7 +624,7 @@ internal sealed class Scanner
             }
             else if (_expression[_position] == '@' && ((_position + 1) < _expression.Length) && (_expression[_position + 1] == '('))
             {
-                expandable = true;
+                flags |= TokenFlags.Expandable;
 
                 // If the caller specified that he DOESN'T want to allow item lists ...
                 if ((_options & ParserOptions.AllowItemLists) == 0)
@@ -624,12 +645,12 @@ internal sealed class Scanner
             }
             else if (_expression[_position] == '$' && ((_position + 1) < _expression.Length) && (_expression[_position + 1] == '('))
             {
-                expandable = true;
+                flags |= TokenFlags.Expandable;
             }
             else if (_expression[_position] == '%')
             {
                 // There may be some escaped characters in the expression
-                expandable = true;
+                flags |= TokenFlags.Expandable;
             }
 
             _position++;
@@ -647,7 +668,16 @@ internal sealed class Scanner
 
         string originalTokenString = _expression.Substring(start, _position - start);
 
-        _current = Token.String(originalTokenString, expandable);
+        if (s_truthyValues.Contains(originalTokenString))
+        {
+            flags |= TokenFlags.IsBooleanTrue;
+        }
+        else if (s_falseyValues.Contains(originalTokenString))
+        {
+            flags |= TokenFlags.IsBooleanFalse;
+        }
+
+        _current = Token.String(originalTokenString, flags);
         _position++;
         return true;
     }
@@ -690,29 +720,37 @@ internal sealed class Scanner
     {
         SkipSimpleStringChars();
 
-        if (_expression.AsSpan(start, _position - start).Equals("and".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        var span = _expression.AsSpan(start, _position - start);
+
+#if NET
+        if (s_keywordMap.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out Token? keywordToken))
         {
-            _current = Token.And;
+            _current = keywordToken;
+            return true;
         }
-        else if (_expression.AsSpan(start, _position - start).Equals("or".AsSpan(), StringComparison.OrdinalIgnoreCase))
+#else
+        foreach (KeyValuePair<string, Token> kvp in s_keywordMap)
         {
-            _current = Token.Or;
+            if (span.Equals(kvp.Key, StringComparison.OrdinalIgnoreCase))
+            {
+                _current = kvp.Value;
+                return true;
+            }
+        }
+#endif
+
+        int end = _position;
+
+        SkipWhiteSpace();
+
+        if (_position < _expression.Length && _expression[_position] == '(')
+        {
+            _current = Token.Function(_expression.Substring(start, end - start));
         }
         else
         {
-            int end = _position;
-
-            SkipWhiteSpace();
-
-            if (_position < _expression.Length && _expression[_position] == '(')
-            {
-                _current = Token.Function(_expression.Substring(start, end - start));
-            }
-            else
-            {
-                string tokenValue = _expression.Substring(start, end - start);
-                _current = Token.String(tokenValue);
-            }
+            string tokenValue = _expression.Substring(start, end - start);
+            _current = Token.String(tokenValue);
         }
 
         return true;

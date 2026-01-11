@@ -275,6 +275,74 @@ namespace Microsoft.Build.UnitTests
             Assert.Equal(Token.Or.Text, lexer.Current.Text);
         }
 
+        [Theory]
+        [InlineData("true", TokenKind.True)]
+        [InlineData("TRUE", TokenKind.True)]
+        [InlineData("false", TokenKind.False)]
+        [InlineData("FALSE", TokenKind.False)]
+        [InlineData("on", TokenKind.On)]
+        [InlineData("ON", TokenKind.On)]
+        [InlineData("off", TokenKind.Off)]
+        [InlineData("OFF", TokenKind.Off)]
+        [InlineData("yes", TokenKind.Yes)]
+        [InlineData("YES", TokenKind.Yes)]
+        [InlineData("no", TokenKind.No)]
+        [InlineData("NO", TokenKind.No)]
+        internal void BooleanLiterals(string expression, TokenKind expectedKind)
+        {
+            var scanner = new Scanner(expression, ParserOptions.AllowAll);
+            Assert.True(scanner.Advance());
+
+            var current = scanner.Current;
+            Assert.Equal(expectedKind, current.Kind);
+        }
+
+        [Theory]
+        [InlineData("'true'", true)]
+        [InlineData("'TRUE'", true)]
+        [InlineData("'false'", false)]
+        [InlineData("'FALSE'", false)]
+        [InlineData("'on'", true)]
+        [InlineData("'ON'", true)]
+        [InlineData("'off'", false)]
+        [InlineData("'OFF'", false)]
+        [InlineData("'yes'", true)]
+        [InlineData("'YES'", true)]
+        [InlineData("'no'", false)]
+        [InlineData("'NO'", false)]
+        [InlineData("'!true'", false)]
+        [InlineData("'!TRUE'", false)]
+        [InlineData("'!false'", true)]
+        [InlineData("'!FALSE'", true)]
+        [InlineData("'!on'", false)]
+        [InlineData("'!ON'", false)]
+        [InlineData("'!off'", true)]
+        [InlineData("'!OFF'", true)]
+        [InlineData("'!yes'", false)]
+        [InlineData("'!YES'", false)]
+        [InlineData("'!no'", true)]
+        [InlineData("'!NO'", true)]
+        public void BooleanStringLiterals(string expression, bool isTrue)
+        {
+            var scanner = new Scanner(expression, ParserOptions.AllowAll);
+            Assert.True(scanner.Advance());
+
+            var current = scanner.Current;
+            Assert.Equal(TokenKind.String, current.Kind);
+            Assert.False(current.IsExpandable);
+
+            if (isTrue)
+            {
+                Assert.False(current.IsBooleanFalse);
+                Assert.True(current.IsBooleanTrue);
+            }
+            else
+            {
+                Assert.True(current.IsBooleanFalse);
+                Assert.False(current.IsBooleanTrue);
+            }
+        }
+
         /// <summary>
         /// </summary>
         [Fact]
@@ -469,7 +537,7 @@ namespace Microsoft.Build.UnitTests
             lexer.Advance();
             Assert.True(lexer.IsCurrent(TokenKind.NotEqualTo));
             lexer.Advance();
-            Assert.True(lexer.IsCurrent(TokenKind.String));
+            Assert.True(lexer.IsCurrent(TokenKind.True));
             lexer.Advance();
             Assert.True(lexer.IsCurrent(TokenKind.EndOfInput));
 
@@ -507,9 +575,9 @@ namespace Microsoft.Build.UnitTests
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.GreaterThan));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.String));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.LessThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.String));
+            Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.False));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.GreaterThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.String));
+            Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.True));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.EqualTo));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.Numeric));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.NotEqualTo));
@@ -525,9 +593,9 @@ namespace Microsoft.Build.UnitTests
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.GreaterThan));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.String));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.LessThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.String));
+            Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.False));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.GreaterThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.String));
+            Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.True));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.EqualTo));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.Numeric));
             Assert.True(lexer.Advance() && lexer.IsCurrent(TokenKind.NotEqualTo));

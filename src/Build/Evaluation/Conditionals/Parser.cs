@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Evaluation.Conditionals;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
@@ -278,6 +279,20 @@ internal sealed class Parser
         // Not expression
         if (Same(TokenKind.Not))
         {
+            // If the next token is a boolean literal, we can simplify
+            if (_lexer.Current.IsBooleanTrue)
+            {
+                Advance();
+                result = new BooleanLiteralNode(_lexer.Current.Text, value: false);
+                return true;
+            }
+            else if (_lexer.Current.IsBooleanFalse)
+            {
+                Advance();
+                result = new BooleanLiteralNode(_lexer.Current.Text, value: true);
+                return true;
+            }
+
             if (!TryParseFactor(out var expr))
             {
                 result = null;
@@ -326,7 +341,9 @@ internal sealed class Parser
 
         result = current.Kind switch
         {
-            TokenKind.String => new StringExpressionNode(current.Text, current.Expandable),
+            TokenKind.True or TokenKind.On or TokenKind.Yes => new BooleanLiteralNode(current.Text, value: true),
+            TokenKind.False or TokenKind.Off or TokenKind.No => new BooleanLiteralNode(current.Text, value: false),
+            TokenKind.String => CreateFromStringToken(current),
             TokenKind.Numeric => new NumericExpressionNode(current.Text),
             TokenKind.Property => new StringExpressionNode(current.Text, expandable: true),
             TokenKind.ItemMetadata => new StringExpressionNode(current.Text, expandable: true),
@@ -335,6 +352,20 @@ internal sealed class Parser
         };
 
         return result != null && Advance();
+
+        static GenericExpressionNode CreateFromStringToken(Token token)
+        {
+            if (token.IsBooleanTrue)
+            {
+                return new BooleanLiteralNode(token.Text, value: true);
+            }
+            else if (token.IsBooleanFalse)
+            {
+                return new BooleanLiteralNode(token.Text, value: false);
+            }
+
+            return new StringExpressionNode(token.Text, token.IsExpandable);
+        }
     }
 
     private void Expect(TokenKind kind)

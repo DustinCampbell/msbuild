@@ -191,6 +191,8 @@
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
     <Compile Include="Evaluation\Conditionals\BinaryOperatorNode.cs" />
+    <Compile Include="Evaluation\Conditionals\BooleanLiteralNode.cs" />
+    <Compile Include="Evaluation\Conditionals\TokenFlags.cs" />
     <Compile Include="Evaluation\Conditionals\UnaryOperatorNode.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
@@ -517,7 +519,7 @@
     <Compile Include="Evaluation\IItem.cs" />
     <Compile Include="Evaluation\IItemDefinition.cs" />
     <Compile Include="Evaluation\IItemFactory.cs" />
-    <Compile Include="Evaluation\Conditionals\IItem.cs" />
+    <Compile Include="Evaluation\IItem`1.cs" />
     <Compile Include="Evaluation\IItemProvider.cs" />
     <Compile Include="Evaluation\IMetadataTable.cs" />
     <Compile Include="Evaluation\IntrinsicFunctions.cs" />

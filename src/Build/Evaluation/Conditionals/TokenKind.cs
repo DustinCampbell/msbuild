@@ -9,6 +9,7 @@ namespace Microsoft.Build.Evaluation;
 internal enum TokenKind
 {
     None,
+    EndOfInput,
 
     Comma,
     LeftParenthesis,
@@ -18,20 +19,25 @@ internal enum TokenKind
     GreaterThan,
     LessThanOrEqualTo,
     GreaterThanOrEqualTo,
+    EqualTo,
+    NotEqualTo,
+
+    Not,
 
     And,
     Or,
+    True,
+    False,
+    On,
+    Off,
+    Yes,
+    No,
 
-    EqualTo,
-    NotEqualTo,
-    Not,
-
-    Property,
-    String,
     Numeric,
+    String,
+
+    Function,
+    Property,
     ItemList,
     ItemMetadata,
-    Function,
-
-    EndOfInput,
 }
