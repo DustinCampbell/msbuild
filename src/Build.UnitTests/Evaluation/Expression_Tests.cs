@@ -16,7 +16,7 @@ using Xunit.Abstractions;
 
 #nullable disable
 
-namespace Microsoft.Build.UnitTests
+namespace Microsoft.Build.UnitTests.Evaluation
 {
     public class ExpressionTest : IDisposable
     {

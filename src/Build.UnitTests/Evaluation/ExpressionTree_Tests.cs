@@ -15,7 +15,7 @@ using Xunit;
 
 #nullable disable
 
-namespace Microsoft.Build.UnitTests
+namespace Microsoft.Build.UnitTests.Evaluation
 {
     public class ExpressionTreeTest
     {
