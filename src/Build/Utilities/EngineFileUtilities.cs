@@ -502,13 +502,16 @@ namespace Microsoft.Build.Internal
 
         private static void ThrowDriveEnumerationExceptionWithLoggingService(IElementLocation? includeLocation, string filespecUnescaped)
         {
-            ProjectErrorUtilities.ThrowInvalidProject(
-                includeLocation,
-                DriveEnumeratingWildcardMessageResourceName,
-                filespecUnescaped,
-                XMakeAttributes.include,
-                XMakeElements.itemGroup,
-                includeLocation?.LocationString ?? "");
+            if (includeLocation != null)
+            {
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    includeLocation,
+                    DriveEnumeratingWildcardMessageResourceName,
+                    filespecUnescaped,
+                    XMakeAttributes.include,
+                    XMakeElements.itemGroup,
+                    includeLocation?.LocationString ?? "");
+            }
         }
 
         private static void ThrowDriveEnumerationExceptionWithEvaluationLoggingContext(IElementLocation? importLocation, IElementLocation? includeLocation, IElementLocation? excludeLocation, string filespecUnescaped, string fileSpec, bool excludeFileSpecIsEmpty)
