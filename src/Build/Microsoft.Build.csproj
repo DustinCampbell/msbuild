@@ -190,6 +190,8 @@
     <Compile Include="BuildCheck\**\*.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Evaluation\Conditionals\BinaryOperatorNode.cs" />
+    <Compile Include="Evaluation\Conditionals\UnaryOperatorNode.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />

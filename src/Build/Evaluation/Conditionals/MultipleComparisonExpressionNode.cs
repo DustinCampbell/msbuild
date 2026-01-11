@@ -3,8 +3,6 @@
 
 using Microsoft.Build.Shared;
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
@@ -12,7 +10,7 @@ namespace Microsoft.Build.Evaluation;
 /// Order in which comparisons are attempted is numeric, boolean, then string.
 /// Updates conditioned properties table.
 /// </summary>
-internal abstract class MultipleComparisonNode(GenericExpressionNode left, GenericExpressionNode right) : OperatorExpressionNode(left, right)
+internal abstract class MultipleComparisonNode(GenericExpressionNode left, GenericExpressionNode right) : BinaryOperatorNode(left, right)
 {
     private bool _conditionedPropertiesUpdated = false;
 
@@ -39,10 +37,10 @@ internal abstract class MultipleComparisonNode(GenericExpressionNode left, Gener
     internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
     {
         ProjectErrorUtilities.VerifyThrowInvalidProject(
-            LeftChild != null && RightChild != null,
-             state.ElementLocation,
-             "IllFormedCondition",
-             state.Condition);
+            Left != null && Right != null,
+            state.ElementLocation,
+            "IllFormedCondition",
+            state.Condition);
 
         // It's sometimes possible to bail out of expansion early if we just need to know whether
         // the result is empty string.
@@ -55,20 +53,20 @@ internal abstract class MultipleComparisonNode(GenericExpressionNode left, Gener
         //  property is reasonable and should not be flagged by uninitialized reads detection.
         // So if at least one side is empty, we know to signal to PropertiesUseTracker to not flag in this scope.
         // The other side might not be property at all - that's fine, as then PropertiesUseTracker won't be even called.
-        if (LeftChild.IsUnexpandedValueEmpty() || RightChild.IsUnexpandedValueEmpty())
+        if (Left.IsUnexpandedValueEmpty() || Right.IsUnexpandedValueEmpty())
         {
             state.PropertiesUseTracker.PropertyReadContext = PropertyReadContext.ConditionEvaluationWithOneSideEmpty;
         }
 
-        bool leftEmpty = LeftChild.EvaluatesToEmpty(state);
-        bool rightEmpty = RightChild.EvaluatesToEmpty(state);
+        bool leftEmpty = Left.EvaluatesToEmpty(state);
+        bool rightEmpty = Right.EvaluatesToEmpty(state);
         if (leftEmpty || rightEmpty)
         {
             UpdateConditionedProperties(state);
 
             return Compare(leftEmpty, rightEmpty);
         }
-        else if (LeftChild.TryNumericEvaluate(state, out double leftNumericValue) && RightChild.TryNumericEvaluate(state, out double rightNumericValue))
+        else if (Left.TryNumericEvaluate(state, out double leftNumericValue) && Right.TryNumericEvaluate(state, out double rightNumericValue))
         {
             // The left child evaluating to a number and the right child not evaluating to a number
             // is insufficient to say they are not equal because $(MSBuildToolsVersion) evaluates to
@@ -78,19 +76,19 @@ internal abstract class MultipleComparisonNode(GenericExpressionNode left, Gener
             // is 17.0).
             return Compare(leftNumericValue, rightNumericValue);
         }
-        else if (LeftChild.TryBoolEvaluate(state, out bool leftBoolValue) && RightChild.TryBoolEvaluate(state, out bool rightBoolValue))
+        else if (Left.TryBoolEvaluate(state, out bool leftBoolValue) && Right.TryBoolEvaluate(state, out bool rightBoolValue))
         {
             return Compare(leftBoolValue, rightBoolValue);
         }
 
-        string leftExpandedValue = LeftChild.GetExpandedValue(state);
-        string rightExpandedValue = RightChild.GetExpandedValue(state);
+        string? leftExpandedValue = Left.GetExpandedValue(state);
+        string? rightExpandedValue = Right.GetExpandedValue(state);
 
         ProjectErrorUtilities.VerifyThrowInvalidProject(
             leftExpandedValue != null && rightExpandedValue != null,
-                state.ElementLocation,
-                "IllFormedCondition",
-                state.Condition);
+            state.ElementLocation,
+            "IllFormedCondition",
+            state.Condition);
 
         UpdateConditionedProperties(state);
 
@@ -116,23 +114,25 @@ internal abstract class MultipleComparisonNode(GenericExpressionNode left, Gener
     {
         if (!_conditionedPropertiesUpdated && state.ConditionedPropertiesInProject != null)
         {
-            string leftUnexpandedValue = LeftChild.GetUnexpandedValue(state);
-            string rightUnexpandedValue = RightChild.GetUnexpandedValue(state);
+            string? leftExpandedValue = Left.GetExpandedValue(state);
+            string? leftUnexpandedValue = Left.GetUnexpandedValue(state);
+            string? rightExpandedValue = Right.GetExpandedValue(state);
+            string? rightUnexpandedValue = Right.GetUnexpandedValue(state);
 
-            if (leftUnexpandedValue != null)
+            if (leftUnexpandedValue != null && rightExpandedValue != null)
             {
                 ConditionEvaluator.UpdateConditionedPropertiesTable(
                     state.ConditionedPropertiesInProject,
-                     leftUnexpandedValue,
-                     RightChild.GetExpandedValue(state));
+                    leftUnexpandedValue,
+                    rightExpandedValue);
             }
 
-            if (rightUnexpandedValue != null)
+            if (rightUnexpandedValue != null && leftExpandedValue != null)
             {
                 ConditionEvaluator.UpdateConditionedPropertiesTable(
                     state.ConditionedPropertiesInProject,
-                     rightUnexpandedValue,
-                     LeftChild.GetExpandedValue(state));
+                    rightUnexpandedValue,
+                    leftExpandedValue);
             }
 
             _conditionedPropertiesUpdated = true;

@@ -31,7 +31,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="leftValue">The raw value on the left side of the operator.</param>
         /// <param name="rightValueExpanded">The fully expanded value on the right side of the operator.</param>
         internal static void UpdateConditionedPropertiesTable(
-            Dictionary<string, List<string>> conditionedPropertiesTable,
+            Dictionary<string, List<string>>? conditionedPropertiesTable,
             string leftValue,
             string rightValueExpanded)
         {

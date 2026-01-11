@@ -4,8 +4,6 @@
 using System;
 using System.Diagnostics;
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
@@ -35,8 +33,9 @@ internal sealed class NotEqualExpressionNode(GenericExpressionNode left, Generic
     /// </summary>
     protected override bool Compare(string left, string right)
     {
-        return !String.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        return !string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     }
 
-    internal override string DebuggerDisplay => $"(!= {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
+    internal override string DebuggerDisplay
+        => $"(!= {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }

@@ -4,54 +4,48 @@
 using System.Diagnostics;
 using Microsoft.Build.Shared;
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+/// <summary>
+/// Performs logical NOT on left child
+/// Does not update conditioned properties table
+/// </summary>
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
+internal sealed class NotExpressionNode(GenericExpressionNode left) : UnaryOperatorNode(left)
 {
     /// <summary>
-    /// Performs logical NOT on left child
-    /// Does not update conditioned properties table
+    /// Evaluate as boolean.
     /// </summary>
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class NotExpressionNode(GenericExpressionNode left) : OperatorExpressionNode(left, rightChild: null)
+    internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
     {
-        /// <summary>
-        /// Evaluate as boolean
-        /// </summary>
-        internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        if (!Expression.TryBoolEvaluate(state, out bool boolValue))
         {
-            if (!LeftChild.TryBoolEvaluate(state, out bool boolValue))
-            {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    state.ElementLocation,
-                    "ExpressionDoesNotEvaluateToBoolean",
-                    LeftChild.GetUnexpandedValue(state),
-                    LeftChild.GetExpandedValue(state),
-                    state.Condition);
-            }
-
-            return !boolValue;
+            ProjectErrorUtilities.ThrowInvalidProject(
+                state.ElementLocation,
+                "ExpressionDoesNotEvaluateToBoolean",
+                Expression.GetUnexpandedValue(state),
+                Expression.GetExpandedValue(state),
+                state.Condition);
         }
 
-        /// <summary>
-        /// Returns unexpanded value with '!' prepended. Useful for error messages.
-        /// </summary>
-        internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            return "!" + LeftChild.GetUnexpandedValue(state);
-        }
-
-        /// <inheritdoc cref="GenericExpressionNode"/>
-        internal override bool IsUnexpandedValueEmpty() => false;
-
-        /// <summary>
-        /// Returns expanded value with '!' prepended. Useful for error messages.
-        /// </summary>
-        internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            return "!" + LeftChild.GetExpandedValue(state);
-        }
-
-        internal override string DebuggerDisplay => $"(not {LeftChild.DebuggerDisplay})";
+        return !boolValue;
     }
+
+    /// <summary>
+    /// Returns unexpanded value with '!' prepended. Useful for error messages.
+    /// </summary>
+    internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+        => "!" + Expression.GetUnexpandedValue(state);
+
+    /// <inheritdoc cref="GenericExpressionNode"/>
+    internal override bool IsUnexpandedValueEmpty() => false;
+
+    /// <summary>
+    /// Returns expanded value with '!' prepended. Useful for error messages.
+    /// </summary>
+    internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+        => "!" + Expression.GetExpandedValue(state);
+
+    internal override string DebuggerDisplay
+        => $"(not {Expression.DebuggerDisplay})";
 }

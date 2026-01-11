@@ -4,39 +4,23 @@
 using System;
 using System.Diagnostics;
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Compares for equality
+/// Compares for equality.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class EqualExpressionNode(GenericExpressionNode left, GenericExpressionNode right) : MultipleComparisonNode(left, right)
 {
-    /// <summary>
-    /// Compare numbers
-    /// </summary>
     protected override bool Compare(double left, double right)
-    {
-        return left == right;
-    }
+        => left == right;
 
-    /// <summary>
-    /// Compare booleans
-    /// </summary>
     protected override bool Compare(bool left, bool right)
-    {
-        return left == right;
-    }
+        => left == right;
 
-    /// <summary>
-    /// Compare strings
-    /// </summary>
     protected override bool Compare(string left, string right)
-    {
-        return String.Equals(left, right, StringComparison.OrdinalIgnoreCase);
-    }
+        => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
-    internal override string DebuggerDisplay => $"(== {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
+    internal override string DebuggerDisplay
+        => $"(== {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }

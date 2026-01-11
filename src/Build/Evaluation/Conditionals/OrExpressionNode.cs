@@ -4,8 +4,6 @@
 using System.Diagnostics;
 using Microsoft.Build.Shared;
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
@@ -13,20 +11,26 @@ namespace Microsoft.Build.Evaluation;
 /// Does not update conditioned properties table
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class OrExpressionNode(GenericExpressionNode left, GenericExpressionNode right) : OperatorExpressionNode(left, right)
+internal sealed class OrExpressionNode : BinaryOperatorNode
 {
+    public OrExpressionNode(GenericExpressionNode left, GenericExpressionNode right)
+        : base(left, right)
+    {
+        PossibleOrCollision = true;
+    }
+
     /// <summary>
     /// Evaluate as boolean
     /// </summary>
     internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
     {
-        if (!LeftChild.TryBoolEvaluate(state, out bool leftBool))
+        if (!Left.TryBoolEvaluate(state, out bool leftBool))
         {
             ProjectErrorUtilities.ThrowInvalidProject(
                 state.ElementLocation,
                 "ExpressionDoesNotEvaluateToBoolean",
-                LeftChild.GetUnexpandedValue(state),
-                LeftChild.GetExpandedValue(state),
+                Left.GetUnexpandedValue(state),
+                Left.GetExpandedValue(state),
                 state.Condition);
         }
 
@@ -35,30 +39,26 @@ internal sealed class OrExpressionNode(GenericExpressionNode left, GenericExpres
             // Short circuit
             return true;
         }
-        else
-        {
-            if (!RightChild.TryBoolEvaluate(state, out bool rightBool))
-            {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    state.ElementLocation,
-                    "ExpressionDoesNotEvaluateToBoolean",
-                    RightChild.GetUnexpandedValue(state),
-                    RightChild.GetExpandedValue(state),
-                    state.Condition);
-            }
 
-            return rightBool;
+        if (!Right.TryBoolEvaluate(state, out bool rightBool))
+        {
+            ProjectErrorUtilities.ThrowInvalidProject(
+                state.ElementLocation,
+                "ExpressionDoesNotEvaluateToBoolean",
+                Right.GetUnexpandedValue(state),
+                Right.GetExpandedValue(state),
+                state.Condition);
         }
+
+        return rightBool;
     }
 
-    internal override string DebuggerDisplay => $"(or {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
+    internal override string DebuggerDisplay
+        => $"(or {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 
     #region REMOVE_COMPAT_WARNING
-    private bool _possibleOrCollision = true;
-    internal override bool PossibleOrCollision
-    {
-        set { _possibleOrCollision = value; }
-        get { return _possibleOrCollision; }
-    }
+
+    internal override bool PossibleOrCollision { get; set; }
+
     #endregion
 }

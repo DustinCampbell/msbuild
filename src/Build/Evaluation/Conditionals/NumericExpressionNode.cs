@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation
@@ -32,17 +33,16 @@ namespace Microsoft.Build.Evaluation
             return ConversionUtilities.TryConvertDecimalOrHexToDouble(_value, out result);
         }
 
-        internal override bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, out Version? result)
+        internal override bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, [NotNullWhen(true)] out Version? result)
         {
             return Version.TryParse(_value, out result);
         }
 
         /// <inheritdoc cref="GenericExpressionNode"/>
-        internal override bool IsUnexpandedValueEmpty()
-            => false;
+        internal override bool IsUnexpandedValueEmpty() => false;
 
         /// <summary>
-        /// Get the unexpanded value
+        /// Get the unexpanded value.
         /// </summary>
         internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         {
@@ -50,7 +50,7 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// Get the expanded value
+        /// Get the expanded value.
         /// </summary>
         internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         {

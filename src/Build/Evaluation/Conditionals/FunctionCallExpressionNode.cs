@@ -20,8 +20,7 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
     private readonly List<GenericExpressionNode> _arguments;
     private readonly string _functionName;
 
-    internal FunctionCallExpressionNode(string functionName, List<GenericExpressionNode> arguments)
-        : base(leftChild: null, rightChild: null)
+    public FunctionCallExpressionNode(string functionName, List<GenericExpressionNode> arguments)
     {
         _functionName = functionName;
         _arguments = arguments;
@@ -32,7 +31,7 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
     /// </summary>
     internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
     {
-        if (String.Equals(_functionName, "exists", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(_functionName, "exists", StringComparison.OrdinalIgnoreCase))
         {
             // Check we only have one argument
             VerifyArgumentCount(1, state);
@@ -70,7 +69,7 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
                 return false;
             }
         }
-        else if (String.Equals(_functionName, "HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(_functionName, "HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
         {
             // Check we only have one argument
             VerifyArgumentCount(1, state);
@@ -112,7 +111,10 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
     /// <param name="state"></param>
     /// <param name="isFilePath">True if this is afile name and the path should be normalized</param>
     /// <returns>Scalar result</returns>
-    private static string ExpandArgumentForScalarParameter(string function, GenericExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state,
+    private static string ExpandArgumentForScalarParameter(
+        string function,
+        GenericExpressionNode argumentNode,
+        ConditionEvaluator.IConditionEvaluationState state,
         bool isFilePath = true)
     {
         string argument = argumentNode.GetUnexpandedValue(state);
@@ -189,10 +191,41 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
     {
         ProjectErrorUtilities.VerifyThrowInvalidProject(
             _arguments.Count == expected,
-             state.ElementLocation,
-             "IncorrectNumberOfFunctionArguments",
-             state.Condition,
-             _arguments.Count,
-             expected);
+            state.ElementLocation,
+            "IncorrectNumberOfFunctionArguments",
+            state.Condition,
+            _arguments.Count,
+            expected);
     }
+
+    internal override bool IsUnexpandedValueEmpty()
+        => true;
+
+    internal override string DebuggerDisplay
+        => string.Empty;
+
+    #region REMOVE_COMPAT_WARNING
+
+    internal override bool DetectAnd()
+    {
+        // Read the state of the current node
+        bool detectedAnd = PossibleAndCollision;
+
+        // Reset the flags on the current node
+        PossibleAndCollision = false;
+
+        return detectedAnd;
+    }
+
+    internal override bool DetectOr()
+    {
+        // Read the state of the current node
+        bool detectedOr = PossibleOrCollision;
+        // Reset the flags on the current node
+        PossibleOrCollision = false;
+
+        return detectedOr;
+    }
+
+    #endregion
 }

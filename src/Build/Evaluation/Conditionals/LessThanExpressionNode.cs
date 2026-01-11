@@ -4,8 +4,6 @@
 using System;
 using System.Diagnostics;
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
@@ -21,9 +19,7 @@ internal sealed class LessThanExpressionNode(GenericExpressionNode left, Generic
     /// <param name="right">right input</param>
     /// <returns>true if right is higher than left, false otherwise</returns>
     protected override bool Compare(double left, double right)
-    {
-        return left < right;
-    }
+        => left < right;
 
     /// <summary>
     /// Compare Versions. This is only intended to compare version formats like "A.B.C.D" which can otherwise not be compared numerically
@@ -32,9 +28,7 @@ internal sealed class LessThanExpressionNode(GenericExpressionNode left, Generic
     /// <param name="right">right version</param>
     /// <returns>true if right version is higher than left, false otherwise</returns>
     protected override bool Compare(Version left, Version right)
-    {
-        return left < right;
-    }
+        => left < right;
 
     /// <summary>
     /// Compare mixed numbers and Versions
@@ -72,5 +66,6 @@ internal sealed class LessThanExpressionNode(GenericExpressionNode left, Generic
         return true;
     }
 
-    internal override string DebuggerDisplay => $"(< {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
+    internal override string DebuggerDisplay
+        => $"(< {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }
