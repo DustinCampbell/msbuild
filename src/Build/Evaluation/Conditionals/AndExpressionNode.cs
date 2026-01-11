@@ -6,60 +6,59 @@ using Microsoft.Build.Shared;
 
 #nullable disable
 
-namespace Microsoft.Build.Evaluation
+namespace Microsoft.Build.Evaluation;
+
+/// <summary>
+/// Performs logical AND on children
+/// Does not update conditioned properties table
+/// </summary>
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
+internal sealed class AndExpressionNode(GenericExpressionNode left, GenericExpressionNode right) : OperatorExpressionNode(left, right)
 {
     /// <summary>
-    /// Performs logical AND on children
-    /// Does not update conditioned properties table
+    /// Evaluate as boolean
     /// </summary>
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class AndExpressionNode : OperatorExpressionNode
+    internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
     {
-        /// <summary>
-        /// Evaluate as boolean
-        /// </summary>
-        internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        if (!LeftChild.TryBoolEvaluate(state, out bool leftBool))
         {
-            if (!LeftChild.TryBoolEvaluate(state, out bool leftBool))
+            ProjectErrorUtilities.ThrowInvalidProject(
+                 state.ElementLocation,
+                 "ExpressionDoesNotEvaluateToBoolean",
+                 LeftChild.GetUnexpandedValue(state),
+                 LeftChild.GetExpandedValue(state),
+                 state.Condition);
+        }
+
+        if (!leftBool)
+        {
+            // Short circuit
+            return false;
+        }
+        else
+        {
+            if (!RightChild.TryBoolEvaluate(state, out bool rightBool))
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                      state.ElementLocation,
                      "ExpressionDoesNotEvaluateToBoolean",
-                     LeftChild.GetUnexpandedValue(state),
-                     LeftChild.GetExpandedValue(state),
+                     RightChild.GetUnexpandedValue(state),
+                     RightChild.GetExpandedValue(state),
                      state.Condition);
             }
 
-            if (!leftBool)
-            {
-                // Short circuit
-                return false;
-            }
-            else
-            {
-                if (!RightChild.TryBoolEvaluate(state, out bool rightBool))
-                {
-                    ProjectErrorUtilities.ThrowInvalidProject(
-                         state.ElementLocation,
-                         "ExpressionDoesNotEvaluateToBoolean",
-                         RightChild.GetUnexpandedValue(state),
-                         RightChild.GetExpandedValue(state),
-                         state.Condition);
-                }
-
-                return rightBool;
-            }
+            return rightBool;
         }
-
-        internal override string DebuggerDisplay => $"(and {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
-
-        #region REMOVE_COMPAT_WARNING
-        private bool _possibleAndCollision = true;
-        internal override bool PossibleAndCollision
-        {
-            set { _possibleAndCollision = value; }
-            get { return _possibleAndCollision; }
-        }
-        #endregion
     }
+
+    internal override string DebuggerDisplay => $"(and {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
+
+    #region REMOVE_COMPAT_WARNING
+    private bool _possibleAndCollision = true;
+    internal override bool PossibleAndCollision
+    {
+        set { _possibleAndCollision = value; }
+        get { return _possibleAndCollision; }
+    }
+    #endregion
 }

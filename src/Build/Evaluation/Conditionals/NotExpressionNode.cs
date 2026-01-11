@@ -13,7 +13,7 @@ namespace Microsoft.Build.Evaluation
     /// Does not update conditioned properties table
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class NotExpressionNode : OperatorExpressionNode
+    internal sealed class NotExpressionNode(GenericExpressionNode left) : OperatorExpressionNode(left, rightChild: null)
     {
         /// <summary>
         /// Evaluate as boolean

@@ -142,10 +142,8 @@ internal sealed class Parser
     {
         if (Same(TokenKind.Or))
         {
-            OperatorExpressionNode orNode = new OrExpressionNode();
             GenericExpressionNode rhs = BooleanTerm();
-            orNode.LeftChild = lhs;
-            orNode.RightChild = rhs;
+            var orNode = new OrExpressionNode(lhs, rhs);
 
             return ExprPrime(orNode);
         }
@@ -177,9 +175,7 @@ internal sealed class Parser
                 ThrowUnexpectedTokenInCondition();
             }
 
-            OperatorExpressionNode andNode = new AndExpressionNode();
-            andNode.LeftChild = lhs;
-            andNode.RightChild = rhs;
+            var andNode = new AndExpressionNode(lhs, rhs);
 
             return BooleanTermPrime(andNode);
         }
@@ -207,12 +203,7 @@ internal sealed class Parser
             return false;
         }
 
-        var node = CreateOperatorNode(op);
-
-        node.LeftChild = lhs;
-        node.RightChild = rhs;
-
-        result = node;
+        result = CreateOperatorNode(op, lhs, rhs);
         return true;
     }
 
@@ -232,16 +223,17 @@ internal sealed class Parser
         return op != TokenKind.None && Advance();
     }
 
-    private static OperatorExpressionNode CreateOperatorNode(TokenKind op) => op switch
-    {
-        TokenKind.LessThan => new LessThanExpressionNode(),
-        TokenKind.GreaterThan => new GreaterThanExpressionNode(),
-        TokenKind.LessThanOrEqualTo => new LessThanOrEqualExpressionNode(),
-        TokenKind.GreaterThanOrEqualTo => new GreaterThanOrEqualExpressionNode(),
-        TokenKind.EqualTo => new EqualExpressionNode(),
-        TokenKind.NotEqualTo => new NotEqualExpressionNode(),
-        _ => ErrorUtilities.ThrowInternalErrorUnreachable<OperatorExpressionNode>(),
-    };
+    private static OperatorExpressionNode CreateOperatorNode(TokenKind op, GenericExpressionNode lhs, GenericExpressionNode rhs)
+        => op switch
+        {
+            TokenKind.LessThan => new LessThanExpressionNode(lhs, rhs),
+            TokenKind.GreaterThan => new GreaterThanExpressionNode(lhs, rhs),
+            TokenKind.LessThanOrEqualTo => new LessThanOrEqualExpressionNode(lhs, rhs),
+            TokenKind.GreaterThanOrEqualTo => new GreaterThanOrEqualExpressionNode(lhs, rhs),
+            TokenKind.EqualTo => new EqualExpressionNode(lhs, rhs),
+            TokenKind.NotEqualTo => new NotEqualExpressionNode(lhs, rhs),
+            _ => ErrorUtilities.ThrowInternalErrorUnreachable<OperatorExpressionNode>(),
+        };
 
     private bool TryParseFactor([NotNullWhen(true)] out GenericExpressionNode? result)
     {
@@ -292,10 +284,7 @@ internal sealed class Parser
                 return false;
             }
 
-            OperatorExpressionNode notNode = new NotExpressionNode();
-            notNode.LeftChild = expr;
-
-            result = notNode;
+            result = new NotExpressionNode(expr);
             return true;
         }
 

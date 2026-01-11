@@ -6,38 +6,37 @@ using System.Diagnostics;
 
 #nullable disable
 
-namespace Microsoft.Build.Evaluation
+namespace Microsoft.Build.Evaluation;
+
+/// <summary>
+/// Compares for equality
+/// </summary>
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
+internal sealed class EqualExpressionNode(GenericExpressionNode left, GenericExpressionNode right) : MultipleComparisonNode(left, right)
 {
     /// <summary>
-    /// Compares for equality
+    /// Compare numbers
     /// </summary>
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class EqualExpressionNode : MultipleComparisonNode
+    protected override bool Compare(double left, double right)
     {
-        /// <summary>
-        /// Compare numbers
-        /// </summary>
-        protected override bool Compare(double left, double right)
-        {
-            return left == right;
-        }
-
-        /// <summary>
-        /// Compare booleans
-        /// </summary>
-        protected override bool Compare(bool left, bool right)
-        {
-            return left == right;
-        }
-
-        /// <summary>
-        /// Compare strings
-        /// </summary>
-        protected override bool Compare(string left, string right)
-        {
-            return String.Equals(left, right, StringComparison.OrdinalIgnoreCase);
-        }
-
-        internal override string DebuggerDisplay => $"(== {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
+        return left == right;
     }
+
+    /// <summary>
+    /// Compare booleans
+    /// </summary>
+    protected override bool Compare(bool left, bool right)
+    {
+        return left == right;
+    }
+
+    /// <summary>
+    /// Compare strings
+    /// </summary>
+    protected override bool Compare(string left, string right)
+    {
+        return String.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal override string DebuggerDisplay => $"(== {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
 }
