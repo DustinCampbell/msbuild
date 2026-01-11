@@ -13,6 +13,7 @@ namespace Microsoft.Build.Evaluation;
 /// </summary>
 internal sealed class Token
 {
+    public static readonly Token None = new(TokenKind.None);
     public static readonly Token Comma = new(TokenKind.Comma);
     public static readonly Token LeftParenthesis = new(TokenKind.LeftParenthesis);
     public static readonly Token RightParenthesis = new(TokenKind.RightParenthesis);

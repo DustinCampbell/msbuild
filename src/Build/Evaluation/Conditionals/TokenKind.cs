@@ -8,6 +8,8 @@ namespace Microsoft.Build.Evaluation;
 /// </summary>
 internal enum TokenKind
 {
+    None,
+
     Comma,
     LeftParenthesis,
     RightParenthesis,

@@ -116,7 +116,7 @@ internal sealed class Parser
     private GenericExpressionNode Expr()
     {
         GenericExpressionNode node = BooleanTerm();
-        if (!_lexer.IsNext(TokenKind.EndOfInput))
+        if (!_lexer.IsCurrent(TokenKind.EndOfInput))
         {
             node = ExprPrime(node);
         }
@@ -160,7 +160,7 @@ internal sealed class Parser
             ThrowUnexpectedTokenInCondition();
         }
 
-        if (!_lexer.IsNext(TokenKind.EndOfInput))
+        if (!_lexer.IsCurrent(TokenKind.EndOfInput))
         {
             node = BooleanTermPrime(node);
         }
@@ -195,7 +195,7 @@ internal sealed class Parser
             return false;
         }
 
-        if (!TryParseRelationalOperation(out var node))
+        if (!TryParseRelationalOperator(out var op))
         {
             result = lhs;
             return true;
@@ -207,6 +207,8 @@ internal sealed class Parser
             return false;
         }
 
+        var node = CreateOperatorNode(op);
+
         node.LeftChild = lhs;
         node.RightChild = rhs;
 
@@ -214,37 +216,32 @@ internal sealed class Parser
         return true;
     }
 
-    private bool TryParseRelationalOperation([NotNullWhen(true)] out OperatorExpressionNode? result)
+    private bool TryParseRelationalOperator(out TokenKind op)
     {
-        result = null;
+        op = _lexer.Current.Kind switch
+        {
+            TokenKind.LessThan => TokenKind.LessThan,
+            TokenKind.GreaterThan => TokenKind.GreaterThan,
+            TokenKind.LessThanOrEqualTo => TokenKind.LessThanOrEqualTo,
+            TokenKind.GreaterThanOrEqualTo => TokenKind.GreaterThanOrEqualTo,
+            TokenKind.EqualTo => TokenKind.EqualTo,
+            TokenKind.NotEqualTo => TokenKind.NotEqualTo,
+            _ => TokenKind.None,
+        };
 
-        if (Same(TokenKind.LessThan))
-        {
-            result = new LessThanExpressionNode();
-        }
-        else if (Same(TokenKind.GreaterThan))
-        {
-            result = new GreaterThanExpressionNode();
-        }
-        else if (Same(TokenKind.LessThanOrEqualTo))
-        {
-            result = new LessThanOrEqualExpressionNode();
-        }
-        else if (Same(TokenKind.GreaterThanOrEqualTo))
-        {
-            result = new GreaterThanOrEqualExpressionNode();
-        }
-        else if (Same(TokenKind.EqualTo))
-        {
-            result = new EqualExpressionNode();
-        }
-        else if (Same(TokenKind.NotEqualTo))
-        {
-            result = new NotEqualExpressionNode();
-        }
-
-        return result != null;
+        return op != TokenKind.None && Advance();
     }
+
+    private static OperatorExpressionNode CreateOperatorNode(TokenKind op) => op switch
+    {
+        TokenKind.LessThan => new LessThanExpressionNode(),
+        TokenKind.GreaterThan => new GreaterThanExpressionNode(),
+        TokenKind.LessThanOrEqualTo => new LessThanOrEqualExpressionNode(),
+        TokenKind.GreaterThanOrEqualTo => new GreaterThanOrEqualExpressionNode(),
+        TokenKind.EqualTo => new EqualExpressionNode(),
+        TokenKind.NotEqualTo => new NotEqualExpressionNode(),
+        _ => ErrorUtilities.ThrowInternalErrorUnreachable<OperatorExpressionNode>(),
+    };
 
     private bool TryParseFactor([NotNullWhen(true)] out GenericExpressionNode? result)
     {
@@ -257,7 +254,7 @@ internal sealed class Parser
         }
 
         // If it's not one of those, check for other TokenTypes.
-        Token current = _lexer.CurrentToken;
+        Token current = _lexer.Current;
 
         // Function call
         if (Same(TokenKind.Function))
@@ -336,44 +333,31 @@ internal sealed class Parser
 
     private bool TryParseArgument([NotNullWhen(true)] out GenericExpressionNode? result)
     {
-        Token current = _lexer.CurrentToken;
+        Token current = _lexer.Current;
 
-        result = null;
+        result = current.Kind switch
+        {
+            TokenKind.String => new StringExpressionNode(current.Text, current.Expandable),
+            TokenKind.Numeric => new NumericExpressionNode(current.Text),
+            TokenKind.Property => new StringExpressionNode(current.Text, expandable: true),
+            TokenKind.ItemMetadata => new StringExpressionNode(current.Text, expandable: true),
+            TokenKind.ItemList => new StringExpressionNode(current.Text, expandable: true),
+            _ => null,
+        };
 
-        if (Same(TokenKind.String))
-        {
-            result = new StringExpressionNode(current.Text, current.Expandable);
-        }
-        else if (Same(TokenKind.Numeric))
-        {
-            result = new NumericExpressionNode(current.Text);
-        }
-        else if (Same(TokenKind.Property))
-        {
-            result = new StringExpressionNode(current.Text, expandable: true);
-        }
-        else if (Same(TokenKind.ItemMetadata))
-        {
-            result = new StringExpressionNode(current.Text, expandable: true);
-        }
-        else if (Same(TokenKind.ItemList))
-        {
-            result = new StringExpressionNode(current.Text, expandable: true);
-        }
-
-        return result != null;
+        return result != null && Advance();
     }
 
-    private void Expect(TokenKind token)
+    private void Expect(TokenKind kind)
     {
-        if (!Same(token))
+        if (!Same(kind))
         {
             ThrowUnexpectedTokenInCondition();
         }
     }
 
-    private bool Same(TokenKind token)
-        => _lexer.IsNext(token) && Advance();
+    private bool Same(TokenKind kind)
+        => _lexer.IsCurrent(kind) && Advance();
 
     private bool Advance()
     {
@@ -400,6 +384,6 @@ internal sealed class Parser
     private void ThrowUnexpectedTokenInCondition()
     {
         errorPosition = _lexer.GetErrorPosition();
-        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, _lexer.IsNextString(), errorPosition);
+        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, _lexer.Current.Text, errorPosition);
     }
 }
