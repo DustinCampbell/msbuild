@@ -3,390 +3,403 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using ElementLocation = Microsoft.Build.Construction.ElementLocation;
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+[Flags]
+internal enum ParserOptions
 {
-    [Flags]
-    internal enum ParserOptions
-    {
-        None = 0x0,
-        AllowProperties = 0x1,
-        AllowItemLists = 0x2,
-        AllowPropertiesAndItemLists = AllowProperties | AllowItemLists,
-        AllowBuiltInMetadata = 0x4,
-        AllowCustomMetadata = 0x8,
-        AllowItemMetadata = AllowBuiltInMetadata | AllowCustomMetadata,
-        AllowPropertiesAndItemMetadata = AllowProperties | AllowItemMetadata,
-        AllowPropertiesAndCustomMetadata = AllowProperties | AllowCustomMetadata,
-        AllowAll = AllowProperties | AllowItemLists | AllowItemMetadata
-    };
+    None = 0x0,
+    AllowProperties = 0x1,
+    AllowItemLists = 0x2,
+    AllowPropertiesAndItemLists = AllowProperties | AllowItemLists,
+    AllowBuiltInMetadata = 0x4,
+    AllowCustomMetadata = 0x8,
+    AllowItemMetadata = AllowBuiltInMetadata | AllowCustomMetadata,
+    AllowPropertiesAndItemMetadata = AllowProperties | AllowItemMetadata,
+    AllowPropertiesAndCustomMetadata = AllowProperties | AllowCustomMetadata,
+    AllowAll = AllowProperties | AllowItemLists | AllowItemMetadata
+};
+
+/// <summary>
+/// This class implements the grammar for complex conditionals.
+///
+/// The usage is:
+///    Parser p = new Parser(CultureInfo);
+///    ExpressionTree t = p.Parse(expression, XmlNode);
+///
+/// The expression tree can then be evaluated and re-evaluated as needed.
+/// </summary>
+/// <remarks>
+/// UNDONE: When we copied over the conditionals code, we didn't copy over the unit tests for scanner, parser, and expression tree.
+/// </remarks>
+internal sealed class Parser
+{
+    private readonly string _expression;
+    private readonly ElementLocation _elementLocation;
+    private readonly Scanner _lexer;
+
+    internal int errorPosition = 0; // useful for unit tests
+
+    #region REMOVE_COMPAT_WARNING
+
+    private bool _warnedForExpression;
 
     /// <summary>
-    /// This class implements the grammar for complex conditionals.
-    ///
-    /// The usage is:
-    ///    Parser p = new Parser(CultureInfo);
-    ///    ExpressionTree t = p.Parse(expression, XmlNode);
-    ///
-    /// The expression tree can then be evaluated and re-evaluated as needed.
+    ///  Engine Logging Service reference where events will be logged to.
     /// </summary>
-    /// <remarks>
-    /// UNDONE: When we copied over the conditionals code, we didn't copy over the unit tests for scanner, parser, and expression tree.
-    /// </remarks>
-    internal sealed class Parser
-    {
-        private readonly string _expression;
-        private readonly ElementLocation _elementLocation;
-        private readonly Scanner _lexer;
+    private readonly ILoggingService? _loggingServices;
 
-        internal int errorPosition = 0; // useful for unit tests
+    /// <summary>
+    ///  Location contextual information which are attached to logging events to
+    ///  say where they are in relation to the process, engine, project, target,task which is executing.
+    /// </summary>
+    private readonly BuildEventContext _logBuildEventContext;
+
+    #endregion
+
+    public Parser(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext? loggingContext = null)
+    {
+        // We currently have no support (and no scenarios) for disallowing property references
+        // in Conditions.
+        ErrorUtilities.VerifyThrow((options & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
+
+        _expression = expression;
+        _elementLocation = elementLocation;
+
+        _loggingServices = loggingContext?.LoggingService;
+        _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
+
+        _lexer = new Scanner(expression, options);
+    }
+
+    //
+    // Main entry point for parser.
+    // You pass in the expression you want to parse, and you get an
+    // ExpressionTree out the back end.
+    //
+    public static GenericExpressionNode Parse(
+        string expression,
+        ParserOptions options,
+        ElementLocation elementLocation,
+        LoggingContext? loggingContext = null)
+    {
+        var parser = new Parser(expression, options, elementLocation, loggingContext);
+        return parser.Parse();
+    }
+
+    public GenericExpressionNode Parse()
+    {
+        if (!Advance())
+        {
+            // We should never get here because Advance always throws on error.
+            ErrorUtilities.ThrowInternalErrorUnreachable();
+        }
+
+        GenericExpressionNode node = Expr();
+
+        Expect(Token.TokenType.EndOfInput);
+
+        return node;
+    }
+
+    //
+    // Top node of grammar
+    //    See grammar for how the following methods relate to each
+    //    other.
+    //
+    private GenericExpressionNode Expr()
+    {
+        GenericExpressionNode node = BooleanTerm();
+        if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+        {
+            node = ExprPrime(node);
+        }
 
         #region REMOVE_COMPAT_WARNING
+        // Check for potential change in behavior
+        if (_loggingServices != null && !_warnedForExpression &&
+            node.PotentialAndOrConflict())
+        {
+            // We only want to warn once even if there multiple () sub expressions
+            _warnedForExpression = true;
 
-        private bool _warnedForExpression;
-
-        /// <summary>
-        ///  Engine Logging Service reference where events will be logged to.
-        /// </summary>
-        private readonly ILoggingService _loggingServices;
-
-        /// <summary>
-        ///  Location contextual information which are attached to logging events to
-        ///  say where they are in relation to the process, engine, project, target,task which is executing.
-        /// </summary>
-        private readonly BuildEventContext _logBuildEventContext;
-
+            // Log a warning regarding the fact the expression may have been evaluated
+            // incorrectly in earlier version of MSBuild
+            _loggingServices.LogWarning(_logBuildEventContext, null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", _expression);
+        }
         #endregion
 
-        public Parser(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext loggingContext = null)
+        return node;
+    }
+
+    private GenericExpressionNode ExprPrime(GenericExpressionNode lhs)
+    {
+        if (Same(Token.TokenType.Or))
         {
-            // We currently have no support (and no scenarios) for disallowing property references
-            // in Conditions.
-            ErrorUtilities.VerifyThrow((options & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
+            OperatorExpressionNode orNode = new OrExpressionNode();
+            GenericExpressionNode rhs = BooleanTerm();
+            orNode.LeftChild = lhs;
+            orNode.RightChild = rhs;
 
-            _expression = expression;
-            _elementLocation = elementLocation;
-
-            _loggingServices = loggingContext?.LoggingService;
-            _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
-
-            _lexer = new Scanner(expression, options);
+            return ExprPrime(orNode);
         }
 
-        //
-        // Main entry point for parser.
-        // You pass in the expression you want to parse, and you get an
-        // ExpressionTree out the back end.
-        //
-        public static GenericExpressionNode Parse(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext loggingContext = null)
+        return lhs;
+    }
+
+    private GenericExpressionNode BooleanTerm()
+    {
+        if (!TryParseRelationalExpression(out var node))
         {
-            var parser = new Parser(expression, options, elementLocation, loggingContext);
-            return parser.Parse();
+            ThrowUnexpectedTokenInCondition();
         }
 
-        public GenericExpressionNode Parse()
+        if (!_lexer.IsNext(Token.TokenType.EndOfInput))
         {
-            if (!Advance())
-            {
-                // We should never get here because Advance always throws on error.
-                ErrorUtilities.ThrowInternalErrorUnreachable();
-            }
+            node = BooleanTermPrime(node);
+        }
 
-            GenericExpressionNode node = Expr();
+        return node;
+    }
 
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+    private GenericExpressionNode BooleanTermPrime(GenericExpressionNode lhs)
+    {
+        if (Same(Token.TokenType.And))
+        {
+            if (!TryParseRelationalExpression(out var rhs))
             {
                 ThrowUnexpectedTokenInCondition();
             }
 
-            return node;
+            OperatorExpressionNode andNode = new AndExpressionNode();
+            andNode.LeftChild = lhs;
+            andNode.RightChild = rhs;
+
+            return BooleanTermPrime(andNode);
         }
 
-        //
-        // Top node of grammar
-        //    See grammar for how the following methods relate to each
-        //    other.
-        //
-        private GenericExpressionNode Expr()
+        return lhs;
+    }
+
+    private bool TryParseRelationalExpression([NotNullWhen(true)] out GenericExpressionNode? result)
+    {
+        if (!TryParseFactor(out var lhs))
         {
-            GenericExpressionNode node = BooleanTerm();
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
-            {
-                node = ExprPrime(node);
-            }
-
-            #region REMOVE_COMPAT_WARNING
-            // Check for potential change in behavior
-            if (_loggingServices != null && !_warnedForExpression &&
-                node.PotentialAndOrConflict())
-            {
-                // We only want to warn once even if there multiple () sub expressions
-                _warnedForExpression = true;
-
-                // Log a warning regarding the fact the expression may have been evaluated
-                // incorrectly in earlier version of MSBuild
-                _loggingServices.LogWarning(_logBuildEventContext, null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", _expression);
-            }
-            #endregion
-
-            return node;
+            result = null;
+            return false;
         }
 
-        private GenericExpressionNode ExprPrime(GenericExpressionNode lhs)
+        if (!TryParseRelationalOperation(out var node))
         {
-            if (Same(Token.TokenType.EndOfInput))
-            {
-                return lhs;
-            }
-            else if (Same(Token.TokenType.Or))
-            {
-                OperatorExpressionNode orNode = new OrExpressionNode();
-                GenericExpressionNode rhs = BooleanTerm();
-                orNode.LeftChild = lhs;
-                orNode.RightChild = rhs;
-                return ExprPrime(orNode);
-            }
-            else
-            {
-                // I think this is ok.  ExprPrime always shows up at
-                // the rightmost side of the grammar rhs, the EndOfInput case
-                // takes care of things
-                return lhs;
-            }
-        }
-
-        private GenericExpressionNode BooleanTerm()
-        {
-            GenericExpressionNode node = RelationalExpr();
-            if (node == null)
-            {
-                ThrowUnexpectedTokenInCondition();
-            }
-
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
-            {
-                node = BooleanTermPrime(node);
-            }
-            return node;
-        }
-
-        private GenericExpressionNode BooleanTermPrime(GenericExpressionNode lhs)
-        {
-            if (_lexer.IsNext(Token.TokenType.EndOfInput))
-            {
-                return lhs;
-            }
-            else if (Same(Token.TokenType.And))
-            {
-                GenericExpressionNode rhs = RelationalExpr();
-                if (rhs == null)
-                {
-                    ThrowUnexpectedTokenInCondition();
-                }
-
-                OperatorExpressionNode andNode = new AndExpressionNode();
-                andNode.LeftChild = lhs;
-                andNode.RightChild = rhs;
-                return BooleanTermPrime(andNode);
-            }
-            else
-            {
-                // Should this be error case?
-                return lhs;
-            }
-        }
-
-        private GenericExpressionNode RelationalExpr()
-        {
-            {
-                GenericExpressionNode lhs = Factor();
-                if (lhs == null)
-                {
-                    ThrowUnexpectedTokenInCondition();
-                }
-
-                OperatorExpressionNode node = RelationalOperation();
-                if (node == null)
-                {
-                    return lhs;
-                }
-                GenericExpressionNode rhs = Factor();
-                node.LeftChild = lhs;
-                node.RightChild = rhs;
-                return node;
-            }
-        }
-
-        private OperatorExpressionNode RelationalOperation()
-        {
-            OperatorExpressionNode node = null;
-            if (Same(Token.TokenType.LessThan))
-            {
-                node = new LessThanExpressionNode();
-            }
-            else if (Same(Token.TokenType.GreaterThan))
-            {
-                node = new GreaterThanExpressionNode();
-            }
-            else if (Same(Token.TokenType.LessThanOrEqualTo))
-            {
-                node = new LessThanOrEqualExpressionNode();
-            }
-            else if (Same(Token.TokenType.GreaterThanOrEqualTo))
-            {
-                node = new GreaterThanOrEqualExpressionNode();
-            }
-            else if (Same(Token.TokenType.EqualTo))
-            {
-                node = new EqualExpressionNode();
-            }
-            else if (Same(Token.TokenType.NotEqualTo))
-            {
-                node = new NotEqualExpressionNode();
-            }
-            return node;
-        }
-
-        private GenericExpressionNode Factor()
-        {
-            // Checks for TokenTypes String, Numeric, Property, ItemMetadata, and ItemList.
-            GenericExpressionNode arg = this.Arg();
-
-            // If it's one of those, return it.
-            if (arg != null)
-            {
-                return arg;
-            }
-
-            // If it's not one of those, check for other TokenTypes.
-            Token current = _lexer.CurrentToken;
-            if (Same(Token.TokenType.Function))
-            {
-                if (!Same(Token.TokenType.LeftParenthesis))
-                {
-                    ThrowUnexpectedTokenInCondition();
-                    return null;
-                }
-                var arglist = new List<GenericExpressionNode>();
-                Arglist(arglist);
-                if (!Same(Token.TokenType.RightParenthesis))
-                {
-                    ThrowUnexpectedTokenInCondition();
-                    return null;
-                }
-                return new FunctionCallExpressionNode(current.String, arglist);
-            }
-            else if (Same(Token.TokenType.LeftParenthesis))
-            {
-                GenericExpressionNode child = Expr();
-                if (Same(Token.TokenType.RightParenthesis))
-                {
-                    return child;
-                }
-                else
-                {
-                    ThrowUnexpectedTokenInCondition();
-                }
-            }
-            else if (Same(Token.TokenType.Not))
-            {
-                OperatorExpressionNode notNode = new NotExpressionNode();
-                GenericExpressionNode expr = Factor();
-                if (expr == null)
-                {
-                    ThrowUnexpectedTokenInCondition();
-                }
-                notNode.LeftChild = expr;
-                return notNode;
-            }
-            else
-            {
-                ThrowUnexpectedTokenInCondition();
-            }
-            return null;
-        }
-
-        private void Arglist(List<GenericExpressionNode> arglist)
-        {
-            if (!_lexer.IsNext(Token.TokenType.RightParenthesis))
-            {
-                Args(arglist);
-            }
-        }
-
-        private void Args(List<GenericExpressionNode> arglist)
-        {
-            GenericExpressionNode arg = Arg();
-            arglist.Add(arg);
-            if (Same(Token.TokenType.Comma))
-            {
-                Args(arglist);
-            }
-        }
-
-        private GenericExpressionNode Arg()
-        {
-            Token current = _lexer.CurrentToken;
-            if (Same(Token.TokenType.String))
-            {
-                return new StringExpressionNode(current.String, current.Expandable);
-            }
-            else if (Same(Token.TokenType.Numeric))
-            {
-                return new NumericExpressionNode(current.String);
-            }
-            else if (Same(Token.TokenType.Property))
-            {
-                return new StringExpressionNode(current.String, true /* requires expansion */);
-            }
-            else if (Same(Token.TokenType.ItemMetadata))
-            {
-                return new StringExpressionNode(current.String, true /* requires expansion */);
-            }
-            else if (Same(Token.TokenType.ItemList))
-            {
-                return new StringExpressionNode(current.String, true /* requires expansion */);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        private bool Same(Token.TokenType token)
-            => _lexer.IsNext(token) && Advance();
-
-        private bool Advance()
-        {
-            if (_lexer.Advance())
-            {
-                return true;
-            }
-
-            errorPosition = _lexer.GetErrorPosition();
-
-            if (_lexer.UnexpectedlyFound is string unexpectedlyFound)
-            {
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition, unexpectedlyFound);
-            }
-            else
-            {
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition);
-            }
-
+            result = lhs;
             return true;
         }
 
-        private void ThrowUnexpectedTokenInCondition()
+        if (!TryParseFactor(out var rhs))
         {
-            errorPosition = _lexer.GetErrorPosition();
-            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, _lexer.IsNextString(), errorPosition);
+            result = null;
+            return false;
         }
+
+        node.LeftChild = lhs;
+        node.RightChild = rhs;
+
+        result = node;
+        return true;
+    }
+
+    private bool TryParseRelationalOperation([NotNullWhen(true)] out OperatorExpressionNode? result)
+    {
+        result = null;
+
+        if (Same(Token.TokenType.LessThan))
+        {
+            result = new LessThanExpressionNode();
+        }
+        else if (Same(Token.TokenType.GreaterThan))
+        {
+            result = new GreaterThanExpressionNode();
+        }
+        else if (Same(Token.TokenType.LessThanOrEqualTo))
+        {
+            result = new LessThanOrEqualExpressionNode();
+        }
+        else if (Same(Token.TokenType.GreaterThanOrEqualTo))
+        {
+            result = new GreaterThanOrEqualExpressionNode();
+        }
+        else if (Same(Token.TokenType.EqualTo))
+        {
+            result = new EqualExpressionNode();
+        }
+        else if (Same(Token.TokenType.NotEqualTo))
+        {
+            result = new NotEqualExpressionNode();
+        }
+
+        return result != null;
+    }
+
+    private bool TryParseFactor([NotNullWhen(true)] out GenericExpressionNode? result)
+    {
+        // Checks for TokenTypes String, Numeric, Property, ItemMetadata, and ItemList.
+        // If it's one of those, return it.
+        if (TryParseArgument(out var argument))
+        {
+            result = argument;
+            return true;
+        }
+
+        // If it's not one of those, check for other TokenTypes.
+        Token current = _lexer.CurrentToken;
+
+        // Function call
+        if (Same(Token.TokenType.Function))
+        {
+            Expect(Token.TokenType.LeftParenthesis);
+
+            var arglist = new List<GenericExpressionNode>();
+
+            if (!TryParseArgumentList(arglist))
+            {
+                result = null;
+                return false;
+            }
+
+            result = new FunctionCallExpressionNode(current.String, arglist);
+            return true;
+        }
+
+        // Parenthesized expression
+        if (Same(Token.TokenType.LeftParenthesis))
+        {
+            GenericExpressionNode child = Expr();
+            Expect(Token.TokenType.RightParenthesis);
+
+            result = child;
+            return true;
+        }
+
+        // Not expression
+        if (Same(Token.TokenType.Not))
+        {
+            if (!TryParseFactor(out var expr))
+            {
+                result = null;
+                return false;
+            }
+
+            OperatorExpressionNode notNode = new NotExpressionNode();
+            notNode.LeftChild = expr;
+
+            result = notNode;
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryParseArgumentList(List<GenericExpressionNode> argumentList)
+    {
+        if (Same(Token.TokenType.RightParenthesis))
+        {
+            return true;
+        }
+
+        if (!TryParseArgument(out var argument))
+        {
+            return false;
+        }
+
+        argumentList.Add(argument);
+
+        while (Same(Token.TokenType.Comma))
+        {
+            if (!TryParseArgument(out argument))
+            {
+                return false;
+            }
+
+            argumentList.Add(argument);
+        }
+
+        Expect(Token.TokenType.RightParenthesis);
+        return true;
+    }
+
+    private bool TryParseArgument([NotNullWhen(true)] out GenericExpressionNode? result)
+    {
+        Token current = _lexer.CurrentToken;
+
+        result = null;
+
+        if (Same(Token.TokenType.String))
+        {
+            result = new StringExpressionNode(current.String, current.Expandable);
+        }
+        else if (Same(Token.TokenType.Numeric))
+        {
+            result = new NumericExpressionNode(current.String);
+        }
+        else if (Same(Token.TokenType.Property))
+        {
+            result = new StringExpressionNode(current.String, expandable: true);
+        }
+        else if (Same(Token.TokenType.ItemMetadata))
+        {
+            result = new StringExpressionNode(current.String, expandable: true);
+        }
+        else if (Same(Token.TokenType.ItemList))
+        {
+            result = new StringExpressionNode(current.String, expandable: true);
+        }
+
+        return result != null;
+    }
+
+    private void Expect(Token.TokenType token)
+    {
+        if (!Same(token))
+        {
+            ThrowUnexpectedTokenInCondition();
+        }
+    }
+
+    private bool Same(Token.TokenType token)
+        => _lexer.IsNext(token) && Advance();
+
+    private bool Advance()
+    {
+        if (_lexer.Advance())
+        {
+            return true;
+        }
+
+        errorPosition = _lexer.GetErrorPosition();
+
+        if (_lexer.UnexpectedlyFound is string unexpectedlyFound)
+        {
+            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition, unexpectedlyFound);
+        }
+        else
+        {
+            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition);
+        }
+
+        return true;
+    }
+
+    [DoesNotReturn]
+    private void ThrowUnexpectedTokenInCondition()
+    {
+        errorPosition = _lexer.GetErrorPosition();
+        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, _lexer.IsNextString(), errorPosition);
     }
 }
