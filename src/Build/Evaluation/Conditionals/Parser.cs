@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
@@ -23,11 +24,12 @@ namespace Microsoft.Build.Evaluation;
 /// <remarks>
 /// UNDONE: When we copied over the conditionals code, we didn't copy over the unit tests for scanner, parser, and expression tree.
 /// </remarks>
-internal sealed class Parser
+internal ref struct Parser
 {
     private readonly string _expression;
     private readonly ElementLocation _elementLocation;
-    private readonly Scanner _lexer;
+    private readonly ParserOptions _options;
+    private Scanner _lexer;
 
     internal int errorPosition = 0; // useful for unit tests
 
@@ -56,6 +58,7 @@ internal sealed class Parser
 
         _expression = expression;
         _elementLocation = elementLocation;
+        _options = options;
 
         _loggingServices = loggingContext?.LoggingService;
         _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
@@ -231,21 +234,17 @@ internal sealed class Parser
         }
 
         // If it's not one of those, check for other TokenTypes.
-        Token current = _lexer.Current;
 
-        // Function call
-        if (Same(TokenKind.Function))
+        // Property expression: $(PropertyName) or $([Type]::Method())
+        if (TryConsume(TokenKind.DollarSign, out Token dollarSign))
         {
-            Expect(TokenKind.LeftParenthesis);
+            return TryParsePropertyExpression(dollarSign, out result);
+        }
 
-            if (!TryParseArgumentList(out var argumentList))
-            {
-                result = null;
-                return false;
-            }
-
-            result = new FunctionCallExpressionNode(current.Text, argumentList);
-            return true;
+        // Item metadata expression: %(MetadataName) or %(ItemType.MetadataName)
+        if (TryConsume(TokenKind.PercentSign, out Token percentSign))
+        {
+            return TryParseItemMetadataExpression(percentSign, out result);
         }
 
         // Parenthesized expression
@@ -289,6 +288,227 @@ internal sealed class Parser
         return false;
     }
 
+    private bool TryParsePropertyExpression(Token dollarSign, [NotNullWhen(true)] out GenericExpressionNode? result)
+    {
+        int startPosition = dollarSign.Position;
+
+        // Check if $ is followed by (
+        if (!_lexer.IsCurrent(TokenKind.LeftParenthesis))
+        {
+            errorPosition = startPosition + 1;
+            ProjectErrorUtilities.ThrowInvalidProject(
+                _elementLocation,
+                "IllFormedPropertyOpenParenthesisInCondition",
+                _expression,
+                errorPosition,
+                _lexer.Current.Text.ToString());
+        }
+
+        // Scan to find the matching closing parenthesis, handling nesting
+        // Pass the dollar sign position for error reporting
+        if (!ScanPropertyExpressionEnd(startPosition, out int endPosition))
+        {
+            result = null;
+            return false;
+        }
+
+        // Build the full text: $(...)
+        var fullText = _expression.AsMemory(startPosition, endPosition - startPosition + 1);
+
+        result = new StringExpressionNode(fullText, expandable: true);
+        return true;
+    }
+
+    private bool ScanPropertyExpressionEnd(int dollarSignPosition, out int endPosition)
+    {
+        int nestLevel = 0;
+        int tokenCount = 0;
+
+        Token openParen = default;
+        Token identifier = default;
+
+        while (true)
+        {
+            Token current = _lexer.Current;
+
+            if (current.Kind == TokenKind.EndOfInput)
+            {
+                errorPosition = dollarSignPosition + 1;
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    _elementLocation,
+                    "IllFormedPropertyCloseParenthesisInCondition",
+                    _expression,
+                    errorPosition);
+            }
+
+            // Check for nested property expressions
+            if (current.Kind == TokenKind.DollarSign)
+            {
+                Token nestedDollar = current;
+                Advance();
+
+                if (!_lexer.IsCurrent(TokenKind.LeftParenthesis))
+                {
+                    errorPosition = nestedDollar.Position + 1;
+                    ProjectErrorUtilities.ThrowInvalidProject(
+                        _elementLocation,
+                        "IllFormedPropertyOpenParenthesisInCondition",
+                        _expression,
+                        errorPosition,
+                        _lexer.Current.Text.ToString());
+                }
+
+                if (!ScanPropertyExpressionEnd(nestedDollar.Position, out _))
+                {
+                    endPosition = -1;
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (current.Kind == TokenKind.LeftParenthesis)
+            {
+                nestLevel++;
+
+                if (nestLevel == 1 && tokenCount == 0)
+                {
+                    // First '(' after '$'
+                    openParen = current;
+                }
+            }
+            else if (current.Kind == TokenKind.RightParenthesis)
+            {
+                nestLevel--;
+
+                if (nestLevel == 0)
+                {
+                    // Check if this is the simple pattern: $( identifier )
+                    if (tokenCount == 2 &&
+                        openParen.IsKind(TokenKind.LeftParenthesis) &&
+                        identifier.IsKind(TokenKind.Identifier))
+                    {
+                        // Gap after '('?
+                        if (identifier.Position > openParen.Position + 1)
+                        {
+                            errorPosition = dollarSignPosition + 1;
+                            ProjectErrorUtilities.ThrowInvalidProject(
+                                _elementLocation,
+                                "IllFormedPropertySpaceInCondition",
+                                _expression,
+                                errorPosition);
+                        }
+
+                        // Gap before ')'?
+                        if (current.Position > identifier.Position + identifier.Text.Length)
+                        {
+                            errorPosition = dollarSignPosition + 1;
+                            ProjectErrorUtilities.ThrowInvalidProject(
+                                _elementLocation,
+                                "IllFormedPropertySpaceInCondition",
+                                _expression,
+                                errorPosition);
+                        }
+                    }
+
+                    endPosition = current.Position;
+                    Advance();
+                    return true;
+                }
+            }
+            else if (current.Kind == TokenKind.Identifier &&
+                     tokenCount == 1 &&
+                     openParen.IsKind(TokenKind.LeftParenthesis))
+            {
+                // First (and potentially only) token after the '('
+                identifier = current;
+            }
+
+            tokenCount++;
+
+            if (!Advance())
+            {
+                endPosition = -1;
+                return false;
+            }
+        }
+    }
+
+    private bool TryParseItemMetadataExpression(Token percentSign, [NotNullWhen(true)] out GenericExpressionNode? result)
+    {
+        int startPosition = percentSign.Position;
+
+        Expect(TokenKind.LeftParenthesis);
+
+        if (!TryConsume(TokenKind.Identifier, out Token metadataName))
+        {
+            result = null;
+            return false;
+        }
+
+        // Check for qualified syntax: %(ItemType.MetadataName)
+        if (Same(TokenKind.Dot))
+        {
+            if (!TryConsume(TokenKind.Identifier, out metadataName))
+            {
+                result = null;
+                return false;
+            }
+        }
+
+        Expect(TokenKind.RightParenthesis, out Token rightParen);
+
+        // Validate metadata based on ParserOptions
+        if (!ValidateMetadata(metadataName.Text, startPosition))
+        {
+            result = null;
+            return false;
+        }
+
+        // Build the full text: %(...)
+        int endPosition = rightParen.Position + rightParen.Text.Length;
+        var fullText = _expression.AsMemory(startPosition, endPosition - startPosition);
+
+        result = new StringExpressionNode(fullText, expandable: true);
+        return true;
+    }
+
+    private bool ValidateMetadata(ReadOnlyMemory<char> metadataName, int startPosition)
+    {
+        // If all metadata is allowed, no validation needed
+        if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
+        {
+            return true;
+        }
+
+        string metadataNameString = metadataName.ToString();
+
+        bool isBuiltIn = FileUtilities.ItemSpecModifiers.IsItemSpecModifier(metadataNameString);
+
+        if (isBuiltIn && (_options & ParserOptions.AllowBuiltInMetadata) == 0)
+        {
+            errorPosition = startPosition + 1; // Position for error reporting (1-based)
+            ProjectErrorUtilities.ThrowInvalidProject(
+                _elementLocation,
+                "BuiltInMetadataNotAllowedInThisConditional",
+                _expression,
+                errorPosition,
+                metadataNameString);
+        }
+
+        if (!isBuiltIn && (_options & ParserOptions.AllowCustomMetadata) == 0)
+        {
+            errorPosition = startPosition + 1; // Position for error reporting (1-based)
+            ProjectErrorUtilities.ThrowInvalidProject(
+                _elementLocation,
+                "CustomMetadataNotAllowedInThisConditional",
+                _expression,
+                errorPosition,
+                metadataNameString);
+        }
+
+        return true;
+    }
     private bool TryParseArgumentList(out ImmutableArray<GenericExpressionNode> result)
     {
         if (Same(TokenKind.RightParenthesis))
@@ -328,15 +548,48 @@ internal sealed class Parser
     {
         Token current = _lexer.Current;
 
+        // Property expression: $(PropertyName) or $([Type]::Method())
+        if (TryConsume(TokenKind.DollarSign, out Token dollarSign))
+        {
+            return TryParsePropertyExpression(dollarSign, out result);
+        }
+
+        // Item metadata expression: %(MetadataName) or %(ItemType.MetadataName)
+        if (TryConsume(TokenKind.PercentSign, out Token percentSign))
+        {
+            return TryParseItemMetadataExpression(percentSign, out result);
+        }
+
+        // Identifiers and function calls
+        if (Same(TokenKind.Identifier))
+        {
+            // Function call
+            if (Same(TokenKind.LeftParenthesis))
+            {
+                if (!TryParseArgumentList(out var argumentList))
+                {
+                    result = null;
+                    return false;
+                }
+
+                result = new FunctionCallExpressionNode(current.Text, argumentList);
+                return true;
+            }
+            else
+            {
+                result = new StringExpressionNode(current.Text, expandable: false);
+                return true;
+            }
+        }
+
+        // Literals from old scanner tokens (gradually being phased out)
         result = current.Kind switch
         {
             TokenKind.True or TokenKind.On or TokenKind.Yes => new BooleanLiteralNode(current.Text, value: true),
             TokenKind.False or TokenKind.Off or TokenKind.No => new BooleanLiteralNode(current.Text, value: false),
             TokenKind.String => CreateFromStringToken(current),
             TokenKind.Numeric => new NumericExpressionNode(current.Text),
-            TokenKind.Property => new StringExpressionNode(current.Text, expandable: true),
-            TokenKind.ItemMetadata => new StringExpressionNode(current.Text, expandable: true),
-            TokenKind.ItemList => new StringExpressionNode(current.Text, expandable: true),
+            TokenKind.ItemList => new StringExpressionNode(current.Text, expandable: true),   // OLD
             _ => null,
         };
 
@@ -365,6 +618,26 @@ internal sealed class Parser
         }
     }
 
+    private void Expect(TokenKind kind, out Token result)
+    {
+        if (!TryConsume(kind, out result))
+        {
+            ThrowUnexpectedTokenInCondition();
+        }
+    }
+
+    private bool TryConsume(TokenKind kind, out Token result)
+    {
+        if (_lexer.IsCurrent(kind))
+        {
+            result = _lexer.Current;
+            return Advance();
+        }
+
+        result = default;
+        return false;
+    }
+
     private bool Same(TokenKind kind)
         => _lexer.IsCurrent(kind) && Advance();
 
@@ -372,6 +645,11 @@ internal sealed class Parser
     {
         if (_lexer.Advance())
         {
+            if (_lexer.IsCurrent(TokenKind.Unknown))
+            {
+                ThrowUnexpectedTokenInCondition();
+            }
+
             return true;
         }
 

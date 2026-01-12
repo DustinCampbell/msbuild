@@ -22,20 +22,20 @@ internal sealed class StringExpressionNode : OperandExpressionNode
 
     private bool? _shouldBeTreatedAsVisualStudioVersion;
 
-    private readonly string _value;
+    public string Value { get; }
 
     /// <summary>
     /// Whether the string potentially has expandable content,
     /// such as a property expression or escaped character.
     /// </summary>
-    private readonly bool _expandable;
+    public bool Expandable { get; }
 
     private string? _cachedExpandedValue;
 
-    internal StringExpressionNode(string value, bool expandable)
+    internal StringExpressionNode(ReadOnlyMemory<char> value, bool expandable)
     {
-        _value = value;
-        _expandable = expandable;
+        Value = value.ToString();
+        Expandable = expandable;
     }
 
     internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
@@ -74,9 +74,9 @@ internal sealed class StringExpressionNode : OperandExpressionNode
     {
         if (_cachedExpandedValue == null)
         {
-            if (_expandable)
+            if (Expandable)
             {
-                switch (_value.Length)
+                switch (Value.Length)
                 {
                     case 0:
                         _cachedExpandedValue = string.Empty;
@@ -85,11 +85,11 @@ internal sealed class StringExpressionNode : OperandExpressionNode
                     // If the length is 1 or 2, it can't possibly be a property, item, or metadata, and it isn't empty.
                     case 1:
                     case 2:
-                        _cachedExpandedValue = _value;
+                        _cachedExpandedValue = Value;
                         return false;
 
                     default:
-                        if (_value is not ['$' or '%' or '@', '(', .., ')'])
+                        if (Value is not ['$' or '%' or '@', '(', .., ')'])
                         {
                             // This isn't just a property, item, or metadata value, and it isn't empty.
                             return false;
@@ -98,7 +98,7 @@ internal sealed class StringExpressionNode : OperandExpressionNode
                         break;
                 }
 
-                string expandBreakEarly = state.ExpandIntoStringBreakEarly(_value);
+                string expandBreakEarly = state.ExpandIntoStringBreakEarly(Value);
 
                 if (expandBreakEarly == null)
                 {
@@ -113,7 +113,7 @@ internal sealed class StringExpressionNode : OperandExpressionNode
             }
             else
             {
-                _cachedExpandedValue = _value;
+                _cachedExpandedValue = Value;
             }
         }
 
@@ -122,21 +122,21 @@ internal sealed class StringExpressionNode : OperandExpressionNode
 
     /// <inheritdoc cref="GenericExpressionNode"/>
     internal override bool IsUnexpandedValueEmpty()
-        => string.IsNullOrEmpty(_value);
+        => string.IsNullOrEmpty(Value);
 
     /// <summary>
     /// Value before any item and property expressions are expanded.
     /// </summary>
     internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        => _value;
+        => Value;
 
     /// <summary>
     /// Value after any item and property expressions are expanded.
     /// </summary>
     internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        => _cachedExpandedValue ??= _expandable
-            ? state.ExpandIntoString(_value)
-            : _value;
+        => _cachedExpandedValue ??= Expandable
+            ? state.ExpandIntoString(Value)
+            : Value;
 
     /// <summary>
     /// If any expression nodes cache any state for the duration of evaluation,
@@ -168,9 +168,9 @@ internal sealed class StringExpressionNode : OperandExpressionNode
             // expansion will be cheap because this will populate the cached expanded value.
             => string.Equals(GetExpandedValue(state), MSBuildConstants.CurrentToolsVersion, StringComparison.Ordinal)
                 // and the original value is just an expansion of MSBuildToolsVersion
-                && string.Equals(_value, "$(MSBuildToolsVersion)", StringComparison.OrdinalIgnoreCase);
+                && string.Equals(Value, "$(MSBuildToolsVersion)", StringComparison.OrdinalIgnoreCase);
     }
 
     internal override string GetDebuggerDisplay()
-        => $"\"{_value}\"";
+        => $"\"{Value}\"";
 }

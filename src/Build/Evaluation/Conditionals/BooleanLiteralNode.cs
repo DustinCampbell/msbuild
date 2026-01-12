@@ -6,9 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Build.Evaluation.Conditionals;
 
-internal sealed class BooleanLiteralNode(string text, bool value) : OperandExpressionNode
+internal sealed class BooleanLiteralNode(ReadOnlyMemory<char> text, bool value) : OperandExpressionNode
 {
-    public string Text => text;
+    public string Text { get; } = text.ToString();
     public bool Value => value;
 
     internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)

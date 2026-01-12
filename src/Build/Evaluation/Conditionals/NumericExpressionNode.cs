@@ -14,10 +14,10 @@ internal sealed class NumericExpressionNode : OperandExpressionNode
 {
     private readonly string _value;
 
-    internal NumericExpressionNode(string value)
+    internal NumericExpressionNode(ReadOnlyMemory<char> value)
     {
-        ErrorUtilities.VerifyThrow(!string.IsNullOrEmpty(value), "NumericExpressionNode cannot have empty value");
-        _value = value;
+        ErrorUtilities.VerifyThrow(!value.IsEmpty, "NumericExpressionNode cannot have empty value");
+        _value = value.ToString();
     }
 
     internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)

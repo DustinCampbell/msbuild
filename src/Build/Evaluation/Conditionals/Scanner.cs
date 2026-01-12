@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Build.Shared;
 
@@ -21,7 +21,7 @@ namespace Microsoft.Build.Evaluation;
 ///  After Advance() is called, you can get the current token (s.CurrentToken),
 ///  check it's type (s.IsNext()), get the string for it (s.NextString()).
 /// </summary>
-internal sealed class Scanner
+internal ref struct Scanner
 {
     private static readonly FrozenSet<string> s_truthyValues =
         new[] { "true", "on", "yes", "!false", "!off", "!no" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
@@ -29,16 +29,16 @@ internal sealed class Scanner
     private static readonly FrozenSet<string> s_falseyValues =
         new[] { "false", "off", "no", "!true", "!on", "!yes" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly FrozenDictionary<string, Token> s_keywordMap = new Dictionary<string, Token>(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, TokenKind> s_keywordKindMap = new Dictionary<string, TokenKind>(StringComparer.OrdinalIgnoreCase)
     {
-        { "and", Token.And },
-        { "or", Token.Or },
-        { "true", Token.True },
-        { "false", Token.False },
-        { "on", Token.On },
-        { "off", Token.Off },
-        { "yes", Token.Yes },
-        { "no", Token.No },
+        { "and", TokenKind.And },
+        { "or", TokenKind.Or },
+        { "true", TokenKind.True },
+        { "false", TokenKind.False },
+        { "on", TokenKind.On },
+        { "off", TokenKind.Off },
+        { "yes", TokenKind.Yes },
+        { "no", TokenKind.No },
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     private readonly string _expression;
@@ -71,7 +71,7 @@ internal sealed class Scanner
 
         _expression = expressionToParse;
         _position = 0;
-        _current = Token.None;
+        _current = default;
         _errorState = false;
         _errorPosition = -1; // invalid
         _options = options;
@@ -115,6 +115,18 @@ internal sealed class Scanner
     // We might want to show it in the error message, to help the user spot the error.
     internal string? UnexpectedlyFound => _unexpectedlyFound;
 
+    private bool TryPeek(out char ch)
+    {
+        if (_position + 1 < _expression.Length)
+        {
+            ch = _expression[_position + 1];
+            return true;
+        }
+
+        ch = default;
+        return false;
+    }
+
     /// <summary>
     /// Advance
     /// returns true on successful advance
@@ -130,7 +142,7 @@ internal sealed class Scanner
             return false;
         }
 
-        if (_current?.IsKind(TokenKind.EndOfInput) == true)
+        if (_current.IsKind(TokenKind.EndOfInput))
         {
             return true;
         }
@@ -140,59 +152,75 @@ internal sealed class Scanner
         // Update error position after skipping whitespace
         _errorPosition = _position + 1;
 
-        if (_position >= _expression.Length)
+        ReadOnlyMemory<char> expression = _expression.AsMemory(_position);
+
+        if (expression.IsEmpty)
         {
-            _current = Token.EndOfInput;
+            _current = Token.EndOfInput(_position);
         }
         else
         {
-            switch (_expression[_position])
+            switch (expression.Span)
             {
-                case ',':
-                    _current = Token.Comma;
+                case [',', ..]:
+                    _current = Token.Comma(expression[..1], _position);
                     _position++;
                     break;
 
-                case '(':
-                    _current = Token.LeftParenthesis;
+                case ['.', >= '0' and <= '9', ..]:
+
+                    // Floating point number starting with a dot
+                    if (TryParseNumeric())
+                    {
+                        return true;
+                    }
+
+                    // If we couldn't parse a number, it's an error
+                    _current = Token.Unknown(expression[..1], _position);
                     _position++;
                     break;
 
-                case ')':
-                    _current = Token.RightParenthesis;
+                case ['.', ..]:
+                    _current = Token.Dot(expression[..1], _position);
                     _position++;
                     break;
 
-                case '$':
-                    if (!ParseProperty())
-                    {
-                        return false;
-                    }
-
+                case ['(', ..]:
+                    _current = Token.LeftParenthesis(expression[..1], _position);
+                    _position++;
                     break;
 
-                case '%':
-                    if (!ParseItemMetadata())
-                    {
-                        return false;
-                    }
-
+                case [')', ..]:
+                    _current = Token.RightParenthesis(expression[..1], _position);
+                    _position++;
                     break;
 
-                case '@':
-                    int start = _position;
-                    // If the caller specified that he DOESN'T want to allow item lists ...
-                    if ((_options & ParserOptions.AllowItemLists) == 0)
-                    {
-                        if ((_position + 1) < _expression.Length && _expression[_position + 1] == '(')
-                        {
-                            _errorPosition = start + 1;
-                            _errorState = true;
-                            _errorResource = "ItemListNotAllowedInThisConditional";
-                            return false;
-                        }
-                    }
+                case ['[', ..]:
+                    _current = Token.LeftBracket(expression[..1], _position);
+                    _position++;
+                    break;
 
+                case [']', ..]:
+                    _current = Token.RightBracket(expression[..1], _position);
+                    _position++;
+                    break;
+
+                case [':', ':', ..]:
+                    _current = Token.DoubleColon(expression[..2], _position);
+                    _position += 2;
+                    break;
+
+                case ['$', ..]:
+                    _current = Token.DollarSign(expression[..1], _position);
+                    _position++;
+                    break;
+
+                case ['%', ..]:
+                    _current = Token.PercentSign(expression[..1], _position);
+                    _position++;
+                    break;
+
+                case ['@', ..]:
                     if (!ParseItemList())
                     {
                         return false;
@@ -200,79 +228,59 @@ internal sealed class Scanner
 
                     break;
 
-                case '!':
-                    // negation and not-equal
-                    if ((_position + 1) < _expression.Length && _expression[_position + 1] == '=')
+                case ['!', '=', ..]:
+                    _current = Token.NotEqualTo(expression[..2], _position);
+                    _position += 2;
+                    break;
+
+                case ['!', ..]:
+                    _current = Token.Not(expression[..1], _position);
+                    _position++;
+                    break;
+
+                case ['>', '=', ..]:
+                    _current = Token.GreaterThanOrEqualTo(expression[..2], _position);
+                    _position += 2;
+                    break;
+
+                case ['>', ..]:
+                    _current = Token.GreaterThan(expression[..1], _position);
+                    _position++;
+                    break;
+
+                case ['<', '=', ..]:
+                    _current = Token.LessThanOrEqualTo(expression[..2], _position);
+                    _position += 2;
+                    break;
+
+                case ['<', ..]:
+                    _current = Token.LessThan(expression[..1], _position);
+                    _position++;
+                    break;
+
+                case ['=', '=', ..]:
+                    _current = Token.EqualTo(expression[..2], _position);
+                    _position += 2;
+                    break;
+
+                case ['=', ..]:
+                    _errorPosition = _position + 2; // expression[parsePoint + 1], counting from 1
+                    _errorResource = "IllFormedEqualsInCondition";
+                    if ((_position + 1) < _expression.Length)
                     {
-                        _current = Token.NotEqualTo;
-                        _position += 2;
+                        // store the char we found instead
+                        _unexpectedlyFound = _expression[_position + 1].ToString();
                     }
                     else
                     {
-                        _current = Token.Not;
-                        _position++;
+                        _unexpectedlyFound = EndOfInput;
                     }
 
-                    break;
+                    _position++;
+                    _errorState = true;
+                    return false;
 
-                case '>':
-                    // gt and gte
-                    if ((_position + 1) < _expression.Length && _expression[_position + 1] == '=')
-                    {
-                        _current = Token.GreaterThanOrEqualTo;
-                        _position += 2;
-                    }
-                    else
-                    {
-                        _current = Token.GreaterThan;
-                        _position++;
-                    }
-
-                    break;
-
-                case '<':
-                    // lt and lte
-                    if ((_position + 1) < _expression.Length && _expression[_position + 1] == '=')
-                    {
-                        _current = Token.LessThanOrEqualTo;
-                        _position += 2;
-                    }
-                    else
-                    {
-                        _current = Token.LessThan;
-                        _position++;
-                    }
-
-                    break;
-
-                case '=':
-                    if ((_position + 1) < _expression.Length && _expression[_position + 1] == '=')
-                    {
-                        _current = Token.EqualTo;
-                        _position += 2;
-                    }
-                    else
-                    {
-                        _errorPosition = _position + 2; // expression[parsePoint + 1], counting from 1
-                        _errorResource = "IllFormedEqualsInCondition";
-                        if ((_position + 1) < _expression.Length)
-                        {
-                            // store the char we found instead
-                            _unexpectedlyFound = _expression[_position + 1].ToString();
-                        }
-                        else
-                        {
-                            _unexpectedlyFound = EndOfInput;
-                        }
-
-                        _position++;
-                        _errorState = true;
-                        return false;
-                    }
-
-                    break;
-
-                case '\'':
+                case ['\'' or '"' or '`', ..]:
                     if (!ParseQuotedString())
                     {
                         return false;
@@ -281,179 +289,23 @@ internal sealed class Scanner
                     break;
 
                 default:
-                    // Simple strings, function calls, decimal numbers, hex numbers
-                    if (!ParseRemaining())
+                    if (TryParseKeywordOrIdentifier())
                     {
-                        return false;
+                        return true;
                     }
 
+                    if (TryParseNumeric())
+                    {
+                        return true;
+                    }
+
+                    _current = Token.Unknown(expression[..1], _position);
+                    _position++;
                     break;
             }
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// Parses either the $(propertyname) syntax or the %(metadataname) syntax,
-    /// and returns the parsed string beginning with the '$' or '%', and ending with the
-    /// closing parenthesis.
-    /// </summary>
-    /// <returns></returns>
-    private string? ParsePropertyOrItemMetadata()
-    {
-        int start = _position; // set start so that we include "$(" or "%("
-        _position++;
-
-        if (_position < _expression.Length && _expression[_position] != '(')
-        {
-            _errorState = true;
-            _errorPosition = start + 1;
-            _errorResource = "IllFormedPropertyOpenParenthesisInCondition";
-            _unexpectedlyFound = _expression[_position].ToString();
-            return null;
-        }
-
-        if (!ScanForPropertyExpressionEnd(_expression, _position++, out int indexResult))
-        {
-            _errorState = true;
-            _errorPosition = indexResult;
-            _errorResource = "IllFormedPropertySpaceInCondition";
-            _unexpectedlyFound = _expression[indexResult].ToString();
-            return null;
-        }
-
-        _position = indexResult;
-
-        // Maybe we need to generate an error for invalid characters in property/metadata name?
-        // For now, just wait and let the property/metadata evaluation handle the error case.
-        if (_position >= _expression.Length)
-        {
-            _errorState = true;
-            _errorPosition = start + 1;
-            _errorResource = "IllFormedPropertyCloseParenthesisInCondition";
-            _unexpectedlyFound = EndOfInput;
-            return null;
-        }
-
-        _position++;
-        return _expression.Substring(start, _position - start);
-    }
-
-    /// <summary>
-    /// Scan for the end of the property expression
-    /// </summary>
-    /// <param name="expression">property expression to parse</param>
-    /// <param name="index">current index to start from</param>
-    /// <param name="indexResult">If successful, the index corresponds to the end of the property expression.
-    /// In case of scan failure, it is the error position index.</param>
-    /// <returns>result indicating whether or not the scan was successful.</returns>
-    private static bool ScanForPropertyExpressionEnd(string expression, int index, out int indexResult)
-    {
-        int nestLevel = 0;
-        bool whitespaceFound = false;
-        bool nonIdentifierCharacterFound = false;
-        indexResult = -1;
-        unsafe
-        {
-            fixed (char* pchar = expression)
-            {
-                while (index < expression.Length)
-                {
-                    char character = pchar[index];
-                    if (character == '(')
-                    {
-                        nestLevel++;
-                    }
-                    else if (character == ')')
-                    {
-                        nestLevel--;
-                    }
-                    else if (char.IsWhiteSpace(character))
-                    {
-                        whitespaceFound = true;
-                        indexResult = index;
-                    }
-                    else if (!XmlUtilities.IsValidSubsequentElementNameCharacter(character))
-                    {
-                        nonIdentifierCharacterFound = true;
-                    }
-
-                    if (character == '$' && index < expression.Length - 1 && pchar[index + 1] == '(')
-                    {
-                        if (!ScanForPropertyExpressionEnd(expression, index + 1, out index))
-                        {
-                            indexResult = index;
-                            return false;
-                        }
-                    }
-
-                    // We have reached the end of the parenthesis nesting
-                    // this should be the end of the property expression
-                    // If it is not then the calling code will determine that
-                    if (nestLevel == 0)
-                    {
-                        if (whitespaceFound && !nonIdentifierCharacterFound)
-                        {
-                            return false;
-                        }
-
-                        indexResult = index;
-                        return true;
-                    }
-                    else
-                    {
-                        index++;
-                    }
-                }
-            }
-        }
-
-        indexResult = index;
-        return true;
-    }
-
-    /// <summary>
-    /// Parses a string of the form $(propertyname).
-    /// </summary>
-    /// <returns></returns>
-    private bool ParseProperty()
-    {
-        string? propertyExpression = ParsePropertyOrItemMetadata();
-
-        if (propertyExpression == null)
-        {
-            return false;
-        }
-        else
-        {
-            _current = Token.Property(propertyExpression);
-            return true;
-        }
-    }
-
-    /// <summary>
-    /// Parses a string of the form %(itemmetadataname).
-    /// </summary>
-    /// <returns></returns>
-    private bool ParseItemMetadata()
-    {
-        string? itemMetadataExpression = ParsePropertyOrItemMetadata();
-
-        if (itemMetadataExpression == null)
-        {
-            // The ParsePropertyOrItemMetadata method returns the correct error resources
-            // for parsing properties such as $(propertyname).  At this stage in the Whidbey
-            // cycle, we're not allowed to add new string resources, so I can't add a new
-            // resource specific to item metadata, so here, we just change the error to
-            // the generic "UnexpectedCharacter".
-            _errorResource = "UnexpectedCharacterInCondition";
-            return false;
-        }
-
-        _current = Token.ItemMetadata(itemMetadataExpression);
-
-        return CheckForUnexpectedMetadata(itemMetadataExpression);
     }
 
     /// <summary>
@@ -468,7 +320,7 @@ internal sealed class Scanner
             return true;
         }
 
-        // Take off %( and )
+        // Take off %(and )
         if (expression.Length > 3 && expression[0] == '%' && expression[1] == '(' && expression[expression.Length - 1] == ')')
         {
             expression = expression.Substring(2, expression.Length - 1 - 2);
@@ -575,12 +427,22 @@ internal sealed class Scanner
     private bool ParseItemList()
     {
         int start = _position;
+
+        // If the caller specified that he DOESN'T want to allow item lists ...
+        if ((_options & ParserOptions.AllowItemLists) == 0 && TryPeek(out char ch) && ch == '(')
+        {
+            _errorPosition = start + 1;
+            _errorState = true;
+            _errorResource = "ItemListNotAllowedInThisConditional";
+            return false;
+        }
+
         if (!ParseInternalItemList())
         {
             return false;
         }
 
-        _current = Token.ItemList(_expression.Substring(start, _position - start));
+        _current = Token.ItemList(_expression.AsMemory(start, _position - start), start);
         return true;
     }
 
@@ -590,17 +452,20 @@ internal sealed class Scanner
     /// </summary>
     private bool ParseQuotedString()
     {
-        _position++;
         int start = _position;
+        char quoteChar = _expression[_position];
+        _position++;
+        int stringStart = _position;
         TokenFlags flags = TokenFlags.None;
 
-        while (_position < _expression.Length && _expression[_position] != '\'')
+        // Look for the MATCHING quote character
+        while (_position < _expression.Length && _expression[_position] != quoteChar)
         {
             // Standalone percent-sign must be allowed within a condition because it's
             // needed to escape special characters.  However, percent-sign followed
             // by open-parenthesis is an indication of an item metadata reference, and
             // that is only allowed in certain contexts.
-            if ((_expression[_position] == '%') && ((_position + 1) < _expression.Length) && (_expression[_position + 1] == '('))
+            if ((_expression[_position] == '%') && TryPeek(out char ch) && ch == '(')
             {
                 flags |= TokenFlags.Expandable;
                 string name = string.Empty;
@@ -622,14 +487,14 @@ internal sealed class Scanner
                     return false;
                 }
             }
-            else if (_expression[_position] == '@' && ((_position + 1) < _expression.Length) && (_expression[_position + 1] == '('))
+            else if (_expression[_position] == '@' && TryPeek(out ch) && ch == '(')
             {
                 flags |= TokenFlags.Expandable;
 
                 // If the caller specified that he DOESN'T want to allow item lists ...
                 if ((_options & ParserOptions.AllowItemLists) == 0)
                 {
-                    _errorPosition = start + 1;
+                    _errorPosition = stringStart + 1;
                     _errorState = true;
                     _errorResource = "ItemListNotAllowedInThisConditional";
                     return false;
@@ -643,7 +508,7 @@ internal sealed class Scanner
                 ParseInternalItemList();
                 continue;
             }
-            else if (_expression[_position] == '$' && ((_position + 1) < _expression.Length) && (_expression[_position + 1] == '('))
+            else if (_expression[_position] == '$' && TryPeek(out ch) && ch == '(')
             {
                 flags |= TokenFlags.Expandable;
             }
@@ -660,13 +525,13 @@ internal sealed class Scanner
         {
             // Quoted string wasn't closed
             _errorState = true;
-            _errorPosition = start; // The message is going to say "expected after position n" so don't add 1 here.
+            _errorPosition = stringStart; // The message is going to say "expected after position n" so don't add 1 here.
             _errorResource = "IllFormedQuotedStringInCondition";
             // Not useful to set unexpectedlyFound here. By definition it got to the end of the string.
             return false;
         }
 
-        string originalTokenString = _expression.Substring(start, _position - start);
+        string originalTokenString = _expression.Substring(stringStart, _position - stringStart);
 
         if (s_truthyValues.Contains(originalTokenString))
         {
@@ -677,38 +542,8 @@ internal sealed class Scanner
             flags |= TokenFlags.IsBooleanFalse;
         }
 
-        _current = Token.String(originalTokenString, flags);
+        _current = Token.String(_expression.AsMemory(stringStart, _position - stringStart), flags, start);
         _position++;
-        return true;
-    }
-
-    private bool ParseRemaining()
-    {
-        int start = _position;
-        if (CharacterUtilities.IsNumberStart(_expression[_position])) // numeric
-        {
-            if (!ParseNumeric(start))
-            {
-                return false;
-            }
-        }
-        else if (CharacterUtilities.IsSimpleStringStart(_expression[_position])) // simple string (handle 'and' and 'or')
-        {
-            if (!ParseSimpleStringOrFunction(start))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            // Something that wasn't a number or a letter, like a newline (%0a)
-            _errorState = true;
-            _errorPosition = start + 1;
-            _errorResource = "UnexpectedCharacterInCondition";
-            _unexpectedlyFound = _expression[_position].ToString();
-            return false;
-        }
-
         return true;
     }
 
@@ -716,54 +551,69 @@ internal sealed class Scanner
     // this works perfectly well:
     // Condition="%(a.Identity)!=''and%(a.m)=='1'"
     // Since people now depend on this behavior, we must not change it.
-    private bool ParseSimpleStringOrFunction(int start)
+    private bool TryParseKeywordOrIdentifier()
     {
-        SkipSimpleStringChars();
+        int start = _position;
 
-        var span = _expression.AsSpan(start, _position - start);
+        if (!XmlUtilities.IsValidInitialElementNameCharacter(_expression[start]))
+        {
+            return false;
+        }
+
+        int index = start + 1;
+
+        while (index < _expression.Length && XmlUtilities.IsValidSubsequentElementNameCharacter(_expression[index]))
+        {
+            if (_expression[index] == '>' && _expression[index - 1] == '-')
+            {
+                index--;
+                break;
+            }
+
+            index++;
+        }
+
+        var text = _expression.AsMemory(start, index - start);
+        var span = text.Span;
+
+        _position = index;
 
 #if NET
-        if (s_keywordMap.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out Token? keywordToken))
+        if (s_keywordKindMap.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out TokenKind keywordKind))
         {
-            _current = keywordToken;
+            _current = new(keywordKind, text, start);
             return true;
         }
 #else
-        foreach (KeyValuePair<string, Token> kvp in s_keywordMap)
+        foreach (KeyValuePair<string, TokenKind> kvp in s_keywordKindMap)
         {
             if (span.Equals(kvp.Key, StringComparison.OrdinalIgnoreCase))
             {
-                _current = kvp.Value;
+                _current = new(kvp.Value, text, start);
                 return true;
             }
         }
 #endif
 
-        int end = _position;
-
-        SkipWhiteSpace();
-
-        if (_position < _expression.Length && _expression[_position] == '(')
-        {
-            _current = Token.Function(_expression.Substring(start, end - start));
-        }
-        else
-        {
-            string tokenValue = _expression.Substring(start, end - start);
-            _current = Token.String(tokenValue);
-        }
-
+        _current = Token.Identifier(text, start);
         return true;
     }
 
-    private bool ParseNumeric(int start)
+    private bool TryParseNumeric()
     {
+        int start = _position;
+
+        if (!CharacterUtilities.IsNumberStart(_expression[_position]))
+        {
+            return false;
+        }
+
         if ((_expression.Length - _position) > 2 && _expression[_position] == '0' && (_expression[_position + 1] == 'x' || _expression[_position + 1] == 'X'))
         {
             // Hex number
             _position += 2;
             SkipHexDigits();
-            _current = Token.Numeric(_expression.Substring(start, _position - start));
+            _current = Token.Numeric(_expression.AsMemory(start, _position - start), start);
         }
         else if (CharacterUtilities.IsNumberStart(_expression[_position]))
         {
@@ -780,10 +630,12 @@ internal sealed class Scanner
             do
             {
                 SkipDigits();
+
                 if (_position < _expression.Length && _expression[_position] == '.')
                 {
                     _position++;
                 }
+
                 if (_position < _expression.Length)
                 {
                     SkipDigits();
@@ -793,7 +645,7 @@ internal sealed class Scanner
 
             // Do we need to error on malformed input like 0.00.00)? or will the conversion handle it?
             // For now, let the conversion generate the error.
-            _current = Token.Numeric(_expression.Substring(start, _position - start));
+            _current = Token.Numeric(_expression.AsMemory(start, _position - start), start);
         }
         else
         {
@@ -825,14 +677,6 @@ internal sealed class Scanner
     private void SkipHexDigits()
     {
         while (_position < _expression.Length && CharacterUtilities.IsHexDigit(_expression[_position]))
-        {
-            _position++;
-        }
-    }
-
-    private void SkipSimpleStringChars()
-    {
-        while (_position < _expression.Length && CharacterUtilities.IsSimpleStringChar(_expression[_position]))
         {
             _position++;
         }

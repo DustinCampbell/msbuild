@@ -10,10 +10,19 @@ internal enum TokenKind
 {
     None,
     EndOfInput,
+    Unknown,
 
     Comma,
+    Dot,
     LeftParenthesis,
     RightParenthesis,
+    LeftBracket,
+    RightBracket,
+    DoubleColon,
+
+    DollarSign,
+    AtSign,
+    PercentSign,
 
     LessThan,
     GreaterThan,
@@ -33,11 +42,9 @@ internal enum TokenKind
     Yes,
     No,
 
+    Identifier,
     Numeric,
     String,
 
-    Function,
-    Property,
     ItemList,
-    ItemMetadata,
 }
