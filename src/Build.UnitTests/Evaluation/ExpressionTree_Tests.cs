@@ -255,7 +255,6 @@ namespace Microsoft.Build.UnitTests.Evaluation
             AssertParseEvaluate("!((($(foo) != 'twoo' or !$(bar)) and 5 >= 1) or $(two) == 1)", expander, false);
         }
 
-
         /// <summary>
         /// Make sure when a non number is used in an expression which expects a numeric value that a error is emitted.
         /// </summary>

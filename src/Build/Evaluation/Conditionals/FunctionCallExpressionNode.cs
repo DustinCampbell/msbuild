@@ -17,9 +17,9 @@ namespace Microsoft.Build.Evaluation;
 internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
 {
     private readonly ImmutableArray<GenericExpressionNode> _arguments;
-    private readonly string _functionName;
+    private readonly ReadOnlyMemory<char> _functionName;
 
-    public FunctionCallExpressionNode(string functionName, ImmutableArray<GenericExpressionNode> arguments)
+    public FunctionCallExpressionNode(ReadOnlyMemory<char> functionName, ImmutableArray<GenericExpressionNode> arguments)
     {
         _functionName = functionName;
         _arguments = arguments;
@@ -30,7 +30,7 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
     /// </summary>
     internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
     {
-        if (string.Equals(_functionName, "exists", StringComparison.OrdinalIgnoreCase))
+        if (_functionName.Span.Equals("exists", StringComparison.OrdinalIgnoreCase))
         {
             // Check we only have one argument
             VerifyArgumentCount(1, state);
@@ -69,7 +69,7 @@ internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
             }
         }
 
-        if (string.Equals(_functionName, "HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
+        if (_functionName.Span.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
         {
             // Check we only have one argument
             VerifyArgumentCount(1, state);

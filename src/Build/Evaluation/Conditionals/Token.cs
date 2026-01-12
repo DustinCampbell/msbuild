@@ -1,64 +1,130 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.Shared;
+using System;
 
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// This class represents a token in the Complex Conditionals grammar.  It's
+/// This struct represents a token in the Complex Conditionals grammar.  It's
 /// really just a bag that contains the type of the token and the string that
 /// was parsed into the token.  This isn't very useful for operators, but
 /// is useful for strings and such.
 /// </summary>
-internal sealed class Token
+internal readonly struct Token
 {
-    public static readonly Token None = new(TokenKind.None);
-    public static readonly Token EndOfInput = new(TokenKind.EndOfInput);
+    // Special tokens
+    public static Token Unknown(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Unknown, text, position);
 
-    public static readonly Token Comma = new(TokenKind.Comma);
-    public static readonly Token LeftParenthesis = new(TokenKind.LeftParenthesis);
-    public static readonly Token RightParenthesis = new(TokenKind.RightParenthesis);
+    public static Token EndOfInput(int position)
+        => new(TokenKind.EndOfInput, ReadOnlyMemory<char>.Empty, position);
 
-    public static readonly Token LessThan = new(TokenKind.LessThan);
-    public static readonly Token GreaterThan = new(TokenKind.GreaterThan);
-    public static readonly Token LessThanOrEqualTo = new(TokenKind.LessThanOrEqualTo);
-    public static readonly Token GreaterThanOrEqualTo = new(TokenKind.GreaterThanOrEqualTo);
-    public static readonly Token EqualTo = new(TokenKind.EqualTo);
-    public static readonly Token NotEqualTo = new(TokenKind.NotEqualTo);
+    // Punctuation
+    public static Token Comma(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Comma, text, position);
 
-    public static readonly Token Not = new(TokenKind.Not);
+    public static Token Dot(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Dot, text, position);
 
-    public static readonly Token And = new(TokenKind.And);
-    public static readonly Token Or = new(TokenKind.Or);
-    public static readonly Token True = new(TokenKind.True, flags: TokenFlags.IsBooleanTrue);
-    public static readonly Token False = new(TokenKind.False, flags: TokenFlags.IsBooleanFalse);
-    public static readonly Token On = new(TokenKind.On, flags: TokenFlags.IsBooleanTrue);
-    public static readonly Token Off = new(TokenKind.Off, flags: TokenFlags.IsBooleanFalse);
-    public static readonly Token Yes = new(TokenKind.Yes, flags: TokenFlags.IsBooleanTrue);
-    public static readonly Token No = new(TokenKind.No, flags: TokenFlags.IsBooleanFalse);
+    public static Token LeftParenthesis(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.LeftParenthesis, text, position);
 
-    public static Token Numeric(string text)
-        => new(TokenKind.Numeric, text);
+    public static Token RightParenthesis(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.RightParenthesis, text, position);
 
-    public static Token String(string text, TokenFlags flags = TokenFlags.None)
-        => new(TokenKind.String, text, flags);
+    public static Token LeftBracket(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.LeftBracket, text, position);
 
-    public static Token Function(string text)
-        => new(TokenKind.Function, text);
+    public static Token RightBracket(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.RightBracket, text, position);
 
-    public static Token ItemList(string text)
-        => new(TokenKind.ItemList, text);
+    public static Token DoubleColon(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.DoubleColon, text, position);
 
-    public static Token ItemMetadata(string text)
-        => new(TokenKind.ItemMetadata, text);
+    public static Token Arrow(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Arrow, text, position);
 
-    public static Token Property(string text)
-        => new(TokenKind.Property, text);
+    // Expression signfiers ($, @, %) for properties, item lists, and metadata.
+    public static Token DollarSign(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.DollarSign, text, position);
+
+    public static Token AtSign(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.AtSign, text, position);
+
+    public static Token PercentSign(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.PercentSign, text, position);
+
+    // Comparison operators
+    public static Token LessThan(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.LessThan, text, position);
+
+    public static Token GreaterThan(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.GreaterThan, text, position);
+
+    public static Token LessThanOrEqualTo(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.LessThanOrEqualTo, text, position);
+
+    public static Token GreaterThanOrEqualTo(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.GreaterThanOrEqualTo, text, position);
+
+    public static Token EqualTo(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.EqualTo, text, position);
+
+    public static Token NotEqualTo(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.NotEqualTo, text, position);
+
+    // Logical operators
+    public static Token Not(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Not, text, position);
+
+    public static Token And(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.And, text, position, flags: TokenFlags.None);
+
+    public static Token Or(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Or, text, position, flags: TokenFlags.None);
+
+    // Boolean keywords
+    public static Token True(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.True, text, position, flags: TokenFlags.IsBooleanTrue);
+
+    public static Token False(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.False, text, position, flags: TokenFlags.IsBooleanFalse);
+
+    public static Token On(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.On, text, position, flags: TokenFlags.IsBooleanTrue);
+
+    public static Token Off(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Off, text, position, flags: TokenFlags.IsBooleanFalse);
+
+    public static Token Yes(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Yes, text, position, flags: TokenFlags.IsBooleanTrue);
+
+    public static Token No(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.No, text, position, flags: TokenFlags.IsBooleanFalse);
+
+    // Value tokens
+    public static Token Identifier(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Identifier, text, position);
+
+    public static Token Numeric(ReadOnlyMemory<char> text, int position)
+        => new(TokenKind.Numeric, text, position);
+
+    public static Token String(ReadOnlyMemory<char> text, TokenFlags flags, int position)
+        => new(TokenKind.String, text, position, flags);
 
     public TokenKind Kind { get; }
 
-    private readonly string? _text;
+    /// <summary>
+    /// The text of this token from the original expression.
+    /// </summary>
+    public ReadOnlyMemory<char> Text { get; }
+
+    /// <summary>
+    /// The 0-based position in the expression where this token starts.
+    /// </summary>
+    public int Position { get; }
+
     private readonly TokenFlags _flags;
 
     /// <summary>
@@ -71,54 +137,14 @@ internal sealed class Token
 
     public bool IsBooleanFalse => (_flags & TokenFlags.IsBooleanFalse) != 0;
 
-    private Token(TokenKind kind, string? text = null, TokenFlags flags = 0)
+    public Token(TokenKind kind, ReadOnlyMemory<char> text, int position, TokenFlags flags = 0)
     {
         Kind = kind;
-        _text = text;
+        Text = text;
+        Position = position;
         _flags = flags;
     }
 
     public bool IsKind(TokenKind kind)
         => Kind == kind;
-
-    public string Text
-    {
-        get
-        {
-            if (_text != null)
-            {
-                return _text;
-            }
-
-            // Return a token string for an error message.
-            return Kind switch
-            {
-                TokenKind.None or TokenKind.EndOfInput => string.Empty,
-
-                TokenKind.Comma => ",",
-                TokenKind.LeftParenthesis => "(",
-                TokenKind.RightParenthesis => ")",
-
-                TokenKind.LessThan => "<",
-                TokenKind.GreaterThan => ">",
-                TokenKind.LessThanOrEqualTo => "<=",
-                TokenKind.GreaterThanOrEqualTo => ">=",
-                TokenKind.EqualTo => "==",
-                TokenKind.NotEqualTo => "!=",
-
-                TokenKind.Not => "!",
-
-                TokenKind.And => "and",
-                TokenKind.Or => "or",
-                TokenKind.True => "true",
-                TokenKind.False => "false",
-                TokenKind.On => "on",
-                TokenKind.Off => "off",
-                TokenKind.Yes => "yes",
-                TokenKind.No => "no",
-
-                _ => ErrorUtilities.ThrowInternalErrorUnreachable<string>(),
-            };
-        }
-    }
 }
