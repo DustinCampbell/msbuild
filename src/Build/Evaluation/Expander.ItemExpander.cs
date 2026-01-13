@@ -272,12 +272,10 @@ internal partial class Expander<P, I>
         /// Item type of the items returned is determined by the IItemFactory passed in; if the IItemFactory does not
         /// have an item type set on it, it will be given the item type of the item vector to use.
         /// </summary>
-        /// <typeparam name="S">Type of the items provided by the item source used for expansion.</typeparam>
         /// <typeparam name="T">Type of the items that should be returned.</typeparam>
-        internal static IList<T> ExpandSingleItemVectorExpressionIntoItems<S, T>(
-                Expander<P, I> expander, string expression, IItemProvider<S> items, IItemFactory<S, T> itemFactory, ExpanderOptions options,
-                bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
-            where S : class, IItem
+        internal static IList<T> ExpandSingleItemVectorExpressionIntoItems<T>(
+            Expander<P, I> expander, string expression, IItemProvider<I> items, IItemFactory<I, T> itemFactory, ExpanderOptions options,
+            bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
             where T : class, IItem
         {
             isTransformExpression = false;
@@ -324,10 +322,9 @@ internal partial class Expander<P, I>
             return match;
         }
 
-        internal static IList<T> ExpandExpressionCaptureIntoItems<S, T>(
-                ExpressionShredder.ItemExpressionCapture expressionCapture, Expander<P, I> expander, IItemProvider<S> items, IItemFactory<S, T> itemFactory,
-                ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
-            where S : class, IItem
+        internal static IList<T> ExpandExpressionCaptureIntoItems<T>(
+            ExpressionShredder.ItemExpressionCapture expressionCapture, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
+            ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
             where T : class, IItem
         {
             ErrorUtilities.VerifyThrow(items != null, "Cannot expand items without providing items");
@@ -374,8 +371,8 @@ internal partial class Expander<P, I>
                 return result;
             }
 
-            List<KeyValuePair<string, S>> itemsFromCapture;
-            brokeEarlyNonEmpty = ExpandExpressionCapture(expander, expressionCapture, items, elementLocation /* including null items */, options, true, out isTransformExpression, out itemsFromCapture);
+            List<KeyValuePair<string, I>> itemsFromCapture;
+            brokeEarlyNonEmpty = ExpandExpressionCapture(expander, expressionCapture, items, elementLocation, options, includeNullEntries: true, out isTransformExpression, out itemsFromCapture);
 
             if (brokeEarlyNonEmpty)
             {
@@ -522,9 +519,7 @@ internal partial class Expander<P, I>
         /// If the expression is empty, returns empty string.
         /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
         /// </summary>
-        /// <typeparam name="T">Type of the items provided.</typeparam>
-        internal static string ExpandItemVectorsIntoString<T>(Expander<P, I> expander, string expression, IItemProvider<T> items, ExpanderOptions options, IElementLocation elementLocation)
-            where T : class, IItem
+        internal static string ExpandItemVectorsIntoString(Expander<P, I> expander, string expression, IItemProvider<I> items, ExpanderOptions options, IElementLocation elementLocation)
         {
             if ((options & ExpanderOptions.ExpandItems) == 0 || expression.Length == 0)
             {
