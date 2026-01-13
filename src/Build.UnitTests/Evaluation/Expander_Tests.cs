@@ -2588,9 +2588,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
             pg.Set(ProjectPropertyInstance.Create("ver1", @"1.2.3.4"));
 
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            var accessor = expander.GetTestAccessor();
 
-            object result = expander.ExpandPropertiesLeaveTypedAndEscaped(@"$([System.Version]::new($(ver1)))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+            object result = accessor.ExpandPropertiesLeaveTypedAndEscaped(@"$([System.Version]::new($(ver1)))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
             Assert.IsType<Version>(result);
 
@@ -3401,8 +3402,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
         private void AssertThrows(Expander<ProjectPropertyInstance, ProjectItemInstance> expander, string expression, string expectedMessage)
         {
+            var accessor = expander.GetTestAccessor();
+
             var ex = Assert.Throws<InvalidProjectFileException>(
-                () => expander.ExpandPropertiesLeaveTypedAndEscaped(
+                () => accessor.ExpandPropertiesLeaveTypedAndEscaped(
                     expression,
                     ExpanderOptions.ExpandProperties,
                     MockElementLocation.Instance));
@@ -3412,7 +3415,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
         private void AssertSuccess(Expander<ProjectPropertyInstance, ProjectItemInstance> expander, object expected, string expression)
         {
-            var actual = expander.ExpandPropertiesLeaveTypedAndEscaped(
+            var accessor = expander.GetTestAccessor();
+
+            var actual = accessor.ExpandPropertiesLeaveTypedAndEscaped(
                 expression,
                 ExpanderOptions.ExpandProperties,
                 MockElementLocation.Instance);
@@ -4015,8 +4020,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [MemberData(nameof(GetHashAlgoTypes))]
         public void PropertyFunctionHashCodeSameOnlyIfStringSame(string hashType)
         {
-            PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            var accessor = expander.GetTestAccessor();
+
             string[] stringsToHash = {
                 "cat1s",
                 "cat1z",
@@ -4030,7 +4037,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             };
             string hashTypeString = hashType == null ? "" : $", '{hashType}'";
             object[] hashes = stringsToHash.Select(toHash =>
-                expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::StableStringHash('{toHash}'{hashTypeString}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance))
+                accessor.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::StableStringHash('{toHash}'{hashTypeString}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance))
                 .ToArray();
             for (int a = 0; a < hashes.Length; a++)
             {
@@ -4052,11 +4059,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [MemberData(nameof(GetHashAlgoTypes))]
         public void PropertyFunctionHashCodeReturnsExpectedType(string hashType)
         {
-            PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
-            Type expectedType;
+            var pg = new PropertyDictionary<ProjectPropertyInstance>();
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+            var accessor = expander.GetTestAccessor();
 
-            expectedType = hashType switch
+            Type expectedType = hashType switch
             {
                 null => typeof(int),
                 "Legacy" => typeof(int),
@@ -4068,9 +4075,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 _ => throw new ArgumentOutOfRangeException(nameof(hashType))
             };
 
-
             string hashTypeString = hashType == null ? "" : $", '{hashType}'";
-            object hashValue = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::StableStringHash('FooBar'{hashTypeString}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+            object hashValue = accessor.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::StableStringHash('FooBar'{hashTypeString}))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
             hashValue.ShouldBeOfType(expectedType);
         }
@@ -4083,9 +4089,11 @@ namespace Microsoft.Build.UnitTests.Evaluation
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new();
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(pg, FileSystems.Default);
-            string intermediate = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertToBase64('{testCase}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
+            var accessor = expander.GetTestAccessor();
+
+            string intermediate = accessor.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertToBase64('{testCase}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
             intermediate.Trim('=').All(c => char.IsLetterOrDigit(c) || c == '+' || c == '/').ShouldBeTrue();
-            string original = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertFromBase64('{intermediate}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
+            string original = accessor.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertFromBase64('{intermediate}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
             original.ShouldBe(testCase);
         }
 
@@ -4097,7 +4105,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new();
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(pg, FileSystems.Default);
-            string intermediate = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertToBase64('{plaintext}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
+            var accessor = expander.GetTestAccessor();
+
+            string intermediate = accessor.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertToBase64('{plaintext}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
             intermediate.ShouldBe(base64);
         }
 
@@ -4109,7 +4119,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new();
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(pg, FileSystems.Default);
-            string original = expander.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertFromBase64('{base64}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
+            var accessor = expander.GetTestAccessor();
+
+            string original = accessor.ExpandPropertiesLeaveTypedAndEscaped($"$([MSBuild]::ConvertFromBase64('{base64}'))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance) as string;
             original.ShouldBe(plaintext);
         }
 
