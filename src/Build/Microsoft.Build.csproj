@@ -540,6 +540,7 @@
     <Compile Include="Evaluation\Expander.ItemExpander.cs" />
     <Compile Include="Evaluation\Expander.MetadataExpander.cs" />
     <Compile Include="Evaluation\Expander.PropertyExpander.cs" />
+    <Compile Include="Evaluation\Expander.SpanBasedConcatenator.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
     <Compile Include="Evaluation\Expander\ArgumentParser.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
