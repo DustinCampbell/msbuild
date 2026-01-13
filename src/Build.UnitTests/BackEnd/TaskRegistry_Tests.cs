@@ -43,7 +43,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Expander to expand the registry entires
         /// </summary>
-        private static Expander<ProjectPropertyInstance, ProjectItemInstance> s_registryExpander;
+        private static IExpander<ProjectPropertyInstance, ProjectItemInstance> s_registryExpander;
 
         /// <summary>
         /// Name of the test task built into the test
@@ -2029,7 +2029,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Accessor to the expander
         /// </summary>
-        internal static Expander<ProjectPropertyInstance, ProjectItemInstance> RegistryExpander => s_registryExpander ?? (s_registryExpander = GetExpander());
+        internal static IExpander<ProjectPropertyInstance, ProjectItemInstance> RegistryExpander => s_registryExpander ?? (s_registryExpander = GetExpander());
 
         /// <summary>
         /// Count the number of registry records which exist in the task registry
@@ -2063,7 +2063,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Create an expander with some property values which can be used for testing.
         /// </summary>
-        internal static Expander<ProjectPropertyInstance, ProjectItemInstance> GetExpander()
+        internal static IExpander<ProjectPropertyInstance, ProjectItemInstance> GetExpander()
         {
             ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
@@ -2114,7 +2114,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             secondaryItemsByName.ImportItems(thirdItemGroup);
             secondaryItemsByName.ImportItems(trueItemGroup);
 
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
                 pg,
                 secondaryItemsByName,
                 FileSystems.Default,

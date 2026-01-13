@@ -18,11 +18,11 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Execution;
-using Microsoft.Build.ProjectCache;
 using Microsoft.Build.FileSystem;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
 using Microsoft.Build.Internal;
+using Microsoft.Build.ProjectCache;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using static Microsoft.Build.Execution.ProjectPropertyInstance;
@@ -66,7 +66,7 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Expander for evaluating conditions
         /// </summary>
-        private readonly Expander<P, I> _expander;
+        private readonly IExpander<P, I> _expander;
 
         /// <summary>
         /// Data containing the ProjectRootElement to evaluate and the slots for
@@ -373,7 +373,15 @@ namespace Microsoft.Build.Evaluation
         /// Helper that creates a list of ProjectItem's given an unevaluated Include and a ProjectRootElement.
         /// Used by both Evaluator.EvaluateItemElement and by Project.AddItem.
         /// </summary>
-        internal static List<I> CreateItemsFromInclude(string rootDirectory, ProjectItemElement itemElement, IItemFactory<I, I> itemFactory, string unevaluatedIncludeEscaped, Expander<P, I> expander, ILoggingService loggingService, string buildEventFileInfoFullPath, BuildEventContext buildEventContext)
+        internal static List<I> CreateItemsFromInclude(
+            string rootDirectory,
+            ProjectItemElement itemElement,
+            IItemFactory<I, I> itemFactory,
+            string unevaluatedIncludeEscaped,
+            IExpander<P, I> expander,
+            ILoggingService loggingService,
+            string buildEventFileInfoFullPath,
+            BuildEventContext buildEventContext)
         {
             ErrorUtilities.VerifyThrowArgumentLength(unevaluatedIncludeEscaped);
 
@@ -741,7 +749,7 @@ namespace Microsoft.Build.Evaluation
                 using (_evaluationProfiler.TrackPass(EvaluationPass.UsingTasks))
                 {
                     // Evaluate the usingtask and add the result into the data passed in
-                    TaskRegistry.InitializeTaskRegistryFromUsingTaskElements<P, I>(
+                    TaskRegistry.InitializeTaskRegistryFromUsingTaskElements(
                         _evaluationLoggingContext,
                         _usingTaskElements.Select(p => (p.Value, p.Key)),
                         _data.TaskRegistry,
@@ -1770,7 +1778,7 @@ namespace Microsoft.Build.Evaluation
                         }
 
                         static string EvaluateProperty(string value, IElementLocation location,
-                            Expander<P, I> expander, SdkReferencePropertyExpansionMode mode)
+                            IExpander<P, I> expander, SdkReferencePropertyExpansionMode mode)
                         {
                             if (value == null)
                             {

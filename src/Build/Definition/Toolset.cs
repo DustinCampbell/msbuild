@@ -131,7 +131,7 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Expander to expand the properties and items in the using tasks files
         /// </summary>
-        private Expander<ProjectPropertyInstance, ProjectItemInstance> _expander;
+        private IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander;
 
         /// <summary>
         /// SubToolsets that map to this toolset.
@@ -940,7 +940,7 @@ namespace Microsoft.Build.Evaluation
             string currentTasksFile = null;
             try
             {
-                TaskRegistry.InitializeTaskRegistryFromUsingTaskElements<ProjectPropertyInstance, ProjectItemInstance>(
+                TaskRegistry.InitializeTaskRegistryFromUsingTaskElements(
                     loggingContext,
                     EnumerateTasksRegistrations(),
                     registry,

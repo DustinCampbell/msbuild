@@ -25,7 +25,7 @@ namespace Microsoft.Build.UnitTests
 
         private static readonly string[] FilesWithExistenceChecks = { "a", "c", "a;b", "a'b", ";", "'" };
 
-        private readonly Expander<ProjectPropertyInstance, ProjectItemInstance> _expander;
+        private readonly IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander;
 
         public static readonly IEnumerable<object[]> TrueTests = new[]
         {

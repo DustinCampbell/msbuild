@@ -30,9 +30,9 @@ namespace Microsoft.Build.Evaluation
         where D : class, IItemDefinition<M>
     {
         private readonly IEvaluatorData<P, I, M, D> _outerEvaluatorData;
-        private readonly Expander<P, I> _outerExpander;
+        private readonly IExpander<P, I> _outerExpander;
         private readonly IEvaluatorData<P, I, M, D> _evaluatorData;
-        private readonly Expander<P, I> _expander;
+        private readonly IExpander<P, I> _expander;
         private readonly IItemFactory<I, I> _itemFactory;
         private readonly LoggingContext _loggingContext;
         private readonly EvaluationProfiler _evaluationProfiler;
@@ -72,7 +72,7 @@ namespace Microsoft.Build.Evaluation
             ProjectElement element,
             ExpanderOptions expanderOptions,
             ParserOptions parserOptions,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             LazyItemEvaluator<P, I, M, D> lazyEvaluator)
         {
             if (condition?.Length == 0)

@@ -17,7 +17,7 @@ internal static class ExpanderExtensions
     /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
     /// </summary>
     public static IList<TaskItem> ExpandIntoTaskItemsLeaveEscaped<P, I>(
-        this Expander<P, I> expander, string expression, ExpanderOptions options, IElementLocation elementLocation)
+        this IExpander<P, I> expander, string expression, ExpanderOptions options, IElementLocation elementLocation)
         where P : class, IProperty
         where I : class, IItem
         => expander.ExpandIntoItemsLeaveEscaped(

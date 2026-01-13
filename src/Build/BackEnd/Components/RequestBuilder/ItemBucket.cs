@@ -28,7 +28,7 @@ namespace Microsoft.Build.BackEnd
         /// This single object contains all of the data necessary to perform expansion of metadata, properties,
         /// and items.
         /// </summary>
-        private Expander<ProjectPropertyInstance, ProjectItemInstance> _expander;
+        private IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander;
 
         /// <summary>
         /// Metadata in this bucket
@@ -148,7 +148,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Returns the object that knows how to handle all kinds of expansion for this bucket.
         /// </summary>
-        internal Expander<ProjectPropertyInstance, ProjectItemInstance> Expander
+        internal IExpander<ProjectPropertyInstance, ProjectItemInstance> Expander
         {
             get
             {

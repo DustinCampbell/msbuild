@@ -554,7 +554,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Returns the set of parameters that can contribute to a task's identity, and their values for this particular task.
         /// </summary>
-        private TaskHostParameters GatherTaskIdentityParameters(Expander<ProjectPropertyInstance, ProjectItemInstance> expander)
+        private TaskHostParameters GatherTaskIdentityParameters(IExpander<ProjectPropertyInstance, ProjectItemInstance> expander)
         {
             ErrorUtilities.VerifyThrowInternalNull(_taskNode, "taskNode"); // taskNode should never be null when we're calling this method.
 

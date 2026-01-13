@@ -4229,7 +4229,7 @@ namespace Microsoft.Build.Evaluation
             /// For example, to expand the values of any properties added at design time.
             /// It's convenient to store it here.
             /// </summary>
-            internal Expander<ProjectProperty, ProjectItem> Expander { get; private set; }
+            internal IExpander<ProjectProperty, ProjectItem> Expander { get; private set; }
 
             /// <summary>
             /// Whether something in this data has been modified since evaluation.

@@ -13,7 +13,7 @@ using Microsoft.Build.UnitTests.BackEnd;
 using Shouldly;
 using Xunit;
 using ProjectInstanceExpander =
-    Microsoft.Build.Evaluation.Expander<Microsoft.Build.Execution.ProjectPropertyInstance, Microsoft.Build.Execution.ProjectItemInstance>;
+    Microsoft.Build.Evaluation.IExpander<Microsoft.Build.Execution.ProjectPropertyInstance, Microsoft.Build.Execution.ProjectItemInstance>;
 using ProjectInstanceItemSpec =
     Microsoft.Build.Evaluation.ItemSpec<Microsoft.Build.Execution.ProjectPropertyInstance, Microsoft.Build.Execution.ProjectItemInstance>;
 
@@ -89,7 +89,7 @@ namespace Microsoft.Build.UnitTests.OM.Evaluation
         {
             var itemDictionary = ToItemDictionary(items);
 
-            return new ProjectInstanceExpander(
+            return new Build.Evaluation.Expander<ProjectPropertyInstance, ProjectItemInstance>(
                 new PropertyDictionary<ProjectPropertyInstance>(),
                 itemDictionary,
                 (IFileSystem)FileSystems.Default,

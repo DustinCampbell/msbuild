@@ -243,7 +243,7 @@ namespace Microsoft.Build.Execution
             LoggingContext loggingContext,
             IEnumerable<(ProjectUsingTaskElement projectUsingTaskXml, string directoryOfImportingFile)> registrations,
             TaskRegistry taskRegistry,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             ExpanderOptions expanderOptions,
             IFileSystem fileSystem)
             where P : class, IProperty
@@ -277,7 +277,7 @@ namespace Microsoft.Build.Execution
             string directoryOfImportingFile,
             ProjectUsingTaskElement projectUsingTaskXml,
             TaskRegistry taskRegistry,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             ExpanderOptions expanderOptions,
             IFileSystem fileSystem)
             where P : class, IProperty
@@ -1671,7 +1671,7 @@ namespace Microsoft.Build.Execution
                 /// </summary>
                 /// <typeparam name="P">Property type</typeparam>
                 /// <typeparam name="I">Item Type</typeparam>
-                internal void ExpandUsingTask<P, I>(ProjectUsingTaskElement projectUsingTaskXml, Expander<P, I> expander, ExpanderOptions expanderOptions)
+                internal void ExpandUsingTask<P, I>(ProjectUsingTaskElement projectUsingTaskXml, IExpander<P, I> expander, ExpanderOptions expanderOptions)
                     where P : class, IProperty
                     where I : class, IItem
                 {
@@ -1681,14 +1681,14 @@ namespace Microsoft.Build.Execution
                     ProjectUsingTaskBodyElement taskElement = projectUsingTaskXml.TaskBody;
                     if (taskElement != null)
                     {
-                        EvaluateTaskBody<P, I>(expander, taskElement, expanderOptions);
+                        EvaluateTaskBody(expander, taskElement, expanderOptions);
                     }
 
                     UsingTaskParameterGroupElement parameterGroupElement = projectUsingTaskXml.ParameterGroup;
 
                     if (parameterGroupElement != null)
                     {
-                        ParseUsingTaskParameterGroupElement<P, I>(parameterGroupElement, expander, expanderOptions);
+                        ParseUsingTaskParameterGroupElement(parameterGroupElement, expander, expanderOptions);
                     }
                 }
 
@@ -1697,7 +1697,7 @@ namespace Microsoft.Build.Execution
                 /// </summary>
                 /// <typeparam name="P">IProperttyTypes</typeparam>
                 /// <typeparam name="I">IItems</typeparam>
-                private void EvaluateTaskBody<P, I>(Expander<P, I> expander, ProjectUsingTaskBodyElement taskElement, ExpanderOptions expanderOptions)
+                private void EvaluateTaskBody<P, I>(IExpander<P, I> expander, ProjectUsingTaskBodyElement taskElement, ExpanderOptions expanderOptions)
                     where P : class, IProperty
                     where I : class, IItem
                 {
@@ -1733,7 +1733,7 @@ namespace Microsoft.Build.Execution
                 /// </summary>
                 /// <typeparam name="P">Property type</typeparam>
                 /// <typeparam name="I">Item types</typeparam>
-                private void ParseUsingTaskParameterGroupElement<P, I>(UsingTaskParameterGroupElement usingTaskParameterGroup, Expander<P, I> expander, ExpanderOptions expanderOptions)
+                private void ParseUsingTaskParameterGroupElement<P, I>(UsingTaskParameterGroupElement usingTaskParameterGroup, IExpander<P, I> expander, ExpanderOptions expanderOptions)
                     where P : class, IProperty
                     where I : class, IItem
                 {

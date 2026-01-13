@@ -116,7 +116,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// The expander used to expand item and property markup to evaluated values.
         /// </summary>
-        private Expander<ProjectPropertyInstance, ProjectItemInstance> _expander;
+        private IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander;
 
         /// <summary>
         /// The lookup containing our environment.

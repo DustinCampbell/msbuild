@@ -28,7 +28,7 @@ namespace Microsoft.Build.Evaluation;
 /// </remarks>
 /// <typeparam name="P">Type of the properties used.</typeparam>
 /// <typeparam name="I">Type of the items used.</typeparam>
-internal partial class Expander<P, I>
+internal partial class Expander<P, I> : IExpander<P, I>
     where P : class, IProperty
     where I : class, IItem
 {
@@ -76,7 +76,7 @@ internal partial class Expander<P, I>
     /// <summary>
     /// Non-null if the expander was constructed for evaluation.
     /// </summary>
-    internal EvaluationContext EvaluationContext { get; }
+    public EvaluationContext EvaluationContext { get; }
 
     private Expander(IPropertyProvider<P> properties, LoggingContext loggingContext)
     {
@@ -190,7 +190,7 @@ internal partial class Expander<P, I>
     /// Accessor for the metadata.
     /// Set temporarily during item metadata evaluation.
     /// </summary>
-    internal IMetadataTable Metadata
+    public IMetadataTable Metadata
     {
         get { return _metadata; }
         set { _metadata = value; }
@@ -200,11 +200,7 @@ internal partial class Expander<P, I>
     /// If a property is expanded but evaluates to null then it is considered to be un-initialized.
     /// We want to keep track of these properties so that we can warn if the property gets set later on.
     /// </summary>
-    internal PropertiesUseTracker PropertiesUseTracker
-    {
-        get { return _propertiesUseTracker; }
-        set { _propertiesUseTracker = value; }
-    }
+    public PropertiesUseTracker PropertiesUseTracker => _propertiesUseTracker;
 
     /// <summary>
     /// Expands embedded item metadata, properties, and embedded item lists (in that order) as specified in the provided options.
@@ -212,7 +208,7 @@ internal partial class Expander<P, I>
     ///
     /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
     /// </summary>
-    internal string ExpandIntoStringAndUnescape(string expression, ExpanderOptions options, IElementLocation elementLocation)
+    public string ExpandIntoStringAndUnescape(string expression, ExpanderOptions options, IElementLocation elementLocation)
     {
         string result = ExpandIntoStringLeaveEscaped(expression, options, elementLocation);
 
@@ -226,7 +222,7 @@ internal partial class Expander<P, I>
     ///
     /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
     /// </summary>
-    internal string ExpandIntoStringLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
+    public string ExpandIntoStringLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
     {
         if (expression.Length == 0)
         {
@@ -249,7 +245,7 @@ internal partial class Expander<P, I>
     /// Use this form when the result is going to be processed further, for example by matching against the file system,
     /// so literals must be distinguished, and you promise to unescape after that.
     /// </summary>
-    internal SemiColonTokenizer ExpandIntoStringListLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
+    public SemiColonTokenizer ExpandIntoStringListLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
     {
         ErrorUtilities.VerifyThrow((options & ExpanderOptions.BreakOnNotEmpty) == 0, "not supported");
 
@@ -266,7 +262,7 @@ internal partial class Expander<P, I>
     /// so literals must be distinguished, and you promise to unescape after that.
     /// </summary>
     /// <typeparam name="T">Type of items to return.</typeparam>
-    internal IList<T> ExpandIntoItemsLeaveEscaped<T>(string expression, IItemFactory<I, T> itemFactory, ExpanderOptions options, IElementLocation elementLocation)
+    public IList<T> ExpandIntoItemsLeaveEscaped<T>(string expression, IItemFactory<I, T> itemFactory, ExpanderOptions options, IElementLocation elementLocation)
         where T : class, IItem
     {
         if (expression.Length == 0)
@@ -339,7 +335,7 @@ internal partial class Expander<P, I>
     /// have an item type set on it, it will be given the item type of the item vector to use.
     /// </summary>
     /// <typeparam name="T">Type of the items that should be returned.</typeparam>
-    internal IList<T> ExpandSingleItemVectorExpressionIntoItems<T>(string expression, IItemFactory<I, T> itemFactory, ExpanderOptions options, bool includeNullItems, out bool isTransformExpression, IElementLocation elementLocation)
+    public IList<T> ExpandSingleItemVectorExpressionIntoItems<T>(string expression, IItemFactory<I, T> itemFactory, ExpanderOptions options, bool includeNullItems, out bool isTransformExpression, IElementLocation elementLocation)
         where T : class, IItem
     {
         if (expression.Length == 0)
@@ -354,30 +350,31 @@ internal partial class Expander<P, I>
     }
 
     internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
-        string expression, ExpanderOptions options, IElementLocation elementLocation)
-    {
-        return ItemExpander.ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
-    }
+        string expression,
+        ExpanderOptions options,
+        IElementLocation elementLocation)
+        => ItemExpander.ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
 
-    internal IList<T> ExpandExpressionCaptureIntoItems<T>(
-        ExpressionShredder.ItemExpressionCapture expressionCapture, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
-        ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
+    public IList<T> ExpandExpressionCaptureIntoItems<T>(
+        ExpressionShredder.ItemExpressionCapture expressionCapture,
+        IItemProvider<I> items,
+        IItemFactory<I, T> itemFactory,
+        ExpanderOptions options,
+        bool includeNullEntries,
+        out bool isTransformExpression,
+        IElementLocation elementLocation)
         where T : class, IItem
-    {
-        return ItemExpander.ExpandExpressionCaptureIntoItems(expressionCapture, this, items, itemFactory, options,
+        => ItemExpander.ExpandExpressionCaptureIntoItems(expressionCapture, this, items, itemFactory, options,
             includeNullEntries, out isTransformExpression, elementLocation);
-    }
 
-    internal bool ExpandExpressionCapture(
+    public bool ExpandExpressionCapture(
         ExpressionShredder.ItemExpressionCapture expressionCapture,
         IElementLocation elementLocation,
         ExpanderOptions options,
         bool includeNullEntries,
         out bool isTransformExpression,
         out List<KeyValuePair<string, I>> itemsFromCapture)
-    {
-        return ItemExpander.ExpandExpressionCapture(this, expressionCapture, _items, elementLocation, options, includeNullEntries, out isTransformExpression, out itemsFromCapture);
-    }
+        => ItemExpander.ExpandExpressionCapture(this, expressionCapture, _items, elementLocation, options, includeNullEntries, out isTransformExpression, out itemsFromCapture);
 
     private static string TruncateString(string metadataValue)
     {

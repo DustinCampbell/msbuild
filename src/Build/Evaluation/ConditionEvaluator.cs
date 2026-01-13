@@ -181,7 +181,7 @@ namespace Microsoft.Build.Evaluation
         internal static bool EvaluateCondition<P, I>(
             string condition,
             ParserOptions options,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             ExpanderOptions expanderOptions,
             string evaluationDirectory,
             ElementLocation elementLocation,
@@ -214,7 +214,7 @@ namespace Microsoft.Build.Evaluation
         internal static bool EvaluateConditionCollectingConditionedProperties<P, I>(
             string condition,
             ParserOptions options,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             ExpanderOptions expanderOptions,
             Dictionary<string, List<string>>? conditionedPropertiesTable,
             string evaluationDirectory,
@@ -394,7 +394,7 @@ namespace Microsoft.Build.Evaluation
             where P : class, IProperty
             where I : class, IItem
         {
-            private readonly Expander<P, I> _expander;
+            private readonly IExpander<P, I> _expander;
             private readonly ExpanderOptions _expanderOptions;
 
             /// <summary>
@@ -426,7 +426,7 @@ namespace Microsoft.Build.Evaluation
 
             internal ConditionEvaluationState(
                 string condition,
-                Expander<P, I> expander,
+                IExpander<P, I> expander,
                 ExpanderOptions expanderOptions,
                 Dictionary<string, List<string>>? conditionedPropertiesInProject,
                 string evaluationDirectory,

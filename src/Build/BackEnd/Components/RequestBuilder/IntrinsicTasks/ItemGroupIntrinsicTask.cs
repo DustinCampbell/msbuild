@@ -381,7 +381,7 @@ namespace Microsoft.Build.BackEnd
         /// <returns>A list of items.</returns>
         private List<ProjectItemInstance> ExpandItemIntoItems(
             ProjectItemGroupTaskItemInstance originalItem,
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander,
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander,
             ISet<string> keepMetadata,
             ISet<string> removeMetadata,
             LoggingContext loggingContext = null)
@@ -578,7 +578,7 @@ namespace Microsoft.Build.BackEnd
             ICollection<ProjectItemInstance> items,
             string specification,
             ElementLocation specificationLocation,
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander)
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander)
         {
             if (items.Count == 0 || specification.Length == 0)
             {
@@ -645,7 +645,7 @@ namespace Microsoft.Build.BackEnd
         private List<ProjectItemInstance> FindItemsMatchingMetadataSpecification(
             ICollection<ProjectItemInstance> group,
             ProjectItemGroupTaskItemInstance child,
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander,
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander,
             HashSet<string> matchOnMetadata,
             MatchOnMetadataOptions matchingOptions)
         {
