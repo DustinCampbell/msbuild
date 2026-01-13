@@ -254,7 +254,7 @@ internal partial class Expander<P, I>
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
         {
-            Function<P> function = null;
+            Function function = null;
             string propertyName = propertyBody;
 
             // Trim the body for compatibility reasons:
@@ -278,7 +278,7 @@ internal partial class Expander<P, I>
                     }
 
                     // This is a function
-                    function = Function<P>.ExtractPropertyFunction(
+                    function = Function.ExtractPropertyFunction(
                         propertyBody,
                         elementLocation,
                         propertyValue,

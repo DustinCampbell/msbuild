@@ -535,6 +535,8 @@
     <Compile Include="Evaluation\ExpressionShredder.cs" />
     <Compile Include="Evaluation\Evaluator.cs" />
     <Compile Include="Evaluation\Expander.cs" />
+    <Compile Include="Evaluation\Expander.Function.cs" />
+    <Compile Include="Evaluation\Expander.FunctionBuilder.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.cs" />
     <Compile Include="Evaluation\Expander.PropertyExpander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
