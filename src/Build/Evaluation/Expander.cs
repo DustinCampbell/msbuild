@@ -349,12 +349,6 @@ internal partial class Expander<P, I> : IExpander<P, I>
         return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, expression, _items, itemFactory, options, includeNullItems, out isTransformExpression, elementLocation);
     }
 
-    internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
-        string expression,
-        ExpanderOptions options,
-        IElementLocation elementLocation)
-        => ItemExpander.ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
-
     public IList<T> ExpandExpressionCaptureIntoItems<T>(
         ExpressionShredder.ItemExpressionCapture expressionCapture,
         IItemProvider<I> items,

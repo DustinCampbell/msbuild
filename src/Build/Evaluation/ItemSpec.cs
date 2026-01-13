@@ -267,7 +267,7 @@ namespace Microsoft.Build.Evaluation
                 return null;
             }
 
-            var capture = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
+            var capture = ExpanderUtilities.ExpandSingleItemVectorExpressionIntoExpressionCapture(
                 expression,
                 ExpanderOptions.ExpandItems,
                 elementLocation);
