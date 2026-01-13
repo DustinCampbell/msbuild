@@ -190,6 +190,7 @@
     <Compile Include="BuildCheck\**\*.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Evaluation\ExpanderExtensions.cs" />
     <Compile Include="Evaluation\ExpanderUtilities.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\Parsing\ExpressionNodes.cs" />

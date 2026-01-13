@@ -10,8 +10,6 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.NET.StringTools;
-using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
-using TaskItemFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.TaskItemFactory;
 
 #nullable disable
 
@@ -256,17 +254,6 @@ internal partial class Expander<P, I>
         ErrorUtilities.VerifyThrow((options & ExpanderOptions.BreakOnNotEmpty) == 0, "not supported");
 
         return ExpressionShredder.SplitSemiColonSeparatedList(ExpandIntoStringLeaveEscaped(expression, options, elementLocation));
-    }
-
-    /// <summary>
-    /// Expands embedded item metadata, properties, and embedded item lists (in that order) as specified in the provided options
-    /// and produces a list of TaskItems.
-    /// If the expression is empty, returns an empty list.
-    /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
-    /// </summary>
-    internal IList<TaskItem> ExpandIntoTaskItemsLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
-    {
-        return ExpandIntoItemsLeaveEscaped(expression, (IItemFactory<I, TaskItem>)TaskItemFactory.Instance, options, elementLocation);
     }
 
     /// <summary>
