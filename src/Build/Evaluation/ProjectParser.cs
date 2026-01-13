@@ -4,10 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Xml;
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Expander = Microsoft.Build.Evaluation.Expander<Microsoft.Build.Evaluation.ProjectProperty, Microsoft.Build.Evaluation.ProjectItem>;
 using ProjectXmlUtilities = Microsoft.Build.Internal.ProjectXmlUtilities;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 
@@ -405,7 +405,7 @@ namespace Microsoft.Build.Construction
             // If the parent is an item definition, we don't allow expressions like @(foo) in the value, as no items exist at that point
             if (parent is ProjectItemDefinitionElement)
             {
-                bool containsItemVector = Expander.ExpressionContainsItemVector(metadatum.Value);
+                bool containsItemVector = ExpanderUtilities.ExpressionContainsItemVector(metadatum.Value);
                 ProjectErrorUtilities.VerifyThrowInvalidProject(!containsItemVector, element.Location, "MetadataDefinitionCannotContainItemVectorExpression", metadatum.Value, metadatum.Name);
             }
 

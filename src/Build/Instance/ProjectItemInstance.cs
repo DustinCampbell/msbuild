@@ -1426,7 +1426,7 @@ namespace Microsoft.Build.Execution
 
                 escapedValue = GetItemDefinitionMetadataEscaped(metadataName);
 
-                if (escapedValue != null && Expander<ProjectProperty, ProjectItem>.ExpressionMayContainExpandableExpressions(escapedValue))
+                if (escapedValue != null && ExpanderUtilities.ExpressionMayContainExpandableExpressions(escapedValue))
                 {
                     Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(null, null, new BuiltInMetadataTable(null, this), FileSystems.Default);
 
@@ -2134,7 +2134,7 @@ namespace Microsoft.Build.Execution
                 {
                     foreach (KeyValuePair<string, string> kvp in item.BackingMetadata)
                     {
-                        if (Expander<ProjectProperty, ProjectItem>.ExpressionMayContainExpandableExpressions(kvp.Value))
+                        if (ExpanderUtilities.ExpressionMayContainExpandableExpressions(kvp.Value))
                         {
                             return true;
                         }

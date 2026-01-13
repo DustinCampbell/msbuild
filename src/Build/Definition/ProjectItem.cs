@@ -500,7 +500,7 @@ namespace Microsoft.Build.Evaluation
             {
                 ProjectMetadata metadatum = GetItemDefinitionMetadata(name);
 
-                if (metadatum != null && Expander<ProjectProperty, ProjectItem>.ExpressionMayContainExpandableExpressions(metadatum.EvaluatedValueEscaped))
+                if (metadatum != null && ExpanderUtilities.ExpressionMayContainExpandableExpressions(metadatum.EvaluatedValueEscaped))
                 {
                     Expander<ProjectProperty, ProjectItem> expander = new Expander<ProjectProperty, ProjectItem>(null, null, new BuiltInMetadataTable(this), FileSystems.Default);
 

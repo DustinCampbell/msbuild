@@ -209,26 +209,6 @@ internal partial class Expander<P, I>
     }
 
     /// <summary>
-    /// Tests to see if the expression may contain expandable expressions, i.e.
-    /// contains $, % or @.
-    /// </summary>
-    internal static bool ExpressionMayContainExpandableExpressions(string expression)
-    {
-        return expression.AsSpan().IndexOfAny('$', '%', '@') >= 0;
-    }
-
-    /// <summary>
-    /// Returns true if the expression contains an item vector pattern, else returns false.
-    /// Used to flag use of item expressions where they are illegal.
-    /// </summary>
-    internal static bool ExpressionContainsItemVector(string expression)
-    {
-        ExpressionShredder.ReferencedItemExpressionsEnumerator transformsEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-
-        return transformsEnumerator.MoveNext();
-    }
-
-    /// <summary>
     /// Expands embedded item metadata, properties, and embedded item lists (in that order) as specified in the provided options.
     /// This is the standard form. Before using the expanded value, it must be unescaped, and this does that for you.
     ///
