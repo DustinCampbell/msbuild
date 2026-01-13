@@ -163,7 +163,7 @@ internal partial class Expander<P, I>
 
                 ItemTransformFunctions functionType;
 
-                if (FileUtilities.ItemSpecModifiers.IsDerivableItemSpecModifier(functionName))
+                if (ItemSpecModifiers.IsDerivableItemSpecModifier(functionName))
                 {
                     functionType = ItemTransformFunctions.ItemSpecModifierFunction;
                 }
@@ -753,9 +753,9 @@ internal partial class Expander<P, I>
                         // only exist within a target where we can trust the current directory
                         // 2. in single process mode we get the project directory set for the thread
                         string directoryToUse = item.Value.ProjectDirectory ?? FileUtilities.CurrentThreadWorkingDirectory ?? Directory.GetCurrentDirectory();
-                        string definingProjectEscaped = item.Value.GetMetadataValueEscaped(FileUtilities.ItemSpecModifiers.DefiningProjectFullPath);
+                        string definingProjectEscaped = item.Value.GetMetadataValueEscaped(ItemSpecModifiers.DefiningProjectFullPath);
 
-                        result = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(directoryToUse, item.Key, definingProjectEscaped, functionName);
+                        result = ItemSpecModifiers.GetItemSpecModifier(directoryToUse, item.Key, definingProjectEscaped, functionName);
                     }
                     // InvalidOperationException is how GetItemSpecModifier communicates invalid conditions upwards, so
                     // we do not want to rethrow in that case.
@@ -1320,7 +1320,7 @@ internal partial class Expander<P, I>
 
                     object result = function.Execute(item.Key, expander._properties, ExpanderOptions.ExpandAll, elementLocation);
 
-                    string include = Expander<P, I>.PropertyExpander.ConvertToString(result);
+                    string include = PropertyExpander.ConvertToString(result);
 
                     // We pass in the existing item so we can copy over its metadata
                     if (include.Length > 0)
@@ -1513,7 +1513,7 @@ internal partial class Expander<P, I>
                 string value = null;
                 try
                 {
-                    if (FileUtilities.ItemSpecModifiers.IsDerivableItemSpecModifier(match.Name))
+                    if (ItemSpecModifiers.IsDerivableItemSpecModifier(match.Name))
                     {
                         // If we're not a ProjectItem or ProjectItemInstance, then ProjectDirectory will be null.
                         // In that case,
@@ -1521,9 +1521,9 @@ internal partial class Expander<P, I>
                         // only exist within a target where we can trust the current directory
                         // 2. in single process mode we get the project directory set for the thread
                         string directoryToUse = sourceOfMetadata.ProjectDirectory ?? FileUtilities.CurrentThreadWorkingDirectory ?? Directory.GetCurrentDirectory();
-                        string definingProjectEscaped = sourceOfMetadata.GetMetadataValueEscaped(FileUtilities.ItemSpecModifiers.DefiningProjectFullPath);
+                        string definingProjectEscaped = sourceOfMetadata.GetMetadataValueEscaped(ItemSpecModifiers.DefiningProjectFullPath);
 
-                        value = FileUtilities.ItemSpecModifiers.GetItemSpecModifier(directoryToUse, itemSpec, definingProjectEscaped, match.Name);
+                        value = ItemSpecModifiers.GetItemSpecModifier(directoryToUse, itemSpec, definingProjectEscaped, match.Name);
                     }
                     else
                     {
