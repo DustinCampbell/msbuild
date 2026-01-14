@@ -840,6 +840,21 @@
         <target state="translated">MSB4274: プロキシ・ビルド要求を出すプロジェクト キャッシュ プラグインを使用する場合、InProc ノードを無効にするとパフォーマンスが低下します。</target>
         <note />
       </trans-unit>
+      <trans-unit id="RefArrayBuilder_Empty">
+        <source>RefArrayBuilder is empty.</source>
+        <target state="new">RefArrayBuilder is empty.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefArrayBuilder_NoMatch">
+        <source>RefArrayBuilder does not contain matching element.</source>
+        <target state="new">RefArrayBuilder does not contain matching element.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RefStack_Empty">
+        <source>RefStack is empty.</source>
+        <target state="new">RefStack is empty.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ReportFileAccessesX64Only">
         <source>Reporting file accesses is only currently supported using the x64 flavor of MSBuild.</source>
         <target state="translated">ファイル アクセスのレポートは、現在、MSBuild の x64 フレーバーを使用してのみサポートされています。</target>

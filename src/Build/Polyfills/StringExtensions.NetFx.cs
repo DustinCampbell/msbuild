@@ -1,0 +1,226 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+#if !NET
+using System;
+using System.Buffers;
+using System.Runtime.CompilerServices;
+
+namespace Microsoft.Build;
+
+internal static partial class StringExtensions
+{
+    extension(string stringValue)
+    {
+        /// <summary>
+        ///  Generates a hash code for the specified string value that matches what <see langword="string"/> generates.
+        /// </summary>
+        /// <remarks>
+        ///  <para>
+        ///   On .NET Framework strings don't go beyond embedded nulls when calculating hash codes. If this matters to
+        ///   you, you'll need to slice the span to the first null character. In addition, this is not a safe hashing
+        ///   algorithm, it is not resistant to hash collisions, and should not be used for security purposes. It is meant
+        ///   to give you a hash code that matches what <see langword="string"/> generates for the same value.
+        ///  </para>
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe int GetHashCode(ReadOnlySpan<char> value)
+        {
+            // .NET Framework uses the DJB2 (Daniel J. Bernstein) algorithm. It iterates through to the first null character.
+            // Here we don't know if we'll have one so we use the length and unroll to get the next best thing. The speed
+            // converges on rough equivalence with about 100 characters and above. At smaller sizes there is about a
+            // 5ns overhead penalty.
+
+            if (value.IsEmpty)
+            {
+                // "".GetHashCode();
+                return 371857150;
+            }
+
+            fixed (char* ptr = value)
+            {
+                // For strings 10-100+ chars, unrolling by 4 provides best performance
+                int hash1 = 5381;
+                int hash2 = hash1;
+
+                char* p = ptr;
+                int remaining = value.Length;
+
+                // Process 4 characters at a time
+                while (remaining >= 4)
+                {
+                    hash1 = ((hash1 << 5) + hash1) ^ p[0];
+                    hash2 = ((hash2 << 5) + hash2) ^ p[1];
+                    hash1 = ((hash1 << 5) + hash1) ^ p[2];
+                    hash2 = ((hash2 << 5) + hash2) ^ p[3];
+
+                    p += 4;
+                    remaining -= 4;
+                }
+
+                // Handle remaining characters
+                if (remaining == 3)
+                {
+                    hash1 = ((hash1 << 5) + hash1) ^ p[0];
+                    hash2 = ((hash2 << 5) + hash2) ^ p[1];
+                    hash1 = ((hash1 << 5) + hash1) ^ p[2];
+                }
+                else if (remaining == 2)
+                {
+                    hash1 = ((hash1 << 5) + hash1) ^ p[0];
+                    hash2 = ((hash2 << 5) + hash2) ^ p[1];
+                }
+                else if (remaining == 1)
+                {
+                    hash1 = ((hash1 << 5) + hash1) ^ p[0];
+                }
+
+                return hash1 + (hash2 * 1566083941);
+            }
+        }
+
+        /// <summary>
+        ///  Creates a new <see langword="string"/> with a specific length and initializes it after creation by
+        ///  using the specified callback.
+        /// </summary>
+        /// <typeparam name="TState">Type of the state object to pass to <paramref name="action"/>.</typeparam>
+        /// <param name="length">The length of the string to create.</param>
+        /// <param name="state">The state object to pass to <paramref name="action"/>.</param>
+        /// <param name="action">A callback to initialize the string.</param>
+        /// <returns>The newly created <see langword="string"/>.</returns>
+        public static unsafe string Create<TState>(int length, TState state, SpanAction<char, TState> action)
+        {
+            ArgumentNullException.ThrowIfNull(action);
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            string result = FastAllocateString(length);
+
+            fixed (char* ptr = result)
+            {
+                action(new Span<char>(ptr, length), state);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        ///  Copies the contents of this string into the destination span.
+        /// </summary>
+        /// <param name="destination">The span into which to copy this string's contents.</param>
+        /// <exception cref="ArgumentException">The destination span is shorter than the source string.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(Span<char> destination)
+        {
+            if (destination.Length < stringValue.Length)
+            {
+                throw new ArgumentException("Destination span is too short to copy the string.", nameof(destination));
+            }
+
+            stringValue.AsSpan().CopyTo(destination);
+        }
+
+        /// <summary>
+        ///  Copies the contents of this string into the destination span.
+        /// </summary>
+        /// <param name="destination">The span to copy the string into.</param>
+        /// <returns>
+        ///  <see langword="true"/> if the data was copied;
+        ///  <see langword="false"/> if the destination was too short to fit the contents of the string.
+        /// </returns>
+        public bool TryCopyTo(Span<char> destination)
+        {
+            if (destination.Length < stringValue.Length)
+            {
+                return false;
+            }
+
+            stringValue.AsSpan().CopyTo(destination);
+            return true;
+        }
+
+        /// <inheritdoc cref="Concat(ReadOnlySpan{char}, ReadOnlySpan{char}, ReadOnlySpan{char}, ReadOnlySpan{char})"/>
+        public static unsafe string Concat(ReadOnlySpan<char> str0, ReadOnlySpan<char> str1)
+        {
+            int length = checked(str0.Length + str1.Length);
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            string result = FastAllocateString(length);
+            fixed (char* firstChar = result)
+            {
+                Span<char> resultSpan = new(firstChar, result.Length);
+                str0.CopyTo(resultSpan);
+                str1.CopyTo(resultSpan[str0.Length..]);
+            }
+
+            return result;
+        }
+
+        /// <inheritdoc cref="Concat(ReadOnlySpan{char}, ReadOnlySpan{char}, ReadOnlySpan{char}, ReadOnlySpan{char})"/>
+        public static unsafe string Concat(ReadOnlySpan<char> str0, ReadOnlySpan<char> str1, ReadOnlySpan<char> str2)
+        {
+            int length = checked(str0.Length + str1.Length + str2.Length);
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            string result = FastAllocateString(length);
+            fixed (char* firstChar = result)
+            {
+                Span<char> resultSpan = new(firstChar, result.Length);
+                str0.CopyTo(resultSpan);
+                resultSpan = resultSpan[str0.Length..];
+                str1.CopyTo(resultSpan);
+                resultSpan = resultSpan[str1.Length..];
+                str2.CopyTo(resultSpan);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        ///  Concatenates the string representations of the specified read-only character spans.
+        /// </summary>
+        /// <param name="str0">The first span to concatenate.</param>
+        /// <param name="str1">The second span to concatenate.</param>
+        /// <param name="str2">The third span to concatenate.</param>
+        /// <param name="str3">The fourth span to concatenate.</param>
+        /// <returns>The concatenated string.</returns>
+        public static unsafe string Concat(
+            ReadOnlySpan<char> str0,
+            ReadOnlySpan<char> str1,
+            ReadOnlySpan<char> str2,
+            ReadOnlySpan<char> str3)
+        {
+            int length = checked(str0.Length + str1.Length + str2.Length + str3.Length);
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            string result = FastAllocateString(length);
+            fixed (char* firstChar = result)
+            {
+                Span<char> resultSpan = new(firstChar, result.Length);
+                str0.CopyTo(resultSpan);
+                resultSpan = resultSpan[str0.Length..];
+                str1.CopyTo(resultSpan);
+                resultSpan = resultSpan[str1.Length..];
+                str2.CopyTo(resultSpan);
+                resultSpan = resultSpan[str2.Length..];
+                str3.CopyTo(resultSpan);
+            }
+
+            return result;
+        }
+    }
+}
+#endif

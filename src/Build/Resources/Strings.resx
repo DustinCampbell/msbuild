@@ -2455,6 +2455,15 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
     <value>The task "{0}" failed to acquire its host object. {1} Contact the author of the task to report this problem.</value>
     <comment>{0} is the task name, {1} is the detailed error message from the HostObjectException. This error occurs when a task that expects a host object (typically from an IDE like Visual Studio) cannot obtain it, often due to COM interop issues, incorrect moniker registration, or platform incompatibility. The user should contact the task author as this is typically a task implementation issue.</comment>
   </data>
+  <data name="RefArrayBuilder_Empty" xml:space="preserve">
+    <value>RefArrayBuilder is empty.</value>
+  </data>
+  <data name="RefArrayBuilder_NoMatch" xml:space="preserve">
+    <value>RefArrayBuilder does not contain matching element.</value>
+  </data>
+  <data name="RefStack_Empty" xml:space="preserve">
+    <value>RefStack is empty.</value>
+  </data>
   <!--
         The Build message bucket is: MSB4000 - MSB4999
 
