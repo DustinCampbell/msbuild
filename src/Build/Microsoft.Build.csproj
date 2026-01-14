@@ -547,6 +547,15 @@
     <Compile Include="Evaluation\ExpanderOptions.cs" />
     <Compile Include="Evaluation\ExpanderExtensions.cs" />
     <Compile Include="Evaluation\ExpanderUtilities.cs" />
+    <Compile Include="Evaluation\Expander2.cs" />
+    <Compile Include="Evaluation\Expander2.Function.cs" />
+    <Compile Include="Evaluation\Expander2.FunctionBuilder.cs" />
+    <Compile Include="Evaluation\Expander2.ItemExpander.cs" />
+    <Compile Include="Evaluation\Expander2.MetadataExpander.cs" />
+    <Compile Include="Evaluation\Expander2.MetadataMatchEvaluator.cs" />
+    <Compile Include="Evaluation\Expander2.PropertyExpander.cs" />
+    <Compile Include="Evaluation\Expander2.RegularExpressions.cs" />
+    <Compile Include="Evaluation\Expander2.SpanBasedConcatenator.cs" />
     <Compile Include="Evaluation\IExpander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
     <Compile Include="Evaluation\Expander\ArgumentParser.cs" />

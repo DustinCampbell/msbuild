@@ -9,6 +9,8 @@ namespace Microsoft.Build.Evaluation;
 
 internal static class ExpanderFactory
 {
+    private const bool UseNewExpander = true;
+
     public static IExpander<P, I> Create<P, I>(
         IPropertyProvider<P> properties,
         IFileSystem fileSystem)
@@ -68,5 +70,7 @@ internal static class ExpanderFactory
         LoggingContext? loggingContext)
         where P : class, IProperty
         where I : class, IItem
-        => new Expander<P, I>(properties, items, metadata, fileSystem, evaluationContext, loggingContext);
+        => UseNewExpander
+            ? new Expander2<P, I>(properties, items, metadata, fileSystem, evaluationContext, loggingContext)
+            : new Expander<P, I>(properties, items, metadata, fileSystem, evaluationContext, loggingContext);
 }
