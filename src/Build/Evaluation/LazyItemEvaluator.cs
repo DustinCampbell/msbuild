@@ -49,12 +49,17 @@ namespace Microsoft.Build.Evaluation
 
         protected FileMatcher FileMatcher => EvaluationContext.FileMatcher;
 
-        public LazyItemEvaluator(IEvaluatorData<P, I, M, D> data, IItemFactory<I, I> itemFactory, LoggingContext loggingContext, EvaluationProfiler evaluationProfiler, EvaluationContext evaluationContext)
+        public LazyItemEvaluator(
+            IEvaluatorData<P, I, M, D> data,
+            IItemFactory<I, I> itemFactory,
+            LoggingContext loggingContext,
+            EvaluationProfiler evaluationProfiler,
+            EvaluationContext evaluationContext)
         {
             _outerEvaluatorData = data;
-            _outerExpander = new Expander<P, I>(_outerEvaluatorData, _outerEvaluatorData, evaluationContext, loggingContext);
+            _outerExpander = ExpanderFactory.Create(_outerEvaluatorData, _outerEvaluatorData, evaluationContext, loggingContext);
             _evaluatorData = new EvaluatorData(_outerEvaluatorData, _itemLists);
-            _expander = new Expander<P, I>(_evaluatorData, _evaluatorData, evaluationContext, loggingContext);
+            _expander = ExpanderFactory.Create(_evaluatorData, _evaluatorData, evaluationContext, loggingContext);
             _itemFactory = itemFactory;
             _loggingContext = loggingContext;
             _evaluationProfiler = evaluationProfiler;

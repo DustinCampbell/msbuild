@@ -21,6 +21,8 @@ internal interface IExpander<P, I>
 
     string ExpandIntoStringLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation);
 
+    object ExpandPropertiesLeaveTypedAndEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation);
+
     SemiColonTokenizer ExpandIntoStringListLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation);
 
     IList<T> ExpandIntoItemsLeaveEscaped<T>(string expression, IItemFactory<I, T> itemFactory, ExpanderOptions options, IElementLocation elementLocation)

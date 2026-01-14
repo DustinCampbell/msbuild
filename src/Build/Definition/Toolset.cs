@@ -859,7 +859,7 @@ namespace Microsoft.Build.Evaluation
 
                 propertyBag.ImportProperties(_globalProperties);
 
-                _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(propertyBag, FileSystems.Default, loggingContext);
+                _expander = ExpanderFactory.Create<ProjectPropertyInstance, ProjectItemInstance>(propertyBag, FileSystems.Default, loggingContext);
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {

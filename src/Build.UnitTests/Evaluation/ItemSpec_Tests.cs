@@ -1,10 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Engine.UnitTests;
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -12,11 +15,7 @@ using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.UnitTests.BackEnd;
 using Shouldly;
 using Xunit;
-using ProjectInstanceExpander =
-    Microsoft.Build.Evaluation.IExpander<Microsoft.Build.Execution.ProjectPropertyInstance, Microsoft.Build.Execution.ProjectItemInstance>;
-using ProjectInstanceItemSpec =
-    Microsoft.Build.Evaluation.ItemSpec<Microsoft.Build.Execution.ProjectPropertyInstance, Microsoft.Build.Execution.ProjectItemInstance>;
-
+using static Microsoft.Build.Engine.UnitTests.TestExpanderFactory;
 
 #nullable disable
 
@@ -27,7 +26,7 @@ namespace Microsoft.Build.UnitTests.OM.Evaluation
         [Fact]
         public void EachFragmentTypeShouldContributeToItemSpecGlob()
         {
-            var itemSpec = CreateItemSpecFrom("a;b*;c*;@(foo)", CreateExpander(new Dictionary<string, string[]> { { "foo", new[] { "d", "e" } } }));
+            var itemSpec = CreateItemSpecFrom("a;b*;c*;@(foo)", CreateExpanderFromItems(new Dictionary<string, string[]> { { "foo", new[] { "d", "e" } } }));
 
             var itemSpecGlob = itemSpec.ToMSBuildGlob();
 
@@ -48,8 +47,8 @@ namespace Microsoft.Build.UnitTests.OM.Evaluation
             var projectFile = Path.Combine(absoluteRootPath, "build.proj");
             var absoluteSpec = Path.Combine(absoluteRootPath, "s.cs");
 
-            var itemSpecFromAbsolute = CreateItemSpecFrom(absoluteSpec, CreateExpander(new Dictionary<string, string[]>()), new MockElementLocation(projectFile));
-            var itemSpecFromRelative = CreateItemSpecFrom("s.cs", CreateExpander(new Dictionary<string, string[]>()), new MockElementLocation(projectFile));
+            var itemSpecFromAbsolute = CreateItemSpecFrom(absoluteSpec, CreateExpanderFromItems(new Dictionary<string, string[]>()), new MockElementLocation(projectFile));
+            var itemSpecFromRelative = CreateItemSpecFrom("s.cs", CreateExpanderFromItems(new Dictionary<string, string[]>()), new MockElementLocation(projectFile));
 
             itemSpecFromRelative.ToMSBuildGlob().IsMatch("s.cs").ShouldBeTrue();
             itemSpecFromRelative.ToMSBuildGlob().IsMatch(absoluteSpec).ShouldBeTrue();
@@ -61,7 +60,7 @@ namespace Microsoft.Build.UnitTests.OM.Evaluation
         [Fact]
         public void FragmentGlobsWorkAfterStateIsPartiallyInitializedByOtherOperations()
         {
-            var itemSpec = CreateItemSpecFrom("a;b*;c*;@(foo)", CreateExpander(new Dictionary<string, string[]> { { "foo", new[] { "d", "e" } } }));
+            var itemSpec = CreateItemSpecFrom("a;b*;c*;@(foo)", CreateExpanderFromItems(new Dictionary<string, string[]> { { "foo", new[] { "d", "e" } } }));
 
             int matches;
             // cause partial Lazy state to initialize in the ItemExpressionFragment
@@ -78,21 +77,23 @@ namespace Microsoft.Build.UnitTests.OM.Evaluation
             Assert.True(itemSpecGlob.IsMatch("e"));
         }
 
-        private ProjectInstanceItemSpec CreateItemSpecFrom(string itemSpec, ProjectInstanceExpander expander, IElementLocation location = null)
+        private ItemSpec<ProjectPropertyInstance, ProjectItemInstance> CreateItemSpecFrom(
+            string itemSpec,
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander,
+            IElementLocation location = null)
         {
             location ??= MockElementLocation.Instance;
 
-            return new ProjectInstanceItemSpec(itemSpec, expander, location, Path.GetDirectoryName(location.File));
+            return new ItemSpec<ProjectPropertyInstance, ProjectItemInstance>(itemSpec, expander, location, Path.GetDirectoryName(location.File));
         }
 
-        private ProjectInstanceExpander CreateExpander(Dictionary<string, string[]> items)
+        private IExpander<ProjectPropertyInstance, ProjectItemInstance> CreateExpanderFromItems(Dictionary<string, string[]> items)
         {
             var itemDictionary = ToItemDictionary(items);
 
-            return new Build.Evaluation.Expander<ProjectPropertyInstance, ProjectItemInstance>(
+            return CreateExpander(
                 new PropertyDictionary<ProjectPropertyInstance>(),
                 itemDictionary,
-                (IFileSystem)FileSystems.Default,
                 new TestLoggingContext(null!, new BuildEventContext(1, 2, 3, 4)));
         }
 

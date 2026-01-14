@@ -9,7 +9,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Engine.UnitTests;
@@ -21,6 +21,7 @@ using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Shouldly;
 using Xunit;
+using static Microsoft.Build.Engine.UnitTests.TestExpanderFactory;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 
 #nullable disable
@@ -4482,7 +4483,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void VerifyConditionEvaluatorResetStateOnFailure()
         {
             PropertyDictionary<ProjectPropertyInstance> propertyBag = new PropertyDictionary<ProjectPropertyInstance>();
-            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(propertyBag, FileSystems.Default);
+            var expander = CreateExpander(propertyBag);
             string condition = " '$(TargetOSFamily)' >= '3' ";
 
             // Give an incorrect value for the property "TargetOSFamily", and then the evaluation should throw an exception.

@@ -502,7 +502,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (metadatum != null && ExpanderUtilities.ExpressionMayContainExpandableExpressions(metadatum.EvaluatedValueEscaped))
                 {
-                    IExpander<ProjectProperty, ProjectItem> expander = new Expander<ProjectProperty, ProjectItem>(null, null, new BuiltInMetadataTable(this), FileSystems.Default);
+                    var expander = ExpanderFactory.Create<ProjectProperty, ProjectItem>(new BuiltInMetadataTable(this), FileSystems.Default);
 
                     value = expander.ExpandIntoStringLeaveEscaped(metadatum.EvaluatedValueEscaped, ExpanderOptions.ExpandBuiltInMetadata, metadatum.Location);
                 }

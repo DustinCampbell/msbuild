@@ -2326,7 +2326,7 @@ namespace Microsoft.Build.Execution
         /// </comment>
         public string ExpandString(string unexpandedValue)
         {
-            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(this, this, FileSystems.Default, _loggingContext);
+            var expander = ExpanderFactory.Create(this, this, FileSystems.Default, _loggingContext);
 
             string result = expander.ExpandIntoStringAndUnescape(unexpandedValue, ExpanderOptions.ExpandPropertiesAndItems, ProjectFileLocation);
 
@@ -2344,7 +2344,7 @@ namespace Microsoft.Build.Execution
         /// </comment>
         public bool EvaluateCondition(string condition)
         {
-            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(this, this, FileSystems.Default, _loggingContext);
+            var expander = ExpanderFactory.Create(this, this, FileSystems.Default, _loggingContext);
 
             bool result = ConditionEvaluator.EvaluateCondition(
                 condition,

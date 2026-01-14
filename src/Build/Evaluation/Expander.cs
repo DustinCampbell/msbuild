@@ -49,142 +49,56 @@ internal partial class Expander<P, I> : IExpander<P, I>
     /// </summary>
     private static readonly CompareInfo s_invariantCompareInfo = CultureInfo.InvariantCulture.CompareInfo;
 
+#nullable enable
+
     /// <summary>
     /// Properties to draw on for expansion.
     /// </summary>
-    private IPropertyProvider<P> _properties;
+    private IPropertyProvider<P>? _properties;
 
     /// <summary>
     /// Items to draw on for expansion.
     /// </summary>
-    private IItemProvider<I> _items;
+    private IItemProvider<I>? _items;
 
     /// <summary>
     /// Metadata to draw on for expansion.
     /// </summary>
-    private IMetadataTable _metadata;
+    private IMetadataTable? _metadata;
 
     /// <summary>
     /// Set of properties which are null during expansion.
     /// </summary>
-    private PropertiesUseTracker _propertiesUseTracker;
+    private readonly PropertiesUseTracker _propertiesUseTracker;
 
     private readonly IFileSystem _fileSystem;
 
-    private readonly LoggingContext _loggingContext;
+    private readonly LoggingContext? _loggingContext;
 
     /// <summary>
     /// Non-null if the expander was constructed for evaluation.
     /// </summary>
-    public EvaluationContext EvaluationContext { get; }
+    public EvaluationContext? EvaluationContext { get; }
 
-    private Expander(IPropertyProvider<P> properties, LoggingContext loggingContext)
+    public Expander(
+        IPropertyProvider<P>? properties,
+        IItemProvider<I>? items,
+        IMetadataTable? metadata,
+        IFileSystem fileSystem,
+        EvaluationContext? evaluationContext,
+        LoggingContext? loggingContext)
     {
         _properties = properties;
-        _propertiesUseTracker = new PropertiesUseTracker(loggingContext);
-        _loggingContext = loggingContext;
-    }
-
-    /// <summary>
-    /// Creates an expander passing it some properties to use.
-    /// Properties may be null.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IFileSystem fileSystem, LoggingContext loggingContext)
-        : this(properties, loggingContext)
-    {
+        _items = items;
+        _metadata = metadata;
         _fileSystem = fileSystem;
-    }
-
-    /// <summary>
-    /// Creates an expander passing it some properties to use.
-    /// Properties may be null.
-    ///
-    /// Used for tests and for ToolsetReader - that operates agnostic on the project
-    ///   - so no logging context is passed, and no BuildCheck check will be executed.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IFileSystem fileSystem)
-    : this(properties, fileSystem, null)
-    { }
-
-    /// <summary>
-    /// Creates an expander passing it some properties to use and the evaluation context.
-    /// Properties may be null.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, EvaluationContext evaluationContext,
-        LoggingContext loggingContext)
-        : this(properties, loggingContext)
-    {
-        _fileSystem = evaluationContext.FileSystem;
         EvaluationContext = evaluationContext;
+        _loggingContext = loggingContext;
+
+        _propertiesUseTracker = new PropertiesUseTracker(loggingContext);
     }
 
-    /// <summary>
-    /// Creates an expander passing it some properties and items to use.
-    /// Either or both may be null.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, IFileSystem fileSystem, LoggingContext loggingContext)
-        : this(properties, fileSystem, loggingContext)
-    {
-        _items = items;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Expander{P, I}"/> class.
-    /// Creates an expander passing it some properties and items to use, and the evaluation context.
-    /// Either or both may be null.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, EvaluationContext evaluationContext, LoggingContext loggingContext)
-        : this(properties, evaluationContext, loggingContext)
-    {
-        _items = items;
-    }
-
-    /// <summary>
-    /// Creates an expander passing it some properties, items, and/or metadata to use.
-    /// Any or all may be null.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, IMetadataTable metadata, IFileSystem fileSystem, LoggingContext loggingContext)
-        : this(properties, items, fileSystem, loggingContext)
-    {
-        _metadata = metadata;
-    }
-
-    /// <summary>
-    /// Creates an expander passing it some properties, items, and/or metadata to use.
-    /// Any or all may be null.
-    ///
-    /// This is for the purpose of evaluations through API calls, that might not be able to pass the logging context
-    ///  - BuildCheck checking won't be executed for those.
-    /// (for one of the calls we can actually pass IDataConsumingContext - as we have logging service and project)
-    ///
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, IMetadataTable metadata, IFileSystem fileSystem)
-        : this(properties, items, fileSystem, null)
-    {
-        _metadata = metadata;
-    }
-
-    private Expander(
-        IPropertyProvider<P> properties,
-        IItemProvider<I> items,
-        IMetadataTable metadata,
-        IFileSystem fileSystem,
-        EvaluationContext evaluationContext,
-        LoggingContext loggingContext)
-        : this(properties, items, metadata, fileSystem, loggingContext)
-    {
-        EvaluationContext = evaluationContext;
-    }
-
-    /// <summary>
-    /// Recreates the expander with passed in logging context
-    /// </summary>
-    /// <param name="loggingContext"></param>
-    /// <returns></returns>
-    internal Expander<P, I> WithLoggingContext(LoggingContext loggingContext)
-    {
-        return new Expander<P, I>(_properties, _items, _metadata, _fileSystem, EvaluationContext, loggingContext);
-    }
+#nullable disable
 
     /// <summary>
     /// Accessor for the metadata.
@@ -237,6 +151,33 @@ internal partial class Expander<P, I> : IExpander<P, I>
         result = FileUtilities.MaybeAdjustFilePath(result);
 
         return result;
+    }
+
+    public object ExpandPropertiesLeaveTypedAndEscaped(
+        string expression,
+        ExpanderOptions options,
+        IElementLocation elementLocation)
+    {
+        if (expression.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        ErrorUtilities.VerifyThrowInternalNull(elementLocation);
+
+        string metaExpanded = MetadataExpander.ExpandMetadataLeaveEscaped(
+            expression,
+            _metadata,
+            options,
+            elementLocation);
+
+        return PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
+            metaExpanded,
+            _properties,
+            options,
+            elementLocation,
+            _propertiesUseTracker,
+            _fileSystem);
     }
 
     /// <summary>

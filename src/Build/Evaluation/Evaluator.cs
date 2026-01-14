@@ -244,7 +244,7 @@ namespace Microsoft.Build.Evaluation
             // Create containers for the evaluation results
             data.InitializeForEvaluation(toolsetProvider, _evaluationContext, _evaluationLoggingContext);
 
-            _expander = new Expander<P, I>(data, data, _evaluationContext, _evaluationLoggingContext);
+            _expander = ExpanderFactory.Create(data, data, _evaluationContext, _evaluationLoggingContext);
 
             _data = data;
             _itemGroupElements = new List<ProjectItemGroupElement>();

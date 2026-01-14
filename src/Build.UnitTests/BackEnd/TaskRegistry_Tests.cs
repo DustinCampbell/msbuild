@@ -21,6 +21,7 @@ using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
+using static Microsoft.Build.Engine.UnitTests.TestExpanderFactory;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 
 #nullable disable
@@ -2114,12 +2115,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
             secondaryItemsByName.ImportItems(thirdItemGroup);
             secondaryItemsByName.ImportItems(trueItemGroup);
 
-            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+            return CreateExpander(
                 pg,
                 secondaryItemsByName,
-                FileSystems.Default,
                 new TestLoggingContext(null!, new BuildEventContext(1, 2, 3, 4)));
-            return expander;
         }
 
         /// <summary>

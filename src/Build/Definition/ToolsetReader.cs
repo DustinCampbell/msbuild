@@ -443,7 +443,7 @@ namespace Microsoft.Build.Evaluation
 
             IEnumerable<ToolsetPropertyDefinition> rawProperties = GetPropertyDefinitions(toolsVersion.Name);
 
-            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(initialProperties, FileSystems.Default);
+            var expander = ExpanderFactory.Create<ProjectPropertyInstance, ProjectItemInstance>(initialProperties, FileSystems.Default);
 
             foreach (ToolsetPropertyDefinition property in rawProperties)
             {
@@ -569,7 +569,7 @@ namespace Microsoft.Build.Evaluation
 
             if (accumulateProperties)
             {
-                expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(initialProperties, FileSystems.Default);
+                expander = ExpanderFactory.Create<ProjectPropertyInstance, ProjectItemInstance>(initialProperties, FileSystems.Default);
             }
         }
 

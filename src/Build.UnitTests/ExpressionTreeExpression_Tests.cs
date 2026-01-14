@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
@@ -13,6 +14,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Shared.FileSystem;
 using Xunit;
 using Xunit.Abstractions;
+using static Microsoft.Build.Engine.UnitTests.TestExpanderFactory;
 
 #nullable disable
 
@@ -21,7 +23,6 @@ namespace Microsoft.Build.UnitTests
     public class ExpressionTest : IDisposable
     {
         private readonly ITestOutputHelper output;
-
 
         private static readonly string[] FilesWithExistenceChecks = { "a", "c", "a;b", "a'b", ";", "'" };
 
@@ -401,7 +402,7 @@ namespace Microsoft.Build.UnitTests
             metadataDictionary["Culture"] = "french";
             StringMetadataTable itemMetadata = new StringMetadataTable(metadataDictionary);
 
-            _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(propertyBag, itemBag, itemMetadata, FileSystems.Default);
+            _expander = CreateExpander(propertyBag, itemBag, itemMetadata);
 
             foreach (string file in FilesWithExistenceChecks)
             {

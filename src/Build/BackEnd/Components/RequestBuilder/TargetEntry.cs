@@ -181,7 +181,7 @@ namespace Microsoft.Build.BackEnd
             _targetSpecification = targetSpecification;
             _parentTarget = parentTarget;
             _buildReason = buildReason;
-            _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(baseLookup, baseLookup, FileSystems.Default, loggingContext);
+            _expander = ExpanderFactory.Create(baseLookup, baseLookup, FileSystems.Default, loggingContext);
             _state = TargetEntryState.Dependencies;
             _baseLookup = baseLookup;
             _host = host;

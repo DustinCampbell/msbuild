@@ -4293,7 +4293,7 @@ namespace Microsoft.Build.Evaluation
                 Items = new ItemDictionary<ProjectItem>();
                 ItemsIgnoringCondition = new ItemDictionary<ProjectItem>();
                 ItemsByEvaluatedIncludeCache = new MultiDictionary<string, ProjectItem>(StringComparer.OrdinalIgnoreCase);
-                Expander = new Expander<ProjectProperty, ProjectItem>(Properties, Items, evaluationContext, loggingContext);
+                Expander = ExpanderFactory.Create(Properties, Items, evaluationContext, loggingContext);
                 ItemDefinitions = new RetrievableEntryHashSet<ProjectItemDefinition>(MSBuildNameIgnoreCaseComparer.Default);
                 Targets = new RetrievableEntryHashSet<ProjectTargetInstance>(StringComparer.OrdinalIgnoreCase);
                 ImportClosure = new List<ResolvedImport>();
