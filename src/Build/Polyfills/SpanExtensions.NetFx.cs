@@ -9,6 +9,22 @@ namespace Microsoft.Build;
 
 internal static class SpanExtensions
 {
+    public static int Count<T>(this ReadOnlySpan<T> span, T value)
+        where T : IEquatable<T>
+    {
+        int count = 0;
+
+        foreach (T item in span)
+        {
+            if (value.Equals(item))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     /// <summary>
     ///  Searches for the first index of any value other than the specified <paramref name="value"/>.
     /// </summary>

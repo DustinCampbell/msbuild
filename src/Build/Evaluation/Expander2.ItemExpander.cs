@@ -5,13 +5,9 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
-#if NET
-using System.IO;
-#else
-using Microsoft.IO;
-#endif
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
@@ -19,6 +15,12 @@ using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.NET.StringTools;
 using ItemSpecModifiers = Microsoft.Build.Shared.FileUtilities.ItemSpecModifiers;
+
+#if NET
+using System.IO;
+#else
+using Microsoft.IO;
+#endif
 
 #nullable disable
 
@@ -156,7 +158,8 @@ internal partial class Expander2<P, I>
                 }
                 else if (argumentsExpression != null)
                 {
-                    arguments = ExtractFunctionArguments(elementLocation, argumentsExpression, argumentsExpression.AsMemory());
+                    arguments = ImmutableCollectionsMarshal.AsArray(
+                        Function.GetArgumentValues(argumentsExpression.AsSpan(), elementLocation, argumentsExpression));
                 }
 
                 ItemTransformFunctions functionType;

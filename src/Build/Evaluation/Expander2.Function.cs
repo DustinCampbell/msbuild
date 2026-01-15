@@ -3,24 +3,29 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-#if NET
-using System.IO;
-#else
-using Microsoft.IO;
-#endif
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation.Expander;
+using Microsoft.Build.Evaluation.Parsing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.NET.StringTools;
 using AvailableStaticMethods = Microsoft.Build.Internal.AvailableStaticMethods;
 using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+
+#if NET
+using System.IO;
+#else
+using Microsoft.IO;
+#endif
 
 #nullable disable
 
@@ -715,38 +720,22 @@ internal partial class Expander2<P, I>
         /// </summary>
         private static void ConstructIndexerFunction(string expressionFunction, IElementLocation elementLocation, object propertyValue, int methodStartIndex, int indexerEndIndex, ref FunctionBuilder functionBuilder)
         {
-            ReadOnlyMemory<char> argumentsContent = expressionFunction.AsMemory().Slice(1, indexerEndIndex - 1);
-            string[] functionArguments;
+            ReadOnlySpan<char> argumentsContent = expressionFunction.AsSpan(1, indexerEndIndex - 1);
 
-            // If there are no arguments, then just create an empty array
-            if (argumentsContent.IsEmpty)
-            {
-                functionArguments = [];
-            }
-            else
-            {
-                // We will keep empty entries so that we can treat them as null
-                functionArguments = ExtractFunctionArguments(elementLocation, expressionFunction, argumentsContent);
-            }
+            ImmutableArray<string> functionArguments = !argumentsContent.IsEmpty
+                ? GetArgumentValues(argumentsContent, elementLocation, expressionFunction)
+                : [];
 
-            // choose the name of the function based on the type of the object that we
-            // are using.
-            string functionName;
-            if (propertyValue is Array)
+            // choose the name of the function based on the type of the object that we are using.
+            string functionName = propertyValue switch
             {
-                functionName = "GetValue";
-            }
-            else if (propertyValue is string)
-            {
-                functionName = "get_Chars";
-            }
-            else // a regular indexer
-            {
-                functionName = "get_Item";
-            }
+                Array => "GetValue",
+                string => "get_Chars",
+                _ => "get_Item"
+            };
 
             functionBuilder.Name = functionName;
-            functionBuilder.Arguments = functionArguments;
+            functionBuilder.Arguments = ImmutableCollectionsMarshal.AsArray(functionArguments);
             functionBuilder.BindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.InvokeMethod;
             functionBuilder.Remainder = expressionFunction.Substring(methodStartIndex);
         }
@@ -755,10 +744,10 @@ internal partial class Expander2<P, I>
         /// Extracts the name, arguments, binding flags, and invocation type for a static or instance function.
         /// Also extracts the remainder of the expression that is not part of this function.
         /// </summary>
-        private static void ConstructFunction(IElementLocation elementLocation, string expressionFunction, int argumentStartIndex, int methodStartIndex, ref FunctionBuilder functionBuilder)
+        private static void ConstructFunction(IElementLocation elementLocation, string expressionFunction, int argumentsStartIndex, int methodStartIndex, ref FunctionBuilder functionBuilder)
         {
             // The unevaluated and unexpanded arguments for this function
-            string[] functionArguments;
+            ImmutableArray<string> functionArguments;
 
             // The name of the function that will be invoked
             ReadOnlySpan<char> functionName;
@@ -771,48 +760,41 @@ internal partial class Expander2<P, I>
 
             ReadOnlySpan<char> expressionFunctionAsSpan = expressionFunction.AsSpan();
 
-            ReadOnlySpan<char> expressionSubstringAsSpan = argumentStartIndex > -1 ? expressionFunctionAsSpan.Slice(methodStartIndex, argumentStartIndex - methodStartIndex) : ReadOnlySpan<char>.Empty;
+            ReadOnlySpan<char> expressionSubstringAsSpan = argumentsStartIndex > -1 ? expressionFunctionAsSpan.Slice(methodStartIndex, argumentsStartIndex - methodStartIndex) : ReadOnlySpan<char>.Empty;
 
             // There are arguments that need to be passed to the function
-            if (argumentStartIndex > -1 && !expressionSubstringAsSpan.Contains(".".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            if (argumentsStartIndex > -1 && expressionSubstringAsSpan.IndexOf('.') < 0)
             {
                 // separate the function and the arguments
                 functionName = expressionSubstringAsSpan.Trim();
 
                 // Skip the '('
-                argumentStartIndex++;
+                argumentsStartIndex++;
 
                 // Scan for the matching closing bracket, skipping any nested ones
-                int argumentsEndIndex = ScanForClosingParenthesis(expressionFunctionAsSpan, argumentStartIndex, out _, out _);
-
-                if (argumentsEndIndex == -1)
+                if (!ScanUtilities.TryFindClosingParenthesis(expressionFunctionAsSpan[argumentsStartIndex..], out int argumentsEndIndex))
                 {
                     ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
                 }
+
+                argumentsEndIndex += argumentsStartIndex;
 
                 // We have been asked for a method invocation
                 defaultBindingFlags |= BindingFlags.InvokeMethod;
 
                 // It may be that there are '()' but no actual arguments content
-                if (argumentStartIndex == expressionFunction.Length - 1)
+                if (argumentsStartIndex == expressionFunction.Length - 1)
                 {
                     functionArguments = [];
                 }
                 else
                 {
                     // we have content within the '()' so let's extract and deal with it
-                    ReadOnlyMemory<char> argumentsContent = expressionFunction.AsMemory().Slice(argumentStartIndex, argumentsEndIndex - argumentStartIndex);
+                    ReadOnlySpan<char> argumentsSpan = expressionFunction.AsSpan(argumentsStartIndex, argumentsEndIndex - argumentsStartIndex);
 
-                    // If there are no arguments, then just create an empty array
-                    if (argumentsContent.IsEmpty)
-                    {
-                        functionArguments = [];
-                    }
-                    else
-                    {
-                        // We will keep empty entries so that we can treat them as null
-                        functionArguments = ExtractFunctionArguments(elementLocation, expressionFunction, argumentsContent);
-                    }
+                    functionArguments = !argumentsSpan.IsEmpty
+                        ? GetArgumentValues(argumentsSpan, elementLocation, expressionFunction)
+                        : [];
 
                     remainder = expressionFunctionAsSpan.Slice(argumentsEndIndex + 1).Trim();
                 }
@@ -848,10 +830,10 @@ internal partial class Expander2<P, I>
             }
 
             // either there are no functions left or what we have is another function or an indexer
-            if (remainder.IsEmpty || remainder[0] == '.' || remainder[0] == '[')
+            if (remainder is [] or ['.' or '[', ..])
             {
                 functionBuilder.Name = functionName.ToString();
-                functionBuilder.Arguments = functionArguments;
+                functionBuilder.Arguments = ImmutableCollectionsMarshal.AsArray(functionArguments);
                 functionBuilder.BindingFlags = defaultBindingFlags;
                 functionBuilder.Remainder = remainder.ToString();
             }
@@ -1129,6 +1111,137 @@ internal partial class Expander2<P, I>
             }
 
             return functionResult;
+        }
+
+#nullable enable
+
+        public static ImmutableArray<string?> GetArgumentValues(
+            ReadOnlySpan<char> argumentSpan,
+            IElementLocation elementLocation,
+            string functionExpression)
+        {
+            argumentSpan = argumentSpan.Trim();
+
+            if (argumentSpan.IsEmpty)
+            {
+                return [];
+            }
+
+            int commaCount = argumentSpan.Count(',');
+            if (commaCount == 0)
+            {
+                return [GetArgumentValue(argumentSpan)];
+            }
+
+            using var builder = new RefArrayBuilder<string?>(commaCount);
+
+            while (!argumentSpan.IsEmpty)
+            {
+                bool addedArgument = false;
+                int index = 0;
+
+                while (index < argumentSpan.Length)
+                {
+                    char ch = argumentSpan[index];
+
+                    if (ch is ',')
+                    {
+                        // We found a comma. Add the argument before the comma to the builder.
+                        builder.Add(GetArgumentValue(argumentSpan[..index]));
+
+                        // Slice the arguments to start after the comma and trim any leading whitespace.
+                        index++;
+                        argumentSpan = argumentSpan[index..].TrimStart();
+
+                        // Note that we added an argument and break to the outer loop
+                        addedArgument = true;
+                        break;
+                    }
+
+                    if (ch is '$')
+                    {
+                        // We may have found a property reference expression. Increment the index and see the
+                        // next character is '('. If not, continue.
+                        index++;
+
+                        if (index >= argumentSpan.Length || argumentSpan[index] != '(')
+                        {
+                            continue;
+                        }
+
+                        // Increment past the '('.
+                        index++;
+
+                        // We have a property expression expression. Look for the closing parenthesis after the '$('.
+                        if (!ScanUtilities.TryFindClosingParenthesis(argumentSpan[index..], out int endIndex))
+                        {
+                            ProjectErrorUtilities.ThrowInvalidProject(
+                               elementLocation,
+                               "InvalidFunctionPropertyExpression",
+                               functionExpression,
+                               AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
+                        }
+
+                        index += endIndex;
+                    }
+                    else if (ch is '\'' or '`' or '"')
+                    {
+                        // We found a quoted string. Increment the index to skip the opening quote.
+                        char quoteChar = ch;
+                        index++;
+
+                        int endIndex = argumentSpan[index..].IndexOf(ch);
+                        if (endIndex < 0)
+                        {
+                            // We didn't find the closing quote, so we can't parse this argument.
+                            ProjectErrorUtilities.ThrowInvalidProject(
+                               elementLocation,
+                               "InvalidFunctionPropertyExpression",
+                               functionExpression,
+                               AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedQuote"));
+                        }
+
+                        index += endIndex;
+                    }
+
+                    index++;
+                }
+
+                if (!addedArgument && !argumentSpan.IsEmpty)
+                {
+                    // If we got here, it means there are no more commas but there's still an argument remaining.
+                    builder.Add(GetArgumentValue(argumentSpan));
+                    break;
+                }
+            }
+
+            return builder.ToImmutable();
+        }
+
+        private static string? GetArgumentValue(ReadOnlySpan<char> span)
+        {
+            span = span.Trim();
+
+            if (span.IsEmpty)
+            {
+                return string.Empty;
+            }
+
+            // We support passing of null through the argument constant value, 'null'.
+            if (span.Equals("null", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            switch (span)
+            {
+                case ['\'', .., '\'']:
+                case ['`', .., '`']:
+                case ['"', .., '"']:
+                    return span.Trim(span[0]).ToString();
+            }
+
+            return span.ToString();
         }
     }
 }

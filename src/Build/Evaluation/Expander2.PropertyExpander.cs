@@ -4,12 +4,8 @@
 using System;
 using System.Collections;
 using System.Globalization;
-#if NET
-using System.IO;
-#else
-using Microsoft.IO;
-#endif
 using Microsoft.Build.Collections;
+using Microsoft.Build.Evaluation.Parsing;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -17,6 +13,12 @@ using Microsoft.Build.Shared.FileSystem;
 using Microsoft.NET.StringTools;
 using Microsoft.Win32;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
+
+#if NET
+using System.IO;
+#else
+using Microsoft.IO;
+#endif
 
 #nullable disable
 
@@ -139,9 +141,11 @@ internal partial class Expander2<P, I>
                 // Scan for the matching closing bracket, skipping any nested ones
                 // This is a very complete, fast validation of parenthesis matching including for nested
                 // function calls.
-                propertyEndIndex = ScanForClosingParenthesis(expression.AsSpan(), propertyStartIndex + 2, out bool tryExtractPropertyFunction, out bool tryExtractRegistryFunction);
-
-                if (propertyEndIndex == -1)
+                if (!ScanUtilities.TryFindClosingParenthesis(
+                    expression.AsSpan(propertyStartIndex + 2),
+                    out propertyEndIndex,
+                    out bool tryExtractPropertyFunction,
+                    out bool tryExtractRegistryFunction))
                 {
                     // If we didn't find the closing parenthesis, that means this
                     // isn't really a well-formed property tag.  Just literally
@@ -162,6 +166,8 @@ internal partial class Expander2<P, I>
 
                     // A property value of null will indicate that we're calling a static function on a type
                     object propertyValue;
+
+                    propertyEndIndex += propertyStartIndex + 2; // Move past the ')'
 
                     // Compat: $() should return String.Empty
                     if (propertyStartIndex + 2 == propertyEndIndex)
