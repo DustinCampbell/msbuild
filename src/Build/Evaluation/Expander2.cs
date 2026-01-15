@@ -9,6 +9,7 @@ using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -359,4 +360,14 @@ internal partial class Expander2<P, I> : IExpander<P, I>
     {
         return (options & ExpanderOptions.Truncate) != 0 && !Traits.Instance.EscapeHatches.DoNotTruncateConditions;
     }
+
+#nullable enable
+
+    /// <summary>
+    /// Convert the object into an MSBuild friendly string
+    /// Arrays are supported.
+    /// Will not return NULL.
+    /// </summary>
+    private static string ConvertToString(object? value)
+        => ValueToStringConverter.GetConfigured().Convert(value);
 }

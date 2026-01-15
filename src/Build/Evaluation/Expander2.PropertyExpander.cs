@@ -2,15 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections;
 using System.Globalization;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation.Parsing;
 using Microsoft.Build.Execution;
-using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using Microsoft.NET.StringTools;
+using Microsoft.Build.Text;
 using Microsoft.Win32;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 
@@ -365,89 +363,6 @@ internal partial class Expander2<P, I>
             }
 
             return propertyValue;
-        }
-
-        /// <summary>
-        /// Convert the object into an MSBuild friendly string
-        /// Arrays are supported.
-        /// Will not return NULL.
-        /// </summary>
-        internal static string ConvertToString(object valueToConvert)
-        {
-            if (valueToConvert == null)
-            {
-                return String.Empty;
-            }
-            // If the value is a string, then there is nothing to do
-            if (valueToConvert is string stringValue)
-            {
-                return stringValue;
-            }
-
-            string convertedString;
-            if (valueToConvert is IDictionary dictionary)
-            {
-                // If the return type is an IDictionary, then we convert this to
-                // a semi-colon delimited set of A=B pairs.
-                // Key and Value are converted to string and escaped
-                if (dictionary.Count > 0)
-                {
-                    using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
-
-                    foreach (DictionaryEntry entry in dictionary)
-                    {
-                        if (builder.Length > 0)
-                        {
-                            builder.Append(";");
-                        }
-
-                        // convert and escape each key and value in the dictionary entry
-                        builder.Append(EscapingUtilities.Escape(ConvertToString(entry.Key)));
-                        builder.Append("=");
-                        builder.Append(EscapingUtilities.Escape(ConvertToString(entry.Value)));
-                    }
-
-                    convertedString = builder.ToString();
-                }
-                else
-                {
-                    convertedString = string.Empty;
-                }
-            }
-            else if (valueToConvert is IEnumerable enumerable)
-            {
-                // If the return is enumerable, then we'll convert to semi-colon delimited elements
-                // each of which must be converted, so we'll recurse for each element
-                using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
-
-                foreach (object element in enumerable)
-                {
-                    if (builder.Length > 0)
-                    {
-                        builder.Append(";");
-                    }
-
-                    // we need to convert and escape each element of the array
-                    builder.Append(EscapingUtilities.Escape(ConvertToString(element)));
-                }
-
-                convertedString = builder.ToString();
-            }
-            else
-            {
-                // The fall back is always to just convert to a string directly.
-                // Issue: https://github.com/dotnet/msbuild/issues/9757
-                if (ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave17_12))
-                {
-                    convertedString = Convert.ToString(valueToConvert, CultureInfo.InvariantCulture);
-                }
-                else
-                {
-                    convertedString = valueToConvert.ToString();
-                }
-            }
-
-            return convertedString;
         }
 
         /// <summary>

@@ -1283,7 +1283,7 @@ internal partial class Expander2<P, I>
 
                     object result = function.Execute(item.Key, expander._properties, ExpanderOptions.ExpandAll, elementLocation);
 
-                    string include = PropertyExpander.ConvertToString(result);
+                    string include = ConvertToString(result);
 
                     // We pass in the existing item so we can copy over its metadata
                     if (include.Length > 0)

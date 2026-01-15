@@ -99,6 +99,9 @@ internal ref struct RefArrayBuilder<T>
     public readonly Span<T> AsSpan()
         => _scope.AsSpan()[.._count];
 
+    public readonly Span<T> Remaining
+        => _scope[_count..];
+
     /// <summary>
     ///  Adds an item to the end of the builder. The builder will automatically grow if needed.
     /// </summary>
@@ -166,8 +169,21 @@ internal ref struct RefArrayBuilder<T>
             Grow(span.Length - count + source.Length);
         }
 
-        source.CopyTo(span.Slice(start: count));
+        source.CopyTo(_scope[count..]);
         _count = count + source.Length;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Clear()
+    {
+        Span<T> span = AsSpan();
+
+        if (TypeInfo<T>.IsReferenceOrContainsReferences())
+        {
+            span.Clear();
+        }
+
+        _count = 0;
     }
 
     /// <summary>
@@ -252,7 +268,7 @@ internal ref struct RefArrayBuilder<T>
             Grow(size: span.Length - count + source.Length, startIndex: index);
         }
 
-        source.CopyTo(span.Slice(index, source.Length));
+        source.CopyTo(_scope.Slice(index, source.Length));
         _count = count + source.Length;
     }
 

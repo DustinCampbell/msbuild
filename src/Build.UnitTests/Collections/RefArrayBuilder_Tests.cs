@@ -1383,4 +1383,112 @@ public class RefArrayBuilder_Tests
 
         builder.LastOrDefault().ShouldBe("world");
     }
+
+    [Fact]
+    public void Clear_EmptyBuilder_RemainsEmpty()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+
+        builder.Clear();
+
+        builder.Count.ShouldBe(0);
+        builder.IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Clear_WithValueTypes_SetsCountToZero()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.Add(1);
+        builder.Add(2);
+        builder.Add(3);
+
+        builder.Clear();
+
+        builder.Count.ShouldBe(0);
+        builder.IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Clear_WithReferenceTypes_SetsCountToZeroAndClearsReferences()
+    {
+        using RefArrayBuilder<string> builder = new(4);
+        builder.Add("hello");
+        builder.Add("world");
+        builder.Add("test");
+
+        builder.Clear();
+
+        builder.Count.ShouldBe(0);
+        builder.IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Clear_CanAddAfterClear()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.Add(1);
+        builder.Add(2);
+        builder.Clear();
+
+        builder.Add(10);
+        builder.Add(20);
+
+        builder.Count.ShouldBe(2);
+        builder[0].ShouldBe(10);
+        builder[1].ShouldBe(20);
+    }
+
+    [Fact]
+    public void Clear_MultipleTimes_WorksCorrectly()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.Add(1);
+        builder.Clear();
+        builder.Add(2);
+        builder.Clear();
+        builder.Add(3);
+
+        builder.Count.ShouldBe(1);
+        builder[0].ShouldBe(3);
+    }
+
+    [Fact]
+    public void Clear_AfterGrowth_WorksCorrectly()
+    {
+        using RefArrayBuilder<int> builder = new(2);
+        builder.Add(1);
+        builder.Add(2);
+        builder.Add(3); // Triggers growth
+        builder.Add(4);
+
+        builder.Clear();
+
+        builder.Count.ShouldBe(0);
+        builder.IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Clear_WithScratchBuffer_WorksCorrectly()
+    {
+        using RefArrayBuilder<int> builder = new(stackalloc int[10]);
+        builder.AddRange([1, 2, 3, 4, 5]);
+
+        builder.Clear();
+
+        builder.Count.ShouldBe(0);
+        builder.IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Clear_AsSpanReturnsEmpty()
+    {
+        using RefArrayBuilder<int> builder = new(4);
+        builder.AddRange([1, 2, 3]);
+        builder.Clear();
+
+        ReadOnlySpan<int> span = builder.AsSpan();
+
+        span.Length.ShouldBe(0);
+    }
 }

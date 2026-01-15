@@ -194,6 +194,7 @@
     <Compile Include="Collections\RefArrayBuilder.cs" />
     <Compile Include="Collections\RefStack.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Evaluation\Expander2.ValueToStringConverter.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\Parsing\ExpressionNodes.cs" />
     <Compile Include="Evaluation\Parsing\ExpressionParser.cs" />
@@ -221,9 +222,12 @@
     <Compile Include="TelemetryInfra\InternalTelemetryConsumingLogger.cs" />
     <Compile Include="TelemetryInfra\ITelemetryForwarder.cs" />
     <Compile Include="TelemetryInfra\TelemetryForwarderProvider.cs" />
+    <Compile Include="Text\EscapeChars.cs" />
+    <Compile Include="Text\StringExtensions.cs" />
     <Compile Include="Text\StringSegment.cs" />
     <Compile Include="Buffers\BufferScope.cs" />
     <Compile Include="Text\StringSegmentComparer.cs" />
+    <Compile Include="Text\RefStringBuilder.cs" />
     <Compile Include="Utilities\ReaderWriterLockSlimExtensions.cs" />
     <Compile Include="BackEnd\Node\ConsoleOutput.cs" />
     <Compile Include="BackEnd\Node\PartialBuildTelemetry.cs" />
