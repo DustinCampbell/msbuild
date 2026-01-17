@@ -7,6 +7,7 @@ using Microsoft.NET.StringTools;
 
 #if !NET35
 using System.Buffers;
+using System.Runtime.CompilerServices;
 #endif
 
 #nullable disable
@@ -73,6 +74,26 @@ internal static class EscapingUtilities
             => (char)(x + (x < 10 ? '0' : ('a' - 10)));
     }
 
+    private static readonly byte[] s_hexDecodeTable =
+    [
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 15
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 31
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 47
+        0x0,  0x1,  0x2,  0x3,  0x4,  0x5,  0x6,  0x7,  0x8,  0x9,  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 63
+        0xFF, 0xA,  0xB,  0xC,  0xD,  0xE,  0xF,  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 79
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 95
+        0xFF, 0xa,  0xb,  0xc,  0xd,  0xe,  0xf,  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 111
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 127
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 143
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 159
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 175
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 191
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 207
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 223
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 239
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 255
+    ];
+
     /// <summary>
     ///  Optional cache of escaped strings for use when needing to escape in performance-critical scenarios with significant
     ///  expected string reuse.
@@ -122,76 +143,44 @@ internal static class EscapingUtilities
             return value;
         }
 
-        if (!TryGetStartAndLength(value, trim, out int start, out int length))
+        int firstPercentIndex = value.IndexOf('%');
+        if (firstPercentIndex < 0)
         {
-            return string.Empty;
+            // No escape sequences found. Just return the original string (trimmed if necessary).
+            return trim ? value.Trim() : value;
         }
 
 #if NET
-        return Modern.DecodeString(value, start, length, trim);
+        return Modern.DecodeString(value, firstPercentIndex, trim);
 #else
-        return NetFx.DecodeString(value, start, length, trim);
+        return NetFx.DecodeString(value, firstPercentIndex, trim);
 #endif
-
-        static bool TryGetStartAndLength(string value, bool trim, out int start, out int length)
-        {
-            start = 0;
-            length = value.Length;
-
-            if (!trim)
-            {
-                return true;
-            }
-
-            while (start < length && char.IsWhiteSpace(value[start]))
-            {
-                start++;
-            }
-
-            while (length > start && char.IsWhiteSpace(value[length - 1]))
-            {
-                length--;
-            }
-
-            length -= start;
-
-            return length != 0;
-        }
     }
 
+#if !NET35
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     private static bool TryDecodeHexDigits(char char1, char char2, out char result)
     {
-        if (TryDecodeHexDigit(char1, out int digit1) &&
-            TryDecodeHexDigit(char2, out int digit2))
+        // Bounds check both chars at once using bitwise OR
+        if ((char1 | char2) >= s_hexDecodeTable.Length)
         {
-            result = (char)((digit1 << 4) + digit2);
-            return true;
+            result = default;
+            return false;
         }
 
-        result = default;
-        return false;
+        int digit1 = s_hexDecodeTable[char1];
+        int digit2 = s_hexDecodeTable[char2];
 
-        static bool TryDecodeHexDigit(char c, out int digit)
+        // Check if both lookups were valid (not 0xFF) using bitwise OR
+        if ((digit1 | digit2) == 0xFF)
         {
-            switch (c)
-            {
-                case >= '0' and <= '9':
-                    digit = c - '0';
-                    return true;
-
-                case >= 'A' and <= 'F':
-                    digit = c - 'A' + 10;
-                    return true;
-
-                case >= 'a' and <= 'f':
-                    digit = c - 'a' + 10;
-                    return true;
-
-                default:
-                    digit = default;
-                    return false;
-            }
+            result = default;
+            return false;
         }
+
+        result = (char)((digit1 << 4) | digit2);
+        return true;
     }
 
     /// <summary>
@@ -256,116 +245,109 @@ internal static class EscapingUtilities
     {
         private static readonly SearchValues<char> s_searchValues = SearchValues.Create(s_specialChars);
 
-        public static unsafe string DecodeString(string value, int start, int length, bool trim)
+        public static string DecodeString(string value, int firstPercentIndex, bool trim)
         {
-            var items = new Buffer<DecodeData>(stackalloc DecodeData[32]);
+            ReadOnlySpan<char> span = value.AsSpan();
+            int start = 0;
+            int length = span.Length;
+
+            if (trim)
+            {
+                ReadOnlySpan<char> startTrimmed = span.TrimStart();
+                start = span.Length - startTrimmed.Length;
+                span = startTrimmed.TrimEnd();
+                length = span.Length;
+
+                if (span.IsEmpty)
+                {
+                    return string.Empty;
+                }
+
+                // Adjust firstPercentIndex to be relative to the trimmed span
+                firstPercentIndex -= start;
+            }
+
+            // Allocate a buffer the same size as the input (decoded string will be smaller or equal)
+            const int MaxStackAlloc = 256;
+            char[] rentedArray = null;
+            Span<char> destination = length <= MaxStackAlloc
+                ? stackalloc char[length]
+                : (rentedArray = ArrayPool<char>.Shared.Rent(length)).AsSpan(0, length);
+
             try
             {
-                ReadOnlySpan<char> span = value.AsSpan(start, length);
+                // Single pass: decode and copy characters
+                int destPos = 0;
+                int percentIndex = firstPercentIndex;
 
-                // Try to find any decode items in the string.
-                if (!TryFindDecodeItems(span, ref items))
+                do
                 {
-                    // No decode items found. Just return the original string (trimmed if necessary).
+                    // Copy characters before the next '%'.
+                    span[..percentIndex].CopyTo(destination[destPos..]);
+                    span = span[percentIndex..];
+                    destPos += percentIndex;
+
+                    if (span is ['%', char c1, char c2, ..] &&
+                        TryDecodeHexDigits(c1, c2, out char decodedChar))
+                    {
+                        // Valid escape sequence found, decode it
+                        destination[destPos++] = decodedChar;
+                        span = span[3..]; // Move past the escape sequence
+                    }
+                    else
+                    {
+                        // Not a valid escape sequence, copy the '%'
+                        destination[destPos++] = '%';
+                        span = span[1..];
+                    }
+
+                    percentIndex = span.IndexOf('%');
+                }
+                while (percentIndex >= 0);
+
+                if (!span.IsEmpty)
+                {
+                    // Copy remaining characters.
+                    span.CopyTo(destination[destPos..]);
+                    destPos += span.Length;
+                }
+
+                // If no decoding happened (destPos == length), return original string (potentially trimmed)
+                if (destPos == length)
+                {
                     return trim ? value.Substring(start, length) : value;
                 }
 
-                // OK. We have to make a new string. We can pre-compute its length because
-                // we know how many escape sequences we need to decode.
-                // Escape sequences are always 3 characters long, so the length of the new string is:
-                //
-                // original length - (number of escape sequences * 2).
-                int resultLength = length - (items.Count * 2);
-                string result = new('\0', resultLength);
-
-                fixed (char* dstPtr = result)
-                {
-                    var destination = new Span<char>(dstPtr, resultLength);
-
-                    DecodeItems(span, destination, ref items);
-                }
-
-                return result;
+                // Create result string from buffer
+                return new string(destination[..destPos]);
             }
             finally
             {
-                items.Dispose();
-            }
-        }
-
-        private static bool TryFindDecodeItems(ReadOnlySpan<char> source, ref Buffer<DecodeData> items)
-        {
-            // Track the absolute index in the original span while slicing for easier searching.
-            // 'start' maintains the offset while 'source' is progressively sliced.
-            int start = 0;
-
-            while (!source.IsEmpty)
-            {
-                int percentIndex = source.IndexOf('%');
-                if (percentIndex < 0)
+                if (rentedArray != null)
                 {
-                    // No more percent characters found.
-                    break;
+                    ArrayPool<char>.Shared.Return(rentedArray);
                 }
-
-                // We found a percent character. Move past it.
-                int index = start + percentIndex;
-                start += percentIndex + 1;
-                source = source[(percentIndex + 1)..];
-
-                if (source is [char c1, char c2, ..] && TryDecodeHexDigits(c1, c2, out char decodedChar))
-                {
-                    // We found an escape sequence. And it and move past the hex digits.
-                    items.Add(new(index, decodedChar));
-
-                    start += 2;
-                    source = source[2..];
-                }
-            }
-
-            return items.Count > 0;
-        }
-
-        private static void DecodeItems(ReadOnlySpan<char> source, Span<char> destination, ref readonly Buffer<DecodeData> items)
-        {
-            int sourcePos = 0;
-
-            foreach (var (index, decodedChar) in items)
-            {
-                // Copy characters before the escape sequence.
-                int copyLength = index - sourcePos;
-                if (copyLength > 0)
-                {
-                    source[sourcePos..index].CopyTo(destination);
-                    destination = destination[copyLength..];
-                }
-
-                // Write decoded character.
-                destination[0] = decodedChar;
-                destination = destination[1..];
-
-                sourcePos = index + 3;
-            }
-
-            // Copy remaining characters
-            if (sourcePos < source.Length)
-            {
-                source[sourcePos..].CopyTo(destination);
             }
         }
 
         public static string EncodeString(string value, bool cache)
         {
+            // Find the first special character to encode
+            ReadOnlySpan<char> span = value.AsSpan();
+            int firstSpecialIndex = span.IndexOfAny(s_searchValues);
+
+            if (firstSpecialIndex < 0)
+            {
+                // No special characters found. Just return the original string.
+                return value;
+            }
+
             var items = new Buffer<EncodeData>(stackalloc EncodeData[32]);
 
             try
             {
-                // Try to find any decode items in the string.
-                if (!TryFindEncodeItems(value, ref items))
-                {
-                    // No encode items found. Just return the original string.
-                    return value;
-                }
+                // We already found the first special character, pass it to TryFindEncodeItems
+                TryFindEncodeItems(value, firstSpecialIndex, ref items);
 
                 // Is there a cached version of this string? If so, return it!
                 if (cache && TryGetCachedEscapedString(value, out string cachedString))
@@ -398,20 +380,14 @@ internal static class EscapingUtilities
             }
         }
 
-        private static bool TryFindEncodeItems(string value, ref Buffer<EncodeData> items)
+        private static void TryFindEncodeItems(string value, int firstSpecialIndex, ref Buffer<EncodeData> items)
         {
             ReadOnlySpan<char> source = value.AsSpan();
             int start = 0;
+            int charIndex = firstSpecialIndex;
 
-            while (!source.IsEmpty)
+            while (charIndex >= 0)
             {
-                int charIndex = source.IndexOfAny(s_searchValues);
-                if (charIndex < 0)
-                {
-                    // No more special characters found
-                    break;
-                }
-
                 int index = start + charIndex;
                 char c = source[charIndex];
                 char[] escapeSequence = s_escapeSequenceTable[c];
@@ -421,9 +397,10 @@ internal static class EscapingUtilities
                 // Move past the special character
                 start += charIndex + 1;
                 source = source[(charIndex + 1)..];
-            }
 
-            return items.Count > 0;
+                // Find the next special character
+                charIndex = source.IndexOfAny(s_searchValues);
+            }
         }
 
         private static void Encode(ReadOnlySpan<char> source, Span<char> destination, ref readonly Buffer<EncodeData> items)
@@ -505,47 +482,145 @@ internal static class EscapingUtilities
             return result;
         }
 
-        public static string DecodeString(string value, int start, int length, bool trim)
+        public static unsafe string DecodeString(string value, int firstPercentIndex, bool trim)
         {
+            if (!TryGetStartAndLength(value, trim, out int start, out int length))
+            {
+                return string.Empty;
+            }
+
+            if (trim)
+            {
+                firstPercentIndex -= start;
+            }
+
 #if !NET35
-            // Start with 32 items on the stack. This handles most real-world cases without
-            // needing to rent from ArrayPool, while keeping stack usage reasonable (~256-512 bytes).
-            var items = new Buffer<DecodeData>(stackalloc DecodeData[32]);
+            const int MaxStackAlloc = 256;
+            char[] rentedArray = null;
+            Span<char> destination = length <= MaxStackAlloc
+                ? stackalloc char[length]
+                : (rentedArray = ArrayPool<char>.Shared.Rent(length)).AsSpan(0, length);
 #else
-            var items = new Buffer<DecodeData>();
+            char[] destination = new char[length];
 #endif
 
             try
             {
-                // Try to find any decode items in the string.
-                if (!TryFindDecodeItems(value, start, length, ref items))
+                fixed (char* srcPtr = value)
+                fixed (char* destPtr = destination)
                 {
-                    // No decode items found. Just return the original string (trimmed if necessary).
-                    return trim ? value.Substring(start, length) : value;
+                    int srcPos = start;
+                    int end = start + length;
+                    int destPos = 0;
+                    int percentIndex = firstPercentIndex;
+
+                    do
+                    {
+                        // Bulk copy characters before the next '%'
+                        if (percentIndex > 0)
+                        {
+                            CopyChars(srcPtr + srcPos, destPtr + destPos, percentIndex);
+                            destPos += percentIndex;
+                            srcPos += percentIndex;
+                        }
+
+                        // Process the '%' character
+                        if (srcPos + 2 < end &&
+                            TryDecodeHexDigits(srcPtr[srcPos + 1], srcPtr[srcPos + 2], out char decodedChar))
+                        {
+                            // Valid escape sequence
+                            destPtr[destPos++] = decodedChar;
+                            srcPos += 3;
+                        }
+                        else
+                        {
+                            // Invalid escape sequence, just copy the '%'
+                            destPtr[destPos++] = srcPtr[srcPos++];
+                        }
+
+                        // Find next '%'
+                        percentIndex = IndexOf('%', srcPtr, srcPos, end - srcPos);
+                    }
+                    while (percentIndex >= 0);
+
+                    if (srcPos < end)
+                    {
+                        // No more '%', bulk copy remaining
+                        int remaining = end - srcPos;
+                        CopyChars(srcPtr + srcPos, destPtr + destPos, remaining);
+                        destPos += remaining;
+                    }
+
+                    // If no decoding happened, return original string
+                    if (destPos == length)
+                    {
+                        return trim ? value.Substring(start, length) : value;
+                    }
+
+#if !NET35
+                    return destination[..destPos].ToString();
+#else
+                    return new string(destination, 0, destPos);
+#endif
                 }
-
-                // OK. We have to make a new string. We can pre-compute its length because
-                // we know how many escape sequences we need to decode.
-                // Escape sequences are always 3 characters long, so the length of the new string is:
-                //
-                // original length - (number of escape sequences * 2).
-                int resultLength = length - (items.Count * 2);
-                string result = new('\0', resultLength);
-
-                DecodeItems(value, start, length, result, ref items);
-
-                return result;
             }
             finally
             {
-                items.Dispose();
+#if !NET35
+                if (rentedArray != null)
+                {
+                    ArrayPool<char>.Shared.Return(rentedArray);
+                }
+#endif
+            }
+
+            static int IndexOf(char c, char* ptr, int start, int length)
+            {
+                int end = start + length;
+
+                for (int i = start; i < end; i++)
+                {
+                    if (ptr[i] == '%')
+                    {
+                        return i - start;
+                    }
+                }
+
+                return -1;
             }
         }
 
-        private static unsafe bool TryFindDecodeItems(string value, int start, int length, ref Buffer<DecodeData> items)
+        private static bool TryGetStartAndLength(string value, bool trim, out int start, out int length)
+        {
+            start = 0;
+            length = value.Length;
+
+            if (!trim)
+            {
+                return true;
+            }
+
+            while (start < length && char.IsWhiteSpace(value[start]))
+            {
+                start++;
+            }
+
+            while (length > start && char.IsWhiteSpace(value[length - 1]))
+            {
+                length--;
+            }
+
+            length -= start;
+
+            return length != 0;
+        }
+
+        private static unsafe bool TryFindDecodeItems(string value, int start, int length, int percentIndex, ref Buffer<DecodeData> items)
         {
             fixed (char* ptr = value)
             {
+                start += percentIndex;
+
                 // We need at least 2 characters after '%' for a valid escape sequence (%XX),
                 // so we stop the loop 2 characters before the end.
                 int end = start + length - 2;
@@ -598,34 +673,20 @@ internal static class EscapingUtilities
             }
         }
 
-        private static unsafe bool TryFindEncodeItems(string value, ref Buffer<EncodeData> items)
-        {
-            fixed (char* ptr = value)
-            {
-                int length = value.Length;
-
-                for (int i = 0; i < length; i++)
-                {
-                    char c = ptr[i];
-
-                    // Fast range check: all special characters fall between '$' (0x24) and '@' (0x40).
-                    // Using unsigned arithmetic avoids two comparisons (c >= '$' && c <= '@').
-                    if ((uint)(c - '$') <= ('@' - '$') && s_specialCharTable[c])
-                    {
-                        char[] escapeSequence = s_escapeSequenceTable[c];
-                        items.Add(new(i, escapeSequence[0], escapeSequence[1]));
-                    }
-                }
-            }
-
-            return items.Count > 0;
-        }
-
         public static string EncodeString(string value, bool cache)
         {
+            // Find the first special character to encode
+            int firstSpecialIndex = FindFirstSpecialCharacter(value);
+
+            if (firstSpecialIndex < 0)
+            {
+                // No special characters found. Just return the original string.
+                return value;
+            }
+
 #if !NET35
             // Start with 32 items on the stack. This handles most real-world cases without
-            // needing to rent from ArrayPool, while keeping stack usage reasonable (~256-512 bytes).
+            // needing to rent from ArrayPool.
             var items = new Buffer<EncodeData>(stackalloc EncodeData[32]);
 #else
             var items = new Buffer<EncodeData>();
@@ -633,12 +694,8 @@ internal static class EscapingUtilities
 
             try
             {
-                // Try to find any decode items in the string.
-                if (!TryFindEncodeItems(value, ref items))
-                {
-                    // No encode items found. Just return the original string.
-                    return value;
-                }
+                // We already found the first special character, pass it to TryFindEncodeItems
+                TryFindEncodeItems(value, firstSpecialIndex, ref items);
 
                 // Is there a cached version of this string? If so, return it!
                 if (cache && TryGetCachedEscapedString(value, out string cachedString))
@@ -660,6 +717,49 @@ internal static class EscapingUtilities
             finally
             {
                 items.Dispose();
+            }
+        }
+
+        private static unsafe int FindFirstSpecialCharacter(string value)
+        {
+            fixed (char* ptr = value)
+            {
+                int length = value.Length;
+
+                for (int i = 0; i < length; i++)
+                {
+                    char c = ptr[i];
+
+                    // Fast range check: all special characters fall between '$' (0x24) and '@' (0x40).
+                    // Using unsigned arithmetic avoids two comparisons (c >= '$' && c <= '@').
+                    if ((uint)(c - '$') <= ('@' - '$') && s_specialCharTable[c])
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        private static unsafe void TryFindEncodeItems(string value, int firstSpecialIndex, ref Buffer<EncodeData> items)
+        {
+            fixed (char* ptr = value)
+            {
+                int length = value.Length;
+
+                for (int i = firstSpecialIndex; i < length; i++)
+                {
+                    char c = ptr[i];
+
+                    // Fast range check: all special characters fall between '$' (0x24) and '@' (0x40).
+                    // Using unsigned arithmetic avoids two comparisons (c >= '$' && c <= '@').
+                    if ((uint)(c - '$') <= ('@' - '$') && s_specialCharTable[c])
+                    {
+                        char[] escapeSequence = s_escapeSequenceTable[c];
+                        items.Add(new(i, escapeSequence[0], escapeSequence[1]));
+                    }
+                }
             }
         }
 
