@@ -20,11 +20,19 @@ namespace Microsoft.Build.Shared;
 /// in the MSBuild file format.
 /// </summary>
 /// <remarks>
-///  This class has two platform-specific implementations to optimize for each target framework.
-///  When making changes, ensure both implementations are updated consistently:
-///  - Modern (.NET 6+): Uses SearchValues and modern span APIs with span slicing.
-///  - NetFx (.NET Framework 3.5/4.7.2/.NET Standard 2.0): Uses unsafe pointers with 
+///  <para>
+///   This class has two platform-specific implementations to optimize for each target framework.
+///  </para>
+///  <para>
+///   When making changes, ensure both implementations are updated consistently:
+///  </para>
+///  <list type="bullet">
+///   <item>Modern (.NET 6+): Uses SearchValues and modern span APIs with span slicing.</item>
+///   <item>
+///    NetFx (.NET Framework 3.5/4.7.2/.NET Standard 2.0): Uses unsafe pointers with 
 ///    stack-allocated buffers on modern frameworks and inline field storage on .NET Framework 3.5.
+///   </item>
+///  </list>
 /// </remarks>
 internal static class EscapingUtilities
 {
@@ -66,18 +74,47 @@ internal static class EscapingUtilities
     }
 
     /// <summary>
-    /// Optional cache of escaped strings for use when needing to escape in performance-critical scenarios with significant
-    /// expected string reuse.
+    ///  Optional cache of escaped strings for use when needing to escape in performance-critical scenarios with significant
+    ///  expected string reuse.
     /// </summary>
-    private static readonly Dictionary<string, string> s_unescapedToEscapedStrings = new Dictionary<string, string>(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> s_unescapedToEscapedStrings = new(StringComparer.Ordinal);
+
+    private static bool TryGetCachedEscapedString(string unescapedString, out string cachedString)
+    {
+        lock (s_unescapedToEscapedStrings)
+        {
+            return s_unescapedToEscapedStrings.TryGetValue(unescapedString, out cachedString);
+        }
+    }
+
+    private static string CacheIfRequested(string result, string unescapedString, bool cache)
+    {
+        if (!cache)
+        {
+            return result;
+        }
+
+        string escapedString = Strings.WeakIntern(result);
+
+        lock (s_unescapedToEscapedStrings)
+        {
+            s_unescapedToEscapedStrings[unescapedString] = escapedString;
+        }
+
+        return escapedString;
+    }
 
     /// <summary>
-    /// Replaces all instances of %XX in the input string with the character represented
-    /// by the hexadecimal number XX.
+    ///  Replaces all instances of %XX in the input string with the character represented
+    ///  by the hexadecimal number XX.
     /// </summary>
     /// <param name="value">The string to unescape.</param>
-    /// <param name="trim">If the string should be trimmed before being unescaped.</param>
-    /// <returns>unescaped string</returns>
+    /// <param name="trim">
+    ///  If <see langword="true"/>, trims leading and trailing whitespace before unescaping.
+    /// </param>
+    /// <returns>
+    ///  The unescaped string, or an empty string if the trimmed input is empty.
+    /// </returns>
     internal static string UnescapeAll(string value, bool trim = false)
     {
         if (string.IsNullOrEmpty(value))
@@ -158,39 +195,24 @@ internal static class EscapingUtilities
     }
 
     /// <summary>
-    /// Adds instances of %XX in the input string where the char to be escaped appears
-    /// XX is the hex value of the ASCII code for the char.  Interns and caches the result.
-    /// </summary>
-    /// <comment>
-    /// NOTE:  Only recommended for use in scenarios where there's expected to be significant
-    /// repetition of the escaped string.  Cache currently grows unbounded.
-    /// </comment>
-    internal static string EscapeWithCaching(string unescapedString)
-    {
-        return EscapeWithOptionalCaching(unescapedString, cache: true);
-    }
-
-    /// <summary>
-    /// Adds instances of %XX in the input string where the char to be escaped appears
-    /// XX is the hex value of the ASCII code for the char.
-    /// </summary>
-    /// <param name="unescapedString">The string to escape.</param>
-    /// <returns>escaped string</returns>
-    internal static string Escape(string unescapedString)
-    {
-        return EscapeWithOptionalCaching(unescapedString, cache: false);
-    }
-
-    /// <summary>
-    /// Adds instances of %XX in the input string where the char to be escaped appears
-    /// XX is the hex value of the ASCII code for the char.  Caches if requested.
+    ///  Adds instances of %XX in the input string where special characters appear.
+    ///  XX is the hex value of the ASCII code for the character.
     /// </summary>
     /// <param name="value">The string to escape.</param>
     /// <param name="cache">
-    /// True if the cache should be checked, and if the resultant string
-    /// should be cached.
+    ///  If <see langword="true"/>, interns and caches the result for performance when the same
+    ///  strings are escaped repeatedly. Default is <see langword="false"/>.
     /// </param>
-    private static string EscapeWithOptionalCaching(string value, bool cache)
+    /// <returns>
+    ///  The escaped string, or the original string if no escaping is needed.
+    /// </returns>
+    /// <remarks>
+    ///  Special characters that are escaped: $ % ' ( ) * ; ? @
+    ///  When <paramref name="cache"/> is true, the result is weakly interned and cached for reuse.
+    ///  Caching is only recommended when the same strings are escaped repeatedly, as the cache
+    ///  grows unbounded.
+    /// </remarks>
+    internal static string Escape(string value, bool cache = false)
     {
         if (string.IsNullOrEmpty(value))
         {
@@ -204,47 +226,27 @@ internal static class EscapingUtilities
 #endif
     }
 
-    private static bool TryGetCachedEscapedString(string unescapedString, out string cachedString)
-    {
-        lock (s_unescapedToEscapedStrings)
-        {
-            return s_unescapedToEscapedStrings.TryGetValue(unescapedString, out cachedString);
-        }
-    }
-
-    private static string CacheIfRequested(string result, string unescapedString, bool cache)
-    {
-        if (!cache)
-        {
-            return result;
-        }
-
-        string escapedString = Strings.WeakIntern(result);
-
-        lock (s_unescapedToEscapedStrings)
-        {
-            s_unescapedToEscapedStrings[unescapedString] = escapedString;
-        }
-
-        return escapedString;
-    }
-
     /// <summary>
-    /// Determines whether the string contains the escaped form of '*' or '?'.
+    ///  Determines whether the string contains the escaped form of wildcard characters ('*' or '?').
     /// </summary>
-    /// <param name="escapedString"></param>
-    /// <returns></returns>
-    internal static bool ContainsEscapedWildcards(string escapedString)
+    /// <param name="value">The string to check for escaped wildcards.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the string contains %2a, %2A, %3f, or %3F; otherwise <see langword="false"/>.
+    /// </returns>
+    /// <remarks>
+    ///  This method looks for the escape sequences %2a, %2A (asterisk) and %3f, %3F (question mark).
+    /// </remarks>
+    internal static bool ContainsEscapedWildcards(string value)
     {
-        if (escapedString.Length < 3)
+        if (value.Length < 3)
         {
             return false;
         }
 
 #if NET
-        return Modern.ContainsEscapedWildcards(escapedString);
+        return Modern.ContainsEscapedWildcards(value);
 #else
-        return NetFx.ContainsEscapedWildcards(escapedString);
+        return NetFx.ContainsEscapedWildcards(value);
 #endif
     }
 
@@ -293,6 +295,8 @@ internal static class EscapingUtilities
 
         private static bool TryFindDecodeItems(ReadOnlySpan<char> source, ref Buffer<DecodeData> items)
         {
+            // Track the absolute index in the original span while slicing for easier searching.
+            // 'start' maintains the offset while 'source' is progressively sliced.
             int start = 0;
 
             while (!source.IsEmpty)
@@ -504,6 +508,8 @@ internal static class EscapingUtilities
         public static string DecodeString(string value, int start, int length, bool trim)
         {
 #if !NET35
+            // Start with 32 items on the stack. This handles most real-world cases without
+            // needing to rent from ArrayPool, while keeping stack usage reasonable (~256-512 bytes).
             var items = new Buffer<DecodeData>(stackalloc DecodeData[32]);
 #else
             var items = new Buffer<DecodeData>();
@@ -540,6 +546,8 @@ internal static class EscapingUtilities
         {
             fixed (char* ptr = value)
             {
+                // We need at least 2 characters after '%' for a valid escape sequence (%XX),
+                // so we stop the loop 2 characters before the end.
                 int end = start + length - 2;
 
                 for (int i = start; i < end; i++)
@@ -600,6 +608,8 @@ internal static class EscapingUtilities
                 {
                     char c = ptr[i];
 
+                    // Fast range check: all special characters fall between '$' (0x24) and '@' (0x40).
+                    // Using unsigned arithmetic avoids two comparisons (c >= '$' && c <= '@').
                     if ((uint)(c - '$') <= ('@' - '$') && s_specialCharTable[c])
                     {
                         char[] escapeSequence = s_escapeSequenceTable[c];
@@ -614,6 +624,8 @@ internal static class EscapingUtilities
         public static string EncodeString(string value, bool cache)
         {
 #if !NET35
+            // Start with 32 items on the stack. This handles most real-world cases without
+            // needing to rent from ArrayPool, while keeping stack usage reasonable (~256-512 bytes).
             var items = new Buffer<EncodeData>(stackalloc EncodeData[32]);
 #else
             var items = new Buffer<EncodeData>();
@@ -809,6 +821,8 @@ internal static class EscapingUtilities
         // 'Span<T>' so we implement a simple hybrid storage mechanism that
         // uses fields for the first four items and an array for any additional items.
 
+        // Store the first 4 items inline to avoid array allocation for common cases.
+        // Most escaped/unescaped strings have fewer than 4 special characters.
         private T _item1;
         private T _item2;
         private T _item3;

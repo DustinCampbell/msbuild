@@ -595,7 +595,7 @@ namespace Microsoft.Build.BackEnd
                     // TaskParameterTaskItem's constructor expects escaped values, so escaping them all
                     // is the closest approximation to correct we can get.
                     _escapedItemSpec = EscapingUtilities.Escape(copyFrom.ItemSpec);
-                    _escapedDefiningProject = EscapingUtilities.EscapeWithCaching(copyFrom.GetMetadata(FileUtilities.ItemSpecModifiers.DefiningProjectFullPath));
+                    _escapedDefiningProject = EscapingUtilities.Escape(copyFrom.GetMetadata(FileUtilities.ItemSpecModifiers.DefiningProjectFullPath), cache: true);
 
                     IDictionary customMetadata = copyFrom.CloneCustomMetadata();
                     _customEscapedMetadata = new Dictionary<string, string>(MSBuildNameIgnoreCaseComparer.Default);
