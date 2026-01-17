@@ -27,6 +27,23 @@ public sealed class EscapingUtilities_Tests
         => EscapingUtilities.UnescapeAll(input).ShouldBe(expected);
 
     [Theory]
+    [InlineData("  foo  ", "foo")]
+    [InlineData("  foo", "foo")]
+    [InlineData("foo  ", "foo")]
+    [InlineData("\tfoo\t", "foo")]
+    [InlineData("\r\nfoo\r\n", "foo")]
+    [InlineData("  foo%20bar  ", "foo bar")]
+    [InlineData("  %3bfoo%3b  ", ";foo;")]
+    [InlineData("  ", "")]
+    [InlineData("\t\r\n", "")]
+    [InlineData("", "")]
+    [InlineData("  hello%3B escaping%25  ", "hello; escaping%")]
+    [InlineData("  %2aStar%2Acraft  ", "*Star*craft")]
+    [InlineData(" \t %253B \r\n ", "%3B")]
+    public void UnescapeWithTrim(string input, string expected)
+        => EscapingUtilities.UnescapeAll(input, trim: true).ShouldBe(expected);
+
+    [Theory]
     [InlineData("*", "%2a")]
     [InlineData("?", "%3f")]
     [InlineData("#*?*#*", "#%2a%3f%2a#%2a")]
