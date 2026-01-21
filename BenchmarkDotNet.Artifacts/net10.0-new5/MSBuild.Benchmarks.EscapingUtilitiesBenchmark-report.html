@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>MSBuild.Benchmarks.EscapingUtilitiesBenchmark-20260116-214607</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.13.12, Windows 11 (10.0.28020.1371)
+Unknown processor
+.NET SDK 10.0.102
+  [Host]     : .NET 10.0.2 (10.0.225.61305), X64 RyuJIT AVX2
+  DefaultJob : .NET 10.0.2 (10.0.225.61305), X64 RyuJIT AVX2
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method                                </th><th>Mean</th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>Escape_SimpleString</td><td>9.314 ns</td><td>0.1712 ns</td><td>0.1602 ns</td><td>-</td><td>-</td>
+</tr><tr><td>Escape_UnescapedString_WithSpecialCharacters</td><td>121.000 ns</td><td>1.0599 ns</td><td>0.9915 ns</td><td>0.0751</td><td>472 B</td>
+</tr><tr><td>Unescape_SimpleString</td><td>6.289 ns</td><td>0.0379 ns</td><td>0.0336 ns</td><td>-</td><td>-</td>
+</tr><tr><td>Unescape_StringWithEscapeSequences</td><td>231.058 ns</td><td>3.2760 ns</td><td>2.5577 ns</td><td>0.0648</td><td>408 B</td>
+</tr></tbody></table>
+</body>
+</html>
