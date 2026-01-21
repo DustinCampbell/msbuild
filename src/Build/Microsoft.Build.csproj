@@ -198,6 +198,7 @@
     <Compile Include="FileAccess\ProcessData.cs" />
     <Compile Include="FileAccess\ReportedFileOperation.cs" />
     <Compile Include="FileAccess\RequestedAccess.cs" />
+    <Compile Include="IElementLocation.cs" />
     <Compile Include="Instance\IPropertyElementWithLocation.cs" />
     <Compile Include="Logging\BuildEventArgsExtensions.cs" />
     <Compile Include="Logging\TerminalLogger\**\*.cs" />
@@ -673,9 +674,6 @@
     </Compile>
     <Compile Include="..\Shared\FrameworkLocationHelper.cs">
       <Link>SharedUtilities\FrameworkLocationHelper.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\IElementLocation.cs">
-      <Link>SharedUtilities\IElementLocation.cs</Link>
     </Compile>
     <Compile Include="..\Shared\LoadedType.cs">
       <Link>SharedUtilities\LoadedType.cs</Link>
