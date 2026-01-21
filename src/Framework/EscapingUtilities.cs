@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Build.Framework;
@@ -21,15 +23,39 @@ namespace Microsoft.Build.Shared
     /// in the MSBuild file format.
     /// </summary>
     /// <remarks>
-    /// PERF: since we escape and unescape relatively frequently, it may be worth caching/// the last N strings that were (un)escaped
+    /// PERF: since we escape and unescape relatively frequently, it may be worth caching
+    /// the last N strings that were (un)escaped
     /// </remarks>
     internal static class EscapingUtilities
     {
-        private sealed class EscapeCallStats(string input, bool cache)
+        private sealed record class CallerInfo
+        {
+            private int? _hashCode;
+
+            public string MemberName { get; set; }
+            public string FilePath { get; set; }
+            public int LineNumber { get; set; }
+
+            public string DisplayString => field ??= $"{FilePath}:{LineNumber} ({MemberName})";
+
+            public bool Equals(CallerInfo other)
+                => LineNumber == other.LineNumber &&
+                   MemberName == other.MemberName &&
+                   FilePath.Equals(other.FilePath, StringComparison.OrdinalIgnoreCase);
+
+            public override int GetHashCode()
+                => _hashCode ??= MemberName.GetHashCode() ^ StringComparer.OrdinalIgnoreCase.GetHashCode(FilePath) ^ LineNumber;
+
+            public override string ToString() => DisplayString;
+        }
+
+        private sealed class EscapeCallStats(string input, bool cache, CallerInfo caller)
         {
             public string Input => input;
 
             public bool Cache => cache;
+
+            public CallerInfo Caller => caller;
 
             public bool NoSpecialChars { get; set; }
 
@@ -42,11 +68,13 @@ namespace Microsoft.Build.Shared
             public bool HasChange => _hasChange ??= !string.Equals(input, Output, StringComparison.Ordinal);
         }
 
-        private sealed class UnescapeAllCallStats(string input, bool trim)
+        private sealed class UnescapeAllCallStats(string input, bool trim, CallerInfo caller)
         {
             public string Input => input;
 
             public bool Trim => trim;
+
+            public CallerInfo Caller => caller;
 
             public string Output { get; set; }
 
@@ -70,27 +98,18 @@ namespace Microsoft.Build.Shared
         private static long s_escapeCacheHits = 0;
         private static long s_escapeCacheMisses = 0;
 
-        // Telemetry dictionaries - using Dictionary for thread safety with locks
-        private static readonly Dictionary<string, List<EscapeCallStats>> s_escapeCallStats = new Dictionary<string, List<EscapeCallStats>>(StringComparer.Ordinal);
-        private static readonly Dictionary<string, List<UnescapeAllCallStats>> s_unescapeCallStats = new Dictionary<string, List<UnescapeAllCallStats>>(StringComparer.Ordinal);
-        private static readonly Dictionary<string, long> s_containsEscapedWildcardsInputFrequency = new Dictionary<string, long>(StringComparer.Ordinal);
-        private static readonly Dictionary<bool, long> s_containsEscapedWildcardsResultFrequency = new Dictionary<bool, long> { { true, 0 }, { false, 0 } };
+        // Telemetry dictionaries - using ConcurrentDictionary and ConcurrentBag for lock-free thread safety
+        private static readonly ConcurrentDictionary<string, ConcurrentBag<EscapeCallStats>> s_escapeCallStats = new ConcurrentDictionary<string, ConcurrentBag<EscapeCallStats>>(StringComparer.Ordinal);
+        private static readonly ConcurrentDictionary<string, ConcurrentBag<UnescapeAllCallStats>> s_unescapeCallStats = new ConcurrentDictionary<string, ConcurrentBag<UnescapeAllCallStats>>(StringComparer.Ordinal);
+        private static readonly ConcurrentDictionary<string, long> s_containsEscapedWildcardsInputFrequency = new ConcurrentDictionary<string, long>(StringComparer.Ordinal);
 
-        // Lock objects for thread-safe dictionary updates
-        private static readonly object s_escapeTelemetryLock = new object();
-        private static readonly object s_unescapeTelemetryLock = new object();
-        private static readonly object s_containsEscapedWildcardsTelemetryLock = new object();
+        private static long s_containsEscapedWildcardsTrueFrequency = 0;
+        private static long s_containsEscapedWildcardsFalseFrequency = 0;
 
-        static EscapingUtilities()
-        {
-            // Register handler to write counters when the process exits
-            AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
-        }
-
-        private static void OnProcessExit(object sender, EventArgs e)
-        {
-            WriteCountersToFile();
-        }
+        // Caller tracking dictionaries
+        private static readonly ConcurrentDictionary<CallerInfo, long> s_escapeCallerFrequency = new ConcurrentDictionary<CallerInfo, long>();
+        private static readonly ConcurrentDictionary<CallerInfo, long> s_unescapeCallerFrequency = new ConcurrentDictionary<CallerInfo, long>();
+        private static readonly ConcurrentDictionary<CallerInfo, long> s_containsEscapedWildcardsCallerFrequency = new ConcurrentDictionary<CallerInfo, long>();
 
         /// <summary>
         /// Gets the current process ID in a cross-platform way.
@@ -107,9 +126,10 @@ namespace Microsoft.Build.Shared
         /// <summary>
         /// Helper to format top N items from a frequency dictionary.
         /// </summary>
-        private static string FormatTopFrequencies(Dictionary<string, long> frequencies, int topN = 20)
+        private static string FormatTopFrequencies<TKey>(IEnumerable<KeyValuePair<TKey, long>> frequencies, int topN = 20)
+            where TKey : notnull
         {
-            if (frequencies.Count == 0)
+            if (!frequencies.Any())
             {
                 return "    (none)\n";
             }
@@ -117,20 +137,25 @@ namespace Microsoft.Build.Shared
             var sb = new StringBuilder();
             var sorted = frequencies.OrderByDescending(kvp => kvp.Value).Take(topN);
             int rank = 1;
+
             foreach (var kvp in sorted)
             {
-                string displayValue = kvp.Key.Length > 256 ? kvp.Key.Substring(0, 253) + "..." : kvp.Key;
+                string key = kvp.Key.ToString();
+                long value = kvp.Value;
+
+                string displayValue = key.Length > 256 ? key.Substring(0, 253) + "..." : key;
                 displayValue = displayValue.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
-                sb.AppendLine($"    {rank,3}. [{kvp.Value,8:N0}x] {displayValue}");
+                sb.AppendLine($"    {rank,3}. [{value,8:N0}x] {displayValue}");
                 rank++;
             }
+
             return sb.ToString();
         }
 
         /// <summary>
         /// Writes the invocation counters to a file.
         /// </summary>
-        private static void WriteCountersToFile()
+        public static void WriteCountersToFile()
         {
             GetCurrentAssemblyNameAndProcessId(out string assemblyName, out int processId);
 
@@ -163,23 +188,13 @@ namespace Microsoft.Build.Shared
             sb.AppendLine("ESCAPE STATISTICS");
             sb.AppendLine("=================");
 
-            Dictionary<string, List<EscapeCallStats>> escapeCallStats;
-
-            lock (s_escapeTelemetryLock)
-            {
-                escapeCallStats = new Dictionary<string, List<EscapeCallStats>>(s_escapeCallStats);
-            }
-
             var escapeCalls = new List<EscapeCallStats>();
-            var escapeInputFrequency = new Dictionary<string, long>(StringComparer.Ordinal);
             var escapeInputs = new HashSet<string>(StringComparer.Ordinal);
             var escapeOutputs = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var kvp in escapeCallStats)
+            foreach (var kvp in s_escapeCallStats.ToArray())
             {
-                escapeInputFrequency.Add(kvp.Key, kvp.Value.Count);
-
-                foreach (var stats in kvp.Value)
+                foreach (var stats in kvp.Value.ToArray())
                 {
                     escapeCalls.Add(stats);
                     escapeInputs.Add(stats.Input);
@@ -206,30 +221,24 @@ namespace Microsoft.Build.Shared
             sb.AppendLine();
 
             sb.AppendLine("Top 100 Most Frequent Escape Inputs:");
-            sb.Append(FormatTopFrequencies(escapeInputFrequency, 100));
+            sb.Append(FormatTopFrequencies(s_escapeCallStats.ToArray().Select(kvp => new KeyValuePair<string, long>(kvp.Key, kvp.Value.Count)), 100));
+            sb.AppendLine();
+
+            sb.AppendLine("Top 50 Most Frequent Escape Callers:");
+            sb.Append(FormatTopFrequencies(s_escapeCallerFrequency.ToArray(), 50));
             sb.AppendLine();
 
             // UnescapeAll statistics
             sb.AppendLine("UNESCAPE STATISTICS");
             sb.AppendLine("===================");
 
-            Dictionary<string, List<UnescapeAllCallStats>> unescapeCallStats;
-
-            lock (s_escapeTelemetryLock)
-            {
-                unescapeCallStats = new Dictionary<string, List<UnescapeAllCallStats>>(s_unescapeCallStats);
-            }
-
             var unescapeCalls = new List<UnescapeAllCallStats>();
-            var unescapeInputFrequency = new Dictionary<string, long>(StringComparer.Ordinal);
             var unescapeInputs = new HashSet<string>(StringComparer.Ordinal);
             var unescapeOutputs = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var kvp in unescapeCallStats)
+            foreach (var kvp in s_unescapeCallStats.ToArray())
             {
-                unescapeInputFrequency.Add(kvp.Key, kvp.Value.Count);
-
-                foreach (var stats in kvp.Value)
+                foreach (var stats in kvp.Value.ToArray())
                 {
                     unescapeCalls.Add(stats);
                     unescapeInputs.Add(stats.Input);
@@ -248,28 +257,32 @@ namespace Microsoft.Build.Shared
             sb.AppendLine();
 
             sb.AppendLine("Top 100 Most Frequent UnescapeAll Inputs:");
-            sb.Append(FormatTopFrequencies(unescapeInputFrequency, 100));
+            sb.Append(FormatTopFrequencies(s_unescapeCallStats.ToArray().Select(kvp => new KeyValuePair<string, long>(kvp.Key, kvp.Value.Count)), 100));
+            sb.AppendLine();
+
+            sb.AppendLine("Top 50 Most Frequent UnescapeAll Callers:");
+            sb.Append(FormatTopFrequencies(s_unescapeCallerFrequency.ToArray(), 50));
             sb.AppendLine();
 
             // ContainsEscapedWildcards statistics
             sb.AppendLine("CONTAINS ESCAPED WILDCARDS STATISTICS");
             sb.AppendLine("=====================================");
 
-            Dictionary<string, long> wildcardsInputs;
-            Dictionary<bool, long> wildcardsResults;
-            lock (s_containsEscapedWildcardsTelemetryLock)
-            {
-                wildcardsInputs = new Dictionary<string, long>(s_containsEscapedWildcardsInputFrequency);
-                wildcardsResults = new Dictionary<bool, long>(s_containsEscapedWildcardsResultFrequency);
-            }
+            var wildcardsInputs = s_containsEscapedWildcardsInputFrequency.ToArray();
+            long wildcardsTrueResults = Interlocked.Read(ref s_containsEscapedWildcardsTrueFrequency);
+            long wildcardsFalseResults = Interlocked.Read(ref s_containsEscapedWildcardsFalseFrequency);
 
-            sb.AppendLine($"Unique input strings:            {wildcardsInputs.Count,12:N0}");
-            sb.AppendLine($"Returned true:                   {wildcardsResults[true],12:N0} ({(containsWildcardsCount > 0 ? wildcardsResults[true] * 100.0 / containsWildcardsCount : 0):F2}%)");
-            sb.AppendLine($"Returned false:                  {wildcardsResults[false],12:N0} ({(containsWildcardsCount > 0 ? wildcardsResults[false] * 100.0 / containsWildcardsCount : 0):F2}%)");
+            sb.AppendLine($"Unique input strings:            {wildcardsInputs.Length,12:N0}");
+            sb.AppendLine($"Returned true:                   {wildcardsTrueResults,12:N0} ({(containsWildcardsCount > 0 ? wildcardsTrueResults * 100.0 / containsWildcardsCount : 0):F2}%)");
+            sb.AppendLine($"Returned false:                  {wildcardsFalseResults,12:N0} ({(containsWildcardsCount > 0 ? wildcardsFalseResults * 100.0 / containsWildcardsCount : 0):F2}%)");
             sb.AppendLine();
 
             sb.AppendLine("Top 20 Most Frequent ContainsEscapedWildcards Inputs:");
             sb.Append(FormatTopFrequencies(wildcardsInputs));
+            sb.AppendLine();
+
+            sb.AppendLine("Top 50 Most Frequent ContainsEscapedWildcards Callers:");
+            sb.Append(FormatTopFrequencies(s_containsEscapedWildcardsCallerFrequency.ToArray(), 50));
 
             string fileName = $"MSBuild_EscapingUtilities_Counters_{timestamp:yyyyMMdd_HHmmss}_{assemblyName}_{processId}.txt";
             string outputPath = Path.Combine(Path.GetTempPath(), fileName);
@@ -313,13 +326,31 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <param name="escapedString">The string to unescape.</param>
         /// <param name="trim">If the string should be trimmed before being unescaped.</param>
+        /// <param name="callerMemberName">Automatically populated with the caller's member name.</param>
+        /// <param name="callerFilePath">Automatically populated with the caller's file path.</param>
+        /// <param name="callerLineNumber">Automatically populated with the caller's line number.</param>
         /// <returns>unescaped string</returns>
-        internal static string UnescapeAll(string escapedString, bool trim = false)
+        internal static string UnescapeAll(
+            string escapedString,
+            bool trim = false,
+            [CallerMemberName] string callerMemberName = "",
+            [CallerFilePath] string callerFilePath = "",
+            [CallerLineNumber] int callerLineNumber = 0)
         {
             Interlocked.Increment(ref s_unescapeAllCallCount);
 
+            // Track caller frequency
+            CallerInfo caller = new CallerInfo
+            {
+                MemberName = callerMemberName,
+                FilePath = callerFilePath,
+                LineNumber = callerLineNumber
+            };
+
+            TrackUnescapeCaller(caller);
+
             // Track input frequency
-            UnescapeAllCallStats stats = CreateUnescapeAllCallStats(escapedString, trim);
+            UnescapeAllCallStats stats = CreateUnescapeAllCallStats(escapedString, trim, caller);
 
             // If the string doesn't contain anything, then by definition it doesn't
             // need unescaping.
@@ -399,23 +430,20 @@ namespace Microsoft.Build.Shared
             return finalResult;
         }
 
-        private static UnescapeAllCallStats CreateUnescapeAllCallStats(string input, bool trim)
+        private static void TrackUnescapeCaller(CallerInfo caller)
+        {
+            s_unescapeCallerFrequency.AddOrUpdate(caller, 1, (_, count) => count + 1);
+        }
+
+        private static UnescapeAllCallStats CreateUnescapeAllCallStats(string input, bool trim, CallerInfo caller)
         {
             UnescapeAllCallStats stats = null;
 
             if (input != null)
             {
-                lock (s_unescapeTelemetryLock)
-                {
-                    if (!s_unescapeCallStats.TryGetValue(input, out List<UnescapeAllCallStats> statsList))
-                    {
-                        statsList = [];
-                        s_unescapeCallStats.Add(input, statsList);
-                    }
-
-                    stats = new UnescapeAllCallStats(input, trim);
-                    statsList.Add(stats);
-                }
+                var statsList = s_unescapeCallStats.GetOrAdd(input, _ => new ConcurrentBag<UnescapeAllCallStats>());
+                stats = new UnescapeAllCallStats(input, trim, caller);
+                statsList.Add(stats);
             }
 
             return stats;
@@ -429,11 +457,25 @@ namespace Microsoft.Build.Shared
         /// NOTE:  Only recommended for use in scenarios where there's expected to be significant
         /// repetition of the escaped string.  Cache currently grows unbounded.
         /// </comment>
-        internal static string EscapeWithCaching(string unescapedString)
+        internal static string EscapeWithCaching(
+            string unescapedString,
+            [CallerMemberName] string callerMemberName = "",
+            [CallerFilePath] string callerFilePath = "",
+            [CallerLineNumber] int callerLineNumber = 0)
         {
             Interlocked.Increment(ref s_escapeCallCount);
 
-            EscapeCallStats stats = CreateEscapeCallStats(unescapedString, cache: true);
+            // Track caller frequency
+            CallerInfo caller = new CallerInfo
+            {
+                MemberName = callerMemberName,
+                FilePath = callerFilePath,
+                LineNumber = callerLineNumber
+            };
+
+            TrackEscapeCaller(caller);
+
+            EscapeCallStats stats = CreateEscapeCallStats(unescapedString, cache: true, caller);
 
             // If there are no special chars, just return the original string immediately.
             // Don't even instantiate the StringBuilder.
@@ -458,13 +500,30 @@ namespace Microsoft.Build.Shared
         /// XX is the hex value of the ASCII code for the char.
         /// </summary>
         /// <param name="unescapedString">The string to escape.</param>
+        /// <param name="callerMemberName">Automatically populated with the caller's member name.</param>
+        /// <param name="callerFilePath">Automatically populated with the caller's file path.</param>
+        /// <param name="callerLineNumber">Automatically populated with the caller's line number.</param>
         /// <returns>escaped string</returns>
-        internal static string Escape(string unescapedString)
+        internal static string Escape(
+            string unescapedString,
+            [CallerMemberName] string callerMemberName = "",
+            [CallerFilePath] string callerFilePath = "",
+            [CallerLineNumber] int callerLineNumber = 0)
         {
             Interlocked.Increment(ref s_escapeCallCount);
 
+            // Track caller frequency
+            CallerInfo caller = new CallerInfo
+            {
+                MemberName = callerMemberName,
+                FilePath = callerFilePath,
+                LineNumber = callerLineNumber
+            };
+
+            TrackEscapeCaller(caller);
+
             // Track input frequency
-            EscapeCallStats stats = CreateEscapeCallStats(unescapedString, cache: false);
+            EscapeCallStats stats = CreateEscapeCallStats(unescapedString, cache: false, caller);
 
             // If there are no special chars, just return the original string immediately.
             // Don't even instantiate the StringBuilder.
@@ -539,23 +598,20 @@ namespace Microsoft.Build.Shared
             return escapedString;
         }
 
-        private static EscapeCallStats CreateEscapeCallStats(string input, bool cache)
+        private static void TrackEscapeCaller(CallerInfo caller)
+        {
+            s_escapeCallerFrequency.AddOrUpdate(caller, 1, (_, count) => count + 1);
+        }
+
+        private static EscapeCallStats CreateEscapeCallStats(string input, bool cache, CallerInfo caller)
         {
             EscapeCallStats stats = null;
 
             if (input != null)
             {
-                lock (s_escapeTelemetryLock)
-                {
-                    if (!s_escapeCallStats.TryGetValue(input, out List<EscapeCallStats> statsList))
-                    {
-                        statsList = [];
-                        s_escapeCallStats.Add(input, statsList);
-                    }
-
-                    stats = new EscapeCallStats(input, cache);
-                    statsList.Add(stats);
-                }
+                var statsList = s_escapeCallStats.GetOrAdd(input, _ => new ConcurrentBag<EscapeCallStats>());
+                stats = new EscapeCallStats(input, cache, caller);
+                statsList.Add(stats);
             }
 
             return stats;
@@ -578,25 +634,32 @@ namespace Microsoft.Build.Shared
         /// Determines whether the string contains the escaped form of '*' or '?'.
         /// </summary>
         /// <param name="escapedString"></param>
+        /// <param name="callerMemberName">Automatically populated with the caller's member name.</param>
+        /// <param name="callerFilePath">Automatically populated with the caller's file path.</param>
+        /// <param name="callerLineNumber">Automatically populated with the caller's line number.</param>
         /// <returns></returns>
-        internal static bool ContainsEscapedWildcards(string escapedString)
+        internal static bool ContainsEscapedWildcards(
+            string escapedString,
+            [CallerMemberName] string callerMemberName = "",
+            [CallerFilePath] string callerFilePath = "",
+            [CallerLineNumber] int callerLineNumber = 0)
         {
             Interlocked.Increment(ref s_containsEscapedWildcardsCallCount);
+
+            // Track caller frequency
+            CallerInfo caller = new CallerInfo
+            {
+                MemberName = callerMemberName,
+                FilePath = callerFilePath,
+                LineNumber = callerLineNumber
+            };
+
+            TrackContainsEscapedWildcardsCaller(caller);
 
             // Track input frequency
             if (escapedString != null)
             {
-                lock (s_containsEscapedWildcardsTelemetryLock)
-                {
-                    if (s_containsEscapedWildcardsInputFrequency.TryGetValue(escapedString, out long count))
-                    {
-                        s_containsEscapedWildcardsInputFrequency[escapedString] = count + 1;
-                    }
-                    else
-                    {
-                        s_containsEscapedWildcardsInputFrequency[escapedString] = 1;
-                    }
-                }
+                s_containsEscapedWildcardsInputFrequency.AddOrUpdate(escapedString, 1, (_, count) => count + 1);
             }
 
             if (escapedString.Length < 3)
@@ -629,11 +692,20 @@ namespace Microsoft.Build.Shared
             return false;
         }
 
+        private static void TrackContainsEscapedWildcardsCaller(CallerInfo caller)
+        {
+            s_containsEscapedWildcardsCallerFrequency.AddOrUpdate(caller, 1, (_, count) => count + 1);
+        }
+
         private static void TrackContainsEscapedWildcardsResult(bool result)
         {
-            lock (s_containsEscapedWildcardsTelemetryLock)
+            if (result)
             {
-                s_containsEscapedWildcardsResultFrequency[result]++;
+                Interlocked.Increment(ref s_containsEscapedWildcardsTrueFrequency);
+            }
+            else
+            {
+                Interlocked.Increment(ref s_containsEscapedWildcardsFalseFrequency);
             }
         }
 

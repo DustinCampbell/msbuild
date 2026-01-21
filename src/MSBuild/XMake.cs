@@ -290,6 +290,8 @@ namespace Microsoft.Build.CommandLine
                 DumpCounters(false /* log to console */);
             }
 
+            EscapingUtilities.WriteCountersToFile();
+
             TelemetryManager.Instance?.Dispose();
 
             return exitCode;

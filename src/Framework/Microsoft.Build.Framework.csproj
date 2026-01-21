@@ -71,6 +71,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\StringTools\StringTools.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <RCResourceFile Include="native.rc" />
   </ItemGroup>
 
