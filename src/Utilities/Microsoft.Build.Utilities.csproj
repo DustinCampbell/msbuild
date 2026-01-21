@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -89,9 +89,6 @@
     </Compile>
     <Compile Include="..\Shared\FrameworkLocationHelper.cs">
       <Link>Shared\FrameworkLocationHelper.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\IKeyed.cs">
-      <Link>Shared\IKeyed.cs</Link>
     </Compile>
     <Compile Include="..\Shared\Modifiers.cs">
       <Link>Shared\Modifiers.cs</Link>
