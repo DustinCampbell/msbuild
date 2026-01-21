@@ -82,9 +82,6 @@
     <Compile Include="..\Shared\ErrorUtilities.cs">
       <Link>SharedErrorUtilities.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\EscapingUtilities.cs">
-      <Link>EscapingUtilities.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\ExceptionHandling.cs">
       <Link>ExceptionHandling.cs</Link>
     </Compile>
@@ -243,6 +240,7 @@
       <Link>OutOfProcTaskAppDomainWrapperBase.cs</Link>
     </Compile>
     <Compile Include="OutOfProcTaskAppDomainWrapper.cs" />
+    <Compile Include="Utilities\EscapingUtilities.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

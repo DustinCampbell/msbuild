@@ -651,9 +651,6 @@
     <Compile Include="..\Shared\ErrorUtilities.cs">
       <Link>Errors\ErrorUtilities.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\EscapingUtilities.cs">
-      <Link>SharedUtilities\EscapingUtilities.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\VersionUtilities.cs">
       <Link>SharedUtilities\VersionUtilities.cs</Link>
     </Compile>
