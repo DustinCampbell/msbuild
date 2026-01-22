@@ -438,39 +438,21 @@ internal static class NativeMethods
             ProcessorArchitectureType = ProcessorArchitectures.Unknown;
             ProcessorArchitectureTypeNative = ProcessorArchitectures.Unknown;
 
-            if (IsWindows)
-            {
-                var systemInfo = new SYSTEM_INFO();
+            var systemInfo = new SYSTEM_INFO();
 
-                GetSystemInfo(ref systemInfo);
-                ProcessorArchitectureType = ConvertSystemArchitecture(systemInfo.wProcessorArchitecture);
+            GetSystemInfo(ref systemInfo);
+            ProcessorArchitectureType = ConvertSystemArchitecture(systemInfo.wProcessorArchitecture);
 
-                GetNativeSystemInfo(ref systemInfo);
-                ProcessorArchitectureTypeNative = ConvertSystemArchitecture(systemInfo.wProcessorArchitecture);
-            }
-            else
-            {
-                ProcessorArchitectureTypeNative = ProcessorArchitectureType = ProcessorArchitectures.Unknown;
-            }
+            GetNativeSystemInfo(ref systemInfo);
+            ProcessorArchitectureTypeNative = ConvertSystemArchitecture(systemInfo.wProcessorArchitecture);
         }
     }
 
     public static int GetLogicalCoreCount()
     {
-        int numberOfCpus = Environment.ProcessorCount;
-        // .NET on Windows returns a core count limited to the current NUMA node
-        //     https://github.com/dotnet/runtime/issues/29686
-        // so always double-check it.
-        if (IsWindows)
-        {
-            var result = GetLogicalCoreCountOnWindows();
-            if (result != -1)
-            {
-                numberOfCpus = result;
-            }
-        }
+        int result = GetLogicalCoreCountOnWindows();
 
-        return numberOfCpus;
+        return result != -1 ? result : Environment.ProcessorCount;
     }
 
     /// <summary>
@@ -586,11 +568,6 @@ internal static class NativeMethods
 
     internal static LongPathsStatus IsLongPathsEnabled()
     {
-        if (!IsWindows)
-        {
-            return LongPathsStatus.NotApplicable;
-        }
-
         try
         {
             return IsLongPathsEnabledRegistry();
@@ -642,19 +619,14 @@ internal static class NativeMethods
 
     internal static SAC_State GetSACStateInternal()
     {
-        if (IsWindows)
+        try
         {
-            try
-            {
-                return GetSACStateRegistry();
-            }
-            catch
-            {
-                return SAC_State.Missing;
-            }
+            return GetSACStateRegistry();
         }
-
-        return SAC_State.NotApplicable;
+        catch
+        {
+            return SAC_State.Missing;
+        }
     }
 
     private static SAC_State GetSACStateRegistry()
@@ -707,52 +679,9 @@ internal static class NativeMethods
     }
 
     /// <summary>
-    /// Cached value for IsUnixLike (this method is called frequently during evaluation).
-    /// </summary>
-    private static readonly bool s_isUnixLike = IsOSX || IsBSD;
-
-    /// <summary>
-    /// Gets a flag indicating if we are running under a Unix-like system (Mac, Linux, etc.)
-    /// </summary>
-    internal static bool IsUnixLike
-    {
-        get { return s_isUnixLike; }
-    }
-
-    /// <summary>
-    /// Gets a flag indicating if we are running under flavor of BSD (NetBSD, OpenBSD, FreeBSD)
-    /// </summary>
-    internal static bool IsBSD => false;
-
-    /// <summary>
-    /// Gets a flag indicating if we are running under some version of Windows
-    /// </summary>
-    internal static bool IsWindows => true;
-
-    /// <summary>
-    /// Gets a flag indicating if we are running under Mac OSX
-    /// </summary>
-    internal static bool IsOSX => false;
-
-    /// <summary>
-    /// Gets a string for the current OS. This matches the OS env variable
-    /// for Windows (Windows_NT).
-    /// </summary>
-    internal static string OSName => IsWindows ? "Windows_NT" : "Unix";
-
-    /// <summary>
     /// Framework named as presented to users (for example in version info).
     /// </summary>
     internal static string FrameworkName => ".NET Framework";
-
-    /// <summary>
-    /// OS name that can be used for the msbuildExtensionsPathSearchPaths element
-    /// for a toolset
-    /// </summary>
-    internal static string GetOSNameForExtensionsPath()
-    {
-        return IsOSX ? "osx" : IsUnixLike ? "unix" : "windows";
-    }
 
     /// <summary>
     /// The base directory for all framework paths in Mono
@@ -870,39 +799,25 @@ internal static class NativeMethods
     {
         // This code was copied from the reference manager, if there is a bug fix in that code, see if the same fix should also be made
         // there
-        if (IsWindows)
-        {
-            fileModifiedTimeUtc = DateTime.MinValue;
+        fileModifiedTimeUtc = DateTime.MinValue;
 
-            WIN32_FILE_ATTRIBUTE_DATA data = new WIN32_FILE_ATTRIBUTE_DATA();
-            bool success = GetFileAttributesEx(fullPath, 0, ref data);
-            if (success)
+        WIN32_FILE_ATTRIBUTE_DATA data = new WIN32_FILE_ATTRIBUTE_DATA();
+        bool success = GetFileAttributesEx(fullPath, 0, ref data);
+        if (success)
+        {
+            if ((data.fileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
             {
-                if ((data.fileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
-                {
-                    long dt = ((long)(data.ftLastWriteTimeHigh) << 32) | ((long)data.ftLastWriteTimeLow);
-                    fileModifiedTimeUtc = DateTime.FromFileTimeUtc(dt);
-                }
-                else
-                {
-                    // Path does not point to a directory
-                    success = false;
-                }
+                long dt = ((long)(data.ftLastWriteTimeHigh) << 32) | ((long)data.ftLastWriteTimeLow);
+                fileModifiedTimeUtc = DateTime.FromFileTimeUtc(dt);
             }
-
-            return success;
+            else
+            {
+                // Path does not point to a directory
+                success = false;
+            }
         }
 
-        if (Directory.Exists(fullPath))
-        {
-            fileModifiedTimeUtc = Directory.GetLastWriteTimeUtc(fullPath);
-            return true;
-        }
-        else
-        {
-            fileModifiedTimeUtc = DateTime.MinValue;
-            return false;
-        }
+        return success;
     }
 
     /// <summary>
@@ -910,11 +825,6 @@ internal static class NativeMethods
     /// </summary>
     internal static string GetShortFilePath(string path)
     {
-        if (!IsWindows)
-        {
-            return path;
-        }
-
         if (path != null)
         {
             int length = GetShortPathName(path, null, 0);
@@ -949,11 +859,6 @@ internal static class NativeMethods
     /// <returns></returns>
     internal static string GetLongFilePath(string path)
     {
-        if (IsUnixLike)
-        {
-            return path;
-        }
-
         if (path != null)
         {
             int length = GetLongPathName(path, null, 0);
@@ -986,41 +891,27 @@ internal static class NativeMethods
     /// </summary>
     internal static MemoryStatus GetMemoryStatus()
     {
-        if (IsWindows)
+        MemoryStatus status = new MemoryStatus();
+        bool returnValue = GlobalMemoryStatusEx(status);
+        if (!returnValue)
         {
-            MemoryStatus status = new MemoryStatus();
-            bool returnValue = GlobalMemoryStatusEx(status);
-            if (!returnValue)
-            {
-                return null;
-            }
-
-            return status;
+            return null;
         }
 
-        return null;
+        return status;
     }
 
     internal static bool MakeSymbolicLink(string newFileName, string existingFileName, ref string errorMessage)
     {
-        bool symbolicLinkCreated;
-        if (IsWindows)
+        Version osVersion = Environment.OSVersion.Version;
+        SymbolicLink flags = SymbolicLink.File;
+        if (osVersion.Major >= 11 || (osVersion.Major == 10 && osVersion.Build >= 14972))
         {
-            Version osVersion = Environment.OSVersion.Version;
-            SymbolicLink flags = SymbolicLink.File;
-            if (osVersion.Major >= 11 || (osVersion.Major == 10 && osVersion.Build >= 14972))
-            {
-                flags |= SymbolicLink.AllowUnprivilegedCreate;
-            }
+            flags |= SymbolicLink.AllowUnprivilegedCreate;
+        }
 
-            symbolicLinkCreated = CreateSymbolicLink(newFileName, existingFileName, flags);
-            errorMessage = symbolicLinkCreated ? null : Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error()).Message;
-        }
-        else
-        {
-            symbolicLinkCreated = symlink(existingFileName, newFileName) == 0;
-            errorMessage = symbolicLinkCreated ? null : Marshal.GetLastWin32Error().ToString();
-        }
+        bool symbolicLinkCreated = CreateSymbolicLink(newFileName, existingFileName, flags);
+        errorMessage = symbolicLinkCreated ? null : Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error()).Message;
 
         return symbolicLinkCreated;
     }
@@ -1039,36 +930,27 @@ internal static class NativeMethods
     {
         DateTime fileModifiedTime = DateTime.MinValue;
 
-        if (IsWindows)
+        if (Traits.Instance.EscapeHatches.AlwaysUseContentTimestamp)
         {
-            if (Traits.Instance.EscapeHatches.AlwaysUseContentTimestamp)
-            {
-                return GetContentLastWriteFileUtcTime(fullPath);
-            }
-
-            WIN32_FILE_ATTRIBUTE_DATA data = new WIN32_FILE_ATTRIBUTE_DATA();
-            bool success = NativeMethods.GetFileAttributesEx(fullPath, 0, ref data);
-
-            if (success && (data.fileAttributes & NativeMethods.FILE_ATTRIBUTE_DIRECTORY) == 0)
-            {
-                long dt = ((long)(data.ftLastWriteTimeHigh) << 32) | ((long)data.ftLastWriteTimeLow);
-                fileModifiedTime = DateTime.FromFileTimeUtc(dt);
-
-                // If file is a symlink _and_ we're not instructed to do the wrong thing, get a more accurate timestamp.
-                if ((data.fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) == FILE_ATTRIBUTE_REPARSE_POINT && !Traits.Instance.EscapeHatches.UseSymlinkTimeInsteadOfTargetTime)
-                {
-                    fileModifiedTime = GetContentLastWriteFileUtcTime(fullPath);
-                }
-            }
-
-            return fileModifiedTime;
+            return GetContentLastWriteFileUtcTime(fullPath);
         }
-        else
+
+        WIN32_FILE_ATTRIBUTE_DATA data = new WIN32_FILE_ATTRIBUTE_DATA();
+        bool success = NativeMethods.GetFileAttributesEx(fullPath, 0, ref data);
+
+        if (success && (data.fileAttributes & NativeMethods.FILE_ATTRIBUTE_DIRECTORY) == 0)
         {
-            return File.Exists(fullPath)
-                ? File.GetLastWriteTimeUtc(fullPath)
-                : DateTime.MinValue;
+            long dt = ((long)(data.ftLastWriteTimeHigh) << 32) | ((long)data.ftLastWriteTimeLow);
+            fileModifiedTime = DateTime.FromFileTimeUtc(dt);
+
+            // If file is a symlink _and_ we're not instructed to do the wrong thing, get a more accurate timestamp.
+            if ((data.fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) == FILE_ATTRIBUTE_REPARSE_POINT && !Traits.Instance.EscapeHatches.UseSymlinkTimeInsteadOfTargetTime)
+            {
+                fileModifiedTime = GetContentLastWriteFileUtcTime(fullPath);
+            }
         }
+
+        return fileModifiedTime;
     }
 
     /// <summary>
@@ -1443,20 +1325,7 @@ internal static class NativeMethods
 
     internal static bool SetCurrentDirectory(string path)
     {
-        if (IsWindows)
-        {
-            return SetCurrentDirectoryWindows(path);
-        }
-
-        // Make sure this does not throw
-        try
-        {
-            Directory.SetCurrentDirectory(path);
-        }
-        catch
-        {
-        }
-        return true;
+        return SetCurrentDirectoryWindows(path);
     }
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
@@ -1536,9 +1405,7 @@ internal static class NativeMethods
 
     internal static bool DirectoryExists(string fullPath)
     {
-        return IsWindows
-            ? DirectoryExistsWindows(fullPath)
-            : Directory.Exists(fullPath);
+        return DirectoryExistsWindows(fullPath);
     }
 
     internal static bool DirectoryExistsWindows(string fullPath)
@@ -1550,9 +1417,7 @@ internal static class NativeMethods
 
     internal static bool FileExists(string fullPath)
     {
-        return IsWindows
-            ? FileExistsWindows(fullPath)
-            : File.Exists(fullPath);
+        return FileExistsWindows(fullPath);
     }
 
     internal static bool FileExistsWindows(string fullPath)
@@ -1564,9 +1429,7 @@ internal static class NativeMethods
 
     internal static bool FileOrDirectoryExists(string path)
     {
-        return IsWindows
-            ? FileOrDirectoryExistsWindows(path)
-            : File.Exists(path) || Directory.Exists(path);
+        return FileOrDirectoryExistsWindows(path);
     }
 
     internal static bool FileOrDirectoryExistsWindows(string path)
