@@ -425,19 +425,7 @@ namespace Microsoft.Build.Shared
 
         private static string GetProcessFromRunningProcess()
         {
-#if RUNTIME_TYPE_NETCORE
-            // The EntryAssembly property can return null when a managed assembly has been loaded from
-            // an unmanaged application (for example, using custom CLR hosting).
-            if (AssemblyUtilities.EntryAssembly == null)
-            {
-                return EnvironmentUtilities.ProcessPath;
-            }
-
-            return AssemblyUtilities.GetAssemblyLocation(AssemblyUtilities.EntryAssembly);
-#else
-
             return EnvironmentUtilities.ProcessPath;
-#endif
         }
 
         private static string GetExecutingAssemblyPath()
@@ -447,11 +435,7 @@ namespace Microsoft.Build.Shared
 
         private static string GetAppContextBaseDirectory()
         {
-#if !CLR2COMPATIBILITY // Assemblies compiled against anything older than .NET 4.0 won't have a System.AppContext
-            return AppContext.BaseDirectory;
-#else
             return null;
-#endif
         }
 
         private static string GetEnvironmentVariable(string variable)
@@ -539,7 +523,7 @@ namespace Microsoft.Build.Shared
     internal sealed class BuildEnvironment
     {
         public BuildEnvironment(BuildEnvironmentMode mode, string currentMSBuildExePath, bool runningTests, bool runningInMSBuildExe, bool runningInVisualStudio,
-                string visualStudioPath)
+            string visualStudioPath)
         {
             FileInfo currentMSBuildExeFile = null;
             DirectoryInfo currentToolsDirectory = null;
@@ -550,11 +534,6 @@ namespace Microsoft.Build.Shared
             RunningInVisualStudio = runningInVisualStudio;
             CurrentMSBuildExePath = currentMSBuildExePath;
             VisualStudioInstallRootDirectory = visualStudioPath;
-
-#if !NO_FRAMEWORK_IVT
-            Framework.BuildEnvironmentState.s_runningTests = runningTests;
-            Framework.BuildEnvironmentState.s_runningInVisualStudio = runningInVisualStudio;
-#endif
 
             if (!string.IsNullOrEmpty(currentMSBuildExePath))
             {
@@ -612,13 +591,7 @@ namespace Microsoft.Build.Shared
 
                 MSBuildToolsDirectory32 = MSBuildToolsDirectoryRoot;
                 MSBuildToolsDirectory64 = existsCheck(potentialAmd64FromX86) ? Path.Combine(MSBuildToolsDirectoryRoot, "amd64") : CurrentMSBuildToolsDirectory;
-#if RUNTIME_TYPE_NETCORE
-                // Fall back to "current" for any architecture since .NET SDK doesn't
-                // support cross-arch task invocations.
-                MSBuildToolsDirectoryArm64 = existsCheck(potentialARM64FromX86) ? Path.Combine(MSBuildToolsDirectoryRoot, "arm64") : CurrentMSBuildToolsDirectory;
-#else
                 MSBuildToolsDirectoryArm64 = existsCheck(potentialARM64FromX86) ? Path.Combine(MSBuildToolsDirectoryRoot, "arm64") : null;
-#endif
             }
 
             MSBuildExtensionsPath = mode == BuildEnvironmentMode.VisualStudio

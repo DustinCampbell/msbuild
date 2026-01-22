@@ -52,11 +52,7 @@ namespace Microsoft.Build.Shared
             // first character must be a letter,
             // second character must be a ":"
             return pattern.Length >= 2 &&
-#if NET
-                char.IsAsciiLetter(pattern[0]) &&
-#else
                 ((pattern[0] >= 'A' && pattern[0] <= 'Z') || (pattern[0] >= 'a' && pattern[0] <= 'z')) &&
-#endif
                 pattern[1] == ':';
         }
 
@@ -156,9 +152,6 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <param name="pattern">Input to check for UNC pattern minimum requirements.</param>
         /// <returns>true if the UNC pattern is a minimum length of 5 and the first two characters are be a slash, false otherwise.</returns>
-#if !NET35
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
         internal static bool MeetsUncPatternMinimumRequirements(string pattern)
         {
             return pattern.Length >= 5 &&

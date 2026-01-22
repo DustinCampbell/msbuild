@@ -3,17 +3,11 @@
 
 using System;
 using System.Collections.Generic;
-#if FEATURE_APPDOMAIN
-using System.Threading;
-#endif
 using System.Reflection;
-
+using System.Threading;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-#if !NET35
-using Microsoft.Build.Execution;
-#endif
 
 #nullable disable
 
@@ -23,18 +17,13 @@ namespace Microsoft.Build.CommandLine
     /// Class for executing a task in an AppDomain
     /// </summary>
     [Serializable]
-    internal class OutOfProcTaskAppDomainWrapperBase
-#if FEATURE_APPDOMAIN
-        : MarshalByRefObject
-#endif
+    internal class OutOfProcTaskAppDomainWrapperBase : MarshalByRefObject
     {
         /// <summary>
         /// This is the actual user task whose instance we will create and invoke Execute
         /// </summary>
         private ITask wrappedTask;
 
-
-#if FEATURE_APPDOMAIN
         /// <summary>
         /// This is an appDomain instance if any is created for running this task
         /// </summary>
@@ -45,7 +34,6 @@ namespace Microsoft.Build.CommandLine
         /// </comments>
         [NonSerialized]
         private AppDomain _taskAppDomain;
-#endif
 
         /// <summary>
         /// Need to keep the build engine around in order to log from the task loader.
@@ -57,10 +45,6 @@ namespace Microsoft.Build.CommandLine
         /// from the task loader.
         /// </summary>
         private string taskName;
-
-#if !NET35
-        private HostServices _hostServices;
-#endif
 
         /// <summary>
         /// This is the actual user task whose instance we will create and invoke Execute
@@ -99,31 +83,21 @@ namespace Microsoft.Build.CommandLine
         /// <param name="taskParams">Parameters that will be passed to the task when created</param>
         /// <returns>Task completion result showing success, failure or if there was a crash</returns>
         internal OutOfProcTaskHostTaskResult ExecuteTask(
-                IBuildEngine oopTaskHostNode,
-                string taskName,
-                string taskLocation,
-                string taskFile,
-                int taskLine,
-                int taskColumn,
-                string targetName,
-                string projectFile,
-#if FEATURE_APPDOMAIN
-                AppDomainSetup appDomainSetup,
-#endif
-#if !NET35
-                HostServices hostServices,
-#endif
-                IDictionary<string, TaskParameter> taskParams)
+            IBuildEngine oopTaskHostNode,
+            string taskName,
+            string taskLocation,
+            string taskFile,
+            int taskLine,
+            int taskColumn,
+            string targetName,
+            string projectFile,
+            AppDomainSetup appDomainSetup,
+            IDictionary<string, TaskParameter> taskParams)
         {
             buildEngine = oopTaskHostNode;
             this.taskName = taskName;
 
-#if FEATURE_APPDOMAIN
             _taskAppDomain = null;
-#endif
-#if !NET35
-            _hostServices = hostServices;
-#endif
             wrappedTask = null;
 
             LoadedType taskType = null;
@@ -153,7 +127,6 @@ namespace Microsoft.Build.CommandLine
             OutOfProcTaskHostTaskResult taskResult;
             if (taskType.HasSTAThreadAttribute)
             {
-#if FEATURE_APARTMENT_STATE
                 taskResult = InstantiateAndExecuteTaskInSTAThread(
                     oopTaskHostNode,
                     taskType,
@@ -164,17 +137,8 @@ namespace Microsoft.Build.CommandLine
                     taskColumn,
                     targetName,
                     projectFile,
-#if FEATURE_APPDOMAIN
                     appDomainSetup,
-#endif
                     taskParams);
-#else
-                return new OutOfProcTaskHostTaskResult(
-                                                    TaskCompleteType.CrashedDuringInitialization,
-                                                    null,
-                                                    "TaskInstantiationFailureNotSupported",
-                                                    [taskName, taskLocation, typeof(RunInSTAAttribute).FullName]);
-#endif
             }
             else
             {
@@ -188,9 +152,7 @@ namespace Microsoft.Build.CommandLine
                     taskColumn,
                     targetName,
                     projectFile,
-#if FEATURE_APPDOMAIN
                     appDomainSetup,
-#endif
                     taskParams);
             }
 
@@ -204,18 +166,16 @@ namespace Microsoft.Build.CommandLine
         /// </summary>
         internal void CleanupTask()
         {
-#if FEATURE_APPDOMAIN
             if (_taskAppDomain != null)
             {
                 AppDomain.Unload(_taskAppDomain);
             }
 
             TaskLoader.RemoveAssemblyResolver();
-#endif
+
             wrappedTask = null;
         }
 
-#if FEATURE_APARTMENT_STATE
         /// <summary>
         /// Execute a task on the STA thread.
         /// </summary>
@@ -224,19 +184,17 @@ namespace Microsoft.Build.CommandLine
         /// Any bug fixes made to this code, please ensure that you also fix that code.
         /// </comment>
         private OutOfProcTaskHostTaskResult InstantiateAndExecuteTaskInSTAThread(
-                IBuildEngine oopTaskHostNode,
-                LoadedType taskType,
-                string taskName,
-                string taskLocation,
-                string taskFile,
-                int taskLine,
-                int taskColumn,
-                string targetName,
-                string projectFile,
-#if FEATURE_APPDOMAIN
-                AppDomainSetup appDomainSetup,
-#endif
-                IDictionary<string, TaskParameter> taskParams)
+            IBuildEngine oopTaskHostNode,
+            LoadedType taskType,
+            string taskName,
+            string taskLocation,
+            string taskFile,
+            int taskLine,
+            int taskColumn,
+            string targetName,
+            string projectFile,
+            AppDomainSetup appDomainSetup,
+            IDictionary<string, TaskParameter> taskParams)
         {
             ManualResetEvent taskRunnerFinished = new ManualResetEvent(false);
             OutOfProcTaskHostTaskResult taskResult = null;
@@ -249,19 +207,17 @@ namespace Microsoft.Build.CommandLine
                     try
                     {
                         taskResult = InstantiateAndExecuteTask(
-                                                oopTaskHostNode,
-                                                taskType,
-                                                taskName,
-                                                taskLocation,
-                                                taskFile,
-                                                taskLine,
-                                                taskColumn,
-                                                targetName,
-                                                projectFile,
-#if FEATURE_APPDOMAIN
-                                                appDomainSetup,
-#endif
-                                                taskParams);
+                            oopTaskHostNode,
+                            taskType,
+                            taskName,
+                            taskLocation,
+                            taskFile,
+                            taskLine,
+                            taskColumn,
+                            targetName,
+                            projectFile,
+                            appDomainSetup,
+                            taskParams);
                     }
                     catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
                     {
@@ -285,11 +241,7 @@ namespace Microsoft.Build.CommandLine
             }
             finally
             {
-#if CLR2COMPATIBILITY
-                taskRunnerFinished.Close();
-#else
-                taskRunnerFinished.Dispose();
-#endif
+                ((IDisposable)taskRunnerFinished).Dispose();
                 taskRunnerFinished = null;
             }
 
@@ -301,34 +253,28 @@ namespace Microsoft.Build.CommandLine
 
             return taskResult;
         }
-#endif
 
         /// <summary>
         /// Do the work of actually instantiating and running the task.
         /// </summary>
         private OutOfProcTaskHostTaskResult InstantiateAndExecuteTask(
-                IBuildEngine oopTaskHostNode,
-                LoadedType taskType,
-                string taskName,
-                string taskLocation,
-                string taskFile,
-                int taskLine,
-                int taskColumn,
-                string targetName,
-                string projectFile,
-#if FEATURE_APPDOMAIN
-                AppDomainSetup appDomainSetup,
-#endif
-                IDictionary<string, TaskParameter> taskParams)
+            IBuildEngine oopTaskHostNode,
+            LoadedType taskType,
+            string taskName,
+            string taskLocation,
+            string taskFile,
+            int taskLine,
+            int taskColumn,
+            string targetName,
+            string projectFile,
+            AppDomainSetup appDomainSetup,
+            IDictionary<string, TaskParameter> taskParams)
         {
-#if FEATURE_APPDOMAIN
             _taskAppDomain = null;
-#endif
             wrappedTask = null;
 
             try
             {
-#pragma warning disable SA1111, SA1009 // Closing parenthesis should be on line of last parameter
                 wrappedTask = TaskLoader.CreateTask(
                     taskType,
                     taskName,
@@ -336,24 +282,11 @@ namespace Microsoft.Build.CommandLine
                     taskLine,
                     taskColumn,
                     new TaskLoader.LogError(LogErrorDelegate),
-#if FEATURE_APPDOMAIN
                     appDomainSetup,
                     // custom app domain assembly loading won't be available for task host
-                    null,
-#endif
-                    true /* always out of proc */
-#if FEATURE_APPDOMAIN
-                    , out _taskAppDomain
-#endif
-                    );
-#pragma warning restore SA1111, SA1009 // Closing parenthesis should be on line of last parameter
-
-#if !NET35
-                if (projectFile != null && _hostServices != null)
-                {
-                    wrappedTask.HostObject = _hostServices.GetHostObject(projectFile, targetName, taskName);
-                }
-#endif
+                    appDomainCreated: null,
+                    isOutOfProc: true,
+                    out _taskAppDomain);
 
                 wrappedTask.BuildEngine = oopTaskHostNode;
             }

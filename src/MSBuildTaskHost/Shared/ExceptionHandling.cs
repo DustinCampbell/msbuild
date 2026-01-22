@@ -3,9 +3,6 @@
 
 #nullable disable
 
-#if BUILDINGAPPXTASKS
-namespace Microsoft.Build.AppxPackage.Shared
-#else
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -20,13 +17,9 @@ using System.Xml;
 using Microsoft.Build.Shared.FileSystem;
 using System.Xml.Schema;
 using System.Runtime.Serialization;
-#if !CLR2COMPATIBILITY && !MICROSOFT_BUILD_ENGINE_OM_UNITTESTS
-using Microsoft.Build.Shared.Debugging;
-#endif
 using Microsoft.Build.Framework;
 
 namespace Microsoft.Build.Shared
-#endif
 {
     /// <summary>
     /// Utility methods for classifying and handling exceptions.
@@ -41,32 +34,7 @@ namespace Microsoft.Build.Shared
         /// <returns></returns>
         private static string GetDebugDumpPath()
         {
-            string debugPath =
-
-                /* Unmerged change from project 'Microsoft.Build.Engine.OM.UnitTests (net7.0)'
-                Before:
-                // Cannot access change wave logic from these assemblies (https://github.com/dotnet/msbuild/issues/6707)
-                After:
-                // Cannot access change wave logic from these assemblies (https://github.com/dotnet/msbuild/issues/6707)
-                */
-                /* Unmerged change from project 'Microsoft.Build.Engine.OM.UnitTests (net472)'
-                Before:
-                // Cannot access change wave logic from these assemblies (https://github.com/dotnet/msbuild/issues/6707)
-                After:
-                // Cannot access change wave logic from these assemblies (https://github.com/dotnet/msbuild/issues/6707)
-                */
-                /* Unmerged change from project 'MSBuildTaskHost'
-                Before:
-                // Cannot access change wave logic from these assemblies (https://github.com/dotnet/msbuild/issues/6707)
-                After:
-                // Cannot access change wave logic from these assemblies (https://github.com/dotnet/msbuild/issues/6707)
-                */
-                // Cannot access change wave logic from these assemblies (https://github.com/dotnet/msbuild/issues/6707)
-#if CLR2COMPATIBILITY || MICROSOFT_BUILD_ENGINE_OM_UNITTESTS
-                Environment.GetEnvironmentVariable("MSBUILDDEBUGPATH");
-#else
-                DebugUtils.DebugPath;
-#endif
+            string debugPath = Environment.GetEnvironmentVariable("MSBUILDDEBUGPATH");
 
             return !string.IsNullOrEmpty(debugPath)
                     ? debugPath
@@ -105,12 +73,11 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static string DumpFilePath => s_dumpFileName;
 
-#if !BUILDINGAPPXTASKS
         /// <summary>
         /// The filename that exceptions will be dumped to
         /// </summary>
         private static string s_dumpFileName;
-#endif
+
         /// <summary>
         /// If the given exception is "ignorable under some circumstances" return false.
         /// Otherwise it's "really bad", and return true.
@@ -125,13 +92,7 @@ namespace Microsoft.Build.Shared
              || e is ThreadAbortException
              || e is ThreadInterruptedException
              || e is AccessViolationException
-#if !TASKHOST
-             || e is CriticalTaskException
-#endif
-#if !BUILDINGAPPXTASKS
-             || e is InternalErrorException
-#endif
-             )
+             || e is InternalErrorException)
             {
                 // Ideally we would include NullReferenceException, because it should only ever be thrown by CLR (use ArgumentNullException for arguments)
                 // but we should handle it if tasks and loggers throw it.
@@ -139,20 +100,6 @@ namespace Microsoft.Build.Shared
                 // ExecutionEngineException has been deprecated by the CLR
                 return true;
             }
-
-#if !CLR2COMPATIBILITY
-            // Check if any critical exceptions
-            var aggregateException = e as AggregateException;
-
-            if (aggregateException != null)
-            {
-                // If the aggregate exception contains a critical exception it is considered a critical exception
-                if (aggregateException.InnerExceptions.Any(innerException => IsCriticalException(innerException)))
-                {
-                    return true;
-                }
-            }
-#endif
 
             return false;
         }
@@ -196,9 +143,7 @@ namespace Microsoft.Build.Shared
         internal static bool IsXmlException(Exception e)
         {
             return e is XmlException
-#if FEATURE_SECURITY_PERMISSIONS
                 || e is System.Security.XmlSyntaxException
-#endif
                 || e is XmlSchemaException
                 || e is UriFormatException; // XmlTextReader for example uses this under the covers
         }
@@ -234,8 +179,6 @@ namespace Microsoft.Build.Shared
                 Column = column
             };
         }
-
-#if !BUILDINGAPPXTASKS
 
         /// <summary>
         /// If the given exception is file IO related or Xml related return false.
@@ -426,7 +369,6 @@ namespace Microsoft.Build.Shared
 
             return builder.ToString();
         }
-#endif
 
         /// <summary> Line and column pair. </summary>
         internal struct LineAndColumn

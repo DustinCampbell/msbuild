@@ -7,29 +7,15 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
-using System.Runtime.InteropServices;
-#if FEATURE_SECURITY_PRINCIPAL_WINDOWS || RUNTIME_TYPE_NETCORE
-using System.Security.Principal;
-#endif
-
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
+using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.BackEnd;
-
-#if !CLR2COMPATIBILITY
-using Microsoft.Build.Shared.Debugging;
-using System.Collections;
-using System.Collections.Frozen;
-using Microsoft.NET.StringTools;
-
-#endif
-#if !FEATURE_APM
-using System.Threading.Tasks;
-#endif
 
 #nullable disable
 
@@ -279,15 +265,10 @@ namespace Microsoft.Build.Internal
         }
 
         private string GetToolsDirectory(bool isNetTaskHost, string predefinedToolsDirectory) =>
-#if NETFRAMEWORK
             isNetTaskHost
-
                 // For .NET TaskHost assembly directory we set the expectation for the child dotnet process to connect to.
                 ? predefinedToolsDirectory
                 : BuildEnvironmentHelper.Instance.MSBuildToolsDirectoryRoot;
-#else
-            BuildEnvironmentHelper.Instance.MSBuildToolsDirectoryRoot;
-#endif
 
         private static HandshakeComponents CreateNetTaskHostComponents(int options, int salt, int sessionId) => new(
             options,
@@ -360,17 +341,15 @@ namespace Microsoft.Build.Internal
             {
                 var input = GetKey();
                 byte[] utf8 = Encoding.UTF8.GetBytes(input);
-#if NET
-                Span<byte> bytes = stackalloc byte[SHA256.HashSizeInBytes];
-                SHA256.HashData(utf8, bytes);
-#else
+
                 using var sha = SHA256.Create();
                 var bytes = sha.ComputeHash(utf8);
-#endif
+
                 _computedHash = Convert.ToBase64String(bytes)
                     .Replace("/", "_")
                     .Replace("=", string.Empty);
             }
+
             return _computedHash;
         }
     }
@@ -415,14 +394,6 @@ namespace Microsoft.Build.Internal
         /// </summary>
         private static long s_lastLoggedTicks = DateTime.UtcNow.Ticks;
 
-#if !CLR2COMPATIBILITY
-        /// <summary>
-        /// A set of environment variables cached from the last time we called GetEnvironmentVariables.
-        /// Used to avoid allocations if the environment has not changed.
-        /// </summary>
-        private static EnvironmentState s_environmentState;
-#endif
-
         /// <summary>
         /// Delegate to debug the communication utilities.
         /// </summary>
@@ -447,17 +418,14 @@ namespace Microsoft.Build.Internal
         /// Get environment block.
         /// </summary>
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         internal static extern unsafe char* GetEnvironmentStrings();
 
         /// <summary>
         /// Free environment block.
         /// </summary>
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         internal static extern unsafe bool FreeEnvironmentStrings(char* pStrings);
 
-#if NETFRAMEWORK
         /// <summary>
         /// Set environment variable P/Invoke.
         /// </summary>
@@ -479,16 +447,6 @@ namespace Microsoft.Build.Internal
                 throw Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
             }
         }
-#endif
-
-#if !CLR2COMPATIBILITY
-        /// <summary>
-        /// A container to atomically swap a cached set of environment variables and the block string used to create it.
-        /// The environment block property will only be set on Windows, since on Unix we need to directly call
-        /// Environment.GetEnvironmentVariables().
-        /// </summary>
-        private sealed record class EnvironmentState(FrozenDictionary<string, string> EnvironmentVariables, ReadOnlyMemory<char> EnvironmentBlock = default);
-#endif
 
         /// <summary>
         /// Returns key value pairs of environment variables in a new dictionary
@@ -497,19 +455,8 @@ namespace Microsoft.Build.Internal
         /// <remarks>
         /// Copied from the BCL implementation to eliminate some expensive security asserts on .NET Framework.
         /// </remarks>
-#if CLR2COMPATIBILITY
         internal static Dictionary<string, string> GetEnvironmentVariables()
         {
-#else
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        private static FrozenDictionary<string, string> GetEnvironmentVariablesWindows()
-        {
-            // The DebugUtils static constructor can set the MSBUILDDEBUGPATH environment variable to propagate the debug path to out of proc nodes.
-            // Need to ensure that constructor is called before this method returns in order to capture its env var write.
-            // Otherwise the env var is not captured and thus gets deleted when RequiestBuilder resets the environment based on the cached results of this method.
-            ErrorUtilities.VerifyThrowInternalNull(DebugUtils.ProcessInfoString, nameof(DebugUtils.DebugPath));
-#endif
-
             unsafe
             {
                 char* pEnvironmentBlock = null;
@@ -529,17 +476,6 @@ namespace Microsoft.Build.Internal
                         pEnvironmentBlockEnd++;
                     }
                     long stringBlockLength = pEnvironmentBlockEnd - pEnvironmentBlock;
-
-#if !CLR2COMPATIBILITY
-                    // Avoid allocating any objects if the environment still matches the last state.
-                    // We speed this up by comparing the full block instead of individual key-value pairs.
-                    ReadOnlySpan<char> stringBlock = new(pEnvironmentBlock, (int)stringBlockLength);
-                    EnvironmentState lastState = s_environmentState;
-                    if (lastState?.EnvironmentBlock.Span.SequenceEqual(stringBlock) == true)
-                    {
-                        return lastState.EnvironmentVariables;
-                    }
-#endif
 
                     Dictionary<string, string> table = new(200, StringComparer.OrdinalIgnoreCase); // Razzle has 150 environment variables
 
@@ -584,11 +520,7 @@ namespace Microsoft.Build.Internal
                             continue;
                         }
 
-#if !CLR2COMPATIBILITY
-                        string key = Strings.WeakIntern(new ReadOnlySpan<char>(pEnvironmentBlock + startKey, i - startKey));
-#else
                         string key = new string(pEnvironmentBlock, startKey, i - startKey);
-#endif
 
                         i++;
 
@@ -601,25 +533,13 @@ namespace Microsoft.Build.Internal
                             i++;
                         }
 
-#if !CLR2COMPATIBILITY
-                        string value = Strings.WeakIntern(new ReadOnlySpan<char>(pEnvironmentBlock + startValue, i - startValue));
-#else
                         string value = new string(pEnvironmentBlock, startValue, i - startValue);
-#endif
 
                         // skip over 0 handled by for loop's i++
                         table[key] = value;
                     }
 
-#if !CLR2COMPATIBILITY
-                    // Update with the current state.
-                    EnvironmentState currentState =
-                        new(table.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase), stringBlock.ToArray());
-                    s_environmentState = currentState;
-                    return currentState.EnvironmentVariables;
-#else
                     return table;
-#endif
                 }
                 finally
                 {
@@ -630,77 +550,6 @@ namespace Microsoft.Build.Internal
                 }
             }
         }
-
-#if NET
-        /// <summary>
-        /// Sets an environment variable using <see cref="Environment.SetEnvironmentVariable(string,string)" />.
-        /// </summary>
-        internal static void SetEnvironmentVariable(string name, string value)
-            => Environment.SetEnvironmentVariable(name, value);
-#endif
-
-#if !CLR2COMPATIBILITY
-        /// <summary>
-        /// Returns key value pairs of environment variables in a read-only dictionary
-        /// with a case-insensitive key comparer.
-        ///
-        /// If the environment variables have not changed since the last time
-        /// this method was called, the same dictionary instance will be returned.
-        /// </summary>
-        internal static FrozenDictionary<string, string> GetEnvironmentVariables()
-        {
-            // Always call the native method on Windows, as we'll be able to avoid the internal
-            // string and Hashtable allocations caused by Environment.GetEnvironmentVariables().
-            if (NativeMethodsShared.IsWindows)
-            {
-                return GetEnvironmentVariablesWindows();
-            }
-
-            IDictionary vars = Environment.GetEnvironmentVariables();
-
-            // Directly use the enumerator since Current will box DictionaryEntry.
-            IDictionaryEnumerator enumerator = vars.GetEnumerator();
-
-            // If every key-value pair matches the last state, return a cached dictionary.
-            FrozenDictionary<string, string> lastEnvironmentVariables = s_environmentState?.EnvironmentVariables;
-            if (vars.Count == lastEnvironmentVariables?.Count)
-            {
-                bool sameState = true;
-
-                while (enumerator.MoveNext() && sameState)
-                {
-                    DictionaryEntry entry = enumerator.Entry;
-                    if (!lastEnvironmentVariables.TryGetValue((string)entry.Key, out string value)
-                        || !string.Equals((string)entry.Value, value, StringComparison.Ordinal))
-                    {
-                        sameState = false;
-                    }
-                }
-
-                if (sameState)
-                {
-                    return lastEnvironmentVariables;
-                }
-            }
-
-            // Otherwise, allocate and update with the current state.
-            Dictionary<string, string> table = new(vars.Count, EnvironmentVariableComparer);
-
-            enumerator.Reset();
-            while (enumerator.MoveNext())
-            {
-                DictionaryEntry entry = enumerator.Entry;
-                string key = Strings.WeakIntern((string)entry.Key);
-                string value = Strings.WeakIntern((string)entry.Value);
-                table[key] = value;
-            }
-
-            EnvironmentState newState = new(table.ToFrozenDictionary(EnvironmentVariableComparer));
-            s_environmentState = newState;
-
-            return newState.EnvironmentVariables;
-        }
-#endif
 
         /// <summary>
         /// Updates the environment to match the provided dictionary.
@@ -758,21 +607,10 @@ namespace Microsoft.Build.Internal
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        internal static bool TryReadEndOfHandshakeSignal(
-            this PipeStream stream,
-            bool isProvider,
-#if NETCOREAPP2_1_OR_GREATER
-            int timeout,
-#endif
-            out HandshakeResult result)
+        internal static bool TryReadEndOfHandshakeSignal(this PipeStream stream, bool isProvider, out HandshakeResult result)
         {
             // Accept only the first byte of the EndOfHandshakeSignal
-            if (stream.TryReadIntForHandshake(
-                byteToAccept: null,
-#if NETCOREAPP2_1_OR_GREATER
-                timeout,
-#endif
-                out HandshakeResult innerResult))
+            if (stream.TryReadIntForHandshake(byteToAccept: null, out HandshakeResult innerResult))
             {
                 byte negotiatedPacketVersion = 1;
 
@@ -787,12 +625,7 @@ namespace Microsoft.Build.Internal
                     }
 
                     // We detected packet version marker, now let's read actual PacketVersion
-                    if (!stream.TryReadIntForHandshake(
-                            byteToAccept: null,
-#if NETCOREAPP2_1_OR_GREATER
-                            timeout,
-#endif
-                            out HandshakeResult versionResult))
+                    if (!stream.TryReadIntForHandshake(byteToAccept: null, out HandshakeResult versionResult))
                     {
                         result = versionResult;
                         return false;
@@ -802,12 +635,7 @@ namespace Microsoft.Build.Internal
                     negotiatedPacketVersion = NodePacketTypeExtensions.GetNegotiatedPacketVersion(childVersion);
                     Trace("Node PacketVersion: {0}, Local: {1}, Negotiated: {2}", childVersion, NodePacketTypeExtensions.PacketVersion, negotiatedPacketVersion);
 
-                    if (!stream.TryReadIntForHandshake(
-                            byteToAccept: null,
-#if NETCOREAPP2_1_OR_GREATER
-                            timeout,
-#endif
-                            out innerResult))
+                    if (!stream.TryReadIntForHandshake(byteToAccept: null, out innerResult))
                     {
                         result = innerResult;
                         return false;
@@ -840,69 +668,32 @@ namespace Microsoft.Build.Internal
             return HandshakeResult.Failure(HandshakeStatus.VersionMismatch, errorMessage);
         }
 
-#pragma warning disable SA1111, SA1009 // Closing parenthesis should be on line of last parameter
         /// <summary>
         /// Extension method to read a series of bytes from a stream.
         /// If specified, leading byte matches one in the supplied array if any, returns rejection byte and throws IOException.
         /// </summary>
-        internal static bool TryReadIntForHandshake(
-            this PipeStream stream,
-            byte? byteToAccept,
-#if NETCOREAPP2_1_OR_GREATER
-            int timeout,
-#endif
-            out HandshakeResult result
-            )
-#pragma warning restore SA1111, SA1009 // Closing parenthesis should be on line of last parameter
+        internal static bool TryReadIntForHandshake(this PipeStream stream, byte? byteToAccept, out HandshakeResult result)
         {
             byte[] bytes = new byte[4];
 
-#if NETCOREAPP2_1_OR_GREATER
-            if (!NativeMethodsShared.IsWindows)
+            int bytesRead = stream.Read(bytes, 0, bytes.Length);
+
+            // Abort for connection attempts from ancient MSBuild.exes
+            if (byteToAccept != null && bytesRead > 0 && byteToAccept != bytes[0])
             {
-                // Enforce a minimum timeout because the timeout passed to Connect() just before
-                // calling this method does not apply on UNIX domain socket-based
-                // implementations of PipeStream.
-                // https://github.com/dotnet/corefx/issues/28791
-                timeout = Math.Max(timeout, 50);
-
-                // A legacy MSBuild.exe won't try to connect to MSBuild running
-                // in a dotnet host process, so we can read the bytes simply.
-                var readTask = stream.ReadAsync(bytes, 0, bytes.Length);
-
-                // Manual timeout here because the timeout passed to Connect() just before
-                // calling this method does not apply on UNIX domain socket-based
-                // implementations of PipeStream.
-                // https://github.com/dotnet/corefx/issues/28791
-                if (!readTask.Wait(timeout))
-                {
-                    result = HandshakeResult.Failure(HandshakeStatus.Timeout, String.Format(CultureInfo.InvariantCulture, "Did not receive return handshake in {0}ms", timeout));
-                    return false;
-                }
-                readTask.GetAwaiter().GetResult();
+                stream.WriteIntForHandshake(0x0F0F0F0F);
+                stream.WriteIntForHandshake(0x0F0F0F0F);
+                result = HandshakeResult.Failure(HandshakeStatus.OldMSBuild, String.Format(CultureInfo.InvariantCulture, "Client: rejected old host. Received byte {0} instead of {1}.", bytes[0], byteToAccept));
+                return false;
             }
-            else
-#endif
+
+            if (bytesRead != bytes.Length)
             {
-                int bytesRead = stream.Read(bytes, 0, bytes.Length);
+                // We've unexpectly reached end of stream.
+                // We are now in a bad state, disconnect on our end
+                result = HandshakeResult.Failure(HandshakeStatus.UnexpectedEndOfStream, String.Format(CultureInfo.InvariantCulture, "Unexpected end of stream while reading for handshake"));
 
-                // Abort for connection attempts from ancient MSBuild.exes
-                if (byteToAccept != null && bytesRead > 0 && byteToAccept != bytes[0])
-                {
-                    stream.WriteIntForHandshake(0x0F0F0F0F);
-                    stream.WriteIntForHandshake(0x0F0F0F0F);
-                    result = HandshakeResult.Failure(HandshakeStatus.OldMSBuild, String.Format(CultureInfo.InvariantCulture, "Client: rejected old host. Received byte {0} instead of {1}.", bytes[0], byteToAccept));
-                    return false;
-                }
-
-                if (bytesRead != bytes.Length)
-                {
-                    // We've unexpectly reached end of stream.
-                    // We are now in a bad state, disconnect on our end
-                    result = HandshakeResult.Failure(HandshakeStatus.UnexpectedEndOfStream, String.Format(CultureInfo.InvariantCulture, "Unexpected end of stream while reading for handshake"));
-
-                    return false;
-                }
+                return false;
             }
 
             try
@@ -925,24 +716,6 @@ namespace Microsoft.Build.Internal
             return true;
         }
 #nullable disable
-
-#if !FEATURE_APM
-        internal static async ValueTask<int> ReadAsync(Stream stream, byte[] buffer, int bytesToRead)
-        {
-            int totalBytesRead = 0;
-            while (totalBytesRead < bytesToRead)
-            {
-                int bytesRead = await stream.ReadAsync(buffer.AsMemory(totalBytesRead, bytesToRead - totalBytesRead), CancellationToken.None);
-                if (bytesRead == 0)
-                {
-                    return totalBytesRead;
-                }
-                totalBytesRead += bytesRead;
-            }
-
-            return totalBytesRead;
-        }
-#endif
 
         /// <summary>
         /// Given the appropriate information, return the equivalent HandshakeOptions.
@@ -1035,20 +808,16 @@ namespace Microsoft.Build.Internal
                 context |= HandshakeOptions.LowPriority;
             }
 
-#if FEATURE_SECURITY_PRINCIPAL_WINDOWS || RUNTIME_TYPE_NETCORE
             // If we are running in elevated privs, we will only accept a handshake from an elevated process as well.
             // Both the client and the host will calculate this separately, and the idea is that if they come out the same
             // then we can be sufficiently confident that the other side has the same elevation level as us.  This is complementary
             // to the username check which is also done on connection.
             if (
-#if RUNTIME_TYPE_NETCORE
-                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
-#endif
                 new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
             {
                 context |= HandshakeOptions.Administrator;
             }
-#endif
+
             return context;
         }
 
@@ -1164,12 +933,7 @@ namespace Microsoft.Build.Internal
         {
             lock (s_traceLock)
             {
-                s_debugDumpPath ??=
-#if CLR2COMPATIBILITY
-                    Environment.GetEnvironmentVariable("MSBUILDDEBUGPATH");
-#else
-                        DebugUtils.DebugPath;
-#endif
+                s_debugDumpPath ??= Environment.GetEnvironmentVariable("MSBUILDDEBUGPATH");
 
                 if (String.IsNullOrEmpty(s_debugDumpPath))
                 {

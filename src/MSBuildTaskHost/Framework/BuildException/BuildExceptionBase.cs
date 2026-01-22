@@ -30,10 +30,6 @@ public abstract class BuildExceptionBase : Exception
         : base(message, inner)
     { }
 
-    // This is needed to allow opting back in to BinaryFormatter serialization
-#if NET8_0_OR_GREATER
-    [Obsolete(DiagnosticId = "SYSLIB0051")]
-#endif
     private protected BuildExceptionBase(SerializationInfo info, StreamingContext context)
         : base(info, context)
     { }
@@ -85,12 +81,9 @@ public abstract class BuildExceptionBase : Exception
         writer.WriteOptionalString(exception.StackTrace);
         writer.WriteOptionalString(exception.Source);
         writer.WriteOptionalString(exception.HelpLink);
-        // HResult is completely protected up till net4.5
-#if NET || NET45_OR_GREATER
-        int? hresult = exception.HResult;
-#else
+
+        // Exception.HResult is not available in .NET Framework 3.5, so we write null here.
         int? hresult = null;
-#endif
         writer.WriteOptionalInt32(hresult);
 
         IDictionary<string, string?>? customKeyedSerializedData = (exception as BuildExceptionBase)?.FlushCustomState();

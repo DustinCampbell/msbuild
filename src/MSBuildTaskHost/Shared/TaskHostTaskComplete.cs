@@ -4,9 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-#if !CLR2COMPATIBILITY && FEATURE_REPORTFILEACCESSES
-using Microsoft.Build.Experimental.FileAccess;
-#endif
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -88,7 +85,6 @@ namespace Microsoft.Build.BackEnd
         /// The process environment at the end of task execution.
         /// </summary>
         private Dictionary<string, string> _buildProcessEnvironment = null;
-
 
 #pragma warning disable CS1572 // XML comment has a param tag, but there is no parameter by that name. Justification: xmldoc doesn't seem to interact well with #ifdef of params.
         /// <summary>

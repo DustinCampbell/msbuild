@@ -28,23 +28,6 @@ namespace Microsoft.Build.Collections
     [Serializable]
     internal class CopyOnWriteDictionary<V> : IDictionary<string, V>, IDictionary, ISerializable
     {
-#if !NET35 // MSBuildNameIgnoreCaseComparer not compiled into MSBuildTaskHost but also allocations not interesting there.
-        /// <summary>
-        /// Empty dictionary with a <see cref="MSBuildNameIgnoreCaseComparer" />,
-        /// used as the basis of new dictionaries with that comparer to avoid
-        /// allocating new comparers objects.
-        /// </summary>
-        private static readonly ImmutableDictionary<string, V> NameComparerDictionaryPrototype = ImmutableDictionary.Create<string, V>(MSBuildNameIgnoreCaseComparer.Default);
-
-        /// <summary>
-        /// Empty dictionary with <see cref="StringComparer.OrdinalIgnoreCase" />,
-        /// used as the basis of new dictionaries with that comparer to avoid
-        /// allocating new comparers objects.
-        /// </summary>
-        private static readonly ImmutableDictionary<string, V> OrdinalIgnoreCaseComparerDictionaryPrototype = ImmutableDictionary.Create<string, V>(StringComparer.OrdinalIgnoreCase);
-#endif
-
-
         /// <summary>
         /// The backing dictionary.
         /// Lazily created.
@@ -84,15 +67,7 @@ namespace Microsoft.Build.Collections
 
         private static ImmutableDictionary<string, V> GetInitialDictionary(IEqualityComparer<string>? keyComparer)
         {
-#if NET35
             return ImmutableDictionary.Create<string, V>(keyComparer);
-#else
-            return keyComparer is MSBuildNameIgnoreCaseComparer
-                            ? NameComparerDictionaryPrototype
-                            : keyComparer == StringComparer.OrdinalIgnoreCase
-                              ? OrdinalIgnoreCaseComparerDictionaryPrototype
-                              : ImmutableDictionary.Create<string, V>(keyComparer);
-#endif
         }
 
         /// <summary>
@@ -300,27 +275,10 @@ namespace Microsoft.Build.Collections
 
             return initial != _backing; // whether the removal occured
         }
-
-#if NET472_OR_GREATER || NETCOREAPP
-        /// <summary>
-        /// Implementation of generic IEnumerable.GetEnumerator()
-        /// </summary>
-        public ImmutableDictionary<string, V>.Enumerator GetEnumerator()
-        {
-            return _backing.GetEnumerator();
-        }
-
-        IEnumerator<KeyValuePair<string, V>> IEnumerable<KeyValuePair<string, V>>.GetEnumerator()
-        {
-            ImmutableDictionary<string, V>.Enumerator enumerator = _backing.GetEnumerator();
-            return _backing.GetEnumerator();
-        }
-#else
         public IEnumerator<KeyValuePair<string, V>> GetEnumerator()
         {
             return _backing.GetEnumerator();
         }
-#endif
 
         /// <summary>
         /// Implementation of IEnumerable.GetEnumerator()

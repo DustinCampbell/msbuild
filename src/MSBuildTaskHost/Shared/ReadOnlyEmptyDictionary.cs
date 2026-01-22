@@ -70,22 +70,12 @@ namespace Microsoft.Build.Collections
         /// <summary>
         /// Gets empty collection
         /// </summary>
-        public ICollection<K> Keys =>
-#if CLR2COMPATIBILITY
-            new K[0];
-#else
-            Array.Empty<K>();
-#endif
+        public ICollection<K> Keys => new K[0];
 
         /// <summary>
         /// Gets empty collection
         /// </summary>
-        public ICollection<V> Values =>
-#if CLR2COMPATIBILITY
-            new V[0];
-#else
-            Array.Empty<V>();
-#endif
+        public ICollection<V> Values => new V[0];
 
         /// <summary>
         /// Is it fixed size
@@ -309,7 +299,6 @@ namespace Microsoft.Build.Collections
     }
 }
 
-#if NET35
 namespace System.Collections.Generic
 {
     public interface IReadOnlyCollection<T> : IEnumerable<T>
@@ -326,4 +315,3 @@ namespace System.Collections.Generic
         bool TryGetValue(TKey key, out TValue value);
     }
 }
-#endif
