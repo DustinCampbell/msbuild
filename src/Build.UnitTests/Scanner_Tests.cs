@@ -417,11 +417,11 @@ public class ScannerTest
     [InlineData("'%24%28x' == '%24(x''", 21, ParserOptions.AllowAll)] // Position of extra quote (test escaped chars)
     internal void ErrorPosition_ShouldBeReportedCorrectly(string input, int expectedPosition, ParserOptions options)
     {
-        var parser = new Parser();
+        var parser = new Parser(input, options, MockElementLocation.Instance);
 
         Should.Throw<InvalidProjectFileException>(() =>
         {
-            parser.Parse(input, options, MockElementLocation.Instance);
+            parser.Parse();
         });
 
         parser.errorPosition.ShouldBe(expectedPosition);

@@ -252,22 +252,9 @@ namespace Microsoft.Build.Evaluation
             {
                 // Try and see if there's an available expression tree in the pool.
                 // If not, parse a new expression tree and add it back to the pool.
-                GenericExpressionNode parsedExpression;
-                if (expressionPool.Count == 0)
-                {
-                    var conditionParser = new Parser();
-
-                    #region REMOVE_COMPAT_WARNING
-                    conditionParser.LoggingServices = loggingContext?.LoggingService;
-                    conditionParser.LogBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
-                    #endregion
-
-                    parsedExpression = conditionParser.Parse(condition, options, elementLocation);
-                }
-                else
-                {
-                    parsedExpression = expressionPool.Pop();
-                }
+                GenericExpressionNode parsedExpression = expressionPool.Count == 0
+                    ? Parser.Parse(condition, options, elementLocation, loggingContext)
+                    : expressionPool.Pop();
 
                 bool result;
 

@@ -1,24 +1,21 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Generic;
+using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using ElementLocation = Microsoft.Build.Construction.ElementLocation;
 
 #nullable disable
 
 namespace Microsoft.Build.Evaluation
 {
-    using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
-
     /// <summary>
     /// This class implements the grammar for complex conditionals.
     ///
     /// The usage is:
-    ///    Parser p = new Parser(CultureInfo);
-    ///    ExpressionTree t = p.Parse(expression, XmlNode);
+    ///    GenericExpressionNode tree = Parser.Parse(expression, options, elementLocation);
     ///
     /// The expression tree can then be evaluated and re-evaluated as needed.
     /// </summary>
@@ -27,80 +24,77 @@ namespace Microsoft.Build.Evaluation
     /// </remarks>
     internal sealed class Parser
     {
-        private Scanner _lexer;
-        private ParserOptions _options;
-        private ElementLocation _elementLocation;
-        internal int errorPosition = 0; // useful for unit tests
+        private readonly string _expression;
+        private readonly ParserOptions _options;
+        private readonly ElementLocation _elementLocation;
+        private readonly Scanner _lexer;
 
-        #region REMOVE_COMPAT_WARNING
+        /// <summary>
+        ///  Location contextual information which are attached to logging events to
+        ///  say where they are in relation to the process, engine, project, target,task which is executing.
+        /// </summary>
+        private readonly BuildEventContext _logBuildEventContext;
+
+        /// <summary>
+        ///  Engine Logging Service reference where events will be logged to.
+        /// </summary>
+        private readonly ILoggingService _loggingService;
 
         private bool _warnedForExpression = false;
 
-        private BuildEventContext _logBuildEventContext;
-        /// <summary>
-        ///  Location contextual information which are attached to logging events to
-        ///  say where they are in relation to the process, engine, project, target,task which is executing
-        /// </summary>
-        internal BuildEventContext LogBuildEventContext
-        {
-            get
-            {
-                return _logBuildEventContext;
-            }
-            set
-            {
-                _logBuildEventContext = value;
-            }
-        }
-        private ILoggingService _loggingServices;
-        /// <summary>
-        /// Engine Logging Service reference where events will be logged to
-        /// </summary>
-        internal ILoggingService LoggingServices
-        {
-            set
-            {
-                _loggingServices = value;
-            }
+        internal int errorPosition = 0; // useful for unit tests
 
-            get
-            {
-                return _loggingServices;
-            }
-        }
-        #endregion
-
-        internal Parser()
+        public Parser(
+            string expression,
+            ParserOptions optionSettings,
+            ElementLocation elementLocation,
+            LoggingContext loggingContext = null)
         {
-            // nothing to see here, move along.
-        }
+            // We currently have no support (and no scenarios) for disallowing property references in conditions.
+            ErrorUtilities.VerifyThrow((optionSettings & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
 
-        //
-        // Main entry point for parser.
-        // You pass in the expression you want to parse, and you get an
-        // ExpressionTree out the back end.
-        //
-        internal GenericExpressionNode Parse(string expression, ParserOptions optionSettings, ElementLocation elementLocation)
-        {
-            // We currently have no support (and no scenarios) for disallowing property references
-            // in Conditions.
-            ErrorUtilities.VerifyThrow(0 != (optionSettings & ParserOptions.AllowProperties),
-                "Properties should always be allowed.");
-
+            _expression = expression;
             _options = optionSettings;
             _elementLocation = elementLocation;
 
+            _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
+            _loggingService = loggingContext?.LoggingService;
+
             _lexer = new Scanner(expression, _options);
+
             if (!_lexer.Advance())
             {
                 errorPosition = _lexer.GetErrorPosition();
                 ProjectErrorUtilities.ThrowInvalidProject(elementLocation, _lexer.GetErrorResource(), expression, errorPosition, _lexer.UnexpectedlyFound);
             }
-            GenericExpressionNode node = Expr(expression);
+        }
+
+        /// <summary>
+        /// Main entry point for parser.
+        /// You pass in the expression you want to parse, and you get an
+        /// expression tree out the back end.
+        /// </summary>
+        internal static GenericExpressionNode Parse(
+            string expression,
+            ParserOptions optionSettings,
+            ElementLocation elementLocation,
+            LoggingContext loggingContext = null)
+        {
+            var parser = new Parser(expression, optionSettings, elementLocation, loggingContext);
+
+            return parser.Parse();
+        }
+
+        /// <summary>
+        /// Parses the expression and returns the expression tree.
+        /// </summary>
+        internal GenericExpressionNode Parse()
+        {
+            GenericExpressionNode node = Expr(_expression);
             if (!_lexer.IsNext(TokenKind.EndOfInput))
             {
                 errorPosition = _lexer.GetErrorPosition();
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnexpectedTokenInCondition", expression, _lexer.IsNextString(), errorPosition);
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, _lexer.IsNextString(), errorPosition);
             }
             return node;
         }
@@ -120,7 +114,7 @@ namespace Microsoft.Build.Evaluation
 
             #region REMOVE_COMPAT_WARNING
             // Check for potential change in behavior
-            if (LoggingServices != null && !_warnedForExpression &&
+            if (_loggingService != null && !_warnedForExpression &&
                 node.PotentialAndOrConflict())
             {
                 // We only want to warn once even if there multiple () sub expressions
@@ -128,7 +122,7 @@ namespace Microsoft.Build.Evaluation
 
                 // Log a warning regarding the fact the expression may have been evaluated
                 // incorrectly in earlier version of MSBuild
-                LoggingServices.LogWarning(_logBuildEventContext, null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", expression);
+                _loggingService.LogWarning(_logBuildEventContext, null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", expression);
             }
             #endregion
 
