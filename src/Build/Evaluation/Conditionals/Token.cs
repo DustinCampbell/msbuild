@@ -35,44 +35,6 @@ namespace Microsoft.Build.Evaluation
         internal static readonly Token Not = new Token(TokenKind.Not, "not");
         internal static readonly Token EndOfInput = new Token(TokenKind.EndOfInput);
 
-        /// <summary>
-        /// Valid tokens
-        /// </summary>
-        internal enum TokenKind
-        {
-            Comma,
-            LeftParenthesis,
-            RightParenthesis,
-
-            LessThan,
-            GreaterThan,
-            LessThanOrEqualTo,
-            GreaterThanOrEqualTo,
-
-            And,
-            Or,
-
-            True,
-            False,
-            On,
-            Off,
-            Yes,
-            No,
-
-            EqualTo,
-            NotEqualTo,
-            Not,
-
-            Property,
-            String,
-            Numeric,
-            ItemList,
-            ItemMetadata,
-            Function,
-
-            EndOfInput,
-        }
-
         private TokenKind _kind;
         private string _text;
 
