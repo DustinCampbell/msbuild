@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace Microsoft.Build.Shared
 {
-    internal static partial class EnvironmentUtilities
+    internal static class EnvironmentUtilities
     {
         private static volatile int s_processId;
         private static volatile string? s_processPath;
@@ -77,13 +77,6 @@ namespace Microsoft.Build.Shared
 
                 return processName;
             }
-        }
-
-        public static bool IsWellKnownEnvironmentDerivedProperty(string propertyName)
-        {
-            return propertyName.StartsWith("MSBUILD", StringComparison.OrdinalIgnoreCase) ||
-                propertyName.StartsWith("COMPLUS_", StringComparison.OrdinalIgnoreCase) ||
-                propertyName.StartsWith("DOTNET_", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

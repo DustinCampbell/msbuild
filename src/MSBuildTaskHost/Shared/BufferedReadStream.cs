@@ -10,11 +10,11 @@ using System.Threading;
 
 namespace Microsoft.Build.BackEnd
 {
-    internal class BufferedReadStream : Stream
+    internal sealed class BufferedReadStream : Stream
     {
         private const int BUFFER_SIZE = 1024;
-        private NamedPipeServerStream _innerStream;
-        private byte[] _buffer;
+        private readonly NamedPipeServerStream _innerStream;
+        private readonly byte[] _buffer;
 
         // The number of bytes in the buffer that have been read from the underlying stream but not read by consumers of this stream
         private int _currentlyBufferedByteCount;

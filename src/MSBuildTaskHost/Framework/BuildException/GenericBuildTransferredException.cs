@@ -12,11 +12,13 @@ internal sealed class GenericBuildTransferredException : BuildExceptionBase
 {
     public GenericBuildTransferredException()
         : base()
-    { }
+    {
+    }
 
     internal GenericBuildTransferredException(
         string message,
         Exception? inner)
         : base(message, inner)
-    { }
+    {
+    }
 }

@@ -8,7 +8,7 @@ namespace Microsoft.Build.Framework.BuildException;
 /// <summary>
 /// Remote exception internal data serving as the source for the exception deserialization.
 /// </summary>
-internal class BuildExceptionRemoteState
+internal sealed class BuildExceptionRemoteState
 {
     public BuildExceptionRemoteState(
         string remoteTypeName,

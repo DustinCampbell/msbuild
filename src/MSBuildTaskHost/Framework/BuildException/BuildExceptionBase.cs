@@ -18,21 +18,25 @@ public abstract class BuildExceptionBase : Exception
 
     private protected BuildExceptionBase()
         : base()
-    { }
+    {
+    }
 
     private protected BuildExceptionBase(string? message)
         : base(message)
-    { }
+    {
+    }
 
     private protected BuildExceptionBase(
         string? message,
         Exception? inner)
         : base(message, inner)
-    { }
+    {
+    }
 
     private protected BuildExceptionBase(SerializationInfo info, StreamingContext context)
         : base(info, context)
-    { }
+    {
+    }
 
     public override string? StackTrace => string.IsNullOrEmpty(_remoteStackTrace) ? base.StackTrace : _remoteStackTrace;
 
@@ -42,16 +46,15 @@ public abstract class BuildExceptionBase : Exception
     /// Override this method to recover subtype-specific state from the remote exception.
     /// </summary>
     protected virtual void InitializeCustomState(IDictionary<string, string?>? customKeyedSerializedData)
-    { }
+    {
+    }
 
     /// <summary>
     /// Override this method to provide subtype-specific state to be serialized.
     /// </summary>
     /// <returns></returns>
     protected virtual IDictionary<string, string?>? FlushCustomState()
-    {
-        return null;
-    }
+        => null;
 
     private void InitializeFromRemoteState(BuildExceptionRemoteState remoteState)
     {
@@ -75,7 +78,9 @@ public abstract class BuildExceptionBase : Exception
             WriteExceptionToTranslator(translator, exception.InnerException);
         }
 
-        string serializationType = BuildExceptionSerializationHelper.GetExceptionSerializationKey(exception.GetType());
+        Type exceptionType = exception.GetType();
+        string serializationType = exceptionType.FullName ?? exceptionType.ToString();
+
         writer.Write(serializationType);
         writer.Write(exception.Message);
         writer.WriteOptionalString(exception.StackTrace);
@@ -134,7 +139,7 @@ public abstract class BuildExceptionBase : Exception
             }
         }
 
-        BuildExceptionBase exception = BuildExceptionSerializationHelper.CreateExceptionFactory(serializationType)(message, innerException);
+        var exception = new GenericBuildTransferredException(message, innerException);
 
         exception.InitializeFromRemoteState(
             new BuildExceptionRemoteState(

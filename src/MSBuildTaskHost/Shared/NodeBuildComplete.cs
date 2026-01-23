@@ -5,79 +5,60 @@ using System.Diagnostics;
 
 #nullable disable
 
-namespace Microsoft.Build.BackEnd
+namespace Microsoft.Build.BackEnd;
+
+/// <summary>
+/// The NodeBuildComplete packet is used to indicate to a node that it should clean up its current build and
+/// possibly prepare for node reuse.
+/// </summary>
+internal sealed class NodeBuildComplete : INodePacket
 {
     /// <summary>
-    /// The NodeBuildComplete packet is used to indicate to a node that it should clean up its current build and
-    /// possibly prepare for node reuse.
+    /// Flag indicating if the node should prepare for reuse after cleanup.
     /// </summary>
-    internal class NodeBuildComplete : INodePacket
+    private bool _prepareForReuse;
+
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    public NodeBuildComplete(bool prepareForReuse)
     {
-        /// <summary>
-        /// Flag indicating if the node should prepare for reuse after cleanup.
-        /// </summary>
-        private bool _prepareForReuse;
+        _prepareForReuse = prepareForReuse;
+    }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public NodeBuildComplete(bool prepareForReuse)
-        {
-            _prepareForReuse = prepareForReuse;
-        }
+    /// <summary>
+    /// Private constructor for translation
+    /// </summary>
+    private NodeBuildComplete()
+    {
+    }
 
-        /// <summary>
-        /// Private constructor for translation
-        /// </summary>
-        private NodeBuildComplete()
-        {
-        }
+    /// <summary>
+    /// Flag indicating if the node should prepare for reuse.
+    /// </summary>
+    public bool PrepareForReuse => _prepareForReuse;
 
-        /// <summary>
-        /// Flag indicating if the node should prepare for reuse.
-        /// </summary>
-        public bool PrepareForReuse
-        {
-            [DebuggerStepThrough]
-            get
-            { return _prepareForReuse; }
-        }
+    /// <summary>
+    /// The packet type.
+    /// </summary>
+    public NodePacketType Type => NodePacketType.NodeBuildComplete;
 
-        #region INodePacket Members
+    /// <summary>
+    /// Translates the packet to/from binary form.
+    /// </summary>
+    /// <param name="translator">The translator to use.</param>
+    public void Translate(ITranslator translator)
+    {
+        translator.Translate(ref _prepareForReuse);
+    }
 
-        /// <summary>
-        /// The packet type
-        /// </summary>
-        public NodePacketType Type
-        {
-            [DebuggerStepThrough]
-            get
-            { return NodePacketType.NodeBuildComplete; }
-        }
-
-        #endregion
-
-        #region INodePacketTranslatable Members
-
-        /// <summary>
-        /// Translates the packet to/from binary form.
-        /// </summary>
-        /// <param name="translator">The translator to use.</param>
-        public void Translate(ITranslator translator)
-        {
-            translator.Translate(ref _prepareForReuse);
-        }
-
-        /// <summary>
-        /// Factory for deserialization.
-        /// </summary>
-        internal static NodeBuildComplete FactoryForDeserialization(ITranslator translator)
-        {
-            NodeBuildComplete packet = new NodeBuildComplete();
-            packet.Translate(translator);
-            return packet;
-        }
-
-        #endregion
+    /// <summary>
+    /// Factory for deserialization.
+    /// </summary>
+    internal static NodeBuildComplete FactoryForDeserialization(ITranslator translator)
+    {
+        NodeBuildComplete packet = new NodeBuildComplete();
+        packet.Translate(translator);
+        return packet;
     }
 }

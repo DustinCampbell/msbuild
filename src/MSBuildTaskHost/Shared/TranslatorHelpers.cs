@@ -55,31 +55,6 @@ namespace Microsoft.Build.BackEnd
             return TranslateUsingValueFactory;
         }
 
-        public static void Translate<T>(
-            this ITranslator translator,
-            ref List<T> list,
-            NodePacketValueFactory<T> valueFactory) where T : class, ITranslatable
-        {
-            translator.Translate(ref list, AdaptFactory(valueFactory), valueFactory);
-        }
-
-        public static void Translate<T, L>(
-            this ITranslator translator,
-            ref IList<T> list,
-            NodePacketValueFactory<T> valueFactory,
-            NodePacketCollectionCreator<L> collectionFactory) where L : IList<T> where T : ITranslatable
-        {
-            translator.Translate(ref list, AdaptFactory(valueFactory), valueFactory, collectionFactory);
-        }
-
-        public static void TranslateArray<T>(
-            this ITranslator translator,
-            ref T[] array,
-            NodePacketValueFactory<T> valueFactory) where T : class, ITranslatable
-        {
-            translator.TranslateArray(ref array, AdaptFactory(valueFactory), valueFactory);
-        }
-
         public static void TranslateDictionary<T>(
             this ITranslator translator,
             ref Dictionary<string, T> dictionary,
@@ -87,91 +62,6 @@ namespace Microsoft.Build.BackEnd
             NodePacketValueFactory<T> valueFactory) where T : class, ITranslatable
         {
             translator.TranslateDictionary(ref dictionary, comparer, AdaptFactory(valueFactory), valueFactory);
-        }
-
-        public static void InternDictionary(
-            this ITranslator translator,
-            ref Dictionary<string, string> dictionary,
-            IEqualityComparer<string> comparer)
-        {
-            IDictionary<string, string> localDict = dictionary;
-            translator.TranslateDictionary(
-                ref localDict,
-                (ITranslator translator, ref string key) => translator.Intern(ref key),
-                (ITranslator translator, ref string val) => translator.Intern(ref val),
-                capacity => new Dictionary<string, string>(capacity, comparer));
-            dictionary = (Dictionary<string, string>)localDict;
-        }
-
-        public static void InternDictionary<T>(
-            this ITranslator translator,
-            ref Dictionary<string, T> dictionary,
-            IEqualityComparer<string> stringComparer,
-            NodePacketValueFactory<T> valueFactory)
-            where T : ITranslatable
-        {
-            IDictionary<string, T> localDict = dictionary;
-            translator.TranslateDictionary(
-                ref localDict,
-                (ITranslator translator, ref string key) => translator.Intern(ref key),
-                AdaptFactory(valueFactory),
-                valueFactory,
-                capacity => new Dictionary<string, T>(capacity, stringComparer));
-            dictionary = (Dictionary<string, T>)localDict;
-        }
-
-        public static void InternPathDictionary(
-            this ITranslator translator,
-            ref Dictionary<string, string> dictionary,
-            IEqualityComparer<string> comparer)
-        {
-            IDictionary<string, string> localDict = dictionary;
-
-            // For now, assume only the value contains path-like strings (e.g. TaskItem metadata).
-            translator.TranslateDictionary(
-                ref localDict,
-                (ITranslator translator, ref string key) => translator.Intern(ref key),
-                (ITranslator translator, ref string val) => translator.InternPath(ref val),
-                capacity => new Dictionary<string, string>(capacity, comparer));
-            dictionary = (Dictionary<string, string>)localDict;
-        }
-
-        public static void InternPathDictionary<T>(
-            this ITranslator translator,
-            ref Dictionary<string, T> dictionary,
-            IEqualityComparer<string> stringComparer,
-            NodePacketValueFactory<T> valueFactory)
-            where T : ITranslatable
-        {
-            IDictionary<string, T> localDict = dictionary;
-            translator.TranslateDictionary(
-                ref localDict,
-                (ITranslator translator, ref string key) => translator.InternPath(ref key),
-                AdaptFactory(valueFactory),
-                valueFactory,
-                capacity => new Dictionary<string, T>(capacity, stringComparer));
-            dictionary = (Dictionary<string, T>)localDict;
-        }
-
-        public static void TranslateDictionary<D, T>(
-            this ITranslator translator,
-            ref D dictionary,
-            NodePacketValueFactory<T> valueFactory)
-            where D : IDictionary<string, T>, new()
-            where T : class, ITranslatable
-        {
-            translator.TranslateDictionary(ref dictionary, AdaptFactory(valueFactory), valueFactory);
-        }
-
-        public static void TranslateDictionary<D, T>(
-            this ITranslator translator,
-            ref D dictionary,
-            NodePacketValueFactory<T> valueFactory,
-            NodePacketCollectionCreator<D> collectionCreator)
-            where D : IDictionary<string, T>
-            where T : class, ITranslatable
-        {
-            translator.TranslateDictionary(ref dictionary, AdaptFactory(valueFactory), valueFactory, collectionCreator);
         }
 
         public static void TranslateHashSet<T>(

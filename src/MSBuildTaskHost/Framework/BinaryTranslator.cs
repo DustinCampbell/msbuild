@@ -8,1493 +8,1461 @@ using System.Globalization;
 using System.IO;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.BuildException;
+using Microsoft.Build.Shared;
 
 #nullable disable
 
-namespace Microsoft.Build.BackEnd
+namespace Microsoft.Build.BackEnd;
+
+/// <summary>
+/// This class is responsible for serializing and deserializing simple types to and
+/// from the byte streams used to communicate INodePacket-implementing classes.
+/// Each class implements a Translate method on INodePacket which takes this class
+/// as a parameter, and uses it to store and retrieve fields to the stream.
+/// </summary>
+internal static class BinaryTranslator
 {
     /// <summary>
-    /// This class is responsible for serializing and deserializing simple types to and
-    /// from the byte streams used to communicate INodePacket-implementing classes.
-    /// Each class implements a Translate method on INodePacket which takes this class
-    /// as a parameter, and uses it to store and retrieve fields to the stream.
+    /// Presence of this key in the dictionary indicates that it was null.
     /// </summary>
-    internal static class BinaryTranslator
+    /// <remarks>
+    /// This constant is needed for a workaround concerning serializing BuildResult with a version.
+    /// </remarks>
+    private const string SpecialKeyForDictionaryBeingNull = "=MSBUILDDICTIONARYWASNULL=";
+
+#nullable enable
+    /// <summary>
+    /// Returns a read-only serializer.
+    /// </summary>
+    /// <returns>The serializer.</returns>
+    internal static ITranslator GetReadTranslator(Stream stream, BinaryReaderFactory buffer)
+    {
+        return new BinaryReadTranslator(stream, buffer);
+    }
+#nullable disable
+
+    /// <summary>
+    /// Returns a write-only serializer.
+    /// </summary>
+    /// <param name="stream">The stream containing data to serialize.</param>
+    /// <returns>The serializer.</returns>
+    internal static ITranslator GetWriteTranslator(Stream stream)
+    {
+        return new BinaryWriteTranslator(stream);
+    }
+
+    /// <summary>
+    /// Implementation of ITranslator for reading from a stream.
+    /// </summary>
+    private sealed class BinaryReadTranslator : ITranslator
     {
         /// <summary>
-        /// Presence of this key in the dictionary indicates that it was null.
+        /// The intern reader used in an intern scope.
         /// </summary>
-        /// <remarks>
-        /// This constant is needed for a workaround concerning serializing BuildResult with a version.
-        /// </remarks>
-        private const string SpecialKeyForDictionaryBeingNull = "=MSBUILDDICTIONARYWASNULL=";
+        private InterningReadTranslator _interner;
+
+        /// <summary>
+        /// The binary reader used in read mode.
+        /// </summary>
+        private BinaryReader _reader;
+
+        /// <summary>
+        /// Whether the caller has entered an intern scope.
+        /// </summary>
+        private bool _isInterning;
 
 #nullable enable
         /// <summary>
-        /// Returns a read-only serializer.
+        /// Constructs a serializer from the specified stream, operating in the designated mode.
         /// </summary>
-        /// <returns>The serializer.</returns>
-        internal static ITranslator GetReadTranslator(Stream stream, BinaryReaderFactory buffer)
+        public BinaryReadTranslator(Stream packetStream, BinaryReaderFactory buffer)
         {
-            return new BinaryReadTranslator(stream, buffer);
+            _reader = buffer.Create(packetStream);
         }
 #nullable disable
 
         /// <summary>
-        /// Returns a write-only serializer.
+        /// Delegates the Dispose call the to the underlying BinaryReader.
         /// </summary>
-        /// <param name="stream">The stream containing data to serialize.</param>
-        /// <returns>The serializer.</returns>
-        internal static ITranslator GetWriteTranslator(Stream stream)
+        public void Dispose()
         {
-            return new BinaryWriteTranslator(stream);
+            _reader.Close();
         }
 
         /// <summary>
-        /// Implementation of ITranslator for reading from a stream.
+        /// Gets the reader, if any.
         /// </summary>
-        private class BinaryReadTranslator : ITranslator
+        public BinaryReader Reader
         {
-            /// <summary>
-            /// The intern reader used in an intern scope.
-            /// </summary>
-            private InterningReadTranslator _interner;
+            get { return _reader; }
+        }
 
-            /// <summary>
-            /// The binary reader used in read mode.
-            /// </summary>
-            private BinaryReader _reader;
-
-            /// <summary>
-            /// Whether the caller has entered an intern scope.
-            /// </summary>
-            private bool _isInterning;
-
-#nullable enable
-            /// <summary>
-            /// Constructs a serializer from the specified stream, operating in the designated mode.
-            /// </summary>
-            public BinaryReadTranslator(Stream packetStream, BinaryReaderFactory buffer)
+        /// <summary>
+        /// Gets the writer, if any.
+        /// </summary>
+        public BinaryWriter Writer
+        {
+            get
             {
-                _reader = buffer.Create(packetStream);
+                ErrorUtilities.ThrowInternalError("Cannot get writer from reader.");
+                return null;
             }
-#nullable disable
+        }
 
-            /// <summary>
-            /// Delegates the Dispose call the to the underlying BinaryReader.
-            /// </summary>
-            public void Dispose()
-            {
-                _reader.Close();
-            }
+        /// <summary>
+        /// Returns the current serialization mode.
+        /// </summary>
+        public TranslationDirection Mode
+        {
+            [DebuggerStepThrough]
+            get
+            { return TranslationDirection.ReadFromStream; }
+        }
 
-            /// <summary>
-            /// Gets the reader, if any.
-            /// </summary>
-            public BinaryReader Reader
-            {
-                get { return _reader; }
-            }
+        /// <inheritdoc/>
+        public byte NegotiatedPacketVersion { get; set; }
 
-            /// <summary>
-            /// Gets the writer, if any.
-            /// </summary>
-            public BinaryWriter Writer
+        /// <summary>
+        /// Translates a boolean.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref bool value)
+        {
+            value = _reader.ReadBoolean();
+        }
+
+        /// <summary>
+        /// Translates an <see langword="bool"/> array.
+        /// </summary>
+        /// <param name="array">The array to be translated.</param>
+        public void Translate(ref bool[] array)
+        {
+            if (!TranslateNullable(array))
             {
-                get
-                {
-                    EscapeHatches.ThrowInternalError("Cannot get writer from reader.");
-                    return null;
-                }
+                return;
             }
 
-            /// <summary>
-            /// Returns the current serialization mode.
-            /// </summary>
-            public TranslationDirection Mode
+            int count = _reader.ReadInt32();
+            array = new bool[count];
+
+            for (int i = 0; i < count; i++)
             {
-                [DebuggerStepThrough]
-                get
-                { return TranslationDirection.ReadFromStream; }
+                array[i] = _reader.ReadBoolean();
+            }
+        }
+
+        /// <summary>
+        /// Translates a byte.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref byte value)
+        {
+            value = _reader.ReadByte();
+        }
+
+        /// <summary>
+        /// Translates a short.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref short value)
+        {
+            value = _reader.ReadInt16();
+        }
+
+        /// <summary>
+        /// Translates an unsigned short.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref ushort value)
+        {
+            value = _reader.ReadUInt16();
+        }
+
+        /// <summary>
+        /// Translates an integer.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref int value)
+        {
+            value = _reader.ReadInt32();
+        }
+
+        /// <inheritdoc/>
+        public void Translate(ref uint unsignedInteger) => unsignedInteger = _reader.ReadUInt32();
+
+        /// <summary>
+        /// Translates a TaskHostParameters.
+        /// </summary>
+        /// <param name="value">The TaskHostParameters to be translated.</param>
+        public void Translate(ref TaskHostParameters value)
+        {
+            string runtime = null;
+            string architecture = null;
+            string dotnetHostPath = null;
+            string msBuildAssemblyPath = null;
+            bool? isTaskHostFactory = null;
+
+            Translate(ref runtime);
+            Translate(ref architecture);
+            Translate(ref dotnetHostPath);
+            Translate(ref msBuildAssemblyPath);
+
+            bool hasTaskHostFactory = _reader.ReadBoolean();
+            if (hasTaskHostFactory)
+            {
+                isTaskHostFactory = _reader.ReadBoolean();
             }
 
-            /// <inheritdoc/>
-            public byte NegotiatedPacketVersion { get; set; }
+            value = new TaskHostParameters(
+                runtime: runtime,
+                architecture: architecture,
+                dotnetHostPath: dotnetHostPath,
+                msBuildAssemblyPath: msBuildAssemblyPath,
+                taskHostFactoryExplicitlyRequested: isTaskHostFactory);
+        }
 
-            /// <summary>
-            /// Translates a boolean.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref bool value)
+        /// <summary>
+        /// Translates an <see langword="int"/> array.
+        /// </summary>
+        /// <param name="array">The array to be translated.</param>
+        public void Translate(ref int[] array)
+        {
+            if (!TranslateNullable(array))
             {
-                value = _reader.ReadBoolean();
+                return;
             }
 
-            /// <summary>
-            /// Translates an <see langword="bool"/> array.
-            /// </summary>
-            /// <param name="array">The array to be translated.</param>
-            public void Translate(ref bool[] array)
+            int count = _reader.ReadInt32();
+            array = new int[count];
+
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
+                array[i] = _reader.ReadInt32();
+            }
+        }
 
-                int count = _reader.ReadInt32();
-                array = new bool[count];
+        /// <summary>
+        /// Translates a long.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref long value)
+        {
+            value = _reader.ReadInt64();
+        }
 
-                for (int i = 0; i < count; i++)
-                {
-                    array[i] = _reader.ReadBoolean();
-                }
+        /// <summary>
+        /// Translates a double.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref double value)
+        {
+            value = _reader.ReadDouble();
+        }
+
+        /// <summary>
+        /// Translates a string.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref string value)
+        {
+            if (!TranslateNullable(value))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a byte.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref byte value)
+            value = _reader.ReadString();
+        }
+
+        /// <summary>
+        /// Translates a byte array
+        /// </summary>
+        /// <param name="byteArray">The array to be translated</param>
+        public void Translate(ref byte[] byteArray)
+        {
+            if (!TranslateNullable(byteArray))
             {
-                value = _reader.ReadByte();
+                return;
             }
 
-            /// <summary>
-            /// Translates a short.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref short value)
+            int count = _reader.ReadInt32();
+            if (count > 0)
             {
-                value = _reader.ReadInt16();
+                byteArray = _reader.ReadBytes(count);
             }
-
-            /// <summary>
-            /// Translates an unsigned short.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref ushort value)
+            else
             {
-                value = _reader.ReadUInt16();
-            }
-
-            /// <summary>
-            /// Translates an integer.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref int value)
-            {
-                value = _reader.ReadInt32();
-            }
-
-            /// <inheritdoc/>
-            public void Translate(ref uint unsignedInteger) => unsignedInteger = _reader.ReadUInt32();
-
-            /// <summary>
-            /// Translates a TaskHostParameters.
-            /// </summary>
-            /// <param name="value">The TaskHostParameters to be translated.</param>
-            public void Translate(ref TaskHostParameters value)
-            {
-                string runtime = null;
-                string architecture = null;
-                string dotnetHostPath = null;
-                string msBuildAssemblyPath = null;
-                bool? isTaskHostFactory = null;
-
-                Translate(ref runtime);
-                Translate(ref architecture);
-                Translate(ref dotnetHostPath);
-                Translate(ref msBuildAssemblyPath);
-
-                bool hasTaskHostFactory = _reader.ReadBoolean();
-                if (hasTaskHostFactory)
-                {
-                    isTaskHostFactory = _reader.ReadBoolean();
-                }
-
-                value = new TaskHostParameters(
-                    runtime: runtime,
-                    architecture: architecture,
-                    dotnetHostPath: dotnetHostPath,
-                    msBuildAssemblyPath: msBuildAssemblyPath,
-                    taskHostFactoryExplicitlyRequested: isTaskHostFactory);
-            }
-
-            /// <summary>
-            /// Translates an <see langword="int"/> array.
-            /// </summary>
-            /// <param name="array">The array to be translated.</param>
-            public void Translate(ref int[] array)
-            {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                array = new int[count];
-
-                for (int i = 0; i < count; i++)
-                {
-                    array[i] = _reader.ReadInt32();
-                }
-            }
-
-            /// <summary>
-            /// Translates a long.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref long value)
-            {
-                value = _reader.ReadInt64();
-            }
-
-            /// <summary>
-            /// Translates a double.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref double value)
-            {
-                value = _reader.ReadDouble();
-            }
-
-            /// <summary>
-            /// Translates a string.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref string value)
-            {
-                if (!TranslateNullable(value))
-                {
-                    return;
-                }
-
-                value = _reader.ReadString();
-            }
-
-            /// <summary>
-            /// Translates a byte array
-            /// </summary>
-            /// <param name="byteArray">The array to be translated</param>
-            public void Translate(ref byte[] byteArray)
-            {
-                if (!TranslateNullable(byteArray))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                if (count > 0)
-                {
-                    byteArray = _reader.ReadBytes(count);
-                }
-                else
-                {
 #pragma warning disable CA1825 // Avoid zero-length array allocations
-                    byteArray = new byte[0];
+                byteArray = new byte[0];
 #pragma warning restore CA1825 // Avoid zero-length array allocations
-                }
-            }
-
-            /// <summary>
-            /// Translates a byte array
-            /// </summary>
-            /// <param name="byteArray">The array to be translated.</param>
-            /// <param name="length">The length of array which will be used in translation. This parameter is not used when reading</param>
-            public void Translate(ref byte[] byteArray, ref int length)
-            {
-                Translate(ref byteArray);
-                length = byteArray.Length;
-            }
-
-            /// <summary>
-            /// Translates a string array.
-            /// </summary>
-            /// <param name="array">The array to be translated.</param>
-            public void Translate(ref string[] array)
-            {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                array = new string[count];
-
-                for (int i = 0; i < count; i++)
-                {
-                    array[i] = _reader.ReadString();
-                }
-            }
-
-            /// <inheritdoc />
-            public void Translate(ref HashSet<string> set)
-            {
-                if (!TranslateNullable(set))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                set = new HashSet<string>();
-
-                for (int i = 0; i < count; i++)
-                {
-                    set.Add(_reader.ReadString());
-                }
-            }
-
-            /// <summary>
-            /// Translates a list of strings
-            /// </summary>
-            /// <param name="list">The list to be translated.</param>
-            public void Translate(ref List<string> list)
-            {
-                if (!TranslateNullable(list))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                list = new List<string>(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    list.Add(_reader.ReadString());
-                }
-            }
-
-            /// <summary>
-            /// Translates a list of T using an <see cref="ObjectTranslator{T}"/>
-            /// </summary>
-            /// <param name="list">The list to be translated.</param>
-            /// <param name="objectTranslator">The translator to use for the items in the list</param>
-            /// <typeparam name="T">TaskItem type</typeparam>
-            public void Translate<T>(ref List<T> list, ObjectTranslator<T> objectTranslator)
-            {
-                IList<T> listAsInterface = list;
-                Translate(ref listAsInterface, objectTranslator, count => new List<T>(count));
-                list = (List<T>)listAsInterface;
-            }
-
-            /// <inheritdoc/>
-            public void Translate<T>(ref List<T> list, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
-            {
-                IList<T> listAsInterface = list;
-                Translate(ref listAsInterface, objectTranslator, valueFactory, count => new List<T>(count));
-                list = (List<T>)listAsInterface;
-            }
-
-            public void Translate<T, L>(ref IList<T> list, ObjectTranslator<T> objectTranslator, NodePacketCollectionCreator<L> collectionFactory) where L : IList<T>
-            {
-                if (!TranslateNullable(list))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                list = collectionFactory(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    T value = default(T);
-
-                    objectTranslator(this, ref value);
-                    list.Add(value);
-                }
-            }
-
-            public void Translate<T, L>(ref IList<T> list, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory, NodePacketCollectionCreator<L> collectionFactory) where L : IList<T>
-            {
-                if (!TranslateNullable(list))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                list = collectionFactory(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    T value = default(T);
-
-                    objectTranslator(this, valueFactory, ref value);
-                    list.Add(value);
-                }
-            }
-
-            /// <summary>
-            /// Translates a collection of T into the specified type using an <see cref="ObjectTranslator{T}"/> and <see cref="NodePacketCollectionCreator{L}"/>
-            /// </summary>
-            /// <param name="collection">The collection to be translated.</param>
-            /// <param name="objectTranslator">The translator to use for the values in the collection.</param>
-            /// <param name="collectionFactory">The factory to create the ICollection.</param>
-            /// <typeparam name="T">The type contained in the collection.</typeparam>
-            /// <typeparam name="L">The type of collection to be created.</typeparam>
-            public void Translate<T, L>(ref ICollection<T> collection, ObjectTranslator<T> objectTranslator, NodePacketCollectionCreator<L> collectionFactory) where L : ICollection<T>
-            {
-                if (!TranslateNullable(collection))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                collection = collectionFactory(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    T value = default(T);
-                    objectTranslator(this, ref value);
-                    collection.Add(value);
-                }
-            }
-
-            /// <summary>
-            /// Translates a DateTime.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref DateTime value)
-            {
-                DateTimeKind kind = DateTimeKind.Unspecified;
-                TranslateEnum<DateTimeKind>(ref kind, 0);
-                value = new DateTime(_reader.ReadInt64(), kind);
-            }
-
-            /// <summary>
-            /// Translates a TimeSpan.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref TimeSpan value)
-            {
-                long ticks = 0;
-                Translate(ref ticks);
-                value = new System.TimeSpan(ticks);
-            }
-
-            /// <summary>
-            /// Translates a CultureInfo
-            /// </summary>
-            /// <param name="value">The CultureInfo to translate</param>
-            public void TranslateCulture(ref CultureInfo value)
-            {
-                string cultureName = _reader.ReadString();
-
-                try
-                {
-                    value = new CultureInfo(cultureName);
-                }
-                catch
-                {
-                    // It may be that some culture codes are accepted on later .net framework versions
-                    // but not on the older 3.5 or 2.0. Fallbacks are required in this case to prevent
-                    // exceptions.
-                    value = CultureInfo.CurrentCulture;
-                }
-            }
-
-            /// <summary>
-            /// Translates an enumeration.
-            /// </summary>
-            /// <typeparam name="T">The enumeration type.</typeparam>
-            /// <param name="value">The enumeration instance to be translated.</param>
-            /// <param name="numericValue">The enumeration value as an integer.</param>
-            /// <remarks>This is a bit ugly, but it doesn't seem like a nice method signature is possible because
-            /// you can't pass the enum type as a reference and constrain the generic parameter to Enum.  Nor
-            /// can you simply pass as ref Enum, because an enum instance doesn't match that function signature.
-            /// Finally, converting the enum to an int assumes that we always want to transport enums as ints.  This
-            /// works in all of our current cases, but certainly isn't perfectly generic.</remarks>
-            public void TranslateEnum<T>(ref T value, int numericValue)
-                where T : struct, Enum
-            {
-                numericValue = _reader.ReadInt32();
-                Type enumType = value.GetType();
-                value = (T)Enum.ToObject(enumType, numericValue);
-            }
-
-            public void TranslateException(ref Exception value)
-            {
-                if (!TranslateNullable(value))
-                {
-                    return;
-                }
-
-                value = BuildExceptionBase.ReadExceptionFromTranslator(this);
-            }
-
-
-            /// <summary>
-            /// Translates an object implementing INodePacketTranslatable.
-            /// </summary>
-            /// <typeparam name="T">The reference type.</typeparam>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate<T>(ref T value)
-                where T : ITranslatable, new()
-            {
-                if (!TranslateNullable(value))
-                {
-                    return;
-                }
-
-                value = new T();
-                value.Translate(this);
-            }
-
-            /// <summary>
-            /// Translates an array of objects implementing INodePacketTranslatable.
-            /// </summary>
-            /// <typeparam name="T">The reference type.</typeparam>
-            /// <param name="array">The array to be translated.</param>
-            public void TranslateArray<T>(ref T[] array)
-                where T : ITranslatable, new()
-            {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                array = new T[count];
-
-                for (int i = 0; i < count; i++)
-                {
-                    array[i] = new T();
-                    array[i].Translate(this);
-                }
-            }
-
-            /// <inheritdoc/>
-            public void TranslateArray<T>(ref T[] array, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
-            {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                array = new T[count];
-
-                for (int i = 0; i < count; i++)
-                {
-                    objectTranslator(this, valueFactory, ref array[i]);
-                }
-            }
-
-            /// <summary>
-            /// Translates a dictionary of { string, string }.
-            /// </summary>
-            /// <param name="dictionary">The dictionary to be translated.</param>
-            /// <param name="comparer">The comparer used to instantiate the dictionary.</param>
-            public void TranslateDictionary(ref Dictionary<string, string> dictionary, IEqualityComparer<string> comparer)
-            {
-                IDictionary<string, string> copy = dictionary;
-
-                TranslateDictionary(
-                    ref copy,
-                    count => new Dictionary<string, string>(count, comparer));
-
-                dictionary = (Dictionary<string, string>)copy;
-            }
-
-            /// <summary>
-            /// Translates a dictionary of { string, string } with additional entries. The dictionary might be null despite being populated.
-            /// </summary>
-            /// <param name="dictionary">The dictionary to be translated.</param>
-            /// <param name="comparer">The comparer used to instantiate the dictionary.</param>
-            /// <param name="additionalEntries">Additional entries to be translated</param>
-            /// <param name="additionalEntriesKeys">Additional entries keys</param>
-            /// <remarks>
-            /// This overload is needed for a workaround concerning serializing BuildResult with a version.
-            /// It deserializes additional entries together with the main dictionary.
-            /// </remarks>
-            public void TranslateDictionary(ref IDictionary<string, string> dictionary, IEqualityComparer<string> comparer, ref Dictionary<string, string> additionalEntries, HashSet<string> additionalEntriesKeys)
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                dictionary = new Dictionary<string, string>(count, comparer);
-                additionalEntries = new();
-
-                for (int i = 0; i < count; i++)
-                {
-                    string key = null;
-                    Translate(ref key);
-                    string value = null;
-                    Translate(ref value);
-                    if (additionalEntriesKeys.Contains(key))
-                    {
-                        additionalEntries[key] = value;
-                    }
-                    else if (comparer.Equals(key, SpecialKeyForDictionaryBeingNull))
-                    {
-                        // Presence of special key SpecialKeyForDictionaryBeingNull indicates that the dictionary was null.
-                        dictionary = null;
-
-                        // If the dictionary is null, we should have only two keys: SpecialKeyForDictionaryBeingNull, SpecialKeyForVersion
-                        Debug.Assert(count == 2);
-                    }
-                    else if (dictionary is not null)
-                    {
-                        dictionary[key] = value;
-                    }
-                }
-            }
-
-            public void TranslateDictionary(ref IDictionary<string, string> dictionary, NodePacketCollectionCreator<IDictionary<string, string>> dictionaryCreator)
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                dictionary = dictionaryCreator(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    string key = null;
-                    Translate(ref key);
-                    string value = null;
-                    Translate(ref value);
-                    dictionary[key] = value;
-                }
-            }
-
-            public void TranslateDictionary<K, V>(
-                ref IDictionary<K, V> dictionary,
-                ObjectTranslator<K> keyTranslator,
-                ObjectTranslator<V> valueTranslator,
-                NodePacketCollectionCreator<IDictionary<K, V>> dictionaryCreator)
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                dictionary = dictionaryCreator(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    K key = default(K);
-                    keyTranslator(this, ref key);
-                    V value = default(V);
-                    valueTranslator(this, ref value);
-                    dictionary[key] = value;
-                }
-            }
-
-            /// <inheritdoc/>
-            public void TranslateDictionary<K, V>(
-                ref IDictionary<K, V> dictionary,
-                ObjectTranslator<K> keyTranslator,
-                ObjectTranslatorWithValueFactory<V> valueTranslator,
-                NodePacketValueFactory<V> valueFactory,
-                NodePacketCollectionCreator<IDictionary<K, V>> dictionaryCreator)
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                dictionary = dictionaryCreator(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    K key = default(K);
-                    keyTranslator(this, ref key);
-                    V value = default(V);
-                    valueTranslator(this, valueFactory, ref value);
-                    dictionary[key] = value;
-                }
-            }
-
-            /// <inheritdoc/>
-            public void TranslateDictionary<T>(ref Dictionary<string, T> dictionary, IEqualityComparer<string> comparer, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
-                where T : class
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                dictionary = new Dictionary<string, T>(count, comparer);
-
-                for (int i = 0; i < count; i++)
-                {
-                    string key = null;
-                    Translate(ref key);
-                    T value = null;
-                    objectTranslator(this, valueFactory, ref value);
-                    dictionary[key] = value;
-                }
-            }
-
-            /// <inheritdoc/>
-            public void TranslateDictionary<D, T>(ref D dictionary, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
-                where D : IDictionary<string, T>, new()
-                where T : class
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                dictionary = new D();
-
-                for (int i = 0; i < count; i++)
-                {
-                    string key = null;
-                    Translate(ref key);
-                    T value = null;
-                    objectTranslator(this, valueFactory, ref value);
-                    dictionary[key] = value;
-                }
-            }
-
-            /// <inheritdoc/>
-            public void TranslateDictionary<D, T>(ref D dictionary, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory, NodePacketCollectionCreator<D> dictionaryCreator)
-                where D : IDictionary<string, T>
-                where T : class
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                dictionary = dictionaryCreator(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    string key = null;
-                    Translate(ref key);
-                    T value = null;
-                    objectTranslator(this, valueFactory, ref value);
-                    dictionary[key] = value;
-                }
-            }
-
-            public void TranslateDictionary(ref Dictionary<string, DateTime> dictionary, StringComparer comparer)
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                dictionary = new(count, comparer);
-                string key = string.Empty;
-                DateTime val = DateTime.MinValue;
-                for (int i = 0; i < count; i++)
-                {
-                    Translate(ref key);
-                    Translate(ref val);
-                    dictionary.Add(key, val);
-                }
-            }
-
-            /// <summary>
-            /// Reads in the boolean which says if this object is null or not.
-            /// </summary>
-            /// <typeparam name="T">The type of object to test.</typeparam>
-            /// <returns>True if the object should be read, false otherwise.</returns>
-            public bool TranslateNullable<T>(T value)
-            {
-                bool haveRef = _reader.ReadBoolean();
-                return haveRef;
-            }
-
-            public void WithInterning(IEqualityComparer<string> comparer, int initialCapacity, Action<ITranslator> internBlock)
-            {
-                if (_isInterning)
-                {
-                    throw new InvalidOperationException("Cannot enter recursive intern block.");
-                }
-
-                _isInterning = true;
-
-                // Deserialize the intern header before entering the intern scope.
-                _interner ??= new InterningReadTranslator(this);
-                _interner.Translate(this);
-
-                // No other setup is needed since we can parse the packet directly from the stream.
-                internBlock(this);
-
-                _isInterning = false;
-            }
-
-            public void Intern(ref string str, bool nullable = true)
-            {
-                if (!_isInterning)
-                {
-                    Translate(ref str);
-                    return;
-                }
-
-                if (nullable && !TranslateNullable(string.Empty))
-                {
-                    str = null;
-                    return;
-                }
-
-                str = _interner.Read();
-            }
-
-            public void Intern(ref string[] array)
-            {
-                if (!_isInterning)
-                {
-                    Translate(ref array);
-                    return;
-                }
-
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
-
-                int count = _reader.ReadInt32();
-                array = new string[count];
-
-                for (int i = 0; i < count; i++)
-                {
-                    array[i] = _interner.Read();
-                }
-            }
-
-            public void InternPath(ref string str, bool nullable = true)
-            {
-                if (!_isInterning)
-                {
-                    Translate(ref str);
-                    return;
-                }
-
-                if (nullable && !TranslateNullable(string.Empty))
-                {
-                    str = null;
-                    return;
-                }
-
-                str = _interner.ReadPath();
             }
         }
 
         /// <summary>
-        /// Implementation of ITranslator for writing to a stream.
+        /// Translates a byte array
         /// </summary>
-        private class BinaryWriteTranslator : ITranslator
+        /// <param name="byteArray">The array to be translated.</param>
+        /// <param name="length">The length of array which will be used in translation. This parameter is not used when reading</param>
+        public void Translate(ref byte[] byteArray, ref int length)
         {
-            /// <summary>
-            /// The binary writer used in write mode.
-            /// </summary>
-            private BinaryWriter _writer;
+            Translate(ref byteArray);
+            length = byteArray.Length;
+        }
 
-            /// <summary>
-            /// The intern writer used in an intern scope.
-            /// This must be lazily instantiated since the interner has its own internal write translator, and
-            /// would otherwise go into a recursive loop on initalization.
-            /// </summary>
-            private InterningWriteTranslator _interner;
-
-            /// <summary>
-            /// Whether the caller has entered an intern scope.
-            /// </summary>
-            private bool _isInterning;
-
-            /// <summary>
-            /// Constructs a serializer from the specified stream, operating in the designated mode.
-            /// </summary>
-            /// <param name="packetStream">The stream serving as the source or destination of data.</param>
-            public BinaryWriteTranslator(Stream packetStream)
+        /// <summary>
+        /// Translates a string array.
+        /// </summary>
+        /// <param name="array">The array to be translated.</param>
+        public void Translate(ref string[] array)
+        {
+            if (!TranslateNullable(array))
             {
-                _writer = new BinaryWriter(packetStream);
+                return;
             }
 
-            /// <summary>
-            /// Delegates the Dispose call the to the underlying BinaryWriter.
-            /// </summary>
-            public void Dispose()
+            int count = _reader.ReadInt32();
+            array = new string[count];
+
+            for (int i = 0; i < count; i++)
             {
-                _writer.Close();
+                array[i] = _reader.ReadString();
+            }
+        }
+
+        /// <inheritdoc />
+        public void Translate(ref HashSet<string> set)
+        {
+            if (!TranslateNullable(set))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Gets the reader, if any.
-            /// </summary>
-            public BinaryReader Reader
+            int count = _reader.ReadInt32();
+            set = new HashSet<string>();
+
+            for (int i = 0; i < count; i++)
             {
-                get
-                {
-                    EscapeHatches.ThrowInternalError("Cannot get reader from writer.");
-                    return null;
-                }
+                set.Add(_reader.ReadString());
+            }
+        }
+
+        /// <summary>
+        /// Translates a list of strings
+        /// </summary>
+        /// <param name="list">The list to be translated.</param>
+        public void Translate(ref List<string> list)
+        {
+            if (!TranslateNullable(list))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Gets the writer, if any.
-            /// </summary>
-            public BinaryWriter Writer
+            int count = _reader.ReadInt32();
+            list = new List<string>(count);
+
+            for (int i = 0; i < count; i++)
             {
-                get { return _writer; }
+                list.Add(_reader.ReadString());
+            }
+        }
+
+        /// <summary>
+        /// Translates a list of T using an <see cref="ObjectTranslator{T}"/>
+        /// </summary>
+        /// <param name="list">The list to be translated.</param>
+        /// <param name="objectTranslator">The translator to use for the items in the list</param>
+        /// <typeparam name="T">TaskItem type</typeparam>
+        public void Translate<T>(ref List<T> list, ObjectTranslator<T> objectTranslator)
+        {
+            IList<T> listAsInterface = list;
+            Translate(ref listAsInterface, objectTranslator, count => new List<T>(count));
+            list = (List<T>)listAsInterface;
+        }
+
+        /// <inheritdoc/>
+        public void Translate<T>(ref List<T> list, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+        {
+            IList<T> listAsInterface = list;
+            Translate(ref listAsInterface, objectTranslator, valueFactory, count => new List<T>(count));
+            list = (List<T>)listAsInterface;
+        }
+
+        public void Translate<T, L>(ref IList<T> list, ObjectTranslator<T> objectTranslator, NodePacketCollectionCreator<L> collectionFactory) where L : IList<T>
+        {
+            if (!TranslateNullable(list))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Returns the current serialization mode.
-            /// </summary>
-            public TranslationDirection Mode
+            int count = _reader.ReadInt32();
+            list = collectionFactory(count);
+
+            for (int i = 0; i < count; i++)
             {
-                [DebuggerStepThrough]
-                get
-                { return TranslationDirection.WriteToStream; }
+                T value = default(T);
+
+                objectTranslator(this, ref value);
+                list.Add(value);
+            }
+        }
+
+        public void Translate<T, L>(ref IList<T> list, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory, NodePacketCollectionCreator<L> collectionFactory) where L : IList<T>
+        {
+            if (!TranslateNullable(list))
+            {
+                return;
             }
 
-            /// <inheritdoc/>
-            public byte NegotiatedPacketVersion { get; set; }
+            int count = _reader.ReadInt32();
+            list = collectionFactory(count);
 
-            /// <summary>
-            /// Translates a boolean.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref bool value)
+            for (int i = 0; i < count; i++)
             {
-                _writer.Write(value);
+                T value = default(T);
+
+                objectTranslator(this, valueFactory, ref value);
+                list.Add(value);
+            }
+        }
+
+        /// <summary>
+        /// Translates a collection of T into the specified type using an <see cref="ObjectTranslator{T}"/> and <see cref="NodePacketCollectionCreator{L}"/>
+        /// </summary>
+        /// <param name="collection">The collection to be translated.</param>
+        /// <param name="objectTranslator">The translator to use for the values in the collection.</param>
+        /// <param name="collectionFactory">The factory to create the ICollection.</param>
+        /// <typeparam name="T">The type contained in the collection.</typeparam>
+        /// <typeparam name="L">The type of collection to be created.</typeparam>
+        public void Translate<T, L>(ref ICollection<T> collection, ObjectTranslator<T> objectTranslator, NodePacketCollectionCreator<L> collectionFactory) where L : ICollection<T>
+        {
+            if (!TranslateNullable(collection))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates an <see langword="bool"/> array.
-            /// </summary>
-            /// <param name="array">The array to be translated.</param>
-            public void Translate(ref bool[] array)
+            int count = _reader.ReadInt32();
+            collection = collectionFactory(count);
+
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
+                T value = default(T);
+                objectTranslator(this, ref value);
+                collection.Add(value);
+            }
+        }
 
-                int count = array.Length;
-                _writer.Write(count);
+        /// <summary>
+        /// Translates a DateTime.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref DateTime value)
+        {
+            DateTimeKind kind = DateTimeKind.Unspecified;
+            TranslateEnum<DateTimeKind>(ref kind, 0);
+            value = new DateTime(_reader.ReadInt64(), kind);
+        }
 
-                for (int i = 0; i < count; i++)
-                {
-                    _writer.Write(array[i]);
-                }
+        /// <summary>
+        /// Translates a TimeSpan.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref TimeSpan value)
+        {
+            long ticks = 0;
+            Translate(ref ticks);
+            value = new System.TimeSpan(ticks);
+        }
+
+        /// <summary>
+        /// Translates a CultureInfo
+        /// </summary>
+        /// <param name="value">The CultureInfo to translate</param>
+        public void TranslateCulture(ref CultureInfo value)
+        {
+            string cultureName = _reader.ReadString();
+
+            try
+            {
+                value = new CultureInfo(cultureName);
+            }
+            catch
+            {
+                // It may be that some culture codes are accepted on later .net framework versions
+                // but not on the older 3.5 or 2.0. Fallbacks are required in this case to prevent
+                // exceptions.
+                value = CultureInfo.CurrentCulture;
+            }
+        }
+
+        /// <summary>
+        /// Translates an enumeration.
+        /// </summary>
+        /// <typeparam name="T">The enumeration type.</typeparam>
+        /// <param name="value">The enumeration instance to be translated.</param>
+        /// <param name="numericValue">The enumeration value as an integer.</param>
+        /// <remarks>This is a bit ugly, but it doesn't seem like a nice method signature is possible because
+        /// you can't pass the enum type as a reference and constrain the generic parameter to Enum.  Nor
+        /// can you simply pass as ref Enum, because an enum instance doesn't match that function signature.
+        /// Finally, converting the enum to an int assumes that we always want to transport enums as ints.  This
+        /// works in all of our current cases, but certainly isn't perfectly generic.</remarks>
+        public void TranslateEnum<T>(ref T value, int numericValue)
+            where T : struct, Enum
+        {
+            numericValue = _reader.ReadInt32();
+            Type enumType = value.GetType();
+            value = (T)Enum.ToObject(enumType, numericValue);
+        }
+
+        public void TranslateException(ref Exception value)
+        {
+            if (!TranslateNullable(value))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a byte.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref byte value)
+            value = BuildExceptionBase.ReadExceptionFromTranslator(this);
+        }
+
+        /// <summary>
+        /// Translates an object implementing INodePacketTranslatable.
+        /// </summary>
+        /// <typeparam name="T">The reference type.</typeparam>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate<T>(ref T value)
+            where T : ITranslatable, new()
+        {
+            if (!TranslateNullable(value))
             {
-                _writer.Write(value);
+                return;
             }
 
-            /// <summary>
-            /// Translates a short.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref short value)
+            value = new T();
+            value.Translate(this);
+        }
+
+        /// <summary>
+        /// Translates an array of objects implementing INodePacketTranslatable.
+        /// </summary>
+        /// <typeparam name="T">The reference type.</typeparam>
+        /// <param name="array">The array to be translated.</param>
+        public void TranslateArray<T>(ref T[] array)
+            where T : ITranslatable, new()
+        {
+            if (!TranslateNullable(array))
             {
-                _writer.Write(value);
+                return;
             }
 
-            /// <summary>
-            /// Translates an unsigned short.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref ushort value)
+            int count = _reader.ReadInt32();
+            array = new T[count];
+
+            for (int i = 0; i < count; i++)
             {
-                _writer.Write(value);
+                array[i] = new T();
+                array[i].Translate(this);
+            }
+        }
+
+        /// <inheritdoc/>
+        public void TranslateArray<T>(ref T[] array, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+        {
+            if (!TranslateNullable(array))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates an integer.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref int value)
+            int count = _reader.ReadInt32();
+            array = new T[count];
+
+            for (int i = 0; i < count; i++)
             {
-                _writer.Write(value);
+                objectTranslator(this, valueFactory, ref array[i]);
+            }
+        }
+
+        /// <summary>
+        /// Translates a dictionary of { string, string }.
+        /// </summary>
+        /// <param name="dictionary">The dictionary to be translated.</param>
+        /// <param name="comparer">The comparer used to instantiate the dictionary.</param>
+        public void TranslateDictionary(ref Dictionary<string, string> dictionary, IEqualityComparer<string> comparer)
+        {
+            IDictionary<string, string> copy = dictionary;
+
+            TranslateDictionary(
+                ref copy,
+                count => new Dictionary<string, string>(count, comparer));
+
+            dictionary = (Dictionary<string, string>)copy;
+        }
+
+        /// <summary>
+        /// Translates a dictionary of { string, string } with additional entries. The dictionary might be null despite being populated.
+        /// </summary>
+        /// <param name="dictionary">The dictionary to be translated.</param>
+        /// <param name="comparer">The comparer used to instantiate the dictionary.</param>
+        /// <param name="additionalEntries">Additional entries to be translated</param>
+        /// <param name="additionalEntriesKeys">Additional entries keys</param>
+        /// <remarks>
+        /// This overload is needed for a workaround concerning serializing BuildResult with a version.
+        /// It deserializes additional entries together with the main dictionary.
+        /// </remarks>
+        public void TranslateDictionary(ref IDictionary<string, string> dictionary, IEqualityComparer<string> comparer, ref Dictionary<string, string> additionalEntries, HashSet<string> additionalEntriesKeys)
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
             }
 
-            /// <inheritdoc/>
-            public void Translate(ref uint unsignedInteger) => _writer.Write(unsignedInteger);
+            int count = _reader.ReadInt32();
+            dictionary = new Dictionary<string, string>(count, comparer);
+            additionalEntries = new();
 
-            /// <summary>
-            /// Translates an <see langword="int"/> array.
-            /// </summary>
-            /// <param name="array">The array to be translated.</param>
-            public void Translate(ref int[] array)
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(array))
+                string key = null;
+                Translate(ref key);
+                string value = null;
+                Translate(ref value);
+                if (additionalEntriesKeys.Contains(key))
                 {
-                    return;
+                    additionalEntries[key] = value;
                 }
-
-                int count = array.Length;
-                _writer.Write(count);
-
-                for (int i = 0; i < count; i++)
+                else if (comparer.Equals(key, SpecialKeyForDictionaryBeingNull))
                 {
-                    _writer.Write(array[i]);
+                    // Presence of special key SpecialKeyForDictionaryBeingNull indicates that the dictionary was null.
+                    dictionary = null;
+
+                    // If the dictionary is null, we should have only two keys: SpecialKeyForDictionaryBeingNull, SpecialKeyForVersion
+                    Debug.Assert(count == 2);
+                }
+                else if (dictionary is not null)
+                {
+                    dictionary[key] = value;
                 }
             }
+        }
 
-            /// <summary>
-            /// Translates a long.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref long value)
+        public void TranslateDictionary(ref IDictionary<string, string> dictionary, NodePacketCollectionCreator<IDictionary<string, string>> dictionaryCreator)
+        {
+            if (!TranslateNullable(dictionary))
             {
-                _writer.Write(value);
+                return;
             }
 
-            /// <summary>
-            /// Translates a double.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref double value)
+            int count = _reader.ReadInt32();
+            dictionary = dictionaryCreator(count);
+
+            for (int i = 0; i < count; i++)
             {
-                _writer.Write(value);
+                string key = null;
+                Translate(ref key);
+                string value = null;
+                Translate(ref value);
+                dictionary[key] = value;
+            }
+        }
+
+        public void TranslateDictionary<K, V>(
+            ref IDictionary<K, V> dictionary,
+            ObjectTranslator<K> keyTranslator,
+            ObjectTranslator<V> valueTranslator,
+            NodePacketCollectionCreator<IDictionary<K, V>> dictionaryCreator)
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a TaskHostParameters.
-            /// </summary>
-            /// <param name="value">The TaskHostParameters to be translated.</param>
-            public void Translate(ref TaskHostParameters value)
+            int count = _reader.ReadInt32();
+            dictionary = dictionaryCreator(count);
+
+            for (int i = 0; i < count; i++)
             {
-                string runtime = value.Runtime;
-                string architecture = value.Architecture;
-                string dotnetHostPath = value.DotnetHostPath;
-                string msBuildAssemblyPath = value.MSBuildAssemblyPath;
+                K key = default(K);
+                keyTranslator(this, ref key);
+                V value = default(V);
+                valueTranslator(this, ref value);
+                dictionary[key] = value;
+            }
+        }
 
-                Translate(ref runtime);
-                Translate(ref architecture);
-                Translate(ref dotnetHostPath);
-                Translate(ref msBuildAssemblyPath);
-
-                bool hasTaskHostFactory = value.TaskHostFactoryExplicitlyRequested.HasValue;
-                _writer.Write(hasTaskHostFactory);
-                if (hasTaskHostFactory)
-                {
-                    _writer.Write(value.TaskHostFactoryExplicitlyRequested.Value);
-                }
+        /// <inheritdoc/>
+        public void TranslateDictionary<K, V>(
+            ref IDictionary<K, V> dictionary,
+            ObjectTranslator<K> keyTranslator,
+            ObjectTranslatorWithValueFactory<V> valueTranslator,
+            NodePacketValueFactory<V> valueFactory,
+            NodePacketCollectionCreator<IDictionary<K, V>> dictionaryCreator)
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a string.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref string value)
-            {
-                if (!TranslateNullable(value))
-                {
-                    return;
-                }
+            int count = _reader.ReadInt32();
+            dictionary = dictionaryCreator(count);
 
-                _writer.Write(value);
+            for (int i = 0; i < count; i++)
+            {
+                K key = default(K);
+                keyTranslator(this, ref key);
+                V value = default(V);
+                valueTranslator(this, valueFactory, ref value);
+                dictionary[key] = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public void TranslateDictionary<T>(ref Dictionary<string, T> dictionary, IEqualityComparer<string> comparer, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+            where T : class
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a string array.
-            /// </summary>
-            /// <param name="array">The array to be translated.</param>
-            public void Translate(ref string[] array)
+            int count = _reader.ReadInt32();
+            dictionary = new Dictionary<string, T>(count, comparer);
+
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
+                string key = null;
+                Translate(ref key);
+                T value = null;
+                objectTranslator(this, valueFactory, ref value);
+                dictionary[key] = value;
+            }
+        }
 
-                int count = array.Length;
-                _writer.Write(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    _writer.Write(array[i]);
-                }
+        /// <inheritdoc/>
+        public void TranslateDictionary<D, T>(ref D dictionary, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+            where D : IDictionary<string, T>, new()
+            where T : class
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a list of strings
-            /// </summary>
-            /// <param name="list">The list to be translated.</param>
-            public void Translate(ref List<string> list)
+            int count = _reader.ReadInt32();
+            dictionary = new D();
+
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(list))
-                {
-                    return;
-                }
+                string key = null;
+                Translate(ref key);
+                T value = null;
+                objectTranslator(this, valueFactory, ref value);
+                dictionary[key] = value;
+            }
+        }
 
-                int count = list.Count;
-                _writer.Write(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    _writer.Write(list[i]);
-                }
+        /// <inheritdoc/>
+        public void TranslateDictionary<D, T>(ref D dictionary, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory, NodePacketCollectionCreator<D> dictionaryCreator)
+            where D : IDictionary<string, T>
+            where T : class
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
             }
 
-            /// <inheritdoc />
-            public void Translate(ref HashSet<string> set)
+            int count = _reader.ReadInt32();
+            dictionary = dictionaryCreator(count);
+
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(set))
-                {
-                    return;
-                }
+                string key = null;
+                Translate(ref key);
+                T value = null;
+                objectTranslator(this, valueFactory, ref value);
+                dictionary[key] = value;
+            }
+        }
 
-                int count = set.Count;
-                _writer.Write(count);
-
-                foreach (var item in set)
-                {
-                    _writer.Write(item);
-                }
+        public void TranslateDictionary(ref Dictionary<string, DateTime> dictionary, StringComparer comparer)
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a list of T using an <see cref="ObjectTranslator{T}"/>
-            /// </summary>
-            /// <param name="list">The list to be translated.</param>
-            /// <param name="objectTranslator">The translator to use for the items in the list</param>
-            /// <typeparam name="T">A TaskItemType</typeparam>
-            public void Translate<T>(ref List<T> list, ObjectTranslator<T> objectTranslator)
+            int count = _reader.ReadInt32();
+            dictionary = new(count, comparer);
+            string key = string.Empty;
+            DateTime val = DateTime.MinValue;
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(list))
-                {
-                    return;
-                }
+                Translate(ref key);
+                Translate(ref val);
+                dictionary.Add(key, val);
+            }
+        }
 
-                int count = list.Count;
-                _writer.Write(count);
+        /// <summary>
+        /// Reads in the boolean which says if this object is null or not.
+        /// </summary>
+        /// <typeparam name="T">The type of object to test.</typeparam>
+        /// <returns>True if the object should be read, false otherwise.</returns>
+        public bool TranslateNullable<T>(T value)
+        {
+            bool haveRef = _reader.ReadBoolean();
+            return haveRef;
+        }
 
-                for (int i = 0; i < count; i++)
-                {
-                    T value = list[i];
-                    objectTranslator(this, ref value);
-                }
+        public void WithInterning(IEqualityComparer<string> comparer, int initialCapacity, Action<ITranslator> internBlock)
+        {
+            if (_isInterning)
+            {
+                throw new InvalidOperationException("Cannot enter recursive intern block.");
             }
 
-            /// <inheritdoc/>
-            public void Translate<T>(ref List<T> list, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+            _isInterning = true;
+
+            // Deserialize the intern header before entering the intern scope.
+            _interner ??= new InterningReadTranslator(this);
+            _interner.Translate(this);
+
+            // No other setup is needed since we can parse the packet directly from the stream.
+            internBlock(this);
+
+            _isInterning = false;
+        }
+
+        public void Intern(ref string str, bool nullable = true)
+        {
+            if (!_isInterning)
             {
-                if (!TranslateNullable(list))
-                {
-                    return;
-                }
-
-                int count = list.Count;
-                _writer.Write(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    T value = list[i];
-                    objectTranslator(this, valueFactory, ref value);
-                }
+                Translate(ref str);
+                return;
             }
 
-            /// <summary>
-            /// Translates a list of T using an <see cref="ObjectTranslator{T}"/>
-            /// </summary>
-            /// <param name="list">The list to be translated.</param>
-            /// <param name="objectTranslator">The translator to use for the items in the list</param>
-            /// <param name="collectionFactory">factory to create the IList</param>
-            /// <typeparam name="T">A TaskItemType</typeparam>
-            /// <typeparam name="L">IList subtype</typeparam>
-            public void Translate<T, L>(ref IList<T> list, ObjectTranslator<T> objectTranslator, NodePacketCollectionCreator<L> collectionFactory) where L : IList<T>
+            if (nullable && !TranslateNullable(string.Empty))
             {
-                if (!TranslateNullable(list))
-                {
-                    return;
-                }
-
-                int count = list.Count;
-                _writer.Write(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    T value = list[i];
-                    objectTranslator(this, ref value);
-                }
+                str = null;
+                return;
             }
 
-            /// <inheritdoc/>
-            public void Translate<T, L>(ref IList<T> list, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory, NodePacketCollectionCreator<L> collectionFactory) where L : IList<T>
+            str = _interner.Read();
+        }
+
+        public void Intern(ref string[] array)
+        {
+            if (!_isInterning)
             {
-                if (!TranslateNullable(list))
-                {
-                    return;
-                }
-
-                int count = list.Count;
-                _writer.Write(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    T value = list[i];
-                    objectTranslator(this, valueFactory, ref value);
-                }
+                Translate(ref array);
+                return;
             }
 
-            /// <summary>
-            /// Translates a collection of T into the specified type using an <see cref="ObjectTranslator{T}"/> and <see cref="NodePacketCollectionCreator{L}"/>
-            /// </summary>
-            /// <param name="collection">The collection to be translated.</param>
-            /// <param name="objectTranslator">The translator to use for the values in the collection.</param>
-            /// <param name="collectionFactory">The factory to create the ICollection.</param>
-            /// <typeparam name="T">The type contained in the collection.</typeparam>
-            /// <typeparam name="L">The type of collection to be created.</typeparam>
-            public void Translate<T, L>(ref ICollection<T> collection, ObjectTranslator<T> objectTranslator, NodePacketCollectionCreator<L> collectionFactory) where L : ICollection<T>
+            if (!TranslateNullable(array))
             {
-                if (!TranslateNullable(collection))
-                {
-                    return;
-                }
-
-                _writer.Write(collection.Count);
-
-                foreach (T item in collection)
-                {
-                    T value = item;
-                    objectTranslator(this, ref value);
-                }
+                return;
             }
 
-            /// <summary>
-            /// Translates a DateTime.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref DateTime value)
+            int count = _reader.ReadInt32();
+            array = new string[count];
+
+            for (int i = 0; i < count; i++)
             {
-                DateTimeKind kind = value.Kind;
-                TranslateEnum<DateTimeKind>(ref kind, (int)kind);
-                _writer.Write(value.Ticks);
+                array[i] = _interner.Read();
+            }
+        }
+
+        public void InternPath(ref string str, bool nullable = true)
+        {
+            if (!_isInterning)
+            {
+                Translate(ref str);
+                return;
             }
 
-            /// <summary>
-            /// Translates a TimeSpan.
-            /// </summary>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate(ref TimeSpan value)
+            if (nullable && !TranslateNullable(string.Empty))
             {
-                _writer.Write(value.Ticks);
+                str = null;
+                return;
             }
 
-            /// <summary>
-            /// Translates a CultureInfo
-            /// </summary>
-            /// <param name="value">The CultureInfo</param>
-            public void TranslateCulture(ref CultureInfo value)
+            str = _interner.ReadPath();
+        }
+    }
+
+    /// <summary>
+    /// Implementation of ITranslator for writing to a stream.
+    /// </summary>
+    private sealed class BinaryWriteTranslator : ITranslator
+    {
+        /// <summary>
+        /// The binary writer used in write mode.
+        /// </summary>
+        private BinaryWriter _writer;
+
+        /// <summary>
+        /// The intern writer used in an intern scope.
+        /// This must be lazily instantiated since the interner has its own internal write translator, and
+        /// would otherwise go into a recursive loop on initalization.
+        /// </summary>
+        private InterningWriteTranslator _interner;
+
+        /// <summary>
+        /// Whether the caller has entered an intern scope.
+        /// </summary>
+        private bool _isInterning;
+
+        /// <summary>
+        /// Constructs a serializer from the specified stream, operating in the designated mode.
+        /// </summary>
+        /// <param name="packetStream">The stream serving as the source or destination of data.</param>
+        public BinaryWriteTranslator(Stream packetStream)
+        {
+            _writer = new BinaryWriter(packetStream);
+        }
+
+        /// <summary>
+        /// Delegates the Dispose call the to the underlying BinaryWriter.
+        /// </summary>
+        public void Dispose()
+        {
+            _writer.Close();
+        }
+
+        /// <summary>
+        /// Gets the reader, if any.
+        /// </summary>
+        public BinaryReader Reader
+        {
+            get
             {
-                _writer.Write(value.Name);
+                ErrorUtilities.ThrowInternalError("Cannot get reader from writer.");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the writer, if any.
+        /// </summary>
+        public BinaryWriter Writer
+        {
+            get { return _writer; }
+        }
+
+        /// <summary>
+        /// Returns the current serialization mode.
+        /// </summary>
+        public TranslationDirection Mode
+        {
+            [DebuggerStepThrough]
+            get
+            { return TranslationDirection.WriteToStream; }
+        }
+
+        /// <inheritdoc/>
+        public byte NegotiatedPacketVersion { get; set; }
+
+        /// <summary>
+        /// Translates a boolean.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref bool value)
+        {
+            _writer.Write(value);
+        }
+
+        /// <summary>
+        /// Translates an <see langword="bool"/> array.
+        /// </summary>
+        /// <param name="array">The array to be translated.</param>
+        public void Translate(ref bool[] array)
+        {
+            if (!TranslateNullable(array))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates an enumeration.
-            /// </summary>
-            /// <typeparam name="T">The enumeration type.</typeparam>
-            /// <param name="value">The enumeration instance to be translated.</param>
-            /// <param name="numericValue">The enumeration value as an integer.</param>
-            /// <remarks>This is a bit ugly, but it doesn't seem like a nice method signature is possible because
-            /// you can't pass the enum type as a reference and constrain the generic parameter to Enum.  Nor
-            /// can you simply pass as ref Enum, because an enum instance doesn't match that function signature.
-            /// Finally, converting the enum to an int assumes that we always want to transport enums as ints.  This
-            /// works in all of our current cases, but certainly isn't perfectly generic.</remarks>
-            public void TranslateEnum<T>(ref T value, int numericValue)
-                where T : struct, Enum
+            int count = array.Length;
+            _writer.Write(count);
+
+            for (int i = 0; i < count; i++)
             {
-                _writer.Write(numericValue);
+                _writer.Write(array[i]);
+            }
+        }
+
+        /// <summary>
+        /// Translates a byte.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref byte value)
+        {
+            _writer.Write(value);
+        }
+
+        /// <summary>
+        /// Translates a short.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref short value)
+        {
+            _writer.Write(value);
+        }
+
+        /// <summary>
+        /// Translates an unsigned short.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref ushort value)
+        {
+            _writer.Write(value);
+        }
+
+        /// <summary>
+        /// Translates an integer.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref int value)
+        {
+            _writer.Write(value);
+        }
+
+        /// <inheritdoc/>
+        public void Translate(ref uint unsignedInteger) => _writer.Write(unsignedInteger);
+
+        /// <summary>
+        /// Translates an <see langword="int"/> array.
+        /// </summary>
+        /// <param name="array">The array to be translated.</param>
+        public void Translate(ref int[] array)
+        {
+            if (!TranslateNullable(array))
+            {
+                return;
             }
 
-            public void TranslateException(ref Exception value)
-            {
-                if (!TranslateNullable(value))
-                {
-                    return;
-                }
+            int count = array.Length;
+            _writer.Write(count);
 
-                BuildExceptionBase.WriteExceptionToTranslator(this, value);
+            for (int i = 0; i < count; i++)
+            {
+                _writer.Write(array[i]);
+            }
+        }
+
+        /// <summary>
+        /// Translates a long.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref long value)
+        {
+            _writer.Write(value);
+        }
+
+        /// <summary>
+        /// Translates a double.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref double value)
+        {
+            _writer.Write(value);
+        }
+
+        /// <summary>
+        /// Translates a TaskHostParameters.
+        /// </summary>
+        /// <param name="value">The TaskHostParameters to be translated.</param>
+        public void Translate(ref TaskHostParameters value)
+        {
+            string runtime = value.Runtime;
+            string architecture = value.Architecture;
+            string dotnetHostPath = value.DotnetHostPath;
+            string msBuildAssemblyPath = value.MSBuildAssemblyPath;
+
+            Translate(ref runtime);
+            Translate(ref architecture);
+            Translate(ref dotnetHostPath);
+            Translate(ref msBuildAssemblyPath);
+
+            bool hasTaskHostFactory = value.TaskHostFactoryExplicitlyRequested.HasValue;
+            _writer.Write(hasTaskHostFactory);
+            if (hasTaskHostFactory)
+            {
+                _writer.Write(value.TaskHostFactoryExplicitlyRequested.Value);
+            }
+        }
+
+        /// <summary>
+        /// Translates a string.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref string value)
+        {
+            if (!TranslateNullable(value))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates an object implementing INodePacketTranslatable.
-            /// </summary>
-            /// <typeparam name="T">The reference type.</typeparam>
-            /// <param name="value">The value to be translated.</param>
-            public void Translate<T>(ref T value)
-                where T : ITranslatable, new()
-            {
-                if (!TranslateNullable(value))
-                {
-                    return;
-                }
+            _writer.Write(value);
+        }
 
-                value.Translate(this);
+        /// <summary>
+        /// Translates a string array.
+        /// </summary>
+        /// <param name="array">The array to be translated.</param>
+        public void Translate(ref string[] array)
+        {
+            if (!TranslateNullable(array))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a byte array
-            /// </summary>
-            /// <param name="byteArray">The byte array to be translated</param>
-            public void Translate(ref byte[] byteArray)
+            int count = array.Length;
+            _writer.Write(count);
+
+            for (int i = 0; i < count; i++)
             {
-                var length = byteArray?.Length ?? 0;
-                Translate(ref byteArray, ref length);
+                _writer.Write(array[i]);
+            }
+        }
+
+        /// <summary>
+        /// Translates a list of strings
+        /// </summary>
+        /// <param name="list">The list to be translated.</param>
+        public void Translate(ref List<string> list)
+        {
+            if (!TranslateNullable(list))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a byte array
-            /// </summary>
-            /// <param name="byteArray">The array to be translated.</param>
-            /// <param name="length">The length of array which will be used in translation</param>
-            public void Translate(ref byte[] byteArray, ref int length)
-            {
-                if (!TranslateNullable(byteArray))
-                {
-                    return;
-                }
+            int count = list.Count;
+            _writer.Write(count);
 
-                _writer.Write(length);
-                if (length > 0)
-                {
-                    _writer.Write(byteArray, 0, length);
-                }
+            for (int i = 0; i < count; i++)
+            {
+                _writer.Write(list[i]);
+            }
+        }
+
+        /// <inheritdoc />
+        public void Translate(ref HashSet<string> set)
+        {
+            if (!TranslateNullable(set))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates an array of objects implementing INodePacketTranslatable.
-            /// </summary>
-            /// <typeparam name="T">The reference type.</typeparam>
-            /// <param name="array">The array to be translated.</param>
-            public void TranslateArray<T>(ref T[] array)
-                where T : ITranslatable, new()
+            int count = set.Count;
+            _writer.Write(count);
+
+            foreach (var item in set)
             {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
+                _writer.Write(item);
+            }
+        }
 
-                int count = array.Length;
-                _writer.Write(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    array[i].Translate(this);
-                }
+        /// <summary>
+        /// Translates a list of T using an <see cref="ObjectTranslator{T}"/>
+        /// </summary>
+        /// <param name="list">The list to be translated.</param>
+        /// <param name="objectTranslator">The translator to use for the items in the list</param>
+        /// <typeparam name="T">A TaskItemType</typeparam>
+        public void Translate<T>(ref List<T> list, ObjectTranslator<T> objectTranslator)
+        {
+            if (!TranslateNullable(list))
+            {
+                return;
             }
 
-            /// <inheritdoc/>
-            public void TranslateArray<T>(ref T[] array, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+            int count = list.Count;
+            _writer.Write(count);
+
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
+                T value = list[i];
+                objectTranslator(this, ref value);
+            }
+        }
 
-                int count = array.Length;
-                _writer.Write(count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    objectTranslator(this, valueFactory, ref array[i]);
-                }
+        /// <inheritdoc/>
+        public void Translate<T>(ref List<T> list, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+        {
+            if (!TranslateNullable(list))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a dictionary of { string, string }.
-            /// </summary>
-            /// <param name="dictionary">The dictionary to be translated.</param>
-            /// <param name="comparer">The comparer used to instantiate the dictionary.</param>
-            public void TranslateDictionary(ref Dictionary<string, string> dictionary, IEqualityComparer<string> comparer)
+            int count = list.Count;
+            _writer.Write(count);
+
+            for (int i = 0; i < count; i++)
             {
-                IDictionary<string, string> copy = dictionary;
-                TranslateDictionary(ref copy, (NodePacketCollectionCreator<IDictionary<string, string>>)null);
+                T value = list[i];
+                objectTranslator(this, valueFactory, ref value);
+            }
+        }
+
+        /// <summary>
+        /// Translates a list of T using an <see cref="ObjectTranslator{T}"/>
+        /// </summary>
+        /// <param name="list">The list to be translated.</param>
+        /// <param name="objectTranslator">The translator to use for the items in the list</param>
+        /// <param name="collectionFactory">factory to create the IList</param>
+        /// <typeparam name="T">A TaskItemType</typeparam>
+        /// <typeparam name="L">IList subtype</typeparam>
+        public void Translate<T, L>(ref IList<T> list, ObjectTranslator<T> objectTranslator, NodePacketCollectionCreator<L> collectionFactory) where L : IList<T>
+        {
+            if (!TranslateNullable(list))
+            {
+                return;
             }
 
-            /// <summary>
-            /// Translates a dictionary of { string, string } adding additional entries.
-            /// </summary>
-            /// <param name="dictionary">The dictionary to be translated.</param>
-            /// <param name="comparer">The comparer used to instantiate the dictionary.</param>
-            /// <param name="additionalEntries">Additional entries to be translated.</param>
-            /// <param name="additionalEntriesKeys">Additional entries keys.</param>
-            /// <remarks>
-            /// This overload is needed for a workaround concerning serializing BuildResult with a version.
-            /// It serializes additional entries together with the main dictionary.
-            /// </remarks>
-            public void TranslateDictionary(ref IDictionary<string, string> dictionary, IEqualityComparer<string> comparer, ref Dictionary<string, string> additionalEntries, HashSet<string> additionalEntriesKeys)
+            int count = list.Count;
+            _writer.Write(count);
+
+            for (int i = 0; i < count; i++)
             {
-                // Translate whether object is null
-                if ((dictionary is null) && ((additionalEntries is null) || (additionalEntries.Count == 0)))
-                {
-                    _writer.Write(false);
-                    return;
-                }
-                else
-                {
-                    // Translate that object is not null
-                    _writer.Write(true);
-                }
+                T value = list[i];
+                objectTranslator(this, ref value);
+            }
+        }
 
-                // Writing a dictionary, additional entries and special key if dictionary was null. We need the special key for distinguishing whether the initial dictionary was null or empty.
-                int count = (dictionary is null ? 1 : 0) +
-                            (additionalEntries is null ? 0 : additionalEntries.Count) +
-                            (dictionary is null ? 0 : dictionary.Count);
-
-                _writer.Write(count);
-
-                // If the dictionary was null, serialize a special key SpecialKeyForDictionaryBeingNull.
-                if (dictionary is null)
-                {
-                    string key = SpecialKeyForDictionaryBeingNull;
-                    Translate(ref key);
-                    string value = string.Empty;
-                    Translate(ref value);
-                }
-
-                // Serialize additional entries
-                if (additionalEntries is not null)
-                {
-                    foreach (KeyValuePair<string, string> pair in additionalEntries)
-                    {
-                        string key = pair.Key;
-                        Translate(ref key);
-                        string value = pair.Value;
-                        Translate(ref value);
-                    }
-                }
-
-                // Serialize dictionary
-                if (dictionary is not null)
-                {
-                    foreach (KeyValuePair<string, string> pair in dictionary)
-                    {
-                        string key = pair.Key;
-                        Translate(ref key);
-                        string value = pair.Value;
-                        Translate(ref value);
-                    }
-                }
+        /// <inheritdoc/>
+        public void Translate<T, L>(ref IList<T> list, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory, NodePacketCollectionCreator<L> collectionFactory) where L : IList<T>
+        {
+            if (!TranslateNullable(list))
+            {
+                return;
             }
 
-            public void TranslateDictionary(ref IDictionary<string, string> dictionary, NodePacketCollectionCreator<IDictionary<string, string>> dictionaryCreator)
+            int count = list.Count;
+            _writer.Write(count);
+
+            for (int i = 0; i < count; i++)
             {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
+                T value = list[i];
+                objectTranslator(this, valueFactory, ref value);
+            }
+        }
 
-                int count = dictionary.Count;
-                _writer.Write(count);
+        /// <summary>
+        /// Translates a collection of T into the specified type using an <see cref="ObjectTranslator{T}"/> and <see cref="NodePacketCollectionCreator{L}"/>
+        /// </summary>
+        /// <param name="collection">The collection to be translated.</param>
+        /// <param name="objectTranslator">The translator to use for the values in the collection.</param>
+        /// <param name="collectionFactory">The factory to create the ICollection.</param>
+        /// <typeparam name="T">The type contained in the collection.</typeparam>
+        /// <typeparam name="L">The type of collection to be created.</typeparam>
+        public void Translate<T, L>(ref ICollection<T> collection, ObjectTranslator<T> objectTranslator, NodePacketCollectionCreator<L> collectionFactory) where L : ICollection<T>
+        {
+            if (!TranslateNullable(collection))
+            {
+                return;
+            }
 
-                foreach (KeyValuePair<string, string> pair in dictionary)
+            _writer.Write(collection.Count);
+
+            foreach (T item in collection)
+            {
+                T value = item;
+                objectTranslator(this, ref value);
+            }
+        }
+
+        /// <summary>
+        /// Translates a DateTime.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref DateTime value)
+        {
+            DateTimeKind kind = value.Kind;
+            TranslateEnum<DateTimeKind>(ref kind, (int)kind);
+            _writer.Write(value.Ticks);
+        }
+
+        /// <summary>
+        /// Translates a TimeSpan.
+        /// </summary>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate(ref TimeSpan value)
+        {
+            _writer.Write(value.Ticks);
+        }
+
+        /// <summary>
+        /// Translates a CultureInfo
+        /// </summary>
+        /// <param name="value">The CultureInfo</param>
+        public void TranslateCulture(ref CultureInfo value)
+        {
+            _writer.Write(value.Name);
+        }
+
+        /// <summary>
+        /// Translates an enumeration.
+        /// </summary>
+        /// <typeparam name="T">The enumeration type.</typeparam>
+        /// <param name="value">The enumeration instance to be translated.</param>
+        /// <param name="numericValue">The enumeration value as an integer.</param>
+        /// <remarks>This is a bit ugly, but it doesn't seem like a nice method signature is possible because
+        /// you can't pass the enum type as a reference and constrain the generic parameter to Enum.  Nor
+        /// can you simply pass as ref Enum, because an enum instance doesn't match that function signature.
+        /// Finally, converting the enum to an int assumes that we always want to transport enums as ints.  This
+        /// works in all of our current cases, but certainly isn't perfectly generic.</remarks>
+        public void TranslateEnum<T>(ref T value, int numericValue)
+            where T : struct, Enum
+        {
+            _writer.Write(numericValue);
+        }
+
+        public void TranslateException(ref Exception value)
+        {
+            if (!TranslateNullable(value))
+            {
+                return;
+            }
+
+            BuildExceptionBase.WriteExceptionToTranslator(this, value);
+        }
+
+        /// <summary>
+        /// Translates an object implementing INodePacketTranslatable.
+        /// </summary>
+        /// <typeparam name="T">The reference type.</typeparam>
+        /// <param name="value">The value to be translated.</param>
+        public void Translate<T>(ref T value)
+            where T : ITranslatable, new()
+        {
+            if (!TranslateNullable(value))
+            {
+                return;
+            }
+
+            value.Translate(this);
+        }
+
+        /// <summary>
+        /// Translates a byte array
+        /// </summary>
+        /// <param name="byteArray">The byte array to be translated</param>
+        public void Translate(ref byte[] byteArray)
+        {
+            var length = byteArray?.Length ?? 0;
+            Translate(ref byteArray, ref length);
+        }
+
+        /// <summary>
+        /// Translates a byte array
+        /// </summary>
+        /// <param name="byteArray">The array to be translated.</param>
+        /// <param name="length">The length of array which will be used in translation</param>
+        public void Translate(ref byte[] byteArray, ref int length)
+        {
+            if (!TranslateNullable(byteArray))
+            {
+                return;
+            }
+
+            _writer.Write(length);
+            if (length > 0)
+            {
+                _writer.Write(byteArray, 0, length);
+            }
+        }
+
+        /// <summary>
+        /// Translates an array of objects implementing INodePacketTranslatable.
+        /// </summary>
+        /// <typeparam name="T">The reference type.</typeparam>
+        /// <param name="array">The array to be translated.</param>
+        public void TranslateArray<T>(ref T[] array)
+            where T : ITranslatable, new()
+        {
+            if (!TranslateNullable(array))
+            {
+                return;
+            }
+
+            int count = array.Length;
+            _writer.Write(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                array[i].Translate(this);
+            }
+        }
+
+        /// <inheritdoc/>
+        public void TranslateArray<T>(ref T[] array, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+        {
+            if (!TranslateNullable(array))
+            {
+                return;
+            }
+
+            int count = array.Length;
+            _writer.Write(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                objectTranslator(this, valueFactory, ref array[i]);
+            }
+        }
+
+        /// <summary>
+        /// Translates a dictionary of { string, string }.
+        /// </summary>
+        /// <param name="dictionary">The dictionary to be translated.</param>
+        /// <param name="comparer">The comparer used to instantiate the dictionary.</param>
+        public void TranslateDictionary(ref Dictionary<string, string> dictionary, IEqualityComparer<string> comparer)
+        {
+            IDictionary<string, string> copy = dictionary;
+            TranslateDictionary(ref copy, (NodePacketCollectionCreator<IDictionary<string, string>>)null);
+        }
+
+        /// <summary>
+        /// Translates a dictionary of { string, string } adding additional entries.
+        /// </summary>
+        /// <param name="dictionary">The dictionary to be translated.</param>
+        /// <param name="comparer">The comparer used to instantiate the dictionary.</param>
+        /// <param name="additionalEntries">Additional entries to be translated.</param>
+        /// <param name="additionalEntriesKeys">Additional entries keys.</param>
+        /// <remarks>
+        /// This overload is needed for a workaround concerning serializing BuildResult with a version.
+        /// It serializes additional entries together with the main dictionary.
+        /// </remarks>
+        public void TranslateDictionary(ref IDictionary<string, string> dictionary, IEqualityComparer<string> comparer, ref Dictionary<string, string> additionalEntries, HashSet<string> additionalEntriesKeys)
+        {
+            // Translate whether object is null
+            if ((dictionary is null) && ((additionalEntries is null) || (additionalEntries.Count == 0)))
+            {
+                _writer.Write(false);
+                return;
+            }
+            else
+            {
+                // Translate that object is not null
+                _writer.Write(true);
+            }
+
+            // Writing a dictionary, additional entries and special key if dictionary was null. We need the special key for distinguishing whether the initial dictionary was null or empty.
+            int count = (dictionary is null ? 1 : 0) +
+                        (additionalEntries is null ? 0 : additionalEntries.Count) +
+                        (dictionary is null ? 0 : dictionary.Count);
+
+            _writer.Write(count);
+
+            // If the dictionary was null, serialize a special key SpecialKeyForDictionaryBeingNull.
+            if (dictionary is null)
+            {
+                string key = SpecialKeyForDictionaryBeingNull;
+                Translate(ref key);
+                string value = string.Empty;
+                Translate(ref value);
+            }
+
+            // Serialize additional entries
+            if (additionalEntries is not null)
+            {
+                foreach (KeyValuePair<string, string> pair in additionalEntries)
                 {
                     string key = pair.Key;
                     Translate(ref key);
@@ -1503,240 +1471,271 @@ namespace Microsoft.Build.BackEnd
                 }
             }
 
-            public void TranslateDictionary<K, V>(
-                ref IDictionary<K, V> dictionary,
-                ObjectTranslator<K> keyTranslator,
-                ObjectTranslator<V> valueTranslator,
-                NodePacketCollectionCreator<IDictionary<K, V>> collectionCreator)
+            // Serialize dictionary
+            if (dictionary is not null)
             {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = dictionary.Count;
-                _writer.Write(count);
-
-                foreach (KeyValuePair<K, V> pair in dictionary)
-                {
-                    K key = pair.Key;
-                    keyTranslator(this, ref key);
-                    V value = pair.Value;
-                    valueTranslator(this, ref value);
-                }
-            }
-
-            /// <inheritdoc/>
-            public void TranslateDictionary<K, V>(
-                ref IDictionary<K, V> dictionary,
-                ObjectTranslator<K> keyTranslator,
-                ObjectTranslatorWithValueFactory<V> valueTranslator,
-                NodePacketValueFactory<V> valueFactory,
-                NodePacketCollectionCreator<IDictionary<K, V>> collectionCreator)
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = dictionary.Count;
-                _writer.Write(count);
-
-                foreach (KeyValuePair<K, V> pair in dictionary)
-                {
-                    K key = pair.Key;
-                    keyTranslator(this, ref key);
-                    V value = pair.Value;
-                    valueTranslator(this, valueFactory, ref value);
-                }
-            }
-
-            /// <inheritdoc/>
-            public void TranslateDictionary<T>(ref Dictionary<string, T> dictionary, IEqualityComparer<string> comparer, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
-                where T : class
-            {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = dictionary.Count;
-                _writer.Write(count);
-
-                foreach (KeyValuePair<string, T> pair in dictionary)
+                foreach (KeyValuePair<string, string> pair in dictionary)
                 {
                     string key = pair.Key;
                     Translate(ref key);
-                    T value = pair.Value;
-                    objectTranslator(this, valueFactory, ref value);
+                    string value = pair.Value;
+                    Translate(ref value);
                 }
             }
+        }
 
-            /// <inheritdoc/>
-            public void TranslateDictionary<D, T>(ref D dictionary, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
-                where D : IDictionary<string, T>, new()
-                where T : class
+        public void TranslateDictionary(ref IDictionary<string, string> dictionary, NodePacketCollectionCreator<IDictionary<string, string>> dictionaryCreator)
+        {
+            if (!TranslateNullable(dictionary))
             {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = dictionary.Count;
-                _writer.Write(count);
-
-                foreach (KeyValuePair<string, T> pair in dictionary)
-                {
-                    string key = pair.Key;
-                    Translate(ref key);
-                    T value = pair.Value;
-                    objectTranslator(this, valueFactory, ref value);
-                }
+                return;
             }
 
-            /// <inheritdoc/>
-            public void TranslateDictionary<D, T>(ref D dictionary, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory, NodePacketCollectionCreator<D> dictionaryCreator)
-                where D : IDictionary<string, T>
-                where T : class
+            int count = dictionary.Count;
+            _writer.Write(count);
+
+            foreach (KeyValuePair<string, string> pair in dictionary)
             {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = dictionary.Count;
-                _writer.Write(count);
-
-                foreach (KeyValuePair<string, T> pair in dictionary)
-                {
-                    string key = pair.Key;
-                    Translate(ref key);
-                    T value = pair.Value;
-                    objectTranslator(this, valueFactory, ref value);
-                }
+                string key = pair.Key;
+                Translate(ref key);
+                string value = pair.Value;
+                Translate(ref value);
             }
+        }
 
-            /// <summary>
-            /// Translates a dictionary of { string, DateTime }.
-            /// </summary>
-            /// <param name="dictionary">The dictionary to be translated.</param>
-            /// <param name="comparer">Key comparer</param>
-            public void TranslateDictionary(ref Dictionary<string, DateTime> dictionary, StringComparer comparer)
+        public void TranslateDictionary<K, V>(
+            ref IDictionary<K, V> dictionary,
+            ObjectTranslator<K> keyTranslator,
+            ObjectTranslator<V> valueTranslator,
+            NodePacketCollectionCreator<IDictionary<K, V>> collectionCreator)
+        {
+            if (!TranslateNullable(dictionary))
             {
-                if (!TranslateNullable(dictionary))
-                {
-                    return;
-                }
-
-                int count = dictionary.Count;
-                _writer.Write(count);
-                foreach (KeyValuePair<string, DateTime> kvp in dictionary)
-                {
-                    string key = kvp.Key;
-                    DateTime val = kvp.Value;
-                    Translate(ref key);
-                    Translate(ref val);
-                }
+                return;
             }
 
-            /// <summary>
-            /// Writes out the boolean which says if this object is null or not.
-            /// </summary>
-            /// <param name="value">The object to test.</param>
-            /// <typeparam name="T">The type of object to test.</typeparam>
-            /// <returns>True if the object should be written, false otherwise.</returns>
-            public bool TranslateNullable<T>(T value)
+            int count = dictionary.Count;
+            _writer.Write(count);
+
+            foreach (KeyValuePair<K, V> pair in dictionary)
             {
-                bool haveRef = (value != null);
-                _writer.Write(haveRef);
-                return haveRef;
+                K key = pair.Key;
+                keyTranslator(this, ref key);
+                V value = pair.Value;
+                valueTranslator(this, ref value);
             }
+        }
 
-            public void WithInterning(IEqualityComparer<string> comparer, int initialCapacity, Action<ITranslator> internBlock)
+        /// <inheritdoc/>
+        public void TranslateDictionary<K, V>(
+            ref IDictionary<K, V> dictionary,
+            ObjectTranslator<K> keyTranslator,
+            ObjectTranslatorWithValueFactory<V> valueTranslator,
+            NodePacketValueFactory<V> valueFactory,
+            NodePacketCollectionCreator<IDictionary<K, V>> collectionCreator)
+        {
+            if (!TranslateNullable(dictionary))
             {
-                if (_isInterning)
-                {
-                    throw new InvalidOperationException("Cannot enter recursive intern block.");
-                }
-
-                // Every new scope requires the interner's state to be reset.
-                _interner ??= new InterningWriteTranslator();
-                _interner.Setup(comparer, initialCapacity);
-
-                // Temporaily swap our writer with the interner.
-                // This forwards all writes to this translator into the interning buffer, so that any non-interned
-                // writes which are interleaved will be in the correct order.
-                BinaryWriter streamWriter = _writer;
-                _writer = _interner.Writer;
-                _isInterning = true;
-
-                try
-                {
-                    internBlock(this);
-                }
-                finally
-                {
-                    _writer = streamWriter;
-                    _isInterning = false;
-                }
-
-                // Write the interned buffer into the real output stream.
-                _interner.Translate(this);
+                return;
             }
 
-            public void Intern(ref string str, bool nullable = true)
+            int count = dictionary.Count;
+            _writer.Write(count);
+
+            foreach (KeyValuePair<K, V> pair in dictionary)
             {
-                if (!_isInterning)
-                {
-                    Translate(ref str);
-                    return;
-                }
-
-                if (nullable && !TranslateNullable(str))
-                {
-                    return;
-                }
-
-                _interner.Intern(str);
+                K key = pair.Key;
+                keyTranslator(this, ref key);
+                V value = pair.Value;
+                valueTranslator(this, valueFactory, ref value);
             }
+        }
 
-            public void Intern(ref string[] array)
+        /// <inheritdoc/>
+        public void TranslateDictionary<T>(ref Dictionary<string, T> dictionary, IEqualityComparer<string> comparer, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+            where T : class
+        {
+            if (!TranslateNullable(dictionary))
             {
-                if (!_isInterning)
-                {
-                    Translate(ref array);
-                    return;
-                }
-
-                if (!TranslateNullable(array))
-                {
-                    return;
-                }
-
-                int count = array.Length;
-                Translate(ref count);
-
-                for (int i = 0; i < count; i++)
-                {
-                    _interner.Intern(array[i]);
-                }
+                return;
             }
 
-            public void InternPath(ref string str, bool nullable = true)
+            int count = dictionary.Count;
+            _writer.Write(count);
+
+            foreach (KeyValuePair<string, T> pair in dictionary)
             {
-                if (!_isInterning)
-                {
-                    Translate(ref str);
-                    return;
-                }
-
-                if (nullable && !TranslateNullable(str))
-                {
-                    return;
-                }
-
-                _interner.InternPath(str);
+                string key = pair.Key;
+                Translate(ref key);
+                T value = pair.Value;
+                objectTranslator(this, valueFactory, ref value);
             }
+        }
+
+        /// <inheritdoc/>
+        public void TranslateDictionary<D, T>(ref D dictionary, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory)
+            where D : IDictionary<string, T>, new()
+            where T : class
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
+            }
+
+            int count = dictionary.Count;
+            _writer.Write(count);
+
+            foreach (KeyValuePair<string, T> pair in dictionary)
+            {
+                string key = pair.Key;
+                Translate(ref key);
+                T value = pair.Value;
+                objectTranslator(this, valueFactory, ref value);
+            }
+        }
+
+        /// <inheritdoc/>
+        public void TranslateDictionary<D, T>(ref D dictionary, ObjectTranslatorWithValueFactory<T> objectTranslator, NodePacketValueFactory<T> valueFactory, NodePacketCollectionCreator<D> dictionaryCreator)
+            where D : IDictionary<string, T>
+            where T : class
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
+            }
+
+            int count = dictionary.Count;
+            _writer.Write(count);
+
+            foreach (KeyValuePair<string, T> pair in dictionary)
+            {
+                string key = pair.Key;
+                Translate(ref key);
+                T value = pair.Value;
+                objectTranslator(this, valueFactory, ref value);
+            }
+        }
+
+        /// <summary>
+        /// Translates a dictionary of { string, DateTime }.
+        /// </summary>
+        /// <param name="dictionary">The dictionary to be translated.</param>
+        /// <param name="comparer">Key comparer</param>
+        public void TranslateDictionary(ref Dictionary<string, DateTime> dictionary, StringComparer comparer)
+        {
+            if (!TranslateNullable(dictionary))
+            {
+                return;
+            }
+
+            int count = dictionary.Count;
+            _writer.Write(count);
+            foreach (KeyValuePair<string, DateTime> kvp in dictionary)
+            {
+                string key = kvp.Key;
+                DateTime val = kvp.Value;
+                Translate(ref key);
+                Translate(ref val);
+            }
+        }
+
+        /// <summary>
+        /// Writes out the boolean which says if this object is null or not.
+        /// </summary>
+        /// <param name="value">The object to test.</param>
+        /// <typeparam name="T">The type of object to test.</typeparam>
+        /// <returns>True if the object should be written, false otherwise.</returns>
+        public bool TranslateNullable<T>(T value)
+        {
+            bool haveRef = (value != null);
+            _writer.Write(haveRef);
+            return haveRef;
+        }
+
+        public void WithInterning(IEqualityComparer<string> comparer, int initialCapacity, Action<ITranslator> internBlock)
+        {
+            if (_isInterning)
+            {
+                throw new InvalidOperationException("Cannot enter recursive intern block.");
+            }
+
+            // Every new scope requires the interner's state to be reset.
+            _interner ??= new InterningWriteTranslator();
+            _interner.Setup(comparer, initialCapacity);
+
+            // Temporaily swap our writer with the interner.
+            // This forwards all writes to this translator into the interning buffer, so that any non-interned
+            // writes which are interleaved will be in the correct order.
+            BinaryWriter streamWriter = _writer;
+            _writer = _interner.Writer;
+            _isInterning = true;
+
+            try
+            {
+                internBlock(this);
+            }
+            finally
+            {
+                _writer = streamWriter;
+                _isInterning = false;
+            }
+
+            // Write the interned buffer into the real output stream.
+            _interner.Translate(this);
+        }
+
+        public void Intern(ref string str, bool nullable = true)
+        {
+            if (!_isInterning)
+            {
+                Translate(ref str);
+                return;
+            }
+
+            if (nullable && !TranslateNullable(str))
+            {
+                return;
+            }
+
+            _interner.Intern(str);
+        }
+
+        public void Intern(ref string[] array)
+        {
+            if (!_isInterning)
+            {
+                Translate(ref array);
+                return;
+            }
+
+            if (!TranslateNullable(array))
+            {
+                return;
+            }
+
+            int count = array.Length;
+            Translate(ref count);
+
+            for (int i = 0; i < count; i++)
+            {
+                _interner.Intern(array[i]);
+            }
+        }
+
+        public void InternPath(ref string str, bool nullable = true)
+        {
+            if (!_isInterning)
+            {
+                Translate(ref str);
+                return;
+            }
+
+            if (nullable && !TranslateNullable(str))
+            {
+                return;
+            }
+
+            _interner.InternPath(str);
         }
     }
 }
