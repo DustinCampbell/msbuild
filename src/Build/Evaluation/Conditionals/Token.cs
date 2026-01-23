@@ -1,8 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using ErrorUtilities = Microsoft.Build.Shared.ErrorUtilities;
-
 #nullable disable
 
 namespace Microsoft.Build.Evaluation
@@ -15,27 +13,41 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal sealed class Token
     {
-        internal static readonly Token Comma = new Token(TokenKind.Comma, ",");
-        internal static readonly Token LeftParenthesis = new Token(TokenKind.LeftParenthesis, "(");
-        internal static readonly Token RightParenthesis = new Token(TokenKind.RightParenthesis, ")");
-        internal static readonly Token LessThan = new Token(TokenKind.LessThan, "<");
-        internal static readonly Token GreaterThan = new Token(TokenKind.GreaterThan, ">");
-        internal static readonly Token LessThanOrEqualTo = new Token(TokenKind.LessThanOrEqualTo, "<=");
-        internal static readonly Token GreaterThanOrEqualTo = new Token(TokenKind.GreaterThanOrEqualTo, ">=");
-        internal static readonly Token And = new Token(TokenKind.And, "and");
-        internal static readonly Token Or = new Token(TokenKind.Or, "or");
-        internal static readonly Token True = new Token(TokenKind.True, "true");
-        internal static readonly Token False = new Token(TokenKind.False, "false");
-        internal static readonly Token On = new Token(TokenKind.On, "on");
-        internal static readonly Token Off = new Token(TokenKind.Off, "off");
-        internal static readonly Token Yes = new Token(TokenKind.Yes, "yes");
-        internal static readonly Token No = new Token(TokenKind.No, "no");
-        internal static readonly Token EqualTo = new Token(TokenKind.EqualTo, "=");
-        internal static readonly Token NotEqualTo = new Token(TokenKind.NotEqualTo, "!=");
-        internal static readonly Token Not = new Token(TokenKind.Not, "not");
-        internal static readonly Token EndOfInput = new Token(TokenKind.EndOfInput);
+        public static readonly Token Comma = new(TokenKind.Comma, ",");
+        public static readonly Token LeftParenthesis = new(TokenKind.LeftParenthesis, "(");
+        public static readonly Token RightParenthesis = new(TokenKind.RightParenthesis, ")");
+        public static readonly Token LessThan = new(TokenKind.LessThan, "<");
+        public static readonly Token GreaterThan = new(TokenKind.GreaterThan, ">");
+        public static readonly Token LessThanOrEqualTo = new(TokenKind.LessThanOrEqualTo, "<=");
+        public static readonly Token GreaterThanOrEqualTo = new(TokenKind.GreaterThanOrEqualTo, ">=");
+        public static readonly Token And = new(TokenKind.And, "and");
+        public static readonly Token Or = new(TokenKind.Or, "or");
+        public static readonly Token True = new(TokenKind.True, "true");
+        public static readonly Token False = new(TokenKind.False, "false");
+        public static readonly Token On = new(TokenKind.On, "on");
+        public static readonly Token Off = new(TokenKind.Off, "off");
+        public static readonly Token Yes = new(TokenKind.Yes, "yes");
+        public static readonly Token No = new(TokenKind.No, "no");
+        public static readonly Token EqualTo = new(TokenKind.EqualTo, "=");
+        public static readonly Token NotEqualTo = new(TokenKind.NotEqualTo, "!=");
+        public static readonly Token Not = new(TokenKind.Not, "not");
+        public static readonly Token EndOfInput = new(TokenKind.EndOfInput);
+
+        public static Token Numeric(string text) => new(TokenKind.Numeric, text);
+
+        public static Token Property(string text) => new(TokenKind.Property, text);
+
+        public static Token ItemMetadata(string text) => new(TokenKind.ItemMetadata, text);
+
+        public static Token ItemList(string text) => new(TokenKind.ItemList, text);
+
+        public static Token Function(string text) => new(TokenKind.Function, text);
+
+        public static Token String(string text, bool expandable = false)
+            => new(TokenKind.String, text, expandable ? TokenFlags.IsExpandable : TokenFlags.None);
 
         public TokenKind Kind { get; }
+
         public string Text { get; }
 
         private readonly TokenFlags _flags;
@@ -52,38 +64,12 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="kind"></param>
         /// <param name="text"></param>
-        internal Token(TokenKind kind, string text = "")
+        /// <param name="flags"></param>
+        private Token(TokenKind kind, string text = "", TokenFlags flags = TokenFlags.None)
         {
             Kind = kind;
             Text = text ?? string.Empty;
-            _flags = TokenFlags.None;
-        }
-
-        /// <summary>
-        /// Constructor takes the token type and the string that
-        /// represents the token.
-        /// If the string may contain content that needs expansion, expandable is set.
-        /// </summary>
-        internal Token(TokenKind kind, string text, bool expandable)
-        {
-            ErrorUtilities.VerifyThrow(
-                kind == TokenKind.Property ||
-                kind == TokenKind.String ||
-                kind == TokenKind.Numeric ||
-                kind == TokenKind.ItemList ||
-                kind == TokenKind.ItemMetadata ||
-                kind == TokenKind.Function,
-                "Unexpected token type");
-
-            ErrorUtilities.VerifyThrowInternalNull(text);
-
-            Kind = kind;
-            Text = text;
-
-            if (expandable)
-            {
-                _flags |= TokenFlags.IsExpandable;
-            }
+            _flags = flags;
         }
 
         /// <summary>
