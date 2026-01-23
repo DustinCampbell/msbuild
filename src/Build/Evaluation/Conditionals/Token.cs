@@ -77,9 +77,7 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="kind"></param>
         /// <returns></returns>
-        internal bool IsToken(TokenKind kind)
-        {
-            return Kind == kind;
-        }
+        public bool IsKind(TokenKind kind)
+            => Kind == kind;
     }
 }

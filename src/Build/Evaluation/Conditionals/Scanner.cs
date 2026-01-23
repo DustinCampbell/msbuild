@@ -107,7 +107,7 @@ namespace Microsoft.Build.Evaluation
 
         internal bool IsNext(TokenKind type)
         {
-            return _lookahead.IsToken(type);
+            return _lookahead.IsKind(type);
         }
 
         internal string IsNextString()
@@ -151,7 +151,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            if (_lookahead?.IsToken(TokenKind.EndOfInput) == true)
+            if (_lookahead?.IsKind(TokenKind.EndOfInput) == true)
             {
                 return true;
             }
