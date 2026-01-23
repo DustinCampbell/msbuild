@@ -35,8 +35,16 @@ namespace Microsoft.Build.Evaluation
         internal static readonly Token Not = new Token(TokenKind.Not, "not");
         internal static readonly Token EndOfInput = new Token(TokenKind.EndOfInput);
 
-        private TokenKind _kind;
-        private string _text;
+        public TokenKind Kind { get; }
+        public string Text { get; }
+
+        private readonly TokenFlags _flags;
+
+        /// <summary>
+        /// Whether the content potentially has expandable content,
+        /// such as a property expression or escaped character.
+        /// </summary>
+        public bool IsExpandable => (_flags & TokenFlags.IsExpandable) != 0;
 
         /// <summary>
         /// Constructor takes the token type and the string that
@@ -46,8 +54,9 @@ namespace Microsoft.Build.Evaluation
         /// <param name="text"></param>
         internal Token(TokenKind kind, string text = "")
         {
-            _kind = kind;
-            _text = text ?? string.Empty;
+            Kind = kind;
+            Text = text ?? string.Empty;
+            _flags = TokenFlags.None;
         }
 
         /// <summary>
@@ -68,16 +77,14 @@ namespace Microsoft.Build.Evaluation
 
             ErrorUtilities.VerifyThrowInternalNull(text);
 
-            _kind = kind;
-            _text = text;
-            Expandable = expandable;
-        }
+            Kind = kind;
+            Text = text;
 
-        /// <summary>
-        /// Whether the content potentially has expandable content,
-        /// such as a property expression or escaped character.
-        /// </summary>
-        internal bool Expandable { get; }
+            if (expandable)
+            {
+                _flags |= TokenFlags.IsExpandable;
+            }
+        }
 
         /// <summary>
         ///
@@ -86,9 +93,7 @@ namespace Microsoft.Build.Evaluation
         /// <returns></returns>
         internal bool IsToken(TokenKind kind)
         {
-            return _kind == kind;
+            return Kind == kind;
         }
-
-        internal string Text => _text;
     }
 }

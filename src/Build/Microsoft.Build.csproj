@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -510,6 +510,7 @@
     <Compile Include="Evaluation\Conditionals\Scanner.cs" />
     <Compile Include="Evaluation\Conditionals\StringExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Token.cs" />
+    <Compile Include="Evaluation\Conditionals\TokenFlags.cs" />
     <Compile Include="Evaluation\Conditionals\TokenKind.cs" />
     <Compile Include="Evaluation\EvaluatorMetadataTable.cs" />
     <Compile Include="Evaluation\IEvaluatorData.cs" />

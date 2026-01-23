@@ -355,7 +355,7 @@ namespace Microsoft.Build.Evaluation
             Token current = _lexer.CurrentToken;
             if (Same(expression, TokenKind.String))
             {
-                return new StringExpressionNode(current.Text, current.Expandable);
+                return new StringExpressionNode(current.Text, current.IsExpandable);
             }
             else if (Same(expression, TokenKind.Numeric))
             {
