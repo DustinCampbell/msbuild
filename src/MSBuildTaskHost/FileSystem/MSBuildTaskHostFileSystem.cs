@@ -4,9 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Microsoft.Build.Framework;
+using Microsoft.Build.TaskHost.Utilities;
 
-namespace Microsoft.Build.Shared.FileSystem;
+namespace Microsoft.Build.TaskHost.FileSystem;
 
 /// <summary>
 /// Legacy implementation for MSBuildTaskHost which is stuck on net20 APIs.

@@ -3,10 +3,11 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
-namespace Microsoft.Build.Framework;
+namespace Microsoft.Build.TaskHost.Framework;
 
 /// <summary>
 /// This interface extends IBuildEngine to provide a method allowing building
@@ -25,7 +26,7 @@ public interface IBuildEngine3 : IBuildEngine2
     ///
     /// </remarks>
     /// <param name="projectFileNames">The project to build.</param>
-    /// <param name="targetNames">The targets in the project to build (can be null).</param>
+    /// <param name="targetNames">The targets in the project to build (can be null).</param>s
     /// <param name="globalProperties">An array of hashtables of additional global properties to apply
     ///     to the child project (array entries can be null).
     ///     The key and value in the hashtable should both be strings.</param>

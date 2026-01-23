@@ -9,7 +9,7 @@ namespace Microsoft.Build.Framework;
 /// Interface for Extended EventArgs to allow enriching particular events with extended data.
 /// Deriving from EventArgs will be deprecated soon and using Extended EventArgs is recommended for custom Event Args.
 /// </summary>
-public interface IExtendedBuildEventArgs
+internal interface IExtendedBuildEventArgs
 {
     /// <summary>
     /// Unique string identifying type of extended data so receiver side knows how to interpret, deserialize and handle <see cref="ExtendedData"/>.

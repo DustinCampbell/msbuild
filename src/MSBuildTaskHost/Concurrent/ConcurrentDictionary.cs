@@ -5,11 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using Microsoft.Build.Framework;
+using Microsoft.Build.TaskHost.Utilities;
 
 #nullable disable
 
-namespace Microsoft.Build.Shared.Concurrent;
+namespace Microsoft.Build.TaskHost.Concurrent;
 
 // The following class is back-ported from .NET 4.X CoreFX library because
 // MSBuildTaskHost requires 3.5 .NET Framework. Only GetOrAdd method kept.

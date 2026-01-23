@@ -4,7 +4,8 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.Serialization;
-using Microsoft.Build.Framework.BuildException;
+using Microsoft.Build.TaskHost.Framework;
+using Microsoft.Build.TaskHost.Framework.BuildException;
 
 #nullable disable
 

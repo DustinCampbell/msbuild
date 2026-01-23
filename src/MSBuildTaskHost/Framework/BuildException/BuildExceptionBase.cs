@@ -6,10 +6,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.Serialization;
-using Microsoft.Build.BackEnd;
-using Microsoft.Build.Shared;
+using Microsoft.Build.TaskHost.BackEnd;
+using Microsoft.Build.TaskHost.Utilities;
 
-namespace Microsoft.Build.Framework.BuildException;
+namespace Microsoft.Build.TaskHost.Framework.BuildException;
 
 public abstract class BuildExceptionBase : Exception
 {

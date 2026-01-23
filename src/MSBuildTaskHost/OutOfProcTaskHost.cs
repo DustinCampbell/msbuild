@@ -3,12 +3,11 @@
 
 using System;
 using System.Diagnostics;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Shared;
+using Microsoft.Build.TaskHost.Utilities;
 
 #nullable disable
 
-namespace Microsoft.Build.CommandLine;
+namespace Microsoft.Build.TaskHost;
 
 /// <summary>
 /// This is the Out-Of-Proc Task Host for supporting Cross-Targeting tasks.

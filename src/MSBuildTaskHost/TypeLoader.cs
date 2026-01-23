@@ -7,11 +7,12 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared.Concurrent;
+using Microsoft.Build.TaskHost.Concurrent;
+using Microsoft.Build.TaskHost.Utilities;
 
 #nullable disable
 
-namespace Microsoft.Build.Shared;
+namespace Microsoft.Build.TaskHost;
 
 /// <summary>
 /// This class is used to load types from their assemblies.

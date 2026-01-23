@@ -9,7 +9,7 @@ using System.Linq;
 
 #nullable disable
 
-namespace Microsoft.Build.Framework;
+namespace Microsoft.Build.TaskHost.Framework;
 
 internal enum ChangeWaveConversionState
 {

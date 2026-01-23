@@ -4,10 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
-namespace Microsoft.Build.Framework;
+namespace Microsoft.Build.TaskHost.Framework;
 
 /// <summary>
 /// This structure is used to return the result of the build and the target outputs.

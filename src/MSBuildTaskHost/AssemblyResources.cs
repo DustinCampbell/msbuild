@@ -4,10 +4,11 @@
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
+using Microsoft.Build.TaskHost.Utilities;
 
 #nullable disable
 
-namespace Microsoft.Build.Shared;
+namespace Microsoft.Build.TaskHost;
 
 /// <summary>
 /// This class provides access to the assembly's resources.
@@ -17,7 +18,7 @@ internal static class AssemblyResources
     /// <summary>
     /// Actual source of the resource string we'll be reading.
     /// </summary>
-    private static readonly ResourceManager s_resources = new ResourceManager("MSBuildTaskHost.Strings.Shared", Assembly.GetExecutingAssembly());
+    private static readonly ResourceManager s_resources = new("MSBuildTaskHost.Strings.Shared", Assembly.GetExecutingAssembly());
 
     /// <summary>
     /// Loads the specified resource string, either from the assembly's primary resources, or its shared resources.

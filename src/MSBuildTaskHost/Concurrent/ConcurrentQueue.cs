@@ -8,7 +8,7 @@ using System.Threading;
 
 #nullable disable
 
-namespace Microsoft.Build.Shared.Concurrent;
+namespace Microsoft.Build.TaskHost.Concurrent;
 
 // The following class is back-ported from .NET 4.X CoreFX library because
 // MSBuildTaskHost requires 3.5 .NET Framework. Only important methods (Enqueue, TryDequeue) are kept.
@@ -188,7 +188,7 @@ internal sealed class ConcurrentQueue<T>
     /// </summary>
     /// <param name="result">
     /// When this method returns, <paramref name="result"/> contains an object from
-    /// the beginning of the <see cref="Concurrent.ConcurrentQueue{T}"/> or default(T)
+    /// the beginning of the <see cref="ConcurrentQueue{T}"/> or default(T)
     /// if the operation failed.
     /// </param>
     /// <returns>true if and object was returned successfully; otherwise, false.</returns>

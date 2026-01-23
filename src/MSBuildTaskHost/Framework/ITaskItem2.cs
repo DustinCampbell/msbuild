@@ -4,10 +4,11 @@
 using System;
 using System.Collections;
 using System.Runtime.InteropServices;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
-namespace Microsoft.Build.Framework;
+namespace Microsoft.Build.TaskHost.Framework;
 
 /// <summary>
 /// This interface adds escaping support to the ITaskItem interface.

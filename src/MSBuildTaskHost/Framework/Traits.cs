@@ -3,9 +3,9 @@
 
 using System;
 using System.Globalization;
-using Microsoft.Build.Shared;
+using Microsoft.Build.TaskHost.Utilities;
 
-namespace Microsoft.Build.Framework;
+namespace Microsoft.Build.TaskHost.Framework;
 
 /// <summary>
 ///     Represents toggleable features of the MSBuild engine.
