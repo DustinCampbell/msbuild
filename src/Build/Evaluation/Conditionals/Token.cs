@@ -15,24 +15,24 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal sealed class Token
     {
-        internal static readonly Token Comma = new Token(TokenType.Comma);
-        internal static readonly Token LeftParenthesis = new Token(TokenType.LeftParenthesis);
-        internal static readonly Token RightParenthesis = new Token(TokenType.RightParenthesis);
-        internal static readonly Token LessThan = new Token(TokenType.LessThan);
-        internal static readonly Token GreaterThan = new Token(TokenType.GreaterThan);
-        internal static readonly Token LessThanOrEqualTo = new Token(TokenType.LessThanOrEqualTo);
-        internal static readonly Token GreaterThanOrEqualTo = new Token(TokenType.GreaterThanOrEqualTo);
-        internal static readonly Token And = new Token(TokenType.And);
-        internal static readonly Token Or = new Token(TokenType.Or);
-        internal static readonly Token True = new Token(TokenType.True);
-        internal static readonly Token False = new Token(TokenType.False);
-        internal static readonly Token On = new Token(TokenType.On);
-        internal static readonly Token Off = new Token(TokenType.Off);
-        internal static readonly Token Yes = new Token(TokenType.Yes);
-        internal static readonly Token No = new Token(TokenType.No);
-        internal static readonly Token EqualTo = new Token(TokenType.EqualTo);
-        internal static readonly Token NotEqualTo = new Token(TokenType.NotEqualTo);
-        internal static readonly Token Not = new Token(TokenType.Not);
+        internal static readonly Token Comma = new Token(TokenType.Comma, ",");
+        internal static readonly Token LeftParenthesis = new Token(TokenType.LeftParenthesis, "(");
+        internal static readonly Token RightParenthesis = new Token(TokenType.RightParenthesis, ")");
+        internal static readonly Token LessThan = new Token(TokenType.LessThan, "<");
+        internal static readonly Token GreaterThan = new Token(TokenType.GreaterThan, ">");
+        internal static readonly Token LessThanOrEqualTo = new Token(TokenType.LessThanOrEqualTo, "<=");
+        internal static readonly Token GreaterThanOrEqualTo = new Token(TokenType.GreaterThanOrEqualTo, ">=");
+        internal static readonly Token And = new Token(TokenType.And, "and");
+        internal static readonly Token Or = new Token(TokenType.Or, "or");
+        internal static readonly Token True = new Token(TokenType.True, "true");
+        internal static readonly Token False = new Token(TokenType.False, "false");
+        internal static readonly Token On = new Token(TokenType.On, "on");
+        internal static readonly Token Off = new Token(TokenType.Off, "off");
+        internal static readonly Token Yes = new Token(TokenType.Yes, "yes");
+        internal static readonly Token No = new Token(TokenType.No, "no");
+        internal static readonly Token EqualTo = new Token(TokenType.EqualTo, "=");
+        internal static readonly Token NotEqualTo = new Token(TokenType.NotEqualTo, "!=");
+        internal static readonly Token Not = new Token(TokenType.Not, "not");
         internal static readonly Token EndOfInput = new Token(TokenType.EndOfInput);
 
         /// <summary>
@@ -76,15 +76,6 @@ namespace Microsoft.Build.Evaluation
         private TokenType _tokenType;
         private string _tokenString;
 
-        /// <summary>
-        /// Constructor for types that don't have values
-        /// </summary>
-        /// <param name="tokenType"></param>
-        private Token(TokenType tokenType)
-        {
-            _tokenType = tokenType;
-            _tokenString = null;
-        }
 
         /// <summary>
         /// Constructor takes the token type and the string that
@@ -92,9 +83,11 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="type"></param>
         /// <param name="tokenString"></param>
-        internal Token(TokenType type, string tokenString)
-            : this(type, tokenString, false /* not expandable */)
-        { }
+        internal Token(TokenType type, string tokenString = null)
+        {
+            _tokenType = type;
+            _tokenString = tokenString ?? string.Empty;
+        }
 
         /// <summary>
         /// Constructor takes the token type and the string that
@@ -135,62 +128,6 @@ namespace Microsoft.Build.Evaluation
             return _tokenType == type;
         }
 
-        internal string String
-        {
-            get
-            {
-                if (_tokenString != null)
-                {
-                    return _tokenString;
-                }
-
-                // Return a token string for
-                // an error message.
-                switch (_tokenType)
-                {
-                    case TokenType.Comma:
-                        return ",";
-                    case TokenType.LeftParenthesis:
-                        return "(";
-                    case TokenType.RightParenthesis:
-                        return ")";
-                    case TokenType.LessThan:
-                        return "<";
-                    case TokenType.GreaterThan:
-                        return ">";
-                    case TokenType.LessThanOrEqualTo:
-                        return "<=";
-                    case TokenType.GreaterThanOrEqualTo:
-                        return ">=";
-                    case TokenType.And:
-                        return "and";
-                    case TokenType.Or:
-                        return "or";
-                    case TokenType.True:
-                        return "true";
-                    case TokenType.False:
-                        return "false";
-                    case TokenType.On:
-                        return "on";
-                    case TokenType.Off:
-                        return "off";
-                    case TokenType.Yes:
-                        return "yes";
-                    case TokenType.No:
-                        return "no";
-                    case TokenType.EqualTo:
-                        return "==";
-                    case TokenType.NotEqualTo:
-                        return "!=";
-                    case TokenType.Not:
-                        return "!";
-                    case TokenType.EndOfInput:
-                        return null;
-                    default:
-                        ErrorUtilities.ThrowInternalErrorUnreachable();
-                        return null;
-                }
-            }
-        }
+        internal string String => _tokenString;
     }
 }
