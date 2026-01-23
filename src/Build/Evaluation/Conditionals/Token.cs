@@ -116,18 +116,14 @@ namespace Microsoft.Build.Evaluation
 
             _tokenType = type;
             _tokenString = tokenString;
-            this.Expandable = expandable;
+            Expandable = expandable;
         }
 
         /// <summary>
         /// Whether the content potentially has expandable content,
         /// such as a property expression or escaped character.
         /// </summary>
-        internal bool Expandable
-        {
-            get;
-            set;
-        }
+        internal bool Expandable { get; }
 
         /// <summary>
         ///
