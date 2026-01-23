@@ -1,83 +1,130 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+/// <summary>
+/// Represents a token in the MSBuild conditional expression grammar.
+/// Contains the token type and the parsed text representation.
+/// </summary>
+internal sealed class Token
 {
+    public static readonly Token Comma = new(TokenKind.Comma, ",");
+    public static readonly Token LeftParenthesis = new(TokenKind.LeftParenthesis, "(");
+    public static readonly Token RightParenthesis = new(TokenKind.RightParenthesis, ")");
+    public static readonly Token LessThan = new(TokenKind.LessThan, "<");
+    public static readonly Token GreaterThan = new(TokenKind.GreaterThan, ">");
+    public static readonly Token LessThanOrEqualTo = new(TokenKind.LessThanOrEqualTo, "<=");
+    public static readonly Token GreaterThanOrEqualTo = new(TokenKind.GreaterThanOrEqualTo, ">=");
+    public static readonly Token And = new(TokenKind.And, "and");
+    public static readonly Token Or = new(TokenKind.Or, "or");
+    public static readonly Token True = new(TokenKind.True, "true");
+    public static readonly Token False = new(TokenKind.False, "false");
+    public static readonly Token On = new(TokenKind.On, "on");
+    public static readonly Token Off = new(TokenKind.Off, "off");
+    public static readonly Token Yes = new(TokenKind.Yes, "yes");
+    public static readonly Token No = new(TokenKind.No, "no");
+    public static readonly Token EqualTo = new(TokenKind.EqualTo, "=");
+    public static readonly Token NotEqualTo = new(TokenKind.NotEqualTo, "!=");
+    public static readonly Token Not = new(TokenKind.Not, "not");
+    public static readonly Token EndOfInput = new(TokenKind.EndOfInput);
+
     /// <summary>
-    /// This class represents a token in the Complex Conditionals grammar.  It's
-    /// really just a bag that contains the type of the token and the string that
-    /// was parsed into the token.  This isn't very useful for operators, but
-    /// is useful for strings and such.
+    ///  Creates a numeric token.
     /// </summary>
-    internal sealed class Token
+    /// <param name="text">The numeric text.</param>
+    /// <returns>
+    ///  A new numeric token.
+    /// </returns>
+    public static Token Numeric(string text) => new(TokenKind.Numeric, text);
+
+    /// <summary>
+    ///  Creates a property reference token.
+    /// </summary>
+    /// <param name="text">The property reference text.</param>
+    /// <returns>
+    ///  A new property token.
+    /// </returns>
+    public static Token Property(string text) => new(TokenKind.Property, text);
+
+    /// <summary>
+    ///  Creates an item metadata reference token.
+    /// </summary>
+    /// <param name="text">The item metadata reference text.</param>
+    /// <returns>
+    ///  A new item metadata token.
+    /// </returns>
+    public static Token ItemMetadata(string text) => new(TokenKind.ItemMetadata, text);
+
+    /// <summary>
+    ///  Creates an item list reference token.
+    /// </summary>
+    /// <param name="text">The item list reference text.</param>
+    /// <returns>
+    ///  A new item list token.
+    /// </returns>
+    public static Token ItemList(string text) => new(TokenKind.ItemList, text);
+
+    /// <summary>
+    ///  Creates a function call token.
+    /// </summary>
+    /// <param name="text">The function name.</param>
+    /// <returns>
+    ///  A new function token.
+    /// </returns>
+    public static Token Function(string text) => new(TokenKind.Function, text);
+
+    /// <summary>
+    ///  Creates a string token.
+    /// </summary>
+    /// <param name="text">The string value.</param>
+    /// <param name="expandable">
+    ///  Whether the string contains expandable content such as property expressions or escaped characters.
+    /// </param>
+    /// <returns>
+    ///  A new string token.
+    /// </returns>
+    public static Token String(string text, bool expandable = false)
+        => new(TokenKind.String, text, expandable ? TokenFlags.IsExpandable : TokenFlags.None);
+
+    /// <summary>
+    ///  Gets the type of this token.
+    /// </summary>
+    public TokenKind Kind { get; }
+
+    /// <summary>
+    ///  Gets the text representation of this token.
+    /// </summary>
+    public string Text { get; }
+
+    private readonly TokenFlags _flags;
+
+    /// <summary>
+    ///  Gets a value indicating whether the content potentially has expandable content,
+    ///  such as a property expression or escaped character.
+    /// </summary>
+    public bool IsExpandable => (_flags & TokenFlags.IsExpandable) != 0;
+
+    /// <summary>
+    ///  Initializes a new instance of the <see cref="Token"/> class.
+    /// </summary>
+    /// <param name="kind">The token type.</param>
+    /// <param name="text">The token text.</param>
+    /// <param name="flags">Additional token flags.</param>
+    private Token(TokenKind kind, string text = "", TokenFlags flags = TokenFlags.None)
     {
-        public static readonly Token Comma = new(TokenKind.Comma, ",");
-        public static readonly Token LeftParenthesis = new(TokenKind.LeftParenthesis, "(");
-        public static readonly Token RightParenthesis = new(TokenKind.RightParenthesis, ")");
-        public static readonly Token LessThan = new(TokenKind.LessThan, "<");
-        public static readonly Token GreaterThan = new(TokenKind.GreaterThan, ">");
-        public static readonly Token LessThanOrEqualTo = new(TokenKind.LessThanOrEqualTo, "<=");
-        public static readonly Token GreaterThanOrEqualTo = new(TokenKind.GreaterThanOrEqualTo, ">=");
-        public static readonly Token And = new(TokenKind.And, "and");
-        public static readonly Token Or = new(TokenKind.Or, "or");
-        public static readonly Token True = new(TokenKind.True, "true");
-        public static readonly Token False = new(TokenKind.False, "false");
-        public static readonly Token On = new(TokenKind.On, "on");
-        public static readonly Token Off = new(TokenKind.Off, "off");
-        public static readonly Token Yes = new(TokenKind.Yes, "yes");
-        public static readonly Token No = new(TokenKind.No, "no");
-        public static readonly Token EqualTo = new(TokenKind.EqualTo, "=");
-        public static readonly Token NotEqualTo = new(TokenKind.NotEqualTo, "!=");
-        public static readonly Token Not = new(TokenKind.Not, "not");
-        public static readonly Token EndOfInput = new(TokenKind.EndOfInput);
-
-        public static Token Numeric(string text) => new(TokenKind.Numeric, text);
-
-        public static Token Property(string text) => new(TokenKind.Property, text);
-
-        public static Token ItemMetadata(string text) => new(TokenKind.ItemMetadata, text);
-
-        public static Token ItemList(string text) => new(TokenKind.ItemList, text);
-
-        public static Token Function(string text) => new(TokenKind.Function, text);
-
-        public static Token String(string text, bool expandable = false)
-            => new(TokenKind.String, text, expandable ? TokenFlags.IsExpandable : TokenFlags.None);
-
-        public TokenKind Kind { get; }
-
-        public string Text { get; }
-
-        private readonly TokenFlags _flags;
-
-        /// <summary>
-        /// Whether the content potentially has expandable content,
-        /// such as a property expression or escaped character.
-        /// </summary>
-        public bool IsExpandable => (_flags & TokenFlags.IsExpandable) != 0;
-
-        /// <summary>
-        /// Constructor takes the token type and the string that
-        /// represents the token
-        /// </summary>
-        /// <param name="kind"></param>
-        /// <param name="text"></param>
-        /// <param name="flags"></param>
-        private Token(TokenKind kind, string text = "", TokenFlags flags = TokenFlags.None)
-        {
-            Kind = kind;
-            Text = text ?? string.Empty;
-            _flags = flags;
-        }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="kind"></param>
-        /// <returns></returns>
-        public bool IsKind(TokenKind kind)
-            => Kind == kind;
+        Kind = kind;
+        Text = text ?? string.Empty;
+        _flags = flags;
     }
+
+    /// <summary>
+    ///  Determines whether this token is of the specified kind.
+    /// </summary>
+    /// <param name="kind">The token kind to check.</param>
+    /// <returns>
+    ///  <see langword="true"/> if this token matches the specified kind; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool IsKind(TokenKind kind)
+        => Kind == kind;
 }
