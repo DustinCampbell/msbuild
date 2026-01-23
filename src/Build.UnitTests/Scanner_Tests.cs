@@ -468,7 +468,7 @@ namespace Microsoft.Build.UnitTests
             lexer.Advance();
             Assert.True(lexer.IsNext(Token.TokenType.NotEqualTo));
             lexer.Advance();
-            Assert.True(lexer.IsNext(Token.TokenType.String));
+            Assert.True(lexer.IsNext(Token.TokenType.True));
             lexer.Advance();
             Assert.True(lexer.IsNext(Token.TokenType.EndOfInput));
 
@@ -506,9 +506,9 @@ namespace Microsoft.Build.UnitTests
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.GreaterThan));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.String));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.LessThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.String));
+            Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.False));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.GreaterThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.String));
+            Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.True));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.EqualTo));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.Numeric));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.NotEqualTo));
@@ -524,9 +524,9 @@ namespace Microsoft.Build.UnitTests
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.GreaterThan));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.String));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.LessThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.String));
+            Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.False));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.GreaterThanOrEqualTo));
-            Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.String));
+            Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.True));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.EqualTo));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.Numeric));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.NotEqualTo));

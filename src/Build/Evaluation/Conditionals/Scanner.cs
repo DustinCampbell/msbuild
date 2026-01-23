@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Build.Shared;
@@ -24,6 +26,18 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal sealed class Scanner
     {
+        private static readonly FrozenDictionary<string, Token> s_keywords = new Dictionary<string, Token>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "and", Token.And },
+            { "or", Token.Or },
+            { "true", Token.True },
+            { "false", Token.False },
+            { "on", Token.On },
+            { "off", Token.Off },
+            { "yes", Token.Yes },
+            { "no", Token.No }
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
         private string _expression;
         private int _parsePoint;
         private Token _lookahead;
@@ -692,30 +706,43 @@ namespace Microsoft.Build.Evaluation
         private bool ParseSimpleStringOrFunction(int start)
         {
             SkipSimpleStringChars();
-            if (_expression.AsSpan(start, _parsePoint - start).Equals("and".AsSpan(), StringComparison.OrdinalIgnoreCase))
+
+            ReadOnlySpan<char> span = _expression.AsSpan(start, _parsePoint - start);
+
+#if NET
+            if (s_keywords.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out Token token))
             {
-                _lookahead = Token.And;
+                _lookahead = token;
+                return true;
             }
-            else if (_expression.AsSpan(start, _parsePoint - start).Equals("or".AsSpan(), StringComparison.OrdinalIgnoreCase))
+#else
+            // There are few enough keywords that comparing each of them is faster than allocating
+            // a new substring just to look it up in the dictionary.
+            foreach (KeyValuePair<string, Token> pair in s_keywords)
             {
-                _lookahead = Token.Or;
+                if (span.Equals(pair.Key.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                {
+                    _lookahead = pair.Value;
+                    return true;
+                }
+            }
+#endif
+
+            int end = _parsePoint;
+            SkipWhiteSpace();
+            if (_parsePoint < _expression.Length && _expression[_parsePoint] == '(')
+            {
+                _lookahead = new Token(Token.TokenType.Function, _expression.Substring(start, end - start));
             }
             else
             {
-                int end = _parsePoint;
-                SkipWhiteSpace();
-                if (_parsePoint < _expression.Length && _expression[_parsePoint] == '(')
-                {
-                    _lookahead = new Token(Token.TokenType.Function, _expression.Substring(start, end - start));
-                }
-                else
-                {
-                    string tokenValue = _expression.Substring(start, end - start);
-                    _lookahead = new Token(Token.TokenType.String, tokenValue);
-                }
+                string tokenValue = _expression.Substring(start, end - start);
+                _lookahead = new Token(Token.TokenType.String, tokenValue);
             }
+
             return true;
         }
+
         private bool ParseNumeric(int start)
         {
             if ((_expression.Length - _parsePoint) > 2 && _expression[_parsePoint] == '0' && (_expression[_parsePoint + 1] == 'x' || _expression[_parsePoint + 1] == 'X'))

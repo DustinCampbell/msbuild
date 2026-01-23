@@ -24,6 +24,12 @@ namespace Microsoft.Build.Evaluation
         internal static readonly Token GreaterThanOrEqualTo = new Token(TokenType.GreaterThanOrEqualTo);
         internal static readonly Token And = new Token(TokenType.And);
         internal static readonly Token Or = new Token(TokenType.Or);
+        internal static readonly Token True = new Token(TokenType.True);
+        internal static readonly Token False = new Token(TokenType.False);
+        internal static readonly Token On = new Token(TokenType.On);
+        internal static readonly Token Off = new Token(TokenType.Off);
+        internal static readonly Token Yes = new Token(TokenType.Yes);
+        internal static readonly Token No = new Token(TokenType.No);
         internal static readonly Token EqualTo = new Token(TokenType.EqualTo);
         internal static readonly Token NotEqualTo = new Token(TokenType.NotEqualTo);
         internal static readonly Token Not = new Token(TokenType.Not);
@@ -45,6 +51,13 @@ namespace Microsoft.Build.Evaluation
 
             And,
             Or,
+
+            True,
+            False,
+            On,
+            Off,
+            Yes,
+            No,
 
             EqualTo,
             NotEqualTo,
@@ -157,6 +170,18 @@ namespace Microsoft.Build.Evaluation
                         return "and";
                     case TokenType.Or:
                         return "or";
+                    case TokenType.True:
+                        return "true";
+                    case TokenType.False:
+                        return "false";
+                    case TokenType.On:
+                        return "on";
+                    case TokenType.Off:
+                        return "off";
+                    case TokenType.Yes:
+                        return "yes";
+                    case TokenType.No:
+                        return "no";
                     case TokenType.EqualTo:
                         return "==";
                     case TokenType.NotEqualTo:
