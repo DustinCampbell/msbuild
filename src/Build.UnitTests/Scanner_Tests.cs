@@ -267,11 +267,11 @@ namespace Microsoft.Build.UnitTests
             lexer = new Scanner("AnD", ParserOptions.AllowAll);
             Assert.True(lexer.Advance());
             Assert.True(lexer.IsNext(Token.TokenType.And));
-            Assert.Equal(0, String.Compare(Token.And.String, lexer.IsNextString()));
+            Assert.Equal(0, String.Compare(Token.And.Text, lexer.IsNextString()));
             lexer = new Scanner("Or", ParserOptions.AllowAll);
             Assert.True(lexer.Advance());
             Assert.True(lexer.IsNext(Token.TokenType.Or));
-            Assert.Equal(0, String.Compare(Token.Or.String, lexer.IsNextString()));
+            Assert.Equal(0, String.Compare(Token.Or.Text, lexer.IsNextString()));
         }
 
         /// <summary>

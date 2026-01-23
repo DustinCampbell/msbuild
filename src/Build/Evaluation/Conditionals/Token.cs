@@ -74,19 +74,18 @@ namespace Microsoft.Build.Evaluation
         }
 
         private TokenType _tokenType;
-        private string _tokenString;
-
+        private string _text;
 
         /// <summary>
         /// Constructor takes the token type and the string that
         /// represents the token
         /// </summary>
         /// <param name="type"></param>
-        /// <param name="tokenString"></param>
-        internal Token(TokenType type, string tokenString = null)
+        /// <param name="text"></param>
+        internal Token(TokenType type, string text = "")
         {
             _tokenType = type;
-            _tokenString = tokenString ?? string.Empty;
+            _text = text ?? string.Empty;
         }
 
         /// <summary>
@@ -94,7 +93,7 @@ namespace Microsoft.Build.Evaluation
         /// represents the token.
         /// If the string may contain content that needs expansion, expandable is set.
         /// </summary>
-        internal Token(TokenType type, string tokenString, bool expandable)
+        internal Token(TokenType type, string text, bool expandable)
         {
             ErrorUtilities.VerifyThrow(
                 type == TokenType.Property ||
@@ -105,10 +104,10 @@ namespace Microsoft.Build.Evaluation
                 type == TokenType.Function,
                 "Unexpected token type");
 
-            ErrorUtilities.VerifyThrowInternalNull(tokenString);
+            ErrorUtilities.VerifyThrowInternalNull(text);
 
             _tokenType = type;
-            _tokenString = tokenString;
+            _text = text;
             Expandable = expandable;
         }
 
@@ -128,6 +127,6 @@ namespace Microsoft.Build.Evaluation
             return _tokenType == type;
         }
 
-        internal string String => _tokenString;
+        internal string Text => _text;
     }
 }

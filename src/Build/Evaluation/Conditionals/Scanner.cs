@@ -112,7 +112,7 @@ namespace Microsoft.Build.Evaluation
 
         internal string IsNextString()
         {
-            return _lookahead.String;
+            return _lookahead.Text;
         }
 
         internal Token CurrentToken
