@@ -15,30 +15,30 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal sealed class Token
     {
-        internal static readonly Token Comma = new Token(TokenType.Comma, ",");
-        internal static readonly Token LeftParenthesis = new Token(TokenType.LeftParenthesis, "(");
-        internal static readonly Token RightParenthesis = new Token(TokenType.RightParenthesis, ")");
-        internal static readonly Token LessThan = new Token(TokenType.LessThan, "<");
-        internal static readonly Token GreaterThan = new Token(TokenType.GreaterThan, ">");
-        internal static readonly Token LessThanOrEqualTo = new Token(TokenType.LessThanOrEqualTo, "<=");
-        internal static readonly Token GreaterThanOrEqualTo = new Token(TokenType.GreaterThanOrEqualTo, ">=");
-        internal static readonly Token And = new Token(TokenType.And, "and");
-        internal static readonly Token Or = new Token(TokenType.Or, "or");
-        internal static readonly Token True = new Token(TokenType.True, "true");
-        internal static readonly Token False = new Token(TokenType.False, "false");
-        internal static readonly Token On = new Token(TokenType.On, "on");
-        internal static readonly Token Off = new Token(TokenType.Off, "off");
-        internal static readonly Token Yes = new Token(TokenType.Yes, "yes");
-        internal static readonly Token No = new Token(TokenType.No, "no");
-        internal static readonly Token EqualTo = new Token(TokenType.EqualTo, "=");
-        internal static readonly Token NotEqualTo = new Token(TokenType.NotEqualTo, "!=");
-        internal static readonly Token Not = new Token(TokenType.Not, "not");
-        internal static readonly Token EndOfInput = new Token(TokenType.EndOfInput);
+        internal static readonly Token Comma = new Token(TokenKind.Comma, ",");
+        internal static readonly Token LeftParenthesis = new Token(TokenKind.LeftParenthesis, "(");
+        internal static readonly Token RightParenthesis = new Token(TokenKind.RightParenthesis, ")");
+        internal static readonly Token LessThan = new Token(TokenKind.LessThan, "<");
+        internal static readonly Token GreaterThan = new Token(TokenKind.GreaterThan, ">");
+        internal static readonly Token LessThanOrEqualTo = new Token(TokenKind.LessThanOrEqualTo, "<=");
+        internal static readonly Token GreaterThanOrEqualTo = new Token(TokenKind.GreaterThanOrEqualTo, ">=");
+        internal static readonly Token And = new Token(TokenKind.And, "and");
+        internal static readonly Token Or = new Token(TokenKind.Or, "or");
+        internal static readonly Token True = new Token(TokenKind.True, "true");
+        internal static readonly Token False = new Token(TokenKind.False, "false");
+        internal static readonly Token On = new Token(TokenKind.On, "on");
+        internal static readonly Token Off = new Token(TokenKind.Off, "off");
+        internal static readonly Token Yes = new Token(TokenKind.Yes, "yes");
+        internal static readonly Token No = new Token(TokenKind.No, "no");
+        internal static readonly Token EqualTo = new Token(TokenKind.EqualTo, "=");
+        internal static readonly Token NotEqualTo = new Token(TokenKind.NotEqualTo, "!=");
+        internal static readonly Token Not = new Token(TokenKind.Not, "not");
+        internal static readonly Token EndOfInput = new Token(TokenKind.EndOfInput);
 
         /// <summary>
         /// Valid tokens
         /// </summary>
-        internal enum TokenType
+        internal enum TokenKind
         {
             Comma,
             LeftParenthesis,
@@ -73,18 +73,18 @@ namespace Microsoft.Build.Evaluation
             EndOfInput,
         }
 
-        private TokenType _tokenType;
+        private TokenKind _kind;
         private string _text;
 
         /// <summary>
         /// Constructor takes the token type and the string that
         /// represents the token
         /// </summary>
-        /// <param name="type"></param>
+        /// <param name="kind"></param>
         /// <param name="text"></param>
-        internal Token(TokenType type, string text = "")
+        internal Token(TokenKind kind, string text = "")
         {
-            _tokenType = type;
+            _kind = kind;
             _text = text ?? string.Empty;
         }
 
@@ -93,20 +93,20 @@ namespace Microsoft.Build.Evaluation
         /// represents the token.
         /// If the string may contain content that needs expansion, expandable is set.
         /// </summary>
-        internal Token(TokenType type, string text, bool expandable)
+        internal Token(TokenKind kind, string text, bool expandable)
         {
             ErrorUtilities.VerifyThrow(
-                type == TokenType.Property ||
-                type == TokenType.String ||
-                type == TokenType.Numeric ||
-                type == TokenType.ItemList ||
-                type == TokenType.ItemMetadata ||
-                type == TokenType.Function,
+                kind == TokenKind.Property ||
+                kind == TokenKind.String ||
+                kind == TokenKind.Numeric ||
+                kind == TokenKind.ItemList ||
+                kind == TokenKind.ItemMetadata ||
+                kind == TokenKind.Function,
                 "Unexpected token type");
 
             ErrorUtilities.VerifyThrowInternalNull(text);
 
-            _tokenType = type;
+            _kind = kind;
             _text = text;
             Expandable = expandable;
         }
@@ -120,11 +120,11 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         ///
         /// </summary>
-        /// <param name="type"></param>
+        /// <param name="kind"></param>
         /// <returns></returns>
-        internal bool IsToken(TokenType type)
+        internal bool IsToken(TokenKind kind)
         {
-            return _tokenType == type;
+            return _kind == kind;
         }
 
         internal string Text => _text;
