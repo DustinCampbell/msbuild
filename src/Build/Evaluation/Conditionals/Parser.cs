@@ -353,6 +353,14 @@ namespace Microsoft.Build.Evaluation
             {
                 return new StringExpressionNode(current.Text, true /* requires expansion */);
             }
+            else if (Same(TokenKind.True) || Same(TokenKind.On) || Same(TokenKind.Yes))
+            {
+                return new BooleanLiteralNode(true, current.Text);
+            }
+            else if (Same(TokenKind.False) || Same(TokenKind.Off) || Same(TokenKind.No))
+            {
+                return new BooleanLiteralNode(false, current.Text);
+            }
             else
             {
                 return null;
