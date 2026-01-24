@@ -61,12 +61,6 @@ namespace Microsoft.Build.Evaluation
             _loggingService = loggingContext?.LoggingService;
 
             _lexer = new Scanner(expression, _options);
-
-            if (!_lexer.Advance())
-            {
-                errorPosition = _lexer.GetErrorPosition();
-                ThrowInvalidProject();
-            }
         }
 
         /// <summary>
@@ -90,6 +84,12 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal GenericExpressionNode Parse()
         {
+            if (!_lexer.Advance())
+            {
+                errorPosition = _lexer.GetErrorPosition();
+                ThrowInvalidProject();
+            }
+
             GenericExpressionNode node = Expr();
             if (!_lexer.IsNext(TokenKind.EndOfInput))
             {
