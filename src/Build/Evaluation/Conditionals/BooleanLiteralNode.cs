@@ -19,6 +19,8 @@ namespace Microsoft.Build.Evaluation
             _text = text;
         }
 
+        public bool Value => _value;
+
         internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
             result = _value;

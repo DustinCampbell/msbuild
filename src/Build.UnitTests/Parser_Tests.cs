@@ -1,570 +1,551 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
-using System.Linq;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Exceptions;
+using Shouldly;
 using Xunit;
 
-#nullable disable
+namespace Microsoft.Build.UnitTests;
 
-namespace Microsoft.Build.UnitTests
+public class ParserTest
 {
-    public class ParserTest
+    /// <summary>
+    ///  Verifies that a simple property reference parses into a StringExpressionNode.
+    /// </summary>
+    [Fact]
+    public void SimpleProperty_ShouldParseToStringNode()
+        => ParseExpression<StringExpressionNode>("$(foo)")
+            .Verify("$(foo)");
+
+    /// <summary>
+    ///  Verifies that property equality comparisons parse with correct structure:
+    ///  EqualExpressionNode with StringExpressionNode children.
+    /// </summary>
+    [Theory]
+    [InlineData("$(foo)=='hello'", "$(foo)", "hello")]
+    [InlineData("$(foo)==''", "$(foo)", "")]
+    public void PropertyEquality_ShouldParseWithCorrectStructure(string expression, string leftValue, string rightValue)
+        => ParseExpression<EqualExpressionNode>(expression)
+            .Verify(
+                (StringExpressionNode left) => left.Verify(leftValue),
+                (StringExpressionNode right) => right.Verify(rightValue));
+
+    /// <summary>
+    ///  Verifies that chained AND expressions parse correctly:
+    ///  ((first AND second) AND third) - left-associative.
+    /// </summary>
+    [Fact]
+    public void ChainedAnd_ShouldParseLeftAssociative()
+        => ParseExpression<AndExpressionNode>("$(debug) and $(buildlab) and $(full)")
+            .Verify(
+                (AndExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("$(debug)"),
+                    (StringExpressionNode right) => right.Verify("$(buildlab)")),
+                (StringExpressionNode right) => right.Verify("$(full)"));
+
+    /// <summary>
+    ///  Verifies that chained OR expressions parse correctly:
+    ///  ((first OR second) OR third) - left-associative.
+    /// </summary>
+    [Fact]
+    public void ChainedOr_ShouldParseLeftAssociative()
+        => ParseExpression<OrExpressionNode>("$(debug) or $(buildlab) or $(full)")
+            .Verify(
+                (OrExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("$(debug)"),
+                    (StringExpressionNode right) => right.Verify("$(buildlab)")),
+                (StringExpressionNode right) => right.Verify("$(full)"));
+
+    /// <summary>
+    /// Verifies that mixed AND/OR respects precedence:
+    /// "a and b or c" parses as "(a and b) or c" because AND has higher precedence.
+    /// </summary>
+    [Fact]
+    public void MixedAndOr_ShouldRespectPrecedence()
+        => ParseExpression<OrExpressionNode>("$(debug) and $(buildlab) or $(full)")
+            .Verify(
+                (AndExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("$(debug)"),
+                    (StringExpressionNode right) => right.Verify("$(buildlab)")),
+                (StringExpressionNode right) => right.Verify("$(full)"));
+
+    /// <summary>
+    /// Verifies that "a or b and c" parses as "a or (b and c)" because AND has higher precedence.
+    /// </summary>
+    [Fact]
+    public void MixedOrAnd_ShouldRespectPrecedence()
+        => ParseExpression<OrExpressionNode>("$(full) or $(debug) and $(buildlab)")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("$(full)"),
+                (AndExpressionNode right) => right.Verify(
+                    (StringExpressionNode left) => left.Verify("$(debug)"),
+                    (StringExpressionNode right) => right.Verify("$(buildlab)")));
+
+    /// <summary>
+    /// Verifies that metadata references parse into StringExpressionNode.
+    /// </summary>
+    [Fact]
+    public void SimpleMetadata_ShouldParseToStringNode()
+        => ParseExpression<StringExpressionNode>("%(culture)")
+            .Verify("%(culture)");
+
+    /// <summary>
+    /// Verifies that metadata equality comparisons parse with correct structure.
+    /// </summary>
+    [Fact]
+    public void MetadataEquality_ShouldParseWithCorrectStructure()
+        => ParseExpression<EqualExpressionNode>("%(culture)=='french'")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("%(culture)"),
+                (StringExpressionNode right) => right.Verify("french"));
+
+    /// <summary>
+    /// Verifies that strings containing metadata references parse correctly.
+    /// </summary>
+    [Fact]
+    public void StringWithMetadata_ShouldParseWithCorrectStructure()
+        => ParseExpression<EqualExpressionNode>("'foo_%(culture)'=='foo_french'")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("foo_%(culture)"),
+                (StringExpressionNode right) => right.Verify("foo_french"));
+
+    /// <summary>
+    /// Verifies that boolean literals parse into BooleanLiteralNode with correct values.
+    /// </summary>
+    [Theory]
+    [InlineData("true", true)]
+    [InlineData("false", false)]
+    public void BooleanLiteral_ShouldParseToBooleanNode(string expression, bool expectedValue)
+        => ParseExpression<BooleanLiteralNode>(expression)
+            .Verify(expectedValue);
+
+    /// <summary>
+    /// Verifies that numeric literals parse into NumericExpressionNode.
+    /// </summary>
+    [Fact]
+    public void NumericLiteral_ShouldParseToNumericNode()
+        => ParseExpression<NumericExpressionNode>("0")
+            .Verify("0");
+
+    /// <summary>
+    /// Verifies that numeric equality comparisons parse with correct structure.
+    /// </summary>
+    [Fact]
+    public void NumericEquality_ShouldParseWithCorrectStructure()
+        => ParseExpression<EqualExpressionNode>("0.0 == 0")
+            .Verify(
+                (NumericExpressionNode left) => left.Verify("0.0"),
+                (NumericExpressionNode right) => right.Verify("0"));
+
+    /// <summary>
+    ///  Verifies that parentheses can override operator precedence.
+    ///  "(a or b) and c" should parse as AND with grouped OR on left.
+    /// </summary>
+    [Fact]
+    public void GroupedExpression_ShouldOverridePrecedence()
+        => ParseExpression<AndExpressionNode>("($(foo) or $(bar)) and $(baz)")
+            .Verify(
+                (OrExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("$(foo)"),
+                    (StringExpressionNode right) => right.Verify("$(bar)")),
+                (StringExpressionNode right) => right.Verify("$(baz)"));
+
+    /// <summary>
+    ///  Verifies that relational operators combine correctly with logical AND.
+    /// </summary>
+    [Fact]
+    public void RelationalOperatorsWithAnd_ShouldParseCorrectly()
+        => ParseExpression<AndExpressionNode>("$(foo) <= 5 and $(bar) >= 15")
+            .Verify(
+                (LessThanOrEqualExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("$(foo)"),
+                    (NumericExpressionNode right) => right.Verify("5")),
+                (GreaterThanOrEqualExpressionNode right) => right.Verify(
+                    (StringExpressionNode left) => left.Verify("$(bar)"),
+                    (NumericExpressionNode right) => right.Verify("15")));
+
+    /// <summary>
+    ///  Verifies that deeply nested expressions with multiple operators parse correctly.
+    ///  Structure: (($(foo) <= 5 AND $(bar) >= 15) AND $(baz) == simplestring) AND 'a more complex string' != $(quux)
+    /// </summary>
+    [Fact]
+    public void DeeplyNestedExpression_ShouldParseCorrectly()
+        => ParseExpression<AndExpressionNode>("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == simplestring) and 'a more complex string' != $(quux)")
+            .Verify(
+                (AndExpressionNode left) => left.Verify(
+                    (AndExpressionNode left) => left.Verify(
+                        (LessThanOrEqualExpressionNode left) => left.Verify(
+                            (StringExpressionNode left) => left.Verify("$(foo)"),
+                            (NumericExpressionNode right) => right.Verify("5")),
+                        (GreaterThanOrEqualExpressionNode right) => right.Verify(
+                            (StringExpressionNode left) => left.Verify("$(bar)"),
+                            (NumericExpressionNode right) => right.Verify("15"))),
+                    (EqualExpressionNode right) => right.Verify(
+                        (StringExpressionNode left) => left.Verify("$(baz)"),
+                        (StringExpressionNode right) => right.Verify("simplestring"))),
+                (NotEqualExpressionNode right) => right.Verify(
+                    (StringExpressionNode left) => left.Verify("a more complex string"),
+                    (StringExpressionNode right) => right.Verify("$(quux)")));
+
+    /// <summary>
+    ///  Verifies that NOT operator works correctly in complex expressions.
+    ///  Structure: (($(foo) OR $(bar) == false) AND !($(baz) == simplestring))
+    /// </summary>
+    [Fact]
+    public void NotOperatorInComplexExpression_ShouldParseCorrectly()
+        => ParseExpression<AndExpressionNode>("(($(foo) or $(bar) == false) and !($(baz) == simplestring))")
+            .Verify(
+                (OrExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("$(foo)"),
+                    (EqualExpressionNode right) => right.Verify(
+                        (StringExpressionNode left) => left.Verify("$(bar)"),
+                        (BooleanLiteralNode right) => right.Verify(false))),
+                (NotExpressionNode right) => right.Verify(
+                    (EqualExpressionNode child) => child.Verify(
+                        (StringExpressionNode left) => left.Verify("$(baz)"),
+                        (StringExpressionNode right) => right.Verify("simplestring"))));
+
+    /// <summary>
+    ///  Verifies that function calls can be used in logical expressions.
+    ///  Structure: (($(foo) OR Exists('c:\foo.txt')) AND !(($(baz) == simplestring)))
+    /// </summary>
+    [Fact]
+    public void FunctionCallInLogicalExpression_ShouldParseCorrectly()
+        => ParseExpression<AndExpressionNode>(@"(($(foo) or Exists('c:\foo.txt')) and !(($(baz) == simplestring)))")
+            .Verify(
+                (OrExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("$(foo)"),
+                    (FunctionCallExpressionNode right) => right.Verify(
+                        name: "Exists",
+                        (StringExpressionNode arg) => arg.Verify(@"c:\foo.txt"))),
+                (NotExpressionNode right) => right.Verify(
+                    (EqualExpressionNode child) => child.Verify(
+                        (StringExpressionNode left) => left.Verify("$(baz)"),
+                        (StringExpressionNode right) => right.Verify("simplestring"))));
+
+    /// <summary>
+    ///  Verifies that NOT operator with boolean literal parses correctly.
+    ///  Structure: !(true)
+    /// </summary>
+    [Theory]
+    [InlineData("!true", true)]
+    [InlineData("!false", false)]
+    public void NotOperator_WithBooleanLiteral_ShouldParseCorrectly(string expression, bool negatedValue)
+        => ParseExpression<NotExpressionNode>(expression)
+            .Verify((BooleanLiteralNode child) => child.Verify(negatedValue));
+
+    /// <summary>
+    ///  Verifies that NOT operator with grouped boolean literal parses correctly.
+    ///  Structure: !(true) - parentheses don't change structure
+    /// </summary>
+    [Fact]
+    public void NotOperator_WithGroupedBooleanLiteral_ShouldParseCorrectly()
+        => ParseExpression<NotExpressionNode>("!(true)")
+            .Verify((BooleanLiteralNode child) => child.Verify(true));
+
+    /// <summary>
+    ///  Verifies that NOT operator with property comparison parses correctly.
+    ///  Structure: !($(foo) <= 5)
+    /// </summary>
+    [Fact]
+    public void NotOperator_WithPropertyComparison_ShouldParseCorrectly()
+        => ParseExpression<NotExpressionNode>("!($(foo) <= 5)")
+            .Verify((LessThanOrEqualExpressionNode child) => child.Verify(
+                (StringExpressionNode left) => left.Verify("$(foo)"),
+                (NumericExpressionNode right) => right.Verify("5")));
+
+    /// <summary>
+    ///  Verifies that NOT operator with metadata comparison parses correctly.
+    ///  Structure: !(%(foo) <= 5)
+    /// </summary>
+    [Fact]
+    public void NotOperator_WithMetadataComparison_ShouldParseCorrectly()
+        => ParseExpression<NotExpressionNode>("!(%(foo) <= 5)")
+            .Verify((LessThanOrEqualExpressionNode child) => child.Verify(
+                (StringExpressionNode left) => left.Verify("%(foo)"),
+                (NumericExpressionNode right) => right.Verify("5")));
+
+    /// <summary>
+    ///  Verifies that NOT operator with complex AND expression parses correctly.
+    ///  Structure: !(($(foo) <= 5) AND ($(bar) >= 15))
+    /// </summary>
+    [Fact]
+    public void NotOperator_WithComplexAndExpression_ShouldParseCorrectly()
+        => ParseExpression<NotExpressionNode>("!($(foo) <= 5 and $(bar) >= 15)")
+            .Verify((AndExpressionNode child) => child.Verify(
+                (LessThanOrEqualExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("$(foo)"),
+                    (NumericExpressionNode right) => right.Verify("5")),
+                (GreaterThanOrEqualExpressionNode right) => right.Verify(
+                    (StringExpressionNode left) => left.Verify("$(bar)"),
+                    (NumericExpressionNode right) => right.Verify("15"))));
+
+    /// <summary>
+    ///  Verifies that function calls with no arguments parse correctly.
+    /// </summary>
+    [Fact]
+    public void FunctionCall_WithNoArguments_ShouldParseCorrectly()
+        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall()")
+            .Verify(name: "SimpleFunctionCall");
+
+    /// <summary>
+    ///  Verifies that function calls with single numeric argument parse correctly.
+    /// </summary>
+    [Fact]
+    public void FunctionCall_WithNumericArgument_ShouldParseCorrectly()
+        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall( 1234 )")
+            .Verify(
+                name: "SimpleFunctionCall",
+                (NumericExpressionNode arg) => arg.Verify("1234"));
+
+    /// <summary>
+    ///  Verifies that function calls with single boolean argument parse correctly.
+    /// </summary>
+    [Fact]
+    public void FunctionCall_WithBooleanArgument_ShouldParseCorrectly()
+        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall( true )")
+            .Verify(
+                name: "SimpleFunctionCall",
+                (BooleanLiteralNode arg) => arg.Verify(true));
+
+    /// <summary>
+    ///  Verifies that function calls with single property argument parse correctly.
+    /// </summary>
+    [Fact]
+    public void FunctionCall_WithPropertyArgument_ShouldParseCorrectly()
+        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall( $(property) )")
+            .Verify(
+                name: "SimpleFunctionCall",
+                (StringExpressionNode arg) => arg.Verify("$(property)"));
+
+    /// <summary>
+    ///  Verifies that function calls with multiple arguments of different types parse correctly.
+    /// </summary>
+    [Fact]
+    public void FunctionCall_WithMultipleArguments_ShouldParseCorrectly()
+        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )")
+            .Verify(
+                name: "SimpleFunctionCall",
+                (StringExpressionNode arg1) => arg1.Verify("$(property)"),
+                (NumericExpressionNode arg2) => arg2.Verify("1234"),
+                (StringExpressionNode arg3) => arg3.Verify("abcd"),
+                (StringExpressionNode arg4) => arg4.Verify("abcd efgh"));
+
+    /// <summary>
+    ///  Verifies that item lists are rejected when ParserOptions.AllowItemLists is not set.
+    ///  Item lists should fail in various contexts: bare, quoted, and in function arguments.
+    /// </summary>
+    [Theory]
+    [InlineData("@(foo) == 'a.cs;b.cs'")]
+    [InlineData("'a.cs;b.cs' == @(foo)")]
+    [InlineData("'@(foo)' == 'a.cs;b.cs'")]
+    [InlineData("'otherstuff@(foo)' == 'a.cs;b.cs'")]
+    [InlineData("'@(foo)otherstuff' == 'a.cs;b.cs'")]
+    [InlineData("somefunction(@(foo), 'otherstuff')")]
+    public void ItemList_WhenNotAllowed_ShouldFail(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ParseExpression(expression, ParserOptions.AllowProperties));
+
+    /// <summary>
+    ///  Verifies that item transformations parse into StringExpressionNode with preserved value.
+    /// </summary>
+    [Fact]
+    public void ItemTransformation_ShouldParseToStringNode()
+        => ParseExpression<StringExpressionNode>(
+            "@(item->foo('ab'))",
+            ParserOptions.AllowPropertiesAndItemLists)
+            .Verify("@(item->foo('ab'))");
+
+    /// <summary>
+    ///  Verifies that negated item transformations parse correctly.
+    ///  Structure: !@(item->foo())
+    /// </summary>
+    [Fact]
+    public void ItemTransformation_Negated_ShouldParseCorrectly()
+        => ParseExpression<NotExpressionNode>(
+            "!@(item->foo())",
+            ParserOptions.AllowPropertiesAndItemLists)
+            .Verify((StringExpressionNode child) => child.Verify("@(item->foo())"));
+
+    /// <summary>
+    ///  Verifies that item transformations work correctly in logical AND expressions.
+    ///  Structure: (@(item->foo('ab')) AND @(item->foo('bc')))
+    /// </summary>
+    [Fact]
+    public void ItemTransformation_InAndExpression_ShouldParseCorrectly()
+        => ParseExpression<AndExpressionNode>(
+            "(@(item->foo('ab')) and @(item->foo('bc')))",
+            ParserOptions.AllowPropertiesAndItemLists)
+            .Verify(
+                (StringExpressionNode left) => left.Verify("@(item->foo('ab'))"),
+                (StringExpressionNode right) => right.Verify("@(item->foo('bc'))"));
+
+    /// <summary>
+    ///  Verifies that bare metadata references are rejected in conditions.
+    ///  Metadata can only be used within strings, not as standalone expressions.
+    ///  This restriction applies in various contexts: bare, quoted, and in function arguments.
+    /// </summary>
+    [Theory]
+    [InlineData("%(foo) == 'a.cs;b.cs'")]
+    [InlineData("'a.cs;b.cs' == %(foo)")]
+    [InlineData("'%(foo)' == 'a.cs;b.cs'")]
+    [InlineData("'otherstuff%(foo)' == 'a.cs;b.cs'")]
+    [InlineData("'%(foo)otherstuff' == 'a.cs;b.cs'")]
+    [InlineData("somefunction(%(foo), 'otherstuff')")]
+    public void BareMetadata_InConditions_ShouldFail(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ParseExpression(expression, ParserOptions.AllowPropertiesAndItemLists));
+
+    /// <summary>
+    ///  Verifies that malformed expressions throw InvalidProjectFileException.
+    ///  Tests various error scenarios: unclosed strings, invalid operators, 
+    ///  chained equality operators, unmatched parentheses, and adjacent expressions.
+    /// </summary>
+    [Theory]
+    [InlineData("'a more complex' == 'asdf")] // Unclosed quote
+    [InlineData("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == 'simple string) and 'a more complex string' != $(quux)")] // Unclosed quote in complex expression
+    [InlineData("($(foo) == 'simple string') $(bar)")] // Adjacent expressions without operator
+    [InlineData("=='x'")] // Operator without left operand
+    [InlineData("==")] // Operator without operands
+    [InlineData(">")] // Operator without operands
+    [InlineData("true!=false==")] // Chained equality operators (incomplete)
+    [InlineData("true!=false==true")] // Chained equality operators (complete)
+    [InlineData("1==(2")] // Unmatched parenthesis
+    public void MalformedExpression_ShouldThrowInvalidProjectFileException(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ParseExpression(expression));
+
+    /// <summary>
+    ///  Verifies that MSB4130 warning is triggered for "a and b or c" expression.
+    ///  This could be misread as "a and (b or c)" but actually evaluates as "(a and b) or c".
+    /// </summary>
+    [Fact]
+    public void MixedAndOr_WithoutParentheses_ShouldWarn()
     {
-        /// <summary>
-        ///  Make a fake element location for methods who need one.
-        /// </summary>
-        private MockElementLocation _elementLocation = MockElementLocation.Instance;
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void SimpleParseTest()
-        {
-            Console.WriteLine("SimpleParseTest()");
-            GenericExpressionNode tree = Parser.Parse("$(foo)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("$(foo)=='hello'", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("$(foo)==''", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("$(debug) and $(buildlab) and $(full)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("$(debug) or $(buildlab) or $(full)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("$(debug) and $(buildlab) or $(full)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("$(full) or $(debug) and $(buildlab)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("%(culture)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("%(culture)=='french'", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("'foo_%(culture)'=='foo_french'", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("true", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("false", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("0", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("0.0 == 0", ParserOptions.AllowAll, _elementLocation);
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void ComplexParseTest()
-        {
-            Console.WriteLine("ComplexParseTest()");
-            GenericExpressionNode tree = Parser.Parse("$(foo)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("($(foo) or $(bar)) and $(baz)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("$(foo) <= 5 and $(bar) >= 15", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == simplestring) and 'a more complex string' != $(quux)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("(($(foo) or $(bar) == false) and !($(baz) == simplestring))", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("(($(foo) or Exists('c:\\foo.txt')) and !(($(baz) == simplestring)))", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("'CONTAINS%27QUOTE%27' == '$(TestQuote)'", ParserOptions.AllowAll, _elementLocation);
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void NotParseTest()
-        {
-            Console.WriteLine("NegationParseTest()");
-            GenericExpressionNode tree = Parser.Parse("!true", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("!(true)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("!($(foo) <= 5)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("!(%(foo) <= 5)", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("!($(foo) <= 5 and $(bar) >= 15)", ParserOptions.AllowAll, _elementLocation);
-        }
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void FunctionCallParseTest()
-        {
-            Console.WriteLine("FunctionCallParseTest()");
-            GenericExpressionNode tree = Parser.Parse("SimpleFunctionCall()", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("SimpleFunctionCall( 1234 )", ParserOptions.AllowAll, _elementLocation);
-            tree = Parser.Parse("SimpleFunctionCall( true )", ParserOptions.AllowAll, _elementLocation);
-            tree = Parser.Parse("SimpleFunctionCall( $(property) )", ParserOptions.AllowAll, _elementLocation);
-
-            tree = Parser.Parse("SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )", ParserOptions.AllowAll, _elementLocation);
-        }
-
-        [Fact]
-        public void ItemListParseTest()
-        {
-            Console.WriteLine("FunctionCallParseTest()");
-            GenericExpressionNode tree;
-            bool fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("@(foo) == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("'a.cs;b.cs' == @(foo)", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("'@(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("'otherstuff@(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("'@(foo)otherstuff' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("somefunction(@(foo), 'otherstuff')", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-        }
-
-        [Fact]
-        public void ItemFuncParseTest()
-        {
-            Console.WriteLine("ItemFuncParseTest()");
-
-            GenericExpressionNode tree = Parser.Parse("@(item->foo('ab'))",
-                ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<StringExpressionNode>(tree);
-            Assert.Equal("@(item->foo('ab'))", tree.GetUnexpandedValue(null));
-
-            tree = Parser.Parse("!@(item->foo())",
-                ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<NotExpressionNode>(tree);
-
-            tree = Parser.Parse("(@(item->foo('ab')) and @(item->foo('bc')))",
-                ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<AndExpressionNode>(tree);
-        }
-
-        [Fact]
-        public void MetadataParseTest()
-        {
-            Console.WriteLine("FunctionCallParseTest()");
-            GenericExpressionNode tree;
-            bool fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("%(foo) == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("'a.cs;b.cs' == %(foo)", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("'%(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("'otherstuff%(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("'%(foo)otherstuff' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = Parser.Parse("somefunction(%(foo), 'otherstuff')", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-        }
-
-        /// <summary>
-        /// </summary>
-        [Fact]
-        public void NegativeTests()
-        {
-            Console.WriteLine("NegativeTests()");
-            GenericExpressionNode tree;
-            bool fExceptionCaught;
-
-            try
-            {
-                fExceptionCaught = false;
-                // Note no close quote ----------------------------------------------------V
-                tree = Parser.Parse("'a more complex' == 'asdf", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            try
-            {
-                fExceptionCaught = false;
-                // Note no close quote ----------------------------------------------------V
-                tree = Parser.Parse("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == 'simple string) and 'a more complex string' != $(quux)", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = Parser.Parse("($(foo) == 'simple string') $(bar)", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = Parser.Parse("=='x'", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = Parser.Parse("==", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = Parser.Parse(">", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = Parser.Parse("true!=false==", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = Parser.Parse("true!=false==true", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = Parser.Parse("1==(2", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-        }
-
-        /// <summary>
-        /// This test verifies that we trigger warnings for expressions that
-        /// could be incorrectly evaluated
-        /// </summary>
-        [Fact]
-        public void VerifyWarningForOrder()
-        {
-            // Create a project file that has an expression
-            MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess(@"
-                    <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
-                        <Target Name=`Build`>
-                            <Message Text=`expression 1 is true ` Condition=`$(a) == 1 and $(b) == 2 or $(c) == 3`/>
-                        </Target>
-                    </Project>
-                ");
-
-            // Make sure the log contains the correct strings.
-            Assert.Contains("MSB4130:", ml.FullLog); // "Need to warn for this expression - (a) == 1 and $(b) == 2 or $(c) == 3."
-
-            ml = ObjectModelHelpers.BuildProjectExpectSuccess(@"
-                    <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
-                        <Target Name=`Build`>
-                            <Message Text=`expression 1 is true ` Condition=`$(a) == 1 or $(b) == 2 and $(c) == 3`/>
-                        </Target>
-                    </Project>
-                ");
-
-            // Make sure the log contains the correct strings.
-            Assert.Contains("MSB4130:", ml.FullLog); // "Need to warn for this expression - (a) == 1 or $(b) == 2 and $(c) == 3."
-
-            ml = ObjectModelHelpers.BuildProjectExpectSuccess(@"
-                    <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
-                        <Target Name=`Build`>
-                            <Message Text=`expression 1 is true ` Condition=`($(a) == 1 or $(b) == 2 and $(c) == 3) or $(d) == 4`/>
-                        </Target>
-                    </Project>
-                ");
-
-            // Make sure the log contains the correct strings.
-            Assert.Contains("MSB4130:", ml.FullLog); // "Need to warn for this expression - ($(a) == 1 or $(b) == 2 and $(c) == 3) or $(d) == 4."
-        }
-
-        /// <summary>
-        /// This test verifies that we don't trigger warnings for expressions that
-        /// couldn't be incorrectly evaluated
-        /// </summary>
-        [Fact]
-        public void VerifyNoWarningForOrder()
-        {
-            // Create a project file that has an expression
-            MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess(@"
-                    <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
-                        <Target Name=`Build`>
-                            <Message Text=`expression 1 is true ` Condition=`$(a) == 1 and $(b) == 2 and $(c) == 3`/>
-                        </Target>
-                    </Project>
-                ");
-
-            // Make sure the log contains the correct strings.
-            Assert.DoesNotContain("MSB4130:", ml.FullLog); // "No need to warn for this expression - (a) == 1 and $(b) == 2 and $(c) == 3."
-
-            ml = ObjectModelHelpers.BuildProjectExpectSuccess(@"
-                    <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
-                        <Target Name=`Build`>
-                            <Message Text=`expression 1 is true ` Condition=`$(a) == 1 or $(b) == 2 or $(c) == 3`/>
-                        </Target>
-                    </Project>
-                ");
-
-            // Make sure the log contains the correct strings.
-            Assert.DoesNotContain("MSB4130:", ml.FullLog); // "No need to warn for this expression - (a) == 1 or $(b) == 2 or $(c) == 3."
-
-            ml = ObjectModelHelpers.BuildProjectExpectSuccess(@"
-                    <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
-                        <Target Name=`Build`>
-                            <Message Text=`expression 1 is true ` Condition=`($(a) == 1 and $(b) == 2) or $(c) == 3`/>
-                        </Target>
-                    </Project>
-                ");
-
-            // Make sure the log contains the correct strings.
-            Assert.DoesNotContain("MSB4130:", ml.FullLog); // "No need to warn for this expression - ($(a) == 1 and $(b) == 2) or $(c) == 3."
-
-            ml = ObjectModelHelpers.BuildProjectExpectSuccess(@"
-                    <Project ToolsVersion=`msbuilddefaulttoolsversion` xmlns=`msbuildnamespace`>
-                        <Target Name=`Build`>
-                            <Message Text=`expression 1 is true ` Condition=`($(a) == 1 or $(b) == 2) and $(c) == 3`/>
-                        </Target>
-                    </Project>
-                ");
-
-            // Make sure the log contains the correct strings.
-            Assert.DoesNotContain("MSB4130:", ml.FullLog); // "No need to warn for this expression - ($(a) == 1 or $(b) == 2) and $(c) == 3."
-        }
-
-        // see https://github.com/dotnet/msbuild/issues/5436
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public void SupportItemDefinationGroupInWhenOtherwise(bool context)
-        {
-            var projectContent = $@"
-                <Project ToolsVersion= `msbuilddefaulttoolsversion` xmlns= `msbuildnamespace`>
-                    <Choose>
-                        <When Condition= `{context}`>
-                            <PropertyGroup>
-                                <Foo>bar</Foo>
-                            </PropertyGroup>
-                            <ItemGroup>
-                                <A Include= `$(Foo)`>
-                                    <n>n1</n>
-                                </A>
-                            </ItemGroup>
-                            <ItemDefinitionGroup>
-                                <A>
-                                    <m>m1</m>
-                                    <n>n2</n>
-                                </A>
-                            </ItemDefinitionGroup>
-                        </When>
-                        <Otherwise>
-                            <PropertyGroup>
-                                <Foo>bar</Foo>
-                            </PropertyGroup>
-                            <ItemGroup>
-                                <A Include= `$(Foo)`>
-                                    <n>n1</n>
-                                </A>
-                            </ItemGroup>
-                            <ItemDefinitionGroup>
-                                <A>
-                                    <m>m2</m>
-                                    <n>n2</n>
-                                </A>
-                            </ItemDefinitionGroup>
-                        </Otherwise>
-                    </Choose>
-                </Project>
-                ".Cleanup();
-
-
-            var project = ObjectModelHelpers.CreateInMemoryProject(projectContent);
-
-            var projectItem = project.GetItems("A").FirstOrDefault();
-            Assert.Equal("bar", projectItem.EvaluatedInclude);
-
-            var metadatam = projectItem.GetMetadata("m");
-            if (context)
-            {
-                // Go to when
-                Assert.Equal("m1", metadatam.EvaluatedValue);
-            }
-            else
-            {
-                // Go to Otherwise
-                Assert.Equal("m2", metadatam.EvaluatedValue);
-            }
-
-            var metadatan = projectItem.GetMetadata("n");
-            Assert.Equal("n1", metadatan.EvaluatedValue);
-            Assert.Equal("n2", metadatan.Predecessor.EvaluatedValue);
-        }
+        MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess("""
+            <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                <Target Name="Build">
+                    <Message Text="expression 1 is true " Condition="$(a) == 1 and $(b) == 2 or $(c) == 3"/>
+                </Target>
+            </Project>
+            """);
+
+        ml.FullLog.ShouldContain("MSB4130:");
     }
+
+    /// <summary>
+    ///  Verifies that MSB4130 warning is triggered for "a or b and c" expression.
+    ///  This could be misread as "(a or b) and c" but actually evaluates as "a or (b and c)".
+    /// </summary>
+    [Fact]
+    public void MixedOrAnd_WithoutParentheses_ShouldWarn()
+    {
+        MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess("""
+            <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                <Target Name="Build">
+                    <Message Text="expression 1 is true " Condition="$(a) == 1 or $(b) == 2 and $(c) == 3"/>
+                </Target>
+            </Project>
+            """);
+
+        ml.FullLog.ShouldContain("MSB4130:");
+    }
+
+    /// <summary>
+    ///  Verifies that MSB4130 warning is triggered for nested mixed AND/OR expressions.
+    ///  Even with some parentheses, the expression "(a or b and c) or d" still has ambiguity.
+    /// </summary>
+    [Fact]
+    public void NestedMixedAndOr_WithPartialParentheses_ShouldWarn()
+    {
+        MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess("""
+            <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                <Target Name="Build">
+                    <Message Text="expression 1 is true " Condition="($(a) == 1 or $(b) == 2 and $(c) == 3) or $(d) == 4"/>
+                </Target>
+            </Project>
+            """);
+
+        ml.FullLog.ShouldContain("MSB4130:");
+    }
+
+    /// <summary>
+    ///  Verifies that MSB4130 warning is NOT triggered for "a and b and c" expression.
+    ///  All same operator - no ambiguity.
+    /// </summary>
+    [Fact]
+    public void ChainedAnd_WithoutParentheses_ShouldNotWarn()
+    {
+        MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess("""
+            <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                <Target Name="Build">
+                    <Message Text="expression 1 is true " Condition="$(a) == 1 and $(b) == 2 and $(c) == 3"/>
+                </Target>
+            </Project>
+            """);
+
+        ml.FullLog.ShouldNotContain("MSB4130:");
+    }
+
+    /// <summary>
+    ///  Verifies that MSB4130 warning is NOT triggered for "a or b or c" expression.
+    ///  All same operator - no ambiguity.
+    /// </summary>
+    [Fact]
+    public void ChainedOr_WithoutParentheses_ShouldNotWarn()
+    {
+        MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess("""
+            <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                <Target Name="Build">
+                    <Message Text="expression 1 is true " Condition="$(a) == 1 or $(b) == 2 or $(c) == 3"/>
+                </Target>
+            </Project>
+            """);
+
+        ml.FullLog.ShouldNotContain("MSB4130:");
+    }
+
+    /// <summary>
+    ///  Verifies that MSB4130 warning is NOT triggered when parentheses clarify precedence.
+    ///  "(a and b) or c" - parentheses make intent clear.
+    /// </summary>
+    [Fact]
+    public void MixedAndOr_WithParentheses_ShouldNotWarn()
+    {
+        MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess("""
+            <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                <Target Name="Build">
+                    <Message Text="expression 1 is true " Condition="($(a) == 1 and $(b) == 2) or $(c) == 3"/>
+                </Target>
+            </Project>
+            """);
+
+        ml.FullLog.ShouldNotContain("MSB4130:");
+    }
+
+    /// <summary>
+    ///  Verifies that MSB4130 warning is NOT triggered when parentheses clarify precedence.
+    ///  "(a or b) and c" - parentheses make intent clear.
+    /// </summary>
+    [Fact]
+    public void MixedOrAnd_WithParentheses_ShouldNotWarn()
+    {
+        MockLogger ml = ObjectModelHelpers.BuildProjectExpectSuccess("""
+            <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                <Target Name="Build">
+                    <Message Text="expression 1 is true " Condition="($(a) == 1 or $(b) == 2) and $(c) == 3"/>
+                </Target>
+            </Project>
+            """);
+
+        ml.FullLog.ShouldNotContain("MSB4130:");
+    }
+
+    private static GenericExpressionNode ParseExpression(string expression, ParserOptions options = ParserOptions.AllowAll)
+        => Parser.Parse(expression, options, MockElementLocation.Instance);
+
+    private static T ParseExpression<T>(string expression, ParserOptions options = ParserOptions.AllowAll)
+        where T : GenericExpressionNode
+        => Parser.Parse(expression, options, MockElementLocation.Instance).ShouldBeOfType<T>();
 }

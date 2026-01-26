@@ -21,6 +21,8 @@ namespace Microsoft.Build.Evaluation
             _value = value;
         }
 
+        public string Value => _value;
+
         internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
             result = default;

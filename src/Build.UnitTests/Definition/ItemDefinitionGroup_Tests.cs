@@ -693,6 +693,73 @@ namespace Microsoft.Build.UnitTests.Definition
             Assert.Equal("M-B(b)", withMetaItem.GetMetadata("MetaB"));
         }
 
+        // see https://github.com/dotnet/msbuild/issues/5436
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void SupportItemDefinationGroupInWhenOtherwise(bool context)
+        {
+            var projectContent = $$"""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                    <Choose>
+                        <When Condition="{{context}}">
+                            <PropertyGroup>
+                                <Foo>bar</Foo>
+                            </PropertyGroup>
+                            <ItemGroup>
+                                <A Include="$(Foo)">
+                                    <n>n1</n>
+                                </A>
+                            </ItemGroup>
+                            <ItemDefinitionGroup>
+                                <A>
+                                    <m>m1</m>
+                                    <n>n2</n>
+                                </A>
+                            </ItemDefinitionGroup>
+                        </When>
+                        <Otherwise>
+                            <PropertyGroup>
+                                <Foo>bar</Foo>
+                            </PropertyGroup>
+                            <ItemGroup>
+                                <A Include="$(Foo)">
+                                    <n>n1</n>
+                                </A>
+                            </ItemGroup>
+                            <ItemDefinitionGroup>
+                                <A>
+                                    <m>m2</m>
+                                    <n>n2</n>
+                                </A>
+                            </ItemDefinitionGroup>
+                        </Otherwise>
+                    </Choose>
+                </Project>
+                """.Cleanup();
+
+            var project = ObjectModelHelpers.CreateInMemoryProject(projectContent);
+
+            var projectItem = project.GetItems("A").FirstOrDefault();
+            Assert.Equal("bar", projectItem.EvaluatedInclude);
+
+            var metadatam = projectItem.GetMetadata("m");
+            if (context)
+            {
+                // Go to when
+                Assert.Equal("m1", metadatam.EvaluatedValue);
+            }
+            else
+            {
+                // Go to Otherwise
+                Assert.Equal("m2", metadatam.EvaluatedValue);
+            }
+
+            var metadatan = projectItem.GetMetadata("n");
+            Assert.Equal("n1", metadatan.EvaluatedValue);
+            Assert.Equal("n2", metadatan.Predecessor.EvaluatedValue);
+        }
+
         #region Project tests
 
         [Fact]
