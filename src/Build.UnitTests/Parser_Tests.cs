@@ -58,8 +58,8 @@ public class ParserTest
                 (StringExpressionNode right) => right.Verify("$(full)"));
 
     /// <summary>
-    /// Verifies that mixed AND/OR respects precedence:
-    /// "a and b or c" parses as "(a and b) or c" because AND has higher precedence.
+    ///  Verifies that mixed AND/OR respects precedence:
+    ///  "a and b or c" parses as "(a and b) or c" because AND has higher precedence.
     /// </summary>
     [Fact]
     public void MixedAndOr_ShouldRespectPrecedence()
@@ -71,7 +71,7 @@ public class ParserTest
                 (StringExpressionNode right) => right.Verify("$(full)"));
 
     /// <summary>
-    /// Verifies that "a or b and c" parses as "a or (b and c)" because AND has higher precedence.
+    ///  Verifies that "a or b and c" parses as "a or (b and c)" because AND has higher precedence.
     /// </summary>
     [Fact]
     public void MixedOrAnd_ShouldRespectPrecedence()
@@ -83,7 +83,7 @@ public class ParserTest
                     (StringExpressionNode right) => right.Verify("$(buildlab)")));
 
     /// <summary>
-    /// Verifies that metadata references parse into StringExpressionNode.
+    ///  Verifies that metadata references parse into StringExpressionNode.
     /// </summary>
     [Fact]
     public void SimpleMetadata_ShouldParseToStringNode()
@@ -91,7 +91,7 @@ public class ParserTest
             .Verify("%(culture)");
 
     /// <summary>
-    /// Verifies that metadata equality comparisons parse with correct structure.
+    ///  Verifies that metadata equality comparisons parse with correct structure.
     /// </summary>
     [Fact]
     public void MetadataEquality_ShouldParseWithCorrectStructure()
@@ -101,7 +101,7 @@ public class ParserTest
                 (StringExpressionNode right) => right.Verify("french"));
 
     /// <summary>
-    /// Verifies that strings containing metadata references parse correctly.
+    ///  Verifies that strings containing metadata references parse correctly.
     /// </summary>
     [Fact]
     public void StringWithMetadata_ShouldParseWithCorrectStructure()
@@ -111,25 +111,37 @@ public class ParserTest
                 (StringExpressionNode right) => right.Verify("foo_french"));
 
     /// <summary>
-    /// Verifies that boolean literals parse into BooleanLiteralNode with correct values.
+    ///  Verifies that boolean literals parse into BooleanLiteralNode with correct values.
     /// </summary>
     [Theory]
     [InlineData("true", true)]
     [InlineData("false", false)]
+    [InlineData("on", true)]
+    [InlineData("off", false)]
+    [InlineData("yes", true)]
+    [InlineData("no", false)]
     public void BooleanLiteral_ShouldParseToBooleanNode(string expression, bool expectedValue)
         => ParseExpression<BooleanLiteralNode>(expression)
             .Verify(expectedValue);
 
     /// <summary>
-    /// Verifies that numeric literals parse into NumericExpressionNode.
+    ///  Verifies that numeric literals parse into NumericExpressionNode.
     /// </summary>
-    [Fact]
-    public void NumericLiteral_ShouldParseToNumericNode()
-        => ParseExpression<NumericExpressionNode>("0")
-            .Verify("0");
+    [Theory]
+    [InlineData("0")]
+    [InlineData("0x1234")]
+    [InlineData("0X1234ABCD")]
+    [InlineData("-5")]
+    [InlineData("+10")]
+    [InlineData("3.14")]
+    [InlineData(".5")]
+    [InlineData("5.")]
+    public void NumericLiteral_ShouldParseToNumericNode(string expression)
+        => ParseExpression<NumericExpressionNode>(expression)
+            .Verify(expression);
 
     /// <summary>
-    /// Verifies that numeric equality comparisons parse with correct structure.
+    ///  Verifies that numeric equality comparisons parse with correct structure.
     /// </summary>
     [Fact]
     public void NumericEquality_ShouldParseWithCorrectStructure()
@@ -164,6 +176,26 @@ public class ParserTest
                 (GreaterThanOrEqualExpressionNode right) => right.Verify(
                     (StringExpressionNode left) => left.Verify("$(bar)"),
                     (NumericExpressionNode right) => right.Verify("15")));
+
+    /// <summary>
+    ///  Verifies that less-than operator parses correctly.
+    /// </summary>
+    [Fact]
+    public void LessThan_ShouldParseCorrectly()
+        => ParseExpression<LessThanExpressionNode>("$(foo) < 5")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("$(foo)"),
+                (NumericExpressionNode right) => right.Verify("5"));
+
+    /// <summary>
+    ///  Verifies that greater-than operator parses correctly.
+    /// </summary>
+    [Fact]
+    public void GreaterThan_ShouldParseCorrectly()
+        => ParseExpression<GreaterThanExpressionNode>("$(foo) > 5")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("$(foo)"),
+                (NumericExpressionNode right) => right.Verify("5"));
 
     /// <summary>
     ///  Verifies that deeply nested expressions with multiple operators parse correctly.
@@ -231,6 +263,10 @@ public class ParserTest
     [Theory]
     [InlineData("!true", true)]
     [InlineData("!false", false)]
+    [InlineData("!on", true)]
+    [InlineData("!off", false)]
+    [InlineData("!yes", true)]
+    [InlineData("!no", false)]
     public void NotOperator_WithBooleanLiteral_ShouldParseCorrectly(string expression, bool negatedValue)
         => ParseExpression<NotExpressionNode>(expression)
             .Verify((BooleanLiteralNode child) => child.Verify(negatedValue));
