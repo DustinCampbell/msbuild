@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
-using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -42,7 +41,7 @@ namespace Microsoft.Build.Evaluation
 
         // Error tracking
         private bool _errorState;
-        private int _errorPosition;
+        internal int _errorPosition = -1; // -1 = not set; >0 = 1-based position for tests
         private string _errorResource;
         private string _unexpectedlyFound;
         private static string s_endOfInput;
@@ -59,8 +58,6 @@ namespace Microsoft.Build.Evaluation
         private readonly ILoggingService _loggingService;
 
         private bool _warnedForExpression = false;
-
-        internal int errorPosition = 0; // useful for unit tests
 
         private enum KeywordKind
         {
@@ -101,7 +98,6 @@ namespace Microsoft.Build.Evaluation
             _elementLocation = elementLocation;
             _position = 0;
             _errorState = false;
-            _errorPosition = -1;
 
             _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
             _loggingService = loggingContext?.LoggingService;
@@ -132,7 +128,6 @@ namespace Microsoft.Build.Evaluation
 
             if (_errorState)
             {
-                errorPosition = _errorPosition;
                 ThrowInvalidProject();
             }
 
@@ -140,7 +135,6 @@ namespace Microsoft.Build.Evaluation
             if (!IsAtEnd())
             {
                 SetError("UnexpectedTokenInCondition");
-                errorPosition = _errorPosition;
                 ThrowUnexpectedTokenInCondition();
             }
 
@@ -286,12 +280,12 @@ namespace Microsoft.Build.Evaluation
                         _position += 2;
                         return new EqualExpressionNode();
                     }
-                    // Single '=' is an error
+                    // Single '=' is an error - point to the character after it
+                    _errorPosition = _position + 2; // Explicitly set position before SetError
                     SetError("IllFormedEqualsInCondition");
-                    _errorPosition = _position + 2; // Counting from 1
                     if (_position + 1 < _expression.Length)
                     {
-                        _unexpectedlyFound = Convert.ToString(_expression[_position + 1], CultureInfo.InvariantCulture);
+                        _unexpectedlyFound = _expression[_position + 1].ToString();
                     }
                     else
                     {
@@ -527,7 +521,6 @@ namespace Microsoft.Build.Evaluation
                     if (_position + 1 < _expression.Length && _expression[_position + 1] == '(')
                     {
                         SetError("ItemListNotAllowedInThisConditional");
-                        _errorPosition = _position + 1;
                         return null;
                     }
                 }
@@ -595,7 +588,7 @@ namespace Microsoft.Build.Evaluation
             {
                 SetError("IllFormedPropertyOpenParenthesisInCondition");
                 _errorPosition = start + 1;
-                _unexpectedlyFound = IsAtEnd() ? EndOfInput : Convert.ToString(_expression[_position], CultureInfo.InvariantCulture);
+                _unexpectedlyFound = IsAtEnd() ? EndOfInput : _expression[_position].ToString();
                 return false;
             }
 
@@ -603,7 +596,7 @@ namespace Microsoft.Build.Evaluation
             {
                 SetError("IllFormedPropertySpaceInCondition");
                 _errorPosition = indexResult;
-                _unexpectedlyFound = Convert.ToString(_expression[indexResult], CultureInfo.InvariantCulture);
+                _unexpectedlyFound = _expression[indexResult].ToString();
                 return false;
             }
 
@@ -695,7 +688,6 @@ namespace Microsoft.Build.Evaluation
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
             {
                 SetError("BuiltInMetadataNotAllowedInThisConditional");
-                _errorPosition = _position;
                 _unexpectedlyFound = metadataName;
                 return false;
             }
@@ -703,7 +695,6 @@ namespace Microsoft.Build.Evaluation
             if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
             {
                 SetError("CustomMetadataNotAllowedInThisConditional");
-                _errorPosition = _position;
                 _unexpectedlyFound = metadataName;
                 return false;
             }
@@ -973,7 +964,7 @@ namespace Microsoft.Build.Evaluation
                 SetError("UnexpectedTokenInCondition");
                 if (_position < _expression.Length)
                 {
-                    _unexpectedlyFound = Convert.ToString(_expression[_position], CultureInfo.InvariantCulture);
+                    _unexpectedlyFound = _expression[_position].ToString();
                 }
                 else
                 {
@@ -990,11 +981,11 @@ namespace Microsoft.Build.Evaluation
             }
             else if (_unexpectedlyFound != null)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _errorResource, _expression, errorPosition, _unexpectedlyFound);
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _errorResource, _expression, _errorPosition, _unexpectedlyFound);
             }
             else
             {
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _errorResource, _expression, errorPosition);
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _errorResource, _expression, _errorPosition);
             }
         }
 
@@ -1002,13 +993,13 @@ namespace Microsoft.Build.Evaluation
         {
             string unexpectedlyFound = _unexpectedlyFound ?? EndOfInput;
 
-            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedCharacterInCondition", _expression, errorPosition, unexpectedlyFound);
+            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedCharacterInCondition", _expression, _errorPosition, unexpectedlyFound);
         }
 
         private void ThrowUnexpectedTokenInCondition()
         {
-            string foundToken = _position < _expression.Length ? Convert.ToString(_expression[_position], CultureInfo.InvariantCulture) : EndOfInput;
-            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, errorPosition, foundToken);
+            string foundToken = _position < _expression.Length ? _expression[_position].ToString() : EndOfInput;
+            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, _errorPosition, foundToken);
         }
     }
 }

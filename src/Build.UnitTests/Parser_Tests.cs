@@ -491,7 +491,7 @@ public class ParserTest
             parser.Parse();
         });
 
-        parser.errorPosition.ShouldBe(expectedPosition);
+        parser._errorPosition.ShouldBe(expectedPosition);
     }
 
     /// <summary>
