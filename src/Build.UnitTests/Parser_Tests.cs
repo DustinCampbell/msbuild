@@ -333,6 +333,16 @@ public class ParserTest
                 (StringExpressionNode arg4) => arg4.Verify("abcd efgh"));
 
     /// <summary>
+    ///  Verifies that keywords (and, or, true, false) are recognized case-insensitively.
+    /// </summary>
+    [Theory]
+    [InlineData("TRUE and FALSE")]
+    [InlineData("True AND False")]
+    [InlineData("$(x) OR $(y)")]
+    public void Keywords_ShouldBeRecognized_CaseInsensitively(string expression)
+        => Should.NotThrow(() => ParseExpression(expression));
+
+    /// <summary>
     ///  Verifies that item lists are rejected when ParserOptions.AllowItemLists is not set.
     ///  Item lists should fail in various contexts: bare, quoted, and in function arguments.
     /// </summary>
@@ -413,6 +423,118 @@ public class ParserTest
     [InlineData("true!=false==true")] // Chained equality operators (complete)
     [InlineData("1==(2")] // Unmatched parenthesis
     public void MalformedExpression_ShouldThrowInvalidProjectFileException(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ParseExpression(expression));
+
+    /// <summary>
+    ///  Verifies that error positions are reported correctly for various malformed expressions,
+    ///  ensuring the parser points to the exact character position where the error occurs.
+    /// </summary>
+    [Theory]
+    [InlineData("1==0xFG", 7, ParserOptions.AllowAll)]                // Position of G
+    [InlineData("1==-0xF", 6, ParserOptions.AllowAll)]                // Position of x
+    [InlineData("1234=5678", 6, ParserOptions.AllowAll)]              // Position of '5'
+    [InlineData(" ", 2, ParserOptions.AllowAll)]                      // Position of End of Input
+    [InlineData(" (", 3, ParserOptions.AllowAll)]                     // Position of End of Input
+    [InlineData(" false or  ", 12, ParserOptions.AllowAll)]           // Position of End of Input
+    [InlineData(" \"foo", 2, ParserOptions.AllowAll)]                 // Position of open quote
+    [InlineData(" @(foo", 2, ParserOptions.AllowAll)]                 // Position of @
+    [InlineData(" @(", 2, ParserOptions.AllowAll)]                    // Position of @
+    [InlineData(" $", 2, ParserOptions.AllowAll)]                     // Position of $
+    [InlineData(" $(foo", 2, ParserOptions.AllowAll)]                 // Position of $
+    [InlineData(" $(", 2, ParserOptions.AllowAll)]                    // Position of $
+    [InlineData(" @(foo)", 2, ParserOptions.AllowProperties)]         // Position of @
+    [InlineData(" '@(foo)'", 3, ParserOptions.AllowProperties)]       // Position of @
+    [InlineData("'%24%28x' == '%24(x''", 21, ParserOptions.AllowAll)] // Position of extra quote (test escaped chars)
+    internal void ErrorPosition_ShouldBeReportedCorrectly(string input, int expectedPosition, ParserOptions options)
+    {
+        var parser = new Parser(input, options, MockElementLocation.Instance);
+
+        Should.Throw<InvalidProjectFileException>(() =>
+        {
+            parser.Parse();
+        });
+
+        parser.errorPosition.ShouldBe(expectedPosition);
+    }
+
+    /// <summary>
+    ///  Verifies that property function calls with spaces in the middle (not at boundaries)
+    ///  parse successfully. MSBuild allows spaces within property function syntax like
+    ///  $(x.StartsWith( 'y' )) but not at the start/end like $( x) or $(x ).
+    /// </summary>
+    [Theory]
+    [InlineData("$(x.StartsWith( 'y' ))")]
+    [InlineData("$(x.StartsWith ('y'))")]
+    [InlineData("$( x.StartsWith( $(SpacelessProperty) ) )")]
+    [InlineData("$( x.StartsWith( $(_SpacelessProperty) ) )")]
+    [InlineData("$(x.StartsWith('Foo', StringComparison.InvariantCultureIgnoreCase))")]
+    public void Property_WithMiddleSpace_ShouldParseSuccessfully(string expression)
+        => ParseExpression<StringExpressionNode>(expression, ParserOptions.AllowProperties)
+            .Verify(expression);
+
+    /// <summary>
+    ///  Verifies that properties with spaces at the beginning or end (boundary spaces) fail to parse,
+    ///  as MSBuild does not allow leading or trailing whitespace in property names.
+    /// </summary>
+    [Theory]
+    [InlineData("$(x )")]
+    [InlineData("$( x)")]
+    [InlineData("$([MSBuild]::DoSomething($(space ))")]
+    [InlineData("$([MSBuild]::DoSomething($(_space ))")]
+    public void Property_WithBoundarySpace_ShouldFail(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ParseExpression(expression, ParserOptions.AllowProperties));
+
+    /// <summary>
+    ///  Verifies that single "=" (instead of "==") throws InvalidProjectFileException.
+    ///  Common mistake: using assignment syntax instead of equality comparison.
+    /// </summary>
+    [Theory]
+    [InlineData("a=b")]
+    [InlineData("1234=5678")]
+    [InlineData("$(foo)=$(bar)")]
+    public void SingleEquals_ShouldFail(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ParseExpression(expression));
+
+    /// <summary>
+    ///  Verifies that ill-formed property references throw InvalidProjectFileException.
+    ///  Properties must be in the form $(name) with both opening and closing parentheses.
+    /// </summary>
+    [Theory]
+    [InlineData("$(")]      // Missing closing parenthesis
+    [InlineData("$x")]      // Missing opening parenthesis
+    [InlineData("$(foo")]   // Missing closing parenthesis
+    public void Property_IllFormed_ShouldFail(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ParseExpression(expression, ParserOptions.AllowProperties));
+
+    /// <summary>
+    ///  Verifies that ill-formed item list references throw InvalidProjectFileException.
+    ///  Item lists must be in the form @(name) with proper parentheses and quoted separators/transforms.
+    /// </summary>
+    [Theory]
+    [InlineData("@(")]                      // Missing closing parenthesis
+    [InlineData("@x")]                      // Missing opening parenthesis
+    [InlineData("@(x")]                     // Missing closing parenthesis
+    [InlineData("@(x->'%(y)")]              // Unterminated quote in transform
+    [InlineData("@(x->'%(y)', 'x")]         // Unterminated quote in separator
+    [InlineData("@(x->'%(y)', 'x'")]        // Missing closing parenthesis
+    public void ItemList_IllFormed_ShouldFail(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ParseExpression(expression));
+
+    /// <summary>
+    ///  Verifies that unterminated quoted strings throw InvalidProjectFileException.
+    ///  All quoted strings must have matching closing quotes.
+    /// </summary>
+    [Theory]
+    [InlineData("'")]                       // Just opening quote
+    [InlineData("'abc")]                    // Missing closing quote
+    [InlineData("false or 'abc")]           // Unterminated string in expression
+    [InlineData("'$(DEBUG) == true")]       // Unterminated string with property
+    public void String_Unterminated_ShouldFail(string expression)
         => Should.Throw<InvalidProjectFileException>(() =>
             ParseExpression(expression));
 
