@@ -1,9 +1,11 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
@@ -19,15 +21,31 @@ namespace Microsoft.Build.Evaluation
     ///
     /// The expression tree can then be evaluated and re-evaluated as needed.
     /// </summary>
-    /// <remarks>
-    /// UNDONE: When we copied over the conditionals code, we didn't copy over the unit tests for scanner, parser, and expression tree.
-    /// </remarks>
     internal sealed class Parser
     {
+        private static readonly FrozenDictionary<string, KeywordKind> s_keywords = new Dictionary<string, KeywordKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "and", KeywordKind.And },
+            { "or", KeywordKind.Or },
+            { "true", KeywordKind.True },
+            { "false", KeywordKind.False },
+            { "on", KeywordKind.On },
+            { "off", KeywordKind.Off },
+            { "yes", KeywordKind.Yes },
+            { "no", KeywordKind.No }
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
         private readonly string _expression;
         private readonly ParserOptions _options;
-        private readonly ElementLocation _elementLocation;
-        private readonly Scanner _lexer;
+        private readonly IElementLocation _elementLocation;
+        private int _position;
+
+        // Error tracking
+        private bool _errorState;
+        private int _errorPosition;
+        private string _errorResource;
+        private string _unexpectedlyFound;
+        private static string s_endOfInput;
 
         /// <summary>
         ///  Location contextual information which are attached to logging events to
@@ -44,10 +62,35 @@ namespace Microsoft.Build.Evaluation
 
         internal int errorPosition = 0; // useful for unit tests
 
+        private enum KeywordKind
+        {
+            And,
+            Or,
+            True,
+            False,
+            On,
+            Off,
+            Yes,
+            No
+        }
+
+        private string EndOfInput
+        {
+            get
+            {
+                if (s_endOfInput == null)
+                {
+                    s_endOfInput = ResourceUtilities.GetResourceString("EndOfInputTokenName");
+                }
+
+                return s_endOfInput;
+            }
+        }
+
         public Parser(
             string expression,
             ParserOptions optionSettings,
-            ElementLocation elementLocation,
+            IElementLocation elementLocation,
             LoggingContext loggingContext = null)
         {
             // We currently have no support (and no scenarios) for disallowing property references in conditions.
@@ -56,11 +99,12 @@ namespace Microsoft.Build.Evaluation
             _expression = expression;
             _options = optionSettings;
             _elementLocation = elementLocation;
+            _position = 0;
+            _errorState = false;
+            _errorPosition = -1;
 
             _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
             _loggingService = loggingContext?.LoggingService;
-
-            _lexer = new Scanner(expression, _options);
         }
 
         /// <summary>
@@ -71,7 +115,7 @@ namespace Microsoft.Build.Evaluation
         internal static GenericExpressionNode Parse(
             string expression,
             ParserOptions optionSettings,
-            ElementLocation elementLocation,
+            IElementLocation elementLocation,
             LoggingContext loggingContext = null)
         {
             var parser = new Parser(expression, optionSettings, elementLocation, loggingContext);
@@ -84,16 +128,19 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal GenericExpressionNode Parse()
         {
-            if (!_lexer.Advance())
+            GenericExpressionNode node = Expr();
+
+            if (_errorState)
             {
-                errorPosition = _lexer.GetErrorPosition();
+                errorPosition = _errorPosition;
                 ThrowInvalidProject();
             }
 
-            GenericExpressionNode node = Expr();
-            if (!_lexer.IsNext(TokenKind.EndOfInput))
+            SkipWhiteSpace();
+            if (!IsAtEnd())
             {
-                errorPosition = _lexer.GetErrorPosition();
+                SetError("UnexpectedTokenInCondition");
+                errorPosition = _errorPosition;
                 ThrowUnexpectedTokenInCondition();
             }
 
@@ -108,9 +155,26 @@ namespace Microsoft.Build.Evaluation
         private GenericExpressionNode Expr()
         {
             GenericExpressionNode node = BooleanTerm();
-            if (!_lexer.IsNext(TokenKind.EndOfInput))
+            if (_errorState || node == null)
             {
-                node = ExprPrime(node);
+                return node;
+            }
+
+            SkipWhiteSpace();
+            while (!IsAtEnd() && TryMatchKeyword(KeywordKind.Or))
+            {
+                OperatorExpressionNode orNode = new OrExpressionNode();
+                GenericExpressionNode rhs = BooleanTerm();
+                if (_errorState || rhs == null)
+                {
+                    SetUnexpectedToken();
+                    return null;
+                }
+
+                orNode.LeftChild = node;
+                orNode.RightChild = rhs;
+                node = orNode;
+                SkipWhiteSpace();
             }
 
             #region REMOVE_COMPAT_WARNING
@@ -130,273 +194,821 @@ namespace Microsoft.Build.Evaluation
             return node;
         }
 
-        private GenericExpressionNode ExprPrime(GenericExpressionNode lhs)
-        {
-            if (Same(TokenKind.EndOfInput))
-            {
-                return lhs;
-            }
-            else if (Same(TokenKind.Or))
-            {
-                OperatorExpressionNode orNode = new OrExpressionNode();
-                GenericExpressionNode rhs = BooleanTerm();
-                orNode.LeftChild = lhs;
-                orNode.RightChild = rhs;
-                return ExprPrime(orNode);
-            }
-            else
-            {
-                // I think this is ok.  ExprPrime always shows up at
-                // the rightmost side of the grammar rhs, the EndOfInput case
-                // takes care of things
-                return lhs;
-            }
-        }
-
         private GenericExpressionNode BooleanTerm()
         {
             GenericExpressionNode node = RelationalExpr();
-            if (node == null)
+            if (_errorState || node == null)
             {
-                errorPosition = _lexer.GetErrorPosition();
-                ThrowUnexpectedTokenInCondition();
+                SetUnexpectedToken();
+                return null;
             }
 
-            if (!_lexer.IsNext(TokenKind.EndOfInput))
-            {
-                node = BooleanTermPrime(node);
-            }
-            return node;
-        }
-
-        private GenericExpressionNode BooleanTermPrime(GenericExpressionNode lhs)
-        {
-            if (_lexer.IsNext(TokenKind.EndOfInput))
-            {
-                return lhs;
-            }
-            else if (Same(TokenKind.And))
+            SkipWhiteSpace();
+            while (!IsAtEnd() && TryMatchKeyword(KeywordKind.And))
             {
                 GenericExpressionNode rhs = RelationalExpr();
-                if (rhs == null)
+                if (_errorState || rhs == null)
                 {
-                    errorPosition = _lexer.GetErrorPosition();
-                    ThrowUnexpectedTokenInCondition();
+                    SetUnexpectedToken();
+                    return null;
                 }
 
                 OperatorExpressionNode andNode = new AndExpressionNode();
-                andNode.LeftChild = lhs;
+                andNode.LeftChild = node;
                 andNode.RightChild = rhs;
-                return BooleanTermPrime(andNode);
+                node = andNode;
+                SkipWhiteSpace();
             }
-            else
-            {
-                // Should this be error case?
-                return lhs;
-            }
+
+            return node;
         }
 
         private GenericExpressionNode RelationalExpr()
         {
+            GenericExpressionNode lhs = Factor();
+            if (_errorState || lhs == null)
             {
-                GenericExpressionNode lhs = Factor();
-                if (lhs == null)
-                {
-                    errorPosition = _lexer.GetErrorPosition();
-                    ThrowUnexpectedTokenInCondition();
-                }
-
-                OperatorExpressionNode node = RelationalOperation();
-                if (node == null)
-                {
-                    return lhs;
-                }
-                GenericExpressionNode rhs = Factor();
-                node.LeftChild = lhs;
-                node.RightChild = rhs;
-                return node;
+                SetUnexpectedToken();
+                return null;
             }
+
+            SkipWhiteSpace();
+            OperatorExpressionNode node = TryParseRelationalOperator();
+            if (node == null)
+            {
+                return lhs;
+            }
+
+            GenericExpressionNode rhs = Factor();
+            if (_errorState || rhs == null)
+            {
+                SetUnexpectedToken();
+                return null;
+            }
+
+            node.LeftChild = lhs;
+            node.RightChild = rhs;
+            return node;
         }
 
-        private OperatorExpressionNode RelationalOperation()
+        private OperatorExpressionNode TryParseRelationalOperator()
         {
-            OperatorExpressionNode node = null;
-            if (Same(TokenKind.LessThan))
+            if (IsAtEnd())
             {
-                node = new LessThanExpressionNode();
+                return null;
             }
-            else if (Same(TokenKind.GreaterThan))
+
+            char ch = _expression[_position];
+
+            switch (ch)
             {
-                node = new GreaterThanExpressionNode();
+                case '<':
+                    _position++;
+                    if (!IsAtEnd() && _expression[_position] == '=')
+                    {
+                        _position++;
+                        return new LessThanOrEqualExpressionNode();
+                    }
+                    return new LessThanExpressionNode();
+
+                case '>':
+                    _position++;
+                    if (!IsAtEnd() && _expression[_position] == '=')
+                    {
+                        _position++;
+                        return new GreaterThanOrEqualExpressionNode();
+                    }
+                    return new GreaterThanExpressionNode();
+
+                case '=':
+                    if (_position + 1 < _expression.Length && _expression[_position + 1] == '=')
+                    {
+                        _position += 2;
+                        return new EqualExpressionNode();
+                    }
+                    // Single '=' is an error
+                    SetError("IllFormedEqualsInCondition");
+                    _errorPosition = _position + 2; // Counting from 1
+                    if (_position + 1 < _expression.Length)
+                    {
+                        _unexpectedlyFound = Convert.ToString(_expression[_position + 1], CultureInfo.InvariantCulture);
+                    }
+                    else
+                    {
+                        _unexpectedlyFound = EndOfInput;
+                    }
+                    _position++;
+                    return null;
+
+                case '!':
+                    if (_position + 1 < _expression.Length && _expression[_position + 1] == '=')
+                    {
+                        _position += 2;
+                        return new NotEqualExpressionNode();
+                    }
+                    return null;
+
+                default:
+                    return null;
             }
-            else if (Same(TokenKind.LessThanOrEqualTo))
-            {
-                node = new LessThanOrEqualExpressionNode();
-            }
-            else if (Same(TokenKind.GreaterThanOrEqualTo))
-            {
-                node = new GreaterThanOrEqualExpressionNode();
-            }
-            else if (Same(TokenKind.EqualTo))
-            {
-                node = new EqualExpressionNode();
-            }
-            else if (Same(TokenKind.NotEqualTo))
-            {
-                node = new NotEqualExpressionNode();
-            }
-            return node;
         }
 
         private GenericExpressionNode Factor()
         {
-            // Checks for TokenTypes String, Numeric, Property, ItemMetadata, and ItemList.
-            GenericExpressionNode arg = Arg();
+            SkipWhiteSpace();
 
-            // If it's one of those, return it.
-            if (arg != null)
+            if (IsAtEnd())
             {
-                return arg;
+                SetUnexpectedToken();
+                return null;
             }
 
-            // If it's not one of those, check for other TokenTypes.
-            Token current = _lexer.CurrentToken;
-            if (Same(TokenKind.Function))
+            char ch = _expression[_position];
+
+            // Check for '!' (not operator)
+            if (ch == '!')
             {
-                if (!Same(TokenKind.LeftParenthesis))
+                // Check if it's != (handled by relational operator)
+                if (_position + 1 < _expression.Length && _expression[_position + 1] == '=')
                 {
-                    errorPosition = _lexer.GetErrorPosition();
-                    ThrowUnexpectedTokenInCondition();
+                    SetUnexpectedToken();
                     return null;
                 }
-                var arglist = new List<GenericExpressionNode>();
-                Arglist(arglist);
-                if (!Same(TokenKind.RightParenthesis))
-                {
-                    errorPosition = _lexer.GetErrorPosition();
-                    ThrowUnexpectedTokenInCondition();
-                    return null;
-                }
-                return new FunctionCallExpressionNode(current.Text, arglist);
-            }
-            else if (Same(TokenKind.LeftParenthesis))
-            {
-                GenericExpressionNode child = Expr();
-                if (Same(TokenKind.RightParenthesis))
-                {
-                    return child;
-                }
-                else
-                {
-                    errorPosition = _lexer.GetErrorPosition();
-                    ThrowUnexpectedTokenInCondition();
-                }
-            }
-            else if (Same(TokenKind.Not))
-            {
+
+                _position++;
                 OperatorExpressionNode notNode = new NotExpressionNode();
                 GenericExpressionNode expr = Factor();
-                if (expr == null)
+                if (_errorState || expr == null)
                 {
-                    errorPosition = _lexer.GetErrorPosition();
-                    ThrowUnexpectedTokenInCondition();
+                    SetUnexpectedToken();
+                    return null;
                 }
                 notNode.LeftChild = expr;
                 return notNode;
             }
-            else
+
+            // Check for '(' (grouped expression)
+            if (ch == '(')
             {
-                errorPosition = _lexer.GetErrorPosition();
-                ThrowUnexpectedTokenInCondition();
+                _position++;
+                GenericExpressionNode child = Expr();
+                if (_errorState || child == null)
+                {
+                    SetUnexpectedToken();
+                    return null;
+                }
+
+                SkipWhiteSpace();
+                if (IsAtEnd() || _expression[_position] != ')')
+                {
+                    SetUnexpectedToken();
+                    return null;
+                }
+                _position++;
+                return child;
             }
-            return null;
+
+            // Try to parse an argument (string, number, property, etc.) or function
+            return ParseArgumentOrFunction();
         }
 
-        private void Arglist(List<GenericExpressionNode> arglist)
+        private GenericExpressionNode ParseArgumentOrFunction()
         {
-            if (!_lexer.IsNext(TokenKind.RightParenthesis))
+            SkipWhiteSpace();
+
+            if (IsAtEnd())
             {
-                Args(arglist);
+                SetUnexpectedToken();
+                return null;
+            }
+
+            char ch = _expression[_position];
+
+            // Check for function call or simple string: identifier followed optionally by '('
+            if (CharacterUtilities.IsSimpleStringStart(ch))
+            {
+                int start = _position;
+                SkipSimpleStringChars();
+
+                ReadOnlySpan<char> span = _expression.AsSpan(start, _position - start);
+
+                // Look ahead for '(' to detect function call
+                int savedPosition = _position;
+                SkipWhiteSpace();
+
+                if (!IsAtEnd() && _expression[_position] == '(')
+                {
+                    // It's a function call - use the string as function name regardless of whether it's a keyword
+                    string functionName = span.ToString();
+                    _position++; // consume '('
+                    var arglist = new List<GenericExpressionNode>();
+
+                    SkipWhiteSpace();
+                    if (IsAtEnd() || _expression[_position] != ')')
+                    {
+                        ParseArgumentList(arglist);
+                        if (_errorState)
+                        {
+                            return null;
+                        }
+                    }
+
+                    SkipWhiteSpace();
+                    if (IsAtEnd() || _expression[_position] != ')')
+                    {
+                        SetUnexpectedToken();
+                        return null;
+                    }
+                    _position++;
+                    return new FunctionCallExpressionNode(functionName, arglist);
+                }
+
+                // Not a function - restore position and check if it's a keyword
+                _position = savedPosition;
+
+                if (TryMatchKeywordSpan(span, out KeywordKind keyword))
+                {
+                    return keyword switch
+                    {
+                        KeywordKind.True or KeywordKind.On or KeywordKind.Yes => new BooleanLiteralNode(true, span.ToString()),
+                        KeywordKind.False or KeywordKind.Off or KeywordKind.No => new BooleanLiteralNode(false, span.ToString()),
+                        _ => new StringExpressionNode(span.ToString(), false)
+                    };
+                }
+
+                // Just a simple string
+                return new StringExpressionNode(span.ToString(), false);
+            }
+
+            // Fall back to other argument types
+            return TryParseArgument();
+        }
+
+        private void ParseArgumentList(List<GenericExpressionNode> arglist)
+        {
+            while (true)
+            {
+                GenericExpressionNode arg = TryParseArgument();
+                if (_errorState || arg == null)
+                {
+                    SetUnexpectedToken();
+                    return;
+                }
+
+                arglist.Add(arg);
+
+                SkipWhiteSpace();
+                if (IsAtEnd() || _expression[_position] != ',')
+                {
+                    break;
+                }
+
+                _position++; // consume ','
+                SkipWhiteSpace();
             }
         }
 
-        private void Args(List<GenericExpressionNode> arglist)
+        private GenericExpressionNode TryParseArgument()
         {
-            GenericExpressionNode arg = Arg();
-            arglist.Add(arg);
-            if (Same(TokenKind.Comma))
-            {
-                Args(arglist);
-            }
-        }
+            SkipWhiteSpace();
 
-        private GenericExpressionNode Arg()
-        {
-            Token current = _lexer.CurrentToken;
-            if (Same(TokenKind.String))
-            {
-                return new StringExpressionNode(current.Text, current.IsExpandable);
-            }
-            else if (Same(TokenKind.Numeric))
-            {
-                return new NumericExpressionNode(current.Text);
-            }
-            else if (Same(TokenKind.Property))
-            {
-                return new StringExpressionNode(current.Text, true /* requires expansion */);
-            }
-            else if (Same(TokenKind.ItemMetadata))
-            {
-                return new StringExpressionNode(current.Text, true /* requires expansion */);
-            }
-            else if (Same(TokenKind.ItemList))
-            {
-                return new StringExpressionNode(current.Text, true /* requires expansion */);
-            }
-            else if (Same(TokenKind.True) || Same(TokenKind.On) || Same(TokenKind.Yes))
-            {
-                return new BooleanLiteralNode(true, current.Text);
-            }
-            else if (Same(TokenKind.False) || Same(TokenKind.Off) || Same(TokenKind.No))
-            {
-                return new BooleanLiteralNode(false, current.Text);
-            }
-            else
+            if (IsAtEnd())
             {
                 return null;
             }
+
+            char ch = _expression[_position];
+
+            // Property reference: $(...)
+            if (ch == '$')
+            {
+                if (TryParsePropertyOrItemMetadata(out string propertyExpression))
+                {
+                    return new StringExpressionNode(propertyExpression, true /* requires expansion */);
+                }
+                return null;
+            }
+
+            // Item metadata: %(...)
+            if (ch == '%')
+            {
+                if (TryParsePropertyOrItemMetadata(out string itemMetadataExpression))
+                {
+                    string expression = itemMetadataExpression;
+
+                    // Extract metadata name for validation
+                    if (expression.Length > 3 && expression[0] == '%' && expression[1] == '(' && expression[expression.Length - 1] == ')')
+                    {
+                        string metadataName = expression.Substring(2, expression.Length - 3);
+
+                        // If it's like %(a.b) find 'b'
+                        int period = metadataName.IndexOf('.');
+                        if (period > 0 && period < metadataName.Length - 1)
+                        {
+                            metadataName = metadataName.Substring(period + 1);
+                        }
+
+                        if (!CheckMetadataAllowed(metadataName))
+                        {
+                            return null;
+                        }
+                    }
+
+                    return new StringExpressionNode(itemMetadataExpression, true /* requires expansion */);
+                }
+                return null;
+            }
+
+            // Item list: @(...)
+            if (ch == '@')
+            {
+                if ((_options & ParserOptions.AllowItemLists) == 0)
+                {
+                    if (_position + 1 < _expression.Length && _expression[_position + 1] == '(')
+                    {
+                        SetError("ItemListNotAllowedInThisConditional");
+                        _errorPosition = _position + 1;
+                        return null;
+                    }
+                }
+
+                if (TryParseItemList(out string itemListExpression))
+                {
+                    return new StringExpressionNode(itemListExpression, true /* requires expansion */);
+                }
+                return null;
+            }
+
+            // Quoted string: '...'
+            if (ch == '\'')
+            {
+                if (TryParseQuotedString(out string stringValue, out bool expandable))
+                {
+                    return new StringExpressionNode(stringValue, expandable);
+                }
+                return null;
+            }
+
+            // Numeric literal
+            if (CharacterUtilities.IsNumberStart(ch))
+            {
+                if (TryParseNumeric(out string numericValue))
+                {
+                    return new NumericExpressionNode(numericValue);
+                }
+                return null;
+            }
+
+            // Simple string or keyword (but NOT function - ParseArgumentOrFunction handles that)
+            if (CharacterUtilities.IsSimpleStringStart(ch))
+            {
+                int start = _position;
+                SkipSimpleStringChars();
+
+                ReadOnlySpan<char> span = _expression.AsSpan(start, _position - start);
+
+                // Check if it's a boolean keyword
+                if (TryMatchKeywordSpan(span, out KeywordKind keyword))
+                {
+                    return keyword switch
+                    {
+                        KeywordKind.True or KeywordKind.On or KeywordKind.Yes => new BooleanLiteralNode(true, span.ToString()),
+                        KeywordKind.False or KeywordKind.Off or KeywordKind.No => new BooleanLiteralNode(false, span.ToString()),
+                        _ => new StringExpressionNode(span.ToString(), false)
+                    };
+                }
+
+                // Just a simple string
+                return new StringExpressionNode(span.ToString(), false);
+            }
+
+            return null;
         }
 
-        private bool Same(TokenKind token)
+        private bool TryParsePropertyOrItemMetadata(out string result)
         {
-            if (_lexer.IsNext(token))
+            result = null;
+            int start = _position;
+            _position++;
+
+            if (IsAtEnd() || _expression[_position] != '(')
             {
-                if (!_lexer.Advance())
+                SetError("IllFormedPropertyOpenParenthesisInCondition");
+                _errorPosition = start + 1;
+                _unexpectedlyFound = IsAtEnd() ? EndOfInput : Convert.ToString(_expression[_position], CultureInfo.InvariantCulture);
+                return false;
+            }
+
+            if (!ScanForPropertyExpressionEnd(_expression, _position++, out int indexResult))
+            {
+                SetError("IllFormedPropertySpaceInCondition");
+                _errorPosition = indexResult;
+                _unexpectedlyFound = Convert.ToString(_expression[indexResult], CultureInfo.InvariantCulture);
+                return false;
+            }
+
+            _position = indexResult;
+
+            if (IsAtEnd())
+            {
+                SetError("IllFormedPropertyCloseParenthesisInCondition");
+                _errorPosition = start + 1;
+                _unexpectedlyFound = EndOfInput;
+                return false;
+            }
+
+            _position++;
+            result = _expression.Substring(start, _position - start);
+            return true;
+        }
+
+        private static bool ScanForPropertyExpressionEnd(string expression, int index, out int indexResult)
+        {
+            int nestLevel = 0;
+            bool whitespaceFound = false;
+            bool nonIdentifierCharacterFound = false;
+            indexResult = -1;
+            unsafe
+            {
+                fixed (char* pchar = expression)
                 {
-                    errorPosition = _lexer.GetErrorPosition();
-                    ThrowInvalidProject();
+                    while (index < expression.Length)
+                    {
+                        char character = pchar[index];
+                        if (character == '(')
+                        {
+                            nestLevel++;
+                        }
+                        else if (character == ')')
+                        {
+                            nestLevel--;
+                        }
+                        else if (char.IsWhiteSpace(character))
+                        {
+                            whitespaceFound = true;
+                            indexResult = index;
+                        }
+                        else if (!XmlUtilities.IsValidSubsequentElementNameCharacter(character))
+                        {
+                            nonIdentifierCharacterFound = true;
+                        }
+
+                        if (character == '$' && index < expression.Length - 1 && pchar[index + 1] == '(')
+                        {
+                            if (!ScanForPropertyExpressionEnd(expression, index + 1, out index))
+                            {
+                                indexResult = index;
+                                return false;
+                            }
+                        }
+
+                        if (nestLevel == 0)
+                        {
+                            if (whitespaceFound && !nonIdentifierCharacterFound)
+                            {
+                                return false;
+                            }
+
+                            indexResult = index;
+                            return true;
+                        }
+                        else
+                        {
+                            index++;
+                        }
+                    }
                 }
+            }
+            indexResult = index;
+            return true;
+        }
+
+        private bool CheckMetadataAllowed(string metadataName)
+        {
+            if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
+            {
                 return true;
             }
-            else
+
+            bool isItemSpecModifier = FileUtilities.ItemSpecModifiers.IsItemSpecModifier(metadataName);
+
+            if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
+            {
+                SetError("BuiltInMetadataNotAllowedInThisConditional");
+                _errorPosition = _position;
+                _unexpectedlyFound = metadataName;
+                return false;
+            }
+
+            if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
+            {
+                SetError("CustomMetadataNotAllowedInThisConditional");
+                _errorPosition = _position;
+                _unexpectedlyFound = metadataName;
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryParseItemList(out string result)
+        {
+            result = null;
+            int start = _position;
+            _position++;
+
+            if (IsAtEnd() || _expression[_position] != '(')
+            {
+                SetError("IllFormedItemListOpenParenthesisInCondition");
+                _errorPosition = start + 1;
+                return false;
+            }
+
+            _position++;
+
+            bool inReplacement = false;
+            int parenToClose = 0;
+
+            while (_position < _expression.Length)
+            {
+                if (_expression[_position] == '\'')
+                {
+                    inReplacement = !inReplacement;
+                }
+                else if (_expression[_position] == '(' && !inReplacement)
+                {
+                    parenToClose++;
+                }
+                else if (_expression[_position] == ')' && !inReplacement)
+                {
+                    if (parenToClose == 0)
+                    {
+                        break;
+                    }
+                    parenToClose--;
+                }
+                _position++;
+            }
+
+            if (IsAtEnd())
+            {
+                SetError(inReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
+                _errorPosition = start + 1;
+                return false;
+            }
+
+            _position++;
+            result = _expression.Substring(start, _position - start);
+            return true;
+        }
+
+        private bool TryParseQuotedString(out string result, out bool expandable)
+        {
+            result = null;
+            expandable = false;
+
+            _position++; // Skip opening quote
+            int start = _position;
+
+            while (_position < _expression.Length && _expression[_position] != '\'')
+            {
+                char ch = _expression[_position];
+
+                if (ch == '%')
+                {
+                    if (_position + 1 < _expression.Length && _expression[_position + 1] == '(')
+                    {
+                        expandable = true;
+
+                        // Extract metadata name for validation
+                        int endOfName = _expression.IndexOf(')', _position) - 1;
+                        if (endOfName >= _position + 2)
+                        {
+                            string name = _expression.Substring(_position + 2, endOfName - _position - 1);
+                            if (!CheckMetadataAllowed(name))
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Standalone % for escaping
+                        expandable = true;
+                    }
+                }
+                else if (ch == '@' && _position + 1 < _expression.Length && _expression[_position + 1] == '(')
+                {
+                    expandable = true;
+
+                    if ((_options & ParserOptions.AllowItemLists) == 0)
+                    {
+                        SetError("ItemListNotAllowedInThisConditional");
+                        _errorPosition = start + 1;
+                        return false;
+                    }
+
+                    // Parse the item list to skip over it properly
+                    int savedPos = _position;
+                    if (!TryParseItemList(out _))
+                    {
+                        return false;
+                    }
+                    continue;
+                }
+                else if (ch == '$' && _position + 1 < _expression.Length && _expression[_position + 1] == '(')
+                {
+                    expandable = true;
+                }
+
+                _position++;
+            }
+
+            if (IsAtEnd())
+            {
+                SetError("IllFormedQuotedStringInCondition");
+                _errorPosition = start;
+                return false;
+            }
+
+            result = _expression.Substring(start, _position - start);
+            _position++; // Skip closing quote
+            return true;
+        }
+
+        private bool TryParseNumeric(out string result)
+        {
+            result = null;
+            int start = _position;
+
+            // Hex number: 0x...
+            if (_position + 2 < _expression.Length &&
+                _expression[_position] == '0' &&
+                (_expression[_position + 1] == 'x' || _expression[_position + 1] == 'X'))
+            {
+                _position += 2;
+                SkipHexDigits();
+                result = _expression.Substring(start, _position - start);
+                return true;
+            }
+
+            // Decimal number
+            if (_expression[_position] == '+' || _expression[_position] == '-')
+            {
+                _position++;
+            }
+
+            do
+            {
+                SkipDigits();
+                if (_position < _expression.Length && _expression[_position] == '.')
+                {
+                    _position++;
+                }
+                if (_position < _expression.Length)
+                {
+                    SkipDigits();
+                }
+            } while (_position < _expression.Length && _expression[_position] == '.');
+
+            result = _expression.Substring(start, _position - start);
+            return true;
+        }
+
+        private bool TryMatchKeyword(KeywordKind keyword)
+        {
+            int savedPosition = _position;
+
+            if (!CharacterUtilities.IsSimpleStringStart(_expression[_position]))
             {
                 return false;
+            }
+
+            int start = _position;
+            SkipSimpleStringChars();
+
+            ReadOnlySpan<char> span = _expression.AsSpan(start, _position - start);
+
+            if (TryMatchKeywordSpan(span, out KeywordKind found) && found == keyword)
+            {
+                return true;
+            }
+
+            _position = savedPosition;
+            return false;
+        }
+
+        private bool TryMatchKeywordSpan(ReadOnlySpan<char> span, out KeywordKind keyword)
+        {
+#if NET
+            if (s_keywords.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out keyword))
+            {
+                return true;
+            }
+#else
+            foreach (KeyValuePair<string, KeywordKind> pair in s_keywords)
+            {
+                if (span.Equals(pair.Key.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                {
+                    keyword = pair.Value;
+                    return true;
+                }
+            }
+#endif
+            keyword = default;
+            return false;
+        }
+
+        private void SkipWhiteSpace()
+        {
+            while (_position < _expression.Length && char.IsWhiteSpace(_expression[_position]))
+            {
+                _position++;
+            }
+        }
+
+        private void SkipDigits()
+        {
+            while (_position < _expression.Length && char.IsDigit(_expression[_position]))
+            {
+                _position++;
+            }
+        }
+
+        private void SkipHexDigits()
+        {
+            while (_position < _expression.Length && CharacterUtilities.IsHexDigit(_expression[_position]))
+            {
+                _position++;
+            }
+        }
+
+        private void SkipSimpleStringChars()
+        {
+            while (_position < _expression.Length && CharacterUtilities.IsSimpleStringChar(_expression[_position]))
+            {
+                _position++;
+            }
+        }
+
+        private bool IsAtEnd()
+        {
+            return _position >= _expression.Length;
+        }
+
+        private void SetError(string resourceName)
+        {
+            _errorState = true;
+            _errorResource = resourceName;
+            if (_errorPosition == -1)
+            {
+                _errorPosition = _position + 1; // Convert to 1-based
+            }
+        }
+
+        private void SetUnexpectedToken()
+        {
+            if (!_errorState)
+            {
+                SetError("UnexpectedTokenInCondition");
+                if (_position < _expression.Length)
+                {
+                    _unexpectedlyFound = Convert.ToString(_expression[_position], CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    _unexpectedlyFound = EndOfInput;
+                }
             }
         }
 
         private void ThrowInvalidProject()
         {
-            if (_lexer.UnexpectedlyFound != null)
+            if (_errorResource == null)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition, _lexer.UnexpectedlyFound);
+                ThrowUnexpectedCharacterInCondition();
+            }
+            else if (_unexpectedlyFound != null)
+            {
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _errorResource, _expression, errorPosition, _unexpectedlyFound);
             }
             else
             {
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition);
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _errorResource, _expression, errorPosition);
             }
         }
 
+        private void ThrowUnexpectedCharacterInCondition()
+        {
+            string unexpectedlyFound = _unexpectedlyFound ?? EndOfInput;
+
+            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedCharacterInCondition", _expression, errorPosition, unexpectedlyFound);
+        }
+
         private void ThrowUnexpectedTokenInCondition()
-            => ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, _lexer.IsNextString(), errorPosition);
+        {
+            string foundToken = _position < _expression.Length ? Convert.ToString(_expression[_position], CultureInfo.InvariantCulture) : EndOfInput;
+            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, errorPosition, foundToken);
+        }
     }
 }
