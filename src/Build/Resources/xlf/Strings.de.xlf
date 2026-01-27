@@ -571,8 +571,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ItemMetadataNotAllowedInThisConditional">
-        <source>MSB4282: A reference to an item list at position {1} is not allowed in this condition "{0}".</source>
-        <target state="new">MSB4282: A reference to an item list at position {1} is not allowed in this condition "{0}".</target>
+        <source>MSB4282: A reference to item metadata at position {1} is not allowed in this condition "{0}".</source>
+        <target state="new">MSB4282: A reference to item metadata at position {1} is not allowed in this condition "{0}".</target>
         <note>{StrBegin="MSB4282: "}</note>
       </trans-unit>
       <trans-unit id="ItemReferencingSelfInTarget">

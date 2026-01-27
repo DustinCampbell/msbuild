@@ -718,7 +718,7 @@
     <comment>{StrBegin="MSB4099: "}</comment>
   </data>
   <data name="ItemMetadataNotAllowedInThisConditional" xml:space="preserve">
-    <value>MSB4282: A reference to an item list at position {1} is not allowed in this condition "{0}".</value>
+    <value>MSB4282: A reference to item metadata at position {1} is not allowed in this condition "{0}".</value>
     <comment>{StrBegin="MSB4282: "}</comment>
   </data>
   <data name="CustomMetadataNotAllowedInThisConditional" xml:space="preserve">

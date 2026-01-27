@@ -212,21 +212,22 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void PropertyGroupWithConditionOnGroupUsingMetadataErrors()
         {
             MockLogger logger = new MockLogger();
-            var content = ObjectModelHelpers.CleanupFileContents(
-            @"
-            <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
-            <Target Name='t'>
-                <PropertyGroup Condition=""'%(i0.m)'=='m2'"">
-                    <p1>@(i0)</p1>
-                    <p2>%(i0.m)</p2>
-                </PropertyGroup>
-            </Target>
-            </Project>");
+            var content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
+                <Target Name='t'>
+                    <PropertyGroup Condition="'%(i0.m)'=='m2'">
+                        <p1>@(i0)</p1>
+                        <p2>%(i0.m)</p2>
+                    </PropertyGroup>
+                </Target>
+                </Project>
+                """);
+
             using ProjectFromString projectFromString = new(content);
             Project p = projectFromString.Project;
 
-            p.Build(new string[] { "t" }, new ILogger[] { logger });
-            logger.AssertLogContains("MSB4191"); // Metadata not allowed
+            p.Build(["t"], [logger]);
+            logger.AssertLogContains("MSB4282"); // Metadata not allowed
         }
 
         [Fact]
@@ -937,22 +938,24 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void ItemGroupWithConditionOnGroupUsingMetadataErrors()
         {
             MockLogger logger = new MockLogger();
-            var content = ObjectModelHelpers.CleanupFileContents(
-            @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
-            <Target Name='t'>
-                <ItemGroup Condition=""'%(i0.m)'!='m1'"">
-                    <i1 Include='a1'/>
-                    <i2 Include='%(i0.m)'/>
-                    <i3 Include='%(i0.identity)'/>
-                    <i4 Include='@(i0)'/>
-                </ItemGroup>
-            </Target>
-            </Project>");
+            var content = ObjectModelHelpers.CleanupFileContents("""
+            <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
+                <Target Name='t'>
+                    <ItemGroup Condition="'%(i0.m)'!='m1'">
+                        <i1 Include='a1'/>
+                        <i2 Include='%(i0.m)'/>
+                        <i3 Include='%(i0.identity)'/>
+                        <i4 Include='@(i0)'/>
+                    </ItemGroup>
+                </Target>
+            </Project>
+            """);
+
             using ProjectFromString projectFromString = new(content);
             Project p = projectFromString.Project;
 
-            p.Build(new string[] { "t" }, new ILogger[] { logger });
-            logger.AssertLogContains("MSB4191"); // Metadata not allowed
+            p.Build(["t"], [logger]);
+            logger.AssertLogContains("MSB4282"); // Metadata not allowed
         }
 
         [Fact]
@@ -1073,18 +1076,21 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void ItemGroupWithMetadataReferencesOnItemGroupAndItemConditionsErrors()
         {
             MockLogger logger = new MockLogger();
-            var content = ObjectModelHelpers.CleanupFileContents(
-                        @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
-            <Target Name='t'>
-                <ItemGroup Condition=""'%(i0.m)' != m1"" >
-                    <i1 Include=""%(m)"" Condition=""'%(i0.m)' != m3""/>
-                </ItemGroup>
-            </Target></Project>");
+            var content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
+                    <Target Name='t'>
+                        <ItemGroup Condition="'%(i0.m)' != m1" >
+                            <i1 Include="%(m)" Condition="'%(i0.m)' != m3"/>
+                        </ItemGroup>
+                    </Target>
+                </Project>
+                """);
+
             using ProjectFromString projectFromString = new(content);
             Project p = projectFromString.Project;
 
-            p.Build(new string[] { "t" }, new ILogger[] { logger });
-            logger.AssertLogContains("MSB4191"); // Metadata not allowed
+            p.Build(["t"], [logger]);
+            logger.AssertLogContains("MSB4282"); // Metadata not allowed
         }
 
         [Fact]
@@ -1157,18 +1163,21 @@ namespace Microsoft.Build.UnitTests.BackEnd
         public void PropertyGroupWithMetadataReferencesOnGroupErrors()
         {
             MockLogger logger = new MockLogger();
-            var content = ObjectModelHelpers.CleanupFileContents(
-            @"<Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
-            <Target Name='t'>
-                <PropertyGroup Condition=""'%(i0.m)' != m1"">
-                    <p1>%(i0.m)</p1>
-                </PropertyGroup>
-            </Target></Project>");
+            var content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion='msbuilddefaulttoolsversion' xmlns='msbuildnamespace'>
+                    <Target Name='t'>
+                        <PropertyGroup Condition="'%(i0.m)' != m1">
+                            <p1>%(i0.m)</p1>
+                        </PropertyGroup>
+                    </Target>
+                </Project>
+                """);
+
             using ProjectFromString projectFromString = new(content);
             Project p = projectFromString.Project;
 
-            p.Build(new string[] { "t" }, new ILogger[] { logger });
-            logger.AssertLogContains("MSB4191");
+            p.Build(["t"], [logger]);
+            logger.AssertLogContains("MSB4282");
         }
 
         [Fact]
