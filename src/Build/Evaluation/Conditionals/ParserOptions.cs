@@ -14,7 +14,7 @@ internal enum ParserOptions
     AllowPropertiesAndItemLists = AllowProperties | AllowItemLists,
     AllowBuiltInMetadata = 0x4,
     AllowCustomMetadata = 0x8,
-    AllowUnknownFunctions = 0x10,
+    AllowUndefinedFunctions = 0x10,
     AllowItemMetadata = AllowBuiltInMetadata | AllowCustomMetadata,
     AllowPropertiesAndItemMetadata = AllowProperties | AllowItemMetadata,
     AllowPropertiesAndCustomMetadata = AllowProperties | AllowCustomMetadata,

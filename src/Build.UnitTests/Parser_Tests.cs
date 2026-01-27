@@ -112,6 +112,293 @@ public class ParserTest
                 (StringExpressionNode right) => right.Verify("foo_french"));
 
     /// <summary>
+    ///  Verifies that qualified metadata (ItemType.MetadataName) parses into StringExpressionNode.
+    /// </summary>
+    [Fact]
+    public void QualifiedMetadata_ShouldParseToStringNode()
+        => Parse<StringExpressionNode>("%(Compile.Culture)")
+            .Verify("%(Compile.Culture)");
+
+    /// <summary>
+    ///  Verifies that qualified metadata equality comparisons parse with correct structure.
+    /// </summary>
+    [Fact]
+    public void QualifiedMetadataEquality_ShouldParseWithCorrectStructure()
+        => Parse<EqualExpressionNode>("%(Compile.Culture)=='french'")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("%(Compile.Culture)"),
+                (StringExpressionNode right) => right.Verify("french"));
+
+    /// <summary>
+    ///  Verifies that built-in metadata references parse correctly.
+    ///  Built-in metadata includes Identity, FullPath, Filename, Extension, etc.
+    /// </summary>
+    [Theory]
+    [InlineData("%(Identity)")]
+    [InlineData("%(FullPath)")]
+    [InlineData("%(RootDir)")]
+    [InlineData("%(Filename)")]
+    [InlineData("%(Extension)")]
+    [InlineData("%(RelativeDir)")]
+    [InlineData("%(Directory)")]
+    [InlineData("%(RecursiveDir)")]
+    [InlineData("%(ModifiedTime)")]
+    [InlineData("%(CreatedTime)")]
+    [InlineData("%(AccessedTime)")]
+    public void BuiltInMetadata_ShouldParseToStringNode(string expression)
+        => Parse<StringExpressionNode>(expression)
+            .Verify(expression);
+
+    /// <summary>
+    ///  Verifies that qualified built-in metadata references parse correctly.
+    ///  Format: %(ItemType.MetadataName) where MetadataName is a built-in metadata.
+    /// </summary>
+    [Theory]
+    [InlineData("%(Compile.Identity)")]
+    [InlineData("%(Compile.FullPath)")]
+    [InlineData("%(Compile.Filename)")]
+    [InlineData("%(Compile.Extension)")]
+    [InlineData("%(Compile.Directory)")]
+    [InlineData("%(CSFile.RelativeDir)")]
+    [InlineData("%(Resource.ModifiedTime)")]
+    public void QualifiedBuiltInMetadata_ShouldParseToStringNode(string expression)
+        => Parse<StringExpressionNode>(expression)
+            .Verify(expression);
+
+    /// <summary>
+    ///  Verifies that built-in metadata works correctly in equality comparisons.
+    /// </summary>
+    [Fact]
+    public void BuiltInMetadataEquality_ShouldParseWithCorrectStructure()
+        => Parse<EqualExpressionNode>("%(Filename)=='Program'")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("%(Filename)"),
+                (StringExpressionNode right) => right.Verify("Program"));
+
+    /// <summary>
+    ///  Verifies that qualified built-in metadata works correctly in equality comparisons.
+    /// </summary>
+    [Fact]
+    public void QualifiedBuiltInMetadataEquality_ShouldParseWithCorrectStructure()
+        => Parse<EqualExpressionNode>("%(Compile.Extension)=='.cs'")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("%(Compile.Extension)"),
+                (StringExpressionNode right) => right.Verify(".cs"));
+
+    /// <summary>
+    ///  Verifies that metadata references work correctly in complex logical expressions.
+    ///  Structure: (%(Compile.Filename) == 'Program' AND %(Compile.Extension) == '.cs')
+    /// </summary>
+    [Fact]
+    public void QualifiedMetadata_InComplexExpression_ShouldParseCorrectly()
+        => Parse<AndExpressionNode>("%(Compile.Filename) == 'Program' and %(Compile.Extension) == '.cs'")
+            .Verify(
+                (EqualExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("%(Compile.Filename)"),
+                    (StringExpressionNode right) => right.Verify("Program")),
+                (EqualExpressionNode right) => right.Verify(
+                    (StringExpressionNode left) => left.Verify("%(Compile.Extension)"),
+                    (StringExpressionNode right) => right.Verify(".cs")));
+
+    /// <summary>
+    ///  Verifies that metadata references work correctly with NOT operator.
+    ///  Structure: !(%(Compile.Extension) == '.cs')
+    /// </summary>
+    [Fact]
+    public void QualifiedMetadata_WithNotOperator_ShouldParseCorrectly()
+        => Parse<NotExpressionNode>("!(%(Compile.Extension) == '.cs')")
+            .Verify((EqualExpressionNode child) => child.Verify(
+                (StringExpressionNode left) => left.Verify("%(Compile.Extension)"),
+                (StringExpressionNode right) => right.Verify(".cs")));
+
+    /// <summary>
+    ///  Verifies that strings containing qualified metadata references parse correctly.
+    /// </summary>
+    [Fact]
+    public void StringWithQualifiedMetadata_ShouldParseWithCorrectStructure()
+        => Parse<EqualExpressionNode>("'bin_%(Compile.Filename)'=='bin_Program'")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("bin_%(Compile.Filename)"),
+                (StringExpressionNode right) => right.Verify("bin_Program"));
+
+    /// <summary>
+    ///  Verifies that DefiningProject metadata references parse correctly.
+    ///  These are special built-in metadata that refer to the project file itself.
+    /// </summary>
+    [Theory]
+    [InlineData("%(DefiningProjectFullPath)")]
+    [InlineData("%(DefiningProjectDirectory)")]
+    [InlineData("%(DefiningProjectName)")]
+    [InlineData("%(DefiningProjectExtension)")]
+    [InlineData("%(Compile.DefiningProjectFullPath)")]
+    [InlineData("%(Compile.DefiningProjectName)")]
+    public void DefiningProjectMetadata_ShouldParseToStringNode(string expression)
+        => Parse<StringExpressionNode>(expression)
+            .Verify(expression);
+
+    /// <summary>
+    ///  Verifies that metadata with numeric comparisons parse correctly.
+    ///  Useful for comparing ModifiedTime, CreatedTime, or AccessedTime metadata.
+    /// </summary>
+    [Fact]
+    public void MetadataWithNumericComparison_ShouldParseCorrectly()
+        => Parse<GreaterThanExpressionNode>("%(Compile.ModifiedTime) > 0")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("%(Compile.ModifiedTime)"),
+                (NumericExpressionNode right) => right.Verify("0"));
+
+    /// <summary>
+    ///  Verifies that mixed unqualified and qualified metadata references work in the same expression.
+    ///  Structure: (%(Identity) == 'file.cs' OR %(Compile.Extension) == '.cs')
+    /// </summary>
+    [Fact]
+    public void MixedQualifiedAndUnqualifiedMetadata_ShouldParseCorrectly()
+        => Parse<OrExpressionNode>("%(Identity) == 'file.cs' or %(Compile.Extension) == '.cs'")
+            .Verify(
+                (EqualExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("%(Identity)"),
+                    (StringExpressionNode right) => right.Verify("file.cs")),
+                (EqualExpressionNode right) => right.Verify(
+                    (StringExpressionNode left) => left.Verify("%(Compile.Extension)"),
+                    (StringExpressionNode right) => right.Verify(".cs")));
+
+    /// <summary>
+    ///  Verifies that custom metadata in qualified form parses correctly.
+    ///  Custom metadata is user-defined, not built-in metadata.
+    /// </summary>
+    [Theory]
+    [InlineData("%(Compile.CustomMetadata)")]
+    [InlineData("%(Resource.TargetDirectory)")]
+    [InlineData("%(EmbeddedResource.Culture)")]
+    [InlineData("%(CSFile.LinkResource)")]
+    public void CustomQualifiedMetadata_ShouldParseToStringNode(string expression)
+        => Parse<StringExpressionNode>(expression)
+            .Verify(expression);
+
+    /// <summary>
+    ///  Verifies that metadata references work correctly in function call arguments.
+    ///  Structure: Exists(%(Compile.FullPath))
+    /// </summary>
+    [Fact]
+    public void QualifiedMetadata_InFunctionCall_ShouldParseCorrectly()
+        => Parse<FunctionCallExpressionNode>(
+            "Exists(%(Compile.FullPath))",
+            ParserOptions.AllowAll)
+            .Verify(
+                name: "Exists",
+                (StringExpressionNode arg) => arg.Verify("%(Compile.FullPath)"));
+
+    /// <summary>
+    ///  Verifies that built-in metadata is rejected when ParserOptions.AllowBuiltInMetadata is not set.
+    /// </summary>
+    [Theory]
+    [InlineData("%(Filename) == 'Program'")] // Unqualified
+    [InlineData("%(Compile.Extension) == '.cs'")] // Qualified
+    public void BuiltInMetadata_WhenNotAllowed_ShouldFail(string expression)
+    {
+        var error = FailParse(expression, ParserOptions.AllowAll & ~ParserOptions.AllowBuiltInMetadata);
+
+        error.ResourceName.ShouldBe(ParseErrors.BuiltInMetadataNotAllowed);
+    }
+
+    /// <summary>
+    ///  Verifies that custom metadata is rejected when ParserOptions.AllowCustomMetadata is not set.
+    /// </summary>
+    [Theory]
+    [InlineData("%(Culture) == 'fr'")] // Unqualified
+    [InlineData("%(Compile.Culture) == 'fr'")] // Qualified
+    public void CustomMetadata_WhenNotAllowed_ShouldFail(string expression)
+    {
+        var error = FailParse(expression, ParserOptions.AllowAll & ~ParserOptions.AllowCustomMetadata);
+
+        error.ResourceName.ShouldBe(ParseErrors.CustomMetadataNotAllowed);
+    }
+
+    /// <summary>
+    ///  Verifies that metadata in quoted strings is rejected when not allowed.
+    /// </summary>
+    [Theory]
+    [InlineData("'%(Filename)' == 'Program'")]
+    [InlineData("'%(Culture)' == 'fr'")]
+    public void Metadata_InQuotedString_WhenNotAllowed_ShouldFail(string expression)
+    {
+        var error = FailParse(expression, ParserOptions.AllowProperties);
+
+        error.ResourceName.ShouldBe(ParseErrors.ItemMetadataNotAllowed);
+    }
+
+    /// <summary>
+    ///  Verifies that metadata in function call arguments is rejected when not allowed.
+    /// </summary>
+    [Theory]
+    [InlineData("Exists(%(Compile.FullPath))")]
+    [InlineData("SomeFunction(%(Culture))")]
+    public void Metadata_InFunctionCall_WhenNotAllowed_ShouldFail(string expression)
+    {
+        var options = ParserOptions.AllowProperties | ParserOptions.AllowUndefinedFunctions;
+        var error = FailParse(expression, options);
+
+        error.ResourceName.ShouldBe(ParseErrors.ItemMetadataNotAllowed);
+    }
+
+    /// <summary>
+    ///  Verifies that built-in metadata is allowed when ParserOptions.AllowBuiltInMetadata is set,
+    ///  even if AllowCustomMetadata is not set.
+    /// </summary>
+    [Fact]
+    public void BuiltInMetadata_WithAllowBuiltInMetadata_ShouldSucceed()
+        => Should.NotThrow(() => Parse("%(Filename) == 'Program'", ParserOptions.AllowProperties | ParserOptions.AllowBuiltInMetadata));
+
+    /// <summary>
+    ///  Verifies that custom metadata is allowed when ParserOptions.AllowCustomMetadata is set,
+    ///  even if AllowBuiltInMetadata is not set.
+    /// </summary>
+    [Fact]
+    public void CustomMetadata_WithAllowCustomMetadata_ShouldSucceed()
+        => Should.NotThrow(() => Parse("%(Culture) == 'fr'", ParserOptions.AllowPropertiesAndCustomMetadata));
+
+    /// <summary>
+    ///  Verifies that both built-in and custom metadata are allowed when ParserOptions.AllowItemMetadata is set.
+    ///  AllowItemMetadata is equivalent to AllowBuiltInMetadata | AllowCustomMetadata.
+    /// </summary>
+    [Theory]
+    [InlineData("%(Filename) == 'Program'")] // Built-in
+    [InlineData("%(Culture) == 'fr'")] // Custom
+    [InlineData("%(Filename) == 'Program' and %(Culture) == 'fr'")] // Mixed
+    public void Metadata_WithAllowItemMetadata_ShouldSucceed(string expression)
+        => Should.NotThrow(() => Parse(expression, ParserOptions.AllowPropertiesAndItemMetadata));
+
+    /// <summary>
+    ///  Verifies that when only AllowBuiltInMetadata is set, built-in metadata succeeds
+    ///  but custom metadata fails.
+    /// </summary>
+    [Fact]
+    public void Metadata_WithOnlyAllowBuiltInMetadata_ShouldAllowBuiltInOnly()
+    {
+        // Built-in should succeed
+        Should.NotThrow(() => Parse("%(Filename) == 'Program'", ParserOptions.AllowProperties | ParserOptions.AllowBuiltInMetadata));
+
+        // Custom should fail
+        var error = FailParse("%(Culture) == 'fr'", ParserOptions.AllowProperties | ParserOptions.AllowBuiltInMetadata);
+        error.ResourceName.ShouldBe(ParseErrors.CustomMetadataNotAllowed);
+    }
+
+    /// <summary>
+    ///  Verifies that when only AllowCustomMetadata is set, custom metadata succeeds
+    ///  but built-in metadata fails.
+    /// </summary>
+    [Fact]
+    public void Metadata_WithOnlyAllowCustomMetadata_ShouldAllowCustomOnly()
+    {
+        // Custom should succeed
+        Should.NotThrow(() => Parse("%(Culture) == 'fr'", ParserOptions.AllowPropertiesAndCustomMetadata));
+
+        // Built-in should fail
+        var error = FailParse("%(Filename) == 'Program'", ParserOptions.AllowPropertiesAndCustomMetadata);
+        error.ResourceName.ShouldBe(ParseErrors.BuiltInMetadataNotAllowed);
+    }
+
+    /// <summary>
     ///  Verifies that boolean literals parse into BooleanLiteralNode with correct values.
     /// </summary>
     [Theory]
@@ -325,7 +612,7 @@ public class ParserTest
     public void FunctionCall_WithNoArguments_ShouldParseCorrectly()
         => Parse<FunctionCallExpressionNode>(
             "SimpleFunctionCall()",
-            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
+            ParserOptions.AllowAll | ParserOptions.AllowUndefinedFunctions)
             .Verify(name: "SimpleFunctionCall");
 
     /// <summary>
@@ -335,7 +622,7 @@ public class ParserTest
     public void FunctionCall_WithNumericArgument_ShouldParseCorrectly()
         => Parse<FunctionCallExpressionNode>(
             "SimpleFunctionCall( 1234 )",
-            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
+            ParserOptions.AllowAll | ParserOptions.AllowUndefinedFunctions)
             .Verify(
                 name: "SimpleFunctionCall",
                 (NumericExpressionNode arg) => arg.Verify("1234"));
@@ -347,7 +634,7 @@ public class ParserTest
     public void FunctionCall_WithBooleanArgument_ShouldParseCorrectly()
         => Parse<FunctionCallExpressionNode>(
             "SimpleFunctionCall( true )",
-            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
+            ParserOptions.AllowAll | ParserOptions.AllowUndefinedFunctions)
             .Verify(
                 name: "SimpleFunctionCall",
                 (BooleanLiteralNode arg) => arg.Verify(true));
@@ -359,7 +646,7 @@ public class ParserTest
     public void FunctionCall_WithPropertyArgument_ShouldParseCorrectly()
         => Parse<FunctionCallExpressionNode>(
             "SimpleFunctionCall( $(property) )",
-            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
+            ParserOptions.AllowAll | ParserOptions.AllowUndefinedFunctions)
             .Verify(
                 name: "SimpleFunctionCall",
                 (StringExpressionNode arg) => arg.Verify("$(property)"));
@@ -371,7 +658,7 @@ public class ParserTest
     public void FunctionCall_WithMultipleArguments_ShouldParseCorrectly()
         => Parse<FunctionCallExpressionNode>(
             "SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )",
-            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
+            ParserOptions.AllowAll | ParserOptions.AllowUndefinedFunctions)
             .Verify(
                 name: "SimpleFunctionCall",
                 (StringExpressionNode arg1) => arg1.Verify("$(property)"),
@@ -402,9 +689,9 @@ public class ParserTest
     [InlineData("somefunction(@(foo), 'otherstuff')")]
     public void ItemList_WhenNotAllowed_ShouldFail(string expression)
     {
-        var error = FailParse(expression, ParserOptions.AllowProperties | ParserOptions.AllowUnknownFunctions);
+        var error = FailParse(expression, ParserOptions.AllowProperties | ParserOptions.AllowUndefinedFunctions);
 
-        error.ResourceName.ShouldBe("ItemListNotAllowedInThisConditional");
+        error.ResourceName.ShouldBe(ParseErrors.ItemListNotAllowed);
     }
 
     /// <summary>
@@ -531,7 +818,7 @@ public class ParserTest
     {
         var error = FailParse(expression);
 
-        error.ResourceName.ShouldBe("IllFormedPropertySpaceInCondition");
+        error.ResourceName.ShouldBe(ParseErrors.IllFormedSpace);
         error.FormatArgs.Last().ShouldBe(" ");
     }
 
@@ -547,7 +834,7 @@ public class ParserTest
     {
         var error = FailParse(expression);
 
-        error.ResourceName.ShouldBe("IllFormedEqualsInCondition");
+        error.ResourceName.ShouldBe(ParseErrors.IllFormedEquals);
     }
 
     /// <summary>
@@ -570,12 +857,12 @@ public class ParserTest
     ///  Item lists must be in the form @(name) with proper parentheses and quoted separators/transforms.
     /// </summary>
     [Theory]
-    [InlineData("@(", "IllFormedItemListCloseParenthesisInCondition")]
-    [InlineData("@x", "IllFormedItemListOpenParenthesisInCondition")]
-    [InlineData("@(x", "IllFormedItemListCloseParenthesisInCondition")]
-    [InlineData("@(x->'%(y)", "IllFormedItemListQuoteInCondition")]
-    [InlineData("@(x->'%(y)', 'x", "IllFormedItemListQuoteInCondition")]
-    [InlineData("@(x->'%(y)', 'x'", "IllFormedItemListCloseParenthesisInCondition")]
+    [InlineData("@(", ParseErrors.IllFormedItemListCloseParenthesis)]
+    [InlineData("@x", ParseErrors.IllFormedItemListOpenParenthesis)]
+    [InlineData("@(x", ParseErrors.IllFormedItemListCloseParenthesis)]
+    [InlineData("@(x->'%(y)", ParseErrors.IllFormedItemListQuote)]
+    [InlineData("@(x->'%(y)', 'x", ParseErrors.IllFormedItemListQuote)]
+    [InlineData("@(x->'%(y)', 'x'", ParseErrors.IllFormedItemListCloseParenthesis)]
     public void ItemList_IllFormed_ShouldFail(string expression, string errorResourceName)
     {
         var error = FailParse(expression);
@@ -596,7 +883,7 @@ public class ParserTest
     {
         var error = FailParse(expression);
 
-        error.ResourceName.ShouldBe("IllFormedQuotedStringInCondition");
+        error.ResourceName.ShouldBe(ParseErrors.IllFormedQuotedString);
     }
 
     /// <summary>
@@ -724,6 +1011,101 @@ public class ParserTest
 
         ml.FullLog.ShouldNotContain("MSB4130:");
     }
+
+    /// <summary>
+    ///  Verifies that escaped property references are treated as literal strings.
+    ///  %24 = '$', %28 = '(', %29 = ')'
+    /// </summary>
+    [Theory]
+    [InlineData("'%24(foo)' == '$(foo)'", "%24(foo)", "$(foo)")]
+    [InlineData("'%24%28foo%29' == '$(foo)'", "%24%28foo%29", "$(foo)")]
+    [InlineData("'prefix%24(prop)suffix' == 'prefix$(prop)suffix'", "prefix%24(prop)suffix", "prefix$(prop)suffix")]
+    public void EscapedPropertyReference_ShouldBeTreedAsLiteral(string expression, string leftValue, string rightValue)
+        => Parse<EqualExpressionNode>(expression)
+            .Verify(
+                (StringExpressionNode left) => left.Verify(leftValue),
+                (StringExpressionNode right) => right.Verify(rightValue));
+
+    /// <summary>
+    ///  Verifies that escaped item list references are treated as literal strings.
+    ///  %40 = '@', %28 = '(', %29 = ')'
+    /// </summary>
+    [Theory]
+    [InlineData("'%40(foo)' == '@(foo)'", "%40(foo)", "@(foo)")]
+    [InlineData("'%40%28foo%29' == '@(foo)'", "%40%28foo%29", "@(foo)")]
+    [InlineData("'items%40(list)here' == 'items@(list)here'", "items%40(list)here", "items@(list)here")]
+    public void EscapedItemListReference_ShouldBeTreedAsLiteral(string expression, string leftValue, string rightValue)
+        => Parse<EqualExpressionNode>(expression)
+            .Verify(
+                (StringExpressionNode left) => left.Verify(leftValue),
+                (StringExpressionNode right) => right.Verify(rightValue));
+
+    /// <summary>
+    ///  Verifies that escaped metadata references are treated as literal strings.
+    ///  %25 = '%', %28 = '(', %29 = ')'
+    /// </summary>
+    [Theory]
+    [InlineData("'%25(foo)' == '%(foo)'", "%25(foo)", "%(foo)")]
+    [InlineData("'%25%28foo%29' == '%(foo)'", "%25%28foo%29", "%(foo)")]
+    [InlineData("'meta%25(data)end' == 'meta%(data)end'", "meta%25(data)end", "meta%(data)end")]
+    public void EscapedMetadataReference_ShouldBeTreedAsLiteral(string expression, string leftValue, string rightValue)
+        => Parse<EqualExpressionNode>(expression)
+            .Verify(
+                (StringExpressionNode left) => left.Verify(leftValue),
+                (StringExpressionNode right) => right.Verify(rightValue));
+
+    /// <summary>
+    ///  Verifies that escaped semicolons and other special characters are handled correctly.
+    ///  %3B = ';', %2A = '*', %3F = '?'
+    /// </summary>
+    [Theory]
+    [InlineData("'a%3Bb%3Bc' == 'a;b;c'", "a%3Bb%3Bc", "a;b;c")]
+    [InlineData("'file%2A.txt' == 'file*.txt'", "file%2A.txt", "file*.txt")]
+    [InlineData("'what%3F' == 'what?'", "what%3F", "what?")]
+    public void EscapedSpecialCharacters_ShouldBeTreedAsLiteral(string expression, string leftValue, string rightValue)
+        => Parse<EqualExpressionNode>(expression)
+            .Verify(
+                (StringExpressionNode left) => left.Verify(leftValue),
+                (StringExpressionNode right) => right.Verify(rightValue));
+
+    /// <summary>
+    ///  Verifies that mixed escaped and unescaped syntax works correctly.
+    ///  Escaped characters should not trigger expansion while unescaped ones should.
+    /// </summary>
+    [Theory]
+    [InlineData("'%24(foo)$(bar)' == 'literal$(bar)'", "%24(foo)$(bar)", "literal$(bar)")]
+    [InlineData("'$(prop)%40(item)' == '$(prop)literal'", "$(prop)%40(item)", "$(prop)literal")]
+    public void MixedEscapedAndUnescaped_ShouldParseCorrectly(string expression, string leftValue, string rightValue)
+        => Parse<EqualExpressionNode>(expression)
+            .Verify(
+                (StringExpressionNode left) => left.Verify(leftValue),
+                (StringExpressionNode right) => right.Verify(rightValue));
+
+    /// <summary>
+    ///  Verifies that escaped characters work correctly in complex expressions.
+    /// </summary>
+    [Fact]
+    public void EscapedCharacters_InComplexExpression_ShouldParseCorrectly()
+        => Parse<AndExpressionNode>("'%24(x)' == '$(x)' and '%40(y)' == '@(y)'")
+            .Verify(
+                (EqualExpressionNode left) => left.Verify(
+                    (StringExpressionNode left) => left.Verify("%24(x)"),
+                    (StringExpressionNode right) => right.Verify("$(x)")),
+                (EqualExpressionNode right) => right.Verify(
+                    (StringExpressionNode left) => left.Verify("%40(y)"),
+                    (StringExpressionNode right) => right.Verify("@(y)")));
+
+    /// <summary>
+    ///  Verifies that escape sequences themselves can be compared.
+    /// </summary>
+    [Theory]
+    [InlineData("'%24' == '%24'", "%24", "%24")]
+    [InlineData("'%40%28%29' == '%40%28%29'", "%40%28%29", "%40%28%29")]
+    public void EscapeSequences_CanBeCompared(string expression, string leftValue, string rightValue)
+        => Parse<EqualExpressionNode>(expression)
+            .Verify(
+                (StringExpressionNode left) => left.Verify(leftValue),
+                (StringExpressionNode right) => right.Verify(rightValue));
 
     private static GenericExpressionNode Parse(string expression, ParserOptions options = ParserOptions.AllowAll)
         => Parser.Parse(expression, options, MockElementLocation.Instance);

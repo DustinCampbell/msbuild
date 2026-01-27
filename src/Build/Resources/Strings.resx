@@ -517,6 +517,14 @@
     <value>MSB4108: Expected an item list at position {1} in condition "{0}". Did you forget to close a quote inside the item list expression?</value>
     <comment>{StrBegin="MSB4108: "}</comment>
   </data>
+  <data name="IllFormedItemMetadataCloseParenthesisInCondition" xml:space="preserve">
+    <value>MSB4280: Expected item metadata at position {1} in condition "{0}". Did you forget the closing parenthesis?</value>
+    <comment>{StrBegin="MSB4280: "}</comment>
+  </data>
+  <data name="IllFormedItemMetadataOpenParenthesisInCondition" xml:space="preserve">
+    <value>MSB4281: Expected item metadata at position {1} in condition "{0}". Did you forget the opening parenthesis after the '%'? To use a literal '%', use '%25' instead.</value>
+    <comment>{StrBegin="MSB4281: "}</comment>
+  </data>
   <data name="IllFormedPropertyCloseParenthesisInCondition" xml:space="preserve">
     <value>MSB4109: Expected a property at position {1} in condition "{0}". Did you forget the closing parenthesis?</value>
     <comment>{StrBegin="MSB4109: "}</comment>
@@ -525,7 +533,7 @@
     <value>MSB4110: Expected a property at position {1} in condition "{0}". Did you forget the opening parenthesis after the '$'? To use a literal '$', use '%24' instead.</value>
     <comment>{StrBegin="MSB4110: "}</comment>
   </data>
-  <data name="IllFormedPropertySpaceInCondition" xml:space="preserve">
+  <data name="IllFormedSpaceInCondition" xml:space="preserve">
     <value>MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</value>
     <comment>{StrBegin="MSB4259: "}</comment>
   </data>
@@ -708,6 +716,10 @@
   <data name="ItemListNotAllowedInThisConditional" xml:space="preserve">
     <value>MSB4099: A reference to an item list at position {1} is not allowed in this condition "{0}".</value>
     <comment>{StrBegin="MSB4099: "}</comment>
+  </data>
+  <data name="ItemMetadataNotAllowedInThisConditional" xml:space="preserve">
+    <value>MSB4282: A reference to an item list at position {1} is not allowed in this condition "{0}".</value>
+    <comment>{StrBegin="MSB4282: "}</comment>
   </data>
   <data name="CustomMetadataNotAllowedInThisConditional" xml:space="preserve">
     <value>MSB4191: The reference to custom metadata "{2}" at position {1} is not allowed in this condition "{0}".</value>
@@ -2458,7 +2470,7 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
   <!--
         The Build message bucket is: MSB4000 - MSB4999
 
-        Next message code should be MSB4280
+        Next message code should be MSB4283
 
         Don't forget to update this comment after using a new code.
   -->

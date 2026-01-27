@@ -530,9 +530,19 @@
         <target state="translated">L'attività "{0}" non è riuscita ad acquisire il suo oggetto host. {1} Contattare l'autore dell'attività per segnalare questo problema.</target>
         <note>{0} is the task name, {1} is the detailed error message from the HostObjectException. This error occurs when a task that expects a host object (typically from an IDE like Visual Studio) cannot obtain it, often due to COM interop issues, incorrect moniker registration, or platform incompatibility. The user should contact the task author as this is typically a task implementation issue.</note>
       </trans-unit>
-      <trans-unit id="IllFormedPropertySpaceInCondition">
+      <trans-unit id="IllFormedItemMetadataCloseParenthesisInCondition">
+        <source>MSB4280: Expected item metadata at position {1} in condition "{0}". Did you forget the closing parenthesis?</source>
+        <target state="new">MSB4280: Expected item metadata at position {1} in condition "{0}". Did you forget the closing parenthesis?</target>
+        <note>{StrBegin="MSB4280: "}</note>
+      </trans-unit>
+      <trans-unit id="IllFormedItemMetadataOpenParenthesisInCondition">
+        <source>MSB4281: Expected item metadata at position {1} in condition "{0}". Did you forget the opening parenthesis after the '%'? To use a literal '%', use '%25' instead.</source>
+        <target state="new">MSB4281: Expected item metadata at position {1} in condition "{0}". Did you forget the opening parenthesis after the '%'? To use a literal '%', use '%25' instead.</target>
+        <note>{StrBegin="MSB4281: "}</note>
+      </trans-unit>
+      <trans-unit id="IllFormedSpaceInCondition">
         <source>MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</source>
-        <target state="translated">MSB4259: spazio imprevisto alla posizione "{1}" della condizione "{0}". Si è dimenticato di rimuovere uno spazio?</target>
+        <target state="new">MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</target>
         <note>{StrBegin="MSB4259: "}</note>
       </trans-unit>
       <trans-unit id="IllegalCharactersInFileOrDirectory">
@@ -559,6 +569,11 @@
         <source>EvaluationContext objects created with SharingPolicy.Isolated or SharingPolicy.SharedSDKCache do not support being passed an MSBuildFileSystemBase file system.</source>
         <target state="translated">Agli oggetti EvaluationContext creati con SharingPolicy.Isolated o SharingPolicy.SharedSDKCache non è possibile passare un file system MSBuildFileSystemBase.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ItemMetadataNotAllowedInThisConditional">
+        <source>MSB4282: A reference to an item list at position {1} is not allowed in this condition "{0}".</source>
+        <target state="new">MSB4282: A reference to an item list at position {1} is not allowed in this condition "{0}".</target>
+        <note>{StrBegin="MSB4282: "}</note>
       </trans-unit>
       <trans-unit id="ItemReferencingSelfInTarget">
         <source>MSB4120: Item '{0}' definition within target references itself via (qualified or unqualified) metadatum '{1}'. This can lead to unintended expansion and cross-applying of pre-existing items. More info: https://aka.ms/msbuild/metadata-self-ref</source>

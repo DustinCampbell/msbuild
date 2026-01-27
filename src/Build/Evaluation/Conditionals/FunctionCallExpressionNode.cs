@@ -13,6 +13,13 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal abstract class FunctionCallExpressionNode : GenericExpressionNode
     {
+        public sealed class Undefined(string name, ImmutableArray<GenericExpressionNode> arguments)
+            : FunctionCallExpressionNode(name, arguments)
+        {
+            protected override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+                => throw new NotSupportedException();
+        }
+
         public string Name { get; }
         public ImmutableArray<GenericExpressionNode> Arguments { get; }
 

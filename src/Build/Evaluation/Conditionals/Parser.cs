@@ -5,6 +5,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
@@ -20,7 +21,7 @@ namespace Microsoft.Build.Evaluation;
 ///
 /// The expression tree can then be evaluated and re-evaluated as needed.
 /// </summary>
-internal sealed class Parser
+internal ref struct Parser
 {
     private enum KeywordKind
     {
@@ -66,7 +67,7 @@ internal sealed class Parser
         { "no", KeywordKind.No }
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly FrozenDictionary<string, FunctionDescriptor> s_functions = new Dictionary<string, FunctionDescriptor>(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, FunctionDescriptor> s_knownFunctions = new Dictionary<string, FunctionDescriptor>(StringComparer.OrdinalIgnoreCase)
     {
         { "Exists", new(FunctionKind.Exists, "Exists", argumentCount: 1) },
         { "HasTrailingSlash", new(FunctionKind.HasTrailingSlash, "HasTrailingSlash", argumentCount: 1) }
@@ -90,13 +91,10 @@ internal sealed class Parser
     private Parser(
         string expression,
         ParserOptions options,
-        bool throwException,
         IElementLocation elementLocation,
-        LoggingContext? loggingContext = null)
+        LoggingContext? loggingContext,
+        bool throwException)
     {
-        // We currently have no support (and no scenarios) for disallowing property references in conditions.
-        ErrorUtilities.VerifyThrow((options & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
-
         _expression = expression;
         _options = options;
         _throwException = throwException;
@@ -105,133 +103,61 @@ internal sealed class Parser
 
         _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
         _loggingService = loggingContext?.LoggingService;
+
+        // We currently have no support (and no scenarios) for disallowing property references in conditions.
+        ErrorUtilities.VerifyThrow(AllowProperties, "Properties should always be allowed.");
     }
 
-    private bool AllowUnknownFunctions => (_options & ParserOptions.AllowUnknownFunctions) != 0;
+    private readonly bool AllowBuiltInMetadata
+        => (_options & ParserOptions.AllowBuiltInMetadata) == ParserOptions.AllowBuiltInMetadata;
 
-    private bool TryReportError(string resourceName, int position, object[]? formatArgs = null)
+    private readonly bool AllowCustomMetadata
+        => (_options & ParserOptions.AllowCustomMetadata) == ParserOptions.AllowCustomMetadata;
+
+    private readonly bool AllowItemLists
+        => (_options & ParserOptions.AllowItemLists) == ParserOptions.AllowItemLists;
+
+    private readonly bool AllowAllItemMetadata
+        => (_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata;
+
+    private readonly bool AllowAnyItemMetadata
+        => (_options & ParserOptions.AllowItemMetadata) != 0;
+
+    private readonly bool AllowProperties
+        => (_options & ParserOptions.AllowProperties) == ParserOptions.AllowProperties;
+
+    private readonly bool AllowUnknownFunctions
+        => (_options & ParserOptions.AllowUndefinedFunctions) == ParserOptions.AllowUndefinedFunctions;
+
+    private readonly bool AtEnd
+        => _position >= _expression.Length;
+
+    private readonly ReadOnlySpan<char> RemainingSpan
+        => _expression.AsSpan(_position);
+
+    private readonly bool At(char ch)
+        => !AtEnd && _expression[_position] == ch;
+
+    private readonly bool At(ReadOnlySpan<char> chars)
+        => _position + chars.Length < _expression.Length
+        && _expression.AsSpan(_position, chars.Length).Equals(chars, StringComparison.Ordinal);
+
+    private bool Advance(out char ch)
     {
-        // We've already recorded an error.
-        if (_error is not null)
+        if (!AtEnd)
         {
-            return false;
+            ch = _expression[_position];
+            _position++;
+            return true;
         }
 
-        _error = new Error(resourceName, position, formatArgs ?? []);
-
-        if (_throwException)
-        {
-            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, resourceName, formatArgs);
-        }
-
+        ch = '\0';
         return false;
     }
 
-    private bool TryReportBuiltInMetadataNotAllowed(string name)
+    private bool AdvancePast(char ch)
     {
-        // Error position is 1-based
-        int position = _position + 1;
-        return TryReportError("BuiltInMetadataNotAllowedInThisConditional", position, [_expression, position, name]);
-    }
-
-    private bool TryReportCustomMetadataNotAllowed(string name)
-    {
-        // Error position is 1-based
-        int position = _position + 1;
-        return TryReportError("CustomMetadataNotAllowedInThisConditional", position, [_expression, position, name]);
-    }
-
-    private bool TryReportIllFormedEquals()
-    {
-        // Error position is 1-based
-        int position = _position + 1;
-        string nextChar = IsAtEnd() ? EndOfInput : _expression[_position].ToString();
-
-        return TryReportError("IllFormedEqualsInCondition", position, [_expression, position, nextChar]);
-    }
-
-    private bool TryReportIllFormedItemListCloseParenthesis(int position)
-    {
-        // Error position is 1-based
-        position++;
-
-        return TryReportError("IllFormedItemListCloseParenthesisInCondition", position, [_expression, position]);
-    }
-
-    private bool TryReportIllFormedItemListOpenParenthesis(int position)
-    {
-        // Error position is 1-based
-        position++;
-
-        return TryReportError("IllFormedItemListOpenParenthesisInCondition", position, [_expression, position]);
-    }
-
-    private bool TryReportIllFormedItemListQuote(int position)
-    {
-        // Error position is 1-based
-        position++;
-
-        return TryReportError("IllFormedItemListQuoteInCondition", position, [_expression, position]);
-    }
-
-    private bool TryReportIllFormedPropertyCloseParenthesis(int position)
-    {
-        // Error position is 1-based
-        position++;
-
-        return TryReportError("IllFormedPropertyCloseParenthesisInCondition", position, [_expression, position]);
-    }
-
-    private bool TryReportIllFormedPropertyOpenParenthesis(int position)
-    {
-        // Error position is 1-based
-        position++;
-
-        return TryReportError("IllFormedPropertyOpenParenthesisInCondition", position, [_expression, position]);
-    }
-
-    private bool TryReportIllFormedPropertySpace(int position)
-    {
-        // Error position is 1-based.
-        position++;
-
-        return TryReportError("IllFormedPropertySpaceInCondition", position, [_expression, position, " "]);
-    }
-
-    private bool IllFormedQuotedString(int position)
-    {
-        // Error position is 1-based.
-        position++;
-
-        return TryReportError("IllFormedQuotedStringInCondition", position, [_expression, position]);
-    }
-
-    private bool TryReportIncorrectNumberOfFunctionArguments(int position, int argumentCount, int expectedArgumentCount)
-        => TryReportError("IncorrectNumberOfFunctionArguments", position + 1, [_expression, argumentCount, expectedArgumentCount]);
-
-    private bool TryReportItemListNotAllowed(int? position = null)
-    {
-        // Error position is 1-based
-        int pos = (position ?? _position) + 1;
-
-        return TryReportError("ItemListNotAllowedInThisConditional", pos, [_expression, pos]);
-    }
-
-    private bool TryReportUndefinedFunctionCall(int position, string name)
-        => TryReportError("UndefinedFunctionCall", position + 1, [_expression, name]);
-
-    private bool TryReportUnexpectedToken()
-    {
-        // Error position is 1-based
-        int position = _position + 1;
-        string nextChar = IsAtEnd() ? EndOfInput : _expression[_position].ToString();
-
-        return TryReportError("UnexpectedTokenInCondition", position, [_expression, position, nextChar]);
-    }
-
-    private bool TryConsume(char ch)
-    {
-        if (!IsAtEnd() && _expression[_position] == ch)
+        if (!AtEnd && _expression[_position] == ch)
         {
             _position++;
             return true;
@@ -240,9 +166,16 @@ internal sealed class Parser
         return false;
     }
 
-    private bool TryPeekChar(int offset, out char ch)
+    private readonly bool Next(char ch)
     {
-        int pos = _position + offset;
+        int pos = _position + 1;
+
+        return pos < _expression.Length && _expression[pos] == ch;
+    }
+
+    private readonly bool Next(out char ch)
+    {
+        int pos = _position + 1;
 
         if (pos < _expression.Length)
         {
@@ -250,8 +183,16 @@ internal sealed class Parser
             return true;
         }
 
-        ch = '\0';
+        ch = default;
         return false;
+    }
+
+    private void SkipWhiteSpace()
+    {
+        while (_position < _expression.Length && char.IsWhiteSpace(_expression[_position]))
+        {
+            _position++;
+        }
     }
 
     /// <summary>
@@ -265,7 +206,7 @@ internal sealed class Parser
         IElementLocation elementLocation,
         LoggingContext? loggingContext = null)
     {
-        var parser = new Parser(expression, options, throwException: true, elementLocation, loggingContext);
+        var parser = new Parser(expression, options, elementLocation, loggingContext, throwException: true);
 
         var result = parser.ParseCore();
         ErrorUtilities.VerifyThrowInternalNull(result);
@@ -280,7 +221,7 @@ internal sealed class Parser
         [NotNullWhen(true)] out GenericExpressionNode? node,
         out Error? error)
     {
-        var parser = new Parser(expression, options, throwException: false, elementLocation);
+        var parser = new Parser(expression, options, elementLocation, loggingContext: null, throwException: false);
 
         node = parser.ParseCore();
         error = parser._error;
@@ -300,7 +241,7 @@ internal sealed class Parser
 
         SkipWhiteSpace();
 
-        if (!IsAtEnd())
+        if (!AtEnd)
         {
             TryReportUnexpectedToken();
         }
@@ -322,7 +263,7 @@ internal sealed class Parser
 
         SkipWhiteSpace();
 
-        while (TryMatchKeyword(KeywordKind.Or))
+        while (AdvancePast(KeywordKind.Or))
         {
             if (!TryParseAndExpression(out GenericExpressionNode? rhs))
             {
@@ -337,9 +278,9 @@ internal sealed class Parser
             SkipWhiteSpace();
         }
 
-        #region REMOVE_COMPAT_WARNING
         // Check for potential change in behavior
-        if (_loggingService != null && !_warnedForExpression &&
+        if (_loggingService is { } loggingService
+            && !_warnedForExpression &&
             node.PotentialAndOrConflict())
         {
             // We only want to warn once even if there multiple () sub expressions
@@ -347,9 +288,13 @@ internal sealed class Parser
 
             // Log a warning regarding the fact the expression may have been evaluated
             // incorrectly in earlier version of MSBuild
-            _loggingService.LogWarning(_logBuildEventContext, null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", _expression);
+            loggingService.LogWarning(
+                _logBuildEventContext,
+                subcategoryResourceName: null,
+                new BuildEventFileInfo(_elementLocation),
+                "ConditionMaybeEvaluatedIncorrectly",
+                _expression);
         }
-        #endregion
 
         return true;
     }
@@ -363,7 +308,7 @@ internal sealed class Parser
 
         SkipWhiteSpace();
 
-        while (TryMatchKeyword(KeywordKind.And))
+        while (AdvancePast(KeywordKind.And))
         {
             if (!TryParseComparisonExpression(out GenericExpressionNode? rhs))
             {
@@ -392,7 +337,7 @@ internal sealed class Parser
 
         SkipWhiteSpace();
 
-        if (IsAtEnd())
+        if (AtEnd)
         {
             node = lhs;
             return true;
@@ -420,7 +365,7 @@ internal sealed class Parser
     {
         node = null;
 
-        if (IsAtEnd())
+        if (AtEnd)
         {
             return false;
         }
@@ -432,7 +377,7 @@ internal sealed class Parser
             case '<':
                 _position++;
 
-                node = TryConsume('=')
+                node = AdvancePast('=')
                     ? new LessThanOrEqualExpressionNode()
                     : new LessThanExpressionNode();
 
@@ -441,7 +386,7 @@ internal sealed class Parser
             case '>':
                 _position++;
 
-                node = TryConsume('=')
+                node = AdvancePast('=')
                     ? new GreaterThanOrEqualExpressionNode()
                     : new GreaterThanExpressionNode();
 
@@ -450,7 +395,7 @@ internal sealed class Parser
             case '=':
                 _position++;
 
-                if (TryConsume('='))
+                if (AdvancePast('='))
                 {
                     node = new EqualExpressionNode();
                     return true;
@@ -461,7 +406,7 @@ internal sealed class Parser
             case '!':
                 _position++;
 
-                if (TryConsume('='))
+                if (AdvancePast('='))
                 {
                     node = new NotEqualExpressionNode();
                     return true;
@@ -480,20 +425,16 @@ internal sealed class Parser
 
         SkipWhiteSpace();
 
-        if (IsAtEnd())
+        if (AtEnd)
         {
             return TryReportUnexpectedToken();
         }
 
-        char ch = _expression[_position];
-
         // Check for '!' (not operator)
-        if (ch == '!')
+        if (AdvancePast('!'))
         {
-            _position++;
-
             // Check if it's != (handled by relational operator)
-            if (TryConsume('='))
+            if (AdvancePast('='))
             {
                 return TryReportUnexpectedToken();
             }
@@ -511,9 +452,8 @@ internal sealed class Parser
         }
 
         // Check for '(' (grouped expression)
-        if (ch == '(')
+        if (AdvancePast('('))
         {
-            _position++;
             if (!TryParseOrExpression(out GenericExpressionNode? child))
             {
                 return false;
@@ -521,7 +461,7 @@ internal sealed class Parser
 
             SkipWhiteSpace();
 
-            if (!TryConsume(')'))
+            if (!AdvancePast(')'))
             {
                 return TryReportUnexpectedToken();
             }
@@ -540,32 +480,27 @@ internal sealed class Parser
 
         SkipWhiteSpace();
 
-        if (IsAtEnd())
+        if (AtEnd)
         {
             return TryReportUnexpectedToken();
         }
 
-        char ch = _expression[_position];
-
         // Check for function call or simple string: identifier followed optionally by '('
-        if (CharacterUtilities.IsSimpleStringStart(ch))
+        if (LexingUtilities.TryLexIdentifier(RemainingSpan, out ReadOnlySpan<char> identifierSpan))
         {
             int start = _position;
-            SkipSimpleStringChars();
-
-            ReadOnlySpan<char> span = _expression.AsSpan(start, _position - start);
+            _position += identifierSpan.Length;
 
             // Look ahead for '(' to detect function call
-            int savedPosition = _position;
             SkipWhiteSpace();
 
-            if (TryConsume('('))
+            if (AdvancePast('('))
             {
                 if (!AllowUnknownFunctions)
                 {
-                    if (!TryMatchFunctionSpan(span, out FunctionDescriptor? function))
+                    if (!TryGetKnownFunction(identifierSpan, out FunctionDescriptor? function))
                     {
-                        return TryReportUndefinedFunctionCall(position: start, name: span.ToString());
+                        return TryReportUndefinedFunctionCall(position: start, name: identifierSpan.ToString());
                     }
 
                     SkipWhiteSpace();
@@ -599,32 +534,31 @@ internal sealed class Parser
                         return false;
                     }
 
-                    node = new UnknownFunctionCallExpressionNode(span.ToString(), argumentList);
+                    node = new FunctionCallExpressionNode.Undefined(identifierSpan.ToString(), argumentList);
                     return true;
                 }
             }
 
-            // Not a function - restore position and check if it's a keyword
-            _position = savedPosition;
-
-            if (TryMatchKeywordSpan(span, out KeywordKind keyword))
+            if (TryGetKeyword(identifierSpan, out KeywordKind keyword))
             {
-                node = keyword switch
+                if (keyword is KeywordKind.True or KeywordKind.On or KeywordKind.Yes)
                 {
-                    KeywordKind.True or KeywordKind.On or KeywordKind.Yes => new BooleanLiteralNode(true, span.ToString()),
-                    KeywordKind.False or KeywordKind.Off or KeywordKind.No => new BooleanLiteralNode(false, span.ToString()),
-                    KeywordKind.And or KeywordKind.Or => null, // Reserved keywords - not valid as values
-                    _ => new StringExpressionNode(span.ToString(), false)
-                };
-            }
-            else
-            {
-                // Just a simple string
-                node = new StringExpressionNode(span.ToString(), false);
+                    node = new BooleanLiteralNode(true, identifierSpan.ToString());
+                    return true;
+                }
+
+                if (keyword is KeywordKind.False or KeywordKind.Off or KeywordKind.No)
+                {
+                    node = new BooleanLiteralNode(false, identifierSpan.ToString());
+                    return true;
+                }
+
+                return TryReportUnexpectedToken(start);
             }
 
-            return node is not null
-                || TryReportUnexpectedToken();
+            // Just a normal identifier
+            node = new StringExpressionNode(identifierSpan.ToString(), false);
+            return true;
         }
 
         // Fall back to other argument types
@@ -633,7 +567,7 @@ internal sealed class Parser
 
     private bool TryParseArgumentList([NotNullWhen(true)] out ImmutableArray<GenericExpressionNode> argumentList)
     {
-        if (TryConsume(')'))
+        if (AdvancePast(')'))
         {
             argumentList = [];
             return true;
@@ -648,13 +582,13 @@ internal sealed class Parser
 
             SkipWhiteSpace();
 
-            if (TryConsume(')'))
+            if (AdvancePast(')'))
             {
                 argumentList = builder.ToImmutable();
                 return true;
             }
 
-            if (!TryConsume(','))
+            if (!AdvancePast(','))
             {
                 break;
             }
@@ -670,7 +604,7 @@ internal sealed class Parser
 
         SkipWhiteSpace();
 
-        if (IsAtEnd())
+        if (AtEnd)
         {
             return false;
         }
@@ -680,49 +614,36 @@ internal sealed class Parser
         // Property reference: $(...)
         if (ch == '$')
         {
-            if (TryParsePropertyOrItemMetadata(out string? propertyExpression))
+            if (TryParseProperty(out string? propertyExpression))
             {
                 node = new StringExpressionNode(propertyExpression, expandable: true);
+                return true;
             }
 
-            return node is not null;
+            return false;
         }
 
         // Item metadata: %(...)
         if (ch == '%')
         {
-            if (TryParsePropertyOrItemMetadata(out string? itemMetadataExpression))
+            if (!AllowAnyItemMetadata && Next('('))
             {
-                string expression = itemMetadataExpression;
-
-                // Extract metadata name for validation
-                if (expression.Length > 3 && expression[0] == '%' && expression[1] == '(' && expression[^1] == ')')
-                {
-                    string metadataName = expression.Substring(2, expression.Length - 3);
-
-                    // If it's like %(a.b) find 'b'
-                    int period = metadataName.IndexOf('.');
-                    if (period > 0 && period < metadataName.Length - 1)
-                    {
-                        metadataName = metadataName.Substring(period + 1);
-                    }
-
-                    if (!CheckMetadataAllowed(metadataName))
-                    {
-                        return false;
-                    }
-                }
-
-                node = new StringExpressionNode(itemMetadataExpression, expandable: true);
+                return TryReportItemMetadataNotAllowed();
             }
 
-            return node is not null;
+            if (TryParseItemMetadata(out string? itemMetadataExpression))
+            {
+                node = new StringExpressionNode(itemMetadataExpression, expandable: true);
+                return true;
+            }
+
+            return false;
         }
 
         // Item list: @(...)
         if (ch == '@')
         {
-            if ((_options & ParserOptions.AllowItemLists) == 0 && TryPeekChar(1, out char c) && c == '(')
+            if (!AllowItemLists && Next('('))
             {
                 return TryReportItemListNotAllowed();
             }
@@ -730,83 +651,81 @@ internal sealed class Parser
             if (TryParseItemList(out string? itemListExpression))
             {
                 node = new StringExpressionNode(itemListExpression, expandable: true);
+                return true;
             }
 
-            return node is not null;
+            return false;
         }
 
         // Quoted string: '...'
         if (ch == '\'')
         {
-            if (TryParseQuotedString(out string? stringValue, out bool expandable))
+            if (TryParseQuotedString(out StringExpressionNode? stringNode))
             {
-                node = new StringExpressionNode(stringValue, expandable);
+                node = stringNode;
+                return true;
             }
 
-            return node is not null;
+            return false;
         }
 
         // Numeric literal
-        if (CharacterUtilities.IsNumberStart(ch))
+        if (TryParseNumeric(out NumericExpressionNode? numericNode))
         {
-            if (TryParseNumeric(out string? numericValue))
-            {
-                node = new NumericExpressionNode(numericValue);
-            }
-
-            return node is not null;
+            node = numericNode;
+            return true;
         }
 
-        // Simple string or keyword (but NOT function - ParseArgumentOrFunction handles that)
-        if (CharacterUtilities.IsSimpleStringStart(ch))
+        // Identifier or keyword (but NOT function - ParseArgumentOrFunction handles that)
+        if (LexingUtilities.TryLexIdentifier(RemainingSpan, out ReadOnlySpan<char> identifierSpan))
         {
-            int start = _position;
-            SkipSimpleStringChars();
+            _position += identifierSpan.Length;
 
-            ReadOnlySpan<char> span = _expression.AsSpan(start, _position - start);
-
-            // Check if it's a boolean keyword
-            if (TryMatchKeywordSpan(span, out KeywordKind keyword))
+            if (TryGetKeyword(identifierSpan, out KeywordKind keyword))
             {
-                node = keyword switch
+                if (keyword is KeywordKind.True or KeywordKind.On or KeywordKind.Yes)
                 {
-                    KeywordKind.True or KeywordKind.On or KeywordKind.Yes => new BooleanLiteralNode(true, span.ToString()),
-                    KeywordKind.False or KeywordKind.Off or KeywordKind.No => new BooleanLiteralNode(false, span.ToString()),
-                    KeywordKind.And or KeywordKind.Or => null, // Reserved keywords - not valid as values
-                    _ => new StringExpressionNode(span.ToString(), false)
-                };
-            }
-            else
-            {
-                // Just a simple string
-                node = new StringExpressionNode(span.ToString(), false);
+                    node = new BooleanLiteralNode(true, identifierSpan.ToString());
+                    return true;
+                }
+
+                if (keyword is KeywordKind.False or KeywordKind.Off or KeywordKind.No)
+                {
+                    node = new BooleanLiteralNode(false, identifierSpan.ToString());
+                    return true;
+                }
+
+                node = null;
+                return false;
             }
 
-            return node is not null;
+            // Just a normal identifier
+            node = new StringExpressionNode(identifierSpan.ToString(), false);
+            return true;
         }
 
         return TryReportUnexpectedToken();
     }
 
-    private bool TryParsePropertyOrItemMetadata([NotNullWhen(true)] out string? result)
+    private bool TryParseProperty([NotNullWhen(true)] out string? result)
     {
         result = null;
         int start = _position;
         _position++;
 
-        if (IsAtEnd() || _expression[_position] != '(')
+        if (!AdvancePast('('))
         {
             return TryReportIllFormedPropertyOpenParenthesis(start);
         }
 
-        if (!ScanForPropertyExpressionEnd(_expression, _position, out int indexResult))
+        if (!TryScanForPropertyExpressionEnd(_expression, _position, out int indexResult))
         {
-            return TryReportIllFormedPropertySpace(indexResult);
+            return TryReportIllFormedSpace(indexResult);
         }
 
         _position = indexResult;
 
-        if (IsAtEnd())
+        if (AtEnd)
         {
             return TryReportIllFormedPropertyCloseParenthesis(start);
         }
@@ -816,9 +735,77 @@ internal sealed class Parser
         return true;
     }
 
-    private static bool ScanForPropertyExpressionEnd(string expression, int index, out int indexResult)
+    private bool TryParseItemMetadata([NotNullWhen(true)] out string? result)
     {
-        int nestLevel = 0;
+        Debug.Assert(At('%'), "Item metadata must start with '%' character.");
+
+        // Item metadata comes in two forms:
+        //
+        // 1. %(MetadataName)
+        // 2. %(ItemType.MetadataName)
+        //
+        // Whitespace is allowed after the '(', before and after the '.', and before the ')'.
+
+        result = null;
+        int start = _position;
+        _position++;
+
+        if (!AdvancePast('('))
+        {
+            return TryReportIllFormedItemMetadataOpenParenthesis(start);
+        }
+
+        SkipWhiteSpace();
+
+        if (!TryParseName(out string? metadataName))
+        {
+            return TryReportUnexpectedToken();
+        }
+
+        SkipWhiteSpace();
+
+        if (AdvancePast('.'))
+        {
+            SkipWhiteSpace();
+
+            if (!TryParseName(out metadataName))
+            {
+                return TryReportUnexpectedToken();
+            }
+
+            SkipWhiteSpace();
+        }
+
+        if (!AdvancePast(')'))
+        {
+            return TryReportIllFormedItemMetadataCloseParenthesis(start);
+        }
+
+        if (!CheckMetadataAllowed(metadataName))
+        {
+            return false;
+        }
+
+        result = _expression.Substring(start, _position - start);
+        return true;
+    }
+
+    private bool TryParseName([NotNullWhen(true)] out string? result)
+    {
+        if (LexingUtilities.TryLexName(RemainingSpan, out ReadOnlySpan<char> nameSpan))
+        {
+            _position += nameSpan.Length;
+            result = nameSpan.ToString();
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryScanForPropertyExpressionEnd(string expression, int index, out int indexResult)
+    {
+        int parentToClose = 1;
         bool whitespaceFound = false;
         bool nonIdentifierCharacterFound = false;
         indexResult = -1;
@@ -831,11 +818,11 @@ internal sealed class Parser
                     char character = pchar[index];
                     if (character == '(')
                     {
-                        nestLevel++;
+                        parentToClose++;
                     }
                     else if (character == ')')
                     {
-                        nestLevel--;
+                        parentToClose--;
                     }
                     else if (char.IsWhiteSpace(character))
                     {
@@ -849,14 +836,14 @@ internal sealed class Parser
 
                     if (character == '$' && index < expression.Length - 1 && pchar[index + 1] == '(')
                     {
-                        if (!ScanForPropertyExpressionEnd(expression, index + 1, out index))
+                        if (!TryScanForPropertyExpressionEnd(expression, index + 2, out index))
                         {
                             indexResult = index;
                             return false;
                         }
                     }
 
-                    if (nestLevel == 0)
+                    if (parentToClose == 0)
                     {
                         if (whitespaceFound && !nonIdentifierCharacterFound)
                         {
@@ -873,25 +860,27 @@ internal sealed class Parser
                 }
             }
         }
+
         indexResult = index;
         return true;
     }
 
     private bool CheckMetadataAllowed(string metadataName)
     {
-        if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
+        if (AllowAllItemMetadata)
         {
+            // If we allow all item metadata, we don't have to check whether it's built-in or custom.
             return true;
         }
 
-        bool isItemSpecModifier = FileUtilities.ItemSpecModifiers.IsItemSpecModifier(metadataName);
-
-        if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
+        if (FileUtilities.ItemSpecModifiers.IsItemSpecModifier(metadataName))
         {
-            return TryReportBuiltInMetadataNotAllowed(metadataName);
+            if (!AllowBuiltInMetadata)
+            {
+                return TryReportBuiltInMetadataNotAllowed(metadataName);
+            }
         }
-
-        if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
+        else if (!AllowCustomMetadata)
         {
             return TryReportCustomMetadataNotAllowed(metadataName);
         }
@@ -905,191 +894,184 @@ internal sealed class Parser
         int start = _position;
         _position++;
 
-        if (!TryConsume('('))
+        if (!AdvancePast('('))
         {
             return TryReportIllFormedItemListOpenParenthesis(start);
         }
 
-        _position++;
+        // The initial '(' has already been consumed, so we start with one open parenthesis to close.
+        int parenToClose = 1;
 
-        bool inReplacement = false;
-        int parenToClose = 0;
-
-        while (_position < _expression.Length)
+        while (Advance(out char ch))
         {
-            if (_expression[_position] == '\'')
+            if (ch == '\'')
             {
-                inReplacement = !inReplacement;
+                // Scan to the end of the replacement string until we find the closing quote.
+                int index = 0;
+                ReadOnlySpan<char> span = RemainingSpan;
+
+                bool foundQuote = false;
+
+                while (index < span.Length && !foundQuote)
+                {
+                    foundQuote = span[index] == '\'';
+                    index++;
+                }
+
+                _position += index;
+
+                if (!foundQuote)
+                {
+                    return TryReportIllFormedItemListQuote(start);
+                }
             }
-            else if (_expression[_position] == '(' && !inReplacement)
+            else if (ch == '(')
             {
                 parenToClose++;
             }
-            else if (_expression[_position] == ')' && !inReplacement)
+            else if (ch == ')')
             {
+                parenToClose--;
+
                 if (parenToClose == 0)
                 {
+                    // Found the last closing parenthesis. All done.
                     break;
                 }
-
-                parenToClose--;
             }
-
-            _position++;
         }
 
-        if (IsAtEnd())
+        if (parenToClose > 0)
         {
-            return inReplacement
-                ? TryReportIllFormedItemListQuote(start)
-                : TryReportIllFormedItemListCloseParenthesis(start);
+            return TryReportIllFormedItemListCloseParenthesis(start);
         }
 
-        _position++;
         result = _expression.Substring(start, _position - start);
         return true;
     }
 
-    private bool TryParseQuotedString([NotNullWhen(true)] out string? result, out bool expandable)
+    private bool TryParseQuotedString([NotNullWhen(true)] out StringExpressionNode? result)
     {
         result = null;
-        expandable = false;
+        bool expandable = false;
 
-        _position++; // Skip opening quote
+        if (!AdvancePast('\''))
+        {
+            return false;
+        }
+
         int start = _position;
 
-        while (_position < _expression.Length && _expression[_position] != '\'')
+        if (AtEnd)
+        {
+            return IllFormedQuotedString(start);
+        }
+
+        do
         {
             char ch = _expression[_position];
 
+            if (ch == '\'')
+            {
+                // The text is the content between the quotes.
+                string value = _expression.Substring(start, _position - start);
+                result = new StringExpressionNode(value, expandable);
+
+                // Skip closing quote
+                _position++;
+
+                return true;
+            }
+
             if (ch == '%')
             {
-                if (_position + 1 < _expression.Length && _expression[_position + 1] == '(')
+                if (Next('('))
                 {
-                    expandable = true;
-
-                    // Extract metadata name for validation
-                    int endOfName = _expression.IndexOf(')', _position) - 1;
-                    if (endOfName >= _position + 2)
+                    if (!AllowAnyItemMetadata)
                     {
-                        string name = _expression.Substring(_position + 2, endOfName - _position - 1);
-                        if (!CheckMetadataAllowed(name))
-                        {
-                            return false;
-                        }
+                        return TryReportItemMetadataNotAllowed();
                     }
+
+                    // Parse the item metadata to skip over it
+                    if (!TryParseItemMetadata(out _))
+                    {
+                        return false;
+                    }
+
+                    expandable = true;
+                    continue;
                 }
                 else
                 {
-                    // Standalone % for escaping
+                    // Standalone % for escaping.
+                    // UNDONE: This is currently too permissive and should verify that this is an escape sequence.
                     expandable = true;
                 }
             }
-            else if (ch == '@' && _position + 1 < _expression.Length && _expression[_position + 1] == '(')
+            else if (ch == '@')
             {
-                expandable = true;
-
-                if ((_options & ParserOptions.AllowItemLists) == 0)
+                if (!AllowItemLists && Next('('))
                 {
                     return TryReportItemListNotAllowed(start);
                 }
 
-                // Parse the item list to skip over it properly
-                int savedPos = _position;
+                // Parse the item list to skip over it
                 if (!TryParseItemList(out _))
                 {
                     return false;
                 }
 
+                expandable = true;
                 continue;
             }
-            else if (ch == '$' && _position + 1 < _expression.Length && _expression[_position + 1] == '(')
+            else if (ch == '$' && Next('('))
             {
                 expandable = true;
             }
 
             _position++;
+            SkipWhiteSpace();
         }
+        while (!AtEnd);
 
-        if (IsAtEnd())
-        {
-            return IllFormedQuotedString(start);
-        }
-
-        result = _expression.Substring(start, _position - start);
-        _position++; // Skip closing quote
-        return true;
+        return IllFormedQuotedString(start);
     }
 
-    private bool TryParseNumeric([NotNullWhen(true)] out string? result)
+    private bool TryParseNumeric([NotNullWhen(true)] out NumericExpressionNode? result)
     {
+        ReadOnlySpan<char> span = RemainingSpan;
+
+        if (LexingUtilities.TryLexHexNumber(span, out ReadOnlySpan<char> numberSpan) ||
+            LexingUtilities.TryLexDecimalNumber(span, out numberSpan))
+        {
+            _position += numberSpan.Length;
+            result = new NumericExpressionNode(numberSpan.ToString());
+            return true;
+        }
+
         result = null;
-        int start = _position;
-
-        // Hex number: 0x...
-        if (_position + 2 < _expression.Length &&
-            _expression[_position] == '0' &&
-            (_expression[_position + 1] == 'x' || _expression[_position + 1] == 'X'))
-        {
-            _position += 2;
-            SkipHexDigits();
-            result = _expression.Substring(start, _position - start);
-            return true;
-        }
-
-        // Decimal number
-        if (_expression[_position] == '+' || _expression[_position] == '-')
-        {
-            _position++;
-        }
-
-        do
-        {
-            SkipDigits();
-            if (_position < _expression.Length && _expression[_position] == '.')
-            {
-                _position++;
-            }
-            if (_position < _expression.Length)
-            {
-                SkipDigits();
-            }
-        }
-        while (_position < _expression.Length && _expression[_position] == '.');
-
-        result = _expression.Substring(start, _position - start);
-        return true;
-    }
-
-    private bool TryMatchKeyword(KeywordKind keyword)
-    {
-        if (IsAtEnd())
-        {
-            return false;
-        }
-
-        int savedPosition = _position;
-
-        if (!CharacterUtilities.IsSimpleStringStart(_expression[_position]))
-        {
-            return false;
-        }
-
-        int start = _position;
-        SkipSimpleStringChars();
-
-        ReadOnlySpan<char> span = _expression.AsSpan(start, _position - start);
-
-        if (TryMatchKeywordSpan(span, out KeywordKind found) && found == keyword)
-        {
-            return true;
-        }
-
-        _position = savedPosition;
         return false;
     }
 
-    private static bool TryMatchKeywordSpan(ReadOnlySpan<char> span, out KeywordKind keyword)
+    private bool AdvancePast(KeywordKind keyword)
+    {
+        ReadOnlySpan<char> span = RemainingSpan;
+
+        if (!LexingUtilities.TryLexIdentifier(span, out ReadOnlySpan<char> identifierSpan))
+        {
+            return false;
+        }
+
+        if (!TryGetKeyword(identifierSpan, out KeywordKind found) || found != keyword)
+        {
+            return false;
+        }
+
+        _position += identifierSpan.Length;
+        return true;
+    }
+
+    private static bool TryGetKeyword(ReadOnlySpan<char> span, out KeywordKind keyword)
     {
 #if NET
         if (s_keywords.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out keyword))
@@ -1110,15 +1092,15 @@ internal sealed class Parser
         return false;
     }
 
-    private static bool TryMatchFunctionSpan(ReadOnlySpan<char> span, [NotNullWhen(true)] out FunctionDescriptor? function)
+    private static bool TryGetKnownFunction(ReadOnlySpan<char> span, [NotNullWhen(true)] out FunctionDescriptor? function)
     {
 #if NET
-        if (s_functions.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out function))
+        if (s_knownFunctions.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out function))
         {
             return true;
         }
 #else
-        foreach (KeyValuePair<string, FunctionDescriptor> pair in s_functions)
+        foreach (KeyValuePair<string, FunctionDescriptor> pair in s_knownFunctions)
         {
             if (span.Equals(pair.Key.AsSpan(), StringComparison.OrdinalIgnoreCase))
             {
@@ -1132,40 +1114,159 @@ internal sealed class Parser
         return false;
     }
 
-    private void SkipWhiteSpace()
+    private bool TryReportError(string resourceName, int position, object[]? formatArgs = null)
     {
-        while (_position < _expression.Length && char.IsWhiteSpace(_expression[_position]))
+        // We've already recorded an error.
+        if (_error is not null)
         {
-            _position++;
+            return false;
         }
+
+        _error = new Error(resourceName, position, formatArgs ?? []);
+
+        if (_throwException)
+        {
+            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, resourceName, formatArgs);
+        }
+
+        return false;
     }
 
-    private void SkipDigits()
+    private bool TryReportBuiltInMetadataNotAllowed(string name)
     {
-        while (_position < _expression.Length && char.IsDigit(_expression[_position]))
-        {
-            _position++;
-        }
+        // Error position is 1-based
+        int position = _position + 1;
+        return TryReportError(ParseErrors.BuiltInMetadataNotAllowed, position, [_expression, position, name]);
     }
 
-    private void SkipHexDigits()
+    private bool TryReportCustomMetadataNotAllowed(string name)
     {
-        while (_position < _expression.Length && CharacterUtilities.IsHexDigit(_expression[_position]))
-        {
-            _position++;
-        }
+        // Error position is 1-based
+        int position = _position + 1;
+        return TryReportError(ParseErrors.CustomMetadataNotAllowed, position, [_expression, position, name]);
     }
 
-    private void SkipSimpleStringChars()
+    private bool TryReportIllFormedEquals()
     {
-        while (_position < _expression.Length && CharacterUtilities.IsSimpleStringChar(_expression[_position]))
-        {
-            _position++;
-        }
+        // Error position is 1-based
+        int position = _position + 1;
+        string nextChar = AtEnd ? EndOfInput : _expression[_position].ToString();
+
+        return TryReportError(ParseErrors.IllFormedEquals, position, [_expression, position, nextChar]);
     }
 
-    private bool IsAtEnd()
+    private bool TryReportIllFormedItemListCloseParenthesis(int position)
     {
-        return _position >= _expression.Length;
+        // Error position is 1-based
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedItemListCloseParenthesis, position, [_expression, position]);
+    }
+
+    private bool TryReportIllFormedItemListOpenParenthesis(int position)
+    {
+        // Error position is 1-based
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedItemListOpenParenthesis, position, [_expression, position]);
+    }
+
+    private bool TryReportIllFormedItemListQuote(int position)
+    {
+        // Error position is 1-based
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedItemListQuote, position, [_expression, position]);
+    }
+
+    private bool TryReportIllFormedPropertyCloseParenthesis(int position)
+    {
+        // Error position is 1-based
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedPropertyCloseParenthesis, position, [_expression, position]);
+    }
+
+    private bool TryReportIllFormedPropertyOpenParenthesis(int position)
+    {
+        // Error position is 1-based
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedPropertyOpenParenthesis, position, [_expression, position]);
+    }
+
+    private bool TryReportIllFormedItemMetadataCloseParenthesis(int position)
+    {
+        // Error position is 1-based
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedItemMetadataCloseParenthesis, position, [_expression, position]);
+    }
+
+    private bool TryReportIllFormedItemMetadataOpenParenthesis(int position)
+    {
+        // Error position is 1-based
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedItemMetadataOpenParenthesis, position, [_expression, position]);
+    }
+
+    private bool TryReportIllFormedSpace(int position)
+    {
+        // Error position is 1-based.
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedSpace, position, [_expression, position, " "]);
+    }
+
+    private bool IllFormedQuotedString(int position)
+    {
+        // Error position is 1-based.
+        position++;
+
+        return TryReportError(ParseErrors.IllFormedQuotedString, position, [_expression, position]);
+    }
+
+    private bool TryReportIncorrectNumberOfFunctionArguments(int position, int argumentCount, int expectedArgumentCount)
+    {
+        // Error position is 1-based.
+        position++;
+
+        return TryReportError(ParseErrors.IncorrectNumberOfFunctionArguments, position, [_expression, argumentCount, expectedArgumentCount]);
+    }
+
+    private bool TryReportItemListNotAllowed(int? position = null)
+    {
+        // Error position is 1-based
+        int pos = (position ?? _position) + 1;
+
+        return TryReportError(ParseErrors.ItemListNotAllowed, pos, [_expression, pos]);
+    }
+
+    private bool TryReportItemMetadataNotAllowed(int? position = null)
+    {
+        // Error position is 1-based
+        int pos = (position ?? _position) + 1;
+
+        return TryReportError(ParseErrors.ItemMetadataNotAllowed, pos, [_expression, pos]);
+    }
+
+    private bool TryReportUndefinedFunctionCall(int position, string name)
+    {
+        // Error position is 1-based.
+        position++;
+
+        return TryReportError(ParseErrors.UndefinedFunctionCall, position, [_expression, name]);
+    }
+
+    private bool TryReportUnexpectedToken(int? position = null)
+    {
+        int pos = position ?? _position;
+        string nextChar = AtEnd ? EndOfInput : _expression[pos].ToString();
+
+        // Error position is 1-based
+        pos++;
+
+        return TryReportError(ParseErrors.UnexpectedToken, pos, [_expression, pos, nextChar]);
     }
 }
