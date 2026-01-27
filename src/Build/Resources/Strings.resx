@@ -1286,7 +1286,7 @@
     <comment>{StrBegin="MSB4131: "}</comment>
   </data>
   <data name="UnexpectedTokenInCondition" xml:space="preserve">
-    <value>MSB4092: An unexpected token "{1}" was found at character position {2} in condition "{0}".</value>
+    <value>MSB4092: An unexpected token "{2}" was found at character position {1} in condition "{0}".</value>
     <comment>{StrBegin="MSB4092: "}</comment>
   </data>
   <data name="UnmarkedOutputTaskParameter" xml:space="preserve">

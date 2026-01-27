@@ -2478,8 +2478,8 @@ Fehler: {3}</target>
         <note>{StrBegin="MSB4131: "}</note>
       </trans-unit>
       <trans-unit id="UnexpectedTokenInCondition">
-        <source>MSB4092: An unexpected token "{1}" was found at character position {2} in condition "{0}".</source>
-        <target state="translated">MSB4092: Ein unerwartetes Token "{1}" wurde an Zeichenposition "{2}" in Bedingung "{0}" gefunden.</target>
+        <source>MSB4092: An unexpected token "{2}" was found at character position {1} in condition "{0}".</source>
+        <target state="needs-review-translation">MSB4092: Ein unerwartetes Token "{1}" wurde an Zeichenposition "{2}" in Bedingung "{0}" gefunden.</target>
         <note>{StrBegin="MSB4092: "}</note>
       </trans-unit>
       <trans-unit id="UnmarkedOutputTaskParameter">

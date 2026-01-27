@@ -2478,8 +2478,8 @@ Errors: {3}</source>
         <note>{StrBegin="MSB4131: "}</note>
       </trans-unit>
       <trans-unit id="UnexpectedTokenInCondition">
-        <source>MSB4092: An unexpected token "{1}" was found at character position {2} in condition "{0}".</source>
-        <target state="translated">MSB4092: 予期しないトークン "{1}" が、条件 "{0}" の文字の場所 {2} で見つかりました。</target>
+        <source>MSB4092: An unexpected token "{2}" was found at character position {1} in condition "{0}".</source>
+        <target state="needs-review-translation">MSB4092: 予期しないトークン "{1}" が、条件 "{0}" の文字の場所 {2} で見つかりました。</target>
         <note>{StrBegin="MSB4092: "}</note>
       </trans-unit>
       <trans-unit id="UnmarkedOutputTaskParameter">

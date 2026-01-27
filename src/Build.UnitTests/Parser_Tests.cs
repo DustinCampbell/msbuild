@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Linq;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Exceptions;
 using Shouldly;
@@ -15,7 +16,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void SimpleProperty_ShouldParseToStringNode()
-        => ParseExpression<StringExpressionNode>("$(foo)")
+        => Parse<StringExpressionNode>("$(foo)")
             .Verify("$(foo)");
 
     /// <summary>
@@ -26,7 +27,7 @@ public class ParserTest
     [InlineData("$(foo)=='hello'", "$(foo)", "hello")]
     [InlineData("$(foo)==''", "$(foo)", "")]
     public void PropertyEquality_ShouldParseWithCorrectStructure(string expression, string leftValue, string rightValue)
-        => ParseExpression<EqualExpressionNode>(expression)
+        => Parse<EqualExpressionNode>(expression)
             .Verify(
                 (StringExpressionNode left) => left.Verify(leftValue),
                 (StringExpressionNode right) => right.Verify(rightValue));
@@ -37,7 +38,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void ChainedAnd_ShouldParseLeftAssociative()
-        => ParseExpression<AndExpressionNode>("$(debug) and $(buildlab) and $(full)")
+        => Parse<AndExpressionNode>("$(debug) and $(buildlab) and $(full)")
             .Verify(
                 (AndExpressionNode left) => left.Verify(
                     (StringExpressionNode left) => left.Verify("$(debug)"),
@@ -50,7 +51,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void ChainedOr_ShouldParseLeftAssociative()
-        => ParseExpression<OrExpressionNode>("$(debug) or $(buildlab) or $(full)")
+        => Parse<OrExpressionNode>("$(debug) or $(buildlab) or $(full)")
             .Verify(
                 (OrExpressionNode left) => left.Verify(
                     (StringExpressionNode left) => left.Verify("$(debug)"),
@@ -63,7 +64,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void MixedAndOr_ShouldRespectPrecedence()
-        => ParseExpression<OrExpressionNode>("$(debug) and $(buildlab) or $(full)")
+        => Parse<OrExpressionNode>("$(debug) and $(buildlab) or $(full)")
             .Verify(
                 (AndExpressionNode left) => left.Verify(
                     (StringExpressionNode left) => left.Verify("$(debug)"),
@@ -75,7 +76,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void MixedOrAnd_ShouldRespectPrecedence()
-        => ParseExpression<OrExpressionNode>("$(full) or $(debug) and $(buildlab)")
+        => Parse<OrExpressionNode>("$(full) or $(debug) and $(buildlab)")
             .Verify(
                 (StringExpressionNode left) => left.Verify("$(full)"),
                 (AndExpressionNode right) => right.Verify(
@@ -87,7 +88,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void SimpleMetadata_ShouldParseToStringNode()
-        => ParseExpression<StringExpressionNode>("%(culture)")
+        => Parse<StringExpressionNode>("%(culture)")
             .Verify("%(culture)");
 
     /// <summary>
@@ -95,7 +96,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void MetadataEquality_ShouldParseWithCorrectStructure()
-        => ParseExpression<EqualExpressionNode>("%(culture)=='french'")
+        => Parse<EqualExpressionNode>("%(culture)=='french'")
             .Verify(
                 (StringExpressionNode left) => left.Verify("%(culture)"),
                 (StringExpressionNode right) => right.Verify("french"));
@@ -105,7 +106,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void StringWithMetadata_ShouldParseWithCorrectStructure()
-        => ParseExpression<EqualExpressionNode>("'foo_%(culture)'=='foo_french'")
+        => Parse<EqualExpressionNode>("'foo_%(culture)'=='foo_french'")
             .Verify(
                 (StringExpressionNode left) => left.Verify("foo_%(culture)"),
                 (StringExpressionNode right) => right.Verify("foo_french"));
@@ -121,7 +122,7 @@ public class ParserTest
     [InlineData("yes", true)]
     [InlineData("no", false)]
     public void BooleanLiteral_ShouldParseToBooleanNode(string expression, bool expectedValue)
-        => ParseExpression<BooleanLiteralNode>(expression)
+        => Parse<BooleanLiteralNode>(expression)
             .Verify(expectedValue);
 
     /// <summary>
@@ -137,7 +138,7 @@ public class ParserTest
     [InlineData(".5")]
     [InlineData("5.")]
     public void NumericLiteral_ShouldParseToNumericNode(string expression)
-        => ParseExpression<NumericExpressionNode>(expression)
+        => Parse<NumericExpressionNode>(expression)
             .Verify(expression);
 
     /// <summary>
@@ -145,7 +146,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void NumericEquality_ShouldParseWithCorrectStructure()
-        => ParseExpression<EqualExpressionNode>("0.0 == 0")
+        => Parse<EqualExpressionNode>("0.0 == 0")
             .Verify(
                 (NumericExpressionNode left) => left.Verify("0.0"),
                 (NumericExpressionNode right) => right.Verify("0"));
@@ -156,7 +157,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void GroupedExpression_ShouldOverridePrecedence()
-        => ParseExpression<AndExpressionNode>("($(foo) or $(bar)) and $(baz)")
+        => Parse<AndExpressionNode>("($(foo) or $(bar)) and $(baz)")
             .Verify(
                 (OrExpressionNode left) => left.Verify(
                     (StringExpressionNode left) => left.Verify("$(foo)"),
@@ -168,7 +169,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void RelationalOperatorsWithAnd_ShouldParseCorrectly()
-        => ParseExpression<AndExpressionNode>("$(foo) <= 5 and $(bar) >= 15")
+        => Parse<AndExpressionNode>("$(foo) <= 5 and $(bar) >= 15")
             .Verify(
                 (LessThanOrEqualExpressionNode left) => left.Verify(
                     (StringExpressionNode left) => left.Verify("$(foo)"),
@@ -182,7 +183,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void LessThan_ShouldParseCorrectly()
-        => ParseExpression<LessThanExpressionNode>("$(foo) < 5")
+        => Parse<LessThanExpressionNode>("$(foo) < 5")
             .Verify(
                 (StringExpressionNode left) => left.Verify("$(foo)"),
                 (NumericExpressionNode right) => right.Verify("5"));
@@ -192,7 +193,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void GreaterThan_ShouldParseCorrectly()
-        => ParseExpression<GreaterThanExpressionNode>("$(foo) > 5")
+        => Parse<GreaterThanExpressionNode>("$(foo) > 5")
             .Verify(
                 (StringExpressionNode left) => left.Verify("$(foo)"),
                 (NumericExpressionNode right) => right.Verify("5"));
@@ -203,7 +204,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void DeeplyNestedExpression_ShouldParseCorrectly()
-        => ParseExpression<AndExpressionNode>("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == simplestring) and 'a more complex string' != $(quux)")
+        => Parse<AndExpressionNode>("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == simplestring) and 'a more complex string' != $(quux)")
             .Verify(
                 (AndExpressionNode left) => left.Verify(
                     (AndExpressionNode left) => left.Verify(
@@ -226,7 +227,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void NotOperatorInComplexExpression_ShouldParseCorrectly()
-        => ParseExpression<AndExpressionNode>("(($(foo) or $(bar) == false) and !($(baz) == simplestring))")
+        => Parse<AndExpressionNode>("(($(foo) or $(bar) == false) and !($(baz) == simplestring))")
             .Verify(
                 (OrExpressionNode left) => left.Verify(
                     (StringExpressionNode left) => left.Verify("$(foo)"),
@@ -244,7 +245,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCallInLogicalExpression_ShouldParseCorrectly()
-        => ParseExpression<AndExpressionNode>(@"(($(foo) or Exists('c:\foo.txt')) and !(($(baz) == simplestring)))")
+        => Parse<AndExpressionNode>(@"(($(foo) or Exists('c:\foo.txt')) and !(($(baz) == simplestring)))")
             .Verify(
                 (OrExpressionNode left) => left.Verify(
                     (StringExpressionNode left) => left.Verify("$(foo)"),
@@ -268,7 +269,7 @@ public class ParserTest
     [InlineData("!yes", true)]
     [InlineData("!no", false)]
     public void NotOperator_WithBooleanLiteral_ShouldParseCorrectly(string expression, bool negatedValue)
-        => ParseExpression<NotExpressionNode>(expression)
+        => Parse<NotExpressionNode>(expression)
             .Verify((BooleanLiteralNode child) => child.Verify(negatedValue));
 
     /// <summary>
@@ -277,7 +278,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void NotOperator_WithGroupedBooleanLiteral_ShouldParseCorrectly()
-        => ParseExpression<NotExpressionNode>("!(true)")
+        => Parse<NotExpressionNode>("!(true)")
             .Verify((BooleanLiteralNode child) => child.Verify(true));
 
     /// <summary>
@@ -286,7 +287,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void NotOperator_WithPropertyComparison_ShouldParseCorrectly()
-        => ParseExpression<NotExpressionNode>("!($(foo) <= 5)")
+        => Parse<NotExpressionNode>("!($(foo) <= 5)")
             .Verify((LessThanOrEqualExpressionNode child) => child.Verify(
                 (StringExpressionNode left) => left.Verify("$(foo)"),
                 (NumericExpressionNode right) => right.Verify("5")));
@@ -297,7 +298,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void NotOperator_WithMetadataComparison_ShouldParseCorrectly()
-        => ParseExpression<NotExpressionNode>("!(%(foo) <= 5)")
+        => Parse<NotExpressionNode>("!(%(foo) <= 5)")
             .Verify((LessThanOrEqualExpressionNode child) => child.Verify(
                 (StringExpressionNode left) => left.Verify("%(foo)"),
                 (NumericExpressionNode right) => right.Verify("5")));
@@ -308,7 +309,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void NotOperator_WithComplexAndExpression_ShouldParseCorrectly()
-        => ParseExpression<NotExpressionNode>("!($(foo) <= 5 and $(bar) >= 15)")
+        => Parse<NotExpressionNode>("!($(foo) <= 5 and $(bar) >= 15)")
             .Verify((AndExpressionNode child) => child.Verify(
                 (LessThanOrEqualExpressionNode left) => left.Verify(
                     (StringExpressionNode left) => left.Verify("$(foo)"),
@@ -322,7 +323,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithNoArguments_ShouldParseCorrectly()
-        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall()")
+        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall()")
             .Verify(name: "SimpleFunctionCall");
 
     /// <summary>
@@ -330,7 +331,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithNumericArgument_ShouldParseCorrectly()
-        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall( 1234 )")
+        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall( 1234 )")
             .Verify(
                 name: "SimpleFunctionCall",
                 (NumericExpressionNode arg) => arg.Verify("1234"));
@@ -340,7 +341,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithBooleanArgument_ShouldParseCorrectly()
-        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall( true )")
+        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall( true )")
             .Verify(
                 name: "SimpleFunctionCall",
                 (BooleanLiteralNode arg) => arg.Verify(true));
@@ -350,7 +351,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithPropertyArgument_ShouldParseCorrectly()
-        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall( $(property) )")
+        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall( $(property) )")
             .Verify(
                 name: "SimpleFunctionCall",
                 (StringExpressionNode arg) => arg.Verify("$(property)"));
@@ -360,7 +361,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithMultipleArguments_ShouldParseCorrectly()
-        => ParseExpression<FunctionCallExpressionNode>("SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )")
+        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )")
             .Verify(
                 name: "SimpleFunctionCall",
                 (StringExpressionNode arg1) => arg1.Verify("$(property)"),
@@ -376,7 +377,7 @@ public class ParserTest
     [InlineData("True AND False")]
     [InlineData("$(x) OR $(y)")]
     public void Keywords_ShouldBeRecognized_CaseInsensitively(string expression)
-        => Should.NotThrow(() => ParseExpression(expression));
+        => Should.NotThrow(() => Parse(expression));
 
     /// <summary>
     ///  Verifies that item lists are rejected when ParserOptions.AllowItemLists is not set.
@@ -390,15 +391,18 @@ public class ParserTest
     [InlineData("'@(foo)otherstuff' == 'a.cs;b.cs'")]
     [InlineData("somefunction(@(foo), 'otherstuff')")]
     public void ItemList_WhenNotAllowed_ShouldFail(string expression)
-        => Should.Throw<InvalidProjectFileException>(() =>
-            ParseExpression(expression, ParserOptions.AllowProperties));
+    {
+        var error = FailParse(expression, ParserOptions.AllowProperties);
+
+        error.ResourceName.ShouldBe("ItemListNotAllowedInThisConditional");
+    }
 
     /// <summary>
     ///  Verifies that item transformations parse into StringExpressionNode with preserved value.
     /// </summary>
     [Fact]
     public void ItemTransformation_ShouldParseToStringNode()
-        => ParseExpression<StringExpressionNode>(
+        => Parse<StringExpressionNode>(
             "@(item->foo('ab'))",
             ParserOptions.AllowPropertiesAndItemLists)
             .Verify("@(item->foo('ab'))");
@@ -409,7 +413,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void ItemTransformation_Negated_ShouldParseCorrectly()
-        => ParseExpression<NotExpressionNode>(
+        => Parse<NotExpressionNode>(
             "!@(item->foo())",
             ParserOptions.AllowPropertiesAndItemLists)
             .Verify((StringExpressionNode child) => child.Verify("@(item->foo())"));
@@ -420,7 +424,7 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void ItemTransformation_InAndExpression_ShouldParseCorrectly()
-        => ParseExpression<AndExpressionNode>(
+        => Parse<AndExpressionNode>(
             "(@(item->foo('ab')) and @(item->foo('bc')))",
             ParserOptions.AllowPropertiesAndItemLists)
             .Verify(
@@ -441,7 +445,7 @@ public class ParserTest
     [InlineData("somefunction(%(foo), 'otherstuff')")]
     public void BareMetadata_InConditions_ShouldFail(string expression)
         => Should.Throw<InvalidProjectFileException>(() =>
-            ParseExpression(expression, ParserOptions.AllowPropertiesAndItemLists));
+            Parse(expression, ParserOptions.AllowPropertiesAndItemLists));
 
     /// <summary>
     ///  Verifies that malformed expressions throw InvalidProjectFileException.
@@ -460,38 +464,33 @@ public class ParserTest
     [InlineData("1==(2")] // Unmatched parenthesis
     public void MalformedExpression_ShouldThrowInvalidProjectFileException(string expression)
         => Should.Throw<InvalidProjectFileException>(() =>
-            ParseExpression(expression));
+            Parse(expression));
 
     /// <summary>
     ///  Verifies that error positions are reported correctly for various malformed expressions,
     ///  ensuring the parser points to the exact character position where the error occurs.
     /// </summary>
     [Theory]
-    [InlineData("1==0xFG", 7, ParserOptions.AllowAll)]                // Position of G
-    [InlineData("1==-0xF", 6, ParserOptions.AllowAll)]                // Position of x
-    [InlineData("1234=5678", 6, ParserOptions.AllowAll)]              // Position of '5'
-    [InlineData(" ", 2, ParserOptions.AllowAll)]                      // Position of End of Input
-    [InlineData(" (", 3, ParserOptions.AllowAll)]                     // Position of End of Input
-    [InlineData(" false or  ", 12, ParserOptions.AllowAll)]           // Position of End of Input
-    [InlineData(" \"foo", 2, ParserOptions.AllowAll)]                 // Position of open quote
-    [InlineData(" @(foo", 2, ParserOptions.AllowAll)]                 // Position of @
-    [InlineData(" @(", 2, ParserOptions.AllowAll)]                    // Position of @
-    [InlineData(" $", 2, ParserOptions.AllowAll)]                     // Position of $
-    [InlineData(" $(foo", 2, ParserOptions.AllowAll)]                 // Position of $
-    [InlineData(" $(", 2, ParserOptions.AllowAll)]                    // Position of $
-    [InlineData(" @(foo)", 2, ParserOptions.AllowProperties)]         // Position of @
-    [InlineData(" '@(foo)'", 3, ParserOptions.AllowProperties)]       // Position of @
+    [InlineData("1==0xFG", 7, ParserOptions.AllowAll)] // Position of G
+    [InlineData("1==-0xF", 6, ParserOptions.AllowAll)] // Position of x
+    [InlineData("1234=5678", 6, ParserOptions.AllowAll)] // Position of '5'
+    [InlineData(" ", 2, ParserOptions.AllowAll)] // Position of End of Input
+    [InlineData(" (", 3, ParserOptions.AllowAll)] // Position of End of Input
+    [InlineData(" false or  ", 12, ParserOptions.AllowAll)] // Position of End of Input
+    [InlineData(" \"foo", 2, ParserOptions.AllowAll)] // Position of open quote
+    [InlineData(" @(foo", 2, ParserOptions.AllowAll)] // Position of @
+    [InlineData(" @(", 2, ParserOptions.AllowAll)] // Position of @
+    [InlineData(" $", 2, ParserOptions.AllowAll)] // Position of $
+    [InlineData(" $(foo", 2, ParserOptions.AllowAll)] // Position of $
+    [InlineData(" $(", 2, ParserOptions.AllowAll)] // Position of $
+    [InlineData(" @(foo)", 2, ParserOptions.AllowProperties)] // Position of @
+    [InlineData(" '@(foo)'", 3, ParserOptions.AllowProperties)] // Position of @
     [InlineData("'%24%28x' == '%24(x''", 21, ParserOptions.AllowAll)] // Position of extra quote (test escaped chars)
     internal void ErrorPosition_ShouldBeReportedCorrectly(string input, int expectedPosition, ParserOptions options)
     {
-        var parser = new Parser(input, options, MockElementLocation.Instance);
+        var error = FailParse(input, options);
 
-        Should.Throw<InvalidProjectFileException>(() =>
-        {
-            parser.Parse();
-        });
-
-        parser._errorPosition.ShouldBe(expectedPosition);
+        error.Position.ShouldBe(expectedPosition);
     }
 
     /// <summary>
@@ -506,7 +505,7 @@ public class ParserTest
     [InlineData("$( x.StartsWith( $(_SpacelessProperty) ) )")]
     [InlineData("$(x.StartsWith('Foo', StringComparison.InvariantCultureIgnoreCase))")]
     public void Property_WithMiddleSpace_ShouldParseSuccessfully(string expression)
-        => ParseExpression<StringExpressionNode>(expression, ParserOptions.AllowProperties)
+        => Parse<StringExpressionNode>(expression, ParserOptions.AllowProperties)
             .Verify(expression);
 
     /// <summary>
@@ -519,8 +518,12 @@ public class ParserTest
     [InlineData("$([MSBuild]::DoSomething($(space ))")]
     [InlineData("$([MSBuild]::DoSomething($(_space ))")]
     public void Property_WithBoundarySpace_ShouldFail(string expression)
-        => Should.Throw<InvalidProjectFileException>(() =>
-            ParseExpression(expression, ParserOptions.AllowProperties));
+    {
+        var error = FailParse(expression);
+
+        error.ResourceName.ShouldBe("IllFormedPropertySpaceInCondition");
+        error.FormatArgs.Last().ShouldBe(" ");
+    }
 
     /// <summary>
     ///  Verifies that single "=" (instead of "==") throws InvalidProjectFileException.
@@ -530,49 +533,61 @@ public class ParserTest
     [InlineData("a=b")]
     [InlineData("1234=5678")]
     [InlineData("$(foo)=$(bar)")]
-    public void SingleEquals_ShouldFail(string expression)
-        => Should.Throw<InvalidProjectFileException>(() =>
-            ParseExpression(expression));
+    public void SingleEquals_ShouldProduceSpecialError(string expression)
+    {
+        var error = FailParse(expression);
+
+        error.ResourceName.ShouldBe("IllFormedEqualsInCondition");
+    }
 
     /// <summary>
     ///  Verifies that ill-formed property references throw InvalidProjectFileException.
     ///  Properties must be in the form $(name) with both opening and closing parentheses.
     /// </summary>
     [Theory]
-    [InlineData("$(")]      // Missing closing parenthesis
-    [InlineData("$x")]      // Missing opening parenthesis
-    [InlineData("$(foo")]   // Missing closing parenthesis
-    public void Property_IllFormed_ShouldFail(string expression)
-        => Should.Throw<InvalidProjectFileException>(() =>
-            ParseExpression(expression, ParserOptions.AllowProperties));
+    [InlineData("$(", "IllFormedPropertyCloseParenthesisInCondition")]
+    [InlineData("$x", "IllFormedPropertyOpenParenthesisInCondition")]
+    [InlineData("$(foo", "IllFormedPropertyCloseParenthesisInCondition")]
+    public void Property_IllFormed_ShouldFail(string expression, string errorResourceName)
+    {
+        var error = FailParse(expression);
+
+        error.ResourceName.ShouldBe(errorResourceName);
+    }
 
     /// <summary>
     ///  Verifies that ill-formed item list references throw InvalidProjectFileException.
     ///  Item lists must be in the form @(name) with proper parentheses and quoted separators/transforms.
     /// </summary>
     [Theory]
-    [InlineData("@(")]                      // Missing closing parenthesis
-    [InlineData("@x")]                      // Missing opening parenthesis
-    [InlineData("@(x")]                     // Missing closing parenthesis
-    [InlineData("@(x->'%(y)")]              // Unterminated quote in transform
-    [InlineData("@(x->'%(y)', 'x")]         // Unterminated quote in separator
-    [InlineData("@(x->'%(y)', 'x'")]        // Missing closing parenthesis
-    public void ItemList_IllFormed_ShouldFail(string expression)
-        => Should.Throw<InvalidProjectFileException>(() =>
-            ParseExpression(expression));
+    [InlineData("@(", "IllFormedItemListCloseParenthesisInCondition")]
+    [InlineData("@x", "IllFormedItemListOpenParenthesisInCondition")]
+    [InlineData("@(x", "IllFormedItemListCloseParenthesisInCondition")]
+    [InlineData("@(x->'%(y)", "IllFormedItemListQuoteInCondition")]
+    [InlineData("@(x->'%(y)', 'x", "IllFormedItemListQuoteInCondition")]
+    [InlineData("@(x->'%(y)', 'x'", "IllFormedItemListCloseParenthesisInCondition")]
+    public void ItemList_IllFormed_ShouldFail(string expression, string errorResourceName)
+    {
+        var error = FailParse(expression);
+
+        error.ResourceName.ShouldBe(errorResourceName);
+    }
 
     /// <summary>
     ///  Verifies that unterminated quoted strings throw InvalidProjectFileException.
     ///  All quoted strings must have matching closing quotes.
     /// </summary>
     [Theory]
-    [InlineData("'")]                       // Just opening quote
-    [InlineData("'abc")]                    // Missing closing quote
-    [InlineData("false or 'abc")]           // Unterminated string in expression
-    [InlineData("'$(DEBUG) == true")]       // Unterminated string with property
+    [InlineData("'")] // Just opening quote
+    [InlineData("'abc")] // Missing closing quote
+    [InlineData("false or 'abc")] // Unterminated string in expression
+    [InlineData("'$(DEBUG) == true")] // Unterminated string with property
     public void String_Unterminated_ShouldFail(string expression)
-        => Should.Throw<InvalidProjectFileException>(() =>
-            ParseExpression(expression));
+    {
+        var error = FailParse(expression);
+
+        error.ResourceName.ShouldBe("IllFormedQuotedStringInCondition");
+    }
 
     /// <summary>
     ///  Verifies that MSB4130 warning is triggered for "a and b or c" expression.
@@ -700,10 +715,17 @@ public class ParserTest
         ml.FullLog.ShouldNotContain("MSB4130:");
     }
 
-    private static GenericExpressionNode ParseExpression(string expression, ParserOptions options = ParserOptions.AllowAll)
+    private static GenericExpressionNode Parse(string expression, ParserOptions options = ParserOptions.AllowAll)
         => Parser.Parse(expression, options, MockElementLocation.Instance);
 
-    private static T ParseExpression<T>(string expression, ParserOptions options = ParserOptions.AllowAll)
+    private static T Parse<T>(string expression, ParserOptions options = ParserOptions.AllowAll)
         where T : GenericExpressionNode
         => Parser.Parse(expression, options, MockElementLocation.Instance).ShouldBeOfType<T>();
+
+    private static Parser.Error FailParse(string expression, ParserOptions options = ParserOptions.AllowAll)
+    {
+        Parser.TryParse(expression, options, MockElementLocation.Instance, out _, out Parser.Error? error).ShouldBeFalse();
+
+        return error.ShouldNotBeNull();
+    }
 }

@@ -22,6 +22,15 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal sealed class Parser
     {
+        public readonly struct Error(string resourceName, int position, object[] formatArgs)
+        {
+            public int Position => position;
+            public string ResourceName => resourceName;
+            public object[] FormatArgs => formatArgs ?? [];
+        }
+
+        private static string EndOfInput => field ??= ResourceUtilities.GetResourceString("EndOfInputTokenName");
+
         private static readonly FrozenDictionary<string, KeywordKind> s_keywords = new Dictionary<string, KeywordKind>(StringComparer.OrdinalIgnoreCase)
         {
             { "and", KeywordKind.And },
@@ -37,25 +46,13 @@ namespace Microsoft.Build.Evaluation
         private readonly string _expression;
         private readonly ParserOptions _options;
         private readonly IElementLocation _elementLocation;
-        private int _position;
+        private readonly bool _throwException;
 
-        // Error tracking
-        private bool _errorState;
-        internal int _errorPosition = -1; // -1 = not set; >0 = 1-based position for tests
-        private string _errorResource;
-        private string _unexpectedlyFound;
-        private static string s_endOfInput;
-
-        /// <summary>
-        ///  Location contextual information which are attached to logging events to
-        ///  say where they are in relation to the process, engine, project, target,task which is executing.
-        /// </summary>
+        private readonly ILoggingService _loggingService;
         private readonly BuildEventContext _logBuildEventContext;
 
-        /// <summary>
-        ///  Engine Logging Service reference where events will be logged to.
-        /// </summary>
-        private readonly ILoggingService _loggingService;
+        private int _position;
+        private Error? _error;
 
         private bool _warnedForExpression = false;
 
@@ -71,36 +68,56 @@ namespace Microsoft.Build.Evaluation
             No
         }
 
-        private string EndOfInput
-        {
-            get
-            {
-                if (s_endOfInput == null)
-                {
-                    s_endOfInput = ResourceUtilities.GetResourceString("EndOfInputTokenName");
-                }
-
-                return s_endOfInput;
-            }
-        }
-
-        public Parser(
+        private Parser(
             string expression,
-            ParserOptions optionSettings,
+            ParserOptions options,
+            bool throwException,
             IElementLocation elementLocation,
             LoggingContext loggingContext = null)
         {
             // We currently have no support (and no scenarios) for disallowing property references in conditions.
-            ErrorUtilities.VerifyThrow((optionSettings & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
+            ErrorUtilities.VerifyThrow((options & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
 
             _expression = expression;
-            _options = optionSettings;
+            _options = options;
+            _throwException = throwException;
             _elementLocation = elementLocation;
             _position = 0;
-            _errorState = false;
 
             _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
             _loggingService = loggingContext?.LoggingService;
+        }
+
+        private void SetErrorOrThrow(string resourceName, int errorPosition = -1, string unexpectedlyFound = null)
+        {
+            // We already have an error recorded.
+            if (_error is not null)
+            {
+                return;
+            }
+
+            if (errorPosition == -1)
+            {
+                errorPosition = _position + 1; // Convert to 1-based
+            }
+
+            object[] formatArgs = unexpectedlyFound is not null
+                ? [_expression, errorPosition, unexpectedlyFound]
+                : [_expression, errorPosition];
+
+            _error = new Error(resourceName, errorPosition, formatArgs);
+
+            if (_throwException)
+            {
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, resourceName, formatArgs);
+            }
+        }
+
+        private void SetUnexpectedToken()
+        {
+            string unexpectedlyFound = _position < _expression.Length ? _expression[_position].ToString() : EndOfInput;
+
+            SetErrorOrThrow("UnexpectedTokenInCondition", unexpectedlyFound: unexpectedlyFound);
         }
 
         /// <summary>
@@ -108,15 +125,30 @@ namespace Microsoft.Build.Evaluation
         /// You pass in the expression you want to parse, and you get an
         /// expression tree out the back end.
         /// </summary>
-        internal static GenericExpressionNode Parse(
+        public static GenericExpressionNode Parse(
             string expression,
-            ParserOptions optionSettings,
+            ParserOptions options,
             IElementLocation elementLocation,
             LoggingContext loggingContext = null)
         {
-            var parser = new Parser(expression, optionSettings, elementLocation, loggingContext);
+            var parser = new Parser(expression, options, throwException: true, elementLocation, loggingContext);
 
             return parser.Parse();
+        }
+
+        public static bool TryParse(
+            string expression,
+            ParserOptions options,
+            IElementLocation elementLocation,
+            out GenericExpressionNode node,
+            out Error? error)
+        {
+            var parser = new Parser(expression, options, throwException: false, elementLocation);
+
+            node = parser.Parse();
+            error = parser._error;
+
+            return error is null;
         }
 
         /// <summary>
@@ -124,18 +156,16 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal GenericExpressionNode Parse()
         {
-            GenericExpressionNode node = Expr();
-
-            if (_errorState)
+            if (!TryExpr(out GenericExpressionNode node))
             {
-                ThrowInvalidProject();
+                return null;
             }
 
             SkipWhiteSpace();
+
             if (!IsAtEnd())
             {
-                SetError("UnexpectedTokenInCondition");
-                ThrowUnexpectedTokenInCondition();
+                SetUnexpectedToken();
             }
 
             return node;
@@ -146,28 +176,27 @@ namespace Microsoft.Build.Evaluation
         //    See grammar for how the following methods relate to each
         //    other.
         //
-        private GenericExpressionNode Expr()
+        private bool TryExpr(out GenericExpressionNode node)
         {
-            GenericExpressionNode node = BooleanTerm();
-            if (_errorState || node == null)
+            if (!TryBooleanTerm(out node))
             {
-                return node;
+                return false;
             }
 
             SkipWhiteSpace();
+
             while (!IsAtEnd() && TryMatchKeyword(KeywordKind.Or))
             {
-                OperatorExpressionNode orNode = new OrExpressionNode();
-                GenericExpressionNode rhs = BooleanTerm();
-                if (_errorState || rhs == null)
+                if (!TryBooleanTerm(out GenericExpressionNode rhs))
                 {
-                    SetUnexpectedToken();
-                    return null;
+                    return false;
                 }
 
+                OperatorExpressionNode orNode = new OrExpressionNode();
                 orNode.LeftChild = node;
                 orNode.RightChild = rhs;
                 node = orNode;
+
                 SkipWhiteSpace();
             }
 
@@ -185,71 +214,78 @@ namespace Microsoft.Build.Evaluation
             }
             #endregion
 
-            return node;
+            return true;
         }
 
-        private GenericExpressionNode BooleanTerm()
+        private bool TryBooleanTerm(out GenericExpressionNode node)
         {
-            GenericExpressionNode node = RelationalExpr();
-            if (_errorState || node == null)
+            if (!TryRelationalExpr(out node))
             {
-                SetUnexpectedToken();
-                return null;
+                return false;
             }
 
             SkipWhiteSpace();
+
             while (!IsAtEnd() && TryMatchKeyword(KeywordKind.And))
             {
-                GenericExpressionNode rhs = RelationalExpr();
-                if (_errorState || rhs == null)
+                if (!TryRelationalExpr(out GenericExpressionNode rhs))
                 {
-                    SetUnexpectedToken();
-                    return null;
+                    return false;
                 }
 
                 OperatorExpressionNode andNode = new AndExpressionNode();
                 andNode.LeftChild = node;
                 andNode.RightChild = rhs;
                 node = andNode;
+
                 SkipWhiteSpace();
             }
 
-            return node;
+            return node is not null;
         }
 
-        private GenericExpressionNode RelationalExpr()
+        private bool TryRelationalExpr(out GenericExpressionNode node)
         {
-            GenericExpressionNode lhs = Factor();
-            if (_errorState || lhs == null)
+            node = null;
+
+            if (!TryFactor(out GenericExpressionNode lhs))
             {
-                SetUnexpectedToken();
-                return null;
+                return false;
             }
 
             SkipWhiteSpace();
-            OperatorExpressionNode node = TryParseRelationalOperator();
-            if (node == null)
-            {
-                return lhs;
-            }
 
-            GenericExpressionNode rhs = Factor();
-            if (_errorState || rhs == null)
-            {
-                SetUnexpectedToken();
-                return null;
-            }
-
-            node.LeftChild = lhs;
-            node.RightChild = rhs;
-            return node;
-        }
-
-        private OperatorExpressionNode TryParseRelationalOperator()
-        {
             if (IsAtEnd())
             {
-                return null;
+                node = lhs;
+                return true;
+            }
+
+            if (!TryParseRelationalOperator(out OperatorExpressionNode opNode))
+            {
+                node = lhs;
+                return true;
+            }
+
+            if (!TryFactor(out GenericExpressionNode rhs))
+            {
+                return false;
+            }
+
+            opNode.LeftChild = lhs;
+            opNode.RightChild = rhs;
+            node = opNode;
+
+            return true;
+        }
+
+        private bool TryParseRelationalOperator(out OperatorExpressionNode node)
+        {
+            node = null;
+
+            if (IsAtEnd())
+            {
+                return false;
             }
 
             char ch = _expression[_position];
@@ -261,60 +297,72 @@ namespace Microsoft.Build.Evaluation
                     if (!IsAtEnd() && _expression[_position] == '=')
                     {
                         _position++;
-                        return new LessThanOrEqualExpressionNode();
+                        node = new LessThanOrEqualExpressionNode();
                     }
-                    return new LessThanExpressionNode();
+                    else
+                    {
+                        node = new LessThanExpressionNode();
+                    }
+
+                    return true;
 
                 case '>':
                     _position++;
                     if (!IsAtEnd() && _expression[_position] == '=')
                     {
                         _position++;
-                        return new GreaterThanOrEqualExpressionNode();
+                        node = new GreaterThanOrEqualExpressionNode();
                     }
-                    return new GreaterThanExpressionNode();
+                    else
+                    {
+                        node = new GreaterThanExpressionNode();
+                    }
+
+                    return true;
 
                 case '=':
                     if (_position + 1 < _expression.Length && _expression[_position + 1] == '=')
                     {
                         _position += 2;
-                        return new EqualExpressionNode();
+                        node = new EqualExpressionNode();
+                        return true;
                     }
+
                     // Single '=' is an error - point to the character after it
-                    _errorPosition = _position + 2; // Explicitly set position before SetError
-                    SetError("IllFormedEqualsInCondition");
-                    if (_position + 1 < _expression.Length)
-                    {
-                        _unexpectedlyFound = _expression[_position + 1].ToString();
-                    }
-                    else
-                    {
-                        _unexpectedlyFound = EndOfInput;
-                    }
+                    int errorPosition = _position + 2;
+                    string unexpectedlyFound = _position + 1 < _expression.Length
+                        ? _expression[_position + 1].ToString()
+                        : EndOfInput;
+
+                    SetErrorOrThrow("IllFormedEqualsInCondition", errorPosition, unexpectedlyFound);
                     _position++;
-                    return null;
+                    return false;
 
                 case '!':
                     if (_position + 1 < _expression.Length && _expression[_position + 1] == '=')
                     {
                         _position += 2;
-                        return new NotEqualExpressionNode();
+                        node = new NotEqualExpressionNode();
+                        return true;
                     }
-                    return null;
+
+                    return false;
 
                 default:
-                    return null;
+                    return false;
             }
         }
 
-        private GenericExpressionNode Factor()
+        private bool TryFactor(out GenericExpressionNode node)
         {
+            node = null;
+
             SkipWhiteSpace();
 
             if (IsAtEnd())
             {
                 SetUnexpectedToken();
-                return null;
+                return false;
             }
 
             char ch = _expression[_position];
@@ -326,54 +374,58 @@ namespace Microsoft.Build.Evaluation
                 if (_position + 1 < _expression.Length && _expression[_position + 1] == '=')
                 {
                     SetUnexpectedToken();
-                    return null;
+                    return false;
                 }
 
                 _position++;
-                OperatorExpressionNode notNode = new NotExpressionNode();
-                GenericExpressionNode expr = Factor();
-                if (_errorState || expr == null)
+                if (!TryFactor(out GenericExpressionNode expr))
                 {
-                    SetUnexpectedToken();
-                    return null;
+                    return false;
                 }
+
+                OperatorExpressionNode notNode = new NotExpressionNode();
                 notNode.LeftChild = expr;
-                return notNode;
+                node = notNode;
+
+                return true;
             }
 
             // Check for '(' (grouped expression)
             if (ch == '(')
             {
                 _position++;
-                GenericExpressionNode child = Expr();
-                if (_errorState || child == null)
+                if (!TryExpr(out GenericExpressionNode child))
                 {
-                    SetUnexpectedToken();
-                    return null;
+                    return false;
                 }
 
                 SkipWhiteSpace();
+
                 if (IsAtEnd() || _expression[_position] != ')')
                 {
                     SetUnexpectedToken();
-                    return null;
+                    return false;
                 }
+
                 _position++;
-                return child;
+                node = child;
+                return true;
             }
 
             // Try to parse an argument (string, number, property, etc.) or function
-            return ParseArgumentOrFunction();
+            return TryParseArgumentOrFunction(out node);
         }
 
-        private GenericExpressionNode ParseArgumentOrFunction()
+        private bool TryParseArgumentOrFunction(out GenericExpressionNode node)
         {
+            node = null;
+
             SkipWhiteSpace();
 
             if (IsAtEnd())
             {
                 SetUnexpectedToken();
-                return null;
+                return false;
             }
 
             char ch = _expression[_position];
@@ -395,26 +447,30 @@ namespace Microsoft.Build.Evaluation
                     // It's a function call - use the string as function name regardless of whether it's a keyword
                     string functionName = span.ToString();
                     _position++; // consume '('
-                    var arglist = new List<GenericExpressionNode>();
+
+                    List<GenericExpressionNode> arglist = null;
 
                     SkipWhiteSpace();
+
                     if (IsAtEnd() || _expression[_position] != ')')
                     {
-                        ParseArgumentList(arglist);
-                        if (_errorState)
+                        if (!TryParseArgumentList(out arglist))
                         {
-                            return null;
+                            return false;
                         }
                     }
 
                     SkipWhiteSpace();
+
                     if (IsAtEnd() || _expression[_position] != ')')
                     {
                         SetUnexpectedToken();
-                        return null;
+                        return false;
                     }
+
                     _position++;
-                    return new FunctionCallExpressionNode(functionName, arglist);
+                    node = new FunctionCallExpressionNode(functionName, arglist ?? []);
+                    return true;
                 }
 
                 // Not a function - restore position and check if it's a keyword
@@ -422,36 +478,55 @@ namespace Microsoft.Build.Evaluation
 
                 if (TryMatchKeywordSpan(span, out KeywordKind keyword))
                 {
-                    return keyword switch
+                    node = keyword switch
                     {
                         KeywordKind.True or KeywordKind.On or KeywordKind.Yes => new BooleanLiteralNode(true, span.ToString()),
                         KeywordKind.False or KeywordKind.Off or KeywordKind.No => new BooleanLiteralNode(false, span.ToString()),
+                        KeywordKind.And or KeywordKind.Or => null, // Reserved keywords - not valid as values
                         _ => new StringExpressionNode(span.ToString(), false)
                     };
                 }
+                else
+                {
+                    // Just a simple string
+                    node = new StringExpressionNode(span.ToString(), false);
+                }
 
-                // Just a simple string
-                return new StringExpressionNode(span.ToString(), false);
+                if (node is null)
+                {
+                    SetUnexpectedToken();
+                    return false;
+                }
+
+                return node is not null;
             }
 
             // Fall back to other argument types
-            return TryParseArgument();
+            return TryParseArgument(out node);
         }
 
-        private void ParseArgumentList(List<GenericExpressionNode> arglist)
+        private bool TryParseArgumentList(out List<GenericExpressionNode> arglist)
         {
+            arglist = null;
+
             while (true)
             {
-                GenericExpressionNode arg = TryParseArgument();
-                if (_errorState || arg == null)
+                if (!TryParseArgument(out GenericExpressionNode arg))
                 {
-                    SetUnexpectedToken();
-                    return;
+                    if (IsAtEnd() || _expression[_position] != ')')
+                    {
+                        SetUnexpectedToken();
+                        return false;
+                    }
+
+                    return false;
                 }
 
+                arglist ??= [];
                 arglist.Add(arg);
 
                 SkipWhiteSpace();
+
                 if (IsAtEnd() || _expression[_position] != ',')
                 {
                     break;
@@ -460,15 +535,20 @@ namespace Microsoft.Build.Evaluation
                 _position++; // consume ','
                 SkipWhiteSpace();
             }
+
+            arglist ??= [];
+            return true;
         }
 
-        private GenericExpressionNode TryParseArgument()
+        private bool TryParseArgument(out GenericExpressionNode node)
         {
+            node = null;
+
             SkipWhiteSpace();
 
             if (IsAtEnd())
             {
-                return null;
+                return false;
             }
 
             char ch = _expression[_position];
@@ -478,9 +558,10 @@ namespace Microsoft.Build.Evaluation
             {
                 if (TryParsePropertyOrItemMetadata(out string propertyExpression))
                 {
-                    return new StringExpressionNode(propertyExpression, true /* requires expansion */);
+                    node = new StringExpressionNode(propertyExpression, expandable: true);
                 }
-                return null;
+
+                return node is not null;
             }
 
             // Item metadata: %(...)
@@ -491,7 +572,7 @@ namespace Microsoft.Build.Evaluation
                     string expression = itemMetadataExpression;
 
                     // Extract metadata name for validation
-                    if (expression.Length > 3 && expression[0] == '%' && expression[1] == '(' && expression[expression.Length - 1] == ')')
+                    if (expression.Length > 3 && expression[0] == '%' && expression[1] == '(' && expression[^1] == ')')
                     {
                         string metadataName = expression.Substring(2, expression.Length - 3);
 
@@ -504,13 +585,14 @@ namespace Microsoft.Build.Evaluation
 
                         if (!CheckMetadataAllowed(metadataName))
                         {
-                            return null;
+                            return false;
                         }
                     }
 
-                    return new StringExpressionNode(itemMetadataExpression, true /* requires expansion */);
+                    node = new StringExpressionNode(itemMetadataExpression, expandable: true);
                 }
-                return null;
+
+                return node is not null;
             }
 
             // Item list: @(...)
@@ -520,16 +602,17 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (_position + 1 < _expression.Length && _expression[_position + 1] == '(')
                     {
-                        SetError("ItemListNotAllowedInThisConditional");
-                        return null;
+                        SetErrorOrThrow("ItemListNotAllowedInThisConditional");
+                        return false;
                     }
                 }
 
                 if (TryParseItemList(out string itemListExpression))
                 {
-                    return new StringExpressionNode(itemListExpression, true /* requires expansion */);
+                    node = new StringExpressionNode(itemListExpression, expandable: true);
                 }
-                return null;
+
+                return node is not null;
             }
 
             // Quoted string: '...'
@@ -537,9 +620,10 @@ namespace Microsoft.Build.Evaluation
             {
                 if (TryParseQuotedString(out string stringValue, out bool expandable))
                 {
-                    return new StringExpressionNode(stringValue, expandable);
+                    node = new StringExpressionNode(stringValue, expandable);
                 }
-                return null;
+
+                return node is not null;
             }
 
             // Numeric literal
@@ -547,9 +631,10 @@ namespace Microsoft.Build.Evaluation
             {
                 if (TryParseNumeric(out string numericValue))
                 {
-                    return new NumericExpressionNode(numericValue);
+                    node = new NumericExpressionNode(numericValue);
                 }
-                return null;
+
+                return node is not null;
             }
 
             // Simple string or keyword (but NOT function - ParseArgumentOrFunction handles that)
@@ -563,19 +648,25 @@ namespace Microsoft.Build.Evaluation
                 // Check if it's a boolean keyword
                 if (TryMatchKeywordSpan(span, out KeywordKind keyword))
                 {
-                    return keyword switch
+                    node = keyword switch
                     {
                         KeywordKind.True or KeywordKind.On or KeywordKind.Yes => new BooleanLiteralNode(true, span.ToString()),
                         KeywordKind.False or KeywordKind.Off or KeywordKind.No => new BooleanLiteralNode(false, span.ToString()),
+                        KeywordKind.And or KeywordKind.Or => null, // Reserved keywords - not valid as values
                         _ => new StringExpressionNode(span.ToString(), false)
                     };
                 }
+                else
+                {
+                    // Just a simple string
+                    node = new StringExpressionNode(span.ToString(), false);
+                }
 
-                // Just a simple string
-                return new StringExpressionNode(span.ToString(), false);
+                return node is not null;
             }
 
-            return null;
+            SetUnexpectedToken();
+            return false;
         }
 
         private bool TryParsePropertyOrItemMetadata(out string result)
@@ -586,17 +677,15 @@ namespace Microsoft.Build.Evaluation
 
             if (IsAtEnd() || _expression[_position] != '(')
             {
-                SetError("IllFormedPropertyOpenParenthesisInCondition");
-                _errorPosition = start + 1;
-                _unexpectedlyFound = IsAtEnd() ? EndOfInput : _expression[_position].ToString();
+                string unexpectedlyFound = IsAtEnd() ? EndOfInput : _expression[_position].ToString();
+                SetErrorOrThrow("IllFormedPropertyOpenParenthesisInCondition", start + 1, unexpectedlyFound);
                 return false;
             }
 
             if (!ScanForPropertyExpressionEnd(_expression, _position++, out int indexResult))
             {
-                SetError("IllFormedPropertySpaceInCondition");
-                _errorPosition = indexResult;
-                _unexpectedlyFound = _expression[indexResult].ToString();
+                string unexpectedlyFound = _expression[indexResult].ToString();
+                SetErrorOrThrow("IllFormedPropertySpaceInCondition", indexResult, unexpectedlyFound);
                 return false;
             }
 
@@ -604,9 +693,7 @@ namespace Microsoft.Build.Evaluation
 
             if (IsAtEnd())
             {
-                SetError("IllFormedPropertyCloseParenthesisInCondition");
-                _errorPosition = start + 1;
-                _unexpectedlyFound = EndOfInput;
+                SetErrorOrThrow("IllFormedPropertyCloseParenthesisInCondition", start + 1, EndOfInput);
                 return false;
             }
 
@@ -687,15 +774,13 @@ namespace Microsoft.Build.Evaluation
 
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
             {
-                SetError("BuiltInMetadataNotAllowedInThisConditional");
-                _unexpectedlyFound = metadataName;
+                SetErrorOrThrow("BuiltInMetadataNotAllowedInThisConditional", unexpectedlyFound: metadataName);
                 return false;
             }
 
             if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
             {
-                SetError("CustomMetadataNotAllowedInThisConditional");
-                _unexpectedlyFound = metadataName;
+                SetErrorOrThrow("CustomMetadataNotAllowedInThisConditional", unexpectedlyFound: metadataName);
                 return false;
             }
 
@@ -710,8 +795,7 @@ namespace Microsoft.Build.Evaluation
 
             if (IsAtEnd() || _expression[_position] != '(')
             {
-                SetError("IllFormedItemListOpenParenthesisInCondition");
-                _errorPosition = start + 1;
+                SetErrorOrThrow("IllFormedItemListOpenParenthesisInCondition", start + 1);
                 return false;
             }
 
@@ -743,8 +827,7 @@ namespace Microsoft.Build.Evaluation
 
             if (IsAtEnd())
             {
-                SetError(inReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
-                _errorPosition = start + 1;
+                SetErrorOrThrow(inReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition", start + 1);
                 return false;
             }
 
@@ -794,8 +877,7 @@ namespace Microsoft.Build.Evaluation
 
                     if ((_options & ParserOptions.AllowItemLists) == 0)
                     {
-                        SetError("ItemListNotAllowedInThisConditional");
-                        _errorPosition = start + 1;
+                        SetErrorOrThrow("ItemListNotAllowedInThisConditional", start + 1);
                         return false;
                     }
 
@@ -805,6 +887,7 @@ namespace Microsoft.Build.Evaluation
                     {
                         return false;
                     }
+
                     continue;
                 }
                 else if (ch == '$' && _position + 1 < _expression.Length && _expression[_position + 1] == '(')
@@ -817,8 +900,7 @@ namespace Microsoft.Build.Evaluation
 
             if (IsAtEnd())
             {
-                SetError("IllFormedQuotedStringInCondition");
-                _errorPosition = start;
+                SetErrorOrThrow("IllFormedQuotedStringInCondition", start);
                 return false;
             }
 
@@ -860,7 +942,8 @@ namespace Microsoft.Build.Evaluation
                 {
                     SkipDigits();
                 }
-            } while (_position < _expression.Length && _expression[_position] == '.');
+            }
+            while (_position < _expression.Length && _expression[_position] == '.');
 
             result = _expression.Substring(start, _position - start);
             return true;
@@ -945,61 +1028,6 @@ namespace Microsoft.Build.Evaluation
         private bool IsAtEnd()
         {
             return _position >= _expression.Length;
-        }
-
-        private void SetError(string resourceName)
-        {
-            _errorState = true;
-            _errorResource = resourceName;
-            if (_errorPosition == -1)
-            {
-                _errorPosition = _position + 1; // Convert to 1-based
-            }
-        }
-
-        private void SetUnexpectedToken()
-        {
-            if (!_errorState)
-            {
-                SetError("UnexpectedTokenInCondition");
-                if (_position < _expression.Length)
-                {
-                    _unexpectedlyFound = _expression[_position].ToString();
-                }
-                else
-                {
-                    _unexpectedlyFound = EndOfInput;
-                }
-            }
-        }
-
-        private void ThrowInvalidProject()
-        {
-            if (_errorResource == null)
-            {
-                ThrowUnexpectedCharacterInCondition();
-            }
-            else if (_unexpectedlyFound != null)
-            {
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _errorResource, _expression, _errorPosition, _unexpectedlyFound);
-            }
-            else
-            {
-                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _errorResource, _expression, _errorPosition);
-            }
-        }
-
-        private void ThrowUnexpectedCharacterInCondition()
-        {
-            string unexpectedlyFound = _unexpectedlyFound ?? EndOfInput;
-
-            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedCharacterInCondition", _expression, _errorPosition, unexpectedlyFound);
-        }
-
-        private void ThrowUnexpectedTokenInCondition()
-        {
-            string foundToken = _position < _expression.Length ? _expression[_position].ToString() : EndOfInput;
-            ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "UnexpectedTokenInCondition", _expression, _errorPosition, foundToken);
         }
     }
 }

@@ -2478,8 +2478,8 @@ Erreurs : {3}</target>
         <note>{StrBegin="MSB4131: "}</note>
       </trans-unit>
       <trans-unit id="UnexpectedTokenInCondition">
-        <source>MSB4092: An unexpected token "{1}" was found at character position {2} in condition "{0}".</source>
-        <target state="translated">MSB4092: Un jeton inattendu "{1}" a été trouvé à la position de caractère {2} dans la condition "{0}".</target>
+        <source>MSB4092: An unexpected token "{2}" was found at character position {1} in condition "{0}".</source>
+        <target state="needs-review-translation">MSB4092: Un jeton inattendu "{1}" a été trouvé à la position de caractère {2} dans la condition "{0}".</target>
         <note>{StrBegin="MSB4092: "}</note>
       </trans-unit>
       <trans-unit id="UnmarkedOutputTaskParameter">
