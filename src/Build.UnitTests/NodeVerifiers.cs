@@ -11,24 +11,26 @@ internal static class NodeVerifiers
 {
     public static void Verify<T>(this GenericExpressionNode node, Action<T> verifier)
         where T : GenericExpressionNode
-        => verifier(node.ShouldBeOfType<T>());
+        => verifier(node.ShouldBeAssignableTo<T>().ShouldNotBeNull());
 
     public static void Verify<TLeft, TRight>(this OperatorExpressionNode node, Action<TLeft, TRight> verifier)
         where TLeft : GenericExpressionNode
         where TRight : GenericExpressionNode
-        => verifier(node.LeftChild.ShouldBeOfType<TLeft>(), node.RightChild.ShouldBeOfType<TRight>());
+        => verifier(
+            node.LeftChild.ShouldBeAssignableTo<TLeft>().ShouldNotBeNull(),
+            node.RightChild.ShouldBeAssignableTo<TRight>().ShouldNotBeNull());
 
     public static void Verify<TLeft, TRight>(this OperatorExpressionNode node, Action<TLeft> leftVerifier, Action<TRight> rightVerifier)
         where TLeft : GenericExpressionNode
         where TRight : GenericExpressionNode
     {
-        leftVerifier(node.LeftChild.ShouldBeOfType<TLeft>());
-        rightVerifier(node.RightChild.ShouldBeOfType<TRight>());
+        leftVerifier(node.LeftChild.ShouldBeAssignableTo<TLeft>().ShouldNotBeNull());
+        rightVerifier(node.RightChild.ShouldBeAssignableTo<TRight>().ShouldNotBeNull());
     }
 
     public static void Verify<TChild>(this NotExpressionNode node, Action<TChild> verifier)
         where TChild : GenericExpressionNode
-        => verifier(node.LeftChild.ShouldBeOfType<TChild>());
+        => verifier(node.LeftChild.ShouldBeAssignableTo<TChild>().ShouldNotBeNull());
 
     public static void Verify(this StringExpressionNode node, string value)
         => node.Value.ShouldBe(value);
@@ -42,7 +44,7 @@ internal static class NodeVerifiers
     public static void Verify(this FunctionCallExpressionNode node, string name)
     {
         node.Name.ShouldBe(name);
-        node.Arguments.Count.ShouldBe(0);
+        node.Arguments.Length.ShouldBe(0);
     }
 
     public static void Verify<TArg>(
@@ -52,8 +54,8 @@ internal static class NodeVerifiers
         where TArg : GenericExpressionNode
     {
         node.Name.ShouldBe(name);
-        node.Arguments.Count.ShouldBe(1);
-        argVerifier(node.Arguments[0].ShouldBeOfType<TArg>());
+        node.Arguments.Length.ShouldBe(1);
+        argVerifier(node.Arguments[0].ShouldBeAssignableTo<TArg>().ShouldNotBeNull());
     }
 
     public static void Verify<TArg1, TArg2>(
@@ -65,9 +67,9 @@ internal static class NodeVerifiers
         where TArg2 : GenericExpressionNode
     {
         node.Name.ShouldBe(name);
-        node.Arguments.Count.ShouldBe(2);
-        arg1Verifier(node.Arguments[0].ShouldBeOfType<TArg1>());
-        arg2Verifier(node.Arguments[1].ShouldBeOfType<TArg2>());
+        node.Arguments.Length.ShouldBe(2);
+        arg1Verifier(node.Arguments[0].ShouldBeAssignableTo<TArg1>().ShouldNotBeNull());
+        arg2Verifier(node.Arguments[1].ShouldBeAssignableTo<TArg2>().ShouldNotBeNull());
     }
 
     public static void Verify<TArg1, TArg2, TArg3>(
@@ -81,10 +83,10 @@ internal static class NodeVerifiers
         where TArg3 : GenericExpressionNode
     {
         node.Name.ShouldBe(name);
-        node.Arguments.Count.ShouldBe(3);
-        arg1Verifier(node.Arguments[0].ShouldBeOfType<TArg1>());
-        arg2Verifier(node.Arguments[1].ShouldBeOfType<TArg2>());
-        arg3Verifier(node.Arguments[2].ShouldBeOfType<TArg3>());
+        node.Arguments.Length.ShouldBe(3);
+        arg1Verifier(node.Arguments[0].ShouldBeAssignableTo<TArg1>().ShouldNotBeNull());
+        arg2Verifier(node.Arguments[1].ShouldBeAssignableTo<TArg2>().ShouldNotBeNull());
+        arg3Verifier(node.Arguments[2].ShouldBeAssignableTo<TArg3>().ShouldNotBeNull());
     }
 
     public static void Verify<TArg1, TArg2, TArg3, TArg4>(
@@ -100,10 +102,10 @@ internal static class NodeVerifiers
         where TArg4 : GenericExpressionNode
     {
         node.Name.ShouldBe(name);
-        node.Arguments.Count.ShouldBe(4);
-        arg1Verifier(node.Arguments[0].ShouldBeOfType<TArg1>());
-        arg2Verifier(node.Arguments[1].ShouldBeOfType<TArg2>());
-        arg3Verifier(node.Arguments[2].ShouldBeOfType<TArg3>());
-        arg4Verifier(node.Arguments[3].ShouldBeOfType<TArg4>());
+        node.Arguments.Length.ShouldBe(4);
+        arg1Verifier(node.Arguments[0].ShouldBeAssignableTo<TArg1>().ShouldNotBeNull());
+        arg2Verifier(node.Arguments[1].ShouldBeAssignableTo<TArg2>().ShouldNotBeNull());
+        arg3Verifier(node.Arguments[2].ShouldBeAssignableTo<TArg3>().ShouldNotBeNull());
+        arg4Verifier(node.Arguments[3].ShouldBeAssignableTo<TArg4>().ShouldNotBeNull());
     }
 }

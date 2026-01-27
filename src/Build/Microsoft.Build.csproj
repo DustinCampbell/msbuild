@@ -191,6 +191,9 @@
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
     <Compile Include="Evaluation\Conditionals\BooleanLiteralNode.cs" />
+    <Compile Include="Evaluation\Conditionals\ExistsCallExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\HasTrailingSlashCallExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\UnknownFunctionCallExpressionNode.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />

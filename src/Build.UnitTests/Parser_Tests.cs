@@ -323,7 +323,9 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithNoArguments_ShouldParseCorrectly()
-        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall()")
+        => Parse<FunctionCallExpressionNode>(
+            "SimpleFunctionCall()",
+            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
             .Verify(name: "SimpleFunctionCall");
 
     /// <summary>
@@ -331,7 +333,9 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithNumericArgument_ShouldParseCorrectly()
-        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall( 1234 )")
+        => Parse<FunctionCallExpressionNode>(
+            "SimpleFunctionCall( 1234 )",
+            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
             .Verify(
                 name: "SimpleFunctionCall",
                 (NumericExpressionNode arg) => arg.Verify("1234"));
@@ -341,7 +345,9 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithBooleanArgument_ShouldParseCorrectly()
-        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall( true )")
+        => Parse<FunctionCallExpressionNode>(
+            "SimpleFunctionCall( true )",
+            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
             .Verify(
                 name: "SimpleFunctionCall",
                 (BooleanLiteralNode arg) => arg.Verify(true));
@@ -351,7 +357,9 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithPropertyArgument_ShouldParseCorrectly()
-        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall( $(property) )")
+        => Parse<FunctionCallExpressionNode>(
+            "SimpleFunctionCall( $(property) )",
+            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
             .Verify(
                 name: "SimpleFunctionCall",
                 (StringExpressionNode arg) => arg.Verify("$(property)"));
@@ -361,7 +369,9 @@ public class ParserTest
     /// </summary>
     [Fact]
     public void FunctionCall_WithMultipleArguments_ShouldParseCorrectly()
-        => Parse<FunctionCallExpressionNode>("SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )")
+        => Parse<FunctionCallExpressionNode>(
+            "SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )",
+            ParserOptions.AllowAll | ParserOptions.AllowUnknownFunctions)
             .Verify(
                 name: "SimpleFunctionCall",
                 (StringExpressionNode arg1) => arg1.Verify("$(property)"),
@@ -392,7 +402,7 @@ public class ParserTest
     [InlineData("somefunction(@(foo), 'otherstuff')")]
     public void ItemList_WhenNotAllowed_ShouldFail(string expression)
     {
-        var error = FailParse(expression, ParserOptions.AllowProperties);
+        var error = FailParse(expression, ParserOptions.AllowProperties | ParserOptions.AllowUnknownFunctions);
 
         error.ResourceName.ShouldBe("ItemListNotAllowedInThisConditional");
     }
@@ -720,7 +730,7 @@ public class ParserTest
 
     private static T Parse<T>(string expression, ParserOptions options = ParserOptions.AllowAll)
         where T : GenericExpressionNode
-        => Parser.Parse(expression, options, MockElementLocation.Instance).ShouldBeOfType<T>();
+        => Parser.Parse(expression, options, MockElementLocation.Instance).ShouldBeAssignableTo<T>().ShouldNotBeNull();
 
     private static Parser.Error FailParse(string expression, ParserOptions options = ParserOptions.AllowAll)
     {
