@@ -8,10 +8,11 @@ using System.Linq;
 using System.Xml;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Exceptions;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
 using Xunit;
-using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 
 #nullable disable
 
@@ -34,17 +35,18 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             Project project = new Project(xml);
             project.ItemDefinitions["i"].SetMetadataValue("n", "n0");
 
-            string expected = ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <m>m0</m>
-    </i>
-    <i>
-      <n>n0</n>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
+            string expected = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <m>m0</m>
+                    </i>
+                    <i>
+                      <n>n0</n>
+                    </i>
+                  </ItemDefinitionGroup>
+                </Project>
+                """);
 
             Helpers.VerifyAssertProjectContent(expected, project.Xml);
         }
@@ -121,7 +123,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
 
                 try
                 {
-                    file = Microsoft.Build.Shared.FileUtilities.GetTemporaryFile();
+                    file = FileUtilities.GetTemporaryFile();
                     ProjectRootElement import = ProjectRootElement.Create(file);
                     import.AddItemDefinitionGroup().AddItemDefinition("i").AddMetadata("m", "m0");
                     import.Save();
@@ -140,6 +142,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
                 }
             });
         }
+
         /// <summary>
         /// Attempt to add new metadata on imported item definition should succeed,
         /// creating a new item definition in the main project
@@ -151,7 +154,7 @@ namespace Microsoft.Build.UnitTests.OM.Definition
 
             try
             {
-                file = Microsoft.Build.Shared.FileUtilities.GetTemporaryFile();
+                file = FileUtilities.GetTemporaryFile();
                 ProjectRootElement import = ProjectRootElement.Create(file);
                 import.AddItemDefinitionGroup().AddItemDefinition("i").AddMetadata("m", "m0");
                 import.Save();
@@ -164,17 +167,16 @@ namespace Microsoft.Build.UnitTests.OM.Definition
                 ProjectItemDefinition definition = project.ItemDefinitions["i"];
                 definition.SetMetadataValue("n", "n0");
 
-                string expected = String.Format(
-    ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <n>n0</n>
-    </i>
-  </ItemDefinitionGroup>
-  <Import Project=""{0}"" />
-</Project>"),
-                   file);
+                string expected = ObjectModelHelpers.CleanupFileContents($"""
+                    <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                      <ItemDefinitionGroup>
+                        <i>
+                          <n>n0</n>
+                        </i>
+                      </ItemDefinitionGroup>
+                      <Import Project="{file}" />
+                    </Project>
+                    """);
 
                 Helpers.VerifyAssertProjectContent(expected, project.Xml);
             }
@@ -194,21 +196,21 @@ namespace Microsoft.Build.UnitTests.OM.Definition
         [Trait("Category", "serialize")]
         public void BatchingConsidersItemDefinitionMetadata()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <m>m1</m>
-    </i>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <i Include='a.foo;a.bar'/>
-  </ItemGroup>
-  <Target Name='t'>
-    <Message Text='@(i)/%(m)'/>
-  </Target>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <m>m1</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <i Include='a.foo;a.bar'/>
+                  </ItemGroup>
+                  <Target Name='t'>
+                    <Message Text='@(i)/%(m)'/>
+                  </Target>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -228,18 +230,18 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <m>%(filename)</m>
-    </i>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <i Include='" + (NativeMethodsShared.IsWindows ? @"c:\a\b.ext" : "/a/b.ext") + @"'/>
-  </ItemGroup>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents($"""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <m>%(filename)</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <i Include='{(NativeMethodsShared.IsWindows ? @"c:\a\b.ext" : "/a/b.ext")}'/>
+                  </ItemGroup>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -254,19 +256,19 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_ReferToMetadataAbove()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <m>%(filename)</m>
-      <m>%(m)%(extension)</m>
-    </i>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <i Include='" + (NativeMethodsShared.IsWindows ? @"c:\a\b.ext" : "/a/b.ext") + @"'/>
-  </ItemGroup>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents($"""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <m>%(filename)</m>
+                      <m>%(m)%(extension)</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <i Include='{(NativeMethodsShared.IsWindows ? @"c:\a\b.ext" : "/a/b.ext")}'/>
+                  </ItemGroup>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -281,19 +283,19 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_MixtureOfCustomAndBuiltIn()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <l>l1</l>
-      <m>%(filename).%(l)</m>
-    </i>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <i Include='" + (NativeMethodsShared.IsWindows ? @"c:\a\b.ext" : "/a/b.ext") + @"'/>
-  </ItemGroup>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents($"""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <l>l1</l>
+                      <m>%(filename).%(l)</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <i Include='{(NativeMethodsShared.IsWindows ? @"c:\a\b.ext" : "/a/b.ext")}'/>
+                  </ItemGroup>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -309,22 +311,22 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_CustomEvaluationNeverDelayed()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <n>n1</n>
-      <m>%(filename).%(n)</m>
-      <n>n2</n>
-    </i>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <i Include='" + (NativeMethodsShared.IsWindows ? @"c:\a\b.ext" : "/a/b.ext") + @"'>
-      <n>n3</n>
-    </i>
-  </ItemGroup>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents($"""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <n>n1</n>
+                      <m>%(filename).%(n)</m>
+                      <n>n2</n>
+                    </i>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <i Include='{(NativeMethodsShared.IsWindows ? @"c:\a\b.ext" : "/a/b.ext")}'>
+                      <n>n3</n>
+                    </i>
+                  </ItemGroup>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -340,19 +342,19 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_DoNotDoubleEvaluate()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <n>%25(filename)</n> <!-- escaped % sign -->
-      <m>%(n)</m>
-    </i>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <i Include='c:\a\b.ext'/>
-  </ItemGroup>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <n>%25(filename)</n> <!-- escaped % sign -->
+                      <m>%(n)</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <i Include='c:\a\b.ext'/>
+                  </ItemGroup>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -370,19 +372,19 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_CopyItems()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <m>%(extension)</m>
-    </i>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <h Include='a.foo'/>
-    <i Include=""@(h->'%(identity).bar')""/>
-  </ItemGroup>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <m>%(extension)</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <h Include='a.foo'/>
+                    <i Include="@(h->'%(identity).bar')"/>
+                  </ItemGroup>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -398,19 +400,19 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_UseInTransform()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <h>
-      <m>%(extension)</m>
-    </h>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <h Include='a.foo'/>
-    <i Include=""@(h->'%(m)')""/>
-  </ItemGroup>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <h>
+                      <m>%(extension)</m>
+                    </h>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <h Include='a.foo'/>
+                    <i Include="@(h->'%(m)')"/>
+                  </ItemGroup>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -427,25 +429,25 @@ ObjectModelHelpers.CleanupFileContents(
         [Trait("Category", "serialize")]
         public void ExpandBuiltInMetadataAtPointOfUse_UseInBatching()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <h>
-      <m>%(extension)</m>
-    </h>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <h Include='a.foo;a.bar'/>
-  </ItemGroup>
-  <Target Name='t'>
-    <ItemGroup>
-      <i Include=""@(h)"">
-         <n Condition=""'%(m)'=='.foo'"">n1</n>
-      </i>
-    </ItemGroup>
-  </Target>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <h>
+                      <m>%(extension)</m>
+                    </h>
+                  </ItemDefinitionGroup>
+                  <ItemGroup>
+                    <h Include='a.foo;a.bar'/>
+                  </ItemGroup>
+                  <Target Name='t'>
+                    <ItemGroup>
+                      <i Include="@(h)">
+                         <n Condition="'%(m)'=='.foo'">n1</n>
+                      </i>
+                    </ItemGroup>
+                  </Target>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;
@@ -469,21 +471,22 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_BuiltInProhibitedOnItemDefinitionMetadataCondition()
         {
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                    <ItemDefinitionGroup>
+                    <i>
+                        <m Condition="'%(filename)'!=''">m1</m>
+                    </i>
+                    </ItemDefinitionGroup>
+                </Project>
+                """);
+
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                string content =
-    ObjectModelHelpers.CleanupFileContents(
-    @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <m Condition=""'%(filename)'!=''"">m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
-
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
             });
         }
+
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
         /// Ideally it would also be late evaluated, but that's too difficult.
@@ -491,21 +494,22 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_UnquotedBuiltInProhibitedOnItemDefinitionMetadataCondition()
         {
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                    <ItemDefinitionGroup>
+                    <i>
+                        <m Condition="%(filename)!=''">m1</m>
+                    </i>
+                    </ItemDefinitionGroup>
+                </Project>
+                """);
+
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                string content =
-    ObjectModelHelpers.CleanupFileContents(
-    @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <m Condition=""%(filename)!=''"">m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
-
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
             });
         }
+
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
         /// Ideally it would also be late evaluated, but that's too difficult.
@@ -513,21 +517,22 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_BuiltInProhibitedOnItemDefinitionCondition()
         {
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                    <ItemDefinitionGroup>
+                    <i Condition="'%(filename)'!=''">
+                        <m>m1</m>
+                    </i>
+                    </ItemDefinitionGroup>
+                </Project>
+                """);
+
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                string content =
-    ObjectModelHelpers.CleanupFileContents(
-    @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i Condition=""'%(filename)'!=''"">
-      <m>m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
-
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
             });
         }
+
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
         /// Ideally it would also be late evaluated, but that's too difficult.
@@ -535,21 +540,22 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_BuiltInProhibitedOnItemDefinitionGroupCondition()
         {
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup Condition="'%(filename)'!=''">
+                    <i>
+                      <m>m1</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                </Project>
+                """);
+
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                string content =
-    ObjectModelHelpers.CleanupFileContents(
-    @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup Condition=""'%(filename)'!=''"">
-    <i>
-      <m>m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
-
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
             });
         }
+
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
         /// Ideally it would also be late evaluated, but that's too difficult.
@@ -557,21 +563,22 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_QualifiedBuiltInProhibitedOnItemDefinitionMetadataCondition()
         {
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i>
+                      <m Condition="'%(i.filename)'!=''">m1</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                </Project>
+                """);
+
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                string content =
-    ObjectModelHelpers.CleanupFileContents(
-    @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i>
-      <m Condition=""'%(i.filename)'!=''"">m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
-
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
             });
         }
+
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
         /// Ideally it would also be late evaluated, but that's too difficult.
@@ -579,21 +586,22 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_QualifiedBuiltInProhibitedOnItemDefinitionCondition()
         {
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                    <ItemDefinitionGroup>
+                    <i Condition="'%(i.filename)'!=''">
+                        <m>m1</m>
+                    </i>
+                    </ItemDefinitionGroup>
+                </Project>
+                """);
+
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                string content =
-    ObjectModelHelpers.CleanupFileContents(
-    @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i Condition=""'%(i.filename)'!=''"">
-      <m>m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
-
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
             });
         }
+
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
         /// Ideally it would also be late evaluated, but that's too difficult.
@@ -601,21 +609,22 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_QualifiedBuiltInProhibitedOnItemDefinitionGroupCondition()
         {
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup Condition="'%(i.filename)'!=''">
+                    <i>
+                      <m>m1</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                </Project>
+                """);
+
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                string content =
-    ObjectModelHelpers.CleanupFileContents(
-    @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup Condition=""'%(i.filename)'!=''"">
-    <i>
-      <m>m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
-
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
             });
         }
+
         /// <summary>
         /// Built-in metadata is prohibited in item definition conditions.
         /// Ideally it would also be late evaluated, but that's too difficult.
@@ -623,36 +632,37 @@ ObjectModelHelpers.CleanupFileContents(
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_UnquotedQualifiedBuiltInProhibitedOnItemDefinitionCondition()
         {
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i Condition="%(i.filename)!=''">
+                      <m>m1</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                </Project>
+                """);
+
             Assert.Throws<InvalidProjectFileException>(() =>
             {
-                string content =
-    ObjectModelHelpers.CleanupFileContents(
-    @"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i Condition=""%(i.filename)!=''"">
-      <m>m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
-
                 Project project = new Project(XmlReader.Create(new StringReader(content)));
             });
         }
+
         /// <summary>
         /// Custom metadata is allowed in item definition conditions.
         /// </summary>
         [Fact]
         public void ExpandBuiltInMetadataAtPointOfUse_UnquotedQualifiedCustomAllowedOnItemDefinitionCondition()
         {
-            string content =
-ObjectModelHelpers.CleanupFileContents(
-@"<Project ToolsVersion=""msbuilddefaulttoolsversion"" xmlns=""msbuildnamespace"">
-  <ItemDefinitionGroup>
-    <i Condition=""%(i.custom)!=''"">
-      <m Condition=""%(i.custom)!=''"">m1</m>
-    </i>
-  </ItemDefinitionGroup>
-</Project>");
+            string content = ObjectModelHelpers.CleanupFileContents("""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                  <ItemDefinitionGroup>
+                    <i Condition="%(i.custom)!=''">
+                      <m Condition="%(i.custom)!=''">m1</m>
+                    </i>
+                  </ItemDefinitionGroup>
+                </Project>
+                """);
 
             using ProjectFromString projectFromString = new(content);
             Project project = projectFromString.Project;  // No exception
