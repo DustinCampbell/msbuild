@@ -48,7 +48,6 @@
     </Compile>
     <Compile Include="..\Shared\TempFileUtilities.cs" />
     <Compile Include="..\Shared\FileUtilities.cs" />
-    <Compile Include="..\Shared\EscapingUtilities.cs" />
     <Compile Include="..\Shared\FileUtilitiesRegex.cs" />
     <Compile Include="..\Shared\ExceptionHandling.cs" />
     <Compile Include="..\Shared\ProcessExtensions.cs" />
