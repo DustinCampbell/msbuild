@@ -1107,6 +1107,181 @@ public class ParserTest
                 (StringExpressionNode left) => left.Verify(leftValue),
                 (StringExpressionNode right) => right.Verify(rightValue));
 
+    /// <summary>
+    ///  Verifies that quoted boolean literals parse into BooleanLiteralNode with correct values.
+    ///  Quoted strings containing only boolean keywords should be recognized as boolean literals.
+    /// </summary>
+    [Theory]
+    [InlineData("'true'", true)]
+    [InlineData("'false'", false)]
+    [InlineData("'on'", true)]
+    [InlineData("'off'", false)]
+    [InlineData("'yes'", true)]
+    [InlineData("'no'", false)]
+    [InlineData("'TRUE'", true)]
+    [InlineData("'FALSE'", false)]
+    [InlineData("'ON'", true)]
+    [InlineData("'OFF'", false)]
+    [InlineData("'YES'", true)]
+    [InlineData("'NO'", false)]
+    public void QuotedBooleanLiteral_ShouldParseToBooleanNode(string expression, bool expectedValue)
+        => Parse<BooleanLiteralNode>(expression)
+            .Verify(expectedValue);
+
+    /// <summary>
+    ///  Verifies that quoted negated boolean literals parse into BooleanLiteralNode with inverted values.
+    ///  The negation is precomputed, so '!true' becomes BooleanLiteralNode(false).
+    /// </summary>
+    [Theory]
+    [InlineData("'!true'", false)]
+    [InlineData("'!false'", true)]
+    [InlineData("'!on'", false)]
+    [InlineData("'!off'", true)]
+    [InlineData("'!yes'", false)]
+    [InlineData("'!no'", true)]
+    [InlineData("'!TRUE'", false)]
+    [InlineData("'!FALSE'", true)]
+    public void QuotedNegatedBooleanLiteral_ShouldParseWithInvertedValue(string expression, bool expectedValue)
+        => Parse<BooleanLiteralNode>(expression)
+            .Verify(expectedValue);
+
+    /// <summary>
+    ///  Verifies that quoted boolean literals work correctly in equality comparisons.
+    /// </summary>
+    [Theory]
+    [InlineData("'true' == true", true, true)]
+    [InlineData("'false' == false", false, false)]
+    [InlineData("'!on' == false", false, false)]
+    [InlineData("'!off' == true", true, true)]
+    public void QuotedBooleanLiteral_InEquality_ShouldParseCorrectly(string expression, bool leftValue, bool rightValue)
+        => Parse<EqualExpressionNode>(expression)
+            .Verify(
+                (BooleanLiteralNode left) => left.Verify(leftValue),
+                (BooleanLiteralNode right) => right.Verify(rightValue));
+
+    /// <summary>
+    ///  Verifies that quoted boolean literals work correctly in logical AND expressions.
+    /// </summary>
+    [Fact]
+    public void QuotedBooleanLiteral_InAndExpression_ShouldParseCorrectly()
+        => Parse<AndExpressionNode>("'true' and 'false'")
+            .Verify(
+                (BooleanLiteralNode left) => left.Verify(true),
+                (BooleanLiteralNode right) => right.Verify(false));
+
+    /// <summary>
+    ///  Verifies that quoted boolean literals work correctly in logical OR expressions.
+    /// </summary>
+    [Fact]
+    public void QuotedBooleanLiteral_InOrExpression_ShouldParseCorrectly()
+        => Parse<OrExpressionNode>("'on' or 'off'")
+            .Verify(
+                (BooleanLiteralNode left) => left.Verify(true),
+                (BooleanLiteralNode right) => right.Verify(false));
+
+    /// <summary>
+    ///  Verifies that quoted boolean literals work correctly with NOT operator.
+    ///  Structure: !('true') - NOT of BooleanLiteralNode(true)
+    /// </summary>
+    [Fact]
+    public void QuotedBooleanLiteral_WithNotOperator_ShouldParseCorrectly()
+        => Parse<NotExpressionNode>("!('true')")
+            .Verify((BooleanLiteralNode child) => child.Verify(true));
+
+    /// <summary>
+    ///  Verifies that quoted strings containing expandable content are NOT recognized as boolean literals.
+    ///  If a quoted string contains properties, item lists, or metadata, it should remain a StringExpressionNode.
+    /// </summary>
+    [Theory]
+    [InlineData("'true$(foo)'")]
+    [InlineData("'$(foo)true'")]
+    [InlineData("'true@(items)'")]
+    [InlineData("'%(meta)true'")]
+    public void QuotedString_WithExpandableContent_ShouldNotBeBooleanLiteral(string expression)
+        => Parse<StringExpressionNode>(expression)
+            .ShouldBeOfType<StringExpressionNode>();
+
+    /// <summary>
+    ///  Verifies that quoted strings containing text beyond boolean keywords are NOT recognized as boolean literals.
+    /// </summary>
+    [Theory]
+    [InlineData("'true '", "true ")] // Trailing space after parsing
+    [InlineData("'truevalue'", "truevalue")]
+    [InlineData("'prefix_true'", "prefix_true")]
+    [InlineData("'false_suffix'", "false_suffix")]
+    [InlineData("'!true!'", "!true!")]
+    [InlineData("'not true'", "not true")]
+    public void QuotedString_WithAdditionalText_ShouldNotBeBooleanLiteral(string expression, string expectedValue)
+        => Parse<StringExpressionNode>(expression)
+            .Verify(expectedValue);
+
+    /// <summary>
+    ///  Verifies that empty quoted strings are NOT recognized as boolean literals.
+    /// </summary>
+    [Theory]
+    [InlineData("''")]
+    [InlineData("'  '")]
+    [InlineData("' \t '")]
+    public void QuotedString_Empty_ShouldNotBeBooleanLiteral(string expression)
+        => Parse<StringExpressionNode>(expression)
+            .ShouldBeOfType<StringExpressionNode>();
+
+    /// <summary>
+    ///  Verifies that quoted boolean literals work in complex nested expressions.
+    /// </summary>
+    [Fact]
+    public void QuotedBooleanLiteral_InComplexExpression_ShouldParseCorrectly()
+        => Parse<AndExpressionNode>("('true' or '!on') and 'yes'")
+            .Verify(
+                (OrExpressionNode left) => left.Verify(
+                    (BooleanLiteralNode left) => left.Verify(true),
+                    (BooleanLiteralNode right) => right.Verify(false)),
+                (BooleanLiteralNode right) => right.Verify(true));
+
+    /// <summary>
+    ///  Verifies that quoted boolean literals work correctly in function call arguments.
+    /// </summary>
+    [Fact]
+    public void QuotedBooleanLiteral_InFunctionCall_ShouldParseCorrectly()
+        => Parse<FunctionCallExpressionNode>(
+            "SomeFunction('true', '!false', 'yes')",
+            ParserOptions.AllowAll | ParserOptions.AllowUndefinedFunctions)
+            .Verify(
+                name: "SomeFunction",
+                (BooleanLiteralNode arg1) => arg1.Verify(true),
+                (BooleanLiteralNode arg2) => arg2.Verify(true),
+                (BooleanLiteralNode arg3) => arg3.Verify(true));
+
+    /// <summary>
+    ///  Verifies that quoted boolean literals work correctly with comparison operators.
+    /// </summary>
+    [Fact]
+    public void QuotedBooleanLiteral_WithComparisonOperators_ShouldParseCorrectly()
+        => Parse<NotEqualExpressionNode>("'true' != 'false'")
+            .Verify(
+                (BooleanLiteralNode left) => left.Verify(true),
+                (BooleanLiteralNode right) => right.Verify(false));
+
+    /// <summary>
+    ///  Verifies that mixing quoted and unquoted boolean literals works correctly.
+    /// </summary>
+    [Fact]
+    public void MixedQuotedAndUnquotedBooleans_ShouldParseCorrectly()
+        => Parse<AndExpressionNode>("'true' and false")
+            .Verify(
+                (BooleanLiteralNode left) => left.Verify(true),
+                (BooleanLiteralNode right) => right.Verify(false));
+
+    /// <summary>
+    ///  Verifies that quoted boolean literals with property comparison work correctly.
+    /// </summary>
+    [Fact]
+    public void QuotedBooleanLiteral_WithPropertyComparison_ShouldParseCorrectly()
+        => Parse<EqualExpressionNode>("$(IsEnabled) == 'true'")
+            .Verify(
+                (StringExpressionNode left) => left.Verify("$(IsEnabled)"),
+                (BooleanLiteralNode right) => right.Verify(true));
+
     private static GenericExpressionNode Parse(string expression, ParserOptions options = ParserOptions.AllowAll)
         => Parser.Parse(expression, options, MockElementLocation.Instance);
 

@@ -634,13 +634,7 @@ internal ref partial struct Parser
         // Quoted string: '...'
         if (ch == '\'')
         {
-            if (TryParseQuotedString(out StringExpressionNode? stringNode))
-            {
-                node = stringNode;
-                return true;
-            }
-
-            return false;
+            return TryParseQuotedString(out node);
         }
 
         // Numeric literal
@@ -925,7 +919,7 @@ internal ref partial struct Parser
         return true;
     }
 
-    private bool TryParseQuotedString([NotNullWhen(true)] out StringExpressionNode? result)
+    private bool TryParseQuotedString([NotNullWhen(true)] out GenericExpressionNode? result)
     {
         result = null;
         bool expandable = false;
@@ -949,11 +943,14 @@ internal ref partial struct Parser
             if (ch == '\'')
             {
                 // The text is the content between the quotes.
-                string value = _expression.Substring(start, _position - start);
-                result = new StringExpressionNode(value, expandable);
+                ReadOnlySpan<char> span = _expression.AsSpan(start, _position - start);
 
                 // Skip closing quote
                 _position++;
+
+                result = TryParseBooleanLiteral(span, out BooleanLiteralNode? booleanNode)
+                    ? booleanNode
+                    : new StringExpressionNode(span.ToString(), expandable);
 
                 return true;
             }
@@ -1012,6 +1009,38 @@ internal ref partial struct Parser
         return IllFormedQuotedString(start);
     }
 
+    private bool TryParseBooleanLiteral(ReadOnlySpan<char> span, [NotNullWhen(true)] out BooleanLiteralNode? result)
+    {
+        if (span.IsEmpty)
+        {
+            result = null;
+            return false;
+        }
+
+        bool negated = false;
+
+        if (span[0] == '!')
+        {
+            negated = true;
+            span = span[1..];
+        }
+
+        if (!s_keywords.TryGetValue(span, out KeywordKind keyword) ||
+            !TryGetBooleanValue(keyword, out bool value))
+        {
+            result = null;
+            return false;
+        }
+
+        if (negated)
+        {
+            value = !value;
+        }
+
+        result = new BooleanLiteralNode(value, span.ToString());
+        return true;
+    }
+
     private bool TryParseNumeric([NotNullWhen(true)] out NumericExpressionNode? result)
     {
         ReadOnlySpan<char> span = RemainingSpan;
@@ -1031,16 +1060,38 @@ internal ref partial struct Parser
     private static bool TryCreateBooleanLiteral(
         KeywordKind keyword,
         ReadOnlySpan<char> span,
-        [NotNullWhen(true)] out BooleanLiteralNode? node)
+        [NotNullWhen(true)] out BooleanLiteralNode? result)
     {
-        node = keyword switch
+        if (TryGetBooleanValue(keyword, out bool value))
         {
-            KeywordKind.True or KeywordKind.On or KeywordKind.Yes => new BooleanLiteralNode(true, span.ToString()),
-            KeywordKind.False or KeywordKind.Off or KeywordKind.No => new BooleanLiteralNode(false, span.ToString()),
-            _ => null
-        };
+            result = new BooleanLiteralNode(value, span.ToString());
+            return true;
+        }
 
-        return node is not null;
+        result = null;
+        return false;
+    }
+
+    private static bool TryGetBooleanValue(KeywordKind keyword, out bool value)
+    {
+        switch (keyword)
+        {
+            case KeywordKind.True:
+            case KeywordKind.On:
+            case KeywordKind.Yes:
+                value = true;
+                return true;
+
+            case KeywordKind.False:
+            case KeywordKind.Off:
+            case KeywordKind.No:
+                value = false;
+                return true;
+
+            default:
+                value = false;
+                return false;
+        }
     }
 
     private bool TryReportError(string resourceName, int position, object[]? formatArgs = null)
