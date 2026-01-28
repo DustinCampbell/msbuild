@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!-- The .NET Core version of MSBuild doesn't support targeting .NET Framework 3.5.  So in that case, we import
        a .props file that prevents building the project from doing much of anything. -->
@@ -81,9 +81,6 @@
     </Compile>
     <Compile Include="..\Shared\ErrorUtilities.cs">
       <Link>SharedErrorUtilities.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\EscapingUtilities.cs">
-      <Link>EscapingUtilities.cs</Link>
     </Compile>
     <Compile Include="..\Shared\ExceptionHandling.cs">
       <Link>ExceptionHandling.cs</Link>
@@ -246,6 +243,7 @@
       <Link>OutOfProcTaskAppDomainWrapperBase.cs</Link>
     </Compile>
     <Compile Include="OutOfProcTaskAppDomainWrapper.cs" />
+    <Compile Include="Utilities\EscapingUtilities.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
