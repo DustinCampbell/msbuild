@@ -190,10 +190,7 @@
     <Compile Include="BuildCheck\**\*.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
-    <Compile Include="Evaluation\Conditionals\BooleanLiteralNode.cs" />
-    <Compile Include="Evaluation\Conditionals\ExistsCallExpressionNode.cs" />
-    <Compile Include="Evaluation\Conditionals\HasTrailingSlashCallExpressionNode.cs" />
-    <Compile Include="Evaluation\Conditionals\ParseErrors.cs" />
+    <Compile Include="Evaluation\Conditionals\Parser.Error.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
@@ -494,14 +491,17 @@
     <!-- #### EVALUATION ### -->
     <Compile Include="Evaluation\ConditionEvaluator.cs" />
     <Compile Include="Evaluation\Conditionals\AndExpressionNode.cs" />
-    <Compile Include="Evaluation\Conditionals\LexingUtilities.cs" />
+    <Compile Include="Evaluation\Conditionals\BooleanLiteralNode.cs" />
     <Compile Include="Evaluation\Conditionals\EqualExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\ExistsCallExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\FunctionCallExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\GenericExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\GreaterThanExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\GreaterThanOrEqualExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\HasTrailingSlashCallExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\LessThanExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\LessThanOrEqualExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\LexingUtilities.cs" />
     <Compile Include="Evaluation\Conditionals\MultipleComparisonExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\NotEqualExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\NotExpressionNode.cs" />
@@ -510,7 +510,12 @@
     <Compile Include="Evaluation\Conditionals\OperandExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\OperatorExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\OrExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\ParseErrors.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.cs" />
+    <Compile Include="Evaluation\Conditionals\Parser.KnownFunctionKind.cs" />
+    <Compile Include="Evaluation\Conditionals\Parser.KeywordKind.cs" />
+    <Compile Include="Evaluation\Conditionals\Parser.KnownFunction.cs" />
+    <Compile Include="Evaluation\Conditionals\Parser.Lookup`1.cs" />
     <Compile Include="Evaluation\Conditionals\ParserOptions.cs" />
     <Compile Include="Evaluation\Conditionals\StringExpressionNode.cs" />
     <Compile Include="Evaluation\EvaluatorMetadataTable.cs" />

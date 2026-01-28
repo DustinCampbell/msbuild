@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Frozen;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -21,57 +19,21 @@ namespace Microsoft.Build.Evaluation;
 ///
 /// The expression tree can then be evaluated and re-evaluated as needed.
 /// </summary>
-internal ref struct Parser
+internal ref partial struct Parser
 {
-    private enum KeywordKind
-    {
-        And,
-        Or,
-        True,
-        False,
-        On,
-        Off,
-        Yes,
-        No
-    }
+    private static readonly Lookup<KeywordKind> s_keywords = new(
+        ("and", KeywordKind.And),
+        ("or", KeywordKind.Or),
+        ("true", KeywordKind.True),
+        ("false", KeywordKind.False),
+        ("on", KeywordKind.On),
+        ("off", KeywordKind.Off),
+        ("yes", KeywordKind.Yes),
+        ("no", KeywordKind.No));
 
-    private enum FunctionKind
-    {
-        Exists,
-        HasTrailingSlash
-    }
-
-    private sealed class FunctionDescriptor(FunctionKind kind, string name, int argumentCount)
-    {
-        public FunctionKind Kind => kind;
-        public string Name => name;
-        public int ArgumentCount => argumentCount;
-    }
-
-    public readonly struct Error(string resourceName, int position, object[] formatArgs)
-    {
-        public int Position => position;
-        public string ResourceName => resourceName;
-        public object[] FormatArgs => formatArgs ?? [];
-    }
-
-    private static readonly FrozenDictionary<string, KeywordKind> s_keywords = new Dictionary<string, KeywordKind>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "and", KeywordKind.And },
-        { "or", KeywordKind.Or },
-        { "true", KeywordKind.True },
-        { "false", KeywordKind.False },
-        { "on", KeywordKind.On },
-        { "off", KeywordKind.Off },
-        { "yes", KeywordKind.Yes },
-        { "no", KeywordKind.No }
-    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-
-    private static readonly FrozenDictionary<string, FunctionDescriptor> s_knownFunctions = new Dictionary<string, FunctionDescriptor>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "Exists", new(FunctionKind.Exists, "Exists", argumentCount: 1) },
-        { "HasTrailingSlash", new(FunctionKind.HasTrailingSlash, "HasTrailingSlash", argumentCount: 1) }
-    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    private static readonly Lookup<KnownFunction> s_knownFunctions = new(
+        ("Exists", new(KnownFunctionKind.Exists, "Exists", argumentCount: 1)),
+        ("HasTrailingSlash", new(KnownFunctionKind.HasTrailingSlash, "HasTrailingSlash", argumentCount: 1)));
 
     private static string EndOfInput => field ??= ResourceUtilities.GetResourceString("EndOfInputTokenName");
 
@@ -187,12 +149,30 @@ internal ref struct Parser
         return false;
     }
 
-    private void SkipWhiteSpace()
+    private void AdvancePastWhiteSpace()
     {
         while (_position < _expression.Length && char.IsWhiteSpace(_expression[_position]))
         {
             _position++;
         }
+    }
+
+    private bool AdvancePast(KeywordKind keyword)
+    {
+        ReadOnlySpan<char> span = RemainingSpan;
+
+        if (!LexingUtilities.TryLexIdentifier(span, out ReadOnlySpan<char> identifierSpan))
+        {
+            return false;
+        }
+
+        if (!s_keywords.TryGetValue(identifierSpan, out KeywordKind found) || found != keyword)
+        {
+            return false;
+        }
+
+        _position += identifierSpan.Length;
+        return true;
     }
 
     /// <summary>
@@ -239,7 +219,7 @@ internal ref struct Parser
             return null;
         }
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         if (!AtEnd)
         {
@@ -261,7 +241,7 @@ internal ref struct Parser
             return false;
         }
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         while (AdvancePast(KeywordKind.Or))
         {
@@ -275,7 +255,7 @@ internal ref struct Parser
             orNode.RightChild = rhs;
             node = orNode;
 
-            SkipWhiteSpace();
+            AdvancePastWhiteSpace();
         }
 
         // Check for potential change in behavior
@@ -306,7 +286,7 @@ internal ref struct Parser
             return false;
         }
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         while (AdvancePast(KeywordKind.And))
         {
@@ -320,7 +300,7 @@ internal ref struct Parser
             andNode.RightChild = rhs;
             node = andNode;
 
-            SkipWhiteSpace();
+            AdvancePastWhiteSpace();
         }
 
         return node is not null;
@@ -335,7 +315,7 @@ internal ref struct Parser
             return false;
         }
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         if (AtEnd)
         {
@@ -423,7 +403,7 @@ internal ref struct Parser
     {
         node = null;
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         if (AtEnd)
         {
@@ -459,7 +439,7 @@ internal ref struct Parser
                 return false;
             }
 
-            SkipWhiteSpace();
+            AdvancePastWhiteSpace();
 
             if (!AdvancePast(')'))
             {
@@ -478,7 +458,7 @@ internal ref struct Parser
     {
         node = null;
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         if (AtEnd)
         {
@@ -492,18 +472,18 @@ internal ref struct Parser
             _position += identifierSpan.Length;
 
             // Look ahead for '(' to detect function call
-            SkipWhiteSpace();
+            AdvancePastWhiteSpace();
 
             if (AdvancePast('('))
             {
                 if (!AllowUnknownFunctions)
                 {
-                    if (!TryGetKnownFunction(identifierSpan, out FunctionDescriptor? function))
+                    if (!s_knownFunctions.TryGetValue(identifierSpan, out KnownFunction? function))
                     {
                         return TryReportUndefinedFunctionCall(position: start, name: identifierSpan.ToString());
                     }
 
-                    SkipWhiteSpace();
+                    AdvancePastWhiteSpace();
 
                     if (!TryParseArgumentList(out ImmutableArray<GenericExpressionNode> argumentList))
                     {
@@ -517,8 +497,8 @@ internal ref struct Parser
 
                     node = function.Kind switch
                     {
-                        FunctionKind.Exists => new ExistsCallExpressionNode(function.Name, argumentList),
-                        FunctionKind.HasTrailingSlash => new HasTrailingSlashCallExpressionNode(function.Name, argumentList),
+                        KnownFunctionKind.Exists => new ExistsCallExpressionNode(function.Name, argumentList),
+                        KnownFunctionKind.HasTrailingSlash => new HasTrailingSlashCallExpressionNode(function.Name, argumentList),
 
                         _ => ErrorUtilities.ThrowInternalErrorUnreachable<GenericExpressionNode>()
                     };
@@ -527,7 +507,7 @@ internal ref struct Parser
                 }
                 else
                 {
-                    SkipWhiteSpace();
+                    AdvancePastWhiteSpace();
 
                     if (!TryParseArgumentList(out ImmutableArray<GenericExpressionNode> argumentList))
                     {
@@ -539,17 +519,11 @@ internal ref struct Parser
                 }
             }
 
-            if (TryGetKeyword(identifierSpan, out KeywordKind keyword))
+            if (s_keywords.TryGetValue(identifierSpan, out KeywordKind keyword))
             {
-                if (keyword is KeywordKind.True or KeywordKind.On or KeywordKind.Yes)
+                if (TryCreateBooleanLiteral(keyword, identifierSpan, out BooleanLiteralNode? booleanNode))
                 {
-                    node = new BooleanLiteralNode(true, identifierSpan.ToString());
-                    return true;
-                }
-
-                if (keyword is KeywordKind.False or KeywordKind.Off or KeywordKind.No)
-                {
-                    node = new BooleanLiteralNode(false, identifierSpan.ToString());
+                    node = booleanNode;
                     return true;
                 }
 
@@ -580,7 +554,7 @@ internal ref struct Parser
             builder ??= ImmutableArray.CreateBuilder<GenericExpressionNode>();
             builder.Add(arg);
 
-            SkipWhiteSpace();
+            AdvancePastWhiteSpace();
 
             if (AdvancePast(')'))
             {
@@ -602,7 +576,7 @@ internal ref struct Parser
     {
         node = null;
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         if (AtEnd)
         {
@@ -681,17 +655,11 @@ internal ref struct Parser
         {
             _position += identifierSpan.Length;
 
-            if (TryGetKeyword(identifierSpan, out KeywordKind keyword))
+            if (s_keywords.TryGetValue(identifierSpan, out KeywordKind keyword))
             {
-                if (keyword is KeywordKind.True or KeywordKind.On or KeywordKind.Yes)
+                if (TryCreateBooleanLiteral(keyword, identifierSpan, out BooleanLiteralNode? booleanNode))
                 {
-                    node = new BooleanLiteralNode(true, identifierSpan.ToString());
-                    return true;
-                }
-
-                if (keyword is KeywordKind.False or KeywordKind.Off or KeywordKind.No)
-                {
-                    node = new BooleanLiteralNode(false, identifierSpan.ToString());
+                    node = booleanNode;
                     return true;
                 }
 
@@ -709,6 +677,9 @@ internal ref struct Parser
 
     private bool TryParseProperty([NotNullWhen(true)] out string? result)
     {
+        Debug.Assert(At('$'), "Property reference must start with '$' character.");
+        Debug.Assert(AllowProperties, "Properties should have been rejected earlier.");
+
         result = null;
         int start = _position;
         _position++;
@@ -738,6 +709,7 @@ internal ref struct Parser
     private bool TryParseItemMetadata([NotNullWhen(true)] out string? result)
     {
         Debug.Assert(At('%'), "Item metadata must start with '%' character.");
+        Debug.Assert(AllowAnyItemMetadata, "Metadata should have been rejected earlier.");
 
         // Item metadata comes in two forms:
         //
@@ -755,25 +727,25 @@ internal ref struct Parser
             return TryReportIllFormedItemMetadataOpenParenthesis(start);
         }
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         if (!TryParseName(out string? metadataName))
         {
             return TryReportUnexpectedToken();
         }
 
-        SkipWhiteSpace();
+        AdvancePastWhiteSpace();
 
         if (AdvancePast('.'))
         {
-            SkipWhiteSpace();
+            AdvancePastWhiteSpace();
 
             if (!TryParseName(out metadataName))
             {
                 return TryReportUnexpectedToken();
             }
 
-            SkipWhiteSpace();
+            AdvancePastWhiteSpace();
         }
 
         if (!AdvancePast(')'))
@@ -805,7 +777,7 @@ internal ref struct Parser
 
     private static bool TryScanForPropertyExpressionEnd(string expression, int index, out int indexResult)
     {
-        int parentToClose = 1;
+        int parenToClose = 1;
         bool whitespaceFound = false;
         bool nonIdentifierCharacterFound = false;
         indexResult = -1;
@@ -818,11 +790,11 @@ internal ref struct Parser
                     char character = pchar[index];
                     if (character == '(')
                     {
-                        parentToClose++;
+                        parenToClose++;
                     }
                     else if (character == ')')
                     {
-                        parentToClose--;
+                        parenToClose--;
                     }
                     else if (char.IsWhiteSpace(character))
                     {
@@ -843,7 +815,7 @@ internal ref struct Parser
                         }
                     }
 
-                    if (parentToClose == 0)
+                    if (parenToClose == 0)
                     {
                         if (whitespaceFound && !nonIdentifierCharacterFound)
                         {
@@ -890,6 +862,9 @@ internal ref struct Parser
 
     private bool TryParseItemList([NotNullWhen(true)] out string? result)
     {
+        Debug.Assert(At('@'), "Item list must start with '@' character.");
+        Debug.Assert(AllowItemLists, "Item lists should have been rejected earlier.");
+
         result = null;
         int start = _position;
         _position++;
@@ -1030,7 +1005,7 @@ internal ref struct Parser
             }
 
             _position++;
-            SkipWhiteSpace();
+            AdvancePastWhiteSpace();
         }
         while (!AtEnd);
 
@@ -1053,65 +1028,19 @@ internal ref struct Parser
         return false;
     }
 
-    private bool AdvancePast(KeywordKind keyword)
+    private static bool TryCreateBooleanLiteral(
+        KeywordKind keyword,
+        ReadOnlySpan<char> span,
+        [NotNullWhen(true)] out BooleanLiteralNode? node)
     {
-        ReadOnlySpan<char> span = RemainingSpan;
-
-        if (!LexingUtilities.TryLexIdentifier(span, out ReadOnlySpan<char> identifierSpan))
+        node = keyword switch
         {
-            return false;
-        }
+            KeywordKind.True or KeywordKind.On or KeywordKind.Yes => new BooleanLiteralNode(true, span.ToString()),
+            KeywordKind.False or KeywordKind.Off or KeywordKind.No => new BooleanLiteralNode(false, span.ToString()),
+            _ => null
+        };
 
-        if (!TryGetKeyword(identifierSpan, out KeywordKind found) || found != keyword)
-        {
-            return false;
-        }
-
-        _position += identifierSpan.Length;
-        return true;
-    }
-
-    private static bool TryGetKeyword(ReadOnlySpan<char> span, out KeywordKind keyword)
-    {
-#if NET
-        if (s_keywords.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out keyword))
-        {
-            return true;
-        }
-#else
-        foreach (KeyValuePair<string, KeywordKind> pair in s_keywords)
-        {
-            if (span.Equals(pair.Key.AsSpan(), StringComparison.OrdinalIgnoreCase))
-            {
-                keyword = pair.Value;
-                return true;
-            }
-        }
-#endif
-        keyword = default;
-        return false;
-    }
-
-    private static bool TryGetKnownFunction(ReadOnlySpan<char> span, [NotNullWhen(true)] out FunctionDescriptor? function)
-    {
-#if NET
-        if (s_knownFunctions.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out function))
-        {
-            return true;
-        }
-#else
-        foreach (KeyValuePair<string, FunctionDescriptor> pair in s_knownFunctions)
-        {
-            if (span.Equals(pair.Key.AsSpan(), StringComparison.OrdinalIgnoreCase))
-            {
-                function = pair.Value;
-                return true;
-            }
-        }
-#endif
-
-        function = null;
-        return false;
+        return node is not null;
     }
 
     private bool TryReportError(string resourceName, int position, object[]? formatArgs = null)
