@@ -10,21 +10,41 @@ using Microsoft.NET.StringTools;
 namespace Microsoft.Build.Shared;
 
 /// <summary>
-/// This class implements static methods to assist with unescaping of %XX codes
-/// in the MSBuild file format.
+///  Provides static methods for escaping and unescaping special characters in MSBuild strings
+///  using %XX hexadecimal encoding.
 /// </summary>
 /// <remarks>
-/// PERF: since we escape and unescape relatively frequently, it may be worth caching
-/// the last N strings that were (un)escaped
+///  PERF: since we escape and unescape relatively frequently, it may be worth caching
+///  the last N strings that were (un)escaped.
 /// </remarks>
 internal static class EscapingUtilities
 {
     /// <summary>
-    /// Optional cache of escaped strings for use when needing to escape in performance-critical scenarios with significant
-    /// expected string reuse.
+    ///  Special characters that need escaping.
+    /// </summary>
+    /// <remarks>
+    ///  It's VERY important that the percent character is the FIRST on the list - since it's both a character
+    ///  we escape and use in escape sequences, we can unintentionally escape other escape sequences if we
+    ///  don't process it first. Of course we'll have a similar problem if we ever decide to escape hex digits
+    ///  (that would require rewriting the algorithm) but since it seems unlikely that we ever do, this should
+    ///  be good enough to avoid complicating the algorithm at this point.
+    /// </remarks>
+    private static readonly char[] s_charsToEscape = { '%', '*', '?', '@', '$', '(', ')', ';', '\'' };
+
+    /// <summary>
+    ///  Optional cache of escaped strings for use when needing to escape in performance-critical scenarios with significant
+    ///  expected string reuse.
     /// </summary>
     private static readonly Dictionary<string, string> s_unescapedToEscapedStrings = new(StringComparer.Ordinal);
 
+    /// <summary>
+    ///  Attempts to decode a single hexadecimal digit character.
+    /// </summary>
+    /// <param name="character">The character to decode (0-9, A-F, a-f).</param>
+    /// <param name="value">The decoded numeric value (0-15) if successful.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the character is a valid hex digit; otherwise, <see langword="false"/>.
+    /// </returns>
     private static bool TryDecodeHexDigit(char character, out int value)
     {
         switch (character)
@@ -47,12 +67,14 @@ internal static class EscapingUtilities
     }
 
     /// <summary>
-    /// Replaces all instances of %XX in the input string with the character represented
-    /// by the hexadecimal number XX.
+    ///  Replaces all instances of %XX in the input string with the character represented
+    ///  by the hexadecimal number XX.
     /// </summary>
     /// <param name="escapedString">The string to unescape.</param>
-    /// <param name="trim">If the string should be trimmed before being unescaped.</param>
-    /// <returns>unescaped string</returns>
+    /// <param name="trim">If <see langword="true"/>, the string is trimmed before being unescaped.</param>
+    /// <returns>
+    ///  The unescaped string.
+    /// </returns>
     public static string UnescapeAll(string escapedString, bool trim = false)
     {
         // If the string doesn't contain anything, then by definition it doesn't
@@ -130,34 +152,43 @@ internal static class EscapingUtilities
     }
 
     /// <summary>
-    /// Adds instances of %XX in the input string where the char to be escaped appears
-    /// XX is the hex value of the ASCII code for the char.  Interns and caches the result.
+    ///  Escapes special characters by replacing them with %XX hexadecimal sequences, where XX is the
+    ///  ASCII code of the character. Interns and caches the result for performance.
     /// </summary>
-    /// <comment>
-    /// NOTE:  Only recommended for use in scenarios where there's expected to be significant
-    /// repetition of the escaped string.  Cache currently grows unbounded.
-    /// </comment>
+    /// <param name="unescapedString">The string to escape.</param>
+    /// <returns>
+    ///  The escaped string.
+    /// </returns>
+    /// <remarks>
+    ///  Only recommended for use in scenarios where there's expected to be significant
+    ///  repetition of the escaped string. Cache currently grows unbounded.
+    /// </remarks>
     public static string EscapeWithCaching(string unescapedString)
         => EscapeWithOptionalCaching(unescapedString, cache: true);
 
     /// <summary>
-    /// Adds instances of %XX in the input string where the char to be escaped appears
-    /// XX is the hex value of the ASCII code for the char.
+    ///  Escapes special characters by replacing them with %XX hexadecimal sequences, where XX is the
+    ///  ASCII code of the character.
     /// </summary>
     /// <param name="unescapedString">The string to escape.</param>
-    /// <returns>escaped string</returns>
+    /// <returns>
+    ///  The escaped string.
+    /// </returns>
     public static string Escape(string unescapedString)
         => EscapeWithOptionalCaching(unescapedString, cache: false);
 
     /// <summary>
-    /// Adds instances of %XX in the input string where the char to be escaped appears
-    /// XX is the hex value of the ASCII code for the char.  Caches if requested.
+    ///  Escapes special characters by replacing them with %XX hexadecimal sequences, where XX is the
+    ///  ASCII code of the character. Optionally caches the result.
     /// </summary>
     /// <param name="unescapedString">The string to escape.</param>
     /// <param name="cache">
-    /// True if the cache should be checked, and if the resultant string
-    /// should be cached.
+    ///  <see langword="true"/> if the cache should be checked and the resultant string should be cached;
+    ///  otherwise, <see langword="false"/>.
     /// </param>
+    /// <returns>
+    ///  The escaped string.
+    /// </returns>
     private static string EscapeWithOptionalCaching(string unescapedString, bool cache)
     {
         // If there are no special chars, just return the original string immediately.
@@ -201,20 +232,27 @@ internal static class EscapingUtilities
     }
 
     /// <summary>
-    /// Before trying to actually escape the string, it can be useful to call this method to determine
-    /// if escaping is necessary at all.  This can save lots of calls to copy around item metadata
-    /// that is really the same whether escaped or not.
+    ///  Determines whether the string contains any reserved characters that require escaping.
     /// </summary>
-    /// <param name="unescapedString"></param>
-    /// <returns></returns>
+    /// <param name="unescapedString">The string to check.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the string contains reserved characters; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <remarks>
+    ///  This method can be called before escaping to determine if escaping is necessary at all,
+    ///  saving calls to copy around item metadata that is the same whether escaped or not.
+    /// </remarks>
     private static bool ContainsReservedCharacters(string unescapedString)
         => unescapedString.IndexOfAny(s_charsToEscape) != -1;
 
     /// <summary>
-    /// Determines whether the string contains the escaped form of '*' or '?'.
+    ///  Determines whether the string contains the escaped form of wildcard characters ('*' or '?').
     /// </summary>
-    /// <param name="escapedString"></param>
-    /// <returns></returns>
+    /// <param name="escapedString">The string to check.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the string contains %2A (escaped '*') or %3F (escaped '?');
+    ///  otherwise, <see langword="false"/>.
+    /// </returns>
     public static bool ContainsEscapedWildcards(string escapedString)
     {
         if (escapedString.Length < 3)
@@ -249,15 +287,17 @@ internal static class EscapingUtilities
     }
 
     /// <summary>
-    /// Convert the given integer into its hexadecimal representation.
+    ///  Converts the given integer into its hexadecimal character representation.
     /// </summary>
-    /// <param name="x">The number to convert, which must be non-negative and less than 16</param>
-    /// <returns>The character which is the hexadecimal representation of <paramref name="x"/>.</returns>
+    /// <param name="x">The number to convert, which must be non-negative and less than 16.</param>
+    /// <returns>
+    ///  The hexadecimal character representation of <paramref name="x"/>.
+    /// </returns>
     private static char HexDigitChar(int x)
         => (char)(x + (x < 10 ? '0' : ('a' - 10)));
 
     /// <summary>
-    /// Append the escaped version of the given character to a <see cref="StringBuilder"/>.
+    ///  Appends the escaped version of the given character to a <see cref="StringBuilder"/>.
     /// </summary>
     /// <param name="sb">The <see cref="StringBuilder"/> to which to append.</param>
     /// <param name="ch">The character to escape.</param>
@@ -270,7 +310,7 @@ internal static class EscapingUtilities
     }
 
     /// <summary>
-    /// Append the escaped version of the given string to a <see cref="StringBuilder"/>.
+    ///  Appends the escaped version of the given string to a <see cref="StringBuilder"/>.
     /// </summary>
     /// <param name="sb">The <see cref="StringBuilder"/> to which to append.</param>
     /// <param name="unescapedString">The unescaped string.</param>
@@ -291,14 +331,4 @@ internal static class EscapingUtilities
             idx = nextIdx + 1;
         }
     }
-
-    /// <summary>
-    /// Special characters that need escaping.
-    /// It's VERY important that the percent character is the FIRST on the list - since it's both a character
-    /// we escape and use in escape sequences, we can unintentionally escape other escape sequences if we
-    /// don't process it first. Of course we'll have a similar problem if we ever decide to escape hex digits
-    /// (that would require rewriting the algorithm) but since it seems unlikely that we ever do, this should
-    /// be good enough to avoid complicating the algorithm at this point.
-    /// </summary>
-    private static readonly char[] s_charsToEscape = { '%', '*', '?', '@', '$', '(', ')', ';', '\'' };
 }
