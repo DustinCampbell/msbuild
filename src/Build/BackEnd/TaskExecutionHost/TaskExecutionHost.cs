@@ -1496,7 +1496,7 @@ namespace Microsoft.Build.BackEnd
                             ProjectItemInstance newItem;
 
                             TaskItem outputAsProjectItem = output as TaskItem;
-                            string parameterLocationEscaped = EscapingUtilities.EscapeWithCaching(parameterLocation.File);
+                            string parameterLocationEscaped = EscapingUtilities.Escape(parameterLocation.File, useCache: true);
 
                             if (outputAsProjectItem != null)
                             {

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.NET.StringTools;
@@ -153,43 +154,21 @@ internal static class EscapingUtilities
 
     /// <summary>
     ///  Escapes special characters by replacing them with %XX hexadecimal sequences, where XX is the
-    ///  ASCII code of the character. Interns and caches the result for performance.
-    /// </summary>
-    /// <param name="unescapedString">The string to escape.</param>
-    /// <returns>
-    ///  The escaped string.
-    /// </returns>
-    /// <remarks>
-    ///  Only recommended for use in scenarios where there's expected to be significant
-    ///  repetition of the escaped string. Cache currently grows unbounded.
-    /// </remarks>
-    public static string EscapeWithCaching(string unescapedString)
-        => EscapeWithOptionalCaching(unescapedString, cache: true);
-
-    /// <summary>
-    ///  Escapes special characters by replacing them with %XX hexadecimal sequences, where XX is the
     ///  ASCII code of the character.
     /// </summary>
     /// <param name="unescapedString">The string to escape.</param>
-    /// <returns>
-    ///  The escaped string.
-    /// </returns>
-    public static string Escape(string unescapedString)
-        => EscapeWithOptionalCaching(unescapedString, cache: false);
-
-    /// <summary>
-    ///  Escapes special characters by replacing them with %XX hexadecimal sequences, where XX is the
-    ///  ASCII code of the character. Optionally caches the result.
-    /// </summary>
-    /// <param name="unescapedString">The string to escape.</param>
-    /// <param name="cache">
-    ///  <see langword="true"/> if the cache should be checked and the resultant string should be cached;
+    /// <param name="useCache">
+    ///  If <see langword="true"/>, the cache is checked and the result is interned and cached for performance;
     ///  otherwise, <see langword="false"/>.
     /// </param>
     /// <returns>
     ///  The escaped string.
     /// </returns>
-    private static string EscapeWithOptionalCaching(string unescapedString, bool cache)
+    /// <remarks>
+    ///  Caching is only recommended for scenarios where there's expected to be significant
+    ///  repetition of the escaped string. The cache currently grows unbounded.
+    /// </remarks>
+    public static string Escape(string unescapedString, bool useCache = false)
     {
         // If there are no special chars, just return the original string immediately.
         // Don't even instantiate the StringBuilder.
@@ -199,15 +178,9 @@ internal static class EscapingUtilities
         }
 
         // next, if we're caching, check to see if it's already there.
-        if (cache)
+        if (useCache && TryGetFromCache(unescapedString, out string? cachedEscapedString))
         {
-            lock (s_unescapedToEscapedStrings)
-            {
-                if (s_unescapedToEscapedStrings.TryGetValue(unescapedString, out string? cachedEscapedString))
-                {
-                    return cachedEscapedString;
-                }
-            }
+            return cachedEscapedString;
         }
 
         // This is where we're going to build up the final string to return to the caller.
@@ -215,20 +188,31 @@ internal static class EscapingUtilities
 
         AppendEscapedString(escapedStringBuilder, unescapedString);
 
-        if (!cache)
-        {
-            return StringBuilderCache.GetStringAndRelease(escapedStringBuilder);
-        }
+        string escapedString = StringBuilderCache.GetStringAndRelease(escapedStringBuilder);
 
-        string escapedString = Strings.WeakIntern(escapedStringBuilder.ToString());
-        StringBuilderCache.Release(escapedStringBuilder);
+        return useCache
+            ? AddToCache(escapedString, unescapedString)
+            : escapedString;
+    }
+
+    private static bool TryGetFromCache(string unescapedValue, [NotNullWhen(true)] out string? escapedValue)
+    {
+        lock (s_unescapedToEscapedStrings)
+        {
+            return s_unescapedToEscapedStrings.TryGetValue(unescapedValue, out escapedValue);
+        }
+    }
+
+    private static string AddToCache(string escapedValue, string unescapedValue)
+    {
+        string result = Strings.WeakIntern(escapedValue);
 
         lock (s_unescapedToEscapedStrings)
         {
-            s_unescapedToEscapedStrings[unescapedString] = escapedString;
+            s_unescapedToEscapedStrings[unescapedValue] = result;
         }
 
-        return escapedString;
+        return result;
     }
 
     /// <summary>

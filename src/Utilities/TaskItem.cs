@@ -153,7 +153,9 @@ namespace Microsoft.Build.Utilities
             if (!(sourceItem is ITaskItem2 sourceItemAsITaskItem2))
             {
                 _itemSpec = EscapingUtilities.Escape(sourceItem.ItemSpec);
-                _definingProject = EscapingUtilities.EscapeWithCaching(sourceItem.GetMetadata(FileUtilities.ItemSpecModifiers.DefiningProjectFullPath));
+                _definingProject = EscapingUtilities.Escape(
+                    sourceItem.GetMetadata(FileUtilities.ItemSpecModifiers.DefiningProjectFullPath),
+                    useCache: true);
             }
             else
             {
