@@ -211,7 +211,10 @@ namespace Microsoft.Build.Internal
                 }
 
                 // Unescape before handing it to the filesystem.
-                var directoryUnescaped = EscapingUtilities.UnescapeAll(directoryEscaped);
+                var directoryUnescaped = directoryEscaped != null
+                    ? EscapingUtilities.UnescapeAll(directoryEscaped)
+                    : null;
+
                 var filespecUnescaped = EscapingUtilities.UnescapeAll(filespecEscaped);
                 var excludeSpecsUnescaped = excludeSpecsEscaped?.Where(IsValidExclude).Select(i => EscapingUtilities.UnescapeAll(i)).ToList();
 
