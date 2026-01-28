@@ -190,7 +190,6 @@
     <Compile Include="BuildCheck\**\*.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
-    <Compile Include="Evaluation\Conditionals\Parser.Error.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
@@ -512,12 +511,15 @@
     <Compile Include="Evaluation\Conditionals\OrExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\ParseErrors.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.cs" />
+    <Compile Include="Evaluation\Conditionals\Parser.Error.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.KnownFunctionKind.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.KeywordKind.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.KnownFunction.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.Lookup`1.cs" />
     <Compile Include="Evaluation\Conditionals\ParserOptions.cs" />
     <Compile Include="Evaluation\Conditionals\StringExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\StringExpressionNode.Default.cs" />
+    <Compile Include="Evaluation\Conditionals\StringExpressionNode.Empty.cs" />
     <Compile Include="Evaluation\EvaluatorMetadataTable.cs" />
     <Compile Include="Evaluation\IEvaluatorData.cs" />
     <Compile Include="Evaluation\IItem.cs" />

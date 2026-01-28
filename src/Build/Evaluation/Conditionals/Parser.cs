@@ -531,7 +531,7 @@ internal ref partial struct Parser
             }
 
             // Just a normal identifier
-            node = new StringExpressionNode(identifierSpan.ToString(), false);
+            node = StringExpressionNode.Create(identifierSpan.ToString());
             return true;
         }
 
@@ -590,7 +590,7 @@ internal ref partial struct Parser
         {
             if (TryParseProperty(out string? propertyExpression))
             {
-                node = new StringExpressionNode(propertyExpression, expandable: true);
+                node = StringExpressionNode.Create(propertyExpression, expandable: true);
                 return true;
             }
 
@@ -607,7 +607,7 @@ internal ref partial struct Parser
 
             if (TryParseItemMetadata(out string? itemMetadataExpression))
             {
-                node = new StringExpressionNode(itemMetadataExpression, expandable: true);
+                node = StringExpressionNode.Create(itemMetadataExpression, expandable: true);
                 return true;
             }
 
@@ -624,7 +624,7 @@ internal ref partial struct Parser
 
             if (TryParseItemList(out string? itemListExpression))
             {
-                node = new StringExpressionNode(itemListExpression, expandable: true);
+                node = StringExpressionNode.Create(itemListExpression, expandable: true);
                 return true;
             }
 
@@ -662,7 +662,7 @@ internal ref partial struct Parser
             }
 
             // Just a normal identifier
-            node = new StringExpressionNode(identifierSpan.ToString(), false);
+            node = StringExpressionNode.Create(identifierSpan.ToString());
             return true;
         }
 
@@ -948,10 +948,14 @@ internal ref partial struct Parser
                 // Skip closing quote
                 _position++;
 
-                result = TryParseBooleanLiteral(span, out BooleanLiteralNode? booleanNode)
-                    ? booleanNode
-                    : new StringExpressionNode(span.ToString(), expandable);
+                // Is this string just a boolean literal, negated or otherwise?
+                if (!expandable && TryParseBooleanLiteral(span, out BooleanLiteralNode? booleanNode))
+                {
+                    result = booleanNode;
+                    return true;
+                }
 
+                result = StringExpressionNode.Create(span.ToString(), expandable);
                 return true;
             }
 

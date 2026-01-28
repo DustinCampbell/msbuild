@@ -1198,8 +1198,8 @@ public class ParserTest
     [InlineData("'true@(items)'")]
     [InlineData("'%(meta)true'")]
     public void QuotedString_WithExpandableContent_ShouldNotBeBooleanLiteral(string expression)
-        => Parse<StringExpressionNode>(expression)
-            .ShouldBeOfType<StringExpressionNode>();
+        => Parse<GenericExpressionNode>(expression)
+            .ShouldBeAssignableTo<StringExpressionNode>();
 
     /// <summary>
     ///  Verifies that quoted strings containing text beyond boolean keywords are NOT recognized as boolean literals.
@@ -1223,8 +1223,8 @@ public class ParserTest
     [InlineData("'  '")]
     [InlineData("' \t '")]
     public void QuotedString_Empty_ShouldNotBeBooleanLiteral(string expression)
-        => Parse<StringExpressionNode>(expression)
-            .ShouldBeOfType<StringExpressionNode>();
+        => Parse<GenericExpressionNode>(expression)
+            .ShouldBeAssignableTo<StringExpressionNode>();
 
     /// <summary>
     ///  Verifies that quoted boolean literals work in complex nested expressions.
