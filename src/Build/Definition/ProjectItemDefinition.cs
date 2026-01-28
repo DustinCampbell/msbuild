@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.Build.Shared;
 

@@ -16,6 +16,8 @@
     <RuntimeIdentifiers Condition="'$(DotNetBuildSourceOnly)' != 'true'">win7-x86;win7-x64</RuntimeIdentifiers>
     <UseRidGraph>true</UseRidGraph>
 
+    <RootNamespace>Microsoft.Build.TaskHost</RootNamespace>
+
     <EnableDefaultItems>false</EnableDefaultItems>
     <DefineConstants>$(DefineConstants);CLR2COMPATIBILITY;TASKHOST;NO_FRAMEWORK_IVT</DefineConstants>
     <!-- Need pointers for getting environment block -->

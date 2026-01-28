@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework.Utilities;
 
 namespace Microsoft.Build.Instance
 {

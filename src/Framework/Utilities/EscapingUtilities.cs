@@ -5,10 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using Microsoft.Build.Framework;
 using Microsoft.NET.StringTools;
 
-namespace Microsoft.Build.Shared;
+namespace Microsoft.Build.Framework.Utilities;
 
 /// <summary>
 ///  Provides static methods for escaping and unescaping special characters in MSBuild strings

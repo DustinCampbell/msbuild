@@ -8,6 +8,7 @@ using System.Xml;
 using System.Xml.XPath;
 
 using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
 

@@ -16,7 +16,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
 #if FEATURE_COMPILE_IN_TESTS
-using EscapingUtilities = Microsoft.Build.Shared.EscapingUtilities;
+using EscapingUtilities = Microsoft.Build.Framework.Utilities.EscapingUtilities;
 #endif
 using FileUtilities = Microsoft.Build.Shared.FileUtilities;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
@@ -25,6 +25,7 @@ using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 #if FEATURE_COMPILE_IN_TESTS
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Shared;
 #endif
 

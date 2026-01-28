@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Linq;
 #if FEATURE_APPDOMAIN
@@ -13,10 +14,10 @@ using System.Runtime.Remoting;
 using System.Security;
 #endif
 
-using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Collections;
-using System.Collections.Immutable;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Utilities;
+using Microsoft.Build.Shared;
 
 #nullable disable
 

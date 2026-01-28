@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.Build.Shared;
 

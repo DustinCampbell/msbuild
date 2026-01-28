@@ -1466,7 +1466,7 @@ namespace Microsoft.Build.Construction
                     // However, 3.5 version of Solution parser can't handle a equal sign in the value.
                     // The "=" in targetframeworkMoniker was escaped to "%3D" for Orcas
                     string targetFrameworkMoniker = TrimQuotes(propertyValue);
-                    proj.TargetFrameworkMoniker = Shared.EscapingUtilities.UnescapeAll(targetFrameworkMoniker);
+                    proj.TargetFrameworkMoniker = Framework.Utilities.EscapingUtilities.UnescapeAll(targetFrameworkMoniker);
                 }
             }
         }

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using BenchmarkDotNet.Attributes;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework.Utilities;
 
 namespace MSBuild.Benchmarks;
 

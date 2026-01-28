@@ -4,7 +4,7 @@
 using System.IO;
 
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Xunit;

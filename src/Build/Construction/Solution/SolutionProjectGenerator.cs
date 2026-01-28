@@ -13,10 +13,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
-
 using Microsoft.Build.BackEnd.SdkResolution;
+using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Shared;
+using Microsoft.NET.StringTools;
 
 using Project = Microsoft.Build.Evaluation.Project;
 using ProjectCollection = Microsoft.Build.Evaluation.ProjectCollection;
@@ -29,9 +31,7 @@ using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
 #if FEATURE_ASPNET_COMPILER
 using FrameworkName = System.Runtime.Versioning.FrameworkName;
 #endif
-using Microsoft.Build.Execution;
 
-using Microsoft.NET.StringTools;
 
 #nullable disable
 

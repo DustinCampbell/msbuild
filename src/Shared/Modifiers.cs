@@ -12,6 +12,12 @@ using System.IO;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared.FileSystem;
 
+#if TASKHOST
+using Microsoft.Build.TaskHost.Utilities;
+#else
+using Microsoft.Build.Framework.Utilities;
+#endif
+
 #nullable disable
 
 namespace Microsoft.Build.Shared

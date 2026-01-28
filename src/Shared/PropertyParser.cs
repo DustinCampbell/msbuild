@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.NET.StringTools;
 
 #nullable disable

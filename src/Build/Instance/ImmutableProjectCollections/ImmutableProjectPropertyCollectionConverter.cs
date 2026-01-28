@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework.Utilities;
 
 namespace Microsoft.Build.Instance
 {

@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Xml;
 
 using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Shared;
 
 #nullable disable

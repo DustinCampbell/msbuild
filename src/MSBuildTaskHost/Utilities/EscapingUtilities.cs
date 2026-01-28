@@ -8,7 +8,7 @@ using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.NET.StringTools;
 
-namespace Microsoft.Build.Shared;
+namespace Microsoft.Build.TaskHost.Utilities;
 
 /// <summary>
 ///  Provides static methods for escaping and unescaping special characters in MSBuild strings

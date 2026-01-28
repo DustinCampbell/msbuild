@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework.Utilities;
 using Shouldly;
 using Xunit;
 
-namespace Microsoft.Build.UnitTests;
+namespace Microsoft.Build.Framework.UnitTests;
 
 public sealed class EscapingUtilities_Tests
 {

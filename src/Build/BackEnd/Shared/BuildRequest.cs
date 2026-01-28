@@ -8,6 +8,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.ProjectCache;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Framework.Utilities;
 
 #nullable disable
 
