@@ -179,9 +179,6 @@
     <Compile Include="..\Shared\ResourceUtilities.cs">
       <Link>ResourceUtilities.cs</Link>
     </Compile>
-    <Compile Include="..\Framework\Utilities\StringBuilderCache.cs">
-      <Link>StringBuilderCache.cs</Link>
-    </Compile>
     <Compile Include="..\Framework\SupportedOSPlatform.cs">
       <Link>SupportedOSPlatform.cs</Link>
     </Compile>
@@ -246,6 +243,7 @@
     </Compile>
     <Compile Include="OutOfProcTaskAppDomainWrapper.cs" />
     <Compile Include="Utilities\EscapingUtilities.cs" />
+    <Compile Include="Utilities\StringBuilderCache.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

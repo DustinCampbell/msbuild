@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using Microsoft.Build.Framework;
 using Microsoft.NET.StringTools;
 
 namespace Microsoft.Build.TaskHost.Utilities;
