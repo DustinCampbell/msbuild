@@ -3,8 +3,8 @@
 
 using System;
 using System.Text;
-using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Logging;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Logging;
