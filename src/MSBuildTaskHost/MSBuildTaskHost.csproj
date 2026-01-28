@@ -179,7 +179,7 @@
     <Compile Include="..\Shared\ResourceUtilities.cs">
       <Link>ResourceUtilities.cs</Link>
     </Compile>
-    <Compile Include="..\Framework\StringBuilderCache.cs">
+    <Compile Include="..\Framework\Utilities\StringBuilderCache.cs">
       <Link>StringBuilderCache.cs</Link>
     </Compile>
     <Compile Include="..\Framework\SupportedOSPlatform.cs">
