@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(RuntimeOutputTargetFrameworks)</TargetFrameworks>
@@ -7,9 +7,6 @@
     <AssemblyName>Microsoft.Build.Engine.UnitTests</AssemblyName>
 
     <DefineConstants>$(DefineConstants);MICROSOFT_BUILD_ENGINE_UNITTESTS</DefineConstants>
-
-     <!-- Define a constant so we can skip tests that require MSBuildTaskHost -->
-    <DefineConstants Condition="'$(MSBuildRuntimeType)' == 'Core'">$(DefineConstants);NO_MSBUILDTASKHOST</DefineConstants>
 
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
@@ -34,7 +31,6 @@
     <ProjectReference Include="..\Build\Microsoft.Build.csproj" />
     <ProjectReference Include="..\Framework\Microsoft.Build.Framework.csproj" />
     <ProjectReference Include="..\MSBuild\MSBuild.csproj" />
-    <ProjectReference Include="..\MSBuildTaskHost\MSBuildTaskHost.csproj" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'" Aliases="MSBuildTaskHost" />
     <ProjectReference Include="..\Tasks\Microsoft.Build.Tasks.csproj" />
     <ProjectReference Include="..\Utilities\Microsoft.Build.Utilities.csproj" />
     <ProjectReference Include="..\Xunit.NetCore.Extensions\Xunit.NetCore.Extensions.csproj" />
@@ -76,9 +72,6 @@
     </Compile>
     <Compile Include="..\Shared\UnitTests\CopyOnWriteDictionary_Tests.cs">
       <Link>Collections\CopyOnWriteDictionary_Tests.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\UnitTests\ImmutableDictionary_Tests.cs" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(MSBuildRuntimeType)' == 'Full'">
-      <Link>Collections\ImmutableDictionary_Tests.cs</Link>
     </Compile>
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
 
