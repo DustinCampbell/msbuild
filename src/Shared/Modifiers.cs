@@ -263,7 +263,9 @@ namespace Microsoft.Build.Shared
 
                         modifiedItemSpec = GetDirectory(fullPath);
 
+#if !TASKHOST
                         if (NativeMethodsShared.IsWindows)
+#endif
                         {
                             int length = -1;
                             if (FileUtilitiesRegex.StartsWithDrivePattern(modifiedItemSpec))
@@ -283,6 +285,7 @@ namespace Microsoft.Build.Shared
                                 modifiedItemSpec = modifiedItemSpec.Substring(length + 1);
                             }
                         }
+#if !TASKHOST
                         else
                         {
                             ErrorUtilities.VerifyThrow(!string.IsNullOrEmpty(modifiedItemSpec) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[0]),
@@ -293,6 +296,7 @@ namespace Microsoft.Build.Shared
                             // rest of the string.
                             modifiedItemSpec = modifiedItemSpec.Substring(1);
                         }
+#endif
                     }
                     else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.RecursiveDir, StringComparison.OrdinalIgnoreCase))
                     {

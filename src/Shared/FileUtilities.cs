@@ -464,35 +464,41 @@ namespace Microsoft.Build.Shared
         private static string GetFullPath(string path)
         {
 #if FEATURE_LEGACY_GETFULLPATH
-            if (NativeMethodsShared.IsWindows)
+            string uncheckedFullPath = NativeMethodsShared.GetFullPath(path);
+
+            if (IsPathTooLong(uncheckedFullPath))
             {
-                string uncheckedFullPath = NativeMethodsShared.GetFullPath(path);
-
-                if (IsPathTooLong(uncheckedFullPath))
-                {
-                    string message = ResourceUtilities.FormatString(AssemblyResources.GetString("Shared.PathTooLong"), path, NativeMethodsShared.MaxPath);
-                    throw new PathTooLongException(message);
-                }
-
-                // We really don't care about extensions here, but Path.HasExtension provides a great way to
-                // invoke the CLR's invalid path checks (these are independent of path length)
-                Path.HasExtension(uncheckedFullPath);
-
-                // If we detect we are a UNC path then we need to use the regular get full path in order to do the correct checks for UNC formatting
-                // and security checks for strings like \\?\GlobalRoot
-                return IsUNCPath(uncheckedFullPath) ? Path.GetFullPath(uncheckedFullPath) : uncheckedFullPath;
+                string message = ResourceUtilities.FormatString(AssemblyResources.GetString("Shared.PathTooLong"), path, NativeMethodsShared.MaxPath);
+                throw new PathTooLongException(message);
             }
-#endif
+
+            // We really don't care about extensions here, but Path.HasExtension provides a great way to
+            // invoke the CLR's invalid path checks (these are independent of path length)
+            Path.HasExtension(uncheckedFullPath);
+
+            // If we detect we are a UNC path then we need to use the regular get full path in order to do the correct checks for UNC formatting
+            // and security checks for strings like \\?\GlobalRoot
+            return IsUNCPath(uncheckedFullPath) ? Path.GetFullPath(uncheckedFullPath) : uncheckedFullPath;
+#else
             return Path.GetFullPath(path);
+#endif
         }
 
 #if FEATURE_LEGACY_GETFULLPATH
         private static bool IsUNCPath(string path)
         {
-            if (!NativeMethodsShared.IsWindows || !path.StartsWith(@"\\", StringComparison.Ordinal))
+#if !TASKHOST
+            if (!NativeMethodsShared.IsWindows)
             {
                 return false;
             }
+#endif
+
+            if (!path.StartsWith(@"\\", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
             bool isUNC = true;
             for (int i = 2; i < path.Length - 1; i++)
             {
@@ -786,7 +792,11 @@ namespace Microsoft.Build.Shared
                 fullPath = EscapingUtilities.Escape(fullPath);
             }
 
-            if (NativeMethodsShared.IsWindows && !FrameworkFileUtilities.EndsWithSlash(fullPath))
+            if (
+#if !TASKHOST
+                NativeMethodsShared.IsWindows &&
+#endif
+                !FrameworkFileUtilities.EndsWithSlash(fullPath))
             {
                 if (FileUtilitiesRegex.IsDrivePattern(fileSpec) ||
                     FileUtilitiesRegex.IsUncPattern(fullPath))
@@ -1595,7 +1605,7 @@ namespace System.IO
                 {
                     throw new EndOfStreamException();
                 }
-                offset +=read;
+                offset += read;
                 count -= read;
             }
         }

@@ -22,6 +22,7 @@ namespace Microsoft.Build.Shared
 
         internal static string GetPlatformSpecificPipeName(string pipeName)
         {
+#if !TASKHOST
             if (NativeMethodsShared.IsUnixLike)
             {
                 // If we're on a Unix machine then named pipes are implemented using Unix Domain Sockets.
@@ -39,6 +40,7 @@ namespace Microsoft.Build.Shared
 #endif
             }
             else
+#endif
             {
                 return pipeName;
             }
