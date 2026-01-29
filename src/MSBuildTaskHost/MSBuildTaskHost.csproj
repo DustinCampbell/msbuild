@@ -85,10 +85,7 @@
       <Link>ExceptionHandling.cs</Link>
     </Compile>
     <Compile Include="..\Framework\FileUtilities.cs">
-      <Link>FileUtilities.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\FileUtilities.cs">
-      <Link>SharedFileUtilities.cs</Link>
+      <Link>FrameworkFileUtilities.cs</Link>
     </Compile>
     <Compile Include="..\Shared\FileUtilitiesRegex.cs">
       <Link>FileUtilitiesRegex.cs</Link>
@@ -195,6 +192,7 @@
     </Compile>
     <Compile Include="Concurrent\ConcurrentDictionary.cs" />
     <Compile Include="Concurrent\ConcurrentQueue.cs" />
+    <Compile Include="FileUtilities.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NullableAttributes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
