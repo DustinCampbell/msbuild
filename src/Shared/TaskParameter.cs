@@ -682,7 +682,9 @@ namespace Microsoft.Build.BackEnd
                 }
             }
 
+#if !TASKHOST
             public SerializableMetadata BackingMetadata => default;
+#endif
 
             public bool HasCustomMetadata => _customEscapedMetadata?.Count > 0;
 
