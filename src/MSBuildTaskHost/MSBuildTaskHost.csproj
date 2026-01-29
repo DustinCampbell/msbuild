@@ -84,9 +84,6 @@
     <Compile Include="..\Shared\ExceptionHandling.cs">
       <Link>ExceptionHandling.cs</Link>
     </Compile>
-    <Compile Include="..\Framework\FileUtilities.cs">
-      <Link>FrameworkFileUtilities.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\INodeEndpoint.cs">
       <Link>INodeEndpoint.cs</Link>
     </Compile>
@@ -191,6 +188,7 @@
     <Compile Include="Concurrent\ConcurrentQueue.cs" />
     <Compile Include="FileUtilities.cs" />
     <Compile Include="FileUtilitiesRegex.cs" />
+    <Compile Include="FrameworkFileUtilities.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NullableAttributes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
