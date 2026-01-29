@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!-- The .NET Core version of MSBuild doesn't support targeting .NET Framework 3.5.  So in that case, we import
        a .props file that prevents building the project from doing much of anything. -->
@@ -69,13 +69,9 @@
     <Compile Include="..\Framework\ResponseFileUsedEventArgs.cs" />
     <Compile Include="..\Shared\BufferedReadStream.cs" />
     <Compile Include="..\Shared\CollectionHelpers.cs" />
-    <Compile Include="..\Shared\CopyOnWriteDictionary.cs">
-      <Link>CopyOnWriteDictionary.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\Constants.cs" />
     <Compile Include="..\Shared\IsExternalInit.cs" />
     <Compile Include="..\Shared\EnvironmentUtilities.cs" Link="EnvironmentUtilities.cs" />
-    <Compile Include="..\Shared\ReadOnlyEmptyDictionary.cs" />
     <Compile Include="..\Framework\ErrorUtilities.cs">
       <Link>ErrorUtilities.cs</Link>
     </Compile>
@@ -141,9 +137,6 @@
     <Compile Include="..\Framework\NativeMethods.cs">
       <Link>NativeMethodsShared.cs</Link>
     </Compile>
-    <Compile Include="..\Framework\Logging\AnsiDetector.cs">
-      <Link>AnsiDetector.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\NodeBuildComplete.cs">
       <Link>NodeBuildComplete.cs</Link>
     </Compile>
@@ -173,9 +166,6 @@
     </Compile>
     <Compile Include="..\Shared\NodeShutdown.cs">
       <Link>NodeShutdown.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\ReadOnlyEmptyCollection.cs">
-      <Link>ReadOnlyEmptyCollection.cs</Link>
     </Compile>
     <Compile Include="..\Shared\ResourceUtilities.cs">
       <Link>ResourceUtilities.cs</Link>
