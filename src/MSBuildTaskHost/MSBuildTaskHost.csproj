@@ -28,7 +28,8 @@
     <!-- workaround for https://github.com/dotnet/msbuild/issues/5620 -->
     <BypassFrameworkInstallChecks>true</BypassFrameworkInstallChecks>
 
-    <DebugType>full</DebugType><!-- Work around arcade stomping on symbols for same-program-different-arches. -->
+    <DebugType>full</DebugType>
+    <!-- Work around arcade stomping on symbols for same-program-different-arches. -->
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Build.Framework, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -185,6 +186,7 @@
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NullableAttributes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TaskLoader.cs" />
     <Compile Include="TypeLoader.cs" />
     <Compile Include="OutOfProcTaskHost.cs" />
     <Compile Include="..\Shared\CommunicationsUtilities.cs" />
@@ -193,7 +195,6 @@
     <Compile Include="..\Shared\OutOfProcTaskHostTaskResult.cs">
       <Link>OutOfProcTaskHostTaskResult.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\TaskLoader.cs" />
     <Compile Include="..\Shared\AssemblyLoadInfo.cs" />
     <Compile Include="..\Shared\TaskHostTaskCancelled.cs" />
     <Compile Include="..\Shared\TaskParameter.cs" />
