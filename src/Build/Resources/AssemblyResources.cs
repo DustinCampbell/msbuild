@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Reflection;
 using System.Resources;
 using SharedSR = Microsoft.Build.Framework.Resources.SR;
+using SR = Microsoft.Build.Resources.SR;
 
 #nullable disable
 
@@ -76,12 +76,8 @@ namespace Microsoft.Build.Shared
         /// <returns>The resource string, or null if not found.</returns>
         private static string GetStringFromEngineResources(string name)
         {
-            string resource = s_resources.GetString(name, CultureInfo.CurrentUICulture);
-
-            if (resource == null)
-            {
-                resource = SharedResources.GetString(name, CultureInfo.CurrentUICulture);
-            }
+            string resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture)
+                ?? SharedResources.GetString(name, CultureInfo.CurrentUICulture);
 
             ErrorUtilities.VerifyThrow(resource != null, "Missing resource '{0}'", name);
 
@@ -105,14 +101,8 @@ namespace Microsoft.Build.Shared
             return resource;
         }
 
-        internal static ResourceManager PrimaryResources
-        {
-            get { return s_resources; }
-        }
+        internal static ResourceManager PrimaryResources => SR.ResourceManager;
 
         internal static ResourceManager SharedResources => SharedSR.ResourceManager;
-
-        // assembly resources
-        private static readonly ResourceManager s_resources = new ResourceManager("Microsoft.Build.Strings", typeof(AssemblyResources).GetTypeInfo().Assembly);
     }
 }

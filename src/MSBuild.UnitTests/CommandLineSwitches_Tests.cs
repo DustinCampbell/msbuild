@@ -1577,17 +1577,15 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void HelpMessagesAreValid()
         {
-            ResourceManager resourceManager = new ResourceManager("MSBuild.Strings", typeof(AssemblyResources).Assembly);
-
             const string switchLeadingSpaces = "  ";
             const string otherLineLeadingSpaces = "                     ";
             const string examplesLeadingSpaces = "        ";
 
-            foreach (KeyValuePair<string, string> item in resourceManager.GetResourceSet(CultureInfo.CurrentUICulture, createIfNotExists: true, tryParents: true)
-                .Cast<DictionaryEntry>().Where(i => i.Key is string && ((string)i.Key).StartsWith("HelpMessage_"))
+            foreach (KeyValuePair<string, string> item in AssemblyResources.PrimaryResources.GetResourceSet(CultureInfo.CurrentUICulture, createIfNotExists: true, tryParents: true)
+                .Cast<DictionaryEntry>().Where(i => i.Key is string s && s.StartsWith("HelpMessage_"))
                 .Select(i => new KeyValuePair<string, string>((string)i.Key, (string)i.Value)))
             {
-                string[] helpMessageLines = item.Value.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                string[] helpMessageLines = item.Value.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
 
                 for (int i = 0; i < helpMessageLines.Length; i++)
                 {

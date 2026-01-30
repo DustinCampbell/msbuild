@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Reflection;
 using System.Resources;
 using SharedSR = Microsoft.Build.Framework.Resources.SR;
+using SR = Microsoft.Build.CommandLine.Resources.SR;
 
 #nullable disable
 
@@ -24,12 +24,8 @@ namespace Microsoft.Build.Shared
         internal static string GetString(string name)
         {
             // NOTE: the ResourceManager.GetString() method is thread-safe
-            string resource = s_resources.GetString(name, CultureInfo.CurrentUICulture);
-
-            if (resource == null)
-            {
-                resource = s_sharedResources.GetString(name, CultureInfo.CurrentUICulture);
-            }
+            string resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture)
+                ?? SharedResources.GetString(name, CultureInfo.CurrentUICulture);
 
             ErrorUtilities.VerifyThrow(resource != null, "Missing resource '{0}'", name);
 
@@ -37,8 +33,9 @@ namespace Microsoft.Build.Shared
         }
 
         // assembly resources
-        private static readonly ResourceManager s_resources = new ResourceManager("MSBuild.Strings", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        internal static ResourceManager PrimaryResources => SR.ResourceManager;
+
         // shared resources
-        private static readonly ResourceManager s_sharedResources = SharedSR.ResourceManager;
+        internal static ResourceManager SharedResources => SharedSR.ResourceManager;
     }
 }

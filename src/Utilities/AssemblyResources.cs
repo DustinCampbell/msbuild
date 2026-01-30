@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Reflection;
 using System.Resources;
 using SharedSR = Microsoft.Build.Framework.Resources.SR;
+using SR = Microsoft.Build.Utilities.Resources.SR;
 
 #nullable disable
 
@@ -36,7 +36,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <remarks>This property is thread-safe.</remarks>
         /// <value>ResourceManager for primary resources.</value>
-        internal static ResourceManager PrimaryResources { get; } = new ResourceManager("Microsoft.Build.Utilities.Core.Strings", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        internal static ResourceManager PrimaryResources => SR.ResourceManager;
 
         /// <summary>
         /// Gets the assembly's shared resources i.e. the resources this assembly shares with other assemblies.

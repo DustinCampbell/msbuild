@@ -35,6 +35,7 @@ using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Tasks.ResourceHandling;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Tasks.Restricted;
 
 /*
   Plan for the future:
@@ -169,7 +170,7 @@ namespace Microsoft.Build.Tasks
 
             if (!codeProvider.IsValidIdentifier(className))
             {
-                throw new ArgumentException(SR.GetString(SR.InvalidIdentifier, className));
+                throw new ArgumentException(SystemDesignSR.GetString(SystemDesignSR.InvalidIdentifier, className));
             }
 
             // If we have a namespace, verify the namespace is legal,
@@ -208,11 +209,11 @@ namespace Microsoft.Build.Tasks
             // ta |= TypeAttributes.Sealed;
             srClass.TypeAttributes = ta;
             srClass.Comments.Add(new CodeCommentStatement(DocCommentSummaryStart, true));
-            srClass.Comments.Add(new CodeCommentStatement(SR.GetString(SR.ClassDocComment), true));
+            srClass.Comments.Add(new CodeCommentStatement(SystemDesignSR.GetString(SystemDesignSR.ClassDocComment), true));
 
-            var comment = new CodeCommentStatement(SR.GetString(SR.ClassComments1), true);
+            var comment = new CodeCommentStatement(SystemDesignSR.GetString(SystemDesignSR.ClassComments1), true);
             srClass.Comments.Add(comment);
-            comment = new CodeCommentStatement(SR.GetString(SR.ClassComments3), true);
+            comment = new CodeCommentStatement(SystemDesignSR.GetString(SystemDesignSR.ClassComments3), true);
             srClass.Comments.Add(comment);
 
             srClass.Comments.Add(new CodeCommentStatement(DocCommentSummaryEnd, true));
@@ -471,7 +472,7 @@ namespace Microsoft.Build.Tasks
 
             // Add a doc comment to the ResourceManager property
             resMgr.Comments.Add(new CodeCommentStatement(DocCommentSummaryStart, true));
-            resMgr.Comments.Add(new CodeCommentStatement(SR.GetString(SR.ResMgrPropertyComment), true));
+            resMgr.Comments.Add(new CodeCommentStatement(SystemDesignSR.GetString(SystemDesignSR.ResMgrPropertyComment), true));
             resMgr.Comments.Add(new CodeCommentStatement(DocCommentSummaryEnd, true));
 
             // Emit code for Culture property
@@ -483,8 +484,8 @@ namespace Microsoft.Build.Tasks
 
             // Add a doc comment to Culture property
             culture.Comments.Add(new CodeCommentStatement(DocCommentSummaryStart, true));
-            culture.Comments.Add(new CodeCommentStatement(SR.GetString(SR.CulturePropertyComment1), true));
-            culture.Comments.Add(new CodeCommentStatement(SR.GetString(SR.CulturePropertyComment2), true));
+            culture.Comments.Add(new CodeCommentStatement(SystemDesignSR.GetString(SystemDesignSR.CulturePropertyComment1), true));
+            culture.Comments.Add(new CodeCommentStatement(SystemDesignSR.GetString(SystemDesignSR.CulturePropertyComment2), true));
             culture.Comments.Add(new CodeCommentStatement(DocCommentSummaryEnd, true));
         }
 
@@ -497,7 +498,7 @@ namespace Microsoft.Build.Tasks
                 // Stop at some length
                 if (commentString.Length > DocCommentLengthThreshold)
                 {
-                    commentString = SR.GetString(SR.StringPropertyTruncatedComment, commentString.Substring(0, DocCommentLengthThreshold));
+                    commentString = SystemDesignSR.GetString(SystemDesignSR.StringPropertyTruncatedComment, commentString.Substring(0, DocCommentLengthThreshold));
                 }
 
                 // Encode the comment so it is safe for xml.  SecurityElement.Escape is the only method I've found to do this.
@@ -623,18 +624,18 @@ namespace Microsoft.Build.Tasks
 
             if (isString)
             {
-                text = SR.GetString(SR.StringPropertyComment, valueAsString);
+                text = SystemDesignSR.GetString(SystemDesignSR.StringPropertyComment, valueAsString);
             }
             else
             { // Stream or Object
                 if (valueAsString == null ||
                     String.Equals(typeName, valueAsString)) // If the type did not override ToString, ToString just returns the type name.
                 {
-                    text = SR.GetString(SR.NonStringPropertyComment, typeName);
+                    text = SystemDesignSR.GetString(SystemDesignSR.NonStringPropertyComment, typeName);
                 }
                 else
                 {
-                    text = SR.GetString(SR.NonStringPropertyDetailedComment, typeName, valueAsString);
+                    text = SystemDesignSR.GetString(SystemDesignSR.NonStringPropertyDetailedComment, typeName, valueAsString);
                 }
             }
 

@@ -10,7 +10,7 @@ using System.Threading;
 
 #nullable disable
 
-namespace Microsoft.Build.Tasks
+namespace Microsoft.Build.Tasks.Restricted
 {
     [AttributeUsage(AttributeTargets.All)]
     internal sealed class SRDescriptionAttribute : DescriptionAttribute
@@ -40,7 +40,7 @@ namespace Microsoft.Build.Tasks
                 if (!_replaced)
                 {
                     _replaced = true;
-                    DescriptionValue = SR.GetString(base.Description);
+                    DescriptionValue = SystemDesignSR.GetString(base.Description);
                 }
                 return base.Description;
             }
@@ -56,7 +56,7 @@ namespace Microsoft.Build.Tasks
 
         protected override string GetLocalizedString(string value)
         {
-            return SR.GetString(value);
+            return SystemDesignSR.GetString(value);
         }
     }
 
@@ -65,7 +65,7 @@ namespace Microsoft.Build.Tasks
     ///
     ///        string s = SR.GetString(SR.MyIdenfitier);
     /// </summary>
-    internal sealed class SR
+    internal sealed class SystemDesignSR
     {
         internal const string ClassDocComment = "ClassDocComment";
         internal const string ClassComments1 = "ClassComments1";
@@ -80,7 +80,7 @@ namespace Microsoft.Build.Tasks
         internal const string MismatchedResourceName = "MismatchedResourceName";
         internal const string InvalidIdentifier = "InvalidIdentifier";
 
-        private static SR s_loader = null;
+        private static SystemDesignSR s_loader = null;
         private MainAssemblyFallbackResourceManager _resources;
 
         /// <summary>
@@ -92,20 +92,20 @@ namespace Microsoft.Build.Tasks
         {
             public MainAssemblyFallbackResourceManager(string baseName, Assembly assembly) : base(baseName, assembly)
             {
-                this.FallbackLocation = UltimateResourceFallbackLocation.MainAssembly;
+                FallbackLocation = UltimateResourceFallbackLocation.MainAssembly;
             }
         }
 
-        internal SR()
+        internal SystemDesignSR()
         {
-            _resources = new MainAssemblyFallbackResourceManager("System.Design", this.GetType().Assembly);
+            _resources = new MainAssemblyFallbackResourceManager("System.Design", GetType().Assembly);
         }
 
-        private static SR GetLoader()
+        private static SystemDesignSR GetLoader()
         {
             if (s_loader == null)
             {
-                SR sr = new SR();
+                SystemDesignSR sr = new SystemDesignSR();
                 Interlocked.CompareExchange(ref s_loader, sr, null);
             }
             return s_loader;
@@ -126,13 +126,13 @@ namespace Microsoft.Build.Tasks
 
         public static string GetString(string name, params object[] args)
         {
-            SR sys = GetLoader();
+            SystemDesignSR sys = GetLoader();
             if (sys == null)
             {
                 return null;
             }
 
-            string res = sys._resources.GetString(name, SR.Culture);
+            string res = sys._resources.GetString(name, Culture);
 
             if (args?.Length > 0)
             {
@@ -154,13 +154,13 @@ namespace Microsoft.Build.Tasks
 
         public static string GetString(string name)
         {
-            SR sys = GetLoader();
+            SystemDesignSR sys = GetLoader();
             if (sys == null)
             {
                 return null;
             }
 
-            return sys._resources.GetString(name, SR.Culture);
+            return sys._resources.GetString(name, Culture);
         }
 
         public static string GetString(string name, out bool usedFallback)
@@ -172,13 +172,13 @@ namespace Microsoft.Build.Tasks
 
         public static object GetObject(string name)
         {
-            SR sys = GetLoader();
+            SystemDesignSR sys = GetLoader();
             if (sys == null)
             {
                 return null;
             }
 
-            return sys._resources.GetObject(name, SR.Culture);
+            return sys._resources.GetObject(name, Culture);
         }
     }
 }
