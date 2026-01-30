@@ -121,7 +121,6 @@
     <Compile Include="..\Shared\LogMessagePacketBase.cs">
       <Link>LogMessagePacketBase.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\NamedPipeUtil.cs" />
     <Compile Include="..\Shared\NodeBuildComplete.cs">
       <Link>NodeBuildComplete.cs</Link>
     </Compile>
@@ -188,6 +187,7 @@
     <Compile Include="FrameworkFileUtilities.cs" />
     <Compile Include="LoadedType.cs" />
     <Compile Include="Modifiers.cs" />
+    <Compile Include="NamedPipeUtil.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NullableAttributes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
