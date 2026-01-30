@@ -65,7 +65,6 @@
     <Compile Include="..\Shared\CollectionHelpers.cs" />
     <Compile Include="..\Shared\Constants.cs" />
     <Compile Include="..\Shared\IsExternalInit.cs" />
-    <Compile Include="..\Shared\EnvironmentUtilities.cs" Link="EnvironmentUtilities.cs" />
     <Compile Include="..\Framework\ErrorUtilities.cs">
       <Link>ErrorUtilities.cs</Link>
     </Compile>
@@ -176,6 +175,7 @@
     </Compile>
     <Compile Include="Concurrent\ConcurrentDictionary.cs" />
     <Compile Include="Concurrent\ConcurrentQueue.cs" />
+    <Compile Include="EnvironmentUtilities.cs" />
     <Compile Include="FileUtilities.cs" />
     <Compile Include="FileUtilitiesRegex.cs" />
     <Compile Include="FrameworkFileUtilities.cs" />
