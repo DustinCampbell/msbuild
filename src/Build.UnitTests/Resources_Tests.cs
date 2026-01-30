@@ -53,7 +53,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build",
                 Path.Combine(GetRepoRoot(), "src", "Build"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/SR.resx" });
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build.Tasks.Core",
                 Path.Combine(GetRepoRoot(), "src", "Tasks"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/SR.resx" });
         }
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build.Utilities.Core",
                 Path.Combine(GetRepoRoot(), "src", "Utilities"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/SR.resx" });
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Microsoft.Build.UnitTests
                 "MSBuild",
                 Path.Combine(GetRepoRoot(), "src", "MSBuild"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/SR.resx" });
         }
 
         // NOTE: To add verification for additional assemblies, follow this pattern:
@@ -103,7 +103,7 @@ namespace Microsoft.Build.UnitTests
         //         "Your.Assembly.Name",
         //         Path.Combine(GetRepoRoot(), "src", "YourAssemblyFolder"),
         //         new[] { "Resources/Strings.resx" },  // Primary resources for this assembly
-        //         new[] { "../Shared/Resources/Strings.shared.resx" });  // Shared resources
+        //         new[] { "../Framework/Resources/SR.resx" });  // Shared resources
         // }
 
         private void VerifyResourcesForAssembly(

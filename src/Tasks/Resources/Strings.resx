@@ -1221,7 +1221,7 @@
 
         If this bucket overflows, pls. contact 'vsppbdev'.
   -->
-  <!-- MSB3511 is moved into shared resource file src\Shared\Resources\Strings.shared.resx -->
+  <!-- MSB3511 is moved into shared resource file src\Framework\Resources\SR.resx -->
   <!--
         The Move task message bucket is: MSB3676 - MSB3685
 

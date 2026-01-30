@@ -73,4 +73,10 @@
   <ItemGroup>
     <RCResourceFile Include="native.rc" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\SR.resx">
+      <GenerateSource>true</GenerateSource>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

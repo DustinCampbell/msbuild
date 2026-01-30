@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
+using SharedSR = Microsoft.Build.Framework.Resources.SR;
 
 #nullable disable
 
@@ -41,7 +42,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <remarks>This property is thread-safe.</remarks>
         /// <value>ResourceManager for shared resources.</value>
-        internal static ResourceManager SharedResources { get; } = new ResourceManager("Microsoft.Build.Tasks.Core.Strings.shared", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        internal static ResourceManager SharedResources => SharedSR.ResourceManager;
 
         // assembly resources
         // shared resources

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!-- The .NET Core version of MSBuild doesn't support targeting .NET Framework 3.5.  So in that case, we import
        a .props file that prevents building the project from doing much of anything. -->
@@ -18,6 +18,10 @@
 
     <EnableDefaultItems>false</EnableDefaultItems>
     <DefineConstants>$(DefineConstants);CLR2COMPATIBILITY;TASKHOST;NO_FRAMEWORK_IVT</DefineConstants>
+
+    <!-- Work around arcaade bug where GenerateResxSource task produces code that only checks for .NET 2.0, but not .NET 3.0/3.5-->
+    <DefineConstants>$(DefineConstants);NET20</DefineConstants>
+    
     <!-- Need pointers for getting environment block -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- It is vital that msbuildtaskhost.exe is allowed to use the full 4GB on 64 bit machines in order to help avoid
@@ -28,7 +32,8 @@
     <!-- workaround for https://github.com/dotnet/msbuild/issues/5620 -->
     <BypassFrameworkInstallChecks>true</BypassFrameworkInstallChecks>
 
-    <DebugType>full</DebugType><!-- Work around arcade stomping on symbols for same-program-different-arches. -->
+    <!-- Work around arcade stomping on symbols for same-program-different-arches. -->
+    <DebugType>full</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Build.Framework, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -251,12 +256,9 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\Shared\Resources\Strings.shared.resx">
-      <LogicalName>$(AssemblyName).Strings.shared.resources</LogicalName>
-      <SubType>Designer</SubType>
+    <EmbeddedResource Include="Resources\SR.resx">
+      <GenerateSource>true</GenerateSource>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="..\MSBuild\MSBuild.ico" />
   </ItemGroup>
   <ItemGroup>
