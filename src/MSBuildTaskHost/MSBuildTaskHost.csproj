@@ -49,12 +49,6 @@
     <Compile Include="..\Shared\AssemblyNameComparer.cs">
       <Link>AssemblyNameComparer.cs</Link>
     </Compile>
-    <Compile Include="..\Framework\BuildEngineResult.cs">
-      <Link>BuildEngineResult.cs</Link>
-    </Compile>
-    <Compile Include="..\Framework\IBuildEngine3.cs">
-      <Link>IBuildEngine3.cs</Link>
-    </Compile>
     <Compile Include="..\Framework\RunInSTAAttribute.cs">
       <Link>RunInSTAAtribute.cs</Link>
     </Compile>

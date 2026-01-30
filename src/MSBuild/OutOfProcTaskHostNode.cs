@@ -33,7 +33,7 @@ namespace Microsoft.Build.CommandLine
 #endif
         INodePacketFactory, INodePacketHandler,
 #if CLR2COMPATIBILITY
-        IBuildEngine3
+        IBuildEngine2
 #else
         IBuildEngine10
 #endif
@@ -392,6 +392,7 @@ namespace Microsoft.Build.CommandLine
 
         #endregion // IBuildEngine2 Implementation (Methods)
 
+#if !CLR2COMPATIBILITY
         #region IBuildEngine3 Implementation
 
         /// <summary>
@@ -424,7 +425,6 @@ namespace Microsoft.Build.CommandLine
 
         #endregion // IBuildEngine3 Implementation
 
-#if !CLR2COMPATIBILITY
         #region IBuildEngine4 Implementation
 
         /// <summary>
