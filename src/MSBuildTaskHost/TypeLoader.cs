@@ -7,6 +7,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Shared.Concurrent;
 
 #nullable disable
 
@@ -20,12 +21,7 @@ namespace Microsoft.Build.Shared
         /// <summary>
         /// Cache to keep track of the assemblyLoadInfos based on a given typeFilter.
         /// </summary>
-        private static Concurrent.ConcurrentDictionary<TypeFilter, Concurrent.ConcurrentDictionary<AssemblyLoadInfo, AssemblyInfoToLoadedTypes>> s_cacheOfLoadedTypesByFilter = new Concurrent.ConcurrentDictionary<TypeFilter, Concurrent.ConcurrentDictionary<AssemblyLoadInfo, AssemblyInfoToLoadedTypes>>();
-
-        /// <summary>
-        /// Cache to keep track of the assemblyLoadInfos based on a given type filter for assemblies which are to be loaded for reflectionOnlyLoads.
-        /// </summary>
-        private static Concurrent.ConcurrentDictionary<TypeFilter, Concurrent.ConcurrentDictionary<AssemblyLoadInfo, AssemblyInfoToLoadedTypes>> s_cacheOfReflectionOnlyLoadedTypesByFilter = new Concurrent.ConcurrentDictionary<TypeFilter, Concurrent.ConcurrentDictionary<AssemblyLoadInfo, AssemblyInfoToLoadedTypes>>();
+        private static ConcurrentDictionary<TypeFilter, ConcurrentDictionary<AssemblyLoadInfo, AssemblyInfoToLoadedTypes>> s_cacheOfLoadedTypesByFilter = new();
 
         /// <summary>
         /// Typefilter for this typeloader
@@ -144,19 +140,6 @@ namespace Microsoft.Build.Shared
             bool taskHostParamsMatchCurrentProc = true)
         {
             return GetLoadedType(s_cacheOfLoadedTypesByFilter, typeName, assembly);
-        }
-
-        /// <summary>
-        /// Loads the specified type if it exists in the given assembly. If the type name is fully qualified, then a match (if
-        /// any) is unambiguous; otherwise, if there are multiple types with the same name in different namespaces, the first type
-        /// found will be returned.
-        /// </summary>
-        /// <returns>The loaded type, or null if the type was not found.</returns>
-        internal LoadedType ReflectionOnlyLoad(
-            string typeName,
-            AssemblyLoadInfo assembly)
-        {
-            return GetLoadedType(s_cacheOfReflectionOnlyLoadedTypesByFilter, typeName, assembly);
         }
 
         /// <summary>
