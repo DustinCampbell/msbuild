@@ -186,6 +186,7 @@
     <Compile Include="FileUtilities.cs" />
     <Compile Include="FileUtilitiesRegex.cs" />
     <Compile Include="FrameworkFileUtilities.cs" />
+    <Compile Include="LoadedType.cs" />
     <Compile Include="Modifiers.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NullableAttributes.cs" />
@@ -199,7 +200,6 @@
       <Link>OutOfProcTaskHostTaskResult.cs</Link>
     </Compile>
     <Compile Include="..\Shared\TaskLoader.cs" />
-    <Compile Include="..\Shared\LoadedType.cs" />
     <Compile Include="..\Shared\AssemblyLoadInfo.cs" />
     <Compile Include="..\Shared\TaskHostTaskCancelled.cs" />
     <Compile Include="..\Shared\TaskParameter.cs" />
