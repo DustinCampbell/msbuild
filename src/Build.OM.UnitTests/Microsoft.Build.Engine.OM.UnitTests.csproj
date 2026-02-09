@@ -48,7 +48,6 @@
     </Compile>
     <Compile Include="..\Shared\TempFileUtilities.cs" />
     <Compile Include="..\Shared\FileUtilities.cs" />
-    <Compile Include="..\Shared\EscapingUtilities.cs" />
     <Compile Include="..\Shared\FileUtilitiesRegex.cs" />
     <Compile Include="..\Shared\ExceptionHandling.cs" />
     <Compile Include="..\Shared\ProcessExtensions.cs" />
@@ -68,7 +67,7 @@
     <ProjectReference Include="..\Tasks\Microsoft.Build.Tasks.csproj" />
     <ProjectReference Include="..\Xunit.NetCore.Extensions\Xunit.NetCore.Extensions.csproj" />
     <ProjectReference Include="..\UnitTests.Shared\Microsoft.Build.UnitTests.Shared.csproj" />
-    <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
