@@ -11,9 +11,7 @@ using System.Threading;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
-#if !CLR2COMPATIBILITY
 using Microsoft.Build.Experimental.FileAccess;
-#endif
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 #if FEATURE_APPDOMAIN
@@ -31,12 +29,7 @@ namespace Microsoft.Build.CommandLine
 #if FEATURE_APPDOMAIN
         MarshalByRefObject,
 #endif
-        INodePacketFactory, INodePacketHandler,
-#if CLR2COMPATIBILITY
-        IBuildEngine3
-#else
-        IBuildEngine10
-#endif
+        INodePacketFactory, INodePacketHandler, IBuildEngine10
     {
         /// <summary>
         /// Keeps a record of all environment variables that, on startup of the task host, have a different
@@ -164,12 +157,10 @@ namespace Microsoft.Build.CommandLine
         /// </summary>
         private bool _nodeReuse;
 
-#if !CLR2COMPATIBILITY
         /// <summary>
         /// The task object cache.
         /// </summary>
         private RegisteredTaskObjectCacheBase _registeredTaskObjectCache;
-#endif
 
 #if FEATURE_REPORTFILEACCESSES
         /// <summary>
@@ -204,9 +195,7 @@ namespace Microsoft.Build.CommandLine
             thisINodePacketFactory.RegisterPacketHandler(NodePacketType.TaskHostTaskCancelled, TaskHostTaskCancelled.FactoryForDeserialization, this);
             thisINodePacketFactory.RegisterPacketHandler(NodePacketType.NodeBuildComplete, NodeBuildComplete.FactoryForDeserialization, this);
 
-#if !CLR2COMPATIBILITY
             EngineServices = new EngineServicesImpl(this);
-#endif
         }
 
         #region IBuildEngine Implementation (Properties)
@@ -424,7 +413,6 @@ namespace Microsoft.Build.CommandLine
 
         #endregion // IBuildEngine3 Implementation
 
-#if !CLR2COMPATIBILITY
         #region IBuildEngine4 Implementation
 
         /// <summary>
@@ -561,8 +549,6 @@ namespace Microsoft.Build.CommandLine
 
         #endregion
 
-#endif
-
         #region INodePacketFactory Members
 
         /// <summary>
@@ -646,9 +632,7 @@ namespace Microsoft.Build.CommandLine
         /// <returns>The reason for shutting down.</returns>
         public NodeEngineShutdownReason Run(out Exception shutdownException, bool nodeReuse = false, byte parentPacketVersion = 1)
         {
-#if !CLR2COMPATIBILITY
             _registeredTaskObjectCache = new RegisteredTaskObjectCacheBase();
-#endif
             shutdownException = null;
 
             // Snapshot the current environment
@@ -839,10 +823,8 @@ namespace Microsoft.Build.CommandLine
 
             debugWriter?.WriteLine("Node shutting down with reason {0}.", _shutdownReason);
 
-#if !CLR2COMPATIBILITY
             _registeredTaskObjectCache.DisposeCacheObjects(RegisteredTaskObjectLifetime.Build);
             _registeredTaskObjectCache = null;
-#endif
 
             // On Windows, a process holds a handle to the current directory,
             // so reset it away from a user-requested folder that may get deleted.
@@ -870,17 +852,10 @@ namespace Microsoft.Build.CommandLine
             _nodeEndpoint.Disconnect();
 
             // Dispose these WaitHandles
-#if CLR2COMPATIBILITY
-            _packetReceivedEvent.Close();
-            _shutdownEvent.Close();
-            _taskCompleteEvent.Close();
-            _taskCancelledEvent.Close();
-#else
             _packetReceivedEvent.Dispose();
             _shutdownEvent.Dispose();
             _taskCompleteEvent.Dispose();
             _taskCancelledEvent.Dispose();
-#endif
 
             return _shutdownReason;
         }
@@ -944,9 +919,7 @@ namespace Microsoft.Build.CommandLine
 
                 string taskName = taskConfiguration.TaskName;
                 string taskLocation = taskConfiguration.TaskLocation;
-#if !CLR2COMPATIBILITY
-                TaskFactoryUtilities.RegisterAssemblyResolveHandlersFromManifest(taskLocation);
-#endif
+
                 // We will not create an appdomain now because of a bug
                 // As a fix, we will create the class directly without wrapping it in a domain
                 _taskWrapper = new OutOfProcTaskAppDomainWrapper();

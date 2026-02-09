@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-#if !CLR2COMPATIBILITY
 using System.Collections.Concurrent;
-#else
-using Microsoft.Build.Shared.Concurrent;
-#endif
 #if NET
 using System.Buffers;
 #endif
@@ -48,7 +44,6 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static string cacheDirectory = null;
 
-#if !CLR2COMPATIBILITY
         /// <summary>
         /// AsyncLocal working directory for use during property/item expansion in multithreaded mode.
         /// Set by MultiThreadedTaskEnvironmentDriver when building projects. null in multiprocess mode.
@@ -60,14 +55,6 @@ namespace Microsoft.Build.Shared
             get => s_currentThreadWorkingDirectory.Value;
             set => s_currentThreadWorkingDirectory.Value = value;
         }
-#else
-        // net35 taskhost does not support AsyncLocal, and the scenario is not relevant there.
-        internal static string CurrentThreadWorkingDirectory = null;
-#endif
-
-#if CLR2COMPATIBILITY
-        internal static string TempFileDirectory => Path.GetTempPath();
-#endif
 
         /// <summary>
         /// FOR UNIT TESTS ONLY
@@ -371,7 +358,6 @@ namespace Microsoft.Build.Shared
 
         internal static string TruncatePathToTrailingSegments(string path, int trailingSegmentsToKeep)
         {
-#if !CLR2COMPATIBILITY
             ErrorUtilities.VerifyThrowInternalLength(path, nameof(path));
             ErrorUtilities.VerifyThrow(trailingSegmentsToKeep >= 0, "trailing segments must be positive");
 
@@ -380,9 +366,6 @@ namespace Microsoft.Build.Shared
             var headingSegmentsToRemove = Math.Max(0, segments.Length - trailingSegmentsToKeep);
 
             return string.Join(DirectorySeparatorString, segments.Skip(headingSegmentsToRemove));
-#else
-            return path;
-#endif
         }
 
         internal static bool ContainsRelativePathSegments(string path)
@@ -411,9 +394,7 @@ namespace Microsoft.Build.Shared
             return false;
         }
 
-#if !CLR2COMPATIBILITY
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
         private static bool RelativePathBoundsAreValid(string path, int leftIndex, int rightIndex)
         {
             var leftBound = leftIndex - 1 >= 0
@@ -427,9 +408,7 @@ namespace Microsoft.Build.Shared
             return IsValidRelativePathBound(leftBound) && IsValidRelativePathBound(rightBound);
         }
 
-#if !CLR2COMPATIBILITY
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
         private static bool IsValidRelativePathBound(char? c)
         {
             return c == null || IsAnySlash(c.Value);
@@ -454,12 +433,10 @@ namespace Microsoft.Build.Shared
             return NormalizePath(Path.Combine(directory, file));
         }
 
-#if !CLR2COMPATIBILITY
         internal static string NormalizePath(params string[] paths)
         {
             return NormalizePath(Path.Combine(paths));
         }
-#endif
 
         private static string GetFullPath(string path)
         {
@@ -535,7 +512,6 @@ namespace Microsoft.Build.Shared
             return string.IsNullOrEmpty(path) ? path : path.Replace('\\', '/');
         }
 
-#if !CLR2COMPATIBILITY
         /// <summary>
         /// If on Unix, convert backslashes to slashes for strings that resemble paths.
         /// The heuristic is if something resembles paths (contains slashes) check if the
@@ -636,14 +612,10 @@ namespace Microsoft.Build.Shared
 
             return hasQuotes ? path.Slice(1, endId - 1) : path;
         }
-#endif
 
-#if !CLR2COMPATIBILITY
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
         internal static bool IsAnySlash(char c) => c == '/' || c == '\\';
 
-#if !CLR2COMPATIBILITY
         /// <summary>
         /// If on Unix, check if the string looks like a file path.
         /// The heuristic is if something resembles paths (contains slashes) check if the
@@ -673,7 +645,6 @@ namespace Microsoft.Build.Shared
             return (shouldCheckDirectory && DefaultFileSystem.DirectoryExists(Path.Combine(baseDirectory, directory.ToString())))
                 || (shouldCheckFileOrDirectory && DefaultFileSystem.FileOrDirectoryExists(value.ToString()));
         }
-#endif
 
         /// <summary>
         /// Extracts the directory from the given file-spec.
@@ -700,7 +671,6 @@ namespace Microsoft.Build.Shared
             return directory;
         }
 
-#if !CLR2COMPATIBILITY
         /// <summary>
         /// Deletes all subdirectories within the specified directory without throwing exceptions.
         /// This method enumerates all subdirectories in the given directory and attempts to delete
@@ -727,7 +697,6 @@ namespace Microsoft.Build.Shared
                 // If we can't enumerate the directories, ignore. Other cases should be handled by DeleteDirectoryNoThrow.
             }
         }
-#endif
 
         /// <summary>
         /// Determines whether the given assembly file name has one of the listed extensions.
@@ -1551,7 +1520,6 @@ namespace Microsoft.Build.Shared
             return false;
         }
 
-#if !CLR2COMPATIBILITY
         /// <summary>
         /// Clears the file existence cache.
         /// </summary>
@@ -1559,7 +1527,6 @@ namespace Microsoft.Build.Shared
         {
             FileExistenceCache.Clear();
         }
-#endif
 
         internal static void ReadFromStream(this Stream stream, byte[] content, int startIndex, int length)
         {
