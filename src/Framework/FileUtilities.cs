@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#if NETFRAMEWORK && !TASKHOST
+#if NETFRAMEWORK
 using Path = Microsoft.IO.Path;
 #else
 using System.IO;
@@ -85,7 +85,6 @@ namespace Microsoft.Build.Framework
             return path;
         }
 
-#if !TASKHOST
         /// <summary>
         /// Checks if the path contains backslashes on Unix.
         /// </summary>
@@ -230,6 +229,5 @@ namespace Microsoft.Build.Framework
                 original: path.OriginalValue, 
                 ignoreRootedCheck: true);
         }
-#endif
     }
 }
