@@ -957,21 +957,6 @@ namespace Microsoft.Build.UnitTests
             Assert.Equal(root, FileUtilities.GetFolderAbove(root, 99));
         }
 
-        [Fact]
-        public void CombinePathsTest()
-        {
-            // These tests run in .NET 4+, so we can cheat
-            var root = @"c:\";
-
-            Assert.Equal(
-                Path.Combine(root, "path1"),
-                FileUtilities.CombinePaths(root, "path1"));
-
-            Assert.Equal(
-                Path.Combine(root, "path1", "path2", "file.txt"),
-                FileUtilities.CombinePaths(root, "path1", "path2", "file.txt"));
-        }
-
         [Theory]
         [InlineData(@"c:\a\.\b", true)]
         [InlineData(@"c:\a\..\b", true)]

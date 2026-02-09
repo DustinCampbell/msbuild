@@ -1259,23 +1259,6 @@ namespace Microsoft.Build.Shared
             return parent?.FullName ?? path;
         }
 
-        /// <summary>
-        /// Combine multiple paths. Should only be used when compiling against .NET 2.0.
-        /// <remarks>
-        /// Only use in .NET 2.0. Otherwise, use System.IO.Path.Combine(...)
-        /// </remarks>
-        /// </summary>
-        /// <param name="root">Root path.</param>
-        /// <param name="paths">Paths to concatenate.</param>
-        /// <returns>Combined path.</returns>
-        internal static string CombinePaths(string root, params string[] paths)
-        {
-            ErrorUtilities.VerifyThrowArgumentNull(root);
-            ErrorUtilities.VerifyThrowArgumentNull(paths);
-
-            return paths.Aggregate(root, Path.Combine);
-        }
-
         internal static string TrimTrailingSlashes(this string s)
         {
             return s.TrimEnd(FrameworkFileUtilities.Slashes);
@@ -1562,7 +1545,7 @@ namespace System.IO
                 {
                     throw new EndOfStreamException();
                 }
-                offset +=read;
+                offset += read;
                 count -= read;
             }
         }

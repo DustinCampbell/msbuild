@@ -365,7 +365,7 @@ namespace Microsoft.Build.Shared
 
         private static string GetMSBuildExeFromVsRoot(string visualStudioRoot)
         {
-            return FileUtilities.CombinePaths(
+            return Path.Combine(
                 visualStudioRoot,
                 "MSBuild",
                 CurrentToolsVersion,
@@ -599,8 +599,8 @@ namespace Microsoft.Build.Shared
             if (MSBuildToolsDirectoryRoot != null)
             {
                 // Calculate potential paths to other architecture MSBuild.exe
-                var potentialAmd64FromX86 = FileUtilities.CombinePaths(MSBuildToolsDirectoryRoot, "amd64", msBuildExeName);
-                var potentialARM64FromX86 = FileUtilities.CombinePaths(MSBuildToolsDirectoryRoot, "arm64", msBuildExeName);
+                var potentialAmd64FromX86 = Path.Combine(MSBuildToolsDirectoryRoot, "amd64", msBuildExeName);
+                var potentialARM64FromX86 = Path.Combine(MSBuildToolsDirectoryRoot, "arm64", msBuildExeName);
 
                 // Check for existence of an MSBuild file. Note this is not necessary in a VS installation where we always want to
                 // assume the correct layout.
@@ -671,8 +671,7 @@ namespace Microsoft.Build.Shared
 
                 if (VisualStudioInstallRootDirectory != null)
                 {
-                    // Can't use the N-argument form of Combine because it doesn't exist on .NET 3.5
-                    defaultSdkPath = FileUtilities.CombinePaths(VisualStudioInstallRootDirectory, "MSBuild", "Sdks");
+                    defaultSdkPath = Path.Combine(VisualStudioInstallRootDirectory, "MSBuild", "Sdks");
                 }
                 else
                 {

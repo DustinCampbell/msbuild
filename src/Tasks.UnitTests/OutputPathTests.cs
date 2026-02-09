@@ -189,7 +189,7 @@ namespace Microsoft.Build.Tasks.UnitTests
             project.GetPropertyValue("Configuration").ShouldBe(configuration);
             project.GetPropertyValue("BaseOutputPath").ShouldBe(baseOutputPath.WithTrailingSlash());
 
-            var expectedOutputPath = FileUtilities.CombinePaths(project.DirectoryPath, baseOutputPath, configuration).WithTrailingSlash();
+            var expectedOutputPath = Path.Combine(project.DirectoryPath, baseOutputPath, configuration).WithTrailingSlash();
             project.GetPropertyValue("OutputPath").ShouldBe(expectedOutputPath);
         }
     }
