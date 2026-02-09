@@ -10,8 +10,8 @@ using System.Reflection;
 using System.Threading;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Execution;
-using Microsoft.Build.Framework;
 using Microsoft.Build.Experimental.FileAccess;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 #if FEATURE_APPDOMAIN
@@ -936,9 +936,7 @@ namespace Microsoft.Build.CommandLine
 #if FEATURE_APPDOMAIN
                     taskConfiguration.AppDomainSetup,
 #endif
-#if !NET35
                     taskConfiguration.HostServices,
-#endif
                     taskParams);
             }
             catch (ThreadAbortException)

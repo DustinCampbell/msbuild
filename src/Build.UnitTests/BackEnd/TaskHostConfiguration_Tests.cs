@@ -7,8 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-
-
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -43,9 +41,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     buildProcessEnvironment: null,
                     culture: Thread.CurrentThread.CurrentCulture,
                     uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                     null,
-#endif
 #if FEATURE_APPDOMAIN
                     appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -83,9 +79,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     buildProcessEnvironment: null,
                     culture: Thread.CurrentThread.CurrentCulture,
                     uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                     null,
-#endif
 #if FEATURE_APPDOMAIN
                     appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -123,9 +117,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     buildProcessEnvironment: null,
                     culture: Thread.CurrentThread.CurrentCulture,
                     uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                     null,
-#endif
 #if FEATURE_APPDOMAIN
                     appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -165,9 +157,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     buildProcessEnvironment: null,
                     culture: Thread.CurrentThread.CurrentCulture,
                     uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                     null,
-#endif
 #if FEATURE_APPDOMAIN
                     appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -205,9 +195,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
-                    null,
-#endif
+                null,
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -236,9 +224,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -268,9 +254,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -305,9 +289,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -342,9 +324,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -386,9 +366,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -442,9 +420,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
                 appDomainSetup: setup,
                 lineNumberOfTask: 1,
                 columnNumberOfTask: 1,
@@ -499,9 +475,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -555,9 +529,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -609,9 +581,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -662,9 +632,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -722,9 +690,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
@@ -777,9 +743,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 buildProcessEnvironment: null,
                 culture: Thread.CurrentThread.CurrentCulture,
                 uiCulture: Thread.CurrentThread.CurrentUICulture,
-#if !NET35
                 null,
-#endif
 #if FEATURE_APPDOMAIN
                 appDomainSetup:
 #if FEATURE_APPDOMAIN
