@@ -79,7 +79,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build.Tasks.Core",
                 Path.Combine(GetRepoRoot(), "src", "Tasks"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/Strings.shared.resx" });
         }
 
         /// <summary>
