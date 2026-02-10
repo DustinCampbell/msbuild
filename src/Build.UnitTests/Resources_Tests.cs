@@ -92,7 +92,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build.Utilities.Core",
                 Path.Combine(GetRepoRoot(), "src", "Utilities"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/Strings.shared.resx" });
         }
 
         /// <summary>

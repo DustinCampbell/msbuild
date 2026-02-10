@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Reflection;
 using System.Resources;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
@@ -20,7 +20,7 @@ namespace Microsoft.Build.Shared
         /// <remarks>This method is thread-safe.</remarks>
         /// <param name="name"></param>
         /// <returns>The resource string, or null if not found.</returns>
-        internal static string GetString(string name)
+        public static string GetString(string name)
         {
             string resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture)
                 ?? SharedResources.GetString(name, CultureInfo.CurrentUICulture);
@@ -35,14 +35,14 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <remarks>This property is thread-safe.</remarks>
         /// <value>ResourceManager for primary resources.</value>
-        internal static ResourceManager PrimaryResources { get; } = new ResourceManager("Microsoft.Build.Utilities.Core.Strings", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        public static ResourceManager PrimaryResources { get; } = new("Microsoft.Build.Utilities.Core.Strings", typeof(AssemblyResources).Assembly);
 
         /// <summary>
         /// Gets the assembly's shared resources i.e. the resources this assembly shares with other assemblies.
         /// </summary>
         /// <remarks>This property is thread-safe.</remarks>
         /// <value>ResourceManager for shared resources.</value>
-        internal static ResourceManager SharedResources { get; } = new ResourceManager("Microsoft.Build.Utilities.Core.Strings.shared", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        public static ResourceManager SharedResources => FrameworkResources.SharedResources;
 
         /// <summary>
         /// Formats the given string using the variable arguments passed in. The current thread's culture is used for formatting.
@@ -51,7 +51,7 @@ namespace Microsoft.Build.Shared
         /// <param name="unformatted">The string to format.</param>
         /// <param name="args">Arguments for formatting.</param>
         /// <returns>The formatted string.</returns>
-        internal static string FormatString(string unformatted, params object[] args)
+        public static string FormatString(string unformatted, params object[] args)
         {
             ErrorUtilities.VerifyThrowArgumentNull(unformatted);
 
@@ -70,7 +70,7 @@ namespace Microsoft.Build.Shared
         /// <param name="resourceName">The name of the string resource to load.</param>
         /// <param name="args">Optional arguments for formatting the loaded string.</param>
         /// <returns>The formatted string.</returns>
-        internal static string FormatResourceString(string resourceName, params object[] args)
+        public static string FormatResourceString(string resourceName, params object[] args)
         {
             ErrorUtilities.VerifyThrowArgumentNull(resourceName);
 
