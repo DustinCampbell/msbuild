@@ -105,7 +105,7 @@ namespace Microsoft.Build.UnitTests
                 "MSBuild",
                 Path.Combine(GetRepoRoot(), "src", "MSBuild"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/Strings.shared.resx" });
         }
 
         // NOTE: To add verification for additional assemblies, follow this pattern:

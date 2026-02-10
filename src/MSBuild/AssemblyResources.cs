@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
@@ -20,24 +21,28 @@ namespace Microsoft.Build.Shared
         /// <remarks>This method is thread-safe.</remarks>
         /// <param name="name"></param>
         /// <returns>The resource string, or null if not found.</returns>
-        internal static string GetString(string name)
+        public static string GetString(string name)
         {
-            // NOTE: the ResourceManager.GetString() method is thread-safe
-            string resource = s_resources.GetString(name, CultureInfo.CurrentUICulture);
-
-            if (resource == null)
-            {
-                resource = s_sharedResources.GetString(name, CultureInfo.CurrentUICulture);
-            }
+            string resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture)
+                ?? SharedResources.GetString(name, CultureInfo.CurrentUICulture);
 
             ErrorUtilities.VerifyThrow(resource != null, "Missing resource '{0}'", name);
 
             return resource;
         }
 
-        // assembly resources
-        private static readonly ResourceManager s_resources = new ResourceManager("MSBuild.Strings", typeof(AssemblyResources).GetTypeInfo().Assembly);
-        // shared resources
-        private static readonly ResourceManager s_sharedResources = new ResourceManager("MSBuild.Strings.shared", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        /// <summary>
+        /// Gets the assembly's primary resources i.e. the resources exclusively owned by this assembly.
+        /// </summary>
+        /// <remarks>This property is thread-safe.</remarks>
+        /// <value>ResourceManager for primary resources.</value>
+        public static ResourceManager PrimaryResources { get; } = new("MSBuild.Strings", typeof(AssemblyResources).Assembly);
+
+        /// <summary>
+        /// Gets the assembly's shared resources i.e. the resources this assembly shares with other assemblies.
+        /// </summary>
+        /// <remarks>This property is thread-safe.</remarks>
+        /// <value>ResourceManager for shared resources.</value>
+        public static ResourceManager SharedResources => FrameworkResources.SharedResources;
     }
 }

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -159,11 +159,6 @@
       <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\Shared\Resources\Strings.shared.resx">
-      <Link>Resources\Strings.shared.resx</Link>
-      <LogicalName>$(AssemblyName).Strings.shared.resources</LogicalName>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <!-- Content Files -->
     <Content Include="MSBuild.ico" Pack="false" />
     <Content Include="MSBuild.rsp" Pack="false">
@@ -197,8 +192,12 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml" />
     <PackageReference Include="LargeAddressAware" PrivateAssets="All" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" /><!-- for consistency with Framework via transitives -->
-    <PackageReference Include="System.ValueTuple" ExcludeAssets="Build" /><!-- We ship the new version but binding redirect to the old version manually, so must avoid the drop-binding-redirect logic in the 4.6.1 package. -->
+
+    <!-- for consistency with Framework via transitives -->
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
+
+    <!-- We ship the new version but binding redirect to the old version manually, so must avoid the drop-binding-redirect logic in the 4.6.1 package. -->
+    <PackageReference Include="System.ValueTuple" ExcludeAssets="Build" />
   </ItemGroup>
 
   <ItemGroup>
@@ -320,4 +319,4 @@
   </Target>
 
 </Project>
- 
+
