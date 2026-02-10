@@ -53,7 +53,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build",
                 Path.Combine(GetRepoRoot(), "src", "Build"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/Strings.shared.resx" });
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build.Tasks.Core",
                 Path.Combine(GetRepoRoot(), "src", "Tasks"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/Strings.shared.resx" });
         }
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build.Utilities.Core",
                 Path.Combine(GetRepoRoot(), "src", "Utilities"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/Strings.shared.resx" });
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Microsoft.Build.UnitTests
                 "MSBuild",
                 Path.Combine(GetRepoRoot(), "src", "MSBuild"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Shared/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/Strings.shared.resx" });
         }
 
         // NOTE: To add verification for additional assemblies, follow this pattern:
@@ -192,7 +192,7 @@ namespace Microsoft.Build.UnitTests
             // Skip files that are conditional compilation only (e.g., XamlTaskFactory which is .NETFramework-only)
             // These might reference resources that are intentionally not included in all builds
             // TODO: Consider handling this more elegantly by checking project file conditionals
-            
+
             // Patterns to match resource method calls with string literal arguments
             var patterns = new[]
             {
@@ -227,8 +227,8 @@ namespace Microsoft.Build.UnitTests
                     {
                         var resourceName = match.Groups[1].Value;
                         // Resource names typically start with uppercase and don't contain braces or dollar signs
-                        if (!resourceName.Contains("{") && 
-                            !resourceName.Contains("$") && 
+                        if (!resourceName.Contains("{") &&
+                            !resourceName.Contains("$") &&
                             !resourceName.Contains(" ") &&
                             char.IsUpper(resourceName[0]))
                         {

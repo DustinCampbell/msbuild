@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
@@ -42,7 +43,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <remarks>This property is thread-safe.</remarks>
         /// <value>ResourceManager for shared resources.</value>
-        internal static ResourceManager SharedResources { get; } = new ResourceManager("Microsoft.Build.Utilities.Core.Strings.shared", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        internal static ResourceManager SharedResources => FrameworkResources.SharedResources;
 
         /// <summary>
         /// Formats the given string using the variable arguments passed in. The current thread's culture is used for formatting.

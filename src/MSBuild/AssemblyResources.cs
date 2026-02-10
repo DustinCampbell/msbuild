@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
@@ -23,11 +24,12 @@ namespace Microsoft.Build.Shared
         internal static string GetString(string name)
         {
             // NOTE: the ResourceManager.GetString() method is thread-safe
-            string resource = s_resources.GetString(name, CultureInfo.CurrentUICulture);
+            string resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture) ??
+                SharedResources.GetString(name, CultureInfo.CurrentUICulture);
 
             if (resource == null)
             {
-                resource = s_sharedResources.GetString(name, CultureInfo.CurrentUICulture);
+                resource = SharedResources.GetString(name, CultureInfo.CurrentUICulture);
             }
 
             ErrorUtilities.VerifyThrow(resource != null, "Missing resource '{0}'", name);
@@ -35,9 +37,10 @@ namespace Microsoft.Build.Shared
             return resource;
         }
 
-        // assembly resources
-        private static readonly ResourceManager s_resources = new ResourceManager("MSBuild.Strings", typeof(AssemblyResources).GetTypeInfo().Assembly);
-        // shared resources
-        private static readonly ResourceManager s_sharedResources = new ResourceManager("MSBuild.Strings.shared", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        public static ResourceManager PrimaryResources =>
+            field ??= new ResourceManager("MSBuild.Strings", typeof(AssemblyResources).GetTypeInfo().Assembly);
+
+        public static ResourceManager SharedResources
+            => FrameworkResources.SharedResources;
     }
 }

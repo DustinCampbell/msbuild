@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
@@ -75,12 +76,8 @@ namespace Microsoft.Build.Shared
         /// <returns>The resource string, or null if not found.</returns>
         private static string GetStringFromEngineResources(string name)
         {
-            string resource = s_resources.GetString(name, CultureInfo.CurrentUICulture);
-
-            if (resource == null)
-            {
-                resource = s_sharedResources.GetString(name, CultureInfo.CurrentUICulture);
-            }
+            string resource = s_resources.GetString(name, CultureInfo.CurrentUICulture) ??
+                SharedResources.GetString(name, CultureInfo.CurrentUICulture);
 
             ErrorUtilities.VerifyThrow(resource != null, "Missing resource '{0}'", name);
 
@@ -104,19 +101,11 @@ namespace Microsoft.Build.Shared
             return resource;
         }
 
-        internal static ResourceManager PrimaryResources
-        {
-            get { return s_resources; }
-        }
+        internal static ResourceManager PrimaryResources => s_resources;
 
-        internal static ResourceManager SharedResources
-        {
-            get { return s_sharedResources; }
-        }
+        internal static ResourceManager SharedResources => FrameworkResources.SharedResources;
 
         // assembly resources
         private static readonly ResourceManager s_resources = new ResourceManager("Microsoft.Build.Strings", typeof(AssemblyResources).GetTypeInfo().Assembly);
-        // shared resources
-        private static readonly ResourceManager s_sharedResources = new ResourceManager("Microsoft.Build.Strings.shared", typeof(AssemblyResources).GetTypeInfo().Assembly);
     }
 }

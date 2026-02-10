@@ -16,10 +16,14 @@ namespace Microsoft.Build.Framework
     /// </remarks>
     internal static class FrameworkResources
     {
-        /// <summary>
-        /// The assembly's primary resources.
-        /// </summary>
-        private static readonly ResourceManager s_resources = new ResourceManager("Microsoft.Build.Framework.Strings", typeof(FrameworkResources).GetTypeInfo().Assembly);
+        internal static ResourceManager PrimaryResources
+            => field ??= CreateResourceManager("Microsoft.Build.Framework.Strings");
+
+        internal static ResourceManager SharedResources
+            => field ??= CreateResourceManager("Microsoft.Build.Framework.Strings.shared");
+
+        private static ResourceManager CreateResourceManager(string name)
+            => new(name, typeof(FrameworkResources).GetTypeInfo().Assembly);
 
         /// <summary>
         /// Loads the specified resource string.
@@ -30,11 +34,12 @@ namespace Microsoft.Build.Framework
         internal static string GetString(string name)
         {
             // NOTE: the ResourceManager.GetString() method is thread-safe
-            string? resource = s_resources.GetString(name, CultureInfo.CurrentUICulture);
+            string? resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture) ??
+                               SharedResources.GetString(name, CultureInfo.CurrentUICulture);
 
             FrameworkErrorUtilities.VerifyThrow(resource != null, $"Missing resource '{name}'");
 
-            return resource!;
+            return resource;
         }
     }
 }
