@@ -79,5 +79,10 @@
       <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+
+    <EmbeddedResource Update="Resources\Strings.shared.resx">
+      <SubType>Designer</SubType>
+      <LogicalName>$(AssemblyName).Strings.shared.resources</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>
