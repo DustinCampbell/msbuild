@@ -727,15 +727,11 @@
 
     <!-- Win32 RC Files -->
     <RCResourceFile Include="native.rc" />
+
     <!-- Resource Files -->
     <EmbeddedResource Include="Resources\Strings.resx">
       <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Shared\Resources\Strings.shared.resx">
-      <Link>Resources\Strings.shared.resx</Link>
-      <SubType>Designer</SubType>
-      <LogicalName>$(AssemblyName).Strings.shared.resources</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
@@ -760,7 +756,8 @@
     </XmlPeek>
 
     <PropertyGroup>
-      <NuGetFrameworkWrapperRedirects_Content><![CDATA[
+      <NuGetFrameworkWrapperRedirects_Content>
+        <![CDATA[
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
