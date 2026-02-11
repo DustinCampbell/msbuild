@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Resources;
+using Microsoft.Build.Framework.Resources;
 
 namespace Microsoft.Build.Framework;
 
@@ -18,7 +19,7 @@ internal static class FrameworkResources
     /// <summary>
     /// Gets this assembly's primary resources.
     /// </summary>
-    public static ResourceManager PrimaryResources { get; } = new("Microsoft.Build.Framework.SR", typeof(FrameworkResources).Assembly);
+    public static ResourceManager PrimaryResources => SR.ResourceManager;
 
     /// <summary>
     /// Loads the specified resource string.
