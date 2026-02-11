@@ -729,8 +729,8 @@
     <RCResourceFile Include="native.rc" />
 
     <!-- Resource Files -->
-    <EmbeddedResource Include="Resources\Strings.resx">
-      <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
+    <EmbeddedResource Include="Resources\SR.resx">
+      <LogicalName>$(AssemblyName).SR.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>

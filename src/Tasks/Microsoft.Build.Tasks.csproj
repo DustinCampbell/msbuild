@@ -203,7 +203,7 @@
     <Compile Include="AssemblyFolder.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="AssemblyRemapping.cs" />
-    <Compile Include="AssemblyResources.cs" />
+    <Compile Include="Resources\AssemblyResources.cs" />
     <Compile Include="AssignLinkMetadata.cs" />
     <Compile Include="AssignProjectConfiguration.cs" />
     <Compile Include="AssignTargetPath.cs" />
@@ -465,8 +465,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <!-- Resource Files -->
-    <EmbeddedResource Include="Resources\Strings.resx">
-      <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
+    <EmbeddedResource Include="Resources\SR.resx">
+      <LogicalName>$(AssemblyName).SR.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ManifestUtil\Resources\Strings.ManifestUtilities.resx">

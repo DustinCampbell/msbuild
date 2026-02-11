@@ -141,8 +141,8 @@
     <!-- Win32 RC Files -->
     <RCResourceFile Include="native.rc" />
 
-    <EmbeddedResource Update="Resources\Strings.resx">
-      <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
+    <EmbeddedResource Update="Resources\SR.resx">
+      <LogicalName>$(AssemblyName).SR.resources</LogicalName>
       <SubType>Designer</SubType>
       <Generator></Generator>
     </EmbeddedResource>
