@@ -18,12 +18,7 @@ internal static class FrameworkResources
     /// <summary>
     /// Gets this assembly's primary resources.
     /// </summary>
-    public static ResourceManager PrimaryResources { get; } = CreateResourceManager("Microsoft.Build.Framework.Strings");
-
-    /// <summary>
-    /// Gets this assembly's shared resources.
-    /// </summary>
-    public static ResourceManager SharedResources { get; } = CreateResourceManager("Microsoft.Build.Framework.Strings.shared");
+    public static ResourceManager PrimaryResources { get; } = new("Microsoft.Build.Framework.SR", typeof(FrameworkResources).Assembly);
 
     /// <summary>
     /// Loads the specified resource string.
@@ -34,14 +29,10 @@ internal static class FrameworkResources
     public static string GetString(string name)
     {
         // NOTE: the ResourceManager.GetString() method is thread-safe
-        string? resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture)
-            ?? SharedResources.GetString(name, CultureInfo.CurrentUICulture);
+        string? resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture);
 
         FrameworkErrorUtilities.VerifyThrow(resource != null, $"Missing resource '{name}'");
 
         return resource;
     }
-
-    private static ResourceManager CreateResourceManager(string baseName)
-        => new(baseName, typeof(FrameworkResources).Assembly);
 }

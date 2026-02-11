@@ -32,6 +32,6 @@ namespace Microsoft.Build.Shared
 
         public static ResourceManager PrimaryResources { get; } = new("Microsoft.Build.Strings", typeof(AssemblyResources).Assembly);
 
-        public static ResourceManager SharedResources => FrameworkResources.SharedResources;
+        public static ResourceManager SharedResources => FrameworkResources.PrimaryResources;
     }
 }

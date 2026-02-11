@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="ja" original="../Strings.shared.resx">
+  <file datatype="xml" source-language="en" target-language="ja" original="../SR.resx">
     <body>
       <trans-unit id="BuildAborted">
         <source>MSB4188: Build was canceled.</source>
@@ -83,6 +83,16 @@
       <trans-unit id="MissingProject">
         <source>MSBuild is expecting a valid "{0}" object.</source>
         <target state="translated">MSBuild は有効な "{0}" オブジェクトを必要としています。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PathMustBeRooted">
+        <source>Path must be rooted.</source>
+        <target state="translated">パスはルート指定パスである必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PathMustNotBeNullOrEmpty">
+        <source>Path must not be null or empty.</source>
+        <target state="translated">パスを null または空にすることはできません。</target>
         <note />
       </trans-unit>
       <trans-unit id="Shared.PathTooLong">

@@ -42,7 +42,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <remarks>This property is thread-safe.</remarks>
         /// <value>ResourceManager for shared resources.</value>
-        public static ResourceManager SharedResources => FrameworkResources.SharedResources;
+        public static ResourceManager SharedResources => FrameworkResources.PrimaryResources;
 
         /// <summary>
         /// Formats the given string using the variable arguments passed in. The current thread's culture is used for formatting.

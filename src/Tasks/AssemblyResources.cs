@@ -59,6 +59,6 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <remarks>This property is thread-safe.</remarks>
         /// <value>ResourceManager for shared resources.</value>
-        public static ResourceManager SharedResources => FrameworkResources.SharedResources;
+        public static ResourceManager SharedResources => FrameworkResources.PrimaryResources;
     }
 }

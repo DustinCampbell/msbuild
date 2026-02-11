@@ -53,7 +53,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build",
                 Path.Combine(GetRepoRoot(), "src", "Build"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Framework/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/SR.resx" });
         }
 
         /// <summary>
@@ -65,8 +65,7 @@ namespace Microsoft.Build.UnitTests
             VerifyResourcesForAssembly(
                 "Microsoft.Build.Framework",
                 Path.Combine(GetRepoRoot(), "src", "Framework"),
-                new[] { "Resources/Strings.resx" },
-                new[] { "Resources/Strings.shared.resx" });
+                new[] { "Resources/SR.resx" });
         }
 
         /// <summary>
@@ -79,7 +78,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build.Tasks.Core",
                 Path.Combine(GetRepoRoot(), "src", "Tasks"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Framework/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/SR.resx" });
         }
 
         /// <summary>
@@ -92,7 +91,7 @@ namespace Microsoft.Build.UnitTests
                 "Microsoft.Build.Utilities.Core",
                 Path.Combine(GetRepoRoot(), "src", "Utilities"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Framework/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/SR.resx" });
         }
 
         /// <summary>
@@ -105,7 +104,7 @@ namespace Microsoft.Build.UnitTests
                 "MSBuild",
                 Path.Combine(GetRepoRoot(), "src", "MSBuild"),
                 new[] { "Resources/Strings.resx" },
-                new[] { "../Framework/Resources/Strings.shared.resx" });
+                new[] { "../Framework/Resources/SR.resx" });
         }
 
         // NOTE: To add verification for additional assemblies, follow this pattern:
@@ -116,14 +115,14 @@ namespace Microsoft.Build.UnitTests
         //         "Your.Assembly.Name",
         //         Path.Combine(GetRepoRoot(), "src", "YourAssemblyFolder"),
         //         new[] { "Resources/Strings.resx" },  // Primary resources for this assembly
-        //         new[] { "../Shared/Resources/Strings.shared.resx" });  // Shared resources
+        //         new[] { "../Framework/Resources/SR.resx" });  // Shared resources
         // }
 
         private void VerifyResourcesForAssembly(
             string assemblyName,
             string sourceDirectory,
             string[] primaryResxPaths,
-            string[] sharedResxPaths)
+            string[]? sharedResxPaths = null)
         {
             _output.WriteLine($"Verifying resources for {assemblyName}");
             _output.WriteLine($"Source directory: {sourceDirectory}");
@@ -138,11 +137,14 @@ namespace Microsoft.Build.UnitTests
                 LoadResourcesFromResx(fullPath, availableResources);
             }
 
-            foreach (var resxPath in sharedResxPaths)
+            if (sharedResxPaths != null)
             {
-                var fullPath = Path.Combine(sourceDirectory, resxPath);
-                _output.WriteLine($"Loading shared resources from: {fullPath}");
-                LoadResourcesFromResx(fullPath, availableResources);
+                foreach (var resxPath in sharedResxPaths)
+                {
+                    var fullPath = Path.Combine(sourceDirectory, resxPath);
+                    _output.WriteLine($"Loading shared resources from: {fullPath}");
+                    LoadResourcesFromResx(fullPath, availableResources);
+                }
             }
 
             _output.WriteLine($"Total available resources: {availableResources.Count}");
