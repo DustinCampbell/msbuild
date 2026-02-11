@@ -4,7 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework.Resources;
 
 #nullable disable
 
@@ -84,7 +84,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Add(T item)
         {
-            ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+            throw new InvalidOperationException(SR.OM_NotSupportedReadOnlyCollection);
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Clear()
         {
-            ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+            throw new InvalidOperationException(SR.OM_NotSupportedReadOnlyCollection);
         }
 
         /// <summary>
@@ -115,8 +115,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public bool Remove(T item)
         {
-            ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
-            return false;
+            throw new InvalidOperationException(SR.OM_NotSupportedReadOnlyCollection);
         }
 
         /// <summary>
