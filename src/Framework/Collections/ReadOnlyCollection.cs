@@ -5,7 +5,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Resources;
 
 #nullable disable
 
@@ -35,7 +36,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         internal ReadOnlyCollection(IEnumerable<T> backing)
         {
-            ErrorUtilities.VerifyThrow(backing != null, "Need backing collection");
+            FrameworkErrorUtilities.VerifyThrow(backing != null, "Need backing collection");
 
             _backing = backing;
         }
@@ -98,7 +99,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Add(T item)
         {
-            ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+            throw new InvalidOperationException(SR.OM_NotSupportedReadOnlyCollection);
         }
 
         /// <summary>
@@ -106,7 +107,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Clear()
         {
-            ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+            throw new InvalidOperationException(SR.OM_NotSupportedReadOnlyCollection);
         }
 
         /// <summary>
@@ -129,7 +130,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void CopyTo(T[] array, int arrayIndex)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(array);
+            ArgumentNullException.ThrowIfNull(array);
 
             ICollection<T> backingCollection = _backing as ICollection<T>;
             if (backingCollection != null)
@@ -152,8 +153,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public bool Remove(T item)
         {
-            ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
-            return false;
+            throw new InvalidOperationException(SR.OM_NotSupportedReadOnlyCollection);
         }
 
         /// <summary>
@@ -185,7 +185,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         void ICollection.CopyTo(Array array, int index)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(array);
+            ArgumentNullException.ThrowIfNull(array);
 
             int i = index;
             foreach (T entry in _backing)
