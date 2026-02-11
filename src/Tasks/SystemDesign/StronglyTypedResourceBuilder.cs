@@ -22,19 +22,23 @@
 ===========================================================*/
 
 using System;
-using System.IO;
 #if FEATURE_RESXREADER_LIVEDESERIALIZATION
 using System.Collections;
 #endif
 using System.Collections.Generic;
-using System.Resources;
 using System.CodeDom;
 using System.CodeDom.Compiler;
-using System.Reflection;
-using System.Globalization;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Build.Tasks.ResourceHandling;
+using System.Globalization;
+using System.IO;
+using System.Reflection;
+using System.Resources;
+using System.Runtime.CompilerServices;
+using System.Security;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Tasks.ResourceHandling;
 
 /*
   Plan for the future:
@@ -58,7 +62,7 @@ using Microsoft.Build.Shared;
 
 #nullable disable
 
-namespace Microsoft.Build.Tasks
+namespace Microsoft.Build.Tasks.SystemDesign
 {
     internal static class StronglyTypedResourceBuilder
     {
@@ -217,14 +221,14 @@ namespace Microsoft.Build.Tasks
 
             srClass.Comments.Add(new CodeCommentStatement(DocCommentSummaryEnd, true));
             var debuggerAttrib =
-                new CodeTypeReference(typeof(System.Diagnostics.DebuggerNonUserCodeAttribute))
+                new CodeTypeReference(typeof(DebuggerNonUserCodeAttribute))
                 {
                     Options = CodeTypeReferenceOptions.GlobalReference
                 };
             srClass.CustomAttributes.Add(new CodeAttributeDeclaration(debuggerAttrib));
 
             var compilerGenedAttrib =
-                new CodeTypeReference(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute))
+                new CodeTypeReference(typeof(CompilerGeneratedAttribute))
                 {
                     Options = CodeTypeReferenceOptions.GlobalReference
                 };
@@ -402,7 +406,7 @@ namespace Microsoft.Build.Tasks
 
             // Mark the ResMgr property as advanced
             var editorBrowsableStateTypeRef =
-                new CodeTypeReference(typeof(System.ComponentModel.EditorBrowsableState))
+                new CodeTypeReference(typeof(EditorBrowsableState))
                 {
                     Options = CodeTypeReferenceOptions.GlobalReference
                 };
@@ -501,7 +505,7 @@ namespace Microsoft.Build.Tasks
                 }
 
                 // Encode the comment so it is safe for xml.  SecurityElement.Escape is the only method I've found to do this.
-                commentString = System.Security.SecurityElement.Escape(commentString);
+                commentString = SecurityElement.Escape(commentString);
             }
 
             return commentString;
@@ -747,7 +751,6 @@ namespace Microsoft.Build.Tasks
                 {
                     continue;
                 }
-
 
                 if (!codeProvider.IsValidIdentifier(key))
                 {

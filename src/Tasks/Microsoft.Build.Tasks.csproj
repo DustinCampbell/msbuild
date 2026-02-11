@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -21,15 +21,6 @@
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="system.design\system.design.txt">
-      <Type>Resx</Type>
-      <WithCulture>false</WithCulture>
-      <ManifestResourceName>%(Filename)</ManifestResourceName>
-      <FullClassName>Microsoft.Build.Tasks.SR</FullClassName>
-      <LogicalName>System.Design.resources</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
   <ItemGroup>
     <!-- Binary serialization by ITranslatable -->
     <Compile Include="..\Shared\InterningBinaryReader.cs" />
@@ -303,8 +294,8 @@
     <Compile Include="SdkToolsPathUtility.cs" />
     <Compile Include="SGen.cs" />
     <Compile Include="SignFile.cs" />
-    <Compile Include="System.Design.cs" />
-    <Compile Include="system.design\stronglytypedresourcebuilder.cs" />
+    <Compile Include="SystemDesign\SR.cs" />
+    <Compile Include="SystemDesign\StronglyTypedResourceBuilder.cs" />
     <Compile Include="TaskExtension.cs" />
     <Compile Include="TaskTranslatorHelpers.cs" />
     <Compile Include="Telemetry.cs" />
@@ -508,14 +499,12 @@
     <EmbeddedResource Include="BootstrapperUtil\xmltoconfig.xsl">
       <LogicalName>Microsoft.Build.Tasks.Deployment.Bootstrapper.xmltoconfig.xsl</LogicalName>
     </EmbeddedResource>
-    <TextStringResource Include="system.design\System.Design.txt">
-      <ResFile>System.Design</ResFile>
-      <Sealed>true</Sealed>
-      <Visibility>internal</Visibility>
-      <GenerateResource>true</GenerateResource>
-      <FullClassName>Microsoft.Build.Tasks.SR</FullClassName>
+    <EmbeddedResource Include="SystemDesign\System.Design.txt">
+      <Type>Resx</Type>
+      <WithCulture>false</WithCulture>
+      <ManifestResourceName>%(Filename)</ManifestResourceName>
       <LogicalName>System.Design.resources</LogicalName>
-    </TextStringResource>
+    </EmbeddedResource>
     <!-- Files to copy -->
     <DataFile Include="Microsoft.Common.targets">
       <SubType>Designer</SubType>
