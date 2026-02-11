@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -1116,15 +1117,9 @@ namespace Microsoft.Build.Execution
         public IDictionary<string, string> GlobalProperties
         {
             [DebuggerStepThrough]
-            get
-            {
-                if (_globalProperties == null /* cached */ || _globalProperties.Count == 0)
-                {
-                    return ReadOnlyEmptyDictionary<string, string>.Instance;
-                }
-
-                return _globalProperties.ToReadOnlyDictionary();
-            }
+            get => _globalProperties?.Count > 0
+                ? _globalProperties.ToReadOnlyDictionary()
+                : FrozenDictionary<string, string>.Empty;
         }
 
         /// <summary>
@@ -3127,17 +3122,11 @@ namespace Microsoft.Build.Execution
         /// </summary>
         /// <typeparam name="TValue">The value stored in the dictionary</typeparam>
         /// <param name="dictionary">Dictionary to clone.</param>
-        private static IDictionary<string, TValue> CreateCloneDictionary<TValue>(IDictionary<string, TValue> dictionary) where TValue : class, IKeyed
-        {
-            if (dictionary == null)
-            {
-                return ReadOnlyEmptyDictionary<string, TValue>.Instance;
-            }
-            else
-            {
-                return new ObjectModel.ReadOnlyDictionary<string, TValue>(dictionary);
-            }
-        }
+        private static IDictionary<string, TValue> CreateCloneDictionary<TValue>(IDictionary<string, TValue> dictionary)
+            where TValue : class, IKeyed
+            => dictionary != null
+                ? new ObjectModel.ReadOnlyDictionary<string, TValue>(dictionary)
+                : FrozenDictionary<string, TValue>.Empty;
 
         private static ProjectPropertyInstance InstantiateProjectPropertyInstance(ProjectProperty property, bool isImmutable)
         {

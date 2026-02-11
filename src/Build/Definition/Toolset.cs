@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -387,33 +388,17 @@ namespace Microsoft.Build.Evaluation
         /// Properties associated with the toolset
         /// </summary>
         public IDictionary<string, ProjectPropertyInstance> Properties
-        {
-            get
-            {
-                if (_properties == null)
-                {
-                    return ReadOnlyEmptyDictionary<string, ProjectPropertyInstance>.Instance;
-                }
-
-                return new ObjectModel.ReadOnlyDictionary<string, ProjectPropertyInstance>(_properties);
-            }
-        }
+            => _properties != null
+                ? new ObjectModel.ReadOnlyDictionary<string, ProjectPropertyInstance>(_properties)
+                : FrozenDictionary<string, ProjectPropertyInstance>.Empty;
 
         /// <summary>
         /// The set of sub-toolsets associated with this toolset.
         /// </summary>
         public IDictionary<string, SubToolset> SubToolsets
-        {
-            get
-            {
-                if (_subToolsets == null)
-                {
-                    return ReadOnlyEmptyDictionary<string, SubToolset>.Instance;
-                }
-
-                return new ObjectModel.ReadOnlyDictionary<string, SubToolset>(_subToolsets);
-            }
-        }
+            => _subToolsets != null
+                ? new ObjectModel.ReadOnlyDictionary<string, SubToolset>(_subToolsets)
+                : FrozenDictionary<string, SubToolset>.Empty;
 
         /// <summary>
         /// Returns the default sub-toolset version for this sub-toolset.  Heuristic used is:

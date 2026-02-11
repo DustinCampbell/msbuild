@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Reflection;
-using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
@@ -328,10 +328,10 @@ namespace Microsoft.Build.Execution
             }
 
             return new PropertyData(
-                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithRequiredAttribute ?? ReadOnlyEmptyDictionary<string, string>.Instance,
-                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithOutputAttribute ?? ReadOnlyEmptyDictionary<string, string>.Instance,
-                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithAmbiguousMatches ?? ReadOnlyEmptyDictionary<string, string>.Instance,
-                (IReadOnlyDictionary<string, TaskPropertyInfo>?)propertyInfoCache ?? ReadOnlyEmptyDictionary<string, TaskPropertyInfo>.Instance);
+                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithRequiredAttribute ?? FrozenDictionary<string, string>.Empty,
+                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithOutputAttribute ?? FrozenDictionary<string, string>.Empty,
+                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithAmbiguousMatches ?? FrozenDictionary<string, string>.Empty,
+                (IReadOnlyDictionary<string, TaskPropertyInfo>?)propertyInfoCache ?? FrozenDictionary<string, TaskPropertyInfo>.Empty);
         }
         #endregion
     }

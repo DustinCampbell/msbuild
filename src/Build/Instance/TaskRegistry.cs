@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,7 +12,6 @@ using System.Reflection;
 using System.Threading;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
@@ -1646,9 +1646,7 @@ namespace Microsoft.Build.Execution
                 /// The parameters from the ParameterGroup from the using task element which will be passed to the task factory.
                 /// </summary>
                 internal IDictionary<string, TaskPropertyInfo> UsingTaskParameters
-                {
-                    get { return _usingTaskParameters ?? ReadOnlyEmptyDictionary<string, TaskPropertyInfo>.Instance; }
-                }
+                    => _usingTaskParameters ?? FrozenDictionary<string, TaskPropertyInfo>.Empty;
 
                 /// <summary>
                 /// The body of the task element which will be passed to the task factory.

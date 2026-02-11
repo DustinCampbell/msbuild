@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -596,7 +597,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (_globalProperties.Count == 0)
                     {
-                        return ReadOnlyEmptyDictionary<string, string>.Instance;
+                        return FrozenDictionary<string, string>.Empty;
                     }
 
                     dictionary = new Dictionary<string, string>(_globalProperties.Count, MSBuildNameIgnoreCaseComparer.Default);

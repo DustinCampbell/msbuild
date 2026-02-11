@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -2152,7 +2153,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (_data.GlobalPropertiesDictionary.Count == 0)
                     {
-                        return ReadOnlyEmptyDictionary<string, string>.Instance;
+                        return FrozenDictionary<string, string>.Empty;
                     }
 
                     var dictionary = new Dictionary<string, string>(_data.GlobalPropertiesDictionary.Count, MSBuildNameIgnoreCaseComparer.Default);
@@ -2200,15 +2201,9 @@ namespace Microsoft.Build.Evaluation
             public override IDictionary<string, List<string>> ConditionedProperties
             {
                 [DebuggerStepThrough]
-                get
-                {
-                    if (_data.ConditionedProperties == null)
-                    {
-                        return ReadOnlyEmptyDictionary<string, List<string>>.Instance;
-                    }
-
-                    return new ObjectModel.ReadOnlyDictionary<string, List<string>>(_data.ConditionedProperties);
-                }
+                get => _data.ConditionedProperties != null
+                    ? new ObjectModel.ReadOnlyDictionary<string, List<string>>(_data.ConditionedProperties)
+                    : FrozenDictionary<string, List<string>>.Empty;
             }
 
             /// <summary>
@@ -2304,15 +2299,9 @@ namespace Microsoft.Build.Evaluation
             public override IDictionary<string, ProjectTargetInstance> Targets
             {
                 [DebuggerStepThrough]
-                get
-                {
-                    if (_data.Targets == null)
-                    {
-                        return ReadOnlyEmptyDictionary<string, ProjectTargetInstance>.Instance;
-                    }
-
-                    return new ObjectModel.ReadOnlyDictionary<string, ProjectTargetInstance>(_data.Targets);
-                }
+                get => _data.Targets != null
+                    ? new ObjectModel.ReadOnlyDictionary<string, ProjectTargetInstance>(_data.Targets)
+                    : FrozenDictionary<string, ProjectTargetInstance>.Empty;
             }
 
             /// <summary>

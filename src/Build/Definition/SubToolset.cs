@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -65,17 +66,9 @@ namespace Microsoft.Build.Evaluation
         /// The properties that correspond to this particular sub-toolset.
         /// </summary>
         public IDictionary<string, ProjectPropertyInstance> Properties
-        {
-            get
-            {
-                if (_properties == null)
-                {
-                    return ReadOnlyEmptyDictionary<string, ProjectPropertyInstance>.Instance;
-                }
-
-                return new ObjectModel.ReadOnlyDictionary<string, ProjectPropertyInstance>(_properties);
-            }
-        }
+            => _properties != null
+                ? new ObjectModel.ReadOnlyDictionary<string, ProjectPropertyInstance>(_properties)
+                : FrozenDictionary<string, ProjectPropertyInstance>.Empty;
 
         /// <summary>
         /// Translates the sub-toolset.
