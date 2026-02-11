@@ -99,18 +99,9 @@ namespace Microsoft.Build.Execution
         /// </summary>
         [SuppressMessage("Microsoft.Naming", "CA1721:PropertyNamesShouldNotMatchGetMethods", Justification = "This is a reasonable choice. API review approved")]
         public ICollection<ProjectMetadataInstance> Metadata
-        {
-            get
-            {
-                if (_metadata == null)
-                {
-                    return ReadOnlyEmptyCollection<ProjectMetadataInstance>.Instance;
-                }
-
-                IEnumerable<ProjectMetadataInstance> metadata = _metadata.Select(kvp => new ProjectMetadataInstance(kvp.Key, kvp.Value, allowItemSpecModifiers: true));
-                return new ReadOnlyCollection<ProjectMetadataInstance>(metadata);
-            }
-        }
+            => _metadata != null
+                ? new ReadOnlyCollection<ProjectMetadataInstance>(_metadata.Select(kvp => new ProjectMetadataInstance(kvp.Key, kvp.Value, allowItemSpecModifiers: true)))
+                : Array.Empty<ProjectMetadataInstance>();
 
         /// <summary>
         /// Number of pieces of metadata on this item definition.

@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Build.BackEnd;
@@ -91,12 +92,9 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectPropertyGroupTaskPropertyInstance> Properties
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_properties == null) ?
-                    (ICollection<ProjectPropertyGroupTaskPropertyInstance>)ReadOnlyEmptyCollection<ProjectPropertyGroupTaskPropertyInstance>.Instance :
-                    new ReadOnlyCollection<ProjectPropertyGroupTaskPropertyInstance>(_properties);
-            }
+            get => _properties != null
+                ? new ReadOnlyCollection<ProjectPropertyGroupTaskPropertyInstance>(_properties)
+                : Array.Empty<ProjectPropertyGroupTaskPropertyInstance>();
         }
 
         /// <summary>

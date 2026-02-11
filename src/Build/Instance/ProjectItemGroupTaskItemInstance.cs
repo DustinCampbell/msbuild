@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Build.BackEnd;
@@ -322,12 +323,9 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectItemGroupTaskMetadataInstance> Metadata
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_metadata == null) ?
-                    (ICollection<ProjectItemGroupTaskMetadataInstance>)ReadOnlyEmptyCollection<ProjectItemGroupTaskMetadataInstance>.Instance :
-                    new ReadOnlyCollection<ProjectItemGroupTaskMetadataInstance>(_metadata);
-            }
+            get => _metadata != null
+                ? new ReadOnlyCollection<ProjectItemGroupTaskMetadataInstance>(_metadata)
+                : Array.Empty<ProjectItemGroupTaskMetadataInstance>();
         }
 
         /// <summary>

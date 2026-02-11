@@ -1158,12 +1158,9 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectPropertyInstance> Properties
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_properties == null) ?
-                    (ICollection<ProjectPropertyInstance>)ReadOnlyEmptyCollection<ProjectPropertyInstance>.Instance :
-                    new ReadOnlyCollection<ProjectPropertyInstance>(_properties);
-            }
+            get => _properties != null
+                ? new ReadOnlyCollection<ProjectPropertyInstance>(_properties)
+                : Array.Empty<ProjectPropertyInstance>();
         }
 
         /// <summary>
@@ -1173,12 +1170,9 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectItemInstance> Items
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_items == null) ?
-                    (ICollection<ProjectItemInstance>)ReadOnlyEmptyCollection<ProjectItemInstance>.Instance :
-                    new ReadOnlyCollection<ProjectItemInstance>(_items);
-            }
+            get => _items != null
+                ? new ReadOnlyCollection<ProjectItemInstance>(_items)
+                : Array.Empty<ProjectItemInstance>();
         }
 
         /// <summary>

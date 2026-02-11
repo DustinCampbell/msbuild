@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Build.BackEnd;
@@ -91,12 +92,9 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectItemGroupTaskItemInstance> Items
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_items == null) ?
-                    (ICollection<ProjectItemGroupTaskItemInstance>)ReadOnlyEmptyCollection<ProjectItemGroupTaskItemInstance>.Instance :
-                    new ReadOnlyCollection<ProjectItemGroupTaskItemInstance>(_items);
-            }
+            get => _items != null
+                ? new ReadOnlyCollection<ProjectItemGroupTaskItemInstance>(_items)
+                : Array.Empty<ProjectItemGroupTaskItemInstance>();
         }
 
         /// <summary>

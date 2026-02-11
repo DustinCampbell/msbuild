@@ -2323,19 +2323,9 @@ namespace Microsoft.Build.Evaluation
             /// It does not include any properties added since the last evaluation.
             /// </summary>
             public override ICollection<ProjectProperty> AllEvaluatedProperties
-            {
-                get
-                {
-                    ICollection<ProjectProperty> allEvaluatedProperties = _data.AllEvaluatedProperties;
-
-                    if (allEvaluatedProperties == null)
-                    {
-                        return ReadOnlyEmptyCollection<ProjectProperty>.Instance;
-                    }
-
-                    return new ReadOnlyCollection<ProjectProperty>(allEvaluatedProperties);
-                }
-            }
+                => _data.AllEvaluatedProperties is ICollection<ProjectProperty> allEvaluatedProperties
+                    ? new ReadOnlyCollection<ProjectProperty>(allEvaluatedProperties)
+                    : Array.Empty<ProjectProperty>();
 
             /// <summary>
             /// Item definition metadata encountered during evaluation. These are read during the second evaluation pass.
@@ -2345,19 +2335,9 @@ namespace Microsoft.Build.Evaluation
             /// It does not include any item definition metadata added since the last evaluation.
             /// </summary>
             public override ICollection<ProjectMetadata> AllEvaluatedItemDefinitionMetadata
-            {
-                get
-                {
-                    ICollection<ProjectMetadata> allEvaluatedItemDefinitionMetadata = _data.AllEvaluatedItemDefinitionMetadata;
-
-                    if (allEvaluatedItemDefinitionMetadata == null)
-                    {
-                        return ReadOnlyEmptyCollection<ProjectMetadata>.Instance;
-                    }
-
-                    return new ReadOnlyCollection<ProjectMetadata>(allEvaluatedItemDefinitionMetadata);
-                }
-            }
+                => _data.AllEvaluatedItemDefinitionMetadata is ICollection<ProjectMetadata> allEvaluatedItemDefinitionMetadata
+                    ? new ReadOnlyCollection<ProjectMetadata>(allEvaluatedItemDefinitionMetadata)
+                    : Array.Empty<ProjectMetadata>();
 
             /// <summary>
             /// Items encountered during evaluation. These are read during the third evaluation pass.
@@ -2369,19 +2349,9 @@ namespace Microsoft.Build.Evaluation
             /// It does not include any items added since the last evaluation.
             /// </summary>
             public override ICollection<ProjectItem> AllEvaluatedItems
-            {
-                get
-                {
-                    ICollection<ProjectItem> allEvaluatedItems = _data.AllEvaluatedItems;
-
-                    if (allEvaluatedItems == null)
-                    {
-                        return ReadOnlyEmptyCollection<ProjectItem>.Instance;
-                    }
-
-                    return new ReadOnlyCollection<ProjectItem>(allEvaluatedItems);
-                }
-            }
+                => _data.AllEvaluatedItems is ICollection<ProjectItem> allEvaluatedItems
+                    ? new ReadOnlyCollection<ProjectItem>(allEvaluatedItems)
+                    : Array.Empty<ProjectItem>();
 
             /// <summary>
             /// The tools version this project was evaluated with, if any.

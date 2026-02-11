@@ -261,9 +261,9 @@ namespace Microsoft.Build.Evaluation
         /// Never returns null.
         /// </summary>
         public IEnumerable<ProjectMetadata> DirectMetadata
-        {
-            get { return Link != null ? Link.DirectMetadata : (IEnumerable<ProjectMetadata>)_directMetadata ?? (IEnumerable<ProjectMetadata>)ReadOnlyEmptyCollection<ProjectMetadata>.Instance; }
-        }
+            => Link != null
+                ? Link.DirectMetadata
+                : (IEnumerable<ProjectMetadata>)_directMetadata ?? Array.Empty<ProjectMetadata>();
 
         /// <summary>
         /// Count of direct metadata on this item, if any.

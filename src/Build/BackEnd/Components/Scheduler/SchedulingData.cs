@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -569,10 +568,9 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         public IEnumerable<SchedulableRequest> GetScheduledRequestsByNode(int nodeId)
         {
-            HashSet<SchedulableRequest> requests;
-            if (!_scheduledRequestsByNode.TryGetValue(nodeId, out requests))
+            if (!_scheduledRequestsByNode.TryGetValue(nodeId, out HashSet<SchedulableRequest> requests))
             {
-                return ReadOnlyEmptyCollection<SchedulableRequest>.Instance;
+                return [];
             }
 
             return requests;
@@ -583,10 +581,9 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         public IEnumerable<SchedulableRequest> GetReadyRequestsByNode(int nodeId)
         {
-            HashSet<SchedulableRequest> requests;
-            if (!_readyRequestsByNode.TryGetValue(nodeId, out requests))
+            if (!_readyRequestsByNode.TryGetValue(nodeId, out HashSet<SchedulableRequest> requests))
             {
-                return ReadOnlyEmptyCollection<SchedulableRequest>.Instance;
+                return [];
             }
 
             return requests;
