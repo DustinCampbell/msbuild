@@ -72,9 +72,6 @@
     <Compile Include="..\Shared\ErrorUtilities.cs">
       <Link>Shared\ErrorUtilities.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\EscapingUtilities.cs">
-      <Link>Shared\EscapingUtilities.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\EventArgsFormatting.cs">
       <Link>Shared\EventArgsFormatting.cs</Link>
     </Compile>
