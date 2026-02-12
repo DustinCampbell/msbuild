@@ -235,7 +235,7 @@ namespace Microsoft.Build.Tasks.ResourceHandling
             if (pathsRelativeToBasePath)
             {
                 fileName = Path.Combine(
-                    FileUtilities.GetDirectory(
+                    FrameworkFileUtilities.GetDirectory(
                         FrameworkFileUtilities.NormalizePath(resxFilename)),
                     fileName);
             }

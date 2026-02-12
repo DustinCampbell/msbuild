@@ -236,28 +236,43 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Exercises FileUtilities.GetDirectory
+        /// Exercises FrameworkFileUtilities.GetDirectory - Windows-specific paths.
         /// </summary>
-        [Fact]
+        [WindowsOnlyTheory]
+        [InlineData(@"c:\", @"c:\")]
+        [InlineData(@"c:\foo", @"c:\")]
+        [InlineData(@"c:", @"c:")]
+        public void GetDirectoryWithTrailingSlash_Windows(string input, string expected)
+            => FrameworkFileUtilities.GetDirectory(input).ShouldBe(expected);
+
+        /// <summary>
+        /// Exercises FrameworkFileUtilities.GetDirectory - Unix-specific paths.
+        /// </summary>
+        [UnixOnlyTheory]
+        [InlineData("/", "/")]
+        [InlineData("/foo", "/")]
+        public void GetDirectoryWithTrailingSlash_Unix(string input, string expected)
+            => FrameworkFileUtilities.GetDirectory(input).ShouldBe(expected);
+
+        /// <summary>
+        /// Exercises FrameworkFileUtilities.GetDirectory - Cross-platform paths.
+        /// </summary>
+        [Theory]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]
-        public void GetDirectoryWithTrailingSlash()
-        {
-            Assert.Equal(NativeMethodsShared.IsWindows ? @"c:\" : "/", FileUtilities.GetDirectory(NativeMethodsShared.IsWindows ? @"c:\" : "/"));
-            Assert.Equal(NativeMethodsShared.IsWindows ? @"c:\" : "/", FileUtilities.GetDirectory(NativeMethodsShared.IsWindows ? @"c:\foo" : "/foo"));
-            Assert.Equal(NativeMethodsShared.IsWindows ? @"c:" : "/", FileUtilities.GetDirectory(NativeMethodsShared.IsWindows ? @"c:" : "/"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"\"), FileUtilities.GetDirectory(@"\"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"\"), FileUtilities.GetDirectory(@"\foo"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"..\"), FileUtilities.GetDirectory(@"..\foo"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"\foo\"), FileUtilities.GetDirectory(@"\foo\"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"\\server\share"), FileUtilities.GetDirectory(@"\\server\share"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"\\server\share\"), FileUtilities.GetDirectory(@"\\server\share\"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"\\server\share\"), FileUtilities.GetDirectory(@"\\server\share\file"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"\\server\share\directory\"), FileUtilities.GetDirectory(@"\\server\share\directory\"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"foo\"), FileUtilities.GetDirectory(@"foo\bar"));
-            Assert.Equal(FrameworkFileUtilities.FixFilePath(@"\foo\bar\"), FileUtilities.GetDirectory(@"\foo\bar\"));
-            Assert.Equal(String.Empty, FileUtilities.GetDirectory("foo"));
-        }
+        [InlineData(@"\", @"\")]
+        [InlineData(@"\foo", @"\")]
+        [InlineData(@"..\foo", @"..\")]
+        [InlineData(@"\foo\", @"\foo\")]
+        [InlineData(@"\\server\share", @"\\server\share")]
+        [InlineData(@"\\server\share\", @"\\server\share\")]
+        [InlineData(@"\\server\share\file", @"\\server\share\")]
+        [InlineData(@"\\server\share\directory\", @"\\server\share\directory\")]
+        [InlineData(@"foo\bar", @"foo\")]
+        [InlineData(@"\foo\bar\", @"\foo\bar\")]
+        [InlineData("foo", "")]
+        public void GetDirectoryWithTrailingSlash_CrossPlatform(string input, string expected)
+            => FrameworkFileUtilities.GetDirectory(input).ShouldBe(FrameworkFileUtilities.FixFilePath(expected));
 
         [Theory]
         [InlineData("foo.txt", new[] { ".txt" })]

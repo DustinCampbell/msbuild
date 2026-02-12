@@ -425,7 +425,7 @@ namespace Microsoft.Build.Shared
             {
                 string uncheckedFullPath = NativeMethodsShared.GetFullPath(path);
 
-                if (IsPathTooLong(uncheckedFullPath))
+                if (FrameworkFileUtilities.IsPathTooLong(uncheckedFullPath))
                 {
                     string message = ResourceUtilities.FormatString(AssemblyResources.GetString("Shared.PathTooLong"), path, NativeMethodsShared.MaxPath);
                     throw new PathTooLongException(message);
@@ -632,31 +632,6 @@ namespace Microsoft.Build.Shared
         }
 #endif
 
-        /// <summary>
-        /// Extracts the directory from the given file-spec.
-        /// </summary>
-        /// <param name="fileSpec">The filespec.</param>
-        /// <returns>directory path</returns>
-        internal static string GetDirectory(string fileSpec)
-        {
-            string directory = Path.GetDirectoryName(FrameworkFileUtilities.FixFilePath(fileSpec));
-
-            // if file-spec is a root directory e.g. c:, c:\, \, \\server\share
-            // NOTE: Path.GetDirectoryName also treats invalid UNC file-specs as root directories e.g. \\, \\server
-            if (directory == null)
-            {
-                // just use the file-spec as-is
-                directory = fileSpec;
-            }
-            else if ((directory.Length > 0) && !FrameworkFileUtilities.EndsWithSlash(directory))
-            {
-                // restore trailing slash if Path.GetDirectoryName has removed it (this happens with non-root directories)
-                directory += Path.DirectorySeparatorChar;
-            }
-
-            return directory;
-        }
-
 #if !CLR2COMPATIBILITY
         /// <summary>
         /// Deletes all subdirectories within the specified directory without throwing exceptions.
@@ -721,40 +696,6 @@ namespace Microsoft.Build.Shared
         /// Get the currently executing assembly path
         /// </summary>
         internal static string ExecutingAssemblyPath => Path.GetFullPath(AssemblyUtilities.GetAssemblyLocation(typeof(FileUtilities).GetTypeInfo().Assembly));
-
-        /// <summary>
-        /// Determines the full path for the given file-spec.
-        /// ASSUMES INPUT IS STILL ESCAPED
-        /// </summary>
-        /// <param name="fileSpec">The file spec to get the full path of.</param>
-        /// <param name="currentDirectory"></param>
-        /// <param name="escape">Whether to escape the path after getting the full path.</param>
-        /// <returns>Full path to the file, escaped if not specified otherwise.</returns>
-        internal static string GetFullPath(string fileSpec, string currentDirectory, bool escape = true)
-        {
-            // Sending data out of the engine into the filesystem, so time to unescape.
-            fileSpec = FrameworkFileUtilities.FixFilePath(EscapingUtilities.UnescapeAll(fileSpec));
-
-            string fullPath = FrameworkFileUtilities.NormalizePath(Path.Combine(currentDirectory, fileSpec));
-            // In some cases we might want to NOT escape in order to preserve symbols like @, %, $ etc.
-            if (escape)
-            {
-                // Data coming back from the filesystem into the engine, so time to escape it back.
-                fullPath = EscapingUtilities.Escape(fullPath);
-            }
-
-            if (NativeMethodsShared.IsWindows && !FrameworkFileUtilities.EndsWithSlash(fullPath))
-            {
-                if (FileUtilitiesRegex.IsDrivePattern(fileSpec) ||
-                    FileUtilitiesRegex.IsUncPattern(fullPath))
-                {
-                    // append trailing slash if Path.GetFullPath failed to (this happens with drive-specs and UNC shares)
-                    fullPath += Path.DirectorySeparatorChar;
-                }
-            }
-
-            return fullPath;
-        }
 
         /// <summary>
         /// A variation of Path.GetFullPath that will return the input value
@@ -1186,18 +1127,12 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static string AttemptToShortenPath(string path)
         {
-            if (IsPathTooLong(path) || IsPathTooLongIfRooted(path))
+            if (FrameworkFileUtilities.IsPathTooLong(path) || IsPathTooLongIfRooted(path))
             {
                 // Attempt to make it shorter -- perhaps there are some \..\ elements
                 path = GetFullPathNoThrow(path);
             }
             return FrameworkFileUtilities.FixFilePath(path);
-        }
-
-        public static bool IsPathTooLong(string path)
-        {
-            // >= not > because MAX_PATH assumes a trailing null
-            return path.Length >= NativeMethodsShared.MaxPath;
         }
 
         private static bool IsPathTooLongIfRooted(string path)
@@ -1552,7 +1487,7 @@ namespace System.IO
                 {
                     throw new EndOfStreamException();
                 }
-                offset +=read;
+                offset += read;
                 count -= read;
             }
         }

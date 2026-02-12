@@ -672,7 +672,7 @@ namespace Microsoft.Build.Construction
                 JsonDocument text = JsonDocument.Parse(FileSystems.Default.ReadFileAllText(solutionFilterFile), options);
                 solution = text.RootElement.GetProperty("solution");
                 // We do NOT want to escape in order to preserve symbols like @, %, $ etc.
-                return FileUtilities.GetFullPath(solution.GetProperty("path").GetString(), Path.GetDirectoryName(solutionFilterFile), escape: false);
+                return FrameworkFileUtilities.GetFullPath(solution.GetProperty("path").GetString(), Path.GetDirectoryName(solutionFilterFile), escape: false);
             }
             catch (Exception e) when (e is JsonException || e is KeyNotFoundException || e is InvalidOperationException)
             {
@@ -917,7 +917,7 @@ namespace Microsoft.Build.Construction
                 {
                     ProjectFileErrorUtilities.ThrowInvalidProjectFile(
                         "SubCategoryForSolutionParsingErrors",
-                        new BuildEventFileInfo(FileUtilities.GetFullPath(project, Path.GetDirectoryName(_solutionFile))),
+                        new BuildEventFileInfo(FrameworkFileUtilities.GetFullPath(project, Path.GetDirectoryName(_solutionFile))),
                         "SolutionFilterFilterContainsProjectNotInSolution",
                         _solutionFilterFile,
                         project,

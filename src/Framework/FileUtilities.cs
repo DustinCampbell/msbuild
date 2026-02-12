@@ -61,16 +61,14 @@ namespace Microsoft.Build.Framework
         }
 
         /// <summary>
-        /// Indicates if the given file-spec ends with a slash.
+        ///  Indicates if the given file path ends with a slash.
         /// </summary>
-        /// <param name="fileSpec">The file spec.</param>
-        /// <returns>true, if file-spec has trailing slash</returns>
-        internal static bool EndsWithSlash(string fileSpec)
-        {
-            return (fileSpec.Length > 0)
-                ? IsSlash(fileSpec[fileSpec.Length - 1])
-                : false;
-        }
+        /// <param name="path">The file path to test.</param>
+        /// <returns>
+        ///  <see langword="true"/>, if <paramref name="path"/> has trailing slash; otherwise, <see langword="false"/>.
+        /// </returns>
+        internal static bool EndsWithSlash(string path)
+            => path.Length > 0 && IsSlash(path[^1]);
 
         /// <summary>
         /// Fixes backslashes to forward slashes on Unix. This allows to recognise windows style paths on Unix. 
@@ -208,9 +206,10 @@ namespace Microsoft.Build.Framework
             if (directory == null)
             {
                 // just use the file-spec as-is
-                directory = fileSpec;
+                return fileSpec;
             }
-            else if ((directory.Length > 0) && !EndsWithSlash(directory))
+
+            if (directory.Length > 0 && !EndsWithSlash(directory))
             {
                 // restore trailing slash if Path.GetDirectoryName has removed it (this happens with non-root directories)
                 directory += Path.DirectorySeparatorChar;
