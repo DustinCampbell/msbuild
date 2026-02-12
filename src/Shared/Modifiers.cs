@@ -184,14 +184,14 @@ namespace Microsoft.Build.Shared
             [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity", Justification = "Pre-existing")]
             internal static string GetItemSpecModifier(string currentDirectory, string itemSpec, string definingProjectEscaped, string modifier, ref string fullPath)
             {
-                ErrorUtilities.VerifyThrow(itemSpec != null, "Need item-spec to modify.");
-                ErrorUtilities.VerifyThrow(modifier != null, "Need modifier to apply to item-spec.");
+                FrameworkErrorUtilities.VerifyThrow(itemSpec != null, "Need item-spec to modify.");
+                FrameworkErrorUtilities.VerifyThrow(modifier != null, "Need modifier to apply to item-spec.");
 
                 string modifiedItemSpec = null;
 
                 try
                 {
-                    if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.FullPath, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(modifier, ItemSpecModifiers.FullPath, StringComparison.OrdinalIgnoreCase))
                     {
                         if (fullPath != null)
                         {
@@ -207,12 +207,12 @@ namespace Microsoft.Build.Shared
 #endif
                         }
 
-                        modifiedItemSpec = GetFullPath(itemSpec, currentDirectory);
+                        modifiedItemSpec = FrameworkFileUtilities.GetFullPath(itemSpec, currentDirectory);
                         fullPath = modifiedItemSpec;
 
                         ThrowForUrl(modifiedItemSpec, itemSpec, currentDirectory);
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.RootDir, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.RootDir, StringComparison.OrdinalIgnoreCase))
                     {
                         GetItemSpecModifier(currentDirectory, itemSpec, definingProjectEscaped, ItemSpecModifiers.FullPath, ref fullPath);
 
@@ -220,7 +220,7 @@ namespace Microsoft.Build.Shared
 
                         if (!FrameworkFileUtilities.EndsWithSlash(modifiedItemSpec))
                         {
-                            ErrorUtilities.VerifyThrow(FileUtilitiesRegex.StartsWithUncPattern(modifiedItemSpec),
+                            FrameworkErrorUtilities.VerifyThrow(FileUtilitiesRegex.StartsWithUncPattern(modifiedItemSpec),
                                 "Only UNC shares should be missing trailing slashes.");
 
                             // restore/append trailing slash if Path.GetPathRoot() has either removed it, or failed to add it
@@ -228,7 +228,7 @@ namespace Microsoft.Build.Shared
                             modifiedItemSpec += Path.DirectorySeparatorChar;
                         }
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.Filename, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.Filename, StringComparison.OrdinalIgnoreCase))
                     {
                         // if the item-spec is a root directory, it can have no filename
                         if (IsRootDirectory(itemSpec))
@@ -243,7 +243,7 @@ namespace Microsoft.Build.Shared
                             modifiedItemSpec = Path.GetFileNameWithoutExtension(FrameworkFileUtilities.FixFilePath(itemSpec));
                         }
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.Extension, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.Extension, StringComparison.OrdinalIgnoreCase))
                     {
                         // if the item-spec is a root directory, it can have no extension
                         if (IsRootDirectory(itemSpec))
@@ -257,17 +257,17 @@ namespace Microsoft.Build.Shared
                             modifiedItemSpec = Path.GetExtension(itemSpec);
                         }
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.RelativeDir, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.RelativeDir, StringComparison.OrdinalIgnoreCase))
                     {
-                        modifiedItemSpec = GetDirectory(itemSpec);
+                        modifiedItemSpec = FrameworkFileUtilities.GetDirectory(itemSpec);
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.Directory, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.Directory, StringComparison.OrdinalIgnoreCase))
                     {
                         GetItemSpecModifier(currentDirectory, itemSpec, definingProjectEscaped, ItemSpecModifiers.FullPath, ref fullPath);
 
-                        modifiedItemSpec = GetDirectory(fullPath);
+                        modifiedItemSpec = FrameworkFileUtilities.GetDirectory(fullPath);
 
-                        if (NativeMethodsShared.IsWindows)
+                        if (NativeMethods.IsWindows)
                         {
                             int length = -1;
                             if (FileUtilitiesRegex.StartsWithDrivePattern(modifiedItemSpec))
@@ -281,7 +281,7 @@ namespace Microsoft.Build.Shared
 
                             if (length != -1)
                             {
-                                ErrorUtilities.VerifyThrow((modifiedItemSpec.Length > length) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[length]),
+                                FrameworkErrorUtilities.VerifyThrow((modifiedItemSpec.Length > length) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[length]),
                                                            "Root directory must have a trailing slash.");
 
                                 modifiedItemSpec = modifiedItemSpec.Substring(length + 1);
@@ -289,7 +289,7 @@ namespace Microsoft.Build.Shared
                         }
                         else
                         {
-                            ErrorUtilities.VerifyThrow(!string.IsNullOrEmpty(modifiedItemSpec) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[0]),
+                            FrameworkErrorUtilities.VerifyThrow(!string.IsNullOrEmpty(modifiedItemSpec) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[0]),
                                                        "Expected a full non-windows path rooted at '/'.");
 
                             // A full unix path is always rooted at
@@ -298,34 +298,16 @@ namespace Microsoft.Build.Shared
                             modifiedItemSpec = modifiedItemSpec.Substring(1);
                         }
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.RecursiveDir, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.RecursiveDir, StringComparison.OrdinalIgnoreCase))
                     {
                         // only the BuildItem class can compute this modifier -- so leave empty
                         modifiedItemSpec = String.Empty;
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.Identity, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.Identity, StringComparison.OrdinalIgnoreCase))
                     {
                         modifiedItemSpec = itemSpec;
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.ModifiedTime, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // About to go out to the filesystem.  This means data is leaving the engine, so need
-                        // to unescape first.
-                        string unescapedItemSpec = EscapingUtilities.UnescapeAll(itemSpec);
-
-                        FileInfo info = FileUtilities.GetFileInfoNoThrow(unescapedItemSpec);
-
-                        if (info != null)
-                        {
-                            modifiedItemSpec = info.LastWriteTime.ToString(FileTimeFormat, null);
-                        }
-                        else
-                        {
-                            // File does not exist, or path is a directory
-                            modifiedItemSpec = String.Empty;
-                        }
-                    }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.CreatedTime, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.ModifiedTime, StringComparison.OrdinalIgnoreCase))
                     {
                         // About to go out to the filesystem.  This means data is leaving the engine, so need
                         // to unescape first.
@@ -333,7 +315,7 @@ namespace Microsoft.Build.Shared
 
                         if (FileSystems.Default.FileExists(unescapedItemSpec))
                         {
-                            modifiedItemSpec = File.GetCreationTime(unescapedItemSpec).ToString(FileTimeFormat, null);
+                            modifiedItemSpec = File.GetLastWriteTime(unescapedItemSpec).ToString(FrameworkFileUtilities.FileTimeFormat, null);
                         }
                         else
                         {
@@ -341,7 +323,7 @@ namespace Microsoft.Build.Shared
                             modifiedItemSpec = String.Empty;
                         }
                     }
-                    else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.AccessedTime, StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(modifier, ItemSpecModifiers.CreatedTime, StringComparison.OrdinalIgnoreCase))
                     {
                         // About to go out to the filesystem.  This means data is leaving the engine, so need
                         // to unescape first.
@@ -349,7 +331,23 @@ namespace Microsoft.Build.Shared
 
                         if (FileSystems.Default.FileExists(unescapedItemSpec))
                         {
-                            modifiedItemSpec = File.GetLastAccessTime(unescapedItemSpec).ToString(FileTimeFormat, null);
+                            modifiedItemSpec = File.GetCreationTime(unescapedItemSpec).ToString(FrameworkFileUtilities.FileTimeFormat, null);
+                        }
+                        else
+                        {
+                            // File does not exist, or path is a directory
+                            modifiedItemSpec = String.Empty;
+                        }
+                    }
+                    else if (string.Equals(modifier, ItemSpecModifiers.AccessedTime, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // About to go out to the filesystem.  This means data is leaving the engine, so need
+                        // to unescape first.
+                        string unescapedItemSpec = EscapingUtilities.UnescapeAll(itemSpec);
+
+                        if (FileSystems.Default.FileExists(unescapedItemSpec))
+                        {
+                            modifiedItemSpec = File.GetLastAccessTime(unescapedItemSpec).ToString(FrameworkFileUtilities.FileTimeFormat, null);
                         }
                         else
                         {
@@ -366,7 +364,7 @@ namespace Microsoft.Build.Shared
                         }
                         else
                         {
-                            if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.DefiningProjectDirectory, StringComparison.OrdinalIgnoreCase))
+                            if (string.Equals(modifier, ItemSpecModifiers.DefiningProjectDirectory, StringComparison.OrdinalIgnoreCase))
                             {
                                 // ItemSpecModifiers.Directory does not contain the root directory
                                 modifiedItemSpec = Path.Combine(
@@ -377,21 +375,21 @@ namespace Microsoft.Build.Shared
                             {
                                 string additionalModifier = null;
 
-                                if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.DefiningProjectFullPath, StringComparison.OrdinalIgnoreCase))
+                                if (string.Equals(modifier, ItemSpecModifiers.DefiningProjectFullPath, StringComparison.OrdinalIgnoreCase))
                                 {
                                     additionalModifier = ItemSpecModifiers.FullPath;
                                 }
-                                else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.DefiningProjectName, StringComparison.OrdinalIgnoreCase))
+                                else if (string.Equals(modifier, ItemSpecModifiers.DefiningProjectName, StringComparison.OrdinalIgnoreCase))
                                 {
                                     additionalModifier = ItemSpecModifiers.Filename;
                                 }
-                                else if (string.Equals(modifier, FileUtilities.ItemSpecModifiers.DefiningProjectExtension, StringComparison.OrdinalIgnoreCase))
+                                else if (string.Equals(modifier, ItemSpecModifiers.DefiningProjectExtension, StringComparison.OrdinalIgnoreCase))
                                 {
                                     additionalModifier = ItemSpecModifiers.Extension;
                                 }
                                 else
                                 {
-                                    ErrorUtilities.ThrowInternalError("\"{0}\" is not a valid item-spec modifier.", modifier);
+                                    FrameworkErrorUtilities.ThrowInternalError("\"{0}\" is not a valid item-spec modifier.", modifier);
                                 }
 
                                 modifiedItemSpec = GetItemSpecModifier(currentDirectory, definingProjectEscaped, null, additionalModifier);
@@ -400,12 +398,12 @@ namespace Microsoft.Build.Shared
                     }
                     else
                     {
-                        ErrorUtilities.ThrowInternalError("\"{0}\" is not a valid item-spec modifier.", modifier);
+                        FrameworkErrorUtilities.ThrowInternalError("\"{0}\" is not a valid item-spec modifier.", modifier);
                     }
                 }
-                catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
+                catch (Exception e) when (FrameworkExceptionHandling.IsIoRelatedException(e))
                 {
-                    ErrorUtilities.ThrowInvalidOperation("Shared.InvalidFilespecForTransform", modifier, itemSpec, e.Message);
+                    FrameworkErrorUtilities.ThrowInvalidOperation("Shared.InvalidFilespecForTransform", modifier, itemSpec, e.Message);
                 }
 
                 return modifiedItemSpec;

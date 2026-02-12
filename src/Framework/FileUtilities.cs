@@ -2,13 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #if !TASKHOST
+using System;
+using System.IO;
 using System.Threading;
+using Microsoft.Build.Shared;
+#endif
+
+#if FEATURE_LEGACY_GETFULLPATH
+using Microsoft.Build.Framework.Resources;
 #endif
 
 #if NETFRAMEWORK && !TASKHOST
 using Path = Microsoft.IO.Path;
-#else
-using System.IO;
 #endif
 
 namespace Microsoft.Build.Framework
@@ -22,6 +27,9 @@ namespace Microsoft.Build.Framework
     /// </summary>
     internal static class FrameworkFileUtilities
     {
+        // ISO 8601 Universal time with sortable format
+        internal const string FileTimeFormat = "yyyy'-'MM'-'dd HH':'mm':'ss'.'fffffff";
+
         private const char UnixDirectorySeparator = '/';
         private const char WindowsDirectorySeparator = '\\';
 
@@ -103,6 +111,144 @@ namespace Microsoft.Build.Framework
 
             return path;
         }
+
+        /// <summary>
+        /// Determines the full path for the given file-spec.
+        /// ASSUMES INPUT IS STILL ESCAPED
+        /// </summary>
+        /// <param name="fileSpec">The file spec to get the full path of.</param>
+        /// <param name="currentDirectory"></param>
+        /// <param name="escape">Whether to escape the path after getting the full path.</param>
+        /// <returns>Full path to the file, escaped if not specified otherwise.</returns>
+        internal static string GetFullPath(string fileSpec, string currentDirectory, bool escape = true)
+        {
+            // Sending data out of the engine into the filesystem, so time to unescape.
+            fileSpec = FixFilePath(EscapingUtilities.UnescapeAll(fileSpec));
+
+            string fullPath = NormalizePath(Path.Combine(currentDirectory, fileSpec));
+            // In some cases we might want to NOT escape in order to preserve symbols like @, %, $ etc.
+            if (escape)
+            {
+                // Data coming back from the filesystem into the engine, so time to escape it back.
+                fullPath = EscapingUtilities.Escape(fullPath);
+            }
+
+            if (NativeMethods.IsWindows && !EndsWithSlash(fullPath))
+            {
+                if (FileUtilitiesRegex.IsDrivePattern(fileSpec) ||
+                    FileUtilitiesRegex.IsUncPattern(fullPath))
+                {
+                    // append trailing slash if Path.GetFullPath failed to (this happens with drive-specs and UNC shares)
+                    fullPath += Path.DirectorySeparatorChar;
+                }
+            }
+
+            return fullPath;
+        }
+
+        /// <summary>
+        /// Gets the canonicalized full path of the provided path.
+        /// Guidance for use: call this on all paths accepted through public entry
+        /// points that need normalization. After that point, only verify the path
+        /// is rooted, using ErrorUtilities.VerifyThrowPathRooted.
+        /// ASSUMES INPUT IS ALREADY UNESCAPED.
+        /// </summary>
+        internal static string NormalizePath(string path)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(path);
+            string fullPath = GetFullPath(path);
+            return FixFilePath(fullPath);
+        }
+
+        private static string GetFullPath(string path)
+        {
+#if FEATURE_LEGACY_GETFULLPATH
+            if (NativeMethods.IsWindows)
+            {
+                string uncheckedFullPath = NativeMethods.GetFullPath(path);
+
+                if (IsPathTooLong(uncheckedFullPath))
+                {
+                    throw new PathTooLongException(string.Format(SR.Shared_PathTooLong, path, NativeMethods.MaxPath));
+                }
+
+                // We really don't care about extensions here, but System.IO.Path.HasExtension provides a great way to
+                // invoke the CLR's invalid path checks (these are independent of path length).
+                //
+                // Note: Microsoft.IO.Path.HasExtension and the modern .NET System.IO.Path.HasExtension do not provide the same path validation.
+                _ = System.IO.Path.HasExtension(uncheckedFullPath);
+
+                // If we detect we are a UNC path then we need to use the regular get full path in order to do the correct checks for UNC formatting
+                // and security checks for strings like \\?\GlobalRoot
+                return IsUNCPath(uncheckedFullPath)
+                    ? System.IO.Path.GetFullPath(uncheckedFullPath)
+                    : uncheckedFullPath;
+            }
+#endif
+            return Path.GetFullPath(path);
+        }
+
+        /// <summary>
+        /// Extracts the directory from the given file-spec.
+        /// </summary>
+        /// <param name="fileSpec">The filespec.</param>
+        /// <returns>directory path</returns>
+        internal static string GetDirectory(string fileSpec)
+        {
+            string? directory = Path.GetDirectoryName(FixFilePath(fileSpec));
+
+            // if file-spec is a root directory e.g. c:, c:\, \, \\server\share
+            // NOTE: Path.GetDirectoryName also treats invalid UNC file-specs as root directories e.g. \\, \\server
+            if (directory == null)
+            {
+                // just use the file-spec as-is
+                directory = fileSpec;
+            }
+            else if ((directory.Length > 0) && !EndsWithSlash(directory))
+            {
+                // restore trailing slash if Path.GetDirectoryName has removed it (this happens with non-root directories)
+                directory += Path.DirectorySeparatorChar;
+            }
+
+            return directory;
+        }
+
+#if FEATURE_LEGACY_GETFULLPATH
+        private static bool IsUNCPath(string path)
+        {
+            if (!NativeMethods.IsWindows || !path.StartsWith(@"\\", StringComparison.Ordinal))
+            {
+                return false;
+            }
+            bool isUNC = true;
+            for (int i = 2; i < path.Length - 1; i++)
+            {
+                if (path[i] == '\\')
+                {
+                    isUNC = false;
+                    break;
+                }
+            }
+
+            /*
+              From Path.cs in the CLR
+
+              Throw an ArgumentException for paths like \\, \\server, \\server\
+              This check can only be properly done after normalizing, so
+              \\foo\.. will be properly rejected.  Also, reject \\?\GLOBALROOT\
+              (an internal kernel path) because it provides aliases for drives.
+
+              throw new ArgumentException(Environment.GetResourceString("Arg_PathIllegalUNC"));
+
+               // Check for \\?\Globalroot, an internal mechanism to the kernel
+               // that provides aliases for drives and other undocumented stuff.
+               // The kernel team won't even describe the full set of what
+               // is available here - we don't want managed apps mucking
+               // with this for security reasons.
+            */
+            return isUNC || path.IndexOf(@"\\?\globalroot", StringComparison.OrdinalIgnoreCase) != -1;
+        }
+#endif // FEATURE_LEGACY_GETFULLPATH
 
         public static bool IsPathTooLong(string path)
         {

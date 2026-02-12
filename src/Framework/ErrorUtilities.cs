@@ -50,13 +50,40 @@ namespace Microsoft.Build.Framework
         /// This is only for situations that would mean that there is a bug in MSBuild itself.
         /// </summary>
         [DoesNotReturn]
+        internal static void ThrowInternalError(string message, params object?[]? args)
+        {
+            ThrowInternalError(message, innerException: null, args);
+        }
+
+        /// <summary>
+        /// Throws InternalErrorException.
+        /// This is only for situations that would mean that there is a bug in MSBuild itself.
+        /// </summary>
+        [DoesNotReturn]
         internal static void ThrowInternalError(string message, Exception? innerException, params object?[]? args)
         {
-            throw new InternalErrorException(
-                args is null ?
-                    message :
-                    string.Format(message, args),
-                innerException);
+            string formattedMessage = args?.Length > 0
+                ? string.Format(message, args)
+                : message;
+
+            throw new InternalErrorException(formattedMessage, innerException);
+        }
+
+        /// <summary>
+        /// Throws an InvalidOperationException with the specified resource string
+        /// </summary>
+        /// <param name="resourceName">Resource to use in the exception</param>
+        /// <param name="args">Formatting args.</param>
+        [DoesNotReturn]
+        internal static void ThrowInvalidOperation(string resourceName, params object?[]? args)
+        {
+            string message = FrameworkResources.GetString(resourceName);
+
+            string formattedMessage = args?.Length > 0
+                ? string.Format(message, args)
+                : message;
+
+            throw new InvalidOperationException(formattedMessage);
         }
     }
 }
