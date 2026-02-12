@@ -58,7 +58,7 @@ namespace Microsoft.Build.Logging
 
             if (loggerAssemblyFile != null && !Path.IsPathRooted(loggerAssemblyFile))
             {
-                loggerAssemblyFile = FileUtilities.NormalizePath(loggerAssemblyFile);
+                loggerAssemblyFile = FrameworkFileUtilities.NormalizePath(loggerAssemblyFile);
             }
 
             _loggerAssembly = AssemblyLoadInfo.Create(loggerAssemblyName, loggerAssemblyFile);

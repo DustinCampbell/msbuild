@@ -18,11 +18,11 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Execution;
-using Microsoft.Build.ProjectCache;
 using Microsoft.Build.FileSystem;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
 using Microsoft.Build.Internal;
+using Microsoft.Build.ProjectCache;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using static Microsoft.Build.Execution.ProjectPropertyInstance;
@@ -858,7 +858,7 @@ namespace Microsoft.Build.Evaluation
         {
             foreach (var item in _data.GetItems(ItemTypeNames.ProjectCachePlugin))
             {
-                string pluginPath = FileUtilities.NormalizePath(_data.Directory, item.EvaluatedInclude);
+                string pluginPath = FrameworkFileUtilities.NormalizePath(_data.Directory, item.EvaluatedInclude);
                 var pluginSettings = item.Metadata.ToDictionary(m => m.Key, m => m.EscapedValue);
                 var projectCacheItem = ProjectCacheDescriptor.FromAssemblyPath(pluginPath, pluginSettings);
                 BuildManager.ProjectCacheDescriptors.TryAdd(projectCacheItem, projectCacheItem);
@@ -1962,9 +1962,9 @@ namespace Microsoft.Build.Evaluation
             // _projectRootElement.FullPath can be null. This can be in the case when Project is created from XmlReader. For that case we generate filename like "{Guid}.SdkResolver.{propertiesAndItemsHash}.proj in the current directory.
             // Otherwise the project is in the same directory as _projectRootElement and has a name of the same project and ends like ".SdkResolver.{propertiesAndItemsHash}.proj".
             string projectNameEnding = $".SdkResolver.{propertiesAndItemsHash}.proj";
-            string projectPath = _projectRootElement.FullPath != null ?
-             _projectRootElement.FullPath + projectNameEnding :
-             FileUtilities.NormalizePath(Guid.NewGuid() + projectNameEnding);
+            string projectPath = _projectRootElement.FullPath != null
+                ? _projectRootElement.FullPath + projectNameEnding
+                : FrameworkFileUtilities.NormalizePath(Guid.NewGuid() + projectNameEnding);
 
             ProjectRootElement InnerCreate(string _, ProjectRootElementCacheBase __)
             {
@@ -2066,7 +2066,7 @@ namespace Microsoft.Build.Evaluation
                     // force an exception here to give a nicer message, that doesn't show the project directory in it.
                     if (importExpressionEscapedItem.Length == 0 || importExpressionEscapedItem.Trim().Length == 0)
                     {
-                        FileUtilities.NormalizePath(EscapingUtilities.UnescapeAll(importExpressionEscapedItem));
+                        FrameworkFileUtilities.NormalizePath(EscapingUtilities.UnescapeAll(importExpressionEscapedItem));
                     }
 
                     // Expand the wildcards and provide an alphabetical order list of import statements.
@@ -2121,7 +2121,7 @@ namespace Microsoft.Build.Evaluation
                         }
 
                         // Canonicalize to eg., eliminate "\..\"
-                        importFileUnescaped = FileUtilities.NormalizePath(importFileUnescaped);
+                        importFileUnescaped = FrameworkFileUtilities.NormalizePath(importFileUnescaped);
                     }
                     catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
                     {

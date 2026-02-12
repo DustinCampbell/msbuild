@@ -418,32 +418,6 @@ namespace Microsoft.Build.Shared
             return c == null || IsAnySlash(c.Value);
         }
 
-        /// <summary>
-        /// Gets the canonicalized full path of the provided path.
-        /// Guidance for use: call this on all paths accepted through public entry
-        /// points that need normalization. After that point, only verify the path
-        /// is rooted, using ErrorUtilities.VerifyThrowPathRooted.
-        /// ASSUMES INPUT IS ALREADY UNESCAPED.
-        /// </summary>
-        internal static string NormalizePath(string path)
-        {
-            ErrorUtilities.VerifyThrowArgumentLength(path);
-            string fullPath = GetFullPath(path);
-            return FrameworkFileUtilities.FixFilePath(fullPath);
-        }
-
-        internal static string NormalizePath(string directory, string file)
-        {
-            return NormalizePath(Path.Combine(directory, file));
-        }
-
-#if !CLR2COMPATIBILITY
-        internal static string NormalizePath(params string[] paths)
-        {
-            return NormalizePath(Path.Combine(paths));
-        }
-#endif
-
         private static string GetFullPath(string path)
         {
 #if FEATURE_LEGACY_GETFULLPATH
@@ -761,7 +735,7 @@ namespace Microsoft.Build.Shared
             // Sending data out of the engine into the filesystem, so time to unescape.
             fileSpec = FrameworkFileUtilities.FixFilePath(EscapingUtilities.UnescapeAll(fileSpec));
 
-            string fullPath = NormalizePath(Path.Combine(currentDirectory, fileSpec));
+            string fullPath = FrameworkFileUtilities.NormalizePath(Path.Combine(currentDirectory, fileSpec));
             // In some cases we might want to NOT escape in order to preserve symbols like @, %, $ etc.
             if (escape)
             {
@@ -792,7 +766,7 @@ namespace Microsoft.Build.Shared
         {
             try
             {
-                path = NormalizePath(path);
+                path = FrameworkFileUtilities.NormalizePath(path);
             }
             catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
@@ -1501,7 +1475,7 @@ namespace Microsoft.Build.Shared
             // Search for a directory that contains that file
             string directoryName = GetDirectoryNameOfFileAbove(startingDirectory, file, fileSystem);
 
-            return String.IsNullOrEmpty(directoryName) ? String.Empty : NormalizePath(directoryName, file);
+            return String.IsNullOrEmpty(directoryName) ? String.Empty : FrameworkFileUtilities.NormalizePath(directoryName, file);
         }
 
         internal static void EnsureDirectoryExists(string directoryPath)

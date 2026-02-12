@@ -53,7 +53,7 @@ namespace Microsoft.Build.Shared
             // Normalize because the same assembly might get loaded via
             // multiple paths (for instance, the `build` and `buildCrossTargeting`
             // folders in a NuGet package).
-            fullPath = FileUtilities.NormalizePath(fullPath);
+            fullPath = FrameworkFileUtilities.NormalizePath(fullPath);
 
             if (Traits.Instance.EscapeHatches.UseSingleLoadContext)
             {

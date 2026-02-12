@@ -348,7 +348,7 @@ namespace Microsoft.Build.Utilities
             // Check each root in the output table to see if meets case 1 or two described above
             foreach (ITaskItem source in sources)
             {
-                string upperSourceRoot = FileUtilities.NormalizePath(source.ItemSpec);
+                string upperSourceRoot = FrameworkFileUtilities.NormalizePath(source.ItemSpec);
                 OutputsForSourceRoot(outputs, upperSourceRoot);
             }
 
@@ -523,7 +523,7 @@ namespace Microsoft.Build.Utilities
             Dictionary<string, DateTime> dependencies = GetSourceKeyOutputs(sourceKey);
             foreach (ITaskItem computedOutput in computedOutputs)
             {
-                AddOutput(dependencies, FileUtilities.NormalizePath(computedOutput.ItemSpec));
+                AddOutput(dependencies, FrameworkFileUtilities.NormalizePath(computedOutput.ItemSpec));
             }
         }
 
@@ -549,7 +549,7 @@ namespace Microsoft.Build.Utilities
         /// <param name="computedOutput">The computed outputs for this source key</param>
         private static void AddOutput(Dictionary<string, DateTime> dependencies, string computedOutput)
         {
-            string fullComputedOutput = FileUtilities.NormalizePath(computedOutput).ToUpperInvariant();
+            string fullComputedOutput = FrameworkFileUtilities.NormalizePath(computedOutput).ToUpperInvariant();
             if (!dependencies.ContainsKey(fullComputedOutput))
             {
                 DateTime fileModifiedTime = FileUtilities.FileExistsNoThrow(fullComputedOutput)
@@ -648,7 +648,7 @@ namespace Microsoft.Build.Utilities
             // remove the entry for each source item
             foreach (ITaskItem sourceItem in source)
             {
-                DependencyTable.Remove(FileUtilities.NormalizePath(sourceItem.ItemSpec));
+                DependencyTable.Remove(FrameworkFileUtilities.NormalizePath(sourceItem.ItemSpec));
             }
         }
 
@@ -684,7 +684,7 @@ namespace Microsoft.Build.Utilities
             // construct a root marker for the source that will remove the dependency from
             if (DependencyTable.TryGetValue(rootingMarker, out Dictionary<string, DateTime> dependencies))
             {
-                dependencies.Remove(FileUtilities.NormalizePath(dependencyToRemove.ItemSpec));
+                dependencies.Remove(FrameworkFileUtilities.NormalizePath(dependencyToRemove.ItemSpec));
             }
             else
             {

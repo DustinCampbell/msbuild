@@ -426,7 +426,7 @@ namespace Microsoft.Build.Construction
 
                 // We do not control the current directory at this point, but assume that if we were
                 // passed a relative path, the caller assumes we will prepend the current directory.
-                string newFullPath = FileUtilities.NormalizePath(value);
+                string newFullPath = FrameworkFileUtilities.NormalizePath(value);
 
                 if (String.Equals(oldFullPath, newFullPath, StringComparison.OrdinalIgnoreCase))
                 {
@@ -886,7 +886,7 @@ namespace Microsoft.Build.Construction
             ErrorUtilities.VerifyThrowArgumentLength(path);
             ErrorUtilities.VerifyThrowArgumentNull(projectCollection);
 
-            path = FileUtilities.NormalizePath(path);
+            path = FrameworkFileUtilities.NormalizePath(path);
 
             return Open(path, projectCollection.ProjectRootElementCache, true /*Is explicitly loaded*/, preserveFormatting);
         }
@@ -943,7 +943,7 @@ namespace Microsoft.Build.Construction
             ErrorUtilities.VerifyThrowArgumentLength(path);
             ErrorUtilities.VerifyThrowArgumentNull(projectCollection);
 
-            path = FileUtilities.NormalizePath(path);
+            path = FrameworkFileUtilities.NormalizePath(path);
 
             ProjectRootElement projectRootElement = projectCollection.ProjectRootElementCache.TryGet(path, preserveFormatting);
 

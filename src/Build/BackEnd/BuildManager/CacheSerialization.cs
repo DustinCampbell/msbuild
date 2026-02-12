@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Microsoft.Build.BackEnd;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -28,7 +29,7 @@ namespace Microsoft.Build.Execution
                     return ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("EmptyOutputCacheFile");
                 }
 
-                var fullPath = FileUtilities.NormalizePath(outputCacheFile);
+                var fullPath = FrameworkFileUtilities.NormalizePath(outputCacheFile);
 
                 Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
 

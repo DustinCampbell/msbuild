@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.IO;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework;
 
 namespace Microsoft.Build.Experimental.BuildCheck;
 
@@ -14,8 +14,9 @@ internal static class BuildCheckUtilities
         {
             path = Path.Combine(Path.GetDirectoryName(projectFilePath)!, path);
         }
+
         // Normalize the path to avoid false negatives due to different path representations.
-        path = FileUtilities.NormalizePath(path)!;
+        path = FrameworkFileUtilities.NormalizePath(path);
 
         return path;
     }

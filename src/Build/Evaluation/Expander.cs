@@ -1704,7 +1704,7 @@ namespace Microsoft.Build.Evaluation
                 }
                 else if (String.Equals(propertyName, ReservedPropertyNames.thisFileFullPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    value = FileUtilities.NormalizePath(elementLocation.File);
+                    value = FrameworkFileUtilities.NormalizePath(elementLocation.File);
                 }
                 else if (String.Equals(propertyName, ReservedPropertyNames.thisFileExtension, StringComparison.OrdinalIgnoreCase))
                 {
@@ -2696,7 +2696,7 @@ namespace Microsoft.Build.Evaluation
                             // Normalize the path to remove elements like "..".
                             // Otherwise we run the risk of returning two or more different paths that represent the
                             // same directory.
-                            rootedPath = FileUtilities.NormalizePath(rootedPath);
+                            rootedPath = FrameworkFileUtilities.NormalizePath(rootedPath);
                             directoryName = Path.GetDirectoryName(rootedPath);
                         }
                         catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))

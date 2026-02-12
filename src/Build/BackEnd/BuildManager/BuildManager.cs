@@ -596,7 +596,7 @@ namespace Microsoft.Build.Execution
 
                 if (_buildParameters.UsesOutputCache() && string.IsNullOrWhiteSpace(_buildParameters.OutputResultsCacheFile))
                 {
-                    _buildParameters.OutputResultsCacheFile = FileUtilities.NormalizePath("msbuild-cache");
+                    _buildParameters.OutputResultsCacheFile = FrameworkFileUtilities.NormalizePath("msbuild-cache");
                 }
 
                 // Launch the RAR node before the detoured launcher overrides the default node launcher.

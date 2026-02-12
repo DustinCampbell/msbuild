@@ -164,7 +164,7 @@ namespace Microsoft.Build.Utilities
                 // Assign our exclude paths to our lookup
                 foreach (ITaskItem excludePath in excludedInputPaths)
                 {
-                    string fullexcludePath = FrameworkFileUtilities.EnsureNoTrailingSlash(FileUtilities.NormalizePath(excludePath.ItemSpec)).ToUpperInvariant();
+                    string fullexcludePath = FrameworkFileUtilities.EnsureNoTrailingSlash(FrameworkFileUtilities.NormalizePath(excludePath.ItemSpec)).ToUpperInvariant();
                     _excludedInputPaths.Add(fullexcludePath);
                 }
             }
@@ -464,7 +464,7 @@ namespace Microsoft.Build.Utilities
         /// <returns>bool</returns>
         private bool IsUpToDate(ITaskItem sourceFile)
         {
-            string sourceFullPath = FileUtilities.NormalizePath(sourceFile.ItemSpec);
+            string sourceFullPath = FrameworkFileUtilities.NormalizePath(sourceFile.ItemSpec);
             bool dependenciesAvailable = DependencyTable.TryGetValue(sourceFullPath, out Dictionary<string, string> dependencies);
             DateTime thisSourceOutputNewestTime = _outputNewestTime;
 
@@ -690,9 +690,9 @@ namespace Microsoft.Build.Utilities
                                         {
                                             foreach (ITaskItem file in _sourceFiles)
                                             {
-                                                if (!primaryFiles.ContainsKey(FileUtilities.NormalizePath(file.ItemSpec)))
+                                                if (!primaryFiles.ContainsKey(FrameworkFileUtilities.NormalizePath(file.ItemSpec)))
                                                 {
-                                                    primaryFiles.Add(FileUtilities.NormalizePath(file.ItemSpec), null);
+                                                    primaryFiles.Add(FrameworkFileUtilities.NormalizePath(file.ItemSpec), null);
                                                 }
                                             }
                                         }
@@ -947,7 +947,7 @@ namespace Microsoft.Build.Utilities
             // remove the entry for each source item
             foreach (ITaskItem sourceItem in source)
             {
-                DependencyTable.Remove(FileUtilities.NormalizePath(sourceItem.ItemSpec));
+                DependencyTable.Remove(FrameworkFileUtilities.NormalizePath(sourceItem.ItemSpec));
             }
         }
 
@@ -990,7 +990,7 @@ namespace Microsoft.Build.Utilities
             // construct a root marker for the source that will remove the dependency from
             if (DependencyTable.TryGetValue(rootingMarker, out Dictionary<string, string> dependencies))
             {
-                dependencies.Remove(FileUtilities.NormalizePath(dependencyToRemove.ItemSpec));
+                dependencies.Remove(FrameworkFileUtilities.NormalizePath(dependencyToRemove.ItemSpec));
             }
             else
             {

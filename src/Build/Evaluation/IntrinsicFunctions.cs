@@ -566,7 +566,7 @@ namespace Microsoft.Build.Evaluation
         /// <returns>A canonicalized full path with the correct directory separators.</returns>
         internal static string NormalizePath(params string[] path)
         {
-            return FileUtilities.NormalizePath(path);
+            return FrameworkFileUtilities.NormalizePath(path);
         }
 
         /// <summary>

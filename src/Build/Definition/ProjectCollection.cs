@@ -1221,7 +1221,7 @@ namespace Microsoft.Build.Evaluation
         public Project LoadProject(string fileName, IDictionary<string, string> globalProperties, string toolsVersion)
         {
             ErrorUtilities.VerifyThrowArgumentLength(fileName);
-            fileName = FileUtilities.NormalizePath(fileName);
+            fileName = FrameworkFileUtilities.NormalizePath(fileName);
 
             using (_locker.EnterDisposableWriteLock())
             {

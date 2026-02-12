@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,6 +13,7 @@ using System.Xml;
 using System.Text;
 #else
 using System.Buffers;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 #endif
 
@@ -21,8 +21,6 @@ using XMakeAttributes = Microsoft.Build.Shared.XMakeAttributes;
 using ProjectFileErrorUtilities = Microsoft.Build.Shared.ProjectFileErrorUtilities;
 using BuildEventFileInfo = Microsoft.Build.Shared.BuildEventFileInfo;
 using ErrorUtilities = Microsoft.Build.Shared.ErrorUtilities;
-
-
 
 #nullable disable
 
@@ -197,7 +195,7 @@ namespace Microsoft.Build.Construction
 #if NETFRAMEWORK
                             _absolutePath = Path.GetFullPath(_absolutePath);
 #else
-                            _absolutePath = FileUtilities.NormalizePath(_absolutePath);
+                            _absolutePath = FrameworkFileUtilities.NormalizePath(_absolutePath);
 #endif
                         }
                         catch (Exception)

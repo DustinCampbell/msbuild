@@ -1953,7 +1953,7 @@ namespace Microsoft.Build.Evaluation
 
                 // We do not control the current directory at this point, but assume that if we were
                 // passed a relative path, the caller assumes we will prepend the current directory.
-                projectFile = FileUtilities.NormalizePath(projectFile);
+                projectFile = FrameworkFileUtilities.NormalizePath(projectFile);
 
                 try
                 {

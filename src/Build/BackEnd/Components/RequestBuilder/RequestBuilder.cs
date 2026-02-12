@@ -351,7 +351,7 @@ namespace Microsoft.Build.BackEnd
                 }
 
                 // Canonicalize
-                projectFiles[i] = FileUtilities.NormalizePath(projectFiles[i]);
+                projectFiles[i] = FrameworkFileUtilities.NormalizePath(projectFiles[i]);
 
                 // A tools version specified by an MSBuild task or similar has priority
                 string explicitToolsVersion = toolsVersions[i];

@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-
 #if FEATURE_APARTMENT_STATE
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -1060,17 +1059,17 @@ namespace Microsoft.Build.BackEnd
 
             foreach (var projectReferenceItem in projectReferenceItems)
             {
-                declaredProjects.Add(FileUtilities.NormalizePath(projectReferenceItem.EvaluatedInclude));
+                declaredProjects.Add(FrameworkFileUtilities.NormalizePath(projectReferenceItem.EvaluatedInclude));
             }
 
             // allow a project to msbuild itself
-            declaredProjects.Add(FileUtilities.NormalizePath(_taskExecutionHost.ProjectInstance.FullPath));
+            declaredProjects.Add(FrameworkFileUtilities.NormalizePath(_taskExecutionHost.ProjectInstance.FullPath));
 
             List<string> undeclaredProjects = null;
 
             foreach (var msbuildProject in msbuildTask.Projects)
             {
-                var normalizedMSBuildProject = FileUtilities.NormalizePath(msbuildProject.ItemSpec);
+                var normalizedMSBuildProject = FrameworkFileUtilities.NormalizePath(msbuildProject.ItemSpec);
 
                 if (
                     !(declaredProjects.Contains(normalizedMSBuildProject)

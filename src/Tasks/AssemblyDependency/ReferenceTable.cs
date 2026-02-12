@@ -1355,7 +1355,7 @@ namespace Microsoft.Build.Tasks
             // If the path was resolved, then specify the full path on the reference.
             if (resolvedPath != null)
             {
-                resolvedPath = FileUtilities.NormalizePath(resolvedPath);
+                resolvedPath = FrameworkFileUtilities.NormalizePath(resolvedPath);
                 if (isImmutableFrameworkReference)
                 {
                     _externallyResolvedImmutableFiles[resolvedPath] = GetAssemblyNameFromItemMetadata(reference.PrimarySourceItem);

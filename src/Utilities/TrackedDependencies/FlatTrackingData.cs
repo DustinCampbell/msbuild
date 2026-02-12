@@ -323,7 +323,7 @@ namespace Microsoft.Build.Utilities
                 // our "starts with" comparison doesn't pick up incomplete matches, such as C:\Foo matching C:\FooFile.txt
                 foreach (string excludePath in excludedInputPaths)
                 {
-                    string fullexcludePath = FrameworkFileUtilities.EnsureTrailingSlash(FileUtilities.NormalizePath(excludePath)).ToUpperInvariant();
+                    string fullexcludePath = FrameworkFileUtilities.EnsureTrailingSlash(FrameworkFileUtilities.NormalizePath(excludePath)).ToUpperInvariant();
                     _excludedInputPaths.Add(fullexcludePath);
                 }
             }
@@ -867,7 +867,7 @@ namespace Microsoft.Build.Utilities
 
                     foreach (ITaskItem removeFile in trackedFilesToRemoveFromTLogs)
                     {
-                        trackedFilesToRemove.Add(FileUtilities.NormalizePath(removeFile.ItemSpec), removeFile);
+                        trackedFilesToRemove.Add(FrameworkFileUtilities.NormalizePath(removeFile.ItemSpec), removeFile);
                     }
 
                     // UNDONE: If necessary we could have two independent sets of "ignore" files, one for inputs and one for outputs

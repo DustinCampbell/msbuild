@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using System.Xml;
-
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -29,7 +29,7 @@ namespace Microsoft.Build.Tasks
 
                 // it's important to normalize the path as it may contain two slashes
                 // see https://github.com/dotnet/msbuild/issues/4335 for details.
-                appConfigFilePath = FileUtilities.NormalizePath(appConfigFilePath);
+                appConfigFilePath = FrameworkFileUtilities.NormalizePath(appConfigFilePath);
 
                 // Need a filestream as the XmlReader doesn't support nonstandard unicode characters in path.
                 // No need to dispose - as 'CloseInput' was passed to XmlReaderSettings

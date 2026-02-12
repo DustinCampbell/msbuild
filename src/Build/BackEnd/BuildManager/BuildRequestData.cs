@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Experimental.BuildCheck;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Execution
@@ -136,7 +137,7 @@ namespace Microsoft.Build.Execution
         /// <param name="hostServices">The host services to use.  May be null.</param>
         /// <param name="flags">The <see cref="BuildRequestDataFlags"/> to use.</param>
         public BuildRequestData(string projectFullPath, IDictionary<string, string?> globalProperties, string? toolsVersion, string[] targetsToBuild, HostServices? hostServices, BuildRequestDataFlags flags)
-            : this(targetsToBuild, hostServices, flags, FileUtilities.NormalizePath(projectFullPath)!)
+            : this(targetsToBuild, hostServices, flags, FrameworkFileUtilities.NormalizePath(projectFullPath)!)
         {
             ErrorUtilities.VerifyThrowArgumentLength(projectFullPath);
             ErrorUtilities.VerifyThrowArgumentNull(globalProperties);

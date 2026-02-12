@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -42,7 +41,7 @@ namespace Microsoft.Build.Utilities
 
             foreach (ITaskItem tlogFile in dependencyTable.TlogFiles)
             {
-                string tlogFilename = FileUtilities.NormalizePath(tlogFile.ItemSpec);
+                string tlogFilename = FrameworkFileUtilities.NormalizePath(tlogFile.ItemSpec);
 
                 DateTime lastWriteTime = NativeMethodsShared.GetLastWriteFileUtcTime(tlogFilename);
                 if (lastWriteTime > tableTime)
@@ -254,7 +253,7 @@ namespace Microsoft.Build.Utilities
             // Our cache's knowledge of the tlog items needs their full path
             for (int tlogItemCount = 0; tlogItemCount < tlogFiles.Length; tlogItemCount++)
             {
-                string tlogFilename = FileUtilities.NormalizePath(tlogFiles[tlogItemCount].ItemSpec);
+                string tlogFilename = FrameworkFileUtilities.NormalizePath(tlogFiles[tlogItemCount].ItemSpec);
                 TlogFiles[tlogItemCount] = new TaskItem(tlogFilename);
                 // Our cache entry needs to use the last modified time of the latest tlog
                 // involved so that our cache can be invalidated if any tlog is updated

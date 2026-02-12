@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -26,7 +27,7 @@ namespace Microsoft.Build.BackEnd
         {
             ErrorUtilities.VerifyThrowArgumentNull(configuration);
             _globalProperties = new PropertyDictionary<ProjectPropertyInstance>(configuration.GlobalProperties);
-            _projectFullPath = FileUtilities.NormalizePath(configuration.ProjectFullPath);
+            _projectFullPath = FrameworkFileUtilities.NormalizePath(configuration.ProjectFullPath);
             _toolsVersion = configuration.ToolsVersion;
         }
 
@@ -43,7 +44,7 @@ namespace Microsoft.Build.BackEnd
             }
 
             _toolsVersion = project.ToolsVersion;
-            _projectFullPath = FileUtilities.NormalizePath(project.FullPath);
+            _projectFullPath = FrameworkFileUtilities.NormalizePath(project.FullPath);
         }
 
         /// <summary>

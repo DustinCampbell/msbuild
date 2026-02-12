@@ -160,6 +160,12 @@ namespace Microsoft.Build.Framework
             return FixFilePath(fullPath);
         }
 
+        internal static string NormalizePath(string directory, string file)
+            => NormalizePath(Path.Combine(directory, file));
+
+        internal static string NormalizePath(params string[] paths)
+            => NormalizePath(Path.Combine(paths));
+
         private static string GetFullPath(string path)
         {
 #if FEATURE_LEGACY_GETFULLPATH

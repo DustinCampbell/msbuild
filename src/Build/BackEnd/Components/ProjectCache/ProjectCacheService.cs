@@ -180,7 +180,7 @@ namespace Microsoft.Build.ProjectCache
             ICollection<ProjectItemInstance> items = projectInstance.GetItems(ItemTypeNames.ProjectCachePlugin);
             foreach (ProjectItemInstance item in items)
             {
-                string pluginPath = FileUtilities.NormalizePath(Path.Combine(item.Project.Directory, item.EvaluatedInclude));
+                string pluginPath = FrameworkFileUtilities.NormalizePath(Path.Combine(item.Project.Directory, item.EvaluatedInclude));
 
                 var pluginSettings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 foreach (ProjectMetadataInstance metadatum in item.Metadata)

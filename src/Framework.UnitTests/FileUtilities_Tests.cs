@@ -416,7 +416,7 @@ namespace Microsoft.Build.UnitTests
             string filePath = @"..\..\..\..\..\..\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\a.cs";
             string fullPath = @"c:\aardvark\aardvark\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\a.cs";
 
-            Assert.Equal(fullPath, FileUtilities.NormalizePath(Path.Combine(currentDirectory, filePath)));
+            Assert.Equal(fullPath, FrameworkFileUtilities.NormalizePath(Path.Combine(currentDirectory, filePath)));
         }
 
         [LongPathSupportDisabledFact(fullFrameworkOnly: true, additionalMessage: "https://github.com/dotnet/msbuild/issues/4363")]
@@ -430,7 +430,7 @@ namespace Microsoft.Build.UnitTests
                 // This path ends up over 420 characters long
                 string fullPath = @"c:\aardvark\aardvark\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\1234567890\a.cs";
 
-                Assert.Equal(fullPath, FileUtilities.NormalizePath(Path.Combine(currentDirectory, filePath)));
+                Assert.Equal(fullPath, FrameworkFileUtilities.NormalizePath(Path.Combine(currentDirectory, filePath)));
             });
         }
 
@@ -449,7 +449,7 @@ namespace Microsoft.Build.UnitTests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Assert.Null(FileUtilities.NormalizePath(null, null));
+                Assert.Null(FrameworkFileUtilities.NormalizePath(null, null));
             });
         }
 
@@ -458,7 +458,7 @@ namespace Microsoft.Build.UnitTests
         {
             Assert.Throws<ArgumentException>(() =>
             {
-                Assert.Null(FileUtilities.NormalizePath(String.Empty));
+                Assert.Null(FrameworkFileUtilities.NormalizePath(String.Empty));
             });
         }
 
@@ -467,7 +467,7 @@ namespace Microsoft.Build.UnitTests
         {
             Assert.Throws<ArgumentException>(() =>
             {
-                Assert.Null(FileUtilities.NormalizePath(@"\\"));
+                Assert.Null(FrameworkFileUtilities.NormalizePath(@"\\"));
             });
         }
 
@@ -476,7 +476,7 @@ namespace Microsoft.Build.UnitTests
         {
             Assert.Throws<ArgumentException>(() =>
             {
-                Assert.Null(FileUtilities.NormalizePath(@"\\XXX\"));
+                Assert.Null(FrameworkFileUtilities.NormalizePath(@"\\XXX\"));
             });
         }
 
@@ -485,21 +485,21 @@ namespace Microsoft.Build.UnitTests
         {
             Assert.Throws<ArgumentException>(() =>
             {
-                Assert.Equal(@"\\localhost", FileUtilities.NormalizePath(@"\\localhost"));
+                Assert.Equal(@"\\localhost", FrameworkFileUtilities.NormalizePath(@"\\localhost"));
             });
         }
 
         [WindowsOnlyFact]
         public void NormalizePathGoodUNC()
         {
-            Assert.Equal(@"\\localhost\share", FileUtilities.NormalizePath(@"\\localhost\share"));
+            Assert.Equal(@"\\localhost\share", FrameworkFileUtilities.NormalizePath(@"\\localhost\share"));
         }
 
         [WindowsOnlyFact]
         public void NormalizePathTooLongWithDots()
         {
             string longPart = new string('x', 300);
-            Assert.Equal(@"c:\abc\def", FileUtilities.NormalizePath(@"c:\abc\" + longPart + @"\..\def"));
+            Assert.Equal(@"c:\abc\def", FrameworkFileUtilities.NormalizePath(@"c:\abc\" + longPart + @"\..\def"));
         }
 
         [WindowsFullFrameworkOnlyFact(additionalMessage: ".NET Core 2.1+ no longer validates paths: https://github.com/dotnet/corefx/issues/27779#issuecomment-371253486.")]
@@ -509,7 +509,7 @@ namespace Microsoft.Build.UnitTests
 
             Assert.Throws<ArgumentException>(() =>
             {
-                FileUtilities.NormalizePath(filePath);
+                FrameworkFileUtilities.NormalizePath(filePath);
             });
         }
 
@@ -519,9 +519,11 @@ namespace Microsoft.Build.UnitTests
             string filePath = "\r\n      C:\\work\\sdk3\\artifacts\\tmp\\Debug\\SimpleNamesWi---6143883E\\NETFrameworkLibrary\\bin\\Debug\\net462\\NETFrameworkLibrary.dll\r\n      ";
 
 #if FEATURE_LEGACY_GETFULLPATH
-            Assert.Throws<ArgumentException>(() => FileUtilities.NormalizePath(filePath));
+            Assert.Throws<ArgumentException>(() => FrameworkFileUtilities.NormalizePath(filePath));
 #else
-            Assert.NotEqual("C:\\work\\sdk3\\artifacts\\tmp\\Debug\\SimpleNamesWi---6143883E\\NETFrameworkLibrary\\bin\\Debug\\net462\\NETFrameworkLibrary.dll", FileUtilities.NormalizePath(filePath));
+            Assert.NotEqual(
+                "C:\\work\\sdk3\\artifacts\\tmp\\Debug\\SimpleNamesWi---6143883E\\NETFrameworkLibrary\\bin\\Debug\\net462\\NETFrameworkLibrary.dll",
+                FrameworkFileUtilities.NormalizePath(filePath));
 #endif
         }
 

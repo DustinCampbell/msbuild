@@ -347,12 +347,12 @@ namespace Microsoft.Build.Utilities
 
             foreach (ITaskItem source in sources)
             {
-                rootSources.Add(FileUtilities.NormalizePath(source.ItemSpec).ToUpperInvariant());
+                rootSources.Add(FrameworkFileUtilities.NormalizePath(source.ItemSpec).ToUpperInvariant());
             }
 
             foreach (ITaskItem output in outputs)
             {
-                rootSources.Add(FileUtilities.NormalizePath(output.ItemSpec).ToUpperInvariant());
+                rootSources.Add(FrameworkFileUtilities.NormalizePath(output.ItemSpec).ToUpperInvariant());
             }
 
             rootSources.Sort(StringComparer.OrdinalIgnoreCase);
@@ -613,7 +613,7 @@ namespace Microsoft.Build.Utilities
 
             if (!string.IsNullOrEmpty(intermediateDirectory))
             {
-                intermediateDirectory = FileUtilities.NormalizePath(intermediateDirectory);
+                intermediateDirectory = FrameworkFileUtilities.NormalizePath(intermediateDirectory);
                 // If the intermediate directory ends up with a trailing slash, then be rid of it!
                 if (FrameworkFileUtilities.EndsWithSlash(intermediateDirectory))
                 {
