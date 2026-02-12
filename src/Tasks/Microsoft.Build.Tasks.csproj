@@ -116,9 +116,6 @@
       <Link>StringUtils.cs</Link>
     </Compile>
     <Compile Include="..\Shared\FileMatcher.cs" />
-    <Compile Include="..\Shared\Modifiers.cs">
-      <Link>Modifiers.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\Tracing.cs" />
     <Compile Include="..\Shared\VersionUtilities.cs">
       <Link>VersionUtilities.cs</Link>
