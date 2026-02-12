@@ -474,7 +474,7 @@ namespace Microsoft.Build.Evaluation
                 expression = expression.Substring(period + 1);
             }
 
-            bool isItemSpecModifier = FileUtilities.ItemSpecModifiers.IsItemSpecModifier(expression);
+            bool isItemSpecModifier = ItemSpecModifiers.IsItemSpecModifier(expression);
 
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) &&
                 isItemSpecModifier)
