@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -86,9 +86,6 @@
     </Compile>
     <Compile Include="..\Shared\FileMatcher.cs">
       <Link>Shared\FileMatcher.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\FileUtilitiesRegex.cs">
-      <Link>Shared\FileUtilitiesRegex.cs</Link>
     </Compile>
     <Compile Include="..\Shared\FrameworkLocationHelper.cs">
       <Link>Shared\FrameworkLocationHelper.cs</Link>
