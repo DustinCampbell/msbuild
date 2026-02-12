@@ -6,7 +6,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 
-
 namespace Microsoft.Build.Shared.FileSystem
 {
     internal sealed class CachingFileSystemWrapper : IFileSystem

@@ -3,7 +3,6 @@
 
 using Microsoft.Win32.SafeHandles;
 
-
 namespace Microsoft.Build.Shared.FileSystem
 {
     /// <summary>

@@ -8,7 +8,6 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 
-
 namespace Microsoft.Build.Shared.FileSystem
 {
     /// <summary>
