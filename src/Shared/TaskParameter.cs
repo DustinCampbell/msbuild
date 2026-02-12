@@ -645,8 +645,22 @@ namespace Microsoft.Build.BackEnd
             {
                 get
                 {
-                    List<string> metadataNames = (_customEscapedMetadata == null) ? new List<string>() : new List<string>(_customEscapedMetadata.Keys);
-                    metadataNames.AddRange(ItemSpecModifiers.All);
+                    var metadataNames = new List<string>(capacity: MetadataCount);
+
+                    if (_customEscapedMetadata != null)
+                    {
+                        // Don't box KeyCollection.Enumerator
+                        foreach (string modifier in _customEscapedMetadata.Keys)
+                        {
+                            metadataNames.Add(modifier);
+                        }
+                    }
+
+                    // Don't box ImmutableArray<>.Enumerator
+                    foreach (string modifier in ItemSpecModifiers.All)
+                    {
+                        metadataNames.Add(modifier);
+                    }
 
                     return metadataNames;
                 }
@@ -658,13 +672,7 @@ namespace Microsoft.Build.BackEnd
             /// </summary>
             /// <value>Count of pieces of metadata.</value>
             public int MetadataCount
-            {
-                get
-                {
-                    int count = (_customEscapedMetadata == null) ? 0 : _customEscapedMetadata.Count;
-                    return count + ItemSpecModifiers.All.Length;
-                }
-            }
+                => (_customEscapedMetadata?.Count ?? 0) + ItemSpecModifiers.All.Length;
 
             /// <summary>
             /// Returns the escaped version of this item's ItemSpec
@@ -769,18 +777,18 @@ namespace Microsoft.Build.BackEnd
                 }
                 else
 #endif
-                if (_customEscapedMetadata != null)
-                {
-                    foreach (KeyValuePair<string, string> entry in _customEscapedMetadata)
+                    if (_customEscapedMetadata != null)
                     {
-                        string value = destinationItem.GetMetadata(entry.Key);
-
-                        if (String.IsNullOrEmpty(value))
+                        foreach (KeyValuePair<string, string> entry in _customEscapedMetadata)
                         {
-                            destinationItem.SetMetadata(entry.Key, entry.Value);
+                            string value = destinationItem.GetMetadata(entry.Key);
+
+                            if (String.IsNullOrEmpty(value))
+                            {
+                                destinationItem.SetMetadata(entry.Key, entry.Value);
+                            }
                         }
                     }
-                }
 
                 if (String.IsNullOrEmpty(originalItemSpec))
                 {

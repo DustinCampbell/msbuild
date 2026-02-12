@@ -974,14 +974,19 @@ namespace Microsoft.Build.Execution
                 {
                     ImmutableDictionary<string, string> metadataCollection = MetadataCollection;
 
-                    List<string> names = new List<string>(capacity: metadataCollection.Count + ItemSpecModifiers.All.Length);
+                    var names = new List<string>(capacity: metadataCollection.Count + ItemSpecModifiers.All.Length);
 
+                    // Don't box ImmutableDictionary<,>.Enumerator
                     foreach (KeyValuePair<string, string> metadatum in metadataCollection)
                     {
                         names.Add(metadatum.Key);
                     }
 
-                    names.AddRange(ItemSpecModifiers.All);
+                    // Don't box ImmutableArray<>.Enumerator
+                    foreach (string modifier in ItemSpecModifiers.All)
+                    {
+                        names.Add(modifier);
+                    }
 
                     return names;
                 }

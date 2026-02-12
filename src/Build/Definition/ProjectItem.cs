@@ -300,11 +300,7 @@ namespace Microsoft.Build.Evaluation
         /// Includes both custom and built-in metadata.
         /// </summary>
         public int MetadataCount
-        {
-            [DebuggerStepThrough]
-            get
-            { return Metadata.Count + ItemSpecModifiers.All.Length; }
-        }
+            => Metadata.Count + ItemSpecModifiers.All.Length;
 
         /// <summary>
         /// Implementation of IKeyed exposing the item type, so items

@@ -217,16 +217,22 @@ namespace Microsoft.Build.Utilities
         {
             get
             {
-                int count = (_metadata?.Count ?? 0) + ItemSpecModifiers.All.Length;
-
-                var metadataNames = new List<string>(capacity: count);
+                var metadataNames = new List<string>(capacity: MetadataCount);
 
                 if (_metadata is not null)
                 {
-                    metadataNames.AddRange(_metadata.Keys);
+                    // Don't box ImmutableDictionary<,>.Enumerator
+                    foreach (KeyValuePair<string, string> modifier in _metadata)
+                    {
+                        metadataNames.Add(modifier.Key);
+                    }
                 }
 
-                metadataNames.AddRange(ItemSpecModifiers.All);
+                // Don't box ImmutableArray<>.Enumerator
+                foreach (string modifier in ItemSpecModifiers.All)
+                {
+                    metadataNames.Add(modifier);
+                }
 
                 return metadataNames;
             }
