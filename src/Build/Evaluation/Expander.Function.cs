@@ -34,9 +34,7 @@ internal partial class Expander<P, I>
     /// This class represents the function as extracted from an expression
     /// It is also responsible for executing the function.
     /// </summary>
-    /// <typeparam name="T">Type of the properties used to expand the expression.</typeparam>
-    internal partial class Function<T>
-        where T : class, IProperty
+    internal partial class Function
     {
         /// <summary>
         /// The type of this function's receiver.
@@ -132,7 +130,7 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Extract the function details from the given property function expression.
         /// </summary>
-        internal static Function<T> ExtractPropertyFunction(
+        internal static Function ExtractPropertyFunction(
             string expressionFunction,
             IElementLocation elementLocation,
             object propertyValue,

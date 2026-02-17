@@ -14,8 +14,7 @@ internal partial class Expander<P, I>
     where P : class, IProperty
     where I : class, IItem
 {
-    internal partial class Function<T>
-        where T : class, IProperty
+    internal partial class Function
     {
         private ref struct Builder(IFileSystem fileSystem, LoggingContext loggingContext)
         {
@@ -63,7 +62,7 @@ internal partial class Expander<P, I>
             /// </summary>
             public PropertiesUseTracker PropertiesUseTracker { get; set; }
 
-            public readonly Function<T> Build()
+            public readonly Function Build()
                 => new(
                     ReceiverType,
                     Expression,

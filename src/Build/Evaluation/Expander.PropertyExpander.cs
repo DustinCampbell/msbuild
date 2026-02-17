@@ -118,7 +118,7 @@ internal partial class Expander<P, I>
             // so that we can either maintain the object's type in the event
             // that we have a single component, or convert to a string
             // if concatenation is required.
-            using Expander<P, I>.SpanBasedConcatenator results = new Expander<P, I>.SpanBasedConcatenator();
+            using SpanBasedConcatenator results = new SpanBasedConcatenator();
 
             // The sourceIndex is the zero-based index into the expression,
             // where we've essentially read up to and copied into the target string.
@@ -254,7 +254,7 @@ internal partial class Expander<P, I>
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
         {
-            Function<P> function = null;
+            Function function = null;
             string propertyName = propertyBody;
 
             // Trim the body for compatibility reasons:
@@ -278,7 +278,7 @@ internal partial class Expander<P, I>
                     }
 
                     // This is a function
-                    function = Function<P>.ExtractPropertyFunction(
+                    function = Function.ExtractPropertyFunction(
                         propertyBody,
                         elementLocation,
                         propertyValue,
