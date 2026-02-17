@@ -17,7 +17,7 @@ internal partial class Expander<P, I>
     internal partial class Function<T>
         where T : class, IProperty
     {
-        private ref struct Builder
+        private ref struct Builder(IFileSystem fileSystem, LoggingContext loggingContext)
         {
             /// <summary>
             /// The type of this function's receiver.
@@ -54,18 +54,17 @@ internal partial class Expander<P, I>
             /// </summary>
             public string Remainder { get; set; }
 
-            public IFileSystem FileSystem { get; set; }
+            public readonly IFileSystem FileSystem => fileSystem;
 
-            public LoggingContext LoggingContext { get; set; }
+            public readonly LoggingContext LoggingContext => loggingContext;
 
             /// <summary>
             /// List of properties which have been used but have not been initialized yet.
             /// </summary>
             public PropertiesUseTracker PropertiesUseTracker { get; set; }
 
-            internal readonly Function<T> Build()
-            {
-                return new Function<T>(
+            public readonly Function<T> Build()
+                => new(
                     ReceiverType,
                     Expression,
                     Receiver,
@@ -76,7 +75,6 @@ internal partial class Expander<P, I>
                     PropertiesUseTracker,
                     FileSystem,
                     LoggingContext);
-            }
         }
     }
 }

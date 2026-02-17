@@ -141,7 +141,7 @@ internal partial class Expander<P, I>
             LoggingContext loggingContext)
         {
             // Used to aggregate all the components needed for a Function
-            Builder functionBuilder = new Builder { FileSystem = fileSystem, LoggingContext = loggingContext };
+            var builder = new Builder(fileSystem, loggingContext);
 
             // By default the expression root is the whole function expression
             ReadOnlySpan<char> expressionRoot = expressionFunction == null ? ReadOnlySpan<char>.Empty : expressionFunction.AsSpan();
@@ -159,8 +159,8 @@ internal partial class Expander<P, I>
             // In case we ended up with something we don't understand
             ProjectErrorUtilities.VerifyThrowInvalidProject(!expressionRoot.IsEmpty, elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, String.Empty);
 
-            functionBuilder.Expression = expressionFunction;
-            functionBuilder.PropertiesUseTracker = propertiesUseTracker;
+            builder.Expression = expressionFunction;
+            builder.PropertiesUseTracker = propertiesUseTracker;
 
             // This is a static method call
             // A static method is the content that follows the last "::", the rest being the type
@@ -188,10 +188,10 @@ internal partial class Expander<P, I>
                     ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionStaticMethodSyntax", expressionFunction, String.Empty);
                 }
 
-                ConstructFunction(elementLocation, expressionFunction, argumentStartIndex, methodStartIndex, ref functionBuilder);
+                ConstructFunction(elementLocation, expressionFunction, argumentStartIndex, methodStartIndex, ref builder);
 
                 // Locate a type that matches the body of the expression.
-                var receiverType = GetTypeForStaticMethod(typeName, functionBuilder.Name);
+                var receiverType = GetTypeForStaticMethod(typeName, builder.Name);
 
                 if (receiverType == null)
                 {
@@ -199,7 +199,7 @@ internal partial class Expander<P, I>
                     ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionTypeUnavailable", expressionFunction, typeName);
                 }
 
-                functionBuilder.ReceiverType = receiverType;
+                builder.ReceiverType = receiverType;
             }
             else if (expressionFunction[0] == '[') // We have an indexer
             {
@@ -212,9 +212,9 @@ internal partial class Expander<P, I>
 
                 var methodStartIndex = indexerEndIndex + 1;
 
-                functionBuilder.ReceiverType = propertyValue.GetType();
+                builder.ReceiverType = propertyValue.GetType();
 
-                ConstructIndexerFunction(expressionFunction, elementLocation, propertyValue, methodStartIndex, indexerEndIndex, ref functionBuilder);
+                ConstructIndexerFunction(expressionFunction, elementLocation, propertyValue, methodStartIndex, indexerEndIndex, ref builder);
             }
             else // This could be a property reference, or a chain of function calls
             {
@@ -245,13 +245,13 @@ internal partial class Expander<P, I>
                 // Otherwise, the receiver of the function is a string
                 var receiverType = propertyValue?.GetType() ?? typeof(string);
 
-                functionBuilder.Receiver = functionReceiver;
-                functionBuilder.ReceiverType = receiverType;
+                builder.Receiver = functionReceiver;
+                builder.ReceiverType = receiverType;
 
-                ConstructFunction(elementLocation, expressionFunction, argumentStartIndex, methodStartIndex, ref functionBuilder);
+                ConstructFunction(elementLocation, expressionFunction, argumentStartIndex, methodStartIndex, ref builder);
             }
 
-            return functionBuilder.Build();
+            return builder.Build();
         }
 
         /// <summary>
@@ -715,7 +715,7 @@ internal partial class Expander<P, I>
         /// Extracts the name, arguments, binding flags, and invocation type for an indexer
         /// Also extracts the remainder of the expression that is not part of this indexer.
         /// </summary>
-        private static void ConstructIndexerFunction(string expressionFunction, IElementLocation elementLocation, object propertyValue, int methodStartIndex, int indexerEndIndex, ref Builder functionBuilder)
+        private static void ConstructIndexerFunction(string expressionFunction, IElementLocation elementLocation, object propertyValue, int methodStartIndex, int indexerEndIndex, ref Builder builder)
         {
             ReadOnlyMemory<char> argumentsContent = expressionFunction.AsMemory().Slice(1, indexerEndIndex - 1);
             string[] functionArguments;
@@ -731,26 +731,18 @@ internal partial class Expander<P, I>
                 functionArguments = ExtractFunctionArguments(elementLocation, expressionFunction, argumentsContent);
             }
 
-            // choose the name of the function based on the type of the object that we
-            // are using.
-            string functionName;
-            if (propertyValue is Array)
+            // choose the name of the function based on the type of the object that we are using.
+            string name = propertyValue switch
             {
-                functionName = "GetValue";
-            }
-            else if (propertyValue is string)
-            {
-                functionName = "get_Chars";
-            }
-            else // a regular indexer
-            {
-                functionName = "get_Item";
-            }
+                Array => "GetValue",
+                string => "get_Chars",
+                _ => "get_Item",
+            };
 
-            functionBuilder.Name = functionName;
-            functionBuilder.Arguments = functionArguments;
-            functionBuilder.BindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.InvokeMethod;
-            functionBuilder.Remainder = expressionFunction.Substring(methodStartIndex);
+            builder.Name = name;
+            builder.Arguments = functionArguments;
+            builder.BindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.InvokeMethod;
+            builder.Remainder = expressionFunction.Substring(methodStartIndex);
         }
 
         /// <summary>
