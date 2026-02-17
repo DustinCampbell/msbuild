@@ -257,7 +257,7 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Execute the function on the given instance.
         /// </summary>
-        internal object Execute(object objectInstance, IPropertyProvider<T> properties, ExpanderOptions options, IElementLocation elementLocation)
+        internal object Execute(object objectInstance, IPropertyProvider<P> properties, ExpanderOptions options, IElementLocation elementLocation)
         {
             object functionResult = String.Empty;
             object[] args = null;
@@ -307,7 +307,7 @@ internal partial class Expander<P, I>
                 // Assemble our arguments ready for passing to our method
                 for (int n = 0; n < _arguments.Length; n++)
                 {
-                    object argument = PropertyExpander<T>.ExpandPropertiesLeaveTypedAndEscaped(
+                    object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
                         _arguments[n],
                         properties,
                         options,
@@ -454,7 +454,7 @@ internal partial class Expander<P, I>
                 }
 
                 // Recursively expand the remaining property body after execution
-                return PropertyExpander<T>.ExpandPropertyBody(
+                return PropertyExpander.ExpandPropertyBody(
                     _remainder,
                     functionResult,
                     properties,

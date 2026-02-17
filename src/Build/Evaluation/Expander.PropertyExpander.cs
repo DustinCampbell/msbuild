@@ -33,9 +33,7 @@ internal partial class Expander<P, I>
     /// This is a private nested class, exposed only through the Expander class.
     /// That allows it to hide its private methods even from Expander.
     /// </remarks>
-    /// <typeparam name="T">Type of the properties used to expand the expression.</typeparam>
-    private static class PropertyExpander<T>
-        where T : class, IProperty
+    private static class PropertyExpander
     {
         /// <summary>
         /// This method takes a string which may contain any number of
@@ -56,7 +54,7 @@ internal partial class Expander<P, I>
         /// </summary>
         internal static string ExpandPropertiesLeaveEscaped(
             string expression,
-            IPropertyProvider<T> properties,
+            IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
@@ -92,7 +90,7 @@ internal partial class Expander<P, I>
         /// </summary>
         internal static object ExpandPropertiesLeaveTypedAndEscaped(
             string expression,
-            IPropertyProvider<T> properties,
+            IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
@@ -250,13 +248,13 @@ internal partial class Expander<P, I>
         internal static object ExpandPropertyBody(
             string propertyBody,
             object propertyValue,
-            IPropertyProvider<T> properties,
+            IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
         {
-            Function<T> function = null;
+            Function<P> function = null;
             string propertyName = propertyBody;
 
             // Trim the body for compatibility reasons:
@@ -280,7 +278,7 @@ internal partial class Expander<P, I>
                     }
 
                     // This is a function
-                    function = Function<T>.ExtractPropertyFunction(
+                    function = Function<P>.ExtractPropertyFunction(
                         propertyBody,
                         elementLocation,
                         propertyValue,
@@ -449,7 +447,7 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
         /// </summary>
-        private static object LookupProperty(IPropertyProvider<T> properties, string propertyName, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
+        private static object LookupProperty(IPropertyProvider<P> properties, string propertyName, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
         {
             return LookupProperty(properties, propertyName, 0, propertyName.Length - 1, elementLocation, propertiesUseTracker);
         }
@@ -457,9 +455,9 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
         /// </summary>
-        private static object LookupProperty(IPropertyProvider<T> properties, string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
+        private static object LookupProperty(IPropertyProvider<P> properties, string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
         {
-            T property = properties.GetProperty(propertyName, startIndex, endIndex);
+            P property = properties.GetProperty(propertyName, startIndex, endIndex);
 
             object propertyValue;
 
