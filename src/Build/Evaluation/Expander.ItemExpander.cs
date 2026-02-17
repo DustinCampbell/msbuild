@@ -91,21 +91,19 @@ internal partial class Expander<P, I>
         ///
         /// If no function name is found, we default to <see cref="IntrinsicItemFunctions{S}.ExpandQuotedExpressionFunction"/>.
         /// </remarks>
-        /// <typeparam name="S">class, IItem.</typeparam>
-        internal static List<KeyValuePair<string, S>> Transform<S>(
-                Expander<P, I> expander,
-                IElementLocation elementLocation,
-                ExpanderOptions options,
-                bool includeNullEntries,
-                List<ExpressionShredder.ItemExpressionCapture> captures,
-                ICollection<S> itemsOfType,
-                out bool brokeEarly)
-            where S : class, IItem
+        internal static List<KeyValuePair<string, I>> Transform(
+            Expander<P, I> expander,
+            IElementLocation elementLocation,
+            ExpanderOptions options,
+            bool includeNullEntries,
+            List<ExpressionShredder.ItemExpressionCapture> captures,
+            ICollection<I> itemsOfType,
+            out bool brokeEarly)
         {
             // Each transform runs on the full set of transformed items from the previous result.
             // We can reuse our buffers by just swapping the references after each transform.
-            List<KeyValuePair<string, S>> sourceItems = IntrinsicItemFunctions<S>.GetItemPairs(itemsOfType);
-            List<KeyValuePair<string, S>> transformedItems = new(itemsOfType.Count);
+            List<KeyValuePair<string, I>> sourceItems = IntrinsicItemFunctions<I>.GetItemPairs(itemsOfType);
+            List<KeyValuePair<string, I>> transformedItems = new(itemsOfType.Count);
 
             // Create a TransformFunction for each transform in the chain by extracting the relevant information
             // from the regex parsing results
@@ -142,55 +140,55 @@ internal partial class Expander<P, I>
                 switch (functionType)
                 {
                     case ItemTransformFunctions.ItemSpecModifierFunction:
-                        IntrinsicItemFunctions<S>.ItemSpecModifierFunction(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.ItemSpecModifierFunction(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Count:
-                        IntrinsicItemFunctions<S>.Count(sourceItems, transformedItems);
+                        IntrinsicItemFunctions<I>.Count(sourceItems, transformedItems);
                         break;
                     case ItemTransformFunctions.Exists:
-                        IntrinsicItemFunctions<S>.Exists(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.Exists(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Combine:
-                        IntrinsicItemFunctions<S>.Combine(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.Combine(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.GetPathsOfAllDirectoriesAbove:
-                        IntrinsicItemFunctions<S>.GetPathsOfAllDirectoriesAbove(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.GetPathsOfAllDirectoriesAbove(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.DirectoryName:
-                        IntrinsicItemFunctions<S>.DirectoryName(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.DirectoryName(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Metadata:
-                        IntrinsicItemFunctions<S>.Metadata(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.Metadata(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.DistinctWithCase:
-                        IntrinsicItemFunctions<S>.DistinctWithCase(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.DistinctWithCase(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Distinct:
-                        IntrinsicItemFunctions<S>.Distinct(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.Distinct(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Reverse:
-                        IntrinsicItemFunctions<S>.Reverse(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.Reverse(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.ExpandQuotedExpressionFunction:
-                        IntrinsicItemFunctions<S>.ExpandQuotedExpressionFunction(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.ExpandQuotedExpressionFunction(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.ExecuteStringFunction:
-                        IntrinsicItemFunctions<S>.ExecuteStringFunction(expander, elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.ExecuteStringFunction(expander, elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.ClearMetadata:
-                        IntrinsicItemFunctions<S>.ClearMetadata(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.ClearMetadata(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.HasMetadata:
-                        IntrinsicItemFunctions<S>.HasMetadata(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.HasMetadata(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.WithMetadataValue:
-                        IntrinsicItemFunctions<S>.WithMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.WithMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.WithoutMetadataValue:
-                        IntrinsicItemFunctions<S>.WithoutMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.WithoutMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.AnyHaveMetadataValue:
-                        IntrinsicItemFunctions<S>.AnyHaveMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions<I>.AnyHaveMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     default:
                         ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnknownItemFunction", functionName);
@@ -208,7 +206,7 @@ internal partial class Expander<P, I>
             // Check for break on non-empty only after ALL transforms are complete
             if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
-                foreach (KeyValuePair<string, S> itemTuple in transformedItems)
+                foreach (KeyValuePair<string, I> itemTuple in transformedItems)
                 {
                     if (!string.IsNullOrEmpty(itemTuple.Key))
                     {
@@ -243,12 +241,16 @@ internal partial class Expander<P, I>
         /// Item type of the items returned is determined by the IItemFactory passed in; if the IItemFactory does not
         /// have an item type set on it, it will be given the item type of the item vector to use.
         /// </summary>
-        /// <typeparam name="S">Type of the items provided by the item source used for expansion.</typeparam>
         /// <typeparam name="T">Type of the items that should be returned.</typeparam>
-        internal static IList<T> ExpandSingleItemVectorExpressionIntoItems<S, T>(
-                Expander<P, I> expander, string expression, IItemProvider<S> items, IItemFactory<S, T> itemFactory, ExpanderOptions options,
-                bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
-            where S : class, IItem
+        internal static IList<T> ExpandSingleItemVectorExpressionIntoItems<T>(
+            Expander<P, I> expander,
+            string expression,
+            IItemProvider<I> items,
+            IItemFactory<I, T> itemFactory,
+            ExpanderOptions options,
+            bool includeNullEntries,
+            out bool isTransformExpression,
+            IElementLocation elementLocation)
             where T : class, IItem
         {
             isTransformExpression = false;
@@ -259,8 +261,15 @@ internal partial class Expander<P, I>
                 return null;
             }
 
-            return ExpandExpressionCaptureIntoItems(expressionCapture.Value, expander, items, itemFactory, options, includeNullEntries,
-                out isTransformExpression, elementLocation);
+            return ExpandExpressionCaptureIntoItems(
+                expressionCapture.Value,
+                expander,
+                items,
+                itemFactory,
+                options,
+                includeNullEntries,
+                out isTransformExpression,
+                elementLocation);
         }
 
         internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
@@ -295,10 +304,15 @@ internal partial class Expander<P, I>
             return match;
         }
 
-        internal static IList<T> ExpandExpressionCaptureIntoItems<S, T>(
-                ExpressionShredder.ItemExpressionCapture expressionCapture, Expander<P, I> expander, IItemProvider<S> items, IItemFactory<S, T> itemFactory,
-                ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
-            where S : class, IItem
+        internal static IList<T> ExpandExpressionCaptureIntoItems<T>(
+            ExpressionShredder.ItemExpressionCapture expressionCapture,
+            Expander<P, I> expander,
+            IItemProvider<I> items,
+            IItemFactory<I, T> itemFactory,
+            ExpanderOptions options,
+            bool includeNullEntries,
+            out bool isTransformExpression,
+            IElementLocation elementLocation)
             where T : class, IItem
         {
             ErrorUtilities.VerifyThrow(items != null, "Cannot expand items without providing items");
@@ -313,7 +327,6 @@ internal partial class Expander<P, I>
             {
                 itemFactory.ItemType = expressionCapture.ItemType;
             }
-
 
             IList<T> result;
             if (expressionCapture.Separator != null)
@@ -345,8 +358,15 @@ internal partial class Expander<P, I>
                 return result;
             }
 
-            List<KeyValuePair<string, S>> itemsFromCapture;
-            brokeEarlyNonEmpty = ExpandExpressionCapture(expander, expressionCapture, items, elementLocation /* including null items */, options, true, out isTransformExpression, out itemsFromCapture);
+            brokeEarlyNonEmpty = ExpandExpressionCapture(
+                expander,
+                expressionCapture,
+                items,
+                elementLocation,
+                options,
+                includeNullEntries: true,
+                out isTransformExpression,
+                out List<KeyValuePair<string, I>> itemsFromCapture);
 
             if (brokeEarlyNonEmpty)
             {
@@ -407,17 +427,16 @@ internal partial class Expander<P, I>
         /// <param name="evaluatedItems"><see cref="IItemProvider{T}"/> to provide the inital items (which may get subsequently transformed, if <paramref name="expressionCapture"/> is a transform expression)>.</param>
         /// <param name="elementLocation">Location of the xml element containing the <paramref name="expressionCapture"/>.</param>
         /// <param name="options">expander options.</param>
-        /// <param name="includeNullEntries">Wether to include items that evaluated to empty / null.</param>
-        internal static bool ExpandExpressionCapture<S>(
+        /// <param name="includeNullEntries">Whether to include items that evaluated to empty / null.</param>
+        internal static bool ExpandExpressionCapture(
             Expander<P, I> expander,
             ExpressionShredder.ItemExpressionCapture expressionCapture,
-            IItemProvider<S> evaluatedItems,
+            IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             ExpanderOptions options,
             bool includeNullEntries,
             out bool isTransformExpression,
-            out List<KeyValuePair<string, S>> itemsFromCapture)
-            where S : class, IItem
+            out List<KeyValuePair<string, I>> itemsFromCapture)
         {
             ErrorUtilities.VerifyThrow(evaluatedItems != null, "Cannot expand items without providing items");
             // There's something wrong with the expression, and we ended up with a blank item type
@@ -425,7 +444,7 @@ internal partial class Expander<P, I>
 
             isTransformExpression = false;
 
-            ICollection<S> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
+            ICollection<I> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
             List<ExpressionShredder.ItemExpressionCapture> captures = expressionCapture.Captures;
 
             // If there are no items of the given type, then bail out early
@@ -453,7 +472,7 @@ internal partial class Expander<P, I>
                 itemsFromCapture = null;
 
                 // No transform: expression is like @(Compile), so include the item spec without a transform base item
-                foreach (S item in itemsOfType)
+                foreach (I item in itemsOfType)
                 {
                     string evaluatedIncludeEscaped = item.EvaluatedIncludeEscaped;
                     if ((evaluatedIncludeEscaped.Length > 0) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
@@ -461,8 +480,8 @@ internal partial class Expander<P, I>
                         return true;
                     }
 
-                    itemsFromCapture ??= new List<KeyValuePair<string, S>>(itemsOfType.Count);
-                    itemsFromCapture.Add(new KeyValuePair<string, S>(evaluatedIncludeEscaped, item));
+                    itemsFromCapture ??= new List<KeyValuePair<string, I>>(itemsOfType.Count);
+                    itemsFromCapture.Add(new KeyValuePair<string, I>(evaluatedIncludeEscaped, item));
                 }
             }
             else
@@ -482,7 +501,7 @@ internal partial class Expander<P, I>
             {
                 var joinedItems = string.Join(expressionCapture.Separator, itemsFromCapture.Select(i => i.Key));
                 itemsFromCapture.Clear();
-                itemsFromCapture.Add(new KeyValuePair<string, S>(joinedItems, null));
+                itemsFromCapture.Add(new KeyValuePair<string, I>(joinedItems, null));
             }
 
             return false; // did not break early
@@ -493,9 +512,12 @@ internal partial class Expander<P, I>
         /// If the expression is empty, returns empty string.
         /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
         /// </summary>
-        /// <typeparam name="T">Type of the items provided.</typeparam>
-        internal static string ExpandItemVectorsIntoString<T>(Expander<P, I> expander, string expression, IItemProvider<T> items, ExpanderOptions options, IElementLocation elementLocation)
-            where T : class, IItem
+        internal static string ExpandItemVectorsIntoString(
+            Expander<P, I> expander,
+            string expression,
+            IItemProvider<I> items,
+            ExpanderOptions options,
+            IElementLocation elementLocation)
         {
             if ((options & ExpanderOptions.ExpandItems) == 0 || expression.Length == 0)
             {
@@ -550,19 +572,23 @@ internal partial class Expander<P, I>
         /// Expand the match provided into a string, and append that to the provided InternableString.
         /// Returns true if ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and so it broke out early.
         /// </summary>
-        /// <typeparam name="S">Type of source items.</typeparam>
-        private static bool ExpandExpressionCaptureIntoStringBuilder<S>(
+        private static bool ExpandExpressionCaptureIntoStringBuilder(
             Expander<P, I> expander,
             ExpressionShredder.ItemExpressionCapture capture,
-            IItemProvider<S> evaluatedItems,
+            IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             SpanBasedStringBuilder builder,
             ExpanderOptions options)
-            where S : class, IItem
         {
-            List<KeyValuePair<string, S>> itemsFromCapture;
-            bool throwaway;
-            var brokeEarlyNonEmpty = ExpandExpressionCapture(expander, capture, evaluatedItems, elementLocation /* including null items */, options, true, out throwaway, out itemsFromCapture);
+            var brokeEarlyNonEmpty = ExpandExpressionCapture(
+                expander,
+                capture,
+                evaluatedItems,
+                elementLocation,
+                options,
+                includeNullEntries: true,
+                out _,
+                out List<KeyValuePair<string, I>> itemsFromCapture);
 
             if (brokeEarlyNonEmpty)
             {

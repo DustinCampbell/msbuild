@@ -259,7 +259,7 @@ internal partial class Expander<P, I>
 
         string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
         result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
-        result = ItemExpander.ExpandItemVectorsIntoString<I>(this, result, _items, options, elementLocation);
+        result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, elementLocation);
         result = FileUtilities.MaybeAdjustFilePath(result);
 
         return result;
@@ -340,8 +340,15 @@ internal partial class Expander<P, I>
         var splits = ExpressionShredder.SplitSemiColonSeparatedList(expression);
         foreach (string split in splits)
         {
-            bool isTransformExpression;
-            IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems<I, T>(this, split, _items, itemFactory, options, false /* do not include null items */, out isTransformExpression, elementLocation);
+            IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(
+                this,
+                split,
+                _items,
+                itemFactory,
+                options,
+                includeNullEntries: false,
+                out _,
+                elementLocation);
 
             if ((itemsToAdd == null /* broke out early non empty */ || (itemsToAdd.Count > 0)) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
@@ -400,7 +407,15 @@ internal partial class Expander<P, I>
 
         ErrorUtilities.VerifyThrowInternalNull(elementLocation);
 
-        return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, expression, _items, itemFactory, options, includeNullItems, out isTransformExpression, elementLocation);
+        return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(
+            expander: this,
+            expression,
+            _items,
+            itemFactory,
+            options,
+            includeNullItems,
+            out isTransformExpression,
+            elementLocation);
     }
 
     internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
@@ -409,15 +424,24 @@ internal partial class Expander<P, I>
         return ItemExpander.ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
     }
 
-    internal IList<T> ExpandExpressionCaptureIntoItems<S, T>(
-            ExpressionShredder.ItemExpressionCapture expressionCapture, IItemProvider<S> items, IItemFactory<S, T> itemFactory,
-            ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
-        where S : class, IItem
+    internal IList<T> ExpandExpressionCaptureIntoItems<T>(
+        ExpressionShredder.ItemExpressionCapture expressionCapture,
+        IItemProvider<I> items,
+        IItemFactory<I, T> itemFactory,
+        ExpanderOptions options,
+        bool includeNullEntries,
+        out bool isTransformExpression,
+        IElementLocation elementLocation)
         where T : class, IItem
-    {
-        return ItemExpander.ExpandExpressionCaptureIntoItems<S, T>(expressionCapture, this, items, itemFactory, options,
-            includeNullEntries, out isTransformExpression, elementLocation);
-    }
+        => ItemExpander.ExpandExpressionCaptureIntoItems(
+            expressionCapture,
+            expander: this,
+            items,
+            itemFactory,
+            options,
+            includeNullEntries,
+            out isTransformExpression,
+            elementLocation);
 
     internal bool ExpandExpressionCapture(
         ExpressionShredder.ItemExpressionCapture expressionCapture,
@@ -426,9 +450,15 @@ internal partial class Expander<P, I>
         bool includeNullEntries,
         out bool isTransformExpression,
         out List<KeyValuePair<string, I>> itemsFromCapture)
-    {
-        return ItemExpander.ExpandExpressionCapture(this, expressionCapture, _items, elementLocation, options, includeNullEntries, out isTransformExpression, out itemsFromCapture);
-    }
+        => ItemExpander.ExpandExpressionCapture(
+            this,
+            expressionCapture,
+            _items,
+            elementLocation,
+            options,
+            includeNullEntries,
+            out isTransformExpression,
+            out itemsFromCapture);
 
     private static string TruncateString(string metadataValue)
     {
