@@ -82,14 +82,14 @@ internal partial class Expander<P, I>
         /// </summary>
         /// <remarks>
         /// Each captured transform function will be mapped to to a either static method on
-        /// <see cref="IntrinsicItemFunctions{S}"/> or a known item spec modifier which operates on the item path.
+        /// <see cref="IntrinsicItemFunctions"/> or a known item spec modifier which operates on the item path.
         ///
         /// For each function, the full list of items will be iteratvely tranformed using the output of the previous.
         ///
         /// E.g. given functions f, g, h, the order of operations will look like:
         /// results = h(g(f(items)))
         ///
-        /// If no function name is found, we default to <see cref="IntrinsicItemFunctions{S}.ExpandQuotedExpressionFunction"/>.
+        /// If no function name is found, we default to <see cref="IntrinsicItemFunctions.ExpandQuotedExpressionFunction"/>.
         /// </remarks>
         internal static List<KeyValuePair<string, I>> Transform(
             Expander<P, I> expander,
@@ -102,7 +102,7 @@ internal partial class Expander<P, I>
         {
             // Each transform runs on the full set of transformed items from the previous result.
             // We can reuse our buffers by just swapping the references after each transform.
-            List<KeyValuePair<string, I>> sourceItems = IntrinsicItemFunctions<I>.GetItemPairs(itemsOfType);
+            List<KeyValuePair<string, I>> sourceItems = IntrinsicItemFunctions.GetItemPairs(itemsOfType);
             List<KeyValuePair<string, I>> transformedItems = new(itemsOfType.Count);
 
             // Create a TransformFunction for each transform in the chain by extracting the relevant information
@@ -140,55 +140,55 @@ internal partial class Expander<P, I>
                 switch (functionType)
                 {
                     case ItemTransformFunctions.ItemSpecModifierFunction:
-                        IntrinsicItemFunctions<I>.ItemSpecModifierFunction(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.ItemSpecModifierFunction(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Count:
-                        IntrinsicItemFunctions<I>.Count(sourceItems, transformedItems);
+                        IntrinsicItemFunctions.Count(sourceItems, transformedItems);
                         break;
                     case ItemTransformFunctions.Exists:
-                        IntrinsicItemFunctions<I>.Exists(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.Exists(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Combine:
-                        IntrinsicItemFunctions<I>.Combine(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.Combine(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.GetPathsOfAllDirectoriesAbove:
-                        IntrinsicItemFunctions<I>.GetPathsOfAllDirectoriesAbove(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.GetPathsOfAllDirectoriesAbove(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.DirectoryName:
-                        IntrinsicItemFunctions<I>.DirectoryName(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.DirectoryName(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Metadata:
-                        IntrinsicItemFunctions<I>.Metadata(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.Metadata(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.DistinctWithCase:
-                        IntrinsicItemFunctions<I>.DistinctWithCase(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.DistinctWithCase(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Distinct:
-                        IntrinsicItemFunctions<I>.Distinct(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.Distinct(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.Reverse:
-                        IntrinsicItemFunctions<I>.Reverse(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.Reverse(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.ExpandQuotedExpressionFunction:
-                        IntrinsicItemFunctions<I>.ExpandQuotedExpressionFunction(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.ExpandQuotedExpressionFunction(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.ExecuteStringFunction:
-                        IntrinsicItemFunctions<I>.ExecuteStringFunction(expander, elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.ExecuteStringFunction(expander, elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.ClearMetadata:
-                        IntrinsicItemFunctions<I>.ClearMetadata(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.ClearMetadata(elementLocation, includeNullEntries, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.HasMetadata:
-                        IntrinsicItemFunctions<I>.HasMetadata(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.HasMetadata(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.WithMetadataValue:
-                        IntrinsicItemFunctions<I>.WithMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.WithMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.WithoutMetadataValue:
-                        IntrinsicItemFunctions<I>.WithoutMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.WithoutMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     case ItemTransformFunctions.AnyHaveMetadataValue:
-                        IntrinsicItemFunctions<I>.AnyHaveMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
+                        IntrinsicItemFunctions.AnyHaveMetadataValue(elementLocation, functionName, sourceItems, arguments, transformedItems);
                         break;
                     default:
                         ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnknownItemFunction", functionName);
