@@ -195,6 +195,8 @@
     <Compile Include="Evaluation\Expander.Function.cs" />
     <Compile Include="Evaluation\Expander.Function.Builder.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.cs" />
+    <Compile Include="Evaluation\Expander.ItemExpander.IntrinsicItemFunctions.cs" />
+    <Compile Include="Evaluation\Expander.ItemExpander.ItemTransformFunctions.cs" />
     <Compile Include="Evaluation\Expander.MetadataExpander.cs" />
     <Compile Include="Evaluation\Expander.MetadataMatchEvaluator.cs" />
     <Compile Include="Evaluation\Expander.PropertyExpander.cs" />
