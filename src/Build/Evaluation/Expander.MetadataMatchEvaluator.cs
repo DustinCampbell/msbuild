@@ -55,7 +55,7 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Expands a single item metadata, which may be qualified with an item type.
         /// </summary>
-        internal static string ExpandSingleMetadata(Match itemMetadataMatch, MetadataMatchEvaluator evaluator)
+        internal string ExpandSingleMetadata(Match itemMetadataMatch)
         {
             ErrorUtilities.VerifyThrow(itemMetadataMatch.Success, "Need a valid item metadata.");
 
@@ -66,8 +66,8 @@ internal partial class Expander<P, I>
             bool isBuiltInMetadata = FileUtilities.ItemSpecModifiers.IsItemSpecModifier(metadataName);
 
             if (
-                (isBuiltInMetadata && ((evaluator._options & ExpanderOptions.ExpandBuiltInMetadata) != 0)) ||
-               (!isBuiltInMetadata && ((evaluator._options & ExpanderOptions.ExpandCustomMetadata) != 0)))
+                (isBuiltInMetadata && ((_options & ExpanderOptions.ExpandBuiltInMetadata) != 0)) ||
+               (!isBuiltInMetadata && ((_options & ExpanderOptions.ExpandCustomMetadata) != 0)))
             {
                 string itemType = null;
 
@@ -77,19 +77,19 @@ internal partial class Expander<P, I>
                     itemType = itemMetadataMatch.Groups[RegularExpressions.ItemTypeGroup].Value;
                 }
 
-                metadataValue = evaluator._metadata.GetEscapedValue(itemType, metadataName);
+                metadataValue = _metadata.GetEscapedValue(itemType, metadataName);
 
-                if ((evaluator._options & ExpanderOptions.LogOnItemMetadataSelfReference) != 0 &&
-                    evaluator._loggingContext != null &&
+                if ((_options & ExpanderOptions.LogOnItemMetadataSelfReference) != 0 &&
+                    _loggingContext != null &&
                     !string.IsNullOrEmpty(metadataName) &&
-                    evaluator._metadata is IItemTypeDefinition itemMetadata &&
+                    _metadata is IItemTypeDefinition itemMetadata &&
                     (string.IsNullOrEmpty(itemType) || string.Equals(itemType, itemMetadata.ItemType, StringComparison.Ordinal)))
                 {
-                    evaluator._loggingContext.LogComment(MessageImportance.Low, new BuildEventFileInfo(evaluator._elementLocation),
+                    _loggingContext.LogComment(MessageImportance.Low, new BuildEventFileInfo(_elementLocation),
                         "ItemReferencingSelfInTarget", itemMetadata.ItemType, metadataName);
                 }
 
-                if (IsTruncationEnabled(evaluator._options) && metadataValue.Length > CharacterLimitPerExpansion)
+                if (IsTruncationEnabled(_options) && metadataValue.Length > CharacterLimitPerExpansion)
                 {
                     metadataValue = TruncateString(metadataValue);
                 }

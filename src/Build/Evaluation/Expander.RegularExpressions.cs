@@ -152,7 +152,7 @@ internal partial class Expander<P, I>
                     }
 
                     prevat = match.Index + match.Length;
-                    stringBuilder.Append(MetadataMatchEvaluator.ExpandSingleMetadata(match, matchEvaluatorState));
+                    stringBuilder.Append(matchEvaluatorState.ExpandSingleMetadata(match));
                     if (--count == 0)
                     {
                         break;
@@ -178,7 +178,7 @@ internal partial class Expander<P, I>
                     }
 
                     prevat = match.Index;
-                    list.Add(MetadataMatchEvaluator.ExpandSingleMetadata(match, matchEvaluatorState).AsMemory());
+                    list.Add(matchEvaluatorState.ExpandSingleMetadata(match).AsMemory());
                     if (--count == 0)
                     {
                         break;
