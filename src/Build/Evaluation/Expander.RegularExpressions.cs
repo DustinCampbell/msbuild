@@ -122,30 +122,12 @@ internal partial class Expander<P, I>
         /// <param name="regex">The <see cref="Regex"/> that will perform the matching.</param>
         public static void ReplaceAndAppend(string input, Func<Match, MetadataMatchEvaluator, string> evaluator, MetadataMatchEvaluator matchEvaluatorState, int count, int startat, SpanBasedStringBuilder stringBuilder, Regex regex)
         {
-            if (evaluator is null)
-            {
-                throw new ArgumentNullException(nameof(evaluator));
-            }
-
-            if (stringBuilder is null)
-            {
-                throw new ArgumentNullException(nameof(stringBuilder));
-            }
-
-            if (count < -1)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count));
-            }
-
-            if (startat < 0 || startat > input.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(startat));
-            }
-
-            if (regex is null)
-            {
-                throw new ArgumentNullException(nameof(regex));
-            }
+            ArgumentNullException.ThrowIfNull(evaluator);
+            ArgumentNullException.ThrowIfNull(stringBuilder);
+            ArgumentOutOfRangeException.ThrowIfLessThan(count, -1);
+            ArgumentOutOfRangeException.ThrowIfNegative(startat);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(startat, input.Length);
+            ArgumentNullException.ThrowIfNull(regex);
 
             if (count == 0)
             {
