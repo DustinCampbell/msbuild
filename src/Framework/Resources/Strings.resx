@@ -156,4 +156,13 @@
   <data name="ArgumentOutOfRange_Generic_MustBeNotEqual" xml:space="preserve">
     <value>{0} ('{1}') must not be equal to '{2}'.</value>
   </data>
+  <data name="RefArrayBuilder_Empty" xml:space="preserve">
+    <value>RefArrayBuilder is empty.</value>
+  </data>
+  <data name="RefArrayBuilder_NoMatch" xml:space="preserve">
+    <value>RefArrayBuilder does not contain matching element.</value>
+  </data>
+  <data name="RefStack_Empty" xml:space="preserve">
+    <value>RefStack is empty.</value>
+  </data>
 </root>
