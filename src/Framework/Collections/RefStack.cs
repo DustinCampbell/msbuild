@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Microsoft.Build.Framework.Resources;
 
 namespace Microsoft.Build.Collections;
 
@@ -115,7 +114,7 @@ internal ref struct RefStack<T>
     {
         if (IsEmpty)
         {
-            InvalidOperationException.Throw(Strings.RefStack_Empty);
+            InvalidOperationException.Throw(SR.RefStack_Empty);
         }
 
         return _builder.AsSpan()[^1];

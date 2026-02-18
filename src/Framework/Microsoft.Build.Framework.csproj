@@ -78,8 +78,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Resources\Strings.resx">
+    <EmbeddedResource Update="Resources\SR.resx">
       <GenerateSource>true</GenerateSource>
     </EmbeddedResource>
+
+    <Using Include="$(ProjectName).Resources"/>
   </ItemGroup>
 </Project>

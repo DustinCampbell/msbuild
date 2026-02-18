@@ -9,7 +9,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.Build.Buffers;
-using Microsoft.Build.Framework.Resources;
 using Microsoft.Build.Utilities;
 
 namespace Microsoft.Build.Collections;
@@ -466,7 +465,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            InvalidOperationException.Throw(Strings.RefArrayBuilder_Empty);
+            InvalidOperationException.Throw(SR.RefArrayBuilder_Empty);
         }
 
         return first!;
@@ -486,7 +485,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            InvalidOperationException.Throw(Strings.RefArrayBuilder_NoMatch);
+            InvalidOperationException.Throw(SR.RefArrayBuilder_NoMatch);
         }
 
         return first!;
@@ -508,7 +507,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            InvalidOperationException.Throw(Strings.RefArrayBuilder_NoMatch);
+            InvalidOperationException.Throw(SR.RefArrayBuilder_NoMatch);
         }
 
         return first!;
@@ -608,7 +607,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            InvalidOperationException.Throw(Strings.RefArrayBuilder_Empty);
+            InvalidOperationException.Throw(SR.RefArrayBuilder_Empty);
         }
 
         return last!;
@@ -628,7 +627,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            InvalidOperationException.Throw(Strings.RefArrayBuilder_NoMatch);
+            InvalidOperationException.Throw(SR.RefArrayBuilder_NoMatch);
         }
 
         return last!;
@@ -650,7 +649,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            InvalidOperationException.Throw(Strings.RefArrayBuilder_NoMatch);
+            InvalidOperationException.Throw(SR.RefArrayBuilder_NoMatch);
         }
 
         return last!;

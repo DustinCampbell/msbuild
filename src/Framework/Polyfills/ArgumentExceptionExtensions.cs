@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Microsoft.Build.Framework.Resources;
 
 namespace Microsoft.Build;
 
@@ -350,47 +349,47 @@ internal static partial class ArgumentExceptionExtensions
     private static void ThrowNullOrEmpty(string? argument, string? paramName)
     {
         ArgumentNullException.ThrowIfNull(argument, paramName);
-        throw new ArgumentException(Strings.Argument_EmptyString, paramName);
+        throw new ArgumentException(SR.Argument_EmptyString, paramName);
     }
 
     [DoesNotReturn]
     private static void ThrowNullOrWhiteSpace(string? argument, string? paramName)
     {
         ArgumentNullException.ThrowIfNull(argument, paramName);
-        throw new ArgumentException(Strings.Argument_EmptyOrWhiteSpaceString, paramName);
+        throw new ArgumentException(SR.Argument_EmptyOrWhiteSpaceString, paramName);
     }
 
     [DoesNotReturn]
     private static void ThrowZero<T>(T value, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeNonZero(paramName, value));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeNonZero(paramName, value));
 
     [DoesNotReturn]
     private static void ThrowNegative<T>(T value, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeNonNegative(paramName, value));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeNonNegative(paramName, value));
 
     [DoesNotReturn]
     private static void ThrowNegativeOrZero<T>(T value, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeNonNegativeNonZero(paramName, value));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeNonNegativeNonZero(paramName, value));
     [DoesNotReturn]
     private static void ThrowGreater<T>(T value, T other, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeLessOrEqual(paramName, value, other));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeLessOrEqual(paramName, value, other));
 
     [DoesNotReturn]
     private static void ThrowGreaterEqual<T>(T value, T other, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeLess(paramName, value, other));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeLess(paramName, value, other));
     [DoesNotReturn]
     private static void ThrowLess<T>(T value, T other, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeGreaterOrEqual(paramName, value, other));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeGreaterOrEqual(paramName, value, other));
     [DoesNotReturn]
     private static void ThrowLessEqual<T>(T value, T other, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeGreater(paramName, value, other));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeGreater(paramName, value, other));
 
     [DoesNotReturn]
     private static void ThrowEqual<T>(T value, T other, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeNotEqual(paramName, (object?)value ?? "null", (object?)other ?? "null"));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeNotEqual(paramName, (object?)value ?? "null", (object?)other ?? "null"));
     [DoesNotReturn]
     private static void ThrowNotEqual<T>(T value, T other, string? paramName)
-        => throw new ArgumentOutOfRangeException(paramName, value, Strings.FormatArgumentOutOfRange_Generic_MustBeEqual(paramName, (object?)value ?? "null", (object?)other ?? "null"));
+        => throw new ArgumentOutOfRangeException(paramName, value, SR.FormatArgumentOutOfRange_Generic_MustBeEqual(paramName, (object?)value ?? "null", (object?)other ?? "null"));
 
     [DoesNotReturn]
     private static void ThrowObjectDisposed(object? instance)
