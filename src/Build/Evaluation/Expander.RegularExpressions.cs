@@ -103,22 +103,30 @@ internal partial class Expander<P, I>
         /// <param name="metadataMatchEvaluator">State used in the transform function.</param>
         /// <param name="stringBuilder">The <see cref="SpanBasedStringBuilder"/> that will accumulate the results.</param>
         /// <param name="regex">The <see cref="Regex"/> that will perform the matching.</param>
-        public static void ReplaceAndAppend(string input, MetadataMatchEvaluator metadataMatchEvaluator, SpanBasedStringBuilder stringBuilder, Regex regex)
-        {
-            ReplaceAndAppend(input, metadataMatchEvaluator, -1, regex.RightToLeft ? input.Length : 0, stringBuilder, regex);
-        }
+        public static void ReplaceAndAppend(
+            string input,
+            ref readonly MetadataMatchEvaluator metadataMatchEvaluator,
+            SpanBasedStringBuilder stringBuilder,
+            Regex regex)
+            => ReplaceAndAppend(input, in metadataMatchEvaluator, count: -1, startat: regex.RightToLeft ? input.Length : 0, stringBuilder, regex);
 
         /// <summary>
         /// Copied from <see cref="Regex.Replace(string, MatchEvaluator, int, int)"/> and modified to use a <see cref="SpanBasedStringBuilder"/> rather than repeatedly allocating a <see cref="System.Text.StringBuilder"/>. This
         /// allows us to avoid intermediate string allocations when repeatedly doing replacements.
         /// </summary>
         /// <param name="input">The string to operate on.</param>
-        /// <param name="matchEvaluatorState">State used in the transform function.</param>
+        /// <param name="matchEvaluator">Evaluator used in the transform function.</param>
         /// <param name="count">The number of replacements.</param>
         /// <param name="startat">Index to start when doing replacements.</param>
         /// <param name="stringBuilder">The <see cref="SpanBasedStringBuilder"/> that will accumulate the results.</param>
         /// <param name="regex">The <see cref="Regex"/> that will perform the matching.</param>
-        public static void ReplaceAndAppend(string input, MetadataMatchEvaluator matchEvaluatorState, int count, int startat, SpanBasedStringBuilder stringBuilder, Regex regex)
+        public static void ReplaceAndAppend(
+            string input,
+            ref readonly MetadataMatchEvaluator matchEvaluator,
+            int count,
+            int startat,
+            SpanBasedStringBuilder stringBuilder,
+            Regex regex)
         {
             ArgumentNullException.ThrowIfNull(stringBuilder);
             ArgumentOutOfRangeException.ThrowIfLessThan(count, -1);
@@ -152,7 +160,7 @@ internal partial class Expander<P, I>
                     }
 
                     prevat = match.Index + match.Length;
-                    stringBuilder.Append(matchEvaluatorState.ExpandSingleMetadata(match));
+                    stringBuilder.Append(matchEvaluator.ExpandSingleMetadata(match));
                     if (--count == 0)
                     {
                         break;
@@ -178,7 +186,7 @@ internal partial class Expander<P, I>
                     }
 
                     prevat = match.Index;
-                    list.Add(matchEvaluatorState.ExpandSingleMetadata(match).AsMemory());
+                    list.Add(matchEvaluator.ExpandSingleMetadata(match).AsMemory());
                     if (--count == 0)
                     {
                         break;
