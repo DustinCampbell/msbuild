@@ -61,7 +61,7 @@ internal partial class Expander<P, I>
                     MetadataMatchEvaluator matchEvaluator = new MetadataMatchEvaluator(metadata, options, elementLocation, loggingContext);
 
                     using SpanBasedStringBuilder finalResultBuilder = Strings.GetSpanBasedStringBuilder();
-                    RegularExpressions.ReplaceAndAppend(expression, MetadataMatchEvaluator.ExpandSingleMetadata, matchEvaluator, finalResultBuilder, RegularExpressions.ItemMetadataRegex);
+                    RegularExpressions.ReplaceAndAppend(expression, matchEvaluator, finalResultBuilder, RegularExpressions.ItemMetadataRegex);
 
                     // Don't create more strings
                     if (finalResultBuilder.Equals(expression.AsSpan()))
@@ -127,7 +127,7 @@ internal partial class Expander<P, I>
                         MetadataMatchEvaluator matchEvaluator = new MetadataMatchEvaluator(metadata, options, elementLocation, loggingContext);
                         string subExpressionToReplaceIn = expression.Substring(start);
 
-                        RegularExpressions.ReplaceAndAppend(subExpressionToReplaceIn, MetadataMatchEvaluator.ExpandSingleMetadata, matchEvaluator, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
+                        RegularExpressions.ReplaceAndAppend(subExpressionToReplaceIn, matchEvaluator, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
                     }
 
                     if (finalResultBuilder.Equals(expression.AsSpan()))
@@ -158,12 +158,12 @@ internal partial class Expander<P, I>
                 // e.g. the ABC in ABC@(foo->'%(FullPath)')
                 string subExpressionToReplaceIn = expression.Substring(start, itemExpressionCapture.Index - start);
 
-                RegularExpressions.ReplaceAndAppend(subExpressionToReplaceIn, MetadataMatchEvaluator.ExpandSingleMetadata, matchEvaluator, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
+                RegularExpressions.ReplaceAndAppend(subExpressionToReplaceIn, matchEvaluator, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
 
                 // Expand any metadata that appears in the item vector expression's separator
                 if (itemExpressionCapture.Separator != null)
                 {
-                    RegularExpressions.ReplaceAndAppend(itemExpressionCapture.Value, MetadataMatchEvaluator.ExpandSingleMetadata, matchEvaluator, -1, itemExpressionCapture.SeparatorStart, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
+                    RegularExpressions.ReplaceAndAppend(itemExpressionCapture.Value, matchEvaluator, -1, itemExpressionCapture.SeparatorStart, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
                 }
                 else
                 {

@@ -100,13 +100,12 @@ internal partial class Expander<P, I>
         /// allows us to avoid intermediate string allocations when repeatedly doing replacements. 
         /// </summary>
         /// <param name="input">The string to operate on.</param>
-        /// <param name="evaluator">A function to transform any matches found.</param>
         /// <param name="metadataMatchEvaluator">State used in the transform function.</param>
         /// <param name="stringBuilder">The <see cref="SpanBasedStringBuilder"/> that will accumulate the results.</param>
         /// <param name="regex">The <see cref="Regex"/> that will perform the matching.</param>
-        public static void ReplaceAndAppend(string input, Func<Match, MetadataMatchEvaluator, string> evaluator, MetadataMatchEvaluator metadataMatchEvaluator, SpanBasedStringBuilder stringBuilder, Regex regex)
+        public static void ReplaceAndAppend(string input, MetadataMatchEvaluator metadataMatchEvaluator, SpanBasedStringBuilder stringBuilder, Regex regex)
         {
-            ReplaceAndAppend(input, evaluator, metadataMatchEvaluator, -1, regex.RightToLeft ? input.Length : 0, stringBuilder, regex);
+            ReplaceAndAppend(input, metadataMatchEvaluator, -1, regex.RightToLeft ? input.Length : 0, stringBuilder, regex);
         }
 
         /// <summary>
@@ -114,15 +113,13 @@ internal partial class Expander<P, I>
         /// allows us to avoid intermediate string allocations when repeatedly doing replacements.
         /// </summary>
         /// <param name="input">The string to operate on.</param>
-        /// <param name="evaluator">A function to transform any matches found.</param>
         /// <param name="matchEvaluatorState">State used in the transform function.</param>
         /// <param name="count">The number of replacements.</param>
         /// <param name="startat">Index to start when doing replacements.</param>
         /// <param name="stringBuilder">The <see cref="SpanBasedStringBuilder"/> that will accumulate the results.</param>
         /// <param name="regex">The <see cref="Regex"/> that will perform the matching.</param>
-        public static void ReplaceAndAppend(string input, Func<Match, MetadataMatchEvaluator, string> evaluator, MetadataMatchEvaluator matchEvaluatorState, int count, int startat, SpanBasedStringBuilder stringBuilder, Regex regex)
+        public static void ReplaceAndAppend(string input, MetadataMatchEvaluator matchEvaluatorState, int count, int startat, SpanBasedStringBuilder stringBuilder, Regex regex)
         {
-            ArgumentNullException.ThrowIfNull(evaluator);
             ArgumentNullException.ThrowIfNull(stringBuilder);
             ArgumentOutOfRangeException.ThrowIfLessThan(count, -1);
             ArgumentOutOfRangeException.ThrowIfNegative(startat);
@@ -155,7 +152,7 @@ internal partial class Expander<P, I>
                     }
 
                     prevat = match.Index + match.Length;
-                    stringBuilder.Append(evaluator(match, matchEvaluatorState));
+                    stringBuilder.Append(MetadataMatchEvaluator.ExpandSingleMetadata(match, matchEvaluatorState));
                     if (--count == 0)
                     {
                         break;
@@ -181,7 +178,7 @@ internal partial class Expander<P, I>
                     }
 
                     prevat = match.Index;
-                    list.Add(evaluator(match, matchEvaluatorState).AsMemory());
+                    list.Add(MetadataMatchEvaluator.ExpandSingleMetadata(match, matchEvaluatorState).AsMemory());
                     if (--count == 0)
                     {
                         break;
