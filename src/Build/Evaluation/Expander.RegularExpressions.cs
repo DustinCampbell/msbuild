@@ -2,12 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
-
-#nullable disable
 
 namespace Microsoft.Build.Evaluation;
 
@@ -34,10 +32,8 @@ internal partial class Expander<P, I>
         /// Regular expression used to match item metadata references embedded in strings.
         /// For example, %(Compile.DependsOn) or %(DependsOn).
         /// </summary>
-        internal static Regex ItemMetadataRegex => s_itemMetadataRegex ??=
-            new Regex(ItemMetadataSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture | RegexOptions.Compiled);
-
-        internal static Regex s_itemMetadataRegex;
+        internal static Regex ItemMetadataRegex
+            => field ??= new(ItemMetadataSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture | RegexOptions.Compiled);
 #endif
 
         /// <summary>
@@ -55,11 +51,11 @@ internal partial class Expander<P, I>
         /// </summary>
         internal const string ItemTypeGroup = "ITEM_TYPE";
 
-        internal const string NonTransformItemMetadataSpecification = @"((?<=" + ItemVectorWithTransformLHS + @")" + ItemMetadataSpecification + @"(?!" +
-                                                            ItemVectorWithTransformRHS + @")) | ((?<!" + ItemVectorWithTransformLHS + @")" +
-                                                            ItemMetadataSpecification + @"(?=" + ItemVectorWithTransformRHS + @")) | ((?<!" +
-                                                            ItemVectorWithTransformLHS + @")" + ItemMetadataSpecification + @"(?!" +
-                                                            ItemVectorWithTransformRHS + @"))";
+        internal const string NonTransformItemMetadataSpecification = $"""
+            ((?<={ItemVectorWithTransformLHS}){ItemMetadataSpecification}(?!{ItemVectorWithTransformRHS})) |
+            ((?<!{ItemVectorWithTransformLHS}){ItemMetadataSpecification}(?={ItemVectorWithTransformRHS})) |
+            ((?<!{ItemVectorWithTransformLHS}){ItemMetadataSpecification}(?!{ItemVectorWithTransformRHS}))
+            """;
 
 #if NET
         [GeneratedRegex(NonTransformItemMetadataSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture)]
@@ -69,22 +65,26 @@ internal partial class Expander<P, I>
         /// regular expression used to match item metadata references outside of item vector transforms.
         /// </summary>
         /// <remarks>PERF WARNING: this Regex is complex and tends to run slowly.</remarks>
-        private static Regex s_nonTransformItemMetadataPattern;
-
-        internal static Regex NonTransformItemMetadataRegex => s_nonTransformItemMetadataPattern ??=
-            new Regex(NonTransformItemMetadataSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture | RegexOptions.Compiled);
+        internal static Regex NonTransformItemMetadataRegex
+            => field ??= new(NonTransformItemMetadataSpecification, RegexOptions.IgnorePatternWhitespace | RegexOptions.ExplicitCapture | RegexOptions.Compiled);
 #endif
+
+        private const string NameSpecification = ProjectWriter.itemTypeOrMetadataNameSpecification;
 
         /// <summary>
         /// Complete description of an item metadata reference, including the optional qualifying item type.
         /// For example, %(Compile.DependsOn) or %(DependsOn).
         /// </summary>
-        private const string ItemMetadataSpecification = @"%\(\s* (?<ITEM_SPECIFICATION>(?<ITEM_TYPE>" + ProjectWriter.itemTypeOrMetadataNameSpecification + @")\s*\.\s*)? (?<NAME>" + ProjectWriter.itemTypeOrMetadataNameSpecification + @") \s*\)";
+        private const string ItemMetadataSpecification = $"""
+            %\(\s*
+              (?<ITEM_SPECIFICATION>(?<ITEM_TYPE>{NameSpecification})\s*\.\s*)?
+              (?<NAME>{NameSpecification}) \s*\)
+            """;
 
         /// <summary>
         /// description of an item vector with a transform, left hand side.
         /// </summary>
-        private const string ItemVectorWithTransformLHS = @"@\(\s*" + ProjectWriter.itemTypeOrMetadataNameSpecification + @"\s*->\s*'[^']*";
+        private const string ItemVectorWithTransformLHS = $@"@\(\s*{NameSpecification}\s*->\s*'[^']*";
 
         /// <summary>
         /// description of an item vector with a transform, right hand side.
@@ -137,15 +137,14 @@ internal partial class Expander<P, I>
             if (count == 0)
             {
                 stringBuilder.Append(input);
-
                 return;
             }
 
             Match match = regex.Match(input, startat);
+
             if (!match.Success)
             {
                 stringBuilder.Append(input);
-
                 return;
             }
 
@@ -176,17 +175,19 @@ internal partial class Expander<P, I>
             }
             else
             {
-                List<ReadOnlyMemory<char>> list = new List<ReadOnlyMemory<char>>();
+                using var stack = new RefStack<ReadOnlyMemory<char>>();
                 int prevat = input.Length;
+                ReadOnlyMemory<char> memory = input.AsMemory();
+
                 do
                 {
                     if (match.Index + match.Length != prevat)
                     {
-                        list.Add(input.AsMemory().Slice(match.Index + match.Length, prevat - match.Index - match.Length));
+                        stack.Push(memory.Slice(match.Index + match.Length, prevat - match.Index - match.Length));
                     }
 
                     prevat = match.Index;
-                    list.Add(matchEvaluator.ExpandSingleMetadata(match).AsMemory());
+                    stack.Push(matchEvaluator.ExpandSingleMetadata(match).AsMemory());
                     if (--count == 0)
                     {
                         break;
@@ -201,9 +202,9 @@ internal partial class Expander<P, I>
                     stringBuilder.Append(input, 0, prevat);
                 }
 
-                for (int i = list.Count - 1; i >= 0; i--)
+                while (stack.TryPop(out ReadOnlyMemory<char> item))
                 {
-                    stringBuilder.Append(list[i]);
+                    stringBuilder.Append(item);
                 }
             }
         }
