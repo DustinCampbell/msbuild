@@ -2,12 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
-
-#nullable disable
 
 namespace Microsoft.Build.Evaluation;
 
@@ -34,152 +31,156 @@ internal partial class Expander<P, I>
         /// <param name="elementLocation">The location information for error reporting purposes.</param>
         /// <param name="loggingContext">The logging context for this operation.</param>
         /// <returns>The string with item metadata expanded in-place, escaped.</returns>
-        internal static string ExpandMetadataLeaveEscaped(string expression, IMetadataTable metadata, ExpanderOptions options, IElementLocation elementLocation, LoggingContext loggingContext = null)
+        public static string ExpandMetadataLeaveEscaped(
+            string expression,
+            IMetadataTable metadata,
+            ExpanderOptions options,
+            IElementLocation elementLocation,
+            LoggingContext? loggingContext = null)
         {
+            if ((options & ExpanderOptions.ExpandMetadata) == 0)
+            {
+                return expression;
+            }
+
+            ErrorUtilities.VerifyThrow(metadata != null, "Cannot expand metadata without providing metadata");
+
+            // PERF NOTE: Regex matching is expensive, so if the string doesn't contain any item metadata references, just bail
+            // out -- pre-scanning the string is actually cheaper than running the Regex, even when there are no matches!
+            if (!expression.Contains("%("))
+            {
+                return expression;
+            }
+
+            var matchEvaluator = new MetadataMatchEvaluator(metadata, options, elementLocation, loggingContext);
+
             try
             {
-                if ((options & ExpanderOptions.ExpandMetadata) == 0)
-                {
-                    return expression;
-                }
-
-                ErrorUtilities.VerifyThrow(metadata != null, "Cannot expand metadata without providing metadata");
-
-                // PERF NOTE: Regex matching is expensive, so if the string doesn't contain any item metadata references, just bail
-                // out -- pre-scanning the string is actually cheaper than running the Regex, even when there are no matches!
-                if (s_invariantCompareInfo.IndexOf(expression, "%(", CompareOptions.Ordinal) == -1)
-                {
-                    return expression;
-                }
-
-                string result = null;
-
-                if (s_invariantCompareInfo.IndexOf(expression, "@(", CompareOptions.Ordinal) == -1)
-                {
-                    // if there are no item vectors in the string
-                    // run a simpler Regex to find item metadata references
-                    var matchEvaluator = new MetadataMatchEvaluator(metadata, options, elementLocation, loggingContext);
-
-                    using SpanBasedStringBuilder finalResultBuilder = Strings.GetSpanBasedStringBuilder();
-                    RegularExpressions.ReplaceAndAppend(expression, in matchEvaluator, finalResultBuilder, RegularExpressions.ItemMetadataRegex);
-
-                    // Don't create more strings
-                    if (finalResultBuilder.Equals(expression.AsSpan()))
-                    {
-                        // If the final result is the same as the original expression, then just return the original expression
-                        result = expression;
-                    }
-                    else
-                    {
-                        // Otherwise, convert the final result to a string
-                        // and return that.
-                        result = finalResultBuilder.ToString();
-                    }
-                }
-                else
-                {
-                    ExpressionShredder.ReferencedItemExpressionsEnumerator itemVectorExpressionsEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-
-                    // otherwise, run the more complex Regex to find item metadata references not contained in transforms
-                    using SpanBasedStringBuilder finalResultBuilder = Strings.GetSpanBasedStringBuilder();
-
-                    int start = 0;
-
-                    if (itemVectorExpressionsEnumerator.MoveNext())
-                    {
-                        var matchEvaluator = new MetadataMatchEvaluator(metadata, options, elementLocation, loggingContext);
-                        ExpressionShredder.ItemExpressionCapture firstItemExpressionCapture = itemVectorExpressionsEnumerator.Current;
-
-                        if (itemVectorExpressionsEnumerator.MoveNext())
-                        {
-                            // we're in the uncommon case with a partially enumerated enumerator. We need to process the first two items we enumerated and the remaining ones.
-                            // Move over the expression, skipping those that have been recognized as an item vector expression
-                            // Anything other than an item vector expression we want to expand bare metadata in.
-                            start = ProcessItemExpressionCapture(expression, finalResultBuilder, in matchEvaluator, start, firstItemExpressionCapture);
-                            start = ProcessItemExpressionCapture(expression, finalResultBuilder, in matchEvaluator, start, itemVectorExpressionsEnumerator.Current);
-
-                            while (itemVectorExpressionsEnumerator.MoveNext())
-                            {
-                                start = ProcessItemExpressionCapture(expression, finalResultBuilder, in matchEvaluator, start, itemVectorExpressionsEnumerator.Current);
-                            }
-                        }
-                        else
-                        {
-                            // There is only one item. Check to see if we're in the common case.
-                            if (firstItemExpressionCapture.Value == expression && firstItemExpressionCapture.Separator == null)
-                            {
-                                // The most common case is where the transform is the whole expression
-                                // Also if there were no valid item vector expressions found, then go ahead and do the replacement on
-                                // the whole expression (which is what Orcas did).
-                                return expression;
-                            }
-                            else
-                            {
-                                start = ProcessItemExpressionCapture(expression, finalResultBuilder, in matchEvaluator, start, firstItemExpressionCapture);
-                            }
-                        }
-                    }
-
-                    // If there's anything left after the last item vector expression
-                    // then we need to metadata replace and then append that
-                    if (start < expression.Length)
-                    {
-                        var matchEvaluator = new MetadataMatchEvaluator(metadata, options, elementLocation, loggingContext);
-                        string subExpressionToReplaceIn = expression.Substring(start);
-
-                        RegularExpressions.ReplaceAndAppend(subExpressionToReplaceIn, in matchEvaluator, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
-                    }
-
-                    if (finalResultBuilder.Equals(expression.AsSpan()))
-                    {
-                        // If the final result is the same as the original expression, then just return the original expression
-                        result = expression;
-                    }
-                    else
-                    {
-                        // Otherwise, convert the final result to a string
-                        // and return that.
-                        result = finalResultBuilder.ToString();
-                    }
-                }
-
-                return result;
+                // If there are no item vectors in the string, we can run a simpler Regex to find item metadata references.
+                // Otherwise, we must run the more complex Regex to find item metadata references that aren't contained in transforms.
+                return !expression.Contains("@(")
+                    ? ExpandSimpleItemMetadata(expression, in matchEvaluator)
+                    : ExpandComplexItemMetadata(expression, in matchEvaluator);
             }
             catch (InvalidOperationException ex)
             {
                 ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotExpandItemMetadata", expression, ex.Message);
             }
 
-            return null;
+            return string.Empty;
+        }
+
+        private static string ExpandSimpleItemMetadata(string expression, ref readonly MetadataMatchEvaluator matchEvaluator)
+        {
+            using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
+
+            RegularExpressions.ReplaceAndAppend(
+                expression,
+                in matchEvaluator,
+                builder,
+                RegularExpressions.ItemMetadataRegex);
+
+            // If the final result is the same as the original expression, then just return the original expression,
+            // Otherwise, convert the final result to a string and return that.
+            return builder.Equals(expression)
+                ? expression
+                : builder.ToString();
+        }
+
+        private static string ExpandComplexItemMetadata(string expression, ref readonly MetadataMatchEvaluator matchEvaluator)
+        {
+            using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
+
+            ExpressionShredder.ReferencedItemExpressionsEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+            int start = 0;
+
+            if (enumerator.MoveNext())
+            {
+                ExpressionShredder.ItemExpressionCapture first = enumerator.Current;
+
+                if (enumerator.MoveNext())
+                {
+                    ExpressionShredder.ItemExpressionCapture second = enumerator.Current;
+
+                    // we're in the uncommon case with a partially enumerated enumerator. We need to process the first two items we enumerated and the remaining ones.
+                    // Move over the expression, skipping those that have been recognized as an item vector expression
+                    // Anything other than an item vector expression we want to expand bare metadata in.
+                    start = ProcessItemExpressionCapture(expression, in matchEvaluator, builder, start, in first);
+                    start = ProcessItemExpressionCapture(expression, in matchEvaluator, builder, start, in second);
+
+                    while (enumerator.MoveNext())
+                    {
+                        ExpressionShredder.ItemExpressionCapture current = enumerator.Current;
+                        start = ProcessItemExpressionCapture(expression, in matchEvaluator, builder, start, in current);
+                    }
+                }
+                else
+                {
+                    // There is only one item. Check to see if we're in the common case.
+                    if (first.Value == expression && first.Separator == null)
+                    {
+                        // The most common case is where the transform is the whole expression
+                        // Also if there were no valid item vector expressions found, then go ahead and do the replacement on
+                        // the whole expression (which is what Orcas did).
+                        return expression;
+                    }
+
+                    start = ProcessItemExpressionCapture(expression, in matchEvaluator, builder, start, in first);
+                }
+            }
+
+            // If there's anything left after the last item vector expression
+            // then we need to metadata replace and then append that
+            if (start < expression.Length)
+            {
+                RegularExpressions.ReplaceAndAppend(
+                    expression.Substring(start),
+                    in matchEvaluator,
+                    builder,
+                    RegularExpressions.NonTransformItemMetadataRegex);
+            }
+
+            // If the final result is the same as the original expression, then just return the original expression,
+            // Otherwise, convert the final result to a string and return that.
+            return builder.Equals(expression)
+                ? expression
+                : builder.ToString();
 
             static int ProcessItemExpressionCapture(
                 string expression,
-                SpanBasedStringBuilder finalResultBuilder,
                 ref readonly MetadataMatchEvaluator matchEvaluator,
+                SpanBasedStringBuilder builder,
                 int start,
-                ExpressionShredder.ItemExpressionCapture itemExpressionCapture)
+                in ExpressionShredder.ItemExpressionCapture capture)
             {
                 // Extract the part of the expression that appears before the item vector expression
                 // e.g. the ABC in ABC@(foo->'%(FullPath)')
-                string subExpressionToReplaceIn = expression.Substring(start, itemExpressionCapture.Index - start);
-
-                RegularExpressions.ReplaceAndAppend(subExpressionToReplaceIn, in matchEvaluator, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
+                RegularExpressions.ReplaceAndAppend(
+                    expression.Substring(start, capture.Index - start),
+                    in matchEvaluator,
+                    builder,
+                    RegularExpressions.NonTransformItemMetadataRegex);
 
                 // Expand any metadata that appears in the item vector expression's separator
-                if (itemExpressionCapture.Separator != null)
+                if (capture.Separator != null)
                 {
-                    RegularExpressions.ReplaceAndAppend(itemExpressionCapture.Value, in matchEvaluator, -1, itemExpressionCapture.SeparatorStart, finalResultBuilder, RegularExpressions.NonTransformItemMetadataRegex);
+                    RegularExpressions.ReplaceAndAppend(
+                        capture.Value,
+                        in matchEvaluator,
+                        count: -1,
+                        capture.SeparatorStart,
+                        builder,
+                        RegularExpressions.NonTransformItemMetadataRegex);
                 }
                 else
                 {
                     // Append the item vector expression as is
                     // e.g. the @(foo->'%(FullPath)') in ABC@(foo->'%(FullPath)')
-                    finalResultBuilder.Append(itemExpressionCapture.Value);
+                    builder.Append(capture.Value);
                 }
 
                 // Move onto the next part of the expression that isn't an item vector expression
-                start = (itemExpressionCapture.Index + itemExpressionCapture.Length);
-                return start;
+                return capture.Index + capture.Length;
             }
         }
     }
