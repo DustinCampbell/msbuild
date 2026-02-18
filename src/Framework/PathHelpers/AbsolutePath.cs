@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Microsoft.Build.Framework.Resources;
+
 #if NETFRAMEWORK
 using Microsoft.IO;
 #else
@@ -32,7 +34,7 @@ namespace Microsoft.Build.Framework
         /// The normalized string representation of this path.
         /// </summary>
         public string Value { get; }
-        
+
         /// <summary>
         /// The original string used to create this path.
         /// </summary>
@@ -86,7 +88,7 @@ namespace Microsoft.Build.Framework
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException(FrameworkResources.GetString("PathMustNotBeNullOrEmpty"), nameof(path));
+                throw new ArgumentException(Strings.PathMustNotBeNullOrEmpty, nameof(path));
             }
 
             // Path.IsPathFullyQualified is not available in .NET Standard 2.0
@@ -94,7 +96,7 @@ namespace Microsoft.Build.Framework
 #if NETFRAMEWORK || NET
             if (!Path.IsPathFullyQualified(path))
             {
-                throw new ArgumentException(FrameworkResources.GetString("PathMustBeRooted"), nameof(path));
+                throw new ArgumentException(Strings.PathMustBeRooted, nameof(path));
             }
 #endif
         }
@@ -109,7 +111,7 @@ namespace Microsoft.Build.Framework
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException(FrameworkResources.GetString("PathMustNotBeNullOrEmpty"), nameof(path));
+                throw new ArgumentException(Strings.PathMustNotBeNullOrEmpty, nameof(path));
             }
 
             // This function should not throw when path has illegal characters.

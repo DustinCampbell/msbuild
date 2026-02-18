@@ -12,6 +12,9 @@
     <ApplyNgenOptimization Condition="'$(TargetFramework)' == '$(FullFrameworkTFM)'">full</ApplyNgenOptimization>
     <EnablePackageValidation>true</EnablePackageValidation>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+
+    <GenerateResxSource>true</GenerateResxSource>
+    <GenerateResxSourceEmitFormatMethods>true</GenerateResxSourceEmitFormatMethods>
   </PropertyGroup>
 
   <ItemGroup>
@@ -76,8 +79,7 @@
 
   <ItemGroup>
     <EmbeddedResource Update="Resources\Strings.resx">
-      <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
-      <SubType>Designer</SubType>
+      <GenerateSource>true</GenerateSource>
     </EmbeddedResource>
   </ItemGroup>
 </Project>
