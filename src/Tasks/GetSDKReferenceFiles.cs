@@ -94,7 +94,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(CacheFileFolderPath));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(CacheFileFolderPath));
                 _cacheFilePath = value;
             }
         }
@@ -108,7 +108,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(ResolvedSDKReferences));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(ResolvedSDKReferences));
                 _resolvedSDKReferences = value;
             }
         }
@@ -123,7 +123,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(ReferenceExtensions));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(ReferenceExtensions));
                 _referenceExtensions = value;
             }
         }

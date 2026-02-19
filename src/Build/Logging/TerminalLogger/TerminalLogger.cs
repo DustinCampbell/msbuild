@@ -485,7 +485,7 @@ public sealed partial class TerminalLogger : INodeLogger
     /// </remark>
     private void ApplyParameter(string parameterName, string? parameterValue)
     {
-        ErrorUtilities.VerifyThrowArgumentNull(parameterName);
+        ArgumentNullException.ThrowIfNull(parameterName);
 
         switch (parameterName.ToUpperInvariant())
         {

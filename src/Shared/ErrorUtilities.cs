@@ -513,7 +513,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static void VerifyThrowArgumentLength([NotNull] string? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
         {
-            VerifyThrowArgumentNull(parameter, parameterName);
+            ArgumentNullException.ThrowIfNull(parameter, parameterName);
 
             if (parameter.Length == 0)
             {
@@ -528,7 +528,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static void VerifyThrowArgumentLength<T>([NotNull] IReadOnlyCollection<T> parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
         {
-            VerifyThrowArgumentNull(parameter, parameterName);
+            ArgumentNullException.ThrowIfNull(parameter, parameterName);
 
             if (parameter.Count == 0)
             {
@@ -560,7 +560,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static void VerifyThrowArgumentInvalidPath([NotNull] string parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
         {
-            VerifyThrowArgumentNull(parameter, parameterName);
+            ArgumentNullException.ThrowIfNull(parameter, parameterName);
 
             if (FileUtilities.PathIsInvalid(parameter))
             {
@@ -635,7 +635,7 @@ namespace Microsoft.Build.Shared
             string arrayIndexParameterName,
             int requiredCapacity)
         {
-            VerifyThrowArgumentNull(array, arrayParameterName);
+            ArgumentNullException.ThrowIfNull(array, arrayParameterName);
             VerifyThrowArgumentOutOfRange(arrayIndex >= 0 && arrayIndex < array.Length, arrayIndexParameterName);
 
             int arrayCapacity = array.Length - arrayIndex;

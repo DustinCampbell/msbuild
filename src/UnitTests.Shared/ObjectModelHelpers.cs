@@ -588,7 +588,7 @@ namespace Microsoft.Build.UnitTests
         /// <returns></returns>
         public static string CleanupFileContents([StringSyntax(StringSyntaxAttribute.Xml)] string projectFileContents)
         {
-            StringBuilder temp = new (projectFileContents);
+            StringBuilder temp = new(projectFileContents);
 
             // Replace reverse-single-quotes with double-quotes.
             temp.Replace('`', '"');
@@ -1128,7 +1128,7 @@ namespace Microsoft.Build.UnitTests
     {
         public static string Format(this string s, params object[] formatItems)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(s);
+            ArgumentNullException.ThrowIfNull(s);
 
             return string.Format(s, formatItems);
         }

@@ -202,7 +202,7 @@ namespace Microsoft.Build.BackEnd
         /// </remarks>
         public void CleanupTask(ITask task)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(task);
+            ArgumentNullException.ThrowIfNull(task);
 #if FEATURE_APPDOMAIN
             AppDomain appDomain;
             if (_tasksAndAppDomains.TryGetValue(task, out appDomain))
@@ -257,7 +257,7 @@ namespace Microsoft.Build.BackEnd
             ElementLocation elementLocation,
             string taskProjectFile)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(loadInfo);
+            ArgumentNullException.ThrowIfNull(loadInfo);
             VerifyThrowIdentityParametersValid(taskFactoryIdentityParameters, elementLocation, taskName, "Runtime", "Architecture");
 
             bool taskHostParamsMatchCurrentProc = true;
@@ -519,7 +519,7 @@ namespace Microsoft.Build.BackEnd
             return false;
         }
 
-#endregion
+        #endregion
 
         #region Private members
 

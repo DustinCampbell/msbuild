@@ -7,7 +7,6 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
 
 #nullable disable
@@ -135,7 +134,7 @@ namespace Microsoft.Build.Tasks
         /// <returns></returns>
         internal static StrongNameLevel GetAssemblyStrongNameLevel(string assemblyPath)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(assemblyPath);
+            ArgumentNullException.ThrowIfNull(assemblyPath);
 
             StrongNameLevel snLevel = StrongNameLevel.Unknown;
             IntPtr fileHandle = NativeMethods.InvalidIntPtr;

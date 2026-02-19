@@ -96,7 +96,7 @@ namespace Microsoft.Build.BackEnd
         /// <param name="packet">The packet to send.</param>
         protected void SendData(NodeContext context, INodePacket packet)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(packet);
+            ArgumentNullException.ThrowIfNull(packet);
             context.SendData(packet);
         }
 

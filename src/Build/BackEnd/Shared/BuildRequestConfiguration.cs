@@ -169,7 +169,7 @@ namespace Microsoft.Build.BackEnd
         /// <param name="defaultToolsVersion">The default ToolsVersion to use as a fallback</param>
         internal BuildRequestConfiguration(int configId, BuildRequestData data, string defaultToolsVersion)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(data);
+            ArgumentNullException.ThrowIfNull(data);
             ErrorUtilities.VerifyThrowInternalLength(data.ProjectFullPath, "data.ProjectFullPath");
 
             _configId = configId;
@@ -211,7 +211,7 @@ namespace Microsoft.Build.BackEnd
         /// <param name="instance">The project instance.</param>
         internal BuildRequestConfiguration(int configId, ProjectInstance instance)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(instance);
+            ArgumentNullException.ThrowIfNull(instance);
 
             _configId = configId;
             _projectFullPath = instance.FullPath;
@@ -232,7 +232,7 @@ namespace Microsoft.Build.BackEnd
         private BuildRequestConfiguration(int configId, BuildRequestConfiguration other)
         {
             ErrorUtilities.VerifyThrow(configId != InvalidConfigurationId, "Configuration ID must not be invalid when using this constructor.");
-            ErrorUtilities.VerifyThrowArgumentNull(other);
+            ArgumentNullException.ThrowIfNull(other);
             ErrorUtilities.VerifyThrow(other._transferredState == null, "Unexpected transferred state still set on other configuration.");
 
             _project = other._project;

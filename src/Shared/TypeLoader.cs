@@ -419,8 +419,8 @@ namespace Microsoft.Build.Shared
             /// </summary>
             internal AssemblyInfoToLoadedTypes(Func<Type, object, bool> typeFilter, AssemblyLoadInfo loadInfo)
             {
-                ErrorUtilities.VerifyThrowArgumentNull(typeFilter, "typefilter");
-                ErrorUtilities.VerifyThrowArgumentNull(loadInfo);
+                ArgumentNullException.ThrowIfNull(typeFilter);
+                ArgumentNullException.ThrowIfNull(loadInfo);
 
                 _isDesiredType = typeFilter;
                 _assemblyLoadInfo = loadInfo;
@@ -438,7 +438,7 @@ namespace Microsoft.Build.Shared
                 bool taskHostParamsMatchCurrentProc,
                 LogWarningDelegate logWarning)
             {
-                ErrorUtilities.VerifyThrowArgumentNull(typeName);
+                ArgumentNullException.ThrowIfNull(typeName);
 
                 if (ShouldUseMetadataLoadContext(useTaskHost, taskHostParamsMatchCurrentProc))
                 {

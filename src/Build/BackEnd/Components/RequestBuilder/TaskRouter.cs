@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.BackEnd
 {
@@ -48,7 +47,7 @@ namespace Microsoft.Build.BackEnd
     /// </remarks>
     public static bool NeedsTaskHostInMultiThreadedMode(Type taskType)
     {
-        ErrorUtilities.VerifyThrowArgumentNull(taskType, nameof(taskType));
+        ArgumentNullException.ThrowIfNull(taskType);
 
         // Tasks without the thread-safety attribute need isolation in a TaskHost sidecar
         return !HasMultiThreadableTaskAttribute(taskType);

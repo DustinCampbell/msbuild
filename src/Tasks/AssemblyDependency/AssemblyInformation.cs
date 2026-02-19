@@ -68,7 +68,7 @@ namespace Microsoft.Build.Tasks
         internal AssemblyInformation(string sourceFile)
         {
             // Extra checks for PInvoke-destined data.
-            ErrorUtilities.VerifyThrowArgumentNull(sourceFile);
+            ArgumentNullException.ThrowIfNull(sourceFile);
             _sourceFile = sourceFile;
 
 #if !FEATURE_ASSEMBLYLOADCONTEXT

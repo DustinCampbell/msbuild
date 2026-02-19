@@ -383,7 +383,7 @@ namespace Microsoft.Build.Graph
             IEnumerable<GlobalPropertiesModifier> globalPropertyModifiers)
         {
             ErrorUtilities.VerifyThrowInternalNull(projectReference);
-            ErrorUtilities.VerifyThrowArgumentNull(requesterGlobalProperties);
+            ArgumentNullException.ThrowIfNull(requesterGlobalProperties);
 
             var properties = SplitPropertyNameValuePairs(ItemMetadataNames.PropertiesMetadataName, projectReference.GetMetadataValue(ItemMetadataNames.PropertiesMetadataName));
             var additionalProperties = SplitPropertyNameValuePairs(ItemMetadataNames.AdditionalPropertiesMetadataName, projectReference.GetMetadataValue(ItemMetadataNames.AdditionalPropertiesMetadataName));

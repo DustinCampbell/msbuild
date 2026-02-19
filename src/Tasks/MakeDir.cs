@@ -22,7 +22,7 @@ namespace Microsoft.Build.Tasks
         {
             get
             {
-                ErrorUtilities.VerifyThrowArgumentNull(_directories, nameof(Directories));
+                ArgumentNullException.ThrowIfNull(_directories, paramName: nameof(Directories));
                 return _directories;
             }
 

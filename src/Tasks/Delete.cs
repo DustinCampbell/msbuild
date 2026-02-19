@@ -30,7 +30,7 @@ namespace Microsoft.Build.Tasks
         {
             get
             {
-                ErrorUtilities.VerifyThrowArgumentNull(_files, nameof(Files));
+                ArgumentNullException.ThrowIfNull(_files, paramName: nameof(Files));
                 return _files;
             }
 

@@ -6,7 +6,6 @@ using System;
 using System.IO;
 using System.Text;
 
-using Microsoft.Build.Shared;
 #endif
 
 using System.Diagnostics.CodeAnalysis;
@@ -36,7 +35,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(References));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(References));
                 Bag[nameof(References)] = value;
             }
         }
@@ -50,7 +49,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(DisabledWarnings));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(DisabledWarnings));
                 Bag[nameof(DisabledWarnings)] = value;
             }
         }
@@ -64,7 +63,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(InputDocumentationFile));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(InputDocumentationFile));
                 Bag[nameof(InputDocumentationFile)] = value;
             }
         }
@@ -78,7 +77,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(OutputDocumentationFile));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(OutputDocumentationFile));
                 Bag[nameof(OutputDocumentationFile)] = value;
             }
         }
@@ -92,7 +91,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(InputPDBFile));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(InputPDBFile));
                 Bag[nameof(InputPDBFile)] = value;
             }
         }
@@ -106,7 +105,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(OutputPDBFile));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(OutputPDBFile));
                 Bag[nameof(OutputPDBFile)] = value;
             }
         }
@@ -121,7 +120,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(WinMDModule));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(WinMDModule));
                 Bag[nameof(WinMDModule)] = value;
             }
         }
@@ -136,7 +135,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(OutputWindowsMetadataFile));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(OutputWindowsMetadataFile));
                 Bag[nameof(OutputWindowsMetadataFile)] = value;
             }
         }
@@ -178,7 +177,7 @@ namespace Microsoft.Build.Tasks
 
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(AssemblyUnificationPolicy));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(AssemblyUnificationPolicy));
                 Bag[nameof(AssemblyUnificationPolicy)] = value;
             }
         }

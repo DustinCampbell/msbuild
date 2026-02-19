@@ -32,7 +32,7 @@ namespace Microsoft.Build.Tasks
         {
             get
             {
-                ErrorUtilities.VerifyThrowArgumentNull(_assemblyFiles, nameof(AssemblyFiles));
+                ArgumentNullException.ThrowIfNull(_assemblyFiles, paramName: nameof(AssemblyFiles));
                 return _assemblyFiles;
             }
             set => _assemblyFiles = value;

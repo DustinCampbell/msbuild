@@ -150,7 +150,7 @@ namespace Microsoft.Build.Tasks
         {
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(BuildAssemblyName));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(BuildAssemblyName));
                 Bag[nameof(BuildAssemblyName)] = value;
             }
             get => (string)Bag[nameof(BuildAssemblyName)];
@@ -161,7 +161,7 @@ namespace Microsoft.Build.Tasks
         {
             set
             {
-                ErrorUtilities.VerifyThrowArgumentNull(value, nameof(BuildAssemblyPath));
+                ArgumentNullException.ThrowIfNull(value, paramName: nameof(BuildAssemblyPath));
                 _buildAssemblyPath = value;
             }
 

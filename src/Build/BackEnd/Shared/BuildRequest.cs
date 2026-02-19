@@ -1,12 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.Build.Execution;
-using Microsoft.Build.ProjectCache;
 using Microsoft.Build.Framework;
+using Microsoft.Build.ProjectCache;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -186,8 +187,8 @@ namespace Microsoft.Build.BackEnd
             int projectContextId = BuildEventContext.InvalidProjectContextId)
         : this(submissionId, nodeRequestId, configurationId, hostServices, buildRequestDataFlags, requestedProjectState, projectContextId)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(escapedTargets, "targets");
-            ErrorUtilities.VerifyThrowArgumentNull(parentBuildEventContext);
+            ArgumentNullException.ThrowIfNull(escapedTargets, "targets");
+            ArgumentNullException.ThrowIfNull(parentBuildEventContext);
 
             // When targets come into a build request, we unescape them.
             _targets = new List<string>(escapedTargets.Count);

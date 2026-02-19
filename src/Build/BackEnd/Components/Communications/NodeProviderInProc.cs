@@ -155,7 +155,7 @@ namespace Microsoft.Build.BackEnd
         /// <param name="packet">The data to send.</param>
         public void SendData(int nodeId, INodePacket packet)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(packet);
+            ArgumentNullException.ThrowIfNull(packet);
 
             bool nodeExists = _nodeContexts.TryGetValue(nodeId, out NodeContext nodeContext);
 

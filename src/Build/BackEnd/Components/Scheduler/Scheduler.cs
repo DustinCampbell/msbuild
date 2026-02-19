@@ -1407,8 +1407,8 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private void AssignUnscheduledRequestToNode(SchedulableRequest request, int nodeId, List<ScheduleResponse> responses)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(request);
-            ErrorUtilities.VerifyThrowArgumentNull(responses);
+            ArgumentNullException.ThrowIfNull(request);
+            ArgumentNullException.ThrowIfNull(responses);
             ErrorUtilities.VerifyThrow(nodeId != InvalidNodeId, "Invalid node id specified.");
 
             request.VerifyState(SchedulableRequestState.Unscheduled);
@@ -1681,8 +1681,8 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private void HandleRequestBlockedOnInProgressTarget(SchedulableRequest blockedRequest, BuildRequestBlocker blocker)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(blockedRequest);
-            ErrorUtilities.VerifyThrowArgumentNull(blocker);
+            ArgumentNullException.ThrowIfNull(blockedRequest);
+            ArgumentNullException.ThrowIfNull(blocker);
 
             // We are blocked on an in-progress request building a target whose results we need.
             SchedulableRequest blockingRequest = _schedulingData.GetScheduledRequest(blocker.BlockingRequestId);
@@ -1740,8 +1740,8 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private void HandleRequestBlockedByNewRequests(SchedulableRequest parentRequest, BuildRequestBlocker blocker, List<ScheduleResponse> responses)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(blocker);
-            ErrorUtilities.VerifyThrowArgumentNull(responses);
+            ArgumentNullException.ThrowIfNull(blocker);
+            ArgumentNullException.ThrowIfNull(responses);
 
             // The request is waiting on new requests.
             bool abortRequestBatch = false;

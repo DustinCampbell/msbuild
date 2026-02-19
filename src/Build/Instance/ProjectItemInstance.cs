@@ -734,7 +734,7 @@ namespace Microsoft.Build.Execution
             string definingFileEscaped,
             bool useItemDefinitionsWithoutModification)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(projectToUse, "project");
+            ArgumentNullException.ThrowIfNull(projectToUse, paramName: "project");
             ErrorUtilities.VerifyThrowArgumentLength(itemTypeToUse, "itemType");
             XmlUtilities.VerifyThrowArgumentValidElementName(itemTypeToUse);
             ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(itemTypeToUse), "OM_ReservedName", itemTypeToUse);
@@ -933,7 +933,7 @@ namespace Microsoft.Build.Execution
                     ProjectInstance.VerifyThrowNotImmutable(_isImmutable);
 
                     // Historically empty string was allowed
-                    ErrorUtilities.VerifyThrowArgumentNull(value, "ItemSpec");
+                    ArgumentNullException.ThrowIfNull(value, paramName: "ItemSpec");
 
                     _includeEscaped = value;
                     _fullPath = null; // Clear cached value
@@ -1506,7 +1506,7 @@ namespace Microsoft.Build.Execution
             /// </param>
             public void CopyMetadataTo(ITaskItem destinationItem, bool addOriginalItemSpec)
             {
-                ErrorUtilities.VerifyThrowArgumentNull(destinationItem);
+                ArgumentNullException.ThrowIfNull(destinationItem);
 
                 string originalItemSpec = null;
                 if (addOriginalItemSpec)
