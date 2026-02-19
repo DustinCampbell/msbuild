@@ -630,10 +630,10 @@ namespace Microsoft.Build.Shared
         /// when starting at <paramref name="arrayIndex"/>.</exception>
         internal static void VerifyCollectionCopyToArguments<T>(
             [NotNull] T[]? array,
-            string arrayParameterName,
             int arrayIndex,
-            string arrayIndexParameterName,
-            int requiredCapacity)
+            int requiredCapacity,
+            [CallerArgumentExpression(nameof(array))] string? arrayParameterName = null,
+            [CallerArgumentExpression(nameof(arrayIndex))] string? arrayIndexParameterName = null)
         {
             ArgumentNullException.ThrowIfNull(array, arrayParameterName);
             ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex, arrayIndexParameterName);
