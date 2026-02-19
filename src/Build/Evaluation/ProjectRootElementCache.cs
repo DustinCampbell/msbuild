@@ -394,7 +394,7 @@ namespace Microsoft.Build.Evaluation
         {
             lock (_locker)
             {
-                ErrorUtilities.VerifyThrowArgumentLength(oldFullPath);
+                ArgumentException.ThrowIfNullOrEmpty(oldFullPath);
                 RenameEntryInternal(oldFullPath, projectRootElement);
             }
         }

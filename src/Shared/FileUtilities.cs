@@ -427,7 +427,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static string NormalizePath(string path)
         {
-            ErrorUtilities.VerifyThrowArgumentLength(path);
+            ArgumentException.ThrowIfNullOrEmpty(path);
             string fullPath = GetFullPath(path);
             return FrameworkFileUtilities.FixFilePath(fullPath);
         }
@@ -1147,7 +1147,7 @@ namespace Microsoft.Build.Shared
         internal static string MakeRelative(string basePath, string path)
         {
             ArgumentNullException.ThrowIfNull(basePath);
-            ErrorUtilities.VerifyThrowArgumentLength(path);
+            ArgumentException.ThrowIfNullOrEmpty(path);
 
             string fullBase = Path.GetFullPath(basePath);
             string fullPath = Path.GetFullPath(path);

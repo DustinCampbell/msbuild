@@ -202,7 +202,7 @@ namespace Microsoft.Build.Execution
             [DebuggerStepThrough]
             set
             {
-                ErrorUtilities.VerifyThrowArgumentLength(value, "EvaluatedInclude");
+                ArgumentException.ThrowIfNullOrEmpty(value, paramName: nameof(EvaluatedInclude));
                 _project.VerifyThrowNotImmutable();
 
                 _taskItem.ItemSpec = value;
@@ -735,7 +735,7 @@ namespace Microsoft.Build.Execution
             bool useItemDefinitionsWithoutModification)
         {
             ArgumentNullException.ThrowIfNull(projectToUse, paramName: "project");
-            ErrorUtilities.VerifyThrowArgumentLength(itemTypeToUse, "itemType");
+            ArgumentException.ThrowIfNullOrEmpty(itemTypeToUse, "itemType");
             XmlUtilities.VerifyThrowArgumentValidElementName(itemTypeToUse);
             ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(itemTypeToUse), "OM_ReservedName", itemTypeToUse);
 
@@ -863,8 +863,8 @@ namespace Microsoft.Build.Execution
                               bool immutable,
                               string definingFileEscaped) // the actual project file (or import) that defines this item.
             {
-                ErrorUtilities.VerifyThrowArgumentLength(includeEscaped);
-                ErrorUtilities.VerifyThrowArgumentLength(includeBeforeWildcardExpansionEscaped);
+                ArgumentException.ThrowIfNullOrEmpty(includeEscaped);
+                ArgumentException.ThrowIfNullOrEmpty(includeBeforeWildcardExpansionEscaped);
 
                 _includeEscaped = FrameworkFileUtilities.FixFilePath(includeEscaped);
                 _includeBeforeWildcardExpansionEscaped = FrameworkFileUtilities.FixFilePath(includeBeforeWildcardExpansionEscaped);
@@ -1052,7 +1052,7 @@ namespace Microsoft.Build.Execution
                 {
                     ProjectInstance.VerifyThrowNotImmutable(_isImmutable);
 
-                    ErrorUtilities.VerifyThrowArgumentLength(value, "IncludeEscaped");
+                    ArgumentException.ThrowIfNullOrEmpty(value, "IncludeEscaped");
                     _includeEscaped = value;
                     _fullPath = null; // Clear cached value
                 }
@@ -1417,7 +1417,7 @@ namespace Microsoft.Build.Execution
             {
                 if (string.IsNullOrEmpty(metadataName))
                 {
-                    ErrorUtilities.VerifyThrowArgumentLength(metadataName);
+                    ArgumentException.ThrowIfNullOrEmpty(metadataName);
                 }
 
                 if (_directMetadata?.TryGetValue(metadataName, out string escapedValue) == true && escapedValue != null)

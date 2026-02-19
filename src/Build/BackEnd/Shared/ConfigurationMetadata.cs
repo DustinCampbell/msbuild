@@ -51,7 +51,7 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         public ConfigurationMetadata(string projectFullPath, PropertyDictionary<ProjectPropertyInstance> globalProperties)
         {
-            ErrorUtilities.VerifyThrowArgumentLength(projectFullPath);
+            ArgumentException.ThrowIfNullOrEmpty(projectFullPath);
             ArgumentNullException.ThrowIfNull(globalProperties);
 
             _projectFullPath = projectFullPath;

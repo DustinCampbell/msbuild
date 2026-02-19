@@ -138,7 +138,7 @@ namespace Microsoft.Build.Execution
         public BuildRequestData(string projectFullPath, IDictionary<string, string?> globalProperties, string? toolsVersion, string[] targetsToBuild, HostServices? hostServices, BuildRequestDataFlags flags)
             : this(targetsToBuild, hostServices, flags, FileUtilities.NormalizePath(projectFullPath)!)
         {
-            ErrorUtilities.VerifyThrowArgumentLength(projectFullPath);
+            ArgumentException.ThrowIfNullOrEmpty(projectFullPath);
             ArgumentNullException.ThrowIfNull(globalProperties);
 
             GlobalPropertiesDictionary = new PropertyDictionary<ProjectPropertyInstance>(globalProperties.Count);
