@@ -636,7 +636,8 @@ namespace Microsoft.Build.Shared
             int requiredCapacity)
         {
             ArgumentNullException.ThrowIfNull(array, arrayParameterName);
-            VerifyThrowArgumentOutOfRange(arrayIndex >= 0 && arrayIndex < array.Length, arrayIndexParameterName);
+            ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex, arrayIndexParameterName);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(arrayIndex, array.Length, arrayIndexParameterName);
 
             int arrayCapacity = array.Length - arrayIndex;
             if (requiredCapacity > arrayCapacity)

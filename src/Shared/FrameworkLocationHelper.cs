@@ -1039,7 +1039,7 @@ namespace Microsoft.Build.Shared
         /// </comments>
         internal static string RemoveDirectories(string path, int numberOfLevelsToRemove)
         {
-            ErrorUtilities.VerifyThrowArgumentOutOfRange(numberOfLevelsToRemove > 0, nameof(numberOfLevelsToRemove));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(numberOfLevelsToRemove);
 
             string fixedPath = null;
             if (path != null)
