@@ -2,13 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using Microsoft.Build.Framework;
 
 #if BUILDINGAPPXTASKS
@@ -125,22 +123,6 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Helper to throw an InternalErrorException when a lock on the specified object is not already held.
-        /// This should be used ONLY if this would indicate a bug in MSBuild rather than
-        /// anything caused by user action.
-        /// </summary>
-        /// <param name="locker">The object that should already have been used as a lock.</param>
-        internal static void VerifyThrowInternalLockHeld(object locker)
-        {
-#if !CLR2COMPATIBILITY
-            if (!Monitor.IsEntered(locker))
-            {
-                ThrowInternalError("Lock should already have been taken");
-            }
-#endif
-        }
-
-        /// <summary>
         /// Helper to throw an InternalErrorException when the specified parameter is null or zero length.
         /// This should be used ONLY if this would indicate a bug in MSBuild rather than
         /// anything caused by user action.
@@ -148,16 +130,6 @@ namespace Microsoft.Build.Shared
         /// <param name="parameterValue">The value of the argument.</param>
         /// <param name="parameterName">Parameter that should not be null or zero length</param>
         internal static void VerifyThrowInternalLength([NotNull] string? parameterValue, [CallerArgumentExpression(nameof(parameterValue))] string? parameterName = null)
-        {
-            VerifyThrowInternalNull(parameterValue, parameterName);
-
-            if (parameterValue.Length == 0)
-            {
-                ThrowInternalError("{0} unexpectedly empty", parameterName);
-            }
-        }
-
-        public static void VerifyThrowInternalLength<T>([NotNull] T[]? parameterValue, [CallerArgumentExpression(nameof(parameterValue))] string? parameterName = null)
         {
             VerifyThrowInternalNull(parameterValue, parameterName);
 
@@ -356,7 +328,7 @@ namespace Microsoft.Build.Shared
         [DoesNotReturn]
         internal static void ThrowArgument(string resourceName, params object?[]? args)
         {
-            ThrowArgument(null, resourceName, args);
+            ThrowArgument(innerException: null, resourceName, args);
         }
 
         /// <summary>
@@ -496,65 +468,6 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Throws an ArgumentOutOfRangeException using the given parameter name
-        /// if the condition is false.
-        /// </summary>
-        internal static void VerifyThrowArgumentOutOfRange([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? parameterName = null)
-        {
-            if (!condition)
-            {
-                ThrowArgumentOutOfRange(parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Throws an ArgumentNullException if the given string parameter is null
-        /// and ArgumentException if it has zero length.
-        /// </summary>
-        internal static void VerifyThrowArgumentLength([NotNull] string? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        {
-            ArgumentNullException.ThrowIfNull(parameter, parameterName);
-
-            if (parameter.Length == 0)
-            {
-                ThrowArgumentLength(parameterName);
-            }
-        }
-
-#if !CLR2COMPATIBILITY
-        /// <summary>
-        /// Throws an ArgumentNullException if the given collection is null
-        /// and ArgumentException if it has zero length.
-        /// </summary>
-        internal static void VerifyThrowArgumentLength<T>([NotNull] IReadOnlyCollection<T> parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        {
-            ArgumentNullException.ThrowIfNull(parameter, parameterName);
-
-            if (parameter.Count == 0)
-            {
-                ThrowArgumentLength(parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Throws an ArgumentException if the given collection is not null but of zero length.
-        /// </summary>
-        internal static void VerifyThrowArgumentLengthIfNotNull<T>([MaybeNull] IReadOnlyCollection<T>? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        {
-            if (parameter?.Count == 0)
-            {
-                ThrowArgumentLength(parameterName);
-            }
-        }
-#endif
-
-        [DoesNotReturn]
-        private static void ThrowArgumentLength(string? parameterName)
-        {
-            throw new ArgumentException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Shared.ParameterCannotHaveZeroLength", parameterName));
-        }
-
-        /// <summary>
         /// Throws an ArgumentNullException if the given string parameter is null
         /// and ArgumentException if it has zero length.
         /// </summary>
@@ -566,26 +479,6 @@ namespace Microsoft.Build.Shared
             {
                 ThrowArgument("Shared.ParameterCannotHaveInvalidPathChars", parameterName, parameter);
             }
-        }
-
-        /// <summary>
-        /// Throws an ArgumentException if the string has zero length, unless it is
-        /// null, in which case no exception is thrown.
-        /// </summary>
-        internal static void VerifyThrowArgumentLengthIfNotNull(string? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        {
-            if (parameter?.Length == 0)
-            {
-                ThrowArgumentLength(parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Throws an ArgumentNullException if the given parameter is null.
-        /// </summary>
-        internal static void VerifyThrowArgumentNull([NotNull] object? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        {
-            VerifyThrowArgumentNull(parameter, parameterName, "Shared.ParameterCannotBeNull");
         }
 
         /// <summary>
@@ -601,24 +494,10 @@ namespace Microsoft.Build.Shared
         }
 
         [DoesNotReturn]
-        internal static void ThrowArgumentNull(string? parameterName, string resourceName)
+        private static void ThrowArgumentNull(string? parameterName, string resourceName)
         {
             // Most ArgumentNullException overloads append its own rather clunky multi-line message. So use the one overload that doesn't.
             throw new ArgumentNullException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(resourceName, parameterName), (Exception?)null);
-        }
-
-        internal static void VerifyThrowObjectDisposed([DoesNotReturnIf(false)] bool condition, string objectName)
-        {
-            if (!condition)
-            {
-                ThrowObjectDisposed(objectName);
-            }
-        }
-
-        [DoesNotReturn]
-        internal static void ThrowObjectDisposed(string objectName)
-        {
-            throw new ObjectDisposedException(objectName);
         }
 
         /// <summary>
