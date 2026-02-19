@@ -251,7 +251,7 @@ namespace Microsoft.Build.Construction
             /// </summary>
             internal RegularElementLocation(string file, int line, int column)
             {
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(file, nameof(file));
+                ArgumentException.ThrowIfNonNullAndEmpty(file);
                 ErrorUtilities.VerifyThrow(line > -1 && column > -1, "Use zero for unknown");
 
                 this.file = file ?? String.Empty;

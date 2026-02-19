@@ -271,7 +271,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
             ArgumentNullException.ThrowIfNull(projectCollection);
             ProjectCollection = projectCollection;
             var defaultImplementation = new ProjectImpl(this, xml, globalProperties, toolsVersion, subToolsetVersion, loadSettings);
@@ -365,7 +365,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(xmlReader);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
             ArgumentNullException.ThrowIfNull(projectCollection);
             ProjectCollection = projectCollection;
             var defaultImplementation = new ProjectImpl(this, xmlReader, globalProperties, toolsVersion, subToolsetVersion, loadSettings, evaluationContext);
@@ -461,7 +461,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
             ArgumentNullException.ThrowIfNull(projectCollection);
 
             ProjectCollection = projectCollection;
@@ -1886,7 +1886,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, ProjectRootElement xml, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings)
             {
                 ArgumentNullException.ThrowIfNull(xml);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Xml = xml;
@@ -1910,7 +1910,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, XmlReader xmlReader, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings, EvaluationContext evaluationContext)
             {
                 ArgumentNullException.ThrowIfNull(xmlReader);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Owner = owner;
@@ -1945,7 +1945,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, string projectFile, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings, EvaluationContext evaluationContext)
             {
                 ArgumentNullException.ThrowIfNull(projectFile);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Owner = owner;

@@ -302,7 +302,7 @@ namespace Microsoft.Build.Execution
             ProjectLoadSettings? projectLoadSettings, EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
 
             // We do not control the current directory at this point, but assume that if we were
             // passed a relative path, the caller assumes we will prepend the current directory.
@@ -645,7 +645,7 @@ namespace Microsoft.Build.Execution
         internal ProjectInstance(string projectFile, IDictionary<string, string> globalProperties, string toolsVersion, BuildParameters buildParameters, ILoggingService loggingService, BuildEventContext buildEventContext, ISdkResolverService sdkResolverService, int submissionId, ProjectLoadSettings? projectLoadSettings)
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
             ArgumentNullException.ThrowIfNull(buildParameters);
 
             ProjectRootElement xml = ProjectRootElement.OpenProjectOrSolution(projectFile, globalProperties, toolsVersion, buildParameters.ProjectRootElementCache, false /*Not explicitly loaded*/);
@@ -661,7 +661,7 @@ namespace Microsoft.Build.Execution
         internal ProjectInstance(ProjectRootElement xml, IDictionary<string, string> globalProperties, string toolsVersion, BuildParameters buildParameters, ILoggingService loggingService, BuildEventContext buildEventContext, ISdkResolverService sdkResolverService, int submissionId)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
             ArgumentNullException.ThrowIfNull(buildParameters);
             Initialize(xml, globalProperties, toolsVersion, null, 0 /* no solution version specified */, buildParameters, loggingService, buildEventContext, sdkResolverService, submissionId);
         }
@@ -674,7 +674,7 @@ namespace Microsoft.Build.Execution
         {
             ErrorUtilities.VerifyThrowInternalNull(data);
             ErrorUtilities.VerifyThrowInternalLength(directory, nameof(directory));
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(fullPath, nameof(fullPath));
+            ArgumentException.ThrowIfNonNullAndEmpty(fullPath);
 
             _directory = directory;
             _projectFileLocation = ElementLocation.Create(fullPath);
@@ -2633,7 +2633,7 @@ namespace Microsoft.Build.Execution
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
             ArgumentNullException.ThrowIfNull(globalPropertiesInstances);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentException.ThrowIfNonNullAndEmpty(toolsVersion);
             ArgumentNullException.ThrowIfNull(buildParameters);
             ErrorUtilities.VerifyThrow(FileUtilities.IsSolutionFilename(projectFile), "Project file {0} is not a solution.", projectFile);
 
@@ -3186,7 +3186,7 @@ namespace Microsoft.Build.Execution
             IDirectoryCacheFactory directoryCacheFactory = null)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(explicitToolsVersion, "toolsVersion");
+            ArgumentException.ThrowIfNonNullAndEmpty(explicitToolsVersion, paramName: "toolsVersion");
             ArgumentNullException.ThrowIfNull(buildParameters);
 
             _directory = xml.DirectoryPath;

@@ -159,7 +159,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static string GetTemporaryFile(string directory, string fileName, string extension, bool createFile = true)
         {
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(directory, nameof(directory));
+            ArgumentException.ThrowIfNonNullAndEmpty(directory);
 
             try
             {
