@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\FileSystemSources.proj" />
   <Import Project="..\Shared\DebuggingSources.proj" />
@@ -419,7 +419,6 @@
     <Compile Include="Collections\IValued.cs" />
     <Compile Include="Collections\LookasideStringInterner.cs" />
     <Compile Include="Collections\PropertyDictionary.cs" />
-    <Compile Include="..\Shared\ReadOnlyCollection.cs" />
     <Compile Include="Collections\ReadOnlyConvertingDictionary.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\BitHelper.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\HashSetDebugView.cs" />
