@@ -47,6 +47,11 @@
         <target state="new">{0} ('{1}') must not be equal to '{2}'.</target>
         <note />
       </trans-unit>
+      <trans-unit id="Argument_ContainsNoElements">
+        <source>The value contains no elements.</source>
+        <target state="new">The value contains no elements.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Argument_EmptyOrWhiteSpaceString">
         <source>The value cannot be an empty string or composed entirely of whitespace.</source>
         <target state="new">The value cannot be an empty string or composed entirely of whitespace.</target>
