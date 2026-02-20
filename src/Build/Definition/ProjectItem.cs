@@ -262,7 +262,7 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         public IEnumerable<ProjectMetadata> DirectMetadata
         {
-            get { return Link != null ? Link.DirectMetadata : (IEnumerable<ProjectMetadata>)_directMetadata ?? ReadOnlyCollectionBase<ProjectMetadata>.Empty; }
+            get { return Link != null ? Link.DirectMetadata : (IEnumerable<ProjectMetadata>)_directMetadata ?? ReadOnlyCollection<ProjectMetadata>.Empty; }
         }
 
         /// <summary>

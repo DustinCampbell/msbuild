@@ -7,9 +7,14 @@ using System.Collections.Generic;
 
 namespace Microsoft.Build.Collections;
 
-internal abstract class ReadOnlyCollectionBase<T> : IReadOnlyCollection<T>, ICollection<T>, ICollection
+internal abstract class ReadOnlyCollection<T> : IReadOnlyCollection<T>, ICollection<T>, ICollection
 {
-    public static ReadOnlyCollectionBase<T> Empty => EmptyCollection.Instance;
+    public static ReadOnlyCollection<T> Empty => EmptyCollection.Instance;
+
+    public static ReadOnlyCollection<T> Create(IEnumerable<T>? backing)
+        => backing is not null
+            ? new WrapperCollection(backing)
+            : EmptyCollection.Instance;
 
     public abstract int Count { get; }
 
@@ -45,7 +50,70 @@ internal abstract class ReadOnlyCollectionBase<T> : IReadOnlyCollection<T>, ICol
         return false;
     }
 
-    private sealed class EmptyCollection : ReadOnlyCollectionBase<T>
+    private sealed class WrapperCollection : ReadOnlyCollection<T>
+    {
+        private IEnumerable<T> _backing;
+
+        internal WrapperCollection(IEnumerable<T> backing)
+        {
+            _backing = backing;
+        }
+
+        public override int Count => BackingCollection.Count;
+
+        private ICollection<T> BackingCollection
+        {
+            get
+            {
+                if (_backing is not ICollection<T> backingCollection)
+                {
+                    backingCollection = [.. _backing];
+                    _backing = backingCollection;
+                }
+
+                return backingCollection;
+            }
+        }
+
+        public override bool Contains(T item)
+            => BackingCollection.Contains(item);
+
+        public override void CopyTo(T[] array, int arrayIndex)
+        {
+            ArgumentNullException.ThrowIfNull(array);
+
+            if (_backing is ICollection<T> backingCollection)
+            {
+                backingCollection.CopyTo(array, arrayIndex);
+            }
+            else
+            {
+                int i = arrayIndex;
+                foreach (T entry in _backing)
+                {
+                    array[i] = entry;
+                    i++;
+                }
+            }
+        }
+
+        protected override void CopyTo(Array array, int index)
+        {
+            ArgumentNullException.ThrowIfNull(array);
+
+            int i = index;
+            foreach (T entry in _backing)
+            {
+                array.SetValue(entry, i);
+                i++;
+            }
+        }
+
+        public override IEnumerator<T> GetEnumerator()
+            => _backing.GetEnumerator();
+    }
+
+    private sealed class EmptyCollection : ReadOnlyCollection<T>
     {
         public static readonly EmptyCollection Instance = new();
 

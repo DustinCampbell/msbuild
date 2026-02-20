@@ -232,18 +232,6 @@ namespace Microsoft.Build.UnitTests.OM.Collections
         }
 
         /// <summary>
-        /// Null backing collection should be an error
-        /// </summary>
-        [Fact]
-        public void ReadOnlyCollectionNullBacking()
-        {
-            Assert.Throws<InternalErrorException>(() =>
-            {
-                new ReadOnlyCollection<string>(null);
-            });
-        }
-
-        /// <summary>
         /// Verify non generic enumeration does not recurse
         /// ie., GetEnumerator() does not call itself
         /// </summary>

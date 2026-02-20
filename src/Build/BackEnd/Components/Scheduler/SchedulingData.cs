@@ -571,7 +571,7 @@ namespace Microsoft.Build.BackEnd
         {
             if (!_scheduledRequestsByNode.TryGetValue(nodeId, out HashSet<SchedulableRequest> requests))
             {
-                return ReadOnlyCollectionBase<SchedulableRequest>.Empty;
+                return ReadOnlyCollection<SchedulableRequest>.Empty;
             }
 
             return requests;
@@ -584,7 +584,7 @@ namespace Microsoft.Build.BackEnd
         {
             if (!_readyRequestsByNode.TryGetValue(nodeId, out HashSet<SchedulableRequest> requests))
             {
-                return ReadOnlyCollectionBase<SchedulableRequest>.Empty;
+                return ReadOnlyCollection<SchedulableRequest>.Empty;
             }
 
             return requests;
