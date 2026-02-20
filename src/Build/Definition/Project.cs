@@ -30,7 +30,6 @@ using EvaluationItemSpec = Microsoft.Build.Evaluation.ItemSpec<Microsoft.Build.E
 using ForwardingLoggerRecord = Microsoft.Build.Logging.ForwardingLoggerRecord;
 using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
-using ObjectModel = System.Collections.ObjectModel;
 using ProjectItemFactory = Microsoft.Build.Evaluation.ProjectItem.ProjectItemFactory;
 using SdkResult = Microsoft.Build.BackEnd.SdkResolution.SdkResult;
 
@@ -2152,7 +2151,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (_data.GlobalPropertiesDictionary.Count == 0)
                     {
-                        return ReadOnlyEmptyDictionary<string, string>.Instance;
+                        return ReadOnlyDictionary.Empty<string, string>();
                     }
 
                     var dictionary = new Dictionary<string, string>(_data.GlobalPropertiesDictionary.Count, MSBuildNameIgnoreCaseComparer.Default);
@@ -2161,7 +2160,7 @@ namespace Microsoft.Build.Evaluation
                         dictionary[property.Name] = ((IProperty)property).EvaluatedValueEscaped;
                     }
 
-                    return new ObjectModel.ReadOnlyDictionary<string, string>(dictionary);
+                    return ReadOnlyDictionary.Create(dictionary);
                 }
             }
 
@@ -2200,15 +2199,7 @@ namespace Microsoft.Build.Evaluation
             public override IDictionary<string, List<string>> ConditionedProperties
             {
                 [DebuggerStepThrough]
-                get
-                {
-                    if (_data.ConditionedProperties == null)
-                    {
-                        return ReadOnlyEmptyDictionary<string, List<string>>.Instance;
-                    }
-
-                    return new ObjectModel.ReadOnlyDictionary<string, List<string>>(_data.ConditionedProperties);
-                }
+                get => ReadOnlyDictionary.Create(_data.ConditionedProperties);
             }
 
             /// <summary>
@@ -2304,15 +2295,7 @@ namespace Microsoft.Build.Evaluation
             public override IDictionary<string, ProjectTargetInstance> Targets
             {
                 [DebuggerStepThrough]
-                get
-                {
-                    if (_data.Targets == null)
-                    {
-                        return ReadOnlyEmptyDictionary<string, ProjectTargetInstance>.Instance;
-                    }
-
-                    return new ObjectModel.ReadOnlyDictionary<string, ProjectTargetInstance>(_data.Targets);
-                }
+                get => ReadOnlyDictionary.Create(_data.Targets);
             }
 
             /// <summary>

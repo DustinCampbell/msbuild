@@ -25,7 +25,6 @@ using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
 using InternalLoggerException = Microsoft.Build.Exceptions.InternalLoggerException;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 using LoggerMode = Microsoft.Build.BackEnd.Logging.LoggerMode;
-using ObjectModel = System.Collections.ObjectModel;
 
 #nullable disable
 
@@ -596,7 +595,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (_globalProperties.Count == 0)
                     {
-                        return ReadOnlyEmptyDictionary<string, string>.Instance;
+                        return ReadOnlyDictionary.Empty<string, string>();
                     }
 
                     dictionary = new Dictionary<string, string>(_globalProperties.Count, MSBuildNameIgnoreCaseComparer.Default);
@@ -607,7 +606,7 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
 
-                return new ObjectModel.ReadOnlyDictionary<string, string>(dictionary);
+                return ReadOnlyDictionary.Create(dictionary);
             }
         }
 

@@ -9,8 +9,6 @@ using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Shared;
 
-using ObjectModel = System.Collections.ObjectModel;
-
 #nullable disable
 
 namespace Microsoft.Build.Evaluation
@@ -65,17 +63,7 @@ namespace Microsoft.Build.Evaluation
         /// The properties that correspond to this particular sub-toolset.
         /// </summary>
         public IDictionary<string, ProjectPropertyInstance> Properties
-        {
-            get
-            {
-                if (_properties == null)
-                {
-                    return ReadOnlyEmptyDictionary<string, ProjectPropertyInstance>.Instance;
-                }
-
-                return new ObjectModel.ReadOnlyDictionary<string, ProjectPropertyInstance>(_properties);
-            }
-        }
+            => ReadOnlyDictionary.Create(_properties);
 
         /// <summary>
         /// Translates the sub-toolset.

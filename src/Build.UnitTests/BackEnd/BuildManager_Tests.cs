@@ -2101,7 +2101,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
             using var projectCollection = new ProjectCollection();
 
             // Run a simple build just to prove that nothing is left in the cache.
-            var data = new BuildRequestData(rootProjectPath, ReadOnlyEmptyDictionary<string, string>.Instance, null, new[] { "test" }, null);
+            var data = new BuildRequestData(
+                rootProjectPath,
+                globalProperties: ReadOnlyDictionary.Empty<string, string>(),
+                toolsVersion: null,
+                targetsToBuild: ["test"],
+                hostServices: null);
+
             _parameters.ResetCaches = true;
             _parameters.ProjectRootElementCache = projectCollection.ProjectRootElementCache;
             _buildManager.BeginBuild(_parameters);
@@ -2121,7 +2127,13 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.True(preImported.IsExplicitlyLoaded);
 
             // Run a simple build just to prove that it doesn't impact what is in the cache.
-            data = new BuildRequestData(rootProjectPath, ReadOnlyEmptyDictionary<string, string>.Instance, null, new[] { "test" }, null);
+            data = new BuildRequestData(
+                rootProjectPath,
+                globalProperties: ReadOnlyDictionary.Empty<string, string>(),
+                toolsVersion: null,
+                targetsToBuild: ["test"],
+                hostServices: null);
+
             _parameters.ResetCaches = true;
             _parameters.ProjectRootElementCache = projectCollection.ProjectRootElementCache;
             _buildManager.BeginBuild(_parameters);

@@ -1647,7 +1647,7 @@ namespace Microsoft.Build.Execution
                 /// </summary>
                 internal IDictionary<string, TaskPropertyInfo> UsingTaskParameters
                 {
-                    get { return _usingTaskParameters ?? ReadOnlyEmptyDictionary<string, TaskPropertyInfo>.Instance; }
+                    get { return _usingTaskParameters ?? ReadOnlyDictionary.Empty<string, TaskPropertyInfo>(); }
                 }
 
                 /// <summary>

@@ -1116,15 +1116,9 @@ namespace Microsoft.Build.Execution
         public IDictionary<string, string> GlobalProperties
         {
             [DebuggerStepThrough]
-            get
-            {
-                if (_globalProperties == null /* cached */ || _globalProperties.Count == 0)
-                {
-                    return ReadOnlyEmptyDictionary<string, string>.Instance;
-                }
-
-                return _globalProperties.ToReadOnlyDictionary();
-            }
+            get => _globalProperties is { Count: > 0 }
+                ? _globalProperties.ToReadOnlyDictionary()
+                : ReadOnlyDictionary.Empty<string, string>();
         }
 
         /// <summary>
@@ -3118,23 +3112,6 @@ namespace Microsoft.Build.Execution
             return new ObjectModel.ReadOnlyDictionary<string, TValue>(clone);
         }
 
-        /// <summary>
-        /// Creates a copy of a dictionary and returns a read-only dictionary around the results.
-        /// </summary>
-        /// <typeparam name="TValue">The value stored in the dictionary</typeparam>
-        /// <param name="dictionary">Dictionary to clone.</param>
-        private static IDictionary<string, TValue> CreateCloneDictionary<TValue>(IDictionary<string, TValue> dictionary) where TValue : class, IKeyed
-        {
-            if (dictionary == null)
-            {
-                return ReadOnlyEmptyDictionary<string, TValue>.Instance;
-            }
-            else
-            {
-                return new ObjectModel.ReadOnlyDictionary<string, TValue>(dictionary);
-            }
-        }
-
         private static ProjectPropertyInstance InstantiateProjectPropertyInstance(ProjectProperty property, bool isImmutable)
         {
             // Allow reserved property names, since this is how they are added to the project instance.
@@ -3304,7 +3281,7 @@ namespace Microsoft.Build.Execution
             IDictionary<string, List<TargetSpecification>> afterTargets)
         {
             // ProjectTargetInstances are immutable so only the dictionary must be cloned
-            _targets = CreateCloneDictionary(targets);
+            _targets = ReadOnlyDictionary.Create(targets);
 
             InitializeTargetsData(defaultTargets, initialTargets, beforeTargets, afterTargets);
         }

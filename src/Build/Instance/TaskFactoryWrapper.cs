@@ -282,11 +282,7 @@ namespace Microsoft.Build.Execution
 
                 try
                 {
-                    if (propertyInfoCache == null)
-                    {
-                        propertyInfoCache = new Dictionary<string, TaskPropertyInfo>(StringComparer.OrdinalIgnoreCase);
-                    }
-
+                    propertyInfoCache ??= new(StringComparer.OrdinalIgnoreCase);
                     propertyInfoCache.Add(propertyInfo.Name, propertyInfo);
                 }
                 catch (ArgumentException)
@@ -296,42 +292,33 @@ namespace Microsoft.Build.Execution
                     // that wouldn't have been thrown unless and until the project actually tried to set this ambiguous parameter.
                     // So rather than fail here, we store a list of ambiguous names and throw later, when one of them
                     // is requested.
-                    if (namesOfPropertiesWithAmbiguousMatches == null)
-                    {
-                        namesOfPropertiesWithAmbiguousMatches = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    }
+                    namesOfPropertiesWithAmbiguousMatches ??= new(StringComparer.OrdinalIgnoreCase);
 
-                    namesOfPropertiesWithAmbiguousMatches[propertyInfo.Name] = String.Empty;
+                    namesOfPropertiesWithAmbiguousMatches[propertyInfo.Name] = string.Empty;
                 }
 
                 if (propertyInfos[i].Required)
                 {
-                    if (namesOfPropertiesWithRequiredAttribute == null)
-                    {
-                        namesOfPropertiesWithRequiredAttribute = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    }
+                    namesOfPropertiesWithRequiredAttribute ??= new(StringComparer.OrdinalIgnoreCase);
 
                     // we have a require attribute defined, keep a record of that
-                    namesOfPropertiesWithRequiredAttribute[propertyInfo.Name] = String.Empty;
+                    namesOfPropertiesWithRequiredAttribute[propertyInfo.Name] = string.Empty;
                 }
 
                 if (propertyInfos[i].Output)
                 {
-                    if (namesOfPropertiesWithOutputAttribute == null)
-                    {
-                        namesOfPropertiesWithOutputAttribute = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    }
+                    namesOfPropertiesWithOutputAttribute ??= new(StringComparer.OrdinalIgnoreCase);
 
                     // we have a output attribute defined, keep a record of that
-                    namesOfPropertiesWithOutputAttribute[propertyInfo.Name] = String.Empty;
+                    namesOfPropertiesWithOutputAttribute[propertyInfo.Name] = string.Empty;
                 }
             }
 
             return new PropertyData(
-                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithRequiredAttribute ?? ReadOnlyEmptyDictionary<string, string>.Instance,
-                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithOutputAttribute ?? ReadOnlyEmptyDictionary<string, string>.Instance,
-                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithAmbiguousMatches ?? ReadOnlyEmptyDictionary<string, string>.Instance,
-                (IReadOnlyDictionary<string, TaskPropertyInfo>?)propertyInfoCache ?? ReadOnlyEmptyDictionary<string, TaskPropertyInfo>.Instance);
+                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithRequiredAttribute ?? ReadOnlyDictionary.Empty<string, string>(),
+                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithOutputAttribute ?? ReadOnlyDictionary.Empty<string, string>(),
+                (IReadOnlyDictionary<string, string>?)namesOfPropertiesWithAmbiguousMatches ?? ReadOnlyDictionary.Empty<string, string>(),
+                (IReadOnlyDictionary<string, TaskPropertyInfo>?)propertyInfoCache ?? ReadOnlyDictionary.Empty<string, TaskPropertyInfo>());
         }
         #endregion
     }

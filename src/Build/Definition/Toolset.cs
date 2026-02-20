@@ -19,7 +19,6 @@ using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Constants = Microsoft.Build.Framework.Constants;
-using ObjectModel = System.Collections.ObjectModel;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 
 #nullable disable
@@ -387,33 +386,13 @@ namespace Microsoft.Build.Evaluation
         /// Properties associated with the toolset
         /// </summary>
         public IDictionary<string, ProjectPropertyInstance> Properties
-        {
-            get
-            {
-                if (_properties == null)
-                {
-                    return ReadOnlyEmptyDictionary<string, ProjectPropertyInstance>.Instance;
-                }
-
-                return new ObjectModel.ReadOnlyDictionary<string, ProjectPropertyInstance>(_properties);
-            }
-        }
+            => ReadOnlyDictionary.Create(_properties);
 
         /// <summary>
         /// The set of sub-toolsets associated with this toolset.
         /// </summary>
         public IDictionary<string, SubToolset> SubToolsets
-        {
-            get
-            {
-                if (_subToolsets == null)
-                {
-                    return ReadOnlyEmptyDictionary<string, SubToolset>.Instance;
-                }
-
-                return new ObjectModel.ReadOnlyDictionary<string, SubToolset>(_subToolsets);
-            }
-        }
+            => ReadOnlyDictionary.Create(_subToolsets);
 
         /// <summary>
         /// Returns the default sub-toolset version for this sub-toolset.  Heuristic used is:
