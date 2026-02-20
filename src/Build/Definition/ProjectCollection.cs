@@ -606,7 +606,7 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
 
-                return ReadOnlyDictionary.Create(dictionary);
+                return ReadOnlyDictionary.CreateOrEmpty(dictionary);
             }
         }
 

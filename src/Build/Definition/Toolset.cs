@@ -386,13 +386,13 @@ namespace Microsoft.Build.Evaluation
         /// Properties associated with the toolset
         /// </summary>
         public IDictionary<string, ProjectPropertyInstance> Properties
-            => ReadOnlyDictionary.Create(_properties);
+            => ReadOnlyDictionary.CreateOrEmpty(_properties);
 
         /// <summary>
         /// The set of sub-toolsets associated with this toolset.
         /// </summary>
         public IDictionary<string, SubToolset> SubToolsets
-            => ReadOnlyDictionary.Create(_subToolsets);
+            => ReadOnlyDictionary.CreateOrEmpty(_subToolsets);
 
         /// <summary>
         /// Returns the default sub-toolset version for this sub-toolset.  Heuristic used is:

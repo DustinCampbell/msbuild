@@ -200,6 +200,8 @@ namespace Microsoft.Build.Execution
         /// </summary>
         private RequestedProjectState _requestedProjectStateFilter;
 
+        private IEvaluatorData<ProjectPropertyInstance, ProjectItemInstance, ProjectMetadataInstance, ProjectItemDefinitionInstance> EvaluatorData => this;
+
         /// <summary>
         /// Creates a ProjectInstance directly.
         /// No intermediate Project object is created.
@@ -570,7 +572,7 @@ namespace Microsoft.Build.Execution
             _properties = new PropertyDictionary<ProjectPropertyInstance>(projectToInheritFrom._properties); // This brings along the reserved properties, which are important.
             _items = new ItemDictionary<ProjectItemInstance>(); // We don't want any of the items.  That would include things like ProjectReferences, which would just pollute our own.
             _actualTargets = new RetrievableEntryHashSet<ProjectTargetInstance>(StringComparer.OrdinalIgnoreCase);
-            _targets = new ObjectModel.ReadOnlyDictionary<string, ProjectTargetInstance>(_actualTargets);
+            _targets = ReadOnlyDictionary.CreateOrEmpty(_actualTargets);
             _environmentVariableProperties = projectToInheritFrom._environmentVariableProperties;
             _sdkResolvedEnvironmentVariableProperties = projectToInheritFrom._sdkResolvedEnvironmentVariableProperties;
             _itemDefinitions = new RetrievableEntryHashSet<ProjectItemDefinitionInstance>(projectToInheritFrom._itemDefinitions, MSBuildNameIgnoreCaseComparer.Default);
@@ -792,14 +794,10 @@ namespace Microsoft.Build.Execution
 
                 this.DefaultTargets = new List<string>(that.DefaultTargets);
                 this.InitialTargets = new List<string>(that.InitialTargets);
-                ((IEvaluatorData<ProjectPropertyInstance, ProjectItemInstance, ProjectMetadataInstance,
-                    ProjectItemDefinitionInstance>)this).BeforeTargets = CreateCloneDictionary(
-                    ((IEvaluatorData<ProjectPropertyInstance, ProjectItemInstance, ProjectMetadataInstance,
-                        ProjectItemDefinitionInstance>)that).BeforeTargets, StringComparer.OrdinalIgnoreCase);
-                ((IEvaluatorData<ProjectPropertyInstance, ProjectItemInstance, ProjectMetadataInstance,
-                    ProjectItemDefinitionInstance>)this).AfterTargets = CreateCloneDictionary(
-                    ((IEvaluatorData<ProjectPropertyInstance, ProjectItemInstance, ProjectMetadataInstance,
-                        ProjectItemDefinitionInstance>)that).AfterTargets, StringComparer.OrdinalIgnoreCase);
+
+                EvaluatorData.BeforeTargets = ReadOnlyDictionary.CloneOrEmpty(that.EvaluatorData.BeforeTargets, StringComparer.OrdinalIgnoreCase);
+                EvaluatorData.AfterTargets = ReadOnlyDictionary.CloneOrEmpty(that.EvaluatorData.AfterTargets, StringComparer.OrdinalIgnoreCase);
+
                 // These are immutable (or logically immutable after creation) so we don't need to clone them:
                 this.TaskRegistry = that.TaskRegistry;
                 this.Toolset = that.Toolset;
@@ -3091,27 +3089,6 @@ namespace Microsoft.Build.Execution
             }
         }
 
-        /// <summary>
-        /// Creates a copy of a dictionary and returns a read-only dictionary around the results.
-        /// </summary>
-        /// <typeparam name="TValue">The value stored in the dictionary</typeparam>
-        /// <param name="dictionary">Dictionary to clone.</param>
-        /// <param name="strComparer">The <see cref="StringComparer"/> to use for the cloned dictionary.</param>
-        private static ObjectModel.ReadOnlyDictionary<string, TValue> CreateCloneDictionary<TValue>(IDictionary<string, TValue> dictionary, StringComparer strComparer)
-        {
-            Dictionary<string, TValue> clone;
-            if (dictionary == null)
-            {
-                clone = new Dictionary<string, TValue>(0);
-            }
-            else
-            {
-                clone = new Dictionary<string, TValue>(dictionary, strComparer);
-            }
-
-            return new ObjectModel.ReadOnlyDictionary<string, TValue>(clone);
-        }
-
         private static ProjectPropertyInstance InstantiateProjectPropertyInstance(ProjectProperty property, bool isImmutable)
         {
             // Allow reserved property names, since this is how they are added to the project instance.
@@ -3161,7 +3138,7 @@ namespace Microsoft.Build.Execution
             _properties = new PropertyDictionary<ProjectPropertyInstance>();
             _items = new ItemDictionary<ProjectItemInstance>();
             _actualTargets = new RetrievableEntryHashSet<ProjectTargetInstance>(StringComparer.OrdinalIgnoreCase);
-            _targets = new ObjectModel.ReadOnlyDictionary<string, ProjectTargetInstance>(_actualTargets);
+            _targets = ReadOnlyDictionary.CreateOrEmpty(_actualTargets);
             _importPaths = new List<string>();
             ImportPaths = new ObjectModel.ReadOnlyCollection<string>(_importPaths);
             _importPathsIncludingDuplicates = new List<string>();
@@ -3281,7 +3258,7 @@ namespace Microsoft.Build.Execution
             IDictionary<string, List<TargetSpecification>> afterTargets)
         {
             // ProjectTargetInstances are immutable so only the dictionary must be cloned
-            _targets = ReadOnlyDictionary.Create(targets);
+            _targets = ReadOnlyDictionary.CreateOrEmpty(targets);
 
             InitializeTargetsData(defaultTargets, initialTargets, beforeTargets, afterTargets);
         }
@@ -3293,8 +3270,8 @@ namespace Microsoft.Build.Execution
         {
             DefaultTargets = defaultTargets == null ? new List<string>(0) : new List<string>(defaultTargets);
             InitialTargets = initialTargets == null ? new List<string>(0) : new List<string>(initialTargets);
-            ((IEvaluatorData<ProjectPropertyInstance, ProjectItemInstance, ProjectMetadataInstance, ProjectItemDefinitionInstance>)this).BeforeTargets = CreateCloneDictionary(beforeTargets, StringComparer.OrdinalIgnoreCase);
-            ((IEvaluatorData<ProjectPropertyInstance, ProjectItemInstance, ProjectMetadataInstance, ProjectItemDefinitionInstance>)this).AfterTargets = CreateCloneDictionary(afterTargets, StringComparer.OrdinalIgnoreCase);
+            EvaluatorData.BeforeTargets = ReadOnlyDictionary.CloneOrEmpty(beforeTargets, StringComparer.OrdinalIgnoreCase);
+            EvaluatorData.AfterTargets = ReadOnlyDictionary.CloneOrEmpty(afterTargets, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>

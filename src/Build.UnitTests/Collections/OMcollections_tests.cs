@@ -13,7 +13,6 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.UnitTests.BackEnd;
 using Shouldly;
 using Xunit;
-using ObjectModel = System.Collections.ObjectModel;
 
 #nullable disable
 
@@ -184,7 +183,7 @@ namespace Microsoft.Build.UnitTests.OM.Collections
         [Fact]
         public void ReadOnlyDictionaryNullBackingClone()
         {
-            var dictionary = CreateCloneDictionary<string>(null, StringComparer.OrdinalIgnoreCase);
+            var dictionary = ReadOnlyDictionary.CloneOrEmpty<string, string>(dictionary: null, StringComparer.OrdinalIgnoreCase);
             Assert.Empty(dictionary);
         }
 
@@ -194,7 +193,7 @@ namespace Microsoft.Build.UnitTests.OM.Collections
         [Fact]
         public void ReadOnlyDictionaryNullBackingWrapper()
         {
-            var dictionary = new ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>(0));
+            var dictionary = ReadOnlyDictionary.CloneOrEmpty(new Dictionary<string, string>(0));
             Assert.Empty(dictionary);
         }
 
@@ -207,7 +206,7 @@ namespace Microsoft.Build.UnitTests.OM.Collections
             var dictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             dictionary.Add("p", "v");
 
-            var readOnlyDictionary = CreateCloneDictionary(dictionary, StringComparer.OrdinalIgnoreCase);
+            var readOnlyDictionary = ReadOnlyDictionary.CloneOrEmpty(dictionary, StringComparer.OrdinalIgnoreCase);
             dictionary.Add("p2", "v2");
 
             Assert.Single(readOnlyDictionary);
@@ -224,7 +223,7 @@ namespace Microsoft.Build.UnitTests.OM.Collections
             var dictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             dictionary.Add("p", "v");
 
-            var readOnlyDictionary = new ObjectModel.ReadOnlyDictionary<string, string>(dictionary);
+            var readOnlyDictionary = ReadOnlyDictionary.CreateOrEmpty(dictionary);
             dictionary.Add("p2", "v2");
 
             Assert.Equal(2, dictionary.Count);
@@ -239,7 +238,7 @@ namespace Microsoft.Build.UnitTests.OM.Collections
         public void ReadOnlyDictionaryNonGenericEnumeration()
         {
             var backing = new Dictionary<string, string>();
-            var collection = new ObjectModel.ReadOnlyDictionary<string, string>(backing);
+            var collection = ReadOnlyDictionary.CreateOrEmpty(backing);
             IEnumerable enumerable = (IEnumerable)collection;
 
             // Does not overflow stack:
@@ -313,26 +312,6 @@ namespace Microsoft.Build.UnitTests.OM.Collections
             ProjectItemInstance item = projectInstance.AddItem(itemType, evaluatedInclude);
 
             return item;
-        }
-
-        /// <summary>
-        /// Creates a copy of a dictionary and returns a read-only dictionary around the results.
-        /// </summary>
-        /// <typeparam name="TValue">The value stored in the dictionary</typeparam>
-        /// <param name="dictionary">Dictionary to clone.</param>
-        private static ObjectModel.ReadOnlyDictionary<string, TValue> CreateCloneDictionary<TValue>(IDictionary<string, TValue> dictionary, StringComparer strComparer)
-        {
-            Dictionary<string, TValue> clone;
-            if (dictionary == null)
-            {
-                clone = new Dictionary<string, TValue>(0);
-            }
-            else
-            {
-                clone = new Dictionary<string, TValue>(dictionary, strComparer);
-            }
-
-            return new ObjectModel.ReadOnlyDictionary<string, TValue>(clone);
         }
 
         /// <summary>

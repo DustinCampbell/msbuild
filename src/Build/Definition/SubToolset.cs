@@ -63,7 +63,7 @@ namespace Microsoft.Build.Evaluation
         /// The properties that correspond to this particular sub-toolset.
         /// </summary>
         public IDictionary<string, ProjectPropertyInstance> Properties
-            => ReadOnlyDictionary.Create(_properties);
+            => ReadOnlyDictionary.CreateOrEmpty(_properties);
 
         /// <summary>
         /// Translates the sub-toolset.

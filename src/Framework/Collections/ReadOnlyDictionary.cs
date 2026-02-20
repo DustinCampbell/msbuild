@@ -8,10 +8,18 @@ namespace Microsoft.Build.Collections;
 
 internal static class ReadOnlyDictionary
 {
-    public static ReadOnlyDictionary<TKey, TValue> Create<TKey, TValue>(IDictionary<TKey, TValue>? dictionary)
+    public static ReadOnlyDictionary<TKey, TValue> CreateOrEmpty<TKey, TValue>(IDictionary<TKey, TValue>? dictionary)
         where TKey : notnull
         => dictionary is { Count: > 0 }
             ? new ReadOnlyDictionary<TKey, TValue>(dictionary)
+            : ReadOnlyDictionary<TKey, TValue>.Empty;
+
+    public static ReadOnlyDictionary<TKey, TValue> CloneOrEmpty<TKey, TValue>(
+        IDictionary<TKey, TValue>? dictionary,
+        IEqualityComparer<TKey>? comparer = null)
+        where TKey : notnull
+        => dictionary is { Count: > 0 }
+            ? new ReadOnlyDictionary<TKey, TValue>(new Dictionary<TKey, TValue>(dictionary, comparer))
             : ReadOnlyDictionary<TKey, TValue>.Empty;
 
     public static ReadOnlyDictionary<TKey, TValue> Empty<TKey, TValue>()

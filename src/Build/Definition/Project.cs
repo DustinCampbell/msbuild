@@ -2160,7 +2160,7 @@ namespace Microsoft.Build.Evaluation
                         dictionary[property.Name] = ((IProperty)property).EvaluatedValueEscaped;
                     }
 
-                    return ReadOnlyDictionary.Create(dictionary);
+                    return ReadOnlyDictionary.CreateOrEmpty(dictionary);
                 }
             }
 
@@ -2199,7 +2199,7 @@ namespace Microsoft.Build.Evaluation
             public override IDictionary<string, List<string>> ConditionedProperties
             {
                 [DebuggerStepThrough]
-                get => ReadOnlyDictionary.Create(_data.ConditionedProperties);
+                get => ReadOnlyDictionary.CreateOrEmpty(_data.ConditionedProperties);
             }
 
             /// <summary>
@@ -2295,7 +2295,7 @@ namespace Microsoft.Build.Evaluation
             public override IDictionary<string, ProjectTargetInstance> Targets
             {
                 [DebuggerStepThrough]
-                get => ReadOnlyDictionary.Create(_data.Targets);
+                get => ReadOnlyDictionary.CreateOrEmpty(_data.Targets);
             }
 
             /// <summary>
