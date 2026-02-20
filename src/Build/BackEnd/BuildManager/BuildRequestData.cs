@@ -183,9 +183,8 @@ namespace Microsoft.Build.Execution
         /// The global properties to use.
         /// </summary>
         /// <value>The set of global properties to be used to build this request.</value>
-        public ICollection<ProjectPropertyInstance> GlobalProperties => (GlobalPropertiesDictionary == null) ?
-            (ICollection<ProjectPropertyInstance>)ReadOnlyEmptyCollection<ProjectPropertyInstance>.Instance :
-            new ReadOnlyCollection<ProjectPropertyInstance>(GlobalPropertiesDictionary);
+        public ICollection<ProjectPropertyInstance> GlobalProperties
+            => ReadOnlyCollection.Create<ProjectPropertyInstance>(GlobalPropertiesDictionary);
 
         public override bool IsGraphRequest => false;
 

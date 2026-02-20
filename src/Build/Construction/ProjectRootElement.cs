@@ -313,7 +313,7 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// Get a read-only collection of the child item definitions, if any, in all item definition groups anywhere in the project file.
         /// </summary>
-        public ICollection<ProjectItemDefinitionElement> ItemDefinitions => new ReadOnlyCollection<ProjectItemDefinitionElement>(GetAllChildrenOfType<ProjectItemDefinitionElement>());
+        public ICollection<ProjectItemDefinitionElement> ItemDefinitions => ReadOnlyCollection.Create(GetAllChildrenOfType<ProjectItemDefinitionElement>());
 
         /// <summary>
         /// Get a read-only collection over the child item groups, if any.
@@ -325,7 +325,7 @@ namespace Microsoft.Build.Construction
         /// Get a read-only collection of the child items, if any, in all item groups anywhere in the project file.
         /// Not restricted to root item groups: traverses through Choose elements.
         /// </summary>
-        public ICollection<ProjectItemElement> Items => new ReadOnlyCollection<ProjectItemElement>(GetAllChildrenOfType<ProjectItemElement>());
+        public ICollection<ProjectItemElement> Items => ReadOnlyCollection.Create(GetAllChildrenOfType<ProjectItemElement>());
 
         /// <summary>
         /// Get a read-only collection of the child import groups, if any.
@@ -335,7 +335,7 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// Get a read-only collection of the child imports
         /// </summary>
-        public ICollection<ProjectImportElement> Imports => new ReadOnlyCollection<ProjectImportElement>(GetAllChildrenOfType<ProjectImportElement>());
+        public ICollection<ProjectImportElement> Imports => ReadOnlyCollection.Create(GetAllChildrenOfType<ProjectImportElement>());
 
         internal bool IsEphemeral => _isEphemeral;
 
@@ -349,7 +349,7 @@ namespace Microsoft.Build.Construction
         /// Geta read-only collection of the child properties, if any, in all property groups anywhere in the project file.
         /// Not restricted to root property groups: traverses through Choose elements.
         /// </summary>
-        public ICollection<ProjectPropertyElement> Properties => new ReadOnlyCollection<ProjectPropertyElement>(GetAllChildrenOfType<ProjectPropertyElement>());
+        public ICollection<ProjectPropertyElement> Properties => ReadOnlyCollection.Create(GetAllChildrenOfType<ProjectPropertyElement>());
 
         /// <summary>
         /// Get a read-only collection of the child targets

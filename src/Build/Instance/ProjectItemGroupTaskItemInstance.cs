@@ -322,12 +322,7 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectItemGroupTaskMetadataInstance> Metadata
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_metadata == null) ?
-                    (ICollection<ProjectItemGroupTaskMetadataInstance>)ReadOnlyEmptyCollection<ProjectItemGroupTaskMetadataInstance>.Instance :
-                    new ReadOnlyCollection<ProjectItemGroupTaskMetadataInstance>(_metadata);
-            }
+            get => ReadOnlyCollection.Create(_metadata);
         }
 
         /// <summary>

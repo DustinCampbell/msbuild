@@ -91,12 +91,7 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectItemGroupTaskItemInstance> Items
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_items == null) ?
-                    (ICollection<ProjectItemGroupTaskItemInstance>)ReadOnlyEmptyCollection<ProjectItemGroupTaskItemInstance>.Instance :
-                    new ReadOnlyCollection<ProjectItemGroupTaskItemInstance>(_items);
-            }
+            get => ReadOnlyCollection.Create(_items);
         }
 
         /// <summary>

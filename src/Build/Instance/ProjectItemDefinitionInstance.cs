@@ -108,7 +108,7 @@ namespace Microsoft.Build.Execution
                 }
 
                 IEnumerable<ProjectMetadataInstance> metadata = _metadata.Select(kvp => new ProjectMetadataInstance(kvp.Key, kvp.Value, allowItemSpecModifiers: true));
-                return new ReadOnlyCollection<ProjectMetadataInstance>(metadata);
+                return ReadOnlyCollection.Create(metadata);
             }
         }
 

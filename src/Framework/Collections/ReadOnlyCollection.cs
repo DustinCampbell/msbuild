@@ -7,6 +7,14 @@ using Microsoft.CodeAnalysis;
 
 namespace Microsoft.Build.Collections;
 
+internal static class ReadOnlyCollection
+{
+    public static ReadOnlyCollectionBase<T> Create<T>(IEnumerable<T>? backing)
+        => backing is not null
+            ? new ReadOnlyCollection<T>(backing)
+            : ReadOnlyEmptyCollection<T>.Instance;
+}
+
 /// <summary>
 /// A read-only live wrapper over a collection.
 /// It does not prevent modification of the values themselves.

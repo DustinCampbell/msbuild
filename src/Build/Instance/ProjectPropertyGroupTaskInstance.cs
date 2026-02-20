@@ -91,12 +91,7 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectPropertyGroupTaskPropertyInstance> Properties
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_properties == null) ?
-                    (ICollection<ProjectPropertyGroupTaskPropertyInstance>)ReadOnlyEmptyCollection<ProjectPropertyGroupTaskPropertyInstance>.Instance :
-                    new ReadOnlyCollection<ProjectPropertyGroupTaskPropertyInstance>(_properties);
-            }
+            get => ReadOnlyCollection.Create(_properties);
         }
 
         /// <summary>

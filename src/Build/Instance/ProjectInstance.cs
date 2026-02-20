@@ -683,14 +683,14 @@ namespace Microsoft.Build.Execution
             EvaluationId = data.EvaluationId;
 
             var immutable = (settings & ProjectInstanceSettings.Immutable) == ProjectInstanceSettings.Immutable;
-            this.CreatePropertiesSnapshot(new ReadOnlyCollection<ProjectProperty>(data.Properties), immutable);
+            this.CreatePropertiesSnapshot(ReadOnlyCollection.Create<ProjectProperty>(data.Properties), immutable);
 
             this.CreateItemDefinitionsSnapshot(data.ItemDefinitions);
 
             var keepEvaluationCache = (settings & ProjectInstanceSettings.ImmutableWithFastItemLookup) == ProjectInstanceSettings.ImmutableWithFastItemLookup;
-            var projectItemToInstanceMap = this.CreateItemsSnapshot(new ReadOnlyCollection<ProjectItem>(data.Items), data.ItemTypes.Count, keepEvaluationCache);
+            var projectItemToInstanceMap = this.CreateItemsSnapshot(ReadOnlyCollection.Create(data.Items), data.ItemTypes.Count, keepEvaluationCache);
 
-            this.CreateEvaluatedIncludeSnapshotIfRequested(keepEvaluationCache, new ReadOnlyCollection<ProjectItem>(data.Items), projectItemToInstanceMap);
+            this.CreateEvaluatedIncludeSnapshotIfRequested(keepEvaluationCache, ReadOnlyCollection.Create(data.Items), projectItemToInstanceMap);
             this.CreateGlobalPropertiesSnapshot(data.GlobalPropertiesDictionary);
             this.CreateEnvironmentVariablePropertiesSnapshot(environmentVariableProperties);
             this.CreateSdkResolvedEnvironmentVariablePropertiesSnapshot(data.SdkResolvedEnvironmentVariablePropertiesDictionary);
@@ -1158,12 +1158,7 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectPropertyInstance> Properties
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_properties == null) ?
-                    (ICollection<ProjectPropertyInstance>)ReadOnlyEmptyCollection<ProjectPropertyInstance>.Instance :
-                    new ReadOnlyCollection<ProjectPropertyInstance>(_properties);
-            }
+            get => ReadOnlyCollection.Create<ProjectPropertyInstance>(_properties);
         }
 
         /// <summary>
@@ -1173,12 +1168,7 @@ namespace Microsoft.Build.Execution
         public ICollection<ProjectItemInstance> Items
         {
             [DebuggerStepThrough]
-            get
-            {
-                return (_items == null) ?
-                    (ICollection<ProjectItemInstance>)ReadOnlyEmptyCollection<ProjectItemInstance>.Instance :
-                    new ReadOnlyCollection<ProjectItemInstance>(_items);
-            }
+            get => ReadOnlyCollection.Create(_items);
         }
 
         /// <summary>
@@ -1642,7 +1632,7 @@ namespace Microsoft.Build.Execution
             { return _properties; }
         }
 
-        internal ICollection<ProjectPropertyInstance> TestEnvironmentalProperties => new ReadOnlyCollection<ProjectPropertyInstance>(_environmentVariableProperties);
+        internal ICollection<ProjectPropertyInstance> TestEnvironmentalProperties => ReadOnlyCollection.Create<ProjectPropertyInstance>(_environmentVariableProperties);
 
         /// <summary>
         /// Actual collection of items in this project,

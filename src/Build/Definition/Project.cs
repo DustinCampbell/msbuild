@@ -2179,7 +2179,7 @@ namespace Microsoft.Build.Evaluation
             /// Properties in this project.
             /// Since evaluation has occurred, this is an unordered collection.
             /// </summary>
-            public override ICollection<ProjectProperty> Properties => new ReadOnlyCollection<ProjectProperty>(_data.Properties);
+            public override ICollection<ProjectProperty> Properties => ReadOnlyCollection.Create<ProjectProperty>(_data.Properties);
 
             /// <summary>
             /// Collection of possible values implied for properties contained in the conditions found on properties,
@@ -2221,7 +2221,7 @@ namespace Microsoft.Build.Evaluation
             /// Items in this project, ordered within groups of item types.
             /// </summary>
             [SuppressMessage("Microsoft.Naming", "CA1721:PropertyNamesShouldNotMatchGetMethods", Justification = "This is a reasonable choice. API review approved")]
-            public override ICollection<ProjectItem> Items => new ReadOnlyCollection<ProjectItem>(_data.Items);
+            public override ICollection<ProjectItem> Items => ReadOnlyCollection.Create(_data.Items);
 
             /// <summary>
             /// Items in this project, ordered within groups of item types,
@@ -2241,7 +2241,7 @@ namespace Microsoft.Build.Evaluation
                         ErrorUtilities.ThrowInvalidOperation("OM_NotEvaluatedBecauseShouldEvaluateForDesignTimeIsFalse", nameof(ItemsIgnoringCondition));
                     }
 
-                    return new ReadOnlyCollection<ProjectItem>(_data.ItemsIgnoringCondition);
+                    return ReadOnlyCollection.Create<ProjectItem>(_data.ItemsIgnoringCondition);
                 }
             }
 
@@ -2323,19 +2323,7 @@ namespace Microsoft.Build.Evaluation
             /// It does not include any properties added since the last evaluation.
             /// </summary>
             public override ICollection<ProjectProperty> AllEvaluatedProperties
-            {
-                get
-                {
-                    ICollection<ProjectProperty> allEvaluatedProperties = _data.AllEvaluatedProperties;
-
-                    if (allEvaluatedProperties == null)
-                    {
-                        return ReadOnlyEmptyCollection<ProjectProperty>.Instance;
-                    }
-
-                    return new ReadOnlyCollection<ProjectProperty>(allEvaluatedProperties);
-                }
-            }
+                => ReadOnlyCollection.Create(_data.AllEvaluatedProperties);
 
             /// <summary>
             /// Item definition metadata encountered during evaluation. These are read during the second evaluation pass.
@@ -2345,19 +2333,7 @@ namespace Microsoft.Build.Evaluation
             /// It does not include any item definition metadata added since the last evaluation.
             /// </summary>
             public override ICollection<ProjectMetadata> AllEvaluatedItemDefinitionMetadata
-            {
-                get
-                {
-                    ICollection<ProjectMetadata> allEvaluatedItemDefinitionMetadata = _data.AllEvaluatedItemDefinitionMetadata;
-
-                    if (allEvaluatedItemDefinitionMetadata == null)
-                    {
-                        return ReadOnlyEmptyCollection<ProjectMetadata>.Instance;
-                    }
-
-                    return new ReadOnlyCollection<ProjectMetadata>(allEvaluatedItemDefinitionMetadata);
-                }
-            }
+                => ReadOnlyCollection.Create(_data.AllEvaluatedItemDefinitionMetadata);
 
             /// <summary>
             /// Items encountered during evaluation. These are read during the third evaluation pass.
@@ -2369,19 +2345,7 @@ namespace Microsoft.Build.Evaluation
             /// It does not include any items added since the last evaluation.
             /// </summary>
             public override ICollection<ProjectItem> AllEvaluatedItems
-            {
-                get
-                {
-                    ICollection<ProjectItem> allEvaluatedItems = _data.AllEvaluatedItems;
-
-                    if (allEvaluatedItems == null)
-                    {
-                        return ReadOnlyEmptyCollection<ProjectItem>.Instance;
-                    }
-
-                    return new ReadOnlyCollection<ProjectItem>(allEvaluatedItems);
-                }
-            }
+                => ReadOnlyCollection.Create(_data.AllEvaluatedItems);
 
             /// <summary>
             /// The tools version this project was evaluated with, if any.
@@ -4652,7 +4616,7 @@ namespace Microsoft.Build.Evaluation
             internal ICollection<ProjectItem> GetItemsByEvaluatedInclude(string evaluatedInclude)
             {
                 // Even if there are no items in itemsByEvaluatedInclude[], it will return an IEnumerable, which is non-null
-                ICollection<ProjectItem> items = new ReadOnlyCollection<ProjectItem>(ItemsByEvaluatedIncludeCache[evaluatedInclude]);
+                ICollection<ProjectItem> items = ReadOnlyCollection.Create(ItemsByEvaluatedIncludeCache[evaluatedInclude]);
 
                 return items;
             }

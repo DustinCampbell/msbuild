@@ -131,7 +131,7 @@ namespace Microsoft.Build.Collections
                     }
                 }
 
-                return new ReadOnlyCollection<T>(list);
+                return ReadOnlyCollection.Create(list);
             }
         }
 

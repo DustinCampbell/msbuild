@@ -645,9 +645,7 @@ namespace Microsoft.Build.Evaluation
             {
                 using (_locker.EnterDisposableReadLock())
                 {
-                    return _loggingService.Loggers == null
-                        ? (ICollection<ILogger>)ReadOnlyEmptyCollection<ILogger>.Instance
-                        : new List<ILogger>(_loggingService.Loggers);
+                    return ReadOnlyCollection.Create(_loggingService.Loggers);
                 }
             }
         }

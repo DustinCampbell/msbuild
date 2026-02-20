@@ -287,9 +287,7 @@ namespace Microsoft.Build.Execution
         /// Computed, not necessarily fast.
         /// </comment>
         public ICollection<string> MetadataNames
-        {
-            get { return new ReadOnlyCollection<string>(_taskItem.MetadataNames.Cast<string>()); }
-        }
+            => ReadOnlyCollection.Create(_taskItem.MetadataNames.Cast<string>());
 
         internal TaskItem.MetadataNamesEnumerable EnumerableMetadataNames => _taskItem.EnumerableMetadataNames;
 

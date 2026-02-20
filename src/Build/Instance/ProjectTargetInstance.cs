@@ -329,12 +329,7 @@ namespace Microsoft.Build.Execution
         /// Other kinds of children are not included.
         /// </summary>
         public ICollection<ProjectTaskInstance> Tasks
-        {
-            get
-            {
-                return new ReadOnlyCollection<ProjectTaskInstance>(Children.OfType<ProjectTaskInstance>());
-            }
-        }
+            => ReadOnlyCollection.Create(Children.OfType<ProjectTaskInstance>());
 
         /// <summary>
         /// Full path to the file from which this target originated.

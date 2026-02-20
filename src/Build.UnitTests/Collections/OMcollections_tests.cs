@@ -242,6 +242,7 @@ namespace Microsoft.Build.UnitTests.OM.Collections
                 new ReadOnlyCollection<string>(null);
             });
         }
+
         /// <summary>
         /// Verify non generic enumeration does not recurse
         /// ie., GetEnumerator() does not call itself
@@ -293,7 +294,7 @@ namespace Microsoft.Build.UnitTests.OM.Collections
         public void ReadOnlyCollectionNonGenericEnumeration()
         {
             var backing = new List<string>();
-            var collection = new ReadOnlyCollection<string>(backing);
+            var collection = ReadOnlyCollection.Create(backing);
             IEnumerable enumerable = (IEnumerable)collection;
 
             // Does not overflow stack:

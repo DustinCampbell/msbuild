@@ -78,7 +78,7 @@ namespace Microsoft.Build.Construction
             [DebuggerStepThrough]
             get => FirstChild == null
                 ? Array.Empty<ProjectElement>()
-                : new Collections.ReadOnlyCollection<ProjectElement>(new ProjectElementSiblingEnumerable(FirstChild));
+                : Collections.ReadOnlyCollection.Create(new ProjectElementSiblingEnumerable(FirstChild));
         }
 
 #pragma warning disable RS0030 // The ref to the banned API is in a doc comment
@@ -102,7 +102,7 @@ namespace Microsoft.Build.Construction
             [DebuggerStepThrough]
             get => LastChild == null
                 ? Array.Empty<ProjectElement>()
-                : new Collections.ReadOnlyCollection<ProjectElement>(new ProjectElementSiblingEnumerable(LastChild, forwards: false));
+                : Collections.ReadOnlyCollection.Create(new ProjectElementSiblingEnumerable(LastChild, forwards: false));
         }
 
         internal ProjectElementSiblingSubTypeCollection<T> GetChildrenReversedOfType<T>()
@@ -524,7 +524,7 @@ namespace Microsoft.Build.Construction
                     XmlNode insertAfter = referenceSibling.XmlElement;
                     XmlNode next = insertAfter.NextSibling;
                     while (next != null &&
-                    (next.NodeType == XmlNodeType.Comment||
+                    (next.NodeType == XmlNodeType.Comment ||
                     (next.NodeType == XmlNodeType.Whitespace && !next.Value.Contains("\n") && !next.Value.Contains("\r"))))
                     {
                         // If the next node is a comment or whitespace that does not contain newlines, then insert after it
