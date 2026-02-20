@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 
@@ -13,7 +12,7 @@ namespace Microsoft.Build.Collections;
 /// It does not prevent modification of the values themselves.
 /// </summary>
 /// <typeparam name="T">Type of element in the collection.</typeparam>
-internal sealed class ReadOnlyCollection<T> : IReadOnlyCollection<T>, ICollection<T>, ICollection
+internal sealed class ReadOnlyCollection<T> : ReadOnlyCollectionBase<T>
 {
     private IEnumerable<T> _backing;
 
@@ -24,13 +23,7 @@ internal sealed class ReadOnlyCollection<T> : IReadOnlyCollection<T>, ICollectio
         _backing = backing;
     }
 
-    public int Count => BackingCollection.Count;
-
-    public bool IsReadOnly => true;
-
-    bool ICollection.IsSynchronized => false;
-
-    object ICollection.SyncRoot => this;
+    public override int Count => BackingCollection.Count;
 
     private ICollection<T> BackingCollection
     {
@@ -46,16 +39,10 @@ internal sealed class ReadOnlyCollection<T> : IReadOnlyCollection<T>, ICollectio
         }
     }
 
-    public void Add(T item)
-        => InvalidOperationException.Throw(SR.OM_NotSupportedReadOnlyCollection);
-
-    public void Clear()
-        => InvalidOperationException.Throw(SR.OM_NotSupportedReadOnlyCollection);
-
-    public bool Contains(T item)
+    public override bool Contains(T item)
         => BackingCollection.Contains(item);
 
-    public void CopyTo(T[] array, int arrayIndex)
+    public override void CopyTo(T[] array, int arrayIndex)
     {
         ArgumentNullException.ThrowIfNull(array);
 
@@ -74,13 +61,7 @@ internal sealed class ReadOnlyCollection<T> : IReadOnlyCollection<T>, ICollectio
         }
     }
 
-    public bool Remove(T item)
-    {
-        InvalidOperationException.Throw(SR.OM_NotSupportedReadOnlyCollection);
-        return false;
-    }
-
-    void ICollection.CopyTo(Array array, int index)
+    protected override void CopyTo(Array array, int index)
     {
         ArgumentNullException.ThrowIfNull(array);
 
@@ -92,9 +73,6 @@ internal sealed class ReadOnlyCollection<T> : IReadOnlyCollection<T>, ICollectio
         }
     }
 
-    public IEnumerator<T> GetEnumerator()
-        => _backing.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator()
+    public override IEnumerator<T> GetEnumerator()
         => _backing.GetEnumerator();
 }
