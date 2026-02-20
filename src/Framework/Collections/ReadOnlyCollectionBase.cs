@@ -9,6 +9,8 @@ namespace Microsoft.Build.Collections;
 
 internal abstract class ReadOnlyCollectionBase<T> : IReadOnlyCollection<T>, ICollection<T>, ICollection
 {
+    public static ReadOnlyCollectionBase<T> Empty => EmptyCollection.Instance;
+
     public abstract int Count { get; }
 
     public bool IsReadOnly => true;
@@ -41,5 +43,61 @@ internal abstract class ReadOnlyCollectionBase<T> : IReadOnlyCollection<T>, ICol
     {
         InvalidOperationException.Throw(SR.OM_NotSupportedReadOnlyCollection);
         return false;
+    }
+
+    private sealed class EmptyCollection : ReadOnlyCollectionBase<T>
+    {
+        public static readonly EmptyCollection Instance = new();
+
+        private EmptyCollection()
+        {
+        }
+
+        public override int Count => 0;
+
+        public override bool Contains(T item)
+            => false;
+
+        public override void CopyTo(T[] array, int arrayIndex)
+        {
+        }
+
+        protected override void CopyTo(Array array, int index)
+        {
+        }
+
+        public override IEnumerator<T> GetEnumerator()
+            => Enumerator.Instance;
+
+        private sealed class Enumerator : IEnumerator<T>
+        {
+            public static readonly Enumerator Instance = new();
+
+            private Enumerator()
+            {
+            }
+
+            public T Current
+            {
+                get
+                {
+                    InvalidOperationException.Throw();
+                    return default;
+                }
+            }
+
+            object IEnumerator.Current => Current!;
+
+            public void Dispose()
+            {
+            }
+
+            public bool MoveNext()
+                => false;
+
+            public void Reset()
+            {
+            }
+        }
     }
 }

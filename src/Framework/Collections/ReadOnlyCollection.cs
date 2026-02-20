@@ -12,7 +12,7 @@ internal static class ReadOnlyCollection
     public static ReadOnlyCollectionBase<T> Create<T>(IEnumerable<T>? backing)
         => backing is not null
             ? new ReadOnlyCollection<T>(backing)
-            : ReadOnlyEmptyCollection<T>.Instance;
+            : ReadOnlyCollectionBase<T>.Empty;
 }
 
 /// <summary>

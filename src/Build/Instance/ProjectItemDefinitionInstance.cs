@@ -104,7 +104,7 @@ namespace Microsoft.Build.Execution
             {
                 if (_metadata == null)
                 {
-                    return ReadOnlyEmptyCollection<ProjectMetadataInstance>.Instance;
+                    return ReadOnlyCollectionBase<ProjectMetadataInstance>.Empty;
                 }
 
                 IEnumerable<ProjectMetadataInstance> metadata = _metadata.Select(kvp => new ProjectMetadataInstance(kvp.Key, kvp.Value, allowItemSpecModifiers: true));
