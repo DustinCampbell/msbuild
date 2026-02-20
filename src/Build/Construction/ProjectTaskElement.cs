@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Xml;
 using Microsoft.Build.Collections;
@@ -152,7 +151,8 @@ namespace Microsoft.Build.Construction
                     {
                         parametersClone[entry.Key] = entry.Value.Item1;
                     }
-                    return new ReadOnlyDictionary<string, string>(parametersClone);
+
+                    return ReadOnlyDictionary.CreateOrEmpty(parametersClone);
                 }
             }
         }

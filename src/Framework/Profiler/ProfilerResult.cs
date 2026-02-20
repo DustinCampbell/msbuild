@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
+using Microsoft.Build.Collections;
 
 #nullable disable
 
@@ -22,7 +22,7 @@ namespace Microsoft.Build.Framework.Profiler
         /// <nodoc/>
         public ProfilerResult(IDictionary<EvaluationLocation, ProfiledLocation> profiledLocations)
         {
-            ProfiledLocations = new ReadOnlyDictionary<EvaluationLocation, ProfiledLocation>(profiledLocations);
+            ProfiledLocations = ReadOnlyDictionary.CreateOrEmpty(profiledLocations);
         }
 
         /// <inheritdoc />

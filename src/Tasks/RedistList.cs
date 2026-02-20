@@ -105,13 +105,13 @@ namespace Microsoft.Build.Tasks
                 ReadFile(assemblyTableInfo, assemblyList, errors, errorFilenames, remappingEntries);
             }
 
-            _errors = new ReadOnlyCollection<Exception>(errors);
-            _errorFilenames = new ReadOnlyCollection<string>(errorFilenames);
-            _remapEntries = new ReadOnlyCollection<AssemblyRemapping>(remappingEntries);
+            _errors = errors.AsReadOnly();
+            _errorFilenames = errorFilenames.AsReadOnly();
+            _remapEntries = remappingEntries.AsReadOnly();
 
             // With the same simple name and then the version so that for each simple name we want the assemblies to also be sorted by version.
             assemblyList.Sort(s_sortByVersionDescending);
-            _assemblyList = new ReadOnlyCollection<AssemblyEntry>(assemblyList);
+            _assemblyList = assemblyList.AsReadOnly();
 
             var simpleNameMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < assemblyList.Count; ++i)
@@ -123,7 +123,7 @@ namespace Microsoft.Build.Tasks
                 }
             }
 
-            _simpleNameMap = new ReadOnlyDictionary<string, int>(simpleNameMap);
+            _simpleNameMap = simpleNameMap.AsReadOnly();
         }
 
         /// <summary>

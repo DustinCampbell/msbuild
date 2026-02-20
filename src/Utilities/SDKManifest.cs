@@ -3,11 +3,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 
@@ -121,12 +121,12 @@ namespace Microsoft.Build.Utilities
         /// <summary>
         /// Whatever framework identities we found in the manifest.
         /// </summary>
-        public IDictionary<string, string> FrameworkIdentities => _frameworkIdentities != null ? new ReadOnlyDictionary<string, string>(_frameworkIdentities) : null;
+        public IDictionary<string, string> FrameworkIdentities => ReadOnlyDictionary.CreateOrEmpty(_frameworkIdentities);
 
         /// <summary>
         /// Whatever appx locations we found in the manifest
         /// </summary>
-        public IDictionary<string, string> AppxLocations => _appxLocations != null ? new ReadOnlyDictionary<string, string>(_appxLocations) : null;
+        public IDictionary<string, string> AppxLocations => ReadOnlyDictionary.CreateOrEmpty(_appxLocations);
 
         /// <summary>
         /// PlatformIdentity if it exists in the appx manifest for this sdk.

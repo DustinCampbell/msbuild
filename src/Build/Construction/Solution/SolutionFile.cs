@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -13,6 +12,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -214,9 +214,9 @@ namespace Microsoft.Build.Construction
         /// string in "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}" form
         /// </summary>
         /// <remarks>For the new parser, solution folders are no longer included.</remarks>
-        public IReadOnlyDictionary<string, ProjectInSolution> ProjectsByGuid => new ReadOnlyDictionary<string, ProjectInSolution>(_projectsByGuid);
+        public IReadOnlyDictionary<string, ProjectInSolution> ProjectsByGuid => ReadOnlyDictionary.CreateOrEmpty(_projectsByGuid);
 
-        internal IReadOnlyDictionary<string, ProjectInSolution> SolutionFoldersByGuid => new ReadOnlyDictionary<string, ProjectInSolution>(_solutionFoldersByGuid);
+        internal IReadOnlyDictionary<string, ProjectInSolution> SolutionFoldersByGuid => ReadOnlyDictionary.CreateOrEmpty(_solutionFoldersByGuid);
 
         /// <summary>
         /// This is the read/write accessor for the solution file which we will parse.  This

@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows.Markup;
+using Microsoft.Build.Collections;
 
 #nullable disable
 
@@ -500,7 +501,7 @@ namespace Microsoft.Build.Framework.XamlTypes
                             map[property.Name] = property;
                         }
 
-                        _propertiesByNameMap = new ReadOnlyDictionary<string, BaseProperty>(map);
+                        _propertiesByNameMap = ReadOnlyDictionary.CreateOrEmpty(map);
                     }
                 }
             }

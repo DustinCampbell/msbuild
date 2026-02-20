@@ -130,7 +130,7 @@ namespace Microsoft.Build.Instance.ImmutableProjectCollections
 
         public bool Remove(KeyValuePair<string, ProjectPropertyInstance> item) => throw new NotSupportedException();
 
-        public IDictionary<string, string> ToReadOnlyDictionary() => new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(_globalProperties);
+        public IDictionary<string, string> ToReadOnlyDictionary() => ReadOnlyDictionary.CreateOrEmpty(_globalProperties);
 
         public void TrimExcess()
         {

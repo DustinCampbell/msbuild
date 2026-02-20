@@ -5,7 +5,6 @@ using System;
 
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Security;
@@ -21,6 +20,7 @@ using XMakeAttributes = Microsoft.Build.Shared.XMakeAttributes;
 using ProjectFileErrorUtilities = Microsoft.Build.Shared.ProjectFileErrorUtilities;
 using BuildEventFileInfo = Microsoft.Build.Shared.BuildEventFileInfo;
 using ErrorUtilities = Microsoft.Build.Shared.ErrorUtilities;
+using Microsoft.Build.Collections;
 
 
 
@@ -234,9 +234,7 @@ namespace Microsoft.Build.Construction
         /// They contain only the project configurations from the solution file that fully matched (configuration and platform) against the solution configurations.
         /// </summary>
         public IReadOnlyDictionary<string, ProjectConfigurationInSolution> ProjectConfigurations
-            =>
-                _projectConfigurationsReadOnly
-                ?? (_projectConfigurationsReadOnly = new ReadOnlyDictionary<string, ProjectConfigurationInSolution>(_projectConfigurations));
+            => _projectConfigurationsReadOnly ??= ReadOnlyDictionary.CreateOrEmpty(_projectConfigurations);
 
         /// <summary>
         /// Extension of the project file, if any
