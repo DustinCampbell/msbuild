@@ -3,9 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-#if !NET
-using System.Collections.ObjectModel;
-#endif
 
 namespace Microsoft.Build.Experimental.BuildCheck;
 
@@ -63,15 +60,6 @@ internal static class EnumerableExtensions
 
         return new HashSet<T>(source, equalityComparer);
     }
-
-#if !NET
-    /// <summary>
-    /// Returns a read-only <see cref="ReadOnlyDictionary{TKey, TValue}"/> wrapper
-    /// for the current dictionary.
-    /// </summary>
-    public static ReadOnlyDictionary<TKey, TValue> AsReadOnly<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
-        => new(dictionary);
-#endif
 
     /// <summary>
     /// Adds a content of given dictionary to current dictionary.
