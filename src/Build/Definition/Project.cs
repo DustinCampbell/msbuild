@@ -2241,7 +2241,7 @@ namespace Microsoft.Build.Evaluation
                         ErrorUtilities.ThrowInvalidOperation("OM_NotEvaluatedBecauseShouldEvaluateForDesignTimeIsFalse", nameof(ItemsIgnoringCondition));
                     }
 
-                    return ReadOnlyCollection.Create<ProjectItem>(_data.ItemsIgnoringCondition);
+                    return ReadOnlyCollection.Create(_data.ItemsIgnoringCondition);
                 }
             }
 

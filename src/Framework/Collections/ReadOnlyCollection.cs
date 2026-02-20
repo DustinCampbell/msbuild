@@ -7,6 +7,9 @@ namespace Microsoft.Build.Collections;
 
 internal static class ReadOnlyCollection
 {
-    public static ReadOnlyCollection<T> Create<T>(IEnumerable<T>? backing)
-        => ReadOnlyCollection<T>.Create(backing);
+    public static ReadOnlyCollection<T> Create<T>(IEnumerable<T>? enumerable)
+        => ReadOnlyCollection<T>.Create(enumerable);
+
+    public static ReadOnlyCollection<T> Create<T>(ICollection<T>? collection)
+        => ReadOnlyCollection<T>.Create(collection);
 }

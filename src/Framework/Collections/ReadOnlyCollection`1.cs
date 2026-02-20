@@ -11,10 +11,19 @@ internal abstract partial class ReadOnlyCollection<T> : IReadOnlyCollection<T>, 
 {
     public static ReadOnlyCollection<T> Empty => EmptyCollection.Instance;
 
-    public static ReadOnlyCollection<T> Create(IEnumerable<T>? backing)
-        => backing is not null
-            ? new WrapperCollection(backing)
-            : EmptyCollection.Instance;
+    public static ReadOnlyCollection<T> Create(IEnumerable<T>? enumerable) => enumerable switch
+    {
+        ICollection<T> { Count: > 0 } collection => new CollectionWrapper(collection),
+        IEnumerable<T> => new EnumerableWrapper(enumerable),
+        _ => EmptyCollection.Instance
+    };
+
+    public static ReadOnlyCollection<T> Create(ICollection<T>? collection)
+        => collection switch
+        {
+            { Count: > 0 } => new CollectionWrapper(collection),
+            _ => EmptyCollection.Instance
+        };
 
     public abstract int Count { get; }
 
@@ -24,6 +33,14 @@ internal abstract partial class ReadOnlyCollection<T> : IReadOnlyCollection<T>, 
 
     object ICollection.SyncRoot => this;
 
+    protected virtual void CopyToCore(T[] array, int index)
+    {
+    }
+
+    protected virtual void CopyToCore(Array array, int index)
+    {
+    }
+
     public void Add(T item)
         => InvalidOperationException.Throw(SR.OM_NotSupportedReadOnlyCollection);
 
@@ -32,12 +49,26 @@ internal abstract partial class ReadOnlyCollection<T> : IReadOnlyCollection<T>, 
 
     public abstract bool Contains(T item);
 
-    public abstract void CopyTo(T[] array, int arrayIndex);
+    public void CopyTo(T[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+
+        CopyToCore(array, arrayIndex);
+    }
 
     void ICollection.CopyTo(Array array, int index)
-        => CopyTo(array, index);
+    {
+        ArgumentNullException.ThrowIfNull(array);
 
-    protected abstract void CopyTo(Array array, int index);
+        if (array is T[] typedArray)
+        {
+            CopyToCore(typedArray, index);
+        }
+        else
+        {
+            CopyToCore(array, index);
+        }
+    }
 
     public abstract IEnumerator<T> GetEnumerator();
 

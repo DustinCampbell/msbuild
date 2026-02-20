@@ -22,14 +22,6 @@ internal abstract partial class ReadOnlyCollection<T>
         public override bool Contains(T item)
             => false;
 
-        public override void CopyTo(T[] array, int arrayIndex)
-        {
-        }
-
-        protected override void CopyTo(Array array, int index)
-        {
-        }
-
         public override IEnumerator<T> GetEnumerator()
             => Enumerator.Instance;
 
