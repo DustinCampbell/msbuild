@@ -462,8 +462,132 @@ namespace Microsoft.Build.UnitTests.OM.Definition
         {
             IList<ProjectItem> items = ObjectModelHelpers.GetItemsFromFragment("<i Include='a;b' Exclude='b;c'/>");
 
-            Assert.Single(items);
-            Assert.Equal("a", items[0].EvaluatedInclude);
+            ProjectItem item = Assert.Single(items);
+            Assert.Equal("a", item.EvaluatedInclude);
+        }
+
+        /// <summary>
+        /// Exclude with many literal (non-wildcard) values exercises the linear scan
+        /// in ExcludeTester and validates correctness when excludes outnumber includes.
+        /// </summary>
+        [Fact]
+        public void ExcludeWithManyLiteralValues()
+        {
+            // Include 20 items, exclude the even-numbered ones
+            string includes = string.Join(";", Enumerable.Range(0, 20).Select(i => $"item{i}"));
+            string excludes = string.Join(";", Enumerable.Range(0, 20).Where(i => i % 2 == 0).Select(i => $"item{i}"));
+
+            IList<ProjectItem> items = ObjectModelHelpers.GetItemsFromFragment($"<i Include='{includes}' Exclude='{excludes}'/>");
+
+            string[] expected = [.. Enumerable.Range(0, 20).Where(i => i % 2 != 0).Select(i => $"item{i}")];
+            Assert.Equal(expected.Length, items.Count);
+            ObjectModelHelpers.AssertItems(expected, items);
+        }
+
+        /// <summary>
+        /// Exclude where all included items are also excluded should produce an empty result.
+        /// </summary>
+        [Fact]
+        public void ExcludeAllItems()
+        {
+            IList<ProjectItem> items = ObjectModelHelpers.GetItemsFromFragment("<i Include='a;b;c' Exclude='a;b;c'/>");
+
+            Assert.Empty(items);
+        }
+
+        /// <summary>
+        /// Exclude with no overlap should not remove any items.
+        /// </summary>
+        [Fact]
+        public void ExcludeWithNoOverlap()
+        {
+            IList<ProjectItem> items = ObjectModelHelpers.GetItemsFromFragment("<i Include='a;b;c' Exclude='x;y;z'/>");
+
+            Assert.Equal(3, items.Count);
+            ObjectModelHelpers.AssertItems(["a", "b", "c"], items);
+        }
+
+        /// <summary>
+        /// Exclude with a mix of literal and wildcard patterns. The literal excludes
+        /// should be handled by direct comparison; the wildcard exclude should match
+        /// via FileSpecMatcherTester.
+        /// </summary>
+        [Fact]
+        public void ExcludeWithMixedLiteralAndWildcard()
+        {
+            using TestEnvironment env = TestEnvironment.Create();
+            TransientTestFolder folder = env.CreateFolder(createFolder: true);
+            env.CreateFile(folder, "keep.txt", string.Empty);
+            env.CreateFile(folder, "remove_literal.txt", string.Empty);
+            env.CreateFile(folder, "remove_wild.log", string.Empty);
+
+            string includes = $@"{folder.Path}\keep.txt;{folder.Path}\remove_literal.txt;{folder.Path}\remove_wild.log";
+            string excludes = $@"{folder.Path}\remove_literal.txt;{folder.Path}\*.log";
+
+            IList<ProjectItem> items = ObjectModelHelpers.GetItemsFromFragment($"<i Include='{includes}' Exclude='{excludes}'/>");
+
+            ProjectItem item = Assert.Single(items);
+            Assert.EndsWith("keep.txt", item.EvaluatedInclude);
+        }
+
+        /// <summary>
+        /// Exclude with escaped characters should still match correctly.
+        /// Verifies that unescaping happens before comparison.
+        /// </summary>
+        [Fact]
+        public void ExcludeWithEscapedLiterals()
+        {
+            // %61 = 'a', %62 = 'b'
+            IList<ProjectItem> items = ObjectModelHelpers.GetItemsFromFragment("<i Include='a;b;c' Exclude='%61;%63'/>");
+
+            ProjectItem item = Assert.Single(items);
+            Assert.Equal("b", item.EvaluatedInclude);
+        }
+
+        /// <summary>
+        /// Exclude with duplicate patterns should not cause double-removal or errors.
+        /// </summary>
+        [Fact]
+        public void ExcludeWithDuplicatePatterns()
+        {
+            IList<ProjectItem> items = ObjectModelHelpers.GetItemsFromFragment("<i Include='a;b;c' Exclude='b;b;b'/>");
+
+            Assert.Equal(2, items.Count);
+            ObjectModelHelpers.AssertItems(["a", "c"], items);
+        }
+
+        /// <summary>
+        /// Exclude should be case-insensitive for literal paths on Windows.
+        /// </summary>
+        [Fact]
+        public void ExcludeLiteralIsCaseInsensitive()
+        {
+            IList<ProjectItem> items = ObjectModelHelpers.GetItemsFromFragment("<i Include='Foo;Bar;Baz' Exclude='foo;baz'/>");
+
+            ProjectItem item = Assert.Single(items);
+            Assert.Equal("Bar", item.EvaluatedInclude);
+        }
+
+        /// <summary>
+        /// Exclude with item reference alongside literal values.
+        /// Ensures the combination of @(item) expansion and literal comparison works.
+        /// </summary>
+        [Fact]
+        public void ExcludeWithItemReferenceAndLiterals()
+        {
+            string content = """
+                <Project>
+                    <ItemGroup>
+                        <j Include='b;d' />
+                        <i Include='a;b;c;d;e' Exclude='a;@(j);e' />
+                    </ItemGroup>
+                </Project>
+                """;
+
+            IList<ProjectItem> items = ObjectModelHelpers.GetItems(content);
+
+            ProjectItem item = Assert.Single(items);
+            Assert.Equal("c", item.EvaluatedInclude);
         }
 
         /// <summary>
