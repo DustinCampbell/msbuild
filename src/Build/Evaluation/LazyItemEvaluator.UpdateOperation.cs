@@ -172,5 +172,16 @@ namespace Microsoft.Build.Evaluation
                 return itemSpec.Fragments.Any(f => f is ItemSpec<P, I>.ItemExpressionFragment);
             }
         }
+
+        private sealed class UpdateOperationBuilder : OperationBuilderWithMetadata
+        {
+            protected override ItemSpec<P, I> CreateItemSpec(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory)
+                => new(itemElement.Update, expander, itemElement.UpdateLocation, rootDirectory);
+
+            public UpdateOperationBuilder(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory, bool conditionResult)
+                : base(itemElement, expander, rootDirectory, conditionResult)
+            {
+            }
+        }
     }
 }

@@ -17,25 +17,27 @@ namespace Microsoft.Build.Evaluation
         where M : class, IMetadatum
         where D : class, IItemDefinition<M>
     {
-        private class OperationBuilder
+        private abstract class OperationBuilder
         {
             // WORKAROUND: Unnecessary boxed allocation: https://github.com/dotnet/corefx/issues/24563
             private static readonly ImmutableDictionary<string, LazyItemList> s_emptyIgnoreCase = ImmutableDictionary.Create<string, LazyItemList>(StringComparer.OrdinalIgnoreCase);
 
-            public ProjectItemElement ItemElement { get; set; }
-            public string ItemType { get; set; }
-            public ItemSpec<P, I> ItemSpec { get; set; }
+            public ProjectItemElement ItemElement { get; }
+            public string ItemType { get; }
+            public ItemSpec<P, I> ItemSpec { get; }
+            public bool ConditionResult { get; }
 
             public ImmutableDictionary<string, LazyItemList>.Builder ReferencedItemLists { get; } = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
                 ImmutableDictionary.CreateBuilder<string, LazyItemList>() :
                 s_emptyIgnoreCase.ToBuilder();
 
-            public bool ConditionResult { get; set; }
+            protected abstract ItemSpec<P, I> CreateItemSpec(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory);
 
-            public OperationBuilder(ProjectItemElement itemElement, bool conditionResult)
+            protected OperationBuilder(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory, bool conditionResult)
             {
                 ItemElement = itemElement;
                 ItemType = itemElement.ItemType;
+                ItemSpec = CreateItemSpec(itemElement, expander, rootDirectory);
                 ConditionResult = conditionResult;
             }
         }

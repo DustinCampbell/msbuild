@@ -16,11 +16,12 @@ namespace Microsoft.Build.Evaluation
         where M : class, IMetadatum
         where D : class, IItemDefinition<M>
     {
-        private class OperationBuilderWithMetadata : OperationBuilder
+        private abstract class OperationBuilderWithMetadata : OperationBuilder
         {
             public readonly ImmutableArray<ProjectMetadataElement>.Builder Metadata = ImmutableArray.CreateBuilder<ProjectMetadataElement>();
 
-            public OperationBuilderWithMetadata(ProjectItemElement itemElement, bool conditionResult) : base(itemElement, conditionResult)
+            protected OperationBuilderWithMetadata(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory, bool conditionResult)
+                : base(itemElement, expander, rootDirectory, conditionResult)
             {
             }
         }

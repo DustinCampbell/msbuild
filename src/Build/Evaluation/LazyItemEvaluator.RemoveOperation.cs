@@ -109,13 +109,17 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private class RemoveOperationBuilder : OperationBuilder
+        private sealed class RemoveOperationBuilder : OperationBuilder
         {
             public ImmutableList<string>.Builder MatchOnMetadata { get; } = ImmutableList.CreateBuilder<string>();
 
             public MatchOnMetadataOptions MatchOnMetadataOptions { get; set; }
 
-            public RemoveOperationBuilder(ProjectItemElement itemElement, bool conditionResult) : base(itemElement, conditionResult)
+            protected override ItemSpec<P, I> CreateItemSpec(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory)
+                => new(itemElement.Remove, expander, itemElement.RemoveLocation, rootDirectory);
+
+            public RemoveOperationBuilder(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory, bool conditionResult)
+                : base(itemElement, expander, rootDirectory, conditionResult)
             {
             }
         }

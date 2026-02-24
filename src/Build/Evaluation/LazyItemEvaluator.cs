@@ -499,10 +499,10 @@ namespace Microsoft.Build.Evaluation
 
         private UpdateOperation BuildUpdateOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            OperationBuilderWithMetadata operationBuilder = new OperationBuilderWithMetadata(itemElement, conditionResult);
+            var operationBuilder = new UpdateOperationBuilder(itemElement, _outerExpander, rootDirectory, conditionResult);
 
             // Proces Update attribute
-            ProcessItemSpec(rootDirectory, itemElement.Update, itemElement.UpdateLocation, operationBuilder);
+            ProcessItemSpec(operationBuilder);
 
             ProcessMetadataElements(itemElement, operationBuilder);
 
@@ -511,13 +511,10 @@ namespace Microsoft.Build.Evaluation
 
         private IncludeOperation BuildIncludeOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            IncludeOperationBuilder operationBuilder = new IncludeOperationBuilder(itemElement, conditionResult);
-            operationBuilder.ElementOrder = _nextElementOrder++;
-            operationBuilder.RootDirectory = rootDirectory;
-            operationBuilder.ConditionResult = conditionResult;
+            var operationBuilder = new IncludeOperationBuilder(itemElement, _outerExpander, rootDirectory, conditionResult, _nextElementOrder++);
 
             // Process include
-            ProcessItemSpec(rootDirectory, itemElement.Include, itemElement.IncludeLocation, operationBuilder);
+            ProcessItemSpec(operationBuilder);
 
             // Code corresponds to Evaluator.EvaluateItemElement
 
@@ -548,9 +545,9 @@ namespace Microsoft.Build.Evaluation
 
         private RemoveOperation BuildRemoveOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            RemoveOperationBuilder operationBuilder = new RemoveOperationBuilder(itemElement, conditionResult);
+            var operationBuilder = new RemoveOperationBuilder(itemElement, _outerExpander, rootDirectory, conditionResult);
 
-            ProcessItemSpec(rootDirectory, itemElement.Remove, itemElement.RemoveLocation, operationBuilder);
+            ProcessItemSpec(operationBuilder);
 
             // Process MatchOnMetadata
             if (itemElement.MatchOnMetadata.Length > 0)
@@ -580,10 +577,8 @@ namespace Microsoft.Build.Evaluation
             return new RemoveOperation(operationBuilder, this);
         }
 
-        private void ProcessItemSpec(string rootDirectory, string itemSpec, IElementLocation itemSpecLocation, OperationBuilder builder)
+        private void ProcessItemSpec(OperationBuilder builder)
         {
-            builder.ItemSpec = new ItemSpec<P, I>(itemSpec, _outerExpander, itemSpecLocation, rootDirectory);
-
             foreach (ItemSpecFragment fragment in builder.ItemSpec.Fragments)
             {
                 if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemExpression)
