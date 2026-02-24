@@ -639,11 +639,12 @@ namespace Microsoft.Build.Evaluation
             return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, expression, _items, itemFactory, options, includeNullItems, out isTransformExpression, elementLocation);
         }
 
-        internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
-                string expression, ExpanderOptions options, IElementLocation elementLocation)
-        {
-            return ItemExpander.ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
-        }
+        internal static bool TryExpandSingleItemVectorExpressionIntoExpressionCapture(
+            string expression,
+            ExpanderOptions options,
+            IElementLocation elementLocation,
+            out ExpressionShredder.ItemExpressionCapture capture)
+            => ItemExpander.TryExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation, out capture);
 
         internal IList<T> ExpandExpressionCaptureIntoItems<S, T>(
                 ExpressionShredder.ItemExpressionCapture expressionCapture, IItemProvider<S> items, IItemFactory<S, T> itemFactory,
@@ -2070,53 +2071,71 @@ namespace Microsoft.Build.Evaluation
             /// <typeparam name="S">Type of the items provided by the item source used for expansion.</typeparam>
             /// <typeparam name="T">Type of the items that should be returned.</typeparam>
             internal static IList<T> ExpandSingleItemVectorExpressionIntoItems<S, T>(
-                    Expander<P, I> expander, string expression, IItemProvider<S> items, IItemFactory<S, T> itemFactory, ExpanderOptions options,
-                    bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
+                Expander<P, I> expander,
+                string expression,
+                IItemProvider<S> items,
+                IItemFactory<S, T> itemFactory,
+                ExpanderOptions options,
+                bool includeNullEntries,
+                out bool isTransformExpression,
+                IElementLocation elementLocation)
                 where S : class, IItem
                 where T : class, IItem
             {
-                isTransformExpression = false;
-
-                var expressionCapture = ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
-                if (expressionCapture == null)
+                if (TryExpandSingleItemVectorExpressionIntoExpressionCapture(
+                    expression, options, elementLocation, out ExpressionShredder.ItemExpressionCapture expressionCapture))
                 {
-                    return null;
+                    return ExpandExpressionCaptureIntoItems(
+                            expressionCapture,
+                            expander,
+                            items,
+                            itemFactory,
+                            options,
+                            includeNullEntries,
+                            out isTransformExpression,
+                            elementLocation);
                 }
 
-                return ExpandExpressionCaptureIntoItems(expressionCapture.Value, expander, items, itemFactory, options, includeNullEntries,
-                    out isTransformExpression, elementLocation);
+                isTransformExpression = false;
+                return null;
             }
 
-            internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
-                    string expression, ExpanderOptions options, IElementLocation elementLocation)
+            internal static bool TryExpandSingleItemVectorExpressionIntoExpressionCapture(
+                string expression,
+                ExpanderOptions options,
+                IElementLocation elementLocation,
+                out ExpressionShredder.ItemExpressionCapture capture)
             {
                 if (((options & ExpanderOptions.ExpandItems) == 0) || (expression.Length == 0))
                 {
-                    return null;
+                    capture = default;
+                    return false;
                 }
 
                 if (!expression.Contains('@'))
                 {
-                    return null;
+                    capture = default;
+                    return false;
                 }
 
                 ExpressionShredder.ReferencedItemExpressionsEnumerator matchesEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
                 if (!matchesEnumerator.MoveNext())
                 {
-                    return null;
+                    capture = default;
+                    return false;
                 }
 
-                ExpressionShredder.ItemExpressionCapture match = matchesEnumerator.Current;
+                capture = matchesEnumerator.Current;
 
                 // We have a single valid @(itemlist) reference in the given expression.
                 // If the passed-in expression contains exactly one item list reference,
                 // with nothing else concatenated to the beginning or end, then proceed
                 // with itemizing it, otherwise error.
-                ProjectErrorUtilities.VerifyThrowInvalidProject(match.Value == expression, elementLocation, "EmbeddedItemVectorCannotBeItemized", expression);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(capture.Value == expression, elementLocation, "EmbeddedItemVectorCannotBeItemized", expression);
                 ErrorUtilities.VerifyThrow(!matchesEnumerator.MoveNext(), "Expected just one item vector");
 
-                return match;
+                return true;
             }
 
             internal static IList<T> ExpandExpressionCaptureIntoItems<S, T>(
@@ -2227,7 +2246,7 @@ namespace Microsoft.Build.Evaluation
             ///
             /// </param>
             /// <param name="expander">The expander whose state will be used to expand any transforms.</param>
-            /// <param name="expressionCapture">The <see cref="ExpandSingleItemVectorExpressionIntoExpressionCapture"/> representing the structure of an item expression.</param>
+            /// <param name="expressionCapture">The <see cref="ExpressionShredder.ItemExpressionCapture"/> representing the structure of an item expression.</param>
             /// <param name="evaluatedItems"><see cref="IItemProvider{T}"/> to provide the inital items (which may get subsequently transformed, if <paramref name="expressionCapture"/> is a transform expression)>.</param>
             /// <param name="elementLocation">Location of the xml element containing the <paramref name="expressionCapture"/>.</param>
             /// <param name="options">expander options.</param>

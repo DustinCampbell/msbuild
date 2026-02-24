@@ -633,18 +633,14 @@ namespace Microsoft.Build.Evaluation
             {
                 return;
             }
-            else
+
+            if (!Expander<P, I>.TryExpandSingleItemVectorExpressionIntoExpressionCapture(
+                expression, ExpanderOptions.ExpandItems, elementLocation, out var match))
             {
-                ExpressionShredder.ItemExpressionCapture? match = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
-                    expression, ExpanderOptions.ExpandItems, elementLocation);
-
-                if (match == null)
-                {
-                    return;
-                }
-
-                AddReferencedItemLists(operationBuilder, match.Value);
+                return;
             }
+
+            AddReferencedItemLists(operationBuilder, match);
         }
 
         private void AddReferencedItemLists(OperationBuilder operationBuilder, ExpressionShredder.ItemExpressionCapture match)
