@@ -10,11 +10,18 @@ namespace Microsoft.Build.Framework
 {
     internal static class ImmutableDictionaryExtensions
     {
-        /// <summary>
-        /// An empty dictionary pre-configured with a comparer for metadata dictionaries.
-        /// </summary>
-        public static readonly ImmutableDictionary<string, string> EmptyMetadata =
+#pragma warning disable IDE0052 // Private member can be removed as the value assigned to it is never read.
+        private static readonly ImmutableDictionary<string, string> s_emptyMetadata =
             ImmutableDictionary<string, string>.Empty.WithComparers(MSBuildNameIgnoreCaseComparer.Default);
+#pragma warning restore IDE0052
+
+        extension(ImmutableDictionary)
+        {
+            /// <summary>
+            ///  An empty dictionary pre-configured with a comparer for metadata dictionaries.
+            /// </summary>
+            public static ImmutableDictionary<string, string> EmptyMetadata => s_emptyMetadata;
+        }
 
 #if !TASKHOST
         /// <summary>

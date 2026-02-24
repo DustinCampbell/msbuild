@@ -25,7 +25,7 @@ namespace Microsoft.Build.Framework
         /// to an empty instance.
         /// </remarks>
         public SerializableMetadata(ImmutableDictionary<string, string> dictionary) =>
-            Dictionary = dictionary ?? ImmutableDictionaryExtensions.EmptyMetadata;
+            Dictionary = dictionary ?? ImmutableDictionary.EmptyMetadata;
 
         public SerializableMetadata(SerializationInfo info, StreamingContext context)
         {
@@ -33,7 +33,7 @@ namespace Microsoft.Build.Framework
             if (hasValue)
             {
                 object entries = info.GetValue("value", typeof(KeyValuePair<string, string>[]))!;
-                Dictionary = ImmutableDictionaryExtensions.EmptyMetadata.AddRange((KeyValuePair<string, string>[])entries);
+                Dictionary = ImmutableDictionary.EmptyMetadata.AddRange((KeyValuePair<string, string>[])entries);
             }
         }
 

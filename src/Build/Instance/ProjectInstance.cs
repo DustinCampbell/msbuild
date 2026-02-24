@@ -1036,7 +1036,7 @@ namespace Microsoft.Build.Execution
                         IEnumerable<KeyValuePair<string, string>> projectMetadataInstances = linkedMetadataDict.Select(directMetadatum
                             => new KeyValuePair<string, string>(directMetadatum.Key, directMetadatum.Value.EvaluatedValueEscaped));
 
-                        metadata = ImmutableDictionaryExtensions.EmptyMetadata
+                        metadata = ImmutableDictionary.EmptyMetadata
                             .SetItems(projectMetadataInstances, ProjectMetadataInstance.VerifyThrowReservedName);
                     }
 
@@ -3447,7 +3447,7 @@ namespace Microsoft.Build.Execution
                 IEnumerable<KeyValuePair<string, string>> projectMetadataInstances = item.DirectMetadata.Select(directMetadatum
                     => new KeyValuePair<string, string>(directMetadatum.Name, directMetadatum.EvaluatedValueEscaped));
 
-                directMetadata = ImmutableDictionaryExtensions.EmptyMetadata
+                directMetadata = ImmutableDictionary.EmptyMetadata
                     .SetItems(projectMetadataInstances, ProjectMetadataInstance.VerifyThrowReservedName);
             }
 
@@ -3506,7 +3506,7 @@ namespace Microsoft.Build.Execution
                     IEnumerable<KeyValuePair<string, string>> projectMetadataInstances = item.DirectMetadata.Select(directMetadatum
                         => new KeyValuePair<string, string>(directMetadatum.Name, directMetadatum.EvaluatedValueEscaped));
 
-                    directMetadata = ImmutableDictionaryExtensions.EmptyMetadata
+                    directMetadata = ImmutableDictionary.EmptyMetadata
                         .SetItems(projectMetadataInstances, ProjectMetadataInstance.VerifyThrowReservedName);
                 }
             }

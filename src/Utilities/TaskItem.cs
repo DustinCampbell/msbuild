@@ -124,7 +124,7 @@ namespace Microsoft.Build.Utilities
 
             if (itemMetadata.Count > 0)
             {
-                ImmutableDictionary<string, string>.Builder builder = ImmutableDictionaryExtensions.EmptyMetadata.ToBuilder();
+                ImmutableDictionary<string, string>.Builder builder = ImmutableDictionary.EmptyMetadata.ToBuilder();
 
                 foreach (DictionaryEntry singleMetadata in itemMetadata)
                 {
@@ -310,7 +310,7 @@ namespace Microsoft.Build.Utilities
             ErrorUtilities.VerifyThrowArgument(!FileUtilities.ItemSpecModifiers.IsDerivableItemSpecModifier(metadataName),
                 "Shared.CannotChangeItemSpecModifiers", metadataName);
 
-            _metadata ??= ImmutableDictionaryExtensions.EmptyMetadata;
+            _metadata ??= ImmutableDictionary.EmptyMetadata;
 
             _metadata = _metadata.SetItem(metadataName, metadataValue ?? string.Empty);
         }
@@ -561,7 +561,7 @@ namespace Microsoft.Build.Utilities
                 return;
             }
 
-            _metadata ??= ImmutableDictionaryExtensions.EmptyMetadata;
+            _metadata ??= ImmutableDictionary.EmptyMetadata;
             _metadata = _metadata.SetItems(metadata.Select(kvp => new KeyValuePair<string, string>(kvp.Key, kvp.Value ?? string.Empty)));
         }
 

@@ -61,7 +61,7 @@ namespace Microsoft.Build.Execution
             {
                 IEnumerable<KeyValuePair<string, string>> projectMetadataInstances = itemDefinition.Metadata.Select(originalMetadata
                         => new KeyValuePair<string, string>(originalMetadata.Name, originalMetadata.EvaluatedValueEscaped));
-                _metadata = ImmutableDictionaryExtensions.EmptyMetadata
+                _metadata = ImmutableDictionary.EmptyMetadata
                     .SetItems(projectMetadataInstances, ProjectMetadataInstance.VerifyThrowReservedName);
             }
         }
@@ -138,7 +138,7 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// The backing metadata dictionary for copy-on-write cloning.
         /// </summary>
-        internal ImmutableDictionary<string, string> BackingMetadata => _metadata ?? ImmutableDictionaryExtensions.EmptyMetadata;
+        internal ImmutableDictionary<string, string> BackingMetadata => _metadata ?? ImmutableDictionary.EmptyMetadata;
 
         /// <summary>
         /// Get any metadata in the item that has the specified name,
@@ -203,7 +203,7 @@ namespace Microsoft.Build.Execution
         ProjectMetadataInstance IItemDefinition<ProjectMetadataInstance>.SetMetadata(ProjectMetadataElement xml, string evaluatedValue, ProjectMetadataInstance predecessor)
         {
             // No mutability check as this is used during creation (evaluation)
-            _metadata ??= ImmutableDictionaryExtensions.EmptyMetadata;
+            _metadata ??= ImmutableDictionary.EmptyMetadata;
 
             ProjectMetadataInstance metadatum = new ProjectMetadataInstance(xml.Name, evaluatedValue);
             _metadata = _metadata.SetItem(xml.Name, metadatum.EvaluatedValueEscaped);

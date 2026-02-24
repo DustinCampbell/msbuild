@@ -221,7 +221,7 @@ namespace Microsoft.Build.UnitTests.OM.Instance
                     }
                 }
 
-                ImmutableDictionary<string, string> directMetadata = ImmutableDictionaryExtensions.EmptyMetadata;
+                ImmutableDictionary<string, string> directMetadata = ImmutableDictionary.EmptyMetadata;
                 if (metadata is not null)
                 {
                     foreach ((string name, string value) in metadata)

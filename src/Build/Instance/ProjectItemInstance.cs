@@ -127,7 +127,7 @@ namespace Microsoft.Build.Execution
 
             if (directMetadata?.GetEnumerator().MoveNext() == true)
             {
-                metadata = ImmutableDictionaryExtensions.EmptyMetadata
+                metadata = ImmutableDictionary.EmptyMetadata
                     .SetItems(directMetadata, ProjectMetadataInstance.VerifyThrowReservedName);
             }
 
@@ -622,7 +622,7 @@ namespace Microsoft.Build.Execution
             if (metadataList.Count != 0 && items.Count != 0)
             {
                 // Set up a single dictionary that can be applied to all the items
-                ImmutableDictionary<string, string> metadata = ImmutableDictionaryExtensions.EmptyMetadata
+                ImmutableDictionary<string, string> metadata = ImmutableDictionary.EmptyMetadata
                     .SetItems(metadataList, ProjectMetadataInstance.VerifyThrowReservedName);
 
                 foreach (ProjectItemInstance item in items)
@@ -1081,7 +1081,7 @@ namespace Microsoft.Build.Execution
                 {
                     if (_directMetadata is null)
                     {
-                        return ImmutableDictionaryExtensions.EmptyMetadata;
+                        return ImmutableDictionary.EmptyMetadata;
                     }
                     else if (_directMetadata is ImmutableDictionary<string, string> realImplementation)
                     {
@@ -1921,7 +1921,7 @@ namespace Microsoft.Build.Execution
                                     int value = translator.Reader.ReadInt32();
                                     return new KeyValuePair<string, string>(interner.GetString(key), interner.GetString(value));
                                 });
-                            _directMetadata = ImmutableDictionaryExtensions.EmptyMetadata.SetItems(metaData);
+                            _directMetadata = ImmutableDictionary.EmptyMetadata.SetItems(metaData);
                         }
                         else
                         {
@@ -2022,7 +2022,7 @@ namespace Microsoft.Build.Execution
             internal void SetMetadataOnTaskOutput(IEnumerable<KeyValuePair<string, string>> items)
             {
                 ProjectInstance.VerifyThrowNotImmutable(_isImmutable);
-                _directMetadata ??= ImmutableDictionaryExtensions.EmptyMetadata;
+                _directMetadata ??= ImmutableDictionary.EmptyMetadata;
 
                 var metadata = items
                     .Where(item => !FileUtilities.ItemSpecModifiers.IsDerivableItemSpecModifier(item.Key));
@@ -2297,7 +2297,7 @@ namespace Microsoft.Build.Execution
                 public void SetMetadata(IEnumerable<KeyValuePair<ProjectMetadataElement, string>> metadataList, IEnumerable<ProjectItemInstance> destinationItems)
                 {
                     // Set up a single dictionary that can be applied to all the items
-                    ImmutableDictionary<string, string> metadata = ImmutableDictionaryExtensions.EmptyMetadata;
+                    ImmutableDictionary<string, string> metadata = ImmutableDictionary.EmptyMetadata;
                     IEnumerable<KeyValuePair<string, string>> projectMetadataInstances = metadataList.Select(metadatum => new KeyValuePair<string, string>(metadatum.Key.Name, metadatum.Value));
                     metadata = metadata.SetItems(projectMetadataInstances, ProjectMetadataInstance.VerifyThrowReservedName);
 
