@@ -2294,12 +2294,15 @@ namespace Microsoft.Build.Execution
                 /// <summary>
                 /// Applies the supplied metadata to the destination item.
                 /// </summary>
-                public void SetMetadata(IEnumerable<KeyValuePair<ProjectMetadataElement, string>> metadataList, IEnumerable<ProjectItemInstance> destinationItems)
+                public void SetMetadata(
+                    IEnumerable<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadataList,
+                    IEnumerable<ProjectItemInstance> destinationItems)
                 {
                     // Set up a single dictionary that can be applied to all the items
-                    ImmutableDictionary<string, string> metadata = ImmutableDictionary.EmptyMetadata;
-                    IEnumerable<KeyValuePair<string, string>> projectMetadataInstances = metadataList.Select(metadatum => new KeyValuePair<string, string>(metadatum.Key.Name, metadatum.Value));
-                    metadata = metadata.SetItems(projectMetadataInstances, ProjectMetadataInstance.VerifyThrowReservedName);
+                    IEnumerable<KeyValuePair<string, string>> projectMetadataInstances = metadataList.Select(
+                        metadatum => new KeyValuePair<string, string>(metadatum.MetadataElement.Name, metadatum.EvaluatedValue));
+
+                    var metadata = ImmutableDictionary.EmptyMetadata.SetItems(projectMetadataInstances, ProjectMetadataInstance.VerifyThrowReservedName);
 
                     if (metadata.Count > 0)
                     {
@@ -2462,7 +2465,9 @@ namespace Microsoft.Build.Execution
                 /// <summary>
                 /// Applies the supplied metadata to the destination item.
                 /// </summary>
-                public void SetMetadata(IEnumerable<KeyValuePair<ProjectMetadataElement, string>> metadata, IEnumerable<TaskItem> destinationItems)
+                public void SetMetadata(
+                    IEnumerable<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadata,
+                    IEnumerable<TaskItem> destinationItems)
                 {
                     // Not difficult to implement, but we do not expect to go here.
                     ErrorUtilities.ThrowInternalErrorUnreachable();
