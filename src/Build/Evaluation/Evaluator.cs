@@ -125,7 +125,7 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// The item factory used to create items from Xml.
         /// </summary>
-        private readonly IItemFactory<I, I> _itemFactory;
+        private readonly IItemFactory<I> _itemFactory;
 
         /// <summary>
         /// Load settings, such as whether to ignore missing imports.
@@ -206,7 +206,7 @@ namespace Microsoft.Build.Evaluation
             int maxNodeCount,
             PropertyDictionary<ProjectPropertyInstance> environmentProperties,
             ICollection<string> propertiesFromCommandLine,
-            IItemFactory<I, I> itemFactory,
+            IItemFactory<I> itemFactory,
             IToolsetProvider toolsetProvider,
             IDirectoryCacheFactory directoryCacheFactory,
             ProjectRootElementCacheBase projectRootElementCache,
@@ -309,7 +309,7 @@ namespace Microsoft.Build.Evaluation
             PropertyDictionary<ProjectPropertyInstance> environmentProperties,
             ICollection<string> propertiesFromCommandLine,
             ILoggingService loggingService,
-            IItemFactory<I, I> itemFactory,
+            IItemFactory<I> itemFactory,
             IToolsetProvider toolsetProvider,
             IDirectoryCacheFactory directoryCacheFactory,
             ProjectRootElementCacheBase projectRootElementCache,
@@ -373,7 +373,7 @@ namespace Microsoft.Build.Evaluation
         /// Helper that creates a list of ProjectItem's given an unevaluated Include and a ProjectRootElement.
         /// Used by both Evaluator.EvaluateItemElement and by Project.AddItem.
         /// </summary>
-        internal static List<I> CreateItemsFromInclude(string rootDirectory, ProjectItemElement itemElement, IItemFactory<I, I> itemFactory, string unevaluatedIncludeEscaped, Expander<P, I> expander, ILoggingService loggingService, string buildEventFileInfoFullPath, BuildEventContext buildEventContext)
+        internal static List<I> CreateItemsFromInclude(string rootDirectory, ProjectItemElement itemElement, IItemFactory<I> itemFactory, string unevaluatedIncludeEscaped, Expander<P, I> expander, ILoggingService loggingService, string buildEventFileInfoFullPath, BuildEventContext buildEventContext)
         {
             ErrorUtilities.VerifyThrowArgumentLength(unevaluatedIncludeEscaped);
 

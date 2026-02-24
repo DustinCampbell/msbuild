@@ -2200,7 +2200,7 @@ namespace Microsoft.Build.Execution
             /// <summary>
             /// A class factory for instance model items.
             /// </summary>
-            internal class ProjectItemInstanceFactory : IItemFactory<ProjectItemInstance, ProjectItemInstance>
+            internal class ProjectItemInstanceFactory : IItemFactory<ProjectItemInstance>
             {
                 /// <summary>
                 /// The project to which item instances created by this factory will belong.

@@ -12,6 +12,14 @@ namespace Microsoft.Build.Evaluation
     /// This interface is used to describe a class which can act as a factory for creating
     /// items when the Expander expands certain expressions.
     /// </summary>
+    /// <typeparam name="T">The type of items this factory can clone from and will create.</typeparam>
+    internal interface IItemFactory<T> : IItemFactory<T, T>
+        where T : class, IItem;
+
+    /// <summary>
+    /// This interface is used to describe a class which can act as a factory for creating
+    /// items when the Expander expands certain expressions.
+    /// </summary>
     /// <typeparam name="S">The type of items this factory can clone from.</typeparam>
     /// <typeparam name="T">The type of items this factory will create.</typeparam>
     internal interface IItemFactory<S, T>

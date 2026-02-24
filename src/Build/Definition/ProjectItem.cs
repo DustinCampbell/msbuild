@@ -903,7 +903,7 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// A class factory for ProjectItems.
         /// </summary>
-        internal class ProjectItemFactory : IItemFactory<ProjectItem, ProjectItem>
+        internal class ProjectItemFactory : IItemFactory<ProjectItem>
         {
             /// <summary>
             /// The Project with which each item should be associated.

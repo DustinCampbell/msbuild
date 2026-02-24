@@ -33,7 +33,7 @@ namespace Microsoft.Build.Evaluation
         private readonly Expander<P, I> _outerExpander;
         private readonly IEvaluatorData<P, I, M, D> _evaluatorData;
         private readonly Expander<P, I> _expander;
-        private readonly IItemFactory<I, I> _itemFactory;
+        private readonly IItemFactory<I> _itemFactory;
         private readonly LoggingContext _loggingContext;
         private readonly EvaluationProfiler _evaluationProfiler;
 
@@ -49,7 +49,7 @@ namespace Microsoft.Build.Evaluation
 
         protected FileMatcher FileMatcher => EvaluationContext.FileMatcher;
 
-        public LazyItemEvaluator(IEvaluatorData<P, I, M, D> data, IItemFactory<I, I> itemFactory, LoggingContext loggingContext, EvaluationProfiler evaluationProfiler, EvaluationContext evaluationContext)
+        public LazyItemEvaluator(IEvaluatorData<P, I, M, D> data, IItemFactory<I> itemFactory, LoggingContext loggingContext, EvaluationProfiler evaluationProfiler, EvaluationContext evaluationContext)
         {
             _outerEvaluatorData = data;
             _outerExpander = new Expander<P, I>(_outerEvaluatorData, _outerEvaluatorData, evaluationContext, loggingContext);
@@ -127,7 +127,7 @@ namespace Microsoft.Build.Evaluation
                 _normalizedItemValue = normalizedItemValue;
             }
 
-            public readonly ItemData Clone(IItemFactory<I, I> itemFactory, ProjectItemElement initialItemElementForFactory)
+            public readonly ItemData Clone(IItemFactory<I> itemFactory, ProjectItemElement initialItemElementForFactory)
             {
                 // setting the factory's item element to the original item element that produced the item
                 // otherwise you get weird things like items that appear to have been produced by update elements
