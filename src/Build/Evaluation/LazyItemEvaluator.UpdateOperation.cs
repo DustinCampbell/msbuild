@@ -14,7 +14,7 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private class UpdateOperation : LazyItemOperation
+        private sealed class UpdateOperation : LazyItemOperation
         {
             private readonly ImmutableArray<ProjectMetadataElement> _metadata;
             private ImmutableList<ItemBatchingContext>.Builder _itemsToUpdate = null;

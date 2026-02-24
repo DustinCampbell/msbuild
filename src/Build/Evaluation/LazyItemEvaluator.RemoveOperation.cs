@@ -14,7 +14,7 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private class RemoveOperation : LazyItemOperation
+        private sealed class RemoveOperation : LazyItemOperation
         {
             private readonly ImmutableList<string> _matchOnMetadata;
             private MetadataTrie<P, I> _metadataSet;

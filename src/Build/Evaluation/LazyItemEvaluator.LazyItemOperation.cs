@@ -60,33 +60,16 @@ namespace Microsoft.Build.Evaluation
             public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
                 MSBuildEventSource.Log.ApplyLazyItemOperationsStart(_itemElement.ItemType);
+
                 using (_lazyEvaluator._evaluationProfiler.TrackElement(_itemElement))
                 {
                     ApplyImpl(listBuilder, globsToIgnore);
                 }
+
                 MSBuildEventSource.Log.ApplyLazyItemOperationsStop(_itemElement.ItemType);
             }
 
-            protected virtual void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
-            {
-                var items = SelectItems(listBuilder, globsToIgnore);
-                MutateItems(items);
-                SaveItems(items, listBuilder);
-            }
-
-            /// <summary>
-            /// Produce the items to operate on. For example, create new ones or select existing ones
-            /// </summary>
-            protected virtual ImmutableArray<I> SelectItems(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
-            {
-                return listBuilder.Select(itemData => itemData.Item)
-                                  .ToImmutableArray();
-            }
-
-            // todo Refactoring: MutateItems should clone each item before mutation. See https://github.com/dotnet/msbuild/issues/2328
-            protected virtual void MutateItems(ImmutableArray<I> items) { }
-
-            protected virtual void SaveItems(ImmutableArray<I> items, OrderedItemDataCollection.Builder listBuilder) { }
+            protected abstract void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore);
 
             [DebuggerDisplay(@"{DebugString()}")]
             protected readonly struct ItemBatchingContext
