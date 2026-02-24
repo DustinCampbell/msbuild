@@ -33,13 +33,18 @@ namespace Microsoft.Build.Evaluation
             protected readonly IItemFactory<I, I> _itemFactory;
             internal ItemSpec<P, I> Spec => _itemSpec;
 
-            protected LazyItemOperation(OperationBuilder builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+            protected LazyItemOperation(
+                ProjectItemElement itemElement,
+                ItemSpec<P, I> itemSpec,
+                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                bool conditionResult,
+                LazyItemEvaluator<P, I, M, D> lazyEvaluator)
             {
-                _itemElement = builder.ItemElement;
-                _itemType = builder.ItemType;
-                _itemSpec = builder.ItemSpec;
-                _referencedItemLists = builder.ReferencedItemLists.ToImmutable();
-                _conditionResult = builder.ConditionResult;
+                _itemElement = itemElement;
+                _itemType = itemElement.ItemType;
+                _itemSpec = itemSpec;
+                _referencedItemLists = referencedItemLists;
+                _conditionResult = conditionResult;
 
                 _lazyEvaluator = lazyEvaluator;
 

@@ -24,14 +24,22 @@ namespace Microsoft.Build.Evaluation
             private readonly ImmutableSegmentedList<string> _excludes;
             private readonly ImmutableArray<ProjectMetadataElement> _metadata;
 
-            public IncludeOperation(IncludeOperationBuilder builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            public IncludeOperation(
+                ProjectItemElement itemElement,
+                ItemSpec<P, I> itemSpec,
+                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                bool conditionResult,
+                int elementOrder,
+                string rootDirectory,
+                ImmutableSegmentedList<string> excludes,
+                ImmutableArray<ProjectMetadataElement> metadata,
+                LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+                : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
-                _elementOrder = builder.ElementOrder;
-                _rootDirectory = builder.RootDirectory;
-
-                _excludes = builder.Excludes.ToImmutable();
-                _metadata = builder.Metadata.ToImmutable();
+                _elementOrder = elementOrder;
+                _rootDirectory = rootDirectory;
+                _excludes = excludes;
+                _metadata = metadata;
             }
 
             [SuppressMessage("Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "_lazyEvaluator._evaluationProfiler has own dipose logic.")]
@@ -202,24 +210,6 @@ namespace Microsoft.Build.Evaluation
                 {
                     listBuilder.Add(new ItemData(item, _itemElement, _elementOrder, _conditionResult));
                 }
-            }
-        }
-
-        private sealed class IncludeOperationBuilder : OperationBuilderWithMetadata
-        {
-            public int ElementOrder { get; }
-            public string RootDirectory { get; }
-
-            public ImmutableSegmentedList<string>.Builder Excludes { get; } = ImmutableSegmentedList.CreateBuilder<string>();
-
-            protected override ItemSpec<P, I> CreateItemSpec(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory)
-                => new(itemElement.Include, expander, itemElement.Location, rootDirectory);
-
-            public IncludeOperationBuilder(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory, bool conditionResult, int elementOrder)
-                : base(itemElement, expander, rootDirectory, conditionResult)
-            {
-                RootDirectory = rootDirectory;
-                ElementOrder = elementOrder;
             }
         }
     }

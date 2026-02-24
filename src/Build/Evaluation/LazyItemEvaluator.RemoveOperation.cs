@@ -19,10 +19,17 @@ namespace Microsoft.Build.Evaluation
             private readonly ImmutableList<string> _matchOnMetadata;
             private MetadataTrie<P, I> _metadataSet;
 
-            public RemoveOperation(RemoveOperationBuilder builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            public RemoveOperation(
+                ProjectItemElement itemElement,
+                ItemSpec<P, I> itemSpec,
+                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                bool conditionResult,
+                ImmutableList<string> matchOnMetadata,
+                MatchOnMetadataOptions matchOnMetadataOptions,
+                LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+                : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
-                _matchOnMetadata = builder.MatchOnMetadata.ToImmutable();
+                _matchOnMetadata = matchOnMetadata;
 
                 ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
                     _matchOnMetadata.IsEmpty || _itemSpec.Fragments.All(f => f is ItemSpec<P, I>.ItemExpressionFragment),
@@ -31,7 +38,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (!_matchOnMetadata.IsEmpty)
                 {
-                    _metadataSet = new MetadataTrie<P, I>(builder.MatchOnMetadataOptions, _matchOnMetadata, _itemSpec);
+                    _metadataSet = new MetadataTrie<P, I>(matchOnMetadataOptions, _matchOnMetadata, _itemSpec);
                 }
             }
 
@@ -106,21 +113,6 @@ namespace Microsoft.Build.Evaluation
                 builder.UnionWith(globs);
 
                 return builder;
-            }
-        }
-
-        private sealed class RemoveOperationBuilder : OperationBuilder
-        {
-            public ImmutableList<string>.Builder MatchOnMetadata { get; } = ImmutableList.CreateBuilder<string>();
-
-            public MatchOnMetadataOptions MatchOnMetadataOptions { get; set; }
-
-            protected override ItemSpec<P, I> CreateItemSpec(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory)
-                => new(itemElement.Remove, expander, itemElement.RemoveLocation, rootDirectory);
-
-            public RemoveOperationBuilder(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory, bool conditionResult)
-                : base(itemElement, expander, rootDirectory, conditionResult)
-            {
             }
         }
     }

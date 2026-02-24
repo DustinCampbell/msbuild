@@ -21,10 +21,16 @@ namespace Microsoft.Build.Evaluation
             private ItemSpecMatchesItem _matchItemSpec = null;
             private bool? _needToExpandMetadataForEachItem = null;
 
-            public UpdateOperation(OperationBuilderWithMetadata builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            public UpdateOperation(
+                ProjectItemElement itemElement,
+                ItemSpec<P, I> itemSpec,
+                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                bool conditionResult,
+                ImmutableArray<ProjectMetadataElement> metadata,
+                LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+                : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
-                _metadata = builder.Metadata.ToImmutable();
+                _metadata = metadata;
             }
 
             private readonly struct MatchResult
@@ -170,17 +176,6 @@ namespace Microsoft.Build.Evaluation
             private static bool ItemSpecContainsItemReferences(ItemSpec<P, I> itemSpec)
             {
                 return itemSpec.Fragments.Any(f => f is ItemSpec<P, I>.ItemExpressionFragment);
-            }
-        }
-
-        private sealed class UpdateOperationBuilder : OperationBuilderWithMetadata
-        {
-            protected override ItemSpec<P, I> CreateItemSpec(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory)
-                => new(itemElement.Update, expander, itemElement.UpdateLocation, rootDirectory);
-
-            public UpdateOperationBuilder(ProjectItemElement itemElement, Expander<P, I> expander, string rootDirectory, bool conditionResult)
-                : base(itemElement, expander, rootDirectory, conditionResult)
-            {
             }
         }
     }
