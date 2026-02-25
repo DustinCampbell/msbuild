@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
@@ -134,43 +133,70 @@ namespace Microsoft.Build.Evaluation
             {
                 if (ItemspecContainsASingleBareItemReference(_itemSpec, _itemElement.ItemType))
                 {
-                    // Perf optimization: If the Update operation references itself (e.g. <I Update="@(I)"/>)
-                    // then all items are updated and matching is not necessary
-                    _matchItemSpec = (itemSpec, item) => new MatchResult(true, null);
+                    _matchItemSpec = static (itemSpec, item) => new MatchResult(true, null);
                 }
                 else if (ItemSpecContainsItemReferences(_itemSpec)
                          && QualifiedMetadataReferencesExist(_metadata, out _needToExpandMetadataForEachItem)
                          && !Traits.Instance.EscapeHatches.DoNotExpandQualifiedMetadataInUpdateOperation)
                 {
-                    var itemReferenceFragments = _itemSpec.Fragments.OfType<ItemSpec<P, I>.ItemExpressionFragment>().ToArray();
-                    var nonItemReferenceFragments = _itemSpec.Fragments.Where(f => !(f is ItemSpec<P, I>.ItemExpressionFragment)).ToArray();
-
-                    _matchItemSpec = (itemSpec, item) =>
+                    var itemReferenceFragments = new RefArrayBuilder<ItemSpec<P, I>.ItemExpressionFragment>();
+                    var nonItemReferenceFragments = new RefArrayBuilder<ItemSpecFragment>();
+                    try
                     {
-                        var isMatch = nonItemReferenceFragments.Any(f => f.IsMatch(item.EvaluatedInclude));
-                        Dictionary<string, I> capturedItemsFromReferencedItemTypes = null;
-
-                        foreach (var itemReferenceFragment in itemReferenceFragments)
+                        foreach (var fragment in _itemSpec.Fragments)
                         {
-                            foreach (var referencedItem in itemReferenceFragment.ReferencedItems)
+                            if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemRef)
                             {
-                                if (referencedItem.ItemAsValueFragment.IsMatch(item.EvaluatedInclude))
-                                {
-                                    isMatch = true;
-
-                                    capturedItemsFromReferencedItemTypes ??= new Dictionary<string, I>(StringComparer.OrdinalIgnoreCase);
-
-                                    capturedItemsFromReferencedItemTypes[referencedItem.Item.Key] = referencedItem.Item;
-                                }
+                                itemReferenceFragments.Add(itemRef);
+                            }
+                            else
+                            {
+                                nonItemReferenceFragments.Add(fragment);
                             }
                         }
 
-                        return new MatchResult(isMatch, capturedItemsFromReferencedItemTypes);
-                    };
+                        var itemRefs = itemReferenceFragments.AsSpan().ToArray();
+                        var nonItemRefs = nonItemReferenceFragments.AsSpan().ToArray();
+
+                        _matchItemSpec = (itemSpec, item) =>
+                        {
+                            var isMatch = false;
+                            Dictionary<string, I> capturedItemsFromReferencedItemTypes = null;
+
+                            foreach (var fragment in nonItemRefs)
+                            {
+                                if (fragment.IsMatch(item.EvaluatedInclude))
+                                {
+                                    isMatch = true;
+                                    break;
+                                }
+                            }
+
+                            foreach (var itemReferenceFragment in itemRefs)
+                            {
+                                foreach (var referencedItem in itemReferenceFragment.ReferencedItems)
+                                {
+                                    if (referencedItem.ItemAsValueFragment.IsMatch(item.EvaluatedInclude))
+                                    {
+                                        isMatch = true;
+                                        capturedItemsFromReferencedItemTypes ??= new Dictionary<string, I>(StringComparer.OrdinalIgnoreCase);
+                                        capturedItemsFromReferencedItemTypes[referencedItem.Item.Key] = referencedItem.Item;
+                                    }
+                                }
+                            }
+
+                            return new MatchResult(isMatch, capturedItemsFromReferencedItemTypes);
+                        };
+                    }
+                    finally
+                    {
+                        itemReferenceFragments.Dispose();
+                        nonItemReferenceFragments.Dispose();
+                    }
                 }
                 else
                 {
-                    _matchItemSpec = (itemSpec, item) => new MatchResult(itemSpec.MatchesItem(item), null);
+                    _matchItemSpec = static (itemSpec, item) => new MatchResult(itemSpec.MatchesItem(item), null);
                 }
             }
 
@@ -196,7 +222,15 @@ namespace Microsoft.Build.Evaluation
 
             private static bool ItemSpecContainsItemReferences(ItemSpec<P, I> itemSpec)
             {
-                return itemSpec.Fragments.Any(f => f is ItemSpec<P, I>.ItemExpressionFragment);
+                foreach (var fragment in itemSpec.Fragments)
+                {
+                    if (fragment is ItemSpec<P, I>.ItemExpressionFragment)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
     }
