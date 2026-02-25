@@ -166,7 +166,8 @@ namespace Microsoft.Build.Evaluation
         private class MemoizedOperation : IItemOperation
         {
             public LazyItemOperation Operation { get; }
-            private Dictionary<ISet<string>, OrderedItemDataCollection> _cache;
+            private ImmutableHashSet<string> _cachedGlobsToIgnore;
+            private OrderedItemDataCollection _cachedItems;
 
             private bool _isReferenced;
 #if DEBUG
@@ -189,7 +190,8 @@ namespace Microsoft.Build.Evaluation
                 // cache results if somebody is referencing this operation
                 if (_isReferenced)
                 {
-                    AddItemsToCache(globsToIgnore, listBuilder.ToImmutable());
+                    _cachedGlobsToIgnore = globsToIgnore;
+                    _cachedItems = listBuilder.ToImmutable();
                 }
 #if DEBUG
                 _applyCalls++;
@@ -202,23 +204,23 @@ namespace Microsoft.Build.Evaluation
             {
                 if (_isReferenced)
                 {
-                    var cacheCount = _cache?.Count ?? 0;
-                    Debug.Assert(_applyCalls == cacheCount, "Apply should only be called once per globsToIgnore. Otherwise caching is not working");
+                    // After Apply has been called, the cache should be populated.
+                    Debug.Assert(_applyCalls == 0 || _cachedItems != null, "Referenced operation should cache its result after Apply");
                 }
                 else
                 {
                     // non referenced operations should not be cached
-                    // non referenced operations should have as many apply calls as the number of cache keys of the immediate dominator with _isReferenced == true
-                    Debug.Assert(_cache == null);
+                    Debug.Assert(_cachedItems == null);
                 }
             }
 #endif
 
             public bool TryGetFromCache(ISet<string> globsToIgnore, out OrderedItemDataCollection items)
             {
-                if (_cache != null)
+                if (_cachedItems != null && ReferenceEquals(globsToIgnore, _cachedGlobsToIgnore))
                 {
-                    return _cache.TryGetValue(globsToIgnore, out items);
+                    items = _cachedItems;
+                    return true;
                 }
 
                 items = null;
@@ -231,16 +233,6 @@ namespace Microsoft.Build.Evaluation
             public void MarkAsReferenced()
             {
                 _isReferenced = true;
-            }
-
-            private void AddItemsToCache(ImmutableHashSet<string> globsToIgnore, OrderedItemDataCollection items)
-            {
-                if (_cache == null)
-                {
-                    _cache = new Dictionary<ISet<string>, OrderedItemDataCollection>();
-                }
-
-                _cache[globsToIgnore] = items;
             }
         }
 
