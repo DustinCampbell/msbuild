@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 
@@ -17,7 +18,6 @@ namespace Microsoft.Build.Evaluation
         private sealed class UpdateOperation : LazyItemOperation
         {
             private readonly ImmutableArray<ProjectMetadataElement> _metadata;
-            private ImmutableList<ItemBatchingContext>.Builder _itemsToUpdate = null;
             private ItemSpecMatchesItem _matchItemSpec = null;
             private bool? _needToExpandMetadataForEachItem = null;
 
@@ -55,22 +55,29 @@ namespace Microsoft.Build.Evaluation
                 }
 
                 SetMatchItemSpec();
-                _itemsToUpdate ??= ImmutableList.CreateBuilder<ItemBatchingContext>();
-                _itemsToUpdate.Clear();
 
-                for (int i = 0; i < listBuilder.Count; i++)
+                var itemsToUpdate = new RefArrayBuilder<ItemBatchingContext>();
+                try
                 {
-                    var itemData = listBuilder[i];
+                    itemsToUpdate.Count = 0;
 
-                    var matchResult = _matchItemSpec(_itemSpec, itemData.Item);
-
-                    if (matchResult.IsMatch)
+                    for (int i = 0; i < listBuilder.Count; i++)
                     {
-                        listBuilder[i] = UpdateItem(listBuilder[i], matchResult.CapturedItemsFromReferencedItemTypes);
-                    }
-                }
+                        var itemData = listBuilder[i];
+                        var matchResult = _matchItemSpec(_itemSpec, itemData.Item);
 
-                DecorateItemsWithMetadata(_itemsToUpdate.ToImmutableList(), _metadata, _needToExpandMetadataForEachItem);
+                        if (matchResult.IsMatch)
+                        {
+                            listBuilder[i] = UpdateItem(listBuilder[i], matchResult.CapturedItemsFromReferencedItemTypes, ref itemsToUpdate);
+                        }
+                    }
+
+                    DecorateItemsWithMetadata(itemsToUpdate.AsSpan(), _metadata, _needToExpandMetadataForEachItem);
+                }
+                finally
+                {
+                    itemsToUpdate.Dispose();
+                }
             }
 
             /// <summary>
@@ -80,29 +87,43 @@ namespace Microsoft.Build.Evaluation
             /// <returns>The updated item.</returns>
             internal ItemData UpdateItem(ItemData item)
             {
-                if (_conditionResult)
+                if (!_conditionResult)
                 {
-                    SetMatchItemSpec();
-                    _itemsToUpdate ??= ImmutableList.CreateBuilder<ItemBatchingContext>();
-                    _itemsToUpdate.Clear();
+                    return item;
+                }
+
+                SetMatchItemSpec();
+
+                var itemsToUpdate = new RefArrayBuilder<ItemBatchingContext>();
+                try
+                {
                     MatchResult matchResult = _matchItemSpec(_itemSpec, item.Item);
+
                     if (matchResult.IsMatch)
                     {
-                        ItemData clonedData = UpdateItem(item, matchResult.CapturedItemsFromReferencedItemTypes);
-                        DecorateItemsWithMetadata(_itemsToUpdate.ToImmutableList(), _metadata, _needToExpandMetadataForEachItem);
+                        ItemData clonedData = UpdateItem(item, matchResult.CapturedItemsFromReferencedItemTypes, ref itemsToUpdate);
+                        DecorateItemsWithMetadata(itemsToUpdate.AsSpan(), _metadata, _needToExpandMetadataForEachItem);
                         return clonedData;
                     }
+
+                    return item;
                 }
-                return item;
+                finally
+                {
+                    itemsToUpdate.Dispose();
+                }
             }
 
-            private ItemData UpdateItem(ItemData item, Dictionary<string, I> capturedItemsFromReferencedItemTypes)
+            private ItemData UpdateItem(
+                ItemData item,
+                Dictionary<string, I> capturedItemsFromReferencedItemTypes,
+                ref RefArrayBuilder<ItemBatchingContext> itemsToUpdate)
             {
                 // items should be deep immutable, so clone and replace items before mutating them
                 // otherwise, with GetItems caching enabled, the mutations would leak into the cache causing
                 // future operations to mutate the state of past operations
                 ItemData clonedData = item.Clone(_itemFactory, _itemElement);
-                _itemsToUpdate.Add(new ItemBatchingContext(clonedData.Item, capturedItemsFromReferencedItemTypes));
+                itemsToUpdate.Add(new ItemBatchingContext(clonedData.Item, capturedItemsFromReferencedItemTypes));
                 return clonedData;
             }
 

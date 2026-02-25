@@ -45,19 +45,27 @@ namespace Microsoft.Build.Evaluation
 
             protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
-                var items = SelectItems(listBuilder, globsToIgnore);
-                MutateItems(items);
-                SaveItems(items, listBuilder);
+                var items = new RefArrayBuilder<I>(initialCapacity: _itemSpec.Fragments.Count);
+                try
+                {
+                    CollectItems(globsToIgnore, ref items);
+                    MutateItems(items.AsSpan());
+                    SaveItems(items.AsSpan(), listBuilder);
+                }
+                finally
+                {
+                    items.Dispose();
+                }
             }
 
             /// <summary>
             ///  Produce the items to operate on. For example, create new ones or select existing ones.
             /// </summary>
             [SuppressMessage("Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "_lazyEvaluator._evaluationProfiler has own dipose logic.")]
-            private ImmutableArray<I> SelectItems(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            private void CollectItems(
+                ImmutableHashSet<string> globsToIgnore,
+                ref RefArrayBuilder<I> collector)
             {
-                using var builder = new RefArrayBuilder<I>();
-
                 ImmutableList<string>.Builder excludePatterns = ImmutableList.CreateBuilder<string>();
                 if (_excludes != null)
                 {
@@ -95,7 +103,7 @@ namespace Microsoft.Build.Evaluation
                             {
                                 if (!ExcludeTester(_rootDirectory, excludePatterns, matchers, item.EvaluatedInclude))
                                 {
-                                    builder.Add(item);
+                                    collector.Add(item);
                                 }
                             }
                         }
@@ -103,7 +111,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             foreach (var item in itemsFromExpression)
                             {
-                                builder.Add(item);
+                                collector.Add(item);
                             }
                         }
                     }
@@ -114,7 +122,7 @@ namespace Microsoft.Build.Evaluation
 
                         if (excludePatterns.Count == 0 || !ExcludeTester(_rootDirectory, excludePatterns, matchers, EscapingUtilities.UnescapeAll(value)))
                         {
-                            builder.Add(_itemFactory.CreateItem(value, value, _itemElement.ContainingProject.FullPath));
+                            collector.Add(_itemFactory.CreateItem(value, value, _itemElement.ContainingProject.FullPath));
                         }
                     }
                     else if (fragment is GlobFragment globFragment)
@@ -153,7 +161,7 @@ namespace Microsoft.Build.Evaluation
 
                             foreach (string includeSplitFileEscaped in includeSplitFilesEscaped)
                             {
-                                builder.Add(_itemFactory.CreateItem(includeSplitFileEscaped, glob, _itemElement.ContainingProject.FullPath));
+                                collector.Add(_itemFactory.CreateItem(includeSplitFileEscaped, glob, _itemElement.ContainingProject.FullPath));
                             }
                         }
                     }
@@ -162,8 +170,6 @@ namespace Microsoft.Build.Evaluation
                         throw new InvalidOperationException(fragment.GetType().ToString());
                     }
                 }
-
-                return builder.ToImmutable();
 
                 static bool ExcludeTester(string? directory, ImmutableList<string>.Builder excludePatterns, FileSpecMatcherTester?[] matchers, string item)
                 {
@@ -207,12 +213,19 @@ namespace Microsoft.Build.Evaluation
             }
 
             // todo Refactoring: MutateItems should clone each item before mutation. See https://github.com/dotnet/msbuild/issues/2328
-            private void MutateItems(ImmutableArray<I> items)
+            private void MutateItems(ReadOnlySpan<I> items)
             {
-                DecorateItemsWithMetadata(items.Select(i => new ItemBatchingContext(i)), _metadata);
+                using var contexts = new RefArrayBuilder<ItemBatchingContext>(items.Length);
+
+                foreach (var item in items)
+                {
+                    contexts.Add(new(item));
+                }
+
+                DecorateItemsWithMetadata(contexts.AsSpan(), _metadata);
             }
 
-            private void SaveItems(ImmutableArray<I> items, OrderedItemDataCollection.Builder listBuilder)
+            private void SaveItems(ReadOnlySpan<I> items, OrderedItemDataCollection.Builder listBuilder)
             {
                 foreach (var item in items)
                 {

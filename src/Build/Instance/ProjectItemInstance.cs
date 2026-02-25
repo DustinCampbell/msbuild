@@ -2295,14 +2295,18 @@ namespace Microsoft.Build.Execution
                 /// Applies the supplied metadata to the destination item.
                 /// </summary>
                 public void SetMetadata(
-                    IEnumerable<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadataList,
-                    IEnumerable<ProjectItemInstance> destinationItems)
+                    ReadOnlySpan<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadataList,
+                    ReadOnlySpan<ProjectItemInstance> destinationItems)
                 {
                     // Set up a single dictionary that can be applied to all the items
-                    IEnumerable<KeyValuePair<string, string>> projectMetadataInstances = metadataList.Select(
-                        metadatum => new KeyValuePair<string, string>(metadatum.MetadataElement.Name, metadatum.EvaluatedValue));
+                    using var projectMetadataInstances = new RefArrayBuilder<KeyValuePair<string, string>>(metadataList.Length);
 
-                    var metadata = ImmutableDictionary.EmptyMetadata.SetItems(projectMetadataInstances, ProjectMetadataInstance.VerifyThrowReservedName);
+                    foreach (var (metadataElement, evaluatedValue) in metadataList)
+                    {
+                        projectMetadataInstances.Add(new(metadataElement.Name, evaluatedValue));
+                    }
+
+                    var metadata = ImmutableDictionary.EmptyMetadata.SetItems(projectMetadataInstances.AsSpan(), ProjectMetadataInstance.VerifyThrowReservedName);
 
                     if (metadata.Count > 0)
                     {
@@ -2466,8 +2470,8 @@ namespace Microsoft.Build.Execution
                 /// Applies the supplied metadata to the destination item.
                 /// </summary>
                 public void SetMetadata(
-                    IEnumerable<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadata,
-                    IEnumerable<TaskItem> destinationItems)
+                    ReadOnlySpan<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadata,
+                    ReadOnlySpan<TaskItem> destinationItems)
                 {
                     // Not difficult to implement, but we do not expect to go here.
                     ErrorUtilities.ThrowInternalErrorUnreachable();

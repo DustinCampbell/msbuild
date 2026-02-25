@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using Microsoft.Build.Construction;
 
 namespace Microsoft.Build.Evaluation
@@ -73,8 +72,8 @@ namespace Microsoft.Build.Evaluation
             }
 
             public void SetMetadata(
-                IEnumerable<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadata,
-                IEnumerable<I> destinationItems)
+                ReadOnlySpan<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadata,
+                ReadOnlySpan<I> destinationItems)
             {
                 SetItemElement();
                 _wrappedItemFactory.SetMetadata(metadata, destinationItems);

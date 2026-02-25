@@ -64,21 +64,23 @@ namespace Microsoft.Build.Evaluation
 
         public bool EvaluateConditionWithCurrentState(ProjectElement element, ExpanderOptions expanderOptions, ParserOptions parserOptions)
         {
-            return EvaluateCondition(element.Condition, element, expanderOptions, parserOptions, _expander, this);
+            return EvaluateCondition(element, expanderOptions, parserOptions, _expander, this);
         }
 
         private static bool EvaluateCondition(
-            string condition,
             ProjectElement element,
             ExpanderOptions expanderOptions,
             ParserOptions parserOptions,
             Expander<P, I> expander,
             LazyItemEvaluator<P, I, M, D> lazyEvaluator)
         {
+            string condition = element.Condition;
+
             if (condition?.Length == 0)
             {
                 return true;
             }
+
             MSBuildEventSource.Log.EvaluateConditionStart(condition);
 
             using (lazyEvaluator._evaluationProfiler.TrackCondition(element.ConditionLocation, condition))

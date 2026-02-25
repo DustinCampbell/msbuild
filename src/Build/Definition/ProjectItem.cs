@@ -1026,8 +1026,8 @@ namespace Microsoft.Build.Evaluation
             /// Applies the supplied metadata to the destination item.
             /// </summary>
             public void SetMetadata(
-                IEnumerable<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadata,
-                IEnumerable<ProjectItem> destinationItems)
+                ReadOnlySpan<(ProjectMetadataElement MetadataElement, string EvaluatedValue)> metadata,
+                ReadOnlySpan<ProjectItem> destinationItems)
             {
                 foreach (IItem<ProjectMetadata> item in destinationItems)
                 {
