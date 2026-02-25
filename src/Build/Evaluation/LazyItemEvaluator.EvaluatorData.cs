@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Logging;
@@ -35,11 +34,9 @@ namespace Microsoft.Build.Evaluation
             public List<ProjectItemElement> EvaluatedItemElements => throw new NotImplementedException();
 
             public ICollection<I> GetItems(string itemType)
-            {
-                return _itemsByType.TryGetValue(itemType, out LazyItemList items)
-                    ? items.GetMatchedItems(globsToIgnore: ImmutableHashSet<string>.Empty)
+                => _itemsByType.TryGetValue(itemType, out LazyItemList items)
+                    ? items.GetMatchedItems(globsToIgnore: [])
                     : Array.Empty<I>();
-            }
 
             public IDictionary<string, List<TargetSpecification>> AfterTargets
             {

@@ -247,18 +247,20 @@ namespace Microsoft.Build.Evaluation
                 _memoizedOperation = new MemoizedOperation(operation);
             }
 
-            public ImmutableList<I> GetMatchedItems(ImmutableHashSet<string> globsToIgnore)
+            public I[] GetMatchedItems(ImmutableHashSet<string> globsToIgnore)
             {
-                ImmutableList<I>.Builder items = ImmutableList.CreateBuilder<I>();
-                foreach (ItemData data in GetItemData(globsToIgnore))
+                OrderedItemDataCollection.Builder items = GetItemData(globsToIgnore);
+                using var builder = new RefArrayBuilder<I>(initialCapacity: items.Count);
+
+                foreach (ItemData data in items)
                 {
                     if (data.ConditionResult)
                     {
-                        items.Add(data.Item);
+                        builder.Add(data.Item);
                     }
                 }
 
-                return items.ToImmutable();
+                return builder.AsSpan().ToArray();
             }
 
             public OrderedItemDataCollection.Builder GetItemData(ImmutableHashSet<string> globsToIgnore)
