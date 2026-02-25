@@ -9,7 +9,6 @@ using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using Microsoft.CodeAnalysis.Collections;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -554,7 +553,7 @@ namespace Microsoft.Build.Evaluation
                 lazyEvaluator: this);
         }
 
-        private ImmutableSegmentedList<string> GetExcludes(
+        private ImmutableArray<string> GetExcludes(
             ProjectItemElement itemElement,
             ref ReferencedItemListsBuilder referencedItemListsBuilder)
         {
@@ -579,7 +578,7 @@ namespace Microsoft.Build.Evaluation
                 return [];
             }
 
-            var builder = ImmutableSegmentedList.CreateBuilder<string>();
+            using var builder = new RefArrayBuilder<string>();
 
             foreach (var excludeSplit in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude))
             {
