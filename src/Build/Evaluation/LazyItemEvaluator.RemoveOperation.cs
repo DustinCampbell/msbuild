@@ -108,9 +108,13 @@ namespace Microsoft.Build.Evaluation
                     return builder;
                 }
 
-                var globs = _itemSpec.Fragments.OfType<GlobFragment>().Select(g => g.TextFragment);
-
-                builder.UnionWith(globs);
+                foreach (var fragment in _itemSpec.Fragments)
+                {
+                    if (fragment is GlobFragment glob)
+                    {
+                        builder.Add(glob.TextFragment);
+                    }
+                }
 
                 return builder;
             }
