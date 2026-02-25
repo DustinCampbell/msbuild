@@ -26,7 +26,7 @@ namespace Microsoft.Build.Evaluation
             public IncludeOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                IReadOnlyDictionary<string, LazyItemList> referencedItemLists,
                 bool conditionResult,
                 int elementOrder,
                 string rootDirectory,

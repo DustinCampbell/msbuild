@@ -22,7 +22,7 @@ namespace Microsoft.Build.Evaluation
             public RemoveOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                IReadOnlyDictionary<string, LazyItemList> referencedItemLists,
                 bool conditionResult,
                 ImmutableList<string> matchOnMetadata,
                 MatchOnMetadataOptions matchOnMetadataOptions,

@@ -24,7 +24,7 @@ namespace Microsoft.Build.Evaluation
             public UpdateOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                IReadOnlyDictionary<string, LazyItemList> referencedItemLists,
                 bool conditionResult,
                 ImmutableArray<ProjectMetadataElement> metadata,
                 LazyItemEvaluator<P, I, M, D> lazyEvaluator)

@@ -1,14 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Collections;
-using Microsoft.Build.Construction;
-using Microsoft.Build.Evaluation.Context;
-using Microsoft.Build.Eventing;
-using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -17,6 +9,14 @@ using System.Diagnostics;
 #endif
 using System.Linq;
 using System.Threading;
+using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Construction;
+using Microsoft.Build.Evaluation.Context;
+using Microsoft.Build.Eventing;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
+using Microsoft.Build.Shared.FileSystem;
 
 #nullable disable
 
@@ -36,11 +36,11 @@ namespace Microsoft.Build.Evaluation
         private readonly LoggingContext _loggingContext;
         private readonly EvaluationProfiler _evaluationProfiler;
 
-        private int _nextElementOrder = 0;
-
-        private Dictionary<string, LazyItemList> _itemLists = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
+        private readonly Dictionary<string, LazyItemList> _itemLists = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
             new Dictionary<string, LazyItemList>() :
             new Dictionary<string, LazyItemList>(StringComparer.OrdinalIgnoreCase);
+
+        private int _nextElementOrder = 0;
 
         protected EvaluationContext EvaluationContext { get; }
 
@@ -502,7 +502,7 @@ namespace Microsoft.Build.Evaluation
             return new UpdateOperation(
                 itemElement,
                 itemSpec,
-                referencedItemListsBuilder.ToImmutable(),
+                referencedItemListsBuilder.Build(),
                 conditionResult,
                 metadata,
                 lazyEvaluator: this);
@@ -522,7 +522,7 @@ namespace Microsoft.Build.Evaluation
             return new IncludeOperation(
                 itemElement,
                 itemSpec,
-                referencedItemListsBuilder.ToImmutable(),
+                referencedItemListsBuilder.Build(),
                 conditionResult,
                 elementOrder,
                 rootDirectory,
@@ -546,7 +546,7 @@ namespace Microsoft.Build.Evaluation
             return new RemoveOperation(
                 itemElement,
                 itemSpec,
-                referencedItemListsBuilder.ToImmutable(),
+                referencedItemListsBuilder.Build(),
                 conditionResult,
                 matchOnMetadata,
                 matchOnMetadataOptions,
@@ -688,73 +688,6 @@ namespace Microsoft.Build.Evaluation
             }
 
             return builder.ToImmutable();
-        }
-
-        private ref struct ReferencedItemListsBuilder
-        {
-            // WORKAROUND: Unnecessary boxed allocation: https://github.com/dotnet/corefx/issues/24563
-            private static readonly ImmutableDictionary<string, LazyItemList> s_empty = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames
-                ? ImmutableDictionary<string, LazyItemList>.Empty
-                : ImmutableDictionary.Create<string, LazyItemList>(StringComparer.OrdinalIgnoreCase);
-
-            private readonly LazyItemEvaluator<P, I, M, D> _lazyEvaluator;
-            private ImmutableDictionary<string, LazyItemList>.Builder? _builder;
-
-            public ReferencedItemListsBuilder(LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-            {
-                _lazyEvaluator = lazyEvaluator;
-            }
-
-            public void Add(string itemType)
-            {
-                if (_lazyEvaluator._itemLists.TryGetValue(itemType, out LazyItemList? itemList))
-                {
-                    itemList.MarkAsReferenced();
-
-                    _builder ??= s_empty.ToBuilder();
-                    _builder[itemType] = itemList;
-                }
-            }
-
-            public void Add(ExpressionShredder.ItemExpressionCapture match)
-            {
-                if (match.ItemType is { } itemType)
-                {
-                    Add(itemType);
-                }
-
-                if (match.Captures is { } subMatches)
-                {
-                    foreach (var subMatch in subMatches)
-                    {
-                        Add(subMatch);
-                    }
-                }
-            }
-
-            public void Add(ItemSpec<P, I> itemSpec)
-            {
-                foreach (ItemSpecFragment fragment in itemSpec.Fragments)
-                {
-                    if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemExpression)
-                    {
-                        Add(itemExpression.Capture);
-                    }
-                }
-            }
-
-            public void Add(string expression, IElementLocation elementLocation)
-            {
-                if (expression.Length > 0 &&
-                    Expander<P, I>.TryExpandSingleItemVectorExpressionIntoExpressionCapture(
-                        expression, ExpanderOptions.ExpandItems, elementLocation, out var match))
-                {
-                    Add(match);
-                }
-            }
-
-            public ImmutableDictionary<string, LazyItemList> ToImmutable()
-                => _builder?.ToImmutable() ?? s_empty;
         }
     }
 }

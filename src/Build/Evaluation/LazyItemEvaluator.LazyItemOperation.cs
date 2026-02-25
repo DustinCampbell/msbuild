@@ -20,7 +20,6 @@ namespace Microsoft.Build.Evaluation
         private abstract class LazyItemOperation : IItemOperation
         {
             private readonly string _itemType;
-            private readonly ImmutableDictionary<string, LazyItemList> _referencedItemLists;
 
             protected readonly LazyItemEvaluator<P, I, M, D> _lazyEvaluator;
             protected readonly ProjectItemElement _itemElement;
@@ -37,19 +36,18 @@ namespace Microsoft.Build.Evaluation
             protected LazyItemOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                IReadOnlyDictionary<string, LazyItemList> referencedItemLists,
                 bool conditionResult,
                 LazyItemEvaluator<P, I, M, D> lazyEvaluator)
             {
                 _itemElement = itemElement;
                 _itemType = itemElement.ItemType;
                 _itemSpec = itemSpec;
-                _referencedItemLists = referencedItemLists;
                 _conditionResult = conditionResult;
 
                 _lazyEvaluator = lazyEvaluator;
 
-                _evaluatorData = new EvaluatorData(_lazyEvaluator._outerEvaluatorData, _referencedItemLists);
+                _evaluatorData = new EvaluatorData(_lazyEvaluator._outerEvaluatorData, referencedItemLists);
                 _itemFactory = new ItemFactoryWrapper(_itemElement, _lazyEvaluator._itemFactory);
                 _expander = new Expander<P, I>(_evaluatorData, _evaluatorData, _lazyEvaluator.EvaluationContext, _lazyEvaluator._loggingContext);
 
