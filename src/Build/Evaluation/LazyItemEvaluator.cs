@@ -583,7 +583,7 @@ namespace Microsoft.Build.Evaluation
             return builder.ToImmutable();
         }
 
-        private ImmutableList<string> GetMatchOnMetadata(
+        private ImmutableArray<string> GetMatchOnMetadata(
             ProjectItemElement itemElement,
             ref ReferencedItemListsBuilder referencedItemListsBuilder)
         {
@@ -606,7 +606,7 @@ namespace Microsoft.Build.Evaluation
                 return [];
             }
 
-            var builder = ImmutableList.CreateBuilder<string>();
+            using var builder = new RefArrayBuilder<string>();
 
             foreach (string matchOnMetadataSplit in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedMatchOnMetadata))
             {

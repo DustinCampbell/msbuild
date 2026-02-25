@@ -16,7 +16,7 @@ namespace Microsoft.Build.Evaluation
     {
         private sealed class RemoveOperation : LazyItemOperation
         {
-            private readonly ImmutableList<string> _matchOnMetadata;
+            private readonly ImmutableArray<string> _matchOnMetadata;
             private MetadataTrie<P, I> _metadataSet;
 
             public RemoveOperation(
@@ -24,7 +24,7 @@ namespace Microsoft.Build.Evaluation
                 ItemSpec<P, I> itemSpec,
                 IReadOnlyDictionary<string, LazyItemList> referencedItemLists,
                 bool conditionResult,
-                ImmutableList<string> matchOnMetadata,
+                ImmutableArray<string> matchOnMetadata,
                 MatchOnMetadataOptions matchOnMetadataOptions,
                 LazyItemEvaluator<P, I, M, D> lazyEvaluator)
                 : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
