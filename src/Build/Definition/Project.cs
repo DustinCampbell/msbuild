@@ -3576,11 +3576,10 @@ namespace Microsoft.Build.Evaluation
             {
                 ErrorUtilities.VerifyThrow(_data.Expander.Metadata == null, "Should be null");
 
-                _data.Expander.Metadata = metadataTable;
-                string evaluatedValueEscaped = _data.Expander.ExpandIntoStringLeaveEscaped(unevaluatedValue, ExpanderOptions.ExpandAll, metadataLocation);
-                _data.Expander.Metadata = null;
-
-                return evaluatedValueEscaped;
+                using (_data.Expander.OpenMetadataScope(metadataTable))
+                {
+                    return _data.Expander.ExpandIntoStringLeaveEscaped(unevaluatedValue, ExpanderOptions.ExpandAll, metadataLocation);
+                }
             }
 
             /// <summary>

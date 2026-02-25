@@ -1355,43 +1355,38 @@ namespace Microsoft.Build.Evaluation
 
             // The expander should use the metadata from this item definition for further expansion, if any.
             // Otherwise, use a temporary, empty table.
-            if (itemDefinition != null)
-            {
-                _expander.Metadata = itemDefinition;
-            }
-            else
-            {
-                _expander.Metadata = new EvaluatorMetadataTable(itemDefinitionElement.ItemType);
-            }
+            IMetadataTable metadataTable = itemDefinition != null
+                ? itemDefinition
+                : new EvaluatorMetadataTable(itemDefinitionElement.ItemType);
 
-            if (EvaluateCondition(itemDefinitionElement, ExpanderOptions.ExpandPropertiesAndMetadata, ParserOptions.AllowPropertiesAndCustomMetadata))
+            using (var scope = _expander.OpenMetadataScope(metadataTable))
             {
-                if (itemDefinition == null)
+                if (EvaluateCondition(itemDefinitionElement, ExpanderOptions.ExpandPropertiesAndMetadata, ParserOptions.AllowPropertiesAndCustomMetadata))
                 {
-                    itemDefinition = _data.AddItemDefinition(itemDefinitionElement.ItemType);
-                    _expander.Metadata = itemDefinition;
-                }
-
-                foreach (ProjectMetadataElement metadataElement in itemDefinitionElement.Metadata)
-                {
-                    if (EvaluateCondition(metadataElement, ExpanderOptions.ExpandPropertiesAndMetadata, ParserOptions.AllowPropertiesAndCustomMetadata))
+                    if (itemDefinition == null)
                     {
-                        string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, ExpanderOptions.ExpandPropertiesAndCustomMetadata, itemDefinitionElement.Location);
+                        itemDefinition = _data.AddItemDefinition(itemDefinitionElement.ItemType);
+                        scope.Update(itemDefinition);
+                    }
 
-                        M predecessor = itemDefinition.GetMetadata(metadataElement.Name);
-
-                        M metadatum = itemDefinition.SetMetadata(metadataElement, evaluatedValue, predecessor);
-
-                        if (_data.ShouldEvaluateForDesignTime)
+                    foreach (ProjectMetadataElement metadataElement in itemDefinitionElement.Metadata)
+                    {
+                        if (EvaluateCondition(metadataElement, ExpanderOptions.ExpandPropertiesAndMetadata, ParserOptions.AllowPropertiesAndCustomMetadata))
                         {
-                            _data.AddToAllEvaluatedItemDefinitionMetadataList(metadatum);
+                            string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, ExpanderOptions.ExpandPropertiesAndCustomMetadata, itemDefinitionElement.Location);
+
+                            M predecessor = itemDefinition.GetMetadata(metadataElement.Name);
+
+                            M metadatum = itemDefinition.SetMetadata(metadataElement, evaluatedValue, predecessor);
+
+                            if (_data.ShouldEvaluateForDesignTime)
+                            {
+                                _data.AddToAllEvaluatedItemDefinitionMetadataList(metadatum);
+                            }
                         }
                     }
                 }
             }
-
-            // End of valid area for metadata expansion.
-            _expander.Metadata = null;
         }
 
         /// <summary>

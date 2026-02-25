@@ -160,52 +160,50 @@ namespace Microsoft.Build.BackEnd
             ProjectItemDefinitionInstance itemDefinition;
             Project.ItemDefinitions.TryGetValue(child.ItemType, out itemDefinition);
 
+            List<ProjectItemInstance> itemsToAdd = null;
+
             // The NestedMetadataTable will handle the aggregation of the different metadata collections
-            NestedMetadataTable metadataTable = new NestedMetadataTable(child.ItemType, bucket.Expander.Metadata, itemDefinition);
-            IMetadataTable originalMetadataTable = bucket.Expander.Metadata;
-
-            bucket.Expander.Metadata = metadataTable;
-
-            // Second, expand the item include and exclude, and filter existing metadata as appropriate.
-            List<ProjectItemInstance> itemsToAdd = ExpandItemIntoItems(child, bucket.Expander, keepMetadata, removeMetadata, loggingContext);
-
-            // Third, expand the metadata.
-            foreach (ProjectItemGroupTaskMetadataInstance metadataInstance in child.Metadata)
+            var metadataTable = new NestedMetadataTable(child.ItemType, bucket.Expander.Metadata, itemDefinition);
+            using (bucket.Expander.OpenMetadataScope(metadataTable))
             {
-                bool condition = ConditionEvaluator.EvaluateCondition(
-                    metadataInstance.Condition,
-                    ParserOptions.AllowAll,
-                    bucket.Expander,
-                    ExpanderOptions.ExpandAll,
-                    Project.Directory,
-                    metadataInstance.Location,
-                    FileSystems.Default,
-                    loggingContext: loggingContext);
+                // Second, expand the item include and exclude, and filter existing metadata as appropriate.
+                itemsToAdd = ExpandItemIntoItems(child, bucket.Expander, keepMetadata, removeMetadata, loggingContext);
 
-                if (condition)
+                // Third, expand the metadata.
+                foreach (ProjectItemGroupTaskMetadataInstance metadataInstance in child.Metadata)
                 {
-                    ExpanderOptions expanderOptions = ExpanderOptions.ExpandAll;
-                    if (// If multiple buckets were expanded - we do not want to repeat same error for same metadatum on a same line
-                        bucket.BucketSequenceNumber == 0 &&
-                        // Referring to unqualified metadata of other item (transform) is fine.
-                        !child.Include.Contains("@("))
+                    bool condition = ConditionEvaluator.EvaluateCondition(
+                        metadataInstance.Condition,
+                        ParserOptions.AllowAll,
+                        bucket.Expander,
+                        ExpanderOptions.ExpandAll,
+                        Project.Directory,
+                        metadataInstance.Location,
+                        FileSystems.Default,
+                        loggingContext: loggingContext);
+
+                    if (condition)
                     {
-                        expanderOptions |= ExpanderOptions.LogOnItemMetadataSelfReference;
+                        ExpanderOptions expanderOptions = ExpanderOptions.ExpandAll;
+                        if (// If multiple buckets were expanded - we do not want to repeat same error for same metadatum on a same line
+                            bucket.BucketSequenceNumber == 0 &&
+                            // Referring to unqualified metadata of other item (transform) is fine.
+                            !child.Include.Contains("@("))
+                        {
+                            expanderOptions |= ExpanderOptions.LogOnItemMetadataSelfReference;
+                        }
+
+                        string evaluatedValue = bucket.Expander.ExpandIntoStringLeaveEscaped(metadataInstance.Value, expanderOptions, metadataInstance.Location);
+
+                        // This both stores the metadata so we can add it to all the items we just created later, and
+                        // exposes this metadata to further metadata evaluations in subsequent loop iterations.
+                        metadataTable.SetValue(metadataInstance.Name, evaluatedValue);
                     }
-
-                    string evaluatedValue = bucket.Expander.ExpandIntoStringLeaveEscaped(metadataInstance.Value, expanderOptions, metadataInstance.Location);
-
-                    // This both stores the metadata so we can add it to all the items we just created later, and
-                    // exposes this metadata to further metadata evaluations in subsequent loop iterations.
-                    metadataTable.SetValue(metadataInstance.Name, evaluatedValue);
                 }
+
+                // Finally, copy the added metadata onto the new items.  The set call is additive.
+                ProjectItemInstance.SetMetadata(metadataTable.AddedMetadata, itemsToAdd); // Add in one operation for potential copy-on-write
             }
-
-            // Finally, copy the added metadata onto the new items.  The set call is additive.
-            ProjectItemInstance.SetMetadata(metadataTable.AddedMetadata, itemsToAdd); // Add in one operation for potential copy-on-write
-
-            // Restore the original metadata table.
-            bucket.Expander.Metadata = originalMetadataTable;
 
             // Determine if we should NOT add duplicate entries
             bool keepDuplicates = ConditionEvaluator.EvaluateCondition(
@@ -511,7 +509,7 @@ namespace Microsoft.Build.BackEnd
                         }
                     }
 
-                    foreach(string metadataName in metadataToRemove)
+                    foreach (string metadataName in metadataToRemove)
                     {
                         item.RemoveMetadata(metadataName);
                     }

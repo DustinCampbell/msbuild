@@ -150,9 +150,12 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            protected void DecorateItemsWithMetadata(IEnumerable<ItemBatchingContext> itemBatchingContexts, ImmutableArray<ProjectMetadataElement> metadata, bool? needToExpandMetadata = null)
+            protected void DecorateItemsWithMetadata(
+                IEnumerable<ItemBatchingContext> itemBatchingContexts,
+                ImmutableArray<ProjectMetadataElement> metadataElements,
+                bool? needToExpandMetadata = null)
             {
-                if (metadata.Length > 0)
+                if (metadataElements.Length > 0)
                 {
                     ////////////////////////////////////////////////////
                     // UNDONE: Implement batching here.
@@ -183,29 +186,27 @@ namespace Microsoft.Build.Evaluation
                     // Prior to lazy evaluation ExpanderOptions.ExpandAll was used.
                     const ExpanderOptions metadataExpansionOptions = ExpanderOptions.ExpandAll;
 
-                    needToExpandMetadata ??= NeedToExpandMetadataForEachItem(metadata, out _);
+                    needToExpandMetadata ??= NeedToExpandMetadataForEachItem(metadataElements, out _);
 
                     if (needToExpandMetadata.Value)
                     {
                         foreach (var itemContext in itemBatchingContexts)
                         {
-                            _expander.Metadata = itemContext.GetMetadataTable();
-
-                            foreach (var metadataElement in metadata)
+                            using (_expander.OpenMetadataScope(itemContext.GetMetadataTable()))
                             {
-                                if (!EvaluateCondition(metadataElement.Condition, metadataElement, metadataExpansionOptions, ParserOptions.AllowAll, _expander, _lazyEvaluator))
+                                foreach (var metadataElement in metadataElements)
                                 {
-                                    continue;
+                                    if (!EvaluateCondition(metadataElement.Condition, metadataElement, metadataExpansionOptions, ParserOptions.AllowAll, _expander, _lazyEvaluator))
+                                    {
+                                        continue;
+                                    }
+
+                                    string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, metadataExpansionOptions, metadataElement.Location);
+
+                                    itemContext.OperationItem.SetMetadata(metadataElement, FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath));
                                 }
-
-                                string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, metadataExpansionOptions, metadataElement.Location);
-
-                                itemContext.OperationItem.SetMetadata(metadataElement, FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath));
                             }
                         }
-
-                        // End of legal area for metadata expressions.
-                        _expander.Metadata = null;
                     }
                     // End of pseudo batching
                     ////////////////////////////////////////////////////
@@ -214,46 +215,45 @@ namespace Microsoft.Build.Evaluation
                     {
                         // Metadata expressions are allowed here.
                         // Temporarily gather and expand these in a table so they can reference other metadata elements above.
-                        EvaluatorMetadataTable metadataTable = new EvaluatorMetadataTable(_itemType, capacity: metadata.Length);
-                        _expander.Metadata = metadataTable;
+                        var metadataTable = new EvaluatorMetadataTable(_itemType, capacity: metadataElements.Length);
 
-                        // Also keep a list of everything so we can get the predecessor objects correct.
-                        List<(ProjectMetadataElement, string)> metadataList = new(metadata.Length);
-
-                        foreach (var metadataElement in metadata)
+                        using (_expander.OpenMetadataScope(metadataTable))
                         {
-                            // Because of the checking above, it should be safe to expand metadata in conditions; the condition
-                            // will be true for either all the items or none
-                            if (
-                                !EvaluateCondition(
-                                    metadataElement.Condition,
-                                    metadataElement,
-                                    metadataExpansionOptions,
-                                    ParserOptions.AllowAll,
-                                    _expander,
-                                    _lazyEvaluator))
+                            // Also keep a list of everything so we can get the predecessor objects correct.
+                            List<(ProjectMetadataElement, string)> metadataList = new(metadataElements.Length);
+
+                            foreach (var metadataElement in metadataElements)
                             {
-                                continue;
+                                // Because of the checking above, it should be safe to expand metadata in conditions; the condition
+                                // will be true for either all the items or none
+                                if (
+                                    !EvaluateCondition(
+                                        metadataElement.Condition,
+                                        metadataElement,
+                                        metadataExpansionOptions,
+                                        ParserOptions.AllowAll,
+                                        _expander,
+                                        _lazyEvaluator))
+                                {
+                                    continue;
+                                }
+
+                                string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, metadataExpansionOptions, metadataElement.Location);
+                                evaluatedValue = FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath);
+
+                                metadataTable.SetValue(metadataElement, evaluatedValue);
+                                metadataList.Add((metadataElement, evaluatedValue));
                             }
 
-                            string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, metadataExpansionOptions, metadataElement.Location);
-                            evaluatedValue = FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath);
+                            // Apply those metadata to each item
+                            // Note that several items could share the same metadata objects
 
-                            metadataTable.SetValue(metadataElement, evaluatedValue);
-                            metadataList.Add((metadataElement, evaluatedValue));
+                            // Set all the items at once to make a potential copy-on-write optimization possible.
+                            // This is valuable in the case where one item element evaluates to
+                            // many items (either by semicolon or wildcards)
+                            // and that item also has the same piece/s of metadata for each item.
+                            _itemFactory.SetMetadata(metadataList, itemBatchingContexts.Select(i => i.OperationItem));
                         }
-
-                        // Apply those metadata to each item
-                        // Note that several items could share the same metadata objects
-
-                        // Set all the items at once to make a potential copy-on-write optimization possible.
-                        // This is valuable in the case where one item element evaluates to
-                        // many items (either by semicolon or wildcards)
-                        // and that item also has the same piece/s of metadata for each item.
-                        _itemFactory.SetMetadata(metadataList, itemBatchingContexts.Select(i => i.OperationItem));
-
-                        // End of legal area for metadata expressions.
-                        _expander.Metadata = null;
                     }
                 }
             }
