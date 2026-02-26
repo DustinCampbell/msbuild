@@ -46,7 +46,7 @@ namespace Microsoft.Build.Evaluation
 
             private delegate MatchResult ItemSpecMatchesItem(ItemSpec<P, I> itemSpec, I itemToMatch);
 
-            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobSet globsToIgnore)
             {
                 if (!_conditionResult)
                 {

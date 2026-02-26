@@ -48,7 +48,7 @@ namespace Microsoft.Build.Evaluation
             /// <remarks>
             /// This override exists to apply the removing-everything short-circuit and to avoid creating a redundant list of items to remove.
             /// </remarks>
-            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobSet globsToIgnore)
             {
                 if (!_conditionResult)
                 {
@@ -99,24 +99,24 @@ namespace Microsoft.Build.Evaluation
                 return _metadataSet.Contains(_matchOnMetadata.Select(m => item.GetMetadataValue(m)));
             }
 
-            public ImmutableHashSet<string>.Builder GetRemovedGlobs()
+            public HashSet<string> GetRemovedGlobs()
             {
-                var builder = ImmutableHashSet.CreateBuilder<string>();
+                var globs = new HashSet<string>();
 
                 if (!_conditionResult)
                 {
-                    return builder;
+                    return globs;
                 }
 
                 foreach (var fragment in _itemSpec.Fragments)
                 {
                     if (fragment is GlobFragment glob)
                     {
-                        builder.Add(glob.TextFragment);
+                        globs.Add(glob.TextFragment);
                     }
                 }
 
-                return builder;
+                return globs;
             }
         }
     }

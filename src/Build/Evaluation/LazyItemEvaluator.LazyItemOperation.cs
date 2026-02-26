@@ -56,7 +56,7 @@ namespace Microsoft.Build.Evaluation
 
             protected FileMatcher FileMatcher => _lazyEvaluator.FileMatcher;
 
-            public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            public void Apply(OrderedItemDataCollection.Builder listBuilder, GlobSet globsToIgnore)
             {
                 MSBuildEventSource.Log.ApplyLazyItemOperationsStart(_itemElement.ItemType);
 
@@ -68,7 +68,7 @@ namespace Microsoft.Build.Evaluation
                 MSBuildEventSource.Log.ApplyLazyItemOperationsStop(_itemElement.ItemType);
             }
 
-            protected abstract void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore);
+            protected abstract void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobSet globsToIgnore);
 
             [DebuggerDisplay(@"{DebugString()}")]
             protected readonly struct ItemBatchingContext

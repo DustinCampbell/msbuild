@@ -166,7 +166,7 @@ namespace Microsoft.Build.Evaluation
         private class MemoizedOperation : IItemOperation
         {
             public LazyItemOperation Operation { get; }
-            private ImmutableHashSet<string> _cachedGlobsToIgnore;
+            private GlobSet _cachedGlobsToIgnore;
             private OrderedItemDataCollection _cachedItems;
 
             private bool _isReferenced;
@@ -179,7 +179,7 @@ namespace Microsoft.Build.Evaluation
                 Operation = operation;
             }
 
-            public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            public void Apply(OrderedItemDataCollection.Builder listBuilder, GlobSet globsToIgnore)
             {
 #if DEBUG
                 CheckInvariant();
@@ -215,7 +215,7 @@ namespace Microsoft.Build.Evaluation
             }
 #endif
 
-            public bool TryGetFromCache(ISet<string> globsToIgnore, out OrderedItemDataCollection items)
+            public bool TryGetFromCache(GlobSet globsToIgnore, out OrderedItemDataCollection items)
             {
                 if (_cachedItems != null && ReferenceEquals(globsToIgnore, _cachedGlobsToIgnore))
                 {
@@ -247,7 +247,7 @@ namespace Microsoft.Build.Evaluation
                 _memoizedOperation = new MemoizedOperation(operation);
             }
 
-            public I[] GetMatchedItems(ImmutableHashSet<string> globsToIgnore)
+            public I[] GetMatchedItems(GlobSet globsToIgnore)
             {
                 OrderedItemDataCollection.Builder items = GetItemData(globsToIgnore);
                 using var builder = new RefArrayBuilder<I>(initialCapacity: items.Count);
@@ -263,7 +263,7 @@ namespace Microsoft.Build.Evaluation
                 return builder.AsSpan().ToArray();
             }
 
-            public OrderedItemDataCollection.Builder GetItemData(ImmutableHashSet<string> globsToIgnore)
+            public OrderedItemDataCollection.Builder GetItemData(GlobSet globsToIgnore)
             {
                 // Cache results only on the LazyItemOperations whose results are required by an external caller (via GetItems). This means:
                 //   - Callers of GetItems who have announced ahead of time that they would reference an operation (via MarkAsReferenced())
@@ -309,7 +309,7 @@ namespace Microsoft.Build.Evaluation
             /// is to optimize the case in which as series of UpdateOperations, each of which affects a single ItemSpec, are applied to all
             /// items in the list, leading to a quadratic-time operation.
             /// </summary>
-            private static OrderedItemDataCollection.Builder ComputeItems(LazyItemList lazyItemList, ImmutableHashSet<string> globsToIgnore)
+            private static OrderedItemDataCollection.Builder ComputeItems(LazyItemList lazyItemList, GlobSet globsToIgnore)
             {
                 // Stack of operations up to the first one that's cached (exclusive)
                 Stack<LazyItemList> itemListStack = new Stack<LazyItemList>();
@@ -317,7 +317,7 @@ namespace Microsoft.Build.Evaluation
                 OrderedItemDataCollection.Builder items = null;
 
                 // Keep a separate stack of lists of globs to ignore that only gets modified for Remove operations
-                Stack<ImmutableHashSet<string>> globsToIgnoreStack = null;
+                Stack<GlobSet> globsToIgnoreStack = null;
 
                 for (var currentList = lazyItemList; currentList != null; currentList = currentList._previous)
                 {
@@ -335,15 +335,15 @@ namespace Microsoft.Build.Evaluation
                     //  to a list of globs to ignore in previous operations
                     if (currentList._memoizedOperation.Operation is RemoveOperation removeOperation)
                     {
-                        globsToIgnoreStack ??= new Stack<ImmutableHashSet<string>>();
+                        globsToIgnoreStack ??= new Stack<GlobSet>();
 
                         var globsToIgnoreForPreviousOperations = removeOperation.GetRemovedGlobs();
-                        foreach (var globToRemove in globsToIgnoreFromFutureOperations)
+                        foreach (var globToRemove in globsToIgnoreFromFutureOperations.Globs)
                         {
                             globsToIgnoreForPreviousOperations.Add(globToRemove);
                         }
 
-                        globsToIgnoreStack.Push(globsToIgnoreForPreviousOperations.ToImmutable());
+                        globsToIgnoreStack.Push(GlobSet.Create(globsToIgnoreForPreviousOperations));
                     }
 
                     itemListStack.Push(currentList);
@@ -354,7 +354,7 @@ namespace Microsoft.Build.Evaluation
                     items = OrderedItemDataCollection.CreateBuilder();
                 }
 
-                ImmutableHashSet<string> currentGlobsToIgnore = globsToIgnoreStack == null ? globsToIgnore : globsToIgnoreStack.Peek();
+                GlobSet currentGlobsToIgnore = globsToIgnoreStack == null ? globsToIgnore : globsToIgnoreStack.Peek();
 
                 Dictionary<string, UpdateOperation> itemsWithNoWildcards = new Dictionary<string, UpdateOperation>(StringComparer.OrdinalIgnoreCase);
                 bool addedToBatch = false;
@@ -453,7 +453,7 @@ namespace Microsoft.Build.Evaluation
 
         public IEnumerable<ItemData> GetAllItemsDeferred()
         {
-            return _itemLists.Values.SelectMany(itemList => itemList.GetItemData(ImmutableHashSet<string>.Empty))
+            return _itemLists.Values.SelectMany(itemList => itemList.GetItemData(GlobSet.Empty))
                                     .OrderBy(itemData => itemData.ElementOrder);
         }
 

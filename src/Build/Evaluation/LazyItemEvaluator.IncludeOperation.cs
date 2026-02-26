@@ -41,7 +41,7 @@ namespace Microsoft.Build.Evaluation
                 _metadata = metadata.IsDefault ? [] : metadata;
             }
 
-            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobSet globsToIgnore)
             {
                 var items = new RefArrayBuilder<I>(initialCapacity: _itemSpec.Fragments.Count);
                 try
@@ -60,7 +60,7 @@ namespace Microsoft.Build.Evaluation
             ///  Produce the items to operate on. For example, create new ones or select existing ones.
             /// </summary>
             [SuppressMessage("Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "_lazyEvaluator._evaluationProfiler has own dipose logic.")]
-            private void CollectItems(ImmutableHashSet<string> globsToIgnore, ref RefArrayBuilder<I> collector)
+            private void CollectItems(GlobSet globsToIgnore, ref RefArrayBuilder<I> collector)
             {
                 using var excludePatterns = new RefArrayBuilder<string>();
 
@@ -201,28 +201,23 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            private static ImmutableHashSet<string> BuildExcludePatternsForGlobs(
+            private static HashSet<string> BuildExcludePatternsForGlobs(
                 ReadOnlySpan<string> excludePatterns,
-                ImmutableHashSet<string> globsToIgnore)
+                GlobSet globsToIgnore)
             {
-                if (excludePatterns.IsEmpty)
-                {
-                    return globsToIgnore;
-                }
-
-                var builder = ImmutableHashSet.CreateBuilder<string>();
+                var result = new HashSet<string>(excludePatterns.Length + globsToIgnore.Globs.Length);
 
                 foreach (var excludePattern in excludePatterns)
                 {
-                    builder.Add(excludePattern);
+                    result.Add(excludePattern);
                 }
 
-                if (!globsToIgnore.IsEmpty)
+                foreach (var glob in globsToIgnore.Globs)
                 {
-                    builder.UnionWith(globsToIgnore);
+                    result.Add(glob);
                 }
 
-                return builder.ToImmutable();
+                return result;
             }
 
             // todo Refactoring: MutateItems should clone each item before mutation. See https://github.com/dotnet/msbuild/issues/2328
