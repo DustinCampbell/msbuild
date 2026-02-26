@@ -17,7 +17,7 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private abstract class LazyItemOperation : IItemOperation
+        private abstract class LazyItemOperation
         {
             private readonly string _itemType;
 

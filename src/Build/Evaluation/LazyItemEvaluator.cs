@@ -163,7 +163,7 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private class MemoizedOperation : IItemOperation
+        private sealed class MemoizedOperation
         {
             public LazyItemOperation Operation { get; }
             private GlobSet _cachedGlobsToIgnore;
