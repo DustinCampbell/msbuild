@@ -81,8 +81,35 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
 
+                // Partition exclude patterns into literal (no wildcards) and glob (has wildcards).
+                // Literal excludes use a HashSet for O(1) per-item lookups instead of O(E) linear scans,
+                // reducing the overall complexity from O(N*E) to O(N+E) for the common all-literal case.
+                HashSet<string>? literalExcludeSet = null;
+                using var globExcludePatterns = new RefArrayBuilder<string>();
+
+                if (excludePatterns.Count > 0)
+                {
+                    foreach (string pattern in excludePatterns.AsSpan())
+                    {
+                        if (EngineFileUtilities.FilespecHasWildcards(pattern))
+                        {
+                            globExcludePatterns.Add(pattern);
+                        }
+                        else
+                        {
+                            literalExcludeSet ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            string unescaped = EscapingUtilities.UnescapeAll(pattern);
+                            literalExcludeSet.Add(FileUtilities.NormalizePathForComparisonNoThrow(unescaped, _rootDirectory));
+                        }
+                    }
+                }
+
+                bool hasAnyExcludes = literalExcludeSet is { Count: > 0 } || globExcludePatterns.Count > 0;
+                FileSpecMatcherTester?[]? globMatchers = globExcludePatterns.Count > 0
+                    ? new FileSpecMatcherTester?[globExcludePatterns.Count]
+                    : null;
+
                 ISet<string>? excludePatternsForGlobs = null;
-                FileSpecMatcherTester?[]? matchers = null;
 
                 foreach (var fragment in _itemSpec.Fragments)
                 {
@@ -98,13 +125,11 @@ namespace Microsoft.Build.Evaluation
                             isTransformExpression: out _,
                             elementLocation: _itemElement.IncludeLocation);
 
-                        if (excludePatterns.Count > 0)
+                        if (hasAnyExcludes)
                         {
-                            matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
-
                             foreach (var item in itemsFromExpression)
                             {
-                                if (!ExcludeTester(_rootDirectory, excludePatterns.AsSpan(), matchers, item.EvaluatedInclude))
+                                if (!IsExcluded(item.EvaluatedInclude, _rootDirectory, literalExcludeSet, globExcludePatterns.AsSpan(), globMatchers))
                                 {
                                     collector.Add(item);
                                 }
@@ -121,9 +146,8 @@ namespace Microsoft.Build.Evaluation
                     else if (fragment is ValueFragment valueFragment)
                     {
                         string value = valueFragment.TextFragment;
-                        matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
 
-                        if (excludePatterns.Count == 0 || !ExcludeTester(_rootDirectory, excludePatterns.AsSpan(), matchers, EscapingUtilities.UnescapeAll(value)))
+                        if (!hasAnyExcludes || !IsExcluded(EscapingUtilities.UnescapeAll(value), _rootDirectory, literalExcludeSet, globExcludePatterns.AsSpan(), globMatchers))
                         {
                             collector.Add(_itemFactory.CreateItem(value, value, _itemElement.ContainingProject.FullPath));
                         }
@@ -137,6 +161,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             string glob = globFragment.TextFragment;
 
+                            // The glob expansion engine needs all exclude patterns (literal + glob) for file enumeration.
                             excludePatternsForGlobs ??= BuildExcludePatternsForGlobs(excludePatterns.AsSpan(), globsToIgnore);
 
                             string[] includeSplitFilesEscaped;
@@ -174,30 +199,46 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
 
-                static bool ExcludeTester(string? directory, ReadOnlySpan<string> excludePatterns, FileSpecMatcherTester?[] matchers, string item)
+                static bool IsExcluded(
+                    string itemToCheck,
+                    string? directory,
+                    HashSet<string>? literalExcludeSet,
+                    ReadOnlySpan<string> globExcludePatterns,
+                    FileSpecMatcherTester?[]? globMatchers)
                 {
-                    if (excludePatterns.IsEmpty)
-                    {
-                        return false;
-                    }
+                    // Tests whether an item should be excluded. Literal excludes are checked via
+                    // O(1) HashSet lookup; glob excludes fall back to per-pattern matching.
+                    // Each item's path is normalized at most once for the literal check.
 
-                    bool found = false;
-                    for (int i = 0; i < matchers.Length; ++i)
+                    // O(1) check against pre-normalized literal excludes.
+                    if (literalExcludeSet is not null)
                     {
-                        if (matchers[i] is not FileSpecMatcherTester matcher)
+                        string normalized = FileUtilities.NormalizePathForComparisonNoThrow(itemToCheck, directory);
+                        if (literalExcludeSet.Contains(normalized))
                         {
-                            matcher = FileSpecMatcherTester.Parse(directory, excludePatterns[i]);
-                            matchers[i] = matcher;
-                        }
-
-                        if (matcher.IsMatch(item))
-                        {
-                            found = true;
-                            break;
+                            return true;
                         }
                     }
 
-                    return found;
+                    // O(G) check against glob excludes where G is the number of glob patterns (typically small).
+                    if (globMatchers is not null)
+                    {
+                        for (int i = 0; i < globMatchers.Length; i++)
+                        {
+                            if (globMatchers[i] is not FileSpecMatcherTester matcher)
+                            {
+                                matcher = FileSpecMatcherTester.Parse(directory, globExcludePatterns[i]);
+                                globMatchers[i] = matcher;
+                            }
+
+                            if (matcher.IsMatch(itemToCheck))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
                 }
             }
 
