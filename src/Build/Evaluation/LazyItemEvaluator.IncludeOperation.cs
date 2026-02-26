@@ -16,7 +16,7 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private sealed class IncludeOperation : LazyItemOperation
+        private sealed class IncludeOperation : ItemOperation
         {
             private readonly int _elementOrder;
             private readonly string? _rootDirectory;
@@ -26,7 +26,7 @@ namespace Microsoft.Build.Evaluation
             public IncludeOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                IReadOnlyDictionary<string, LazyItemList> referencedItemLists,
+                IReadOnlyDictionary<string, ItemListRef> referencedItemLists,
                 bool conditionResult,
                 int elementOrder,
                 string rootDirectory,

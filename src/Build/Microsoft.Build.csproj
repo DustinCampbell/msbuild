@@ -197,7 +197,8 @@
     <Compile Include="Evaluation\Expander.MetadataScope.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\LazyItemEvaluator.GlobSet.cs" />
-    <Compile Include="Evaluation\LazyItemEvaluator.LazyItemList.cs" />
+    <Compile Include="Evaluation\LazyItemEvaluator.ItemListRef.cs" />
+    <Compile Include="Evaluation\LazyItemEvaluator.ItemOperationList.cs" />
     <Compile Include="Evaluation\LazyItemEvaluator.ReferencedItemListsBuilder.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
@@ -585,7 +586,7 @@
     <Compile Include="Instance\TaskFactoryWrapper.cs" />
     <Compile Include="Instance\TaskRegistry.cs" />
     <!-- ######################## -->
-    <Compile Include="Evaluation\LazyItemEvaluator.LazyItemOperation.cs" />
+    <Compile Include="Evaluation\LazyItemEvaluator.ItemOperation.cs" />
     <Compile Include="Logging\BaseConsoleLogger.cs" />
     <Compile Include="Logging\BinaryLogger\BinaryLogger.cs" />
     <Compile Include="Logging\BinaryLogger\BinaryLogRecordKind.cs" />

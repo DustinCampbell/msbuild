@@ -15,7 +15,7 @@ namespace Microsoft.Build.Evaluation
         /// emptiness checks, and reference-equality caching.
         /// </summary>
         /// <remarks>
-        /// Being a reference type is critical: <see cref="LazyItemList.TryGetFromCache"/> uses
+        /// Being a reference type is critical: <see cref="ItemOperationList.TryGetFromCache"/> uses
         /// <see cref="object.ReferenceEquals"/> for its cache identity check.
         /// </remarks>
         private sealed class GlobSet

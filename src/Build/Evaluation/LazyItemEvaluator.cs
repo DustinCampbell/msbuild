@@ -33,9 +33,9 @@ namespace Microsoft.Build.Evaluation
         private readonly LoggingContext _loggingContext;
         private readonly EvaluationProfiler _evaluationProfiler;
 
-        private readonly Dictionary<string, LazyItemList> _itemLists = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
-            new Dictionary<string, LazyItemList>() :
-            new Dictionary<string, LazyItemList>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, ItemOperationList> _itemLists = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
+            new Dictionary<string, ItemOperationList>() :
+            new Dictionary<string, ItemOperationList>(StringComparer.OrdinalIgnoreCase);
 
         private int _nextElementOrder = 0;
 
@@ -162,13 +162,13 @@ namespace Microsoft.Build.Evaluation
 
         public IEnumerable<ItemData> GetAllItemsDeferred()
         {
-            return _itemLists.Values.SelectMany(itemList => itemList.GetItemData(GlobSet.Empty))
+            return _itemLists.Values.SelectMany(list => list.GetItemData(list.Count, GlobSet.Empty))
                                     .OrderBy(itemData => itemData.ElementOrder);
         }
 
         public void ProcessItemElement(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            LazyItemOperation operation = null;
+            ItemOperation operation = null;
 
             if (itemElement.IncludeLocation != null)
             {
@@ -187,9 +187,13 @@ namespace Microsoft.Build.Evaluation
                 ErrorUtilities.ThrowInternalErrorUnreachable();
             }
 
-            _itemLists.TryGetValue(itemElement.ItemType, out LazyItemList previousItemList);
-            LazyItemList newList = new LazyItemList(previousItemList, operation);
-            _itemLists[itemElement.ItemType] = newList;
+            if (!_itemLists.TryGetValue(itemElement.ItemType, out ItemOperationList list))
+            {
+                list = new ItemOperationList();
+                _itemLists[itemElement.ItemType] = list;
+            }
+
+            list.Add(operation);
         }
 
 #nullable enable

@@ -20,12 +20,21 @@ internal partial class LazyItemEvaluator<P, I, M, D>
     private sealed class EvaluatorData : IEvaluatorData<P, I, M, D>
     {
         private readonly IEvaluatorData<P, I, M, D> _wrappedData;
-        private readonly IReadOnlyDictionary<string, LazyItemList> _itemsByType;
+        private readonly Dictionary<string, ItemOperationList> _liveItemsByType;
+        private readonly IReadOnlyDictionary<string, ItemListRef> _snapshotItemsByType;
 
-        public EvaluatorData(IEvaluatorData<P, I, M, D> wrappedData, IReadOnlyDictionary<string, LazyItemList> itemsByType)
+        /// <summary>Live items — used by the evaluator's own condition expander.</summary>
+        public EvaluatorData(IEvaluatorData<P, I, M, D> wrappedData, Dictionary<string, ItemOperationList> itemsByType)
         {
             _wrappedData = wrappedData;
-            _itemsByType = itemsByType;
+            _liveItemsByType = itemsByType;
+        }
+
+        /// <summary>Snapshot items — used by each operation's expander.</summary>
+        public EvaluatorData(IEvaluatorData<P, I, M, D> wrappedData, IReadOnlyDictionary<string, ItemListRef> itemsByType)
+        {
+            _wrappedData = wrappedData;
+            _snapshotItemsByType = itemsByType;
         }
 
         public IItemDictionary<I> Items => throw new NotImplementedException();
@@ -33,9 +42,18 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         public List<ProjectItemElement> EvaluatedItemElements => throw new NotImplementedException();
 
         public ICollection<I> GetItems(string itemType)
-            => _itemsByType.TryGetValue(itemType, out LazyItemList items)
-                ? items.GetMatchedItems(GlobSet.Empty)
+        {
+            if (_liveItemsByType != null)
+            {
+                return _liveItemsByType.TryGetValue(itemType, out ItemOperationList list)
+                    ? list.GetMatchedItems(list.Count, GlobSet.Empty)
+                    : Array.Empty<I>();
+            }
+
+            return _snapshotItemsByType.TryGetValue(itemType, out ItemListRef itemRef)
+                ? itemRef.GetMatchedItems(GlobSet.Empty)
                 : Array.Empty<I>();
+        }
 
         public IDictionary<string, List<TargetSpecification>> AfterTargets
         {

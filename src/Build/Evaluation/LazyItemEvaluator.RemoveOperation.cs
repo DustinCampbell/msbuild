@@ -14,7 +14,7 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private sealed class RemoveOperation : LazyItemOperation
+        private sealed class RemoveOperation : ItemOperation
         {
             private readonly ImmutableArray<string> _matchOnMetadata;
             private MetadataTrie<P, I> _metadataSet;
@@ -22,7 +22,7 @@ namespace Microsoft.Build.Evaluation
             public RemoveOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                IReadOnlyDictionary<string, LazyItemList> referencedItemLists,
+                IReadOnlyDictionary<string, ItemListRef> referencedItemLists,
                 bool conditionResult,
                 ImmutableArray<string> matchOnMetadata,
                 MatchOnMetadataOptions matchOnMetadataOptions,

@@ -20,12 +20,12 @@ internal partial class LazyItemEvaluator<P, I, M, D>
     private ref struct ReferencedItemListsBuilder
     {
         private readonly LazyItemEvaluator<P, I, M, D> _lazyEvaluator;
-        private Dictionary<string, LazyItemList>? _overflow;
+        private Dictionary<string, ItemListRef>? _overflow;
 
         private string? _key0;
-        private LazyItemList? _value0;
+        private ItemListRef _value0;
         private string? _key1;
-        private LazyItemList? _value1;
+        private ItemListRef _value1;
         private int _inlineCount;
 
         public ReferencedItemListsBuilder(LazyItemEvaluator<P, I, M, D> lazyEvaluator)
@@ -40,33 +40,33 @@ internal partial class LazyItemEvaluator<P, I, M, D>
 
         public void Add(string itemType)
         {
-            if (_lazyEvaluator._itemLists.TryGetValue(itemType, out LazyItemList? itemList))
+            if (_lazyEvaluator._itemLists.TryGetValue(itemType, out ItemOperationList? itemList))
             {
-                itemList.MarkAsReferenced();
-                AddEntry(itemType, itemList);
+                int count = itemList.Count;
+                itemList.MarkAsReferenced(count);
+                AddEntry(itemType, new ItemListRef(itemList, count));
             }
         }
 
-        private void AddEntry(string itemType, LazyItemList itemList)
+        private void AddEntry(string itemType, ItemListRef itemRef)
         {
             if (_overflow != null)
             {
-                _overflow[itemType] = itemList;
+                _overflow[itemType] = itemRef;
                 return;
             }
 
             var comparer = ItemNameComparer;
 
-            // Check for existing inline entries.
             if (_inlineCount > 0 && comparer.Equals(_key0, itemType))
             {
-                _value0 = itemList;
+                _value0 = itemRef;
                 return;
             }
 
             if (_inlineCount > 1 && comparer.Equals(_key1, itemType))
             {
-                _value1 = itemList;
+                _value1 = itemRef;
                 return;
             }
 
@@ -74,29 +74,28 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             {
                 case 0:
                     _key0 = itemType;
-                    _value0 = itemList;
+                    _value0 = itemRef;
                     _inlineCount = 1;
                     return;
 
                 case 1:
                     _key1 = itemType;
-                    _value1 = itemList;
+                    _value1 = itemRef;
                     _inlineCount = 2;
                     return;
 
                 default:
-                    // Spill to dictionary.
-                    _overflow = new Dictionary<string, LazyItemList>(capacity: 4, ItemNameComparer)
+                    _overflow = new Dictionary<string, ItemListRef>(capacity: 4, ItemNameComparer)
                     {
-                        [_key0!] = _value0!,
-                        [_key1!] = _value1!,
-                        [itemType] = itemList
+                        [_key0!] = _value0,
+                        [_key1!] = _value1,
+                        [itemType] = itemRef
                     };
 
                     _key0 = null;
-                    _value0 = null;
+                    _value0 = default;
                     _key1 = null;
-                    _value1 = null;
+                    _value1 = default;
                     return;
             }
         }
@@ -138,7 +137,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             }
         }
 
-        public IReadOnlyDictionary<string, LazyItemList> Build()
+        public IReadOnlyDictionary<string, ItemListRef> Build()
         {
             if (_overflow != null)
             {
@@ -147,20 +146,20 @@ internal partial class LazyItemEvaluator<P, I, M, D>
 
             return _inlineCount switch
             {
-                0 => FrozenDictionary<string, LazyItemList>.Empty,
-                1 => new SmallReadOnlyDictionary([_key0!], [_value0!], ItemNameComparer),
-                2 => new SmallReadOnlyDictionary([_key0!, _key1!], [_value0!, _value1!], ItemNameComparer),
+                0 => FrozenDictionary<string, ItemListRef>.Empty,
+                1 => new SmallReadOnlyDictionary([_key0!], [_value0], ItemNameComparer),
+                2 => new SmallReadOnlyDictionary([_key0!, _key1!], [_value0, _value1], ItemNameComparer),
                 _ => throw new InvalidOperationException(),
             };
         }
 
-        private sealed class SmallReadOnlyDictionary : IReadOnlyDictionary<string, LazyItemList>
+        private sealed class SmallReadOnlyDictionary : IReadOnlyDictionary<string, ItemListRef>
         {
             private readonly string[] _keys;
-            private readonly LazyItemList[] _values;
+            private readonly ItemListRef[] _values;
             private readonly StringComparer _comparer;
 
-            public SmallReadOnlyDictionary(string[] keys, LazyItemList[] values, StringComparer comparer)
+            public SmallReadOnlyDictionary(string[] keys, ItemListRef[] values, StringComparer comparer)
             {
                 _keys = keys;
                 _values = values;
@@ -169,16 +168,16 @@ internal partial class LazyItemEvaluator<P, I, M, D>
 
             public int Count => _keys.Length;
 
-            public LazyItemList this[string key] =>
+            public ItemListRef this[string key] =>
                 TryGetValue(key, out var value) ? value : throw new KeyNotFoundException();
 
             public IEnumerable<string> Keys => _keys;
 
-            public IEnumerable<LazyItemList> Values => _values;
+            public IEnumerable<ItemListRef> Values => _values;
 
             public bool ContainsKey(string key) => TryGetValue(key, out _);
 
-            public bool TryGetValue(string key, out LazyItemList value)
+            public bool TryGetValue(string key, out ItemListRef value)
             {
                 for (int i = 0; i < _keys.Length; i++)
                 {
@@ -189,15 +188,15 @@ internal partial class LazyItemEvaluator<P, I, M, D>
                     }
                 }
 
-                value = null!;
+                value = default;
                 return false;
             }
 
-            public IEnumerator<KeyValuePair<string, LazyItemList>> GetEnumerator()
+            public IEnumerator<KeyValuePair<string, ItemListRef>> GetEnumerator()
             {
                 for (int i = 0; i < _keys.Length; i++)
                 {
-                    yield return new KeyValuePair<string, LazyItemList>(_keys[i], _values[i]);
+                    yield return new KeyValuePair<string, ItemListRef>(_keys[i], _values[i]);
                 }
             }
 

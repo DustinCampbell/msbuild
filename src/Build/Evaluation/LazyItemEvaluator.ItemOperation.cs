@@ -17,7 +17,7 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private abstract class LazyItemOperation
+        private abstract class ItemOperation
         {
             private readonly string _itemType;
 
@@ -33,10 +33,10 @@ namespace Microsoft.Build.Evaluation
             protected readonly IItemFactory<I> _itemFactory;
             internal ItemSpec<P, I> Spec => _itemSpec;
 
-            protected LazyItemOperation(
+            protected ItemOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                IReadOnlyDictionary<string, LazyItemList> referencedItemLists,
+                IReadOnlyDictionary<string, ItemListRef> referencedItemLists,
                 bool conditionResult,
                 LazyItemEvaluator<P, I, M, D> lazyEvaluator)
             {
