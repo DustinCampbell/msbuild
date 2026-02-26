@@ -163,89 +163,29 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private sealed class MemoizedOperation
+        private sealed class LazyItemList
         {
-            public LazyItemOperation Operation { get; }
+            private readonly LazyItemList _previous;
+            private readonly LazyItemOperation _operation;
+
             private GlobSet _cachedGlobsToIgnore;
             private OrderedItemDataCollection _cachedItems;
-
             private bool _isReferenced;
 #if DEBUG
             private int _applyCalls;
 #endif
 
-            public MemoizedOperation(LazyItemOperation operation)
-            {
-                Operation = operation;
-            }
-
-            public void Apply(OrderedItemDataCollection.Builder listBuilder, GlobSet globsToIgnore)
-            {
-#if DEBUG
-                CheckInvariant();
-#endif
-
-                Operation.Apply(listBuilder, globsToIgnore);
-
-                // cache results if somebody is referencing this operation
-                if (_isReferenced)
-                {
-                    _cachedGlobsToIgnore = globsToIgnore;
-                    _cachedItems = listBuilder.ToImmutable();
-                }
-#if DEBUG
-                _applyCalls++;
-                CheckInvariant();
-#endif
-            }
-
-#if DEBUG
-            private void CheckInvariant()
-            {
-                if (_isReferenced)
-                {
-                    // After Apply has been called, the cache should be populated.
-                    Debug.Assert(_applyCalls == 0 || _cachedItems != null, "Referenced operation should cache its result after Apply");
-                }
-                else
-                {
-                    // non referenced operations should not be cached
-                    Debug.Assert(_cachedItems == null);
-                }
-            }
-#endif
-
-            public bool TryGetFromCache(GlobSet globsToIgnore, out OrderedItemDataCollection items)
-            {
-                if (_cachedItems != null && ReferenceEquals(globsToIgnore, _cachedGlobsToIgnore))
-                {
-                    items = _cachedItems;
-                    return true;
-                }
-
-                items = null;
-                return false;
-            }
-
-            /// <summary>
-            /// Somebody is referencing this operation
-            /// </summary>
-            public void MarkAsReferenced()
-            {
-                _isReferenced = true;
-            }
-        }
-
-        private class LazyItemList
-        {
-            private readonly LazyItemList _previous;
-            private readonly MemoizedOperation _memoizedOperation;
-
             public LazyItemList(LazyItemList previous, LazyItemOperation operation)
             {
                 _previous = previous;
-                _memoizedOperation = new MemoizedOperation(operation);
+                _operation = operation;
             }
+
+            /// <summary>
+            /// The operation held by this node, used by <see cref="ComputeItems"/> to
+            /// inspect the concrete operation type (e.g. RemoveOperation, UpdateOperation).
+            /// </summary>
+            public LazyItemOperation Operation => _operation;
 
             public I[] GetMatchedItems(GlobSet globsToIgnore)
             {
@@ -286,7 +226,7 @@ namespace Microsoft.Build.Evaluation
                 // the globsToIgnore received as an arg, and the globsToIgnore produced by the head (if the head is a Remove operation)
 
                 OrderedItemDataCollection items;
-                if (_memoizedOperation.TryGetFromCache(globsToIgnore, out items))
+                if (TryGetFromCache(globsToIgnore, out items))
                 {
                     return items.ToBuilder();
                 }
@@ -300,6 +240,54 @@ namespace Microsoft.Build.Evaluation
                     return ComputeItems(this, globsToIgnore);
                 }
             }
+
+            private bool TryGetFromCache(GlobSet globsToIgnore, out OrderedItemDataCollection items)
+            {
+                if (_cachedItems != null && ReferenceEquals(globsToIgnore, _cachedGlobsToIgnore))
+                {
+                    items = _cachedItems;
+                    return true;
+                }
+
+                items = null;
+                return false;
+            }
+
+            private void ApplyOperation(OrderedItemDataCollection.Builder listBuilder, GlobSet globsToIgnore)
+            {
+#if DEBUG
+                CheckInvariant();
+#endif
+
+                _operation.Apply(listBuilder, globsToIgnore);
+
+                // cache results if somebody is referencing this operation
+                if (_isReferenced)
+                {
+                    _cachedGlobsToIgnore = globsToIgnore;
+                    _cachedItems = listBuilder.ToImmutable();
+                }
+#if DEBUG
+                _applyCalls++;
+                CheckInvariant();
+#endif
+            }
+
+#if DEBUG
+            private void CheckInvariant()
+            {
+                if (_isReferenced)
+                {
+                    // After Apply has been called, the cache should be populated.
+                    Debug.Assert(_applyCalls == 0 || _cachedItems != null, "Referenced operation should cache its result after Apply");
+                }
+                else
+                {
+                    // non referenced operations should not be cached
+                    Debug.Assert(_cachedItems == null);
+                }
+            }
+#endif
 
             /// <summary>
             /// Applies uncached item operations (include, remove, update) in order. Since Remove effectively overwrites Include or Update,
@@ -324,7 +312,7 @@ namespace Microsoft.Build.Evaluation
                     var globsToIgnoreFromFutureOperations = globsToIgnoreStack?.Peek() ?? globsToIgnore;
 
                     OrderedItemDataCollection itemsFromCache;
-                    if (currentList._memoizedOperation.TryGetFromCache(globsToIgnoreFromFutureOperations, out itemsFromCache))
+                    if (currentList.TryGetFromCache(globsToIgnoreFromFutureOperations, out itemsFromCache))
                     {
                         // the base items on top of which to apply the uncached operations are the items of the first operation that is cached
                         items = itemsFromCache.ToBuilder();
@@ -333,7 +321,7 @@ namespace Microsoft.Build.Evaluation
 
                     // If this is a remove operation, then add any globs that will be removed
                     //  to a list of globs to ignore in previous operations
-                    if (currentList._memoizedOperation.Operation is RemoveOperation removeOperation)
+                    if (currentList._operation is RemoveOperation removeOperation)
                     {
                         globsToIgnoreStack ??= new Stack<GlobSet>();
 
@@ -364,7 +352,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     var currentList = itemListStack.Pop();
 
-                    if (currentList._memoizedOperation.Operation is UpdateOperation op)
+                    if (currentList._operation is UpdateOperation op)
                     {
                         bool addToBatch = true;
                         int i;
@@ -396,7 +384,7 @@ namespace Microsoft.Build.Evaluation
                             // We found a wildcard. Remove any fragments associated with the current operation and process them later.
                             for (int j = 0; j < i; j++)
                             {
-                                itemsWithNoWildcards.Remove(currentList._memoizedOperation.Operation.Spec.Fragments[j].TextFragment);
+                                itemsWithNoWildcards.Remove(currentList._operation.Spec.Fragments[j].TextFragment);
                             }
                         }
                         else
@@ -414,13 +402,13 @@ namespace Microsoft.Build.Evaluation
 
                     // If this is a remove operation, then it could modify the globs to ignore, so pop the potentially
                     //  modified entry off the stack of globs to ignore
-                    if (currentList._memoizedOperation.Operation is RemoveOperation)
+                    if (currentList._operation is RemoveOperation)
                     {
                         globsToIgnoreStack.Pop();
                         currentGlobsToIgnore = globsToIgnoreStack.Count == 0 ? globsToIgnore : globsToIgnoreStack.Peek();
                     }
 
-                    currentList._memoizedOperation.Apply(items, currentGlobsToIgnore);
+                    currentList.ApplyOperation(items, currentGlobsToIgnore);
                 }
 
                 // We finished looping through the operations. Now process the final batch if necessary.
@@ -447,7 +435,7 @@ namespace Microsoft.Build.Evaluation
 
             public void MarkAsReferenced()
             {
-                _memoizedOperation.MarkAsReferenced();
+                _isReferenced = true;
             }
         }
 
