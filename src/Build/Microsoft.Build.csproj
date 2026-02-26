@@ -197,6 +197,7 @@
     <Compile Include="Evaluation\Expander.MetadataScope.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\LazyItemEvaluator.GlobSet.cs" />
+    <Compile Include="Evaluation\LazyItemEvaluator.LazyItemList.cs" />
     <Compile Include="Evaluation\LazyItemEvaluator.ReferencedItemListsBuilder.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
