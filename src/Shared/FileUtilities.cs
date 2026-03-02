@@ -402,90 +402,15 @@ namespace Microsoft.Build.Shared
             return c == null || IsAnySlash(c.Value);
         }
 
-        /// <summary>
-        /// Gets the canonicalized full path of the provided path.
-        /// Guidance for use: call this on all paths accepted through public entry
-        /// points that need normalization. After that point, only verify the path
-        /// is rooted, using ErrorUtilities.VerifyThrowPathRooted.
-        /// ASSUMES INPUT IS ALREADY UNESCAPED.
-        /// </summary>
+        /// <inheritdoc cref="FrameworkFileUtilities.NormalizePath(string)"/>
         internal static string NormalizePath(string path)
-        {
-            ErrorUtilities.VerifyThrowArgumentLength(path);
-            string fullPath = GetFullPath(path);
-            return FrameworkFileUtilities.FixFilePath(fullPath);
-        }
+            => FrameworkFileUtilities.NormalizePath(path);
 
         internal static string NormalizePath(string directory, string file)
-        {
-            return NormalizePath(Path.Combine(directory, file));
-        }
+            => FrameworkFileUtilities.NormalizePath(directory, file);
 
         internal static string NormalizePath(params string[] paths)
-        {
-            return NormalizePath(Path.Combine(paths));
-        }
-
-        private static string GetFullPath(string path)
-        {
-#if FEATURE_LEGACY_GETFULLPATH
-            if (NativeMethodsShared.IsWindows)
-            {
-                string uncheckedFullPath = NativeMethodsShared.GetFullPath(path);
-
-                if (FrameworkFileUtilities.IsPathTooLong(uncheckedFullPath))
-                {
-                    throw new PathTooLongException(Framework.Resources.SR.FormatPathTooLong(path, NativeMethodsShared.MaxPath));
-                }
-
-                // We really don't care about extensions here, but Path.HasExtension provides a great way to
-                // invoke the CLR's invalid path checks (these are independent of path length)
-                Path.HasExtension(uncheckedFullPath);
-
-                // If we detect we are a UNC path then we need to use the regular get full path in order to do the correct checks for UNC formatting
-                // and security checks for strings like \\?\GlobalRoot
-                return IsUNCPath(uncheckedFullPath) ? Path.GetFullPath(uncheckedFullPath) : uncheckedFullPath;
-            }
-#endif
-            return Path.GetFullPath(path);
-        }
-
-#if FEATURE_LEGACY_GETFULLPATH
-        private static bool IsUNCPath(string path)
-        {
-            if (!NativeMethodsShared.IsWindows || !path.StartsWith(@"\\", StringComparison.Ordinal))
-            {
-                return false;
-            }
-            bool isUNC = true;
-            for (int i = 2; i < path.Length - 1; i++)
-            {
-                if (path[i] == '\\')
-                {
-                    isUNC = false;
-                    break;
-                }
-            }
-
-            /*
-              From Path.cs in the CLR
-
-              Throw an ArgumentException for paths like \\, \\server, \\server\
-              This check can only be properly done after normalizing, so
-              \\foo\.. will be properly rejected.  Also, reject \\?\GLOBALROOT\
-              (an internal kernel path) because it provides aliases for drives.
-
-              throw new ArgumentException(Environment.GetResourceString("Arg_PathIllegalUNC"));
-
-               // Check for \\?\Globalroot, an internal mechanism to the kernel
-               // that provides aliases for drives and other undocumented stuff.
-               // The kernel team won't even describe the full set of what
-               // is available here - we don't want managed apps mucking
-               // with this for security reasons.
-            */
-            return isUNC || path.IndexOf(@"\\?\globalroot", StringComparison.OrdinalIgnoreCase) != -1;
-        }
-#endif // FEATURE_LEGACY_GETFULLPATH
+            => FrameworkFileUtilities.NormalizePath(paths);
 
         /// <summary>
         /// Normalizes all path separators (both forward and back slashes) to forward slashes.
@@ -639,24 +564,7 @@ namespace Microsoft.Build.Shared
         /// <param name="fileSpec">The filespec.</param>
         /// <returns>directory path</returns>
         internal static string GetDirectory(string fileSpec)
-        {
-            string directory = Path.GetDirectoryName(FrameworkFileUtilities.FixFilePath(fileSpec));
-
-            // if file-spec is a root directory e.g. c:, c:\, \, \\server\share
-            // NOTE: Path.GetDirectoryName also treats invalid UNC file-specs as root directories e.g. \\, \\server
-            if (directory == null)
-            {
-                // just use the file-spec as-is
-                directory = fileSpec;
-            }
-            else if ((directory.Length > 0) && !FrameworkFileUtilities.EndsWithSlash(directory))
-            {
-                // restore trailing slash if Path.GetDirectoryName has removed it (this happens with non-root directories)
-                directory += Path.DirectorySeparatorChar;
-            }
-
-            return directory;
-        }
+            => FrameworkFileUtilities.GetDirectory(fileSpec);
 
         /// <summary>
         /// Deletes all subdirectories within the specified directory without throwing exceptions.
@@ -721,58 +629,13 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static string ExecutingAssemblyPath => Path.GetFullPath(AssemblyUtilities.GetAssemblyLocation(typeof(FileUtilities).GetTypeInfo().Assembly));
 
-        /// <summary>
-        /// Determines the full path for the given file-spec.
-        /// ASSUMES INPUT IS STILL ESCAPED
-        /// </summary>
-        /// <param name="fileSpec">The file spec to get the full path of.</param>
-        /// <param name="currentDirectory"></param>
-        /// <param name="escape">Whether to escape the path after getting the full path.</param>
-        /// <returns>Full path to the file, escaped if not specified otherwise.</returns>
+        /// <inheritdoc cref="FrameworkFileUtilities.GetFullPath(string, string, bool)"/>
         internal static string GetFullPath(string fileSpec, string currentDirectory, bool escape = true)
-        {
-            // Sending data out of the engine into the filesystem, so time to unescape.
-            fileSpec = FrameworkFileUtilities.FixFilePath(EscapingUtilities.UnescapeAll(fileSpec));
+            => FrameworkFileUtilities.GetFullPath(fileSpec, currentDirectory, escape);
 
-            string fullPath = NormalizePath(Path.Combine(currentDirectory, fileSpec));
-            // In some cases we might want to NOT escape in order to preserve symbols like @, %, $ etc.
-            if (escape)
-            {
-                // Data coming back from the filesystem into the engine, so time to escape it back.
-                fullPath = EscapingUtilities.Escape(fullPath);
-            }
-
-            if (NativeMethodsShared.IsWindows && !FrameworkFileUtilities.EndsWithSlash(fullPath))
-            {
-                if (FileUtilitiesRegex.IsDrivePattern(fileSpec) ||
-                    FileUtilitiesRegex.IsUncPattern(fullPath))
-                {
-                    // append trailing slash if Path.GetFullPath failed to (this happens with drive-specs and UNC shares)
-                    fullPath += Path.DirectorySeparatorChar;
-                }
-            }
-
-            return fullPath;
-        }
-
-        /// <summary>
-        /// A variation of Path.GetFullPath that will return the input value
-        /// instead of throwing any IO exception.
-        /// Useful to get a better path for an error message, without the risk of throwing
-        /// if the error message was itself caused by the path being invalid!
-        /// </summary>
+        /// <inheritdoc cref="FrameworkFileUtilities.GetFullPathNoThrow(string)"/>
         internal static string GetFullPathNoThrow(string path)
-        {
-            try
-            {
-                path = NormalizePath(path);
-            }
-            catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
-            {
-            }
-
-            return path;
-        }
+            => FrameworkFileUtilities.GetFullPathNoThrow(path);
 
         /// <summary>
         /// Compare if two paths, relative to the given currentDirectory are equal.
@@ -932,43 +795,9 @@ namespace Microsoft.Build.Shared
             }
         }
 
-        /// <summary>
-        /// Gets a file info object for the specified file path. If the file path
-        /// is invalid, or is a directory, or cannot be accessed, or does not exist,
-        /// it returns null rather than throwing or returning a FileInfo around a non-existent file.
-        /// This allows it to be called where File.Exists() (which never throws, and returns false
-        /// for directories) was called - but with the advantage that a FileInfo object is returned
-        /// that can be queried (e.g., for LastWriteTime) without hitting the disk again.
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <returns>FileInfo around path if it is an existing /file/, else null</returns>
+        /// <inheritdoc cref="FrameworkFileUtilities.GetFileInfoNoThrow(string)"/>
         internal static FileInfo GetFileInfoNoThrow(string filePath)
-        {
-            filePath = AttemptToShortenPath(filePath);
-
-            FileInfo fileInfo;
-
-            try
-            {
-                fileInfo = new FileInfo(filePath);
-            }
-            catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
-            {
-                // Invalid or inaccessible path: treat as if nonexistent file, just as File.Exists does
-                return null;
-            }
-
-            if (fileInfo.Exists)
-            {
-                // It's an existing file
-                return fileInfo;
-            }
-            else
-            {
-                // Nonexistent, or existing but a directory, just as File.Exists behaves
-                return null;
-            }
-        }
+            => FrameworkFileUtilities.GetFileInfoNoThrow(filePath);
 
         /// <summary>
         /// Returns if the directory exists
@@ -1178,42 +1007,9 @@ namespace Microsoft.Build.Shared
             return StringBuilderCache.GetStringAndRelease(sb);
         }
 
-        /// <summary>
-        /// Normalizes the path if and only if it is longer than max path,
-        /// or would be if rooted by the current directory.
-        /// This may make it shorter by removing ".."'s.
-        /// </summary>
+        /// <inheritdoc cref="FrameworkFileUtilities.AttemptToShortenPath(string)"/>
         internal static string AttemptToShortenPath(string path)
-        {
-            if (FrameworkFileUtilities.IsPathTooLong(path) || IsPathTooLongIfRooted(path))
-            {
-                // Attempt to make it shorter -- perhaps there are some \..\ elements
-                path = GetFullPathNoThrow(path);
-            }
-            return FrameworkFileUtilities.FixFilePath(path);
-        }
-        private static bool IsPathTooLongIfRooted(string path)
-        {
-            bool hasMaxPath = NativeMethodsShared.HasMaxPath;
-            int maxPath = NativeMethodsShared.MaxPath;
-            // >= not > because MAX_PATH assumes a trailing null
-            return hasMaxPath && !IsRootedNoThrow(path) && NativeMethodsShared.GetCurrentDirectory().Length + path.Length + 1 /* slash */ >= maxPath;
-        }
-
-        /// <summary>
-        /// A variation of Path.IsRooted that not throw any IO exception.
-        /// </summary>
-        private static bool IsRootedNoThrow(string path)
-        {
-            try
-            {
-                return Path.IsPathRooted(FrameworkFileUtilities.FixFilePath(path));
-            }
-            catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
-            {
-                return false;
-            }
-        }
+            => FrameworkFileUtilities.AttemptToShortenPath(path);
 
         /// <summary>
         /// Get the folder N levels above the given. Will stop and return current path when rooted.
@@ -1420,7 +1216,7 @@ namespace Microsoft.Build.Shared
             fileSystem ??= DefaultFileSystem;
 
             // Canonicalize our starting location
-            string lookInDirectory = GetFullPath(startingDirectory);
+            string lookInDirectory = FrameworkFileUtilities.GetFullPath(startingDirectory);
 
             do
             {
