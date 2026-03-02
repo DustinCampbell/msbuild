@@ -74,10 +74,6 @@
         <source>MSB5018: Failed to delete the temporary file "{0}". {1}</source>
         <note>{StrBegin="MSB5018: "}</note>
       </trans-unit>
-      <trans-unit id="Shared.InvalidFilespecForTransform">
-        <source>The item metadata "%({0})" cannot be applied to the path "{1}". {2}</source>
-        <note>UE: This message is shown when the user tries to perform path manipulations using one of the built-in item metadata e.g. %(RootDir), on an item-spec that's not a valid path. LOCALIZATION: "{2}" is a localized message from a CLR/FX exception.</note>
-      </trans-unit>
       <trans-unit id="TaskNotMarshalByRef">
         <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
         <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>

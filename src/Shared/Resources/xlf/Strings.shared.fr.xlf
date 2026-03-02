@@ -135,11 +135,6 @@
         <target state="translated">MSB5018: Impossible de supprimer le fichier temporaire « {0} ». {1} {2}</target>
         <note>{StrBegin="MSB5018: "}</note>
       </trans-unit>
-      <trans-unit id="Shared.InvalidFilespecForTransform">
-        <source>The item metadata "%({0})" cannot be applied to the path "{1}". {2}</source>
-        <target state="translated">Impossible d'appliquer la métadonnée d'élément "%({0})" au chemin d'accès "{1}". {2}</target>
-        <note>UE: This message is shown when the user tries to perform path manipulations using one of the built-in item metadata e.g. %(RootDir), on an item-spec that's not a valid path. LOCALIZATION: "{2}" is a localized message from a CLR/FX exception.</note>
-      </trans-unit>
       <trans-unit id="TaskNotMarshalByRef">
         <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
         <target state="translated">MSB4077: la tâche "{0}" a été marquée avec l'attribut LoadInSeparateAppDomain, mais ne dérive pas de MarshalByRefObject. Vérifiez que la tâche dérive de MarshalByRefObject ou de AppDomainIsolatedTask.</target>

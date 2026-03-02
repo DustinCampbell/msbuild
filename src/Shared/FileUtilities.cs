@@ -621,9 +621,6 @@ namespace Microsoft.Build.Shared
             return false;
         }
 
-        // ISO 8601 Universal time with sortable format
-        internal const string FileTimeFormat = "yyyy'-'MM'-'dd HH':'mm':'ss'.'fffffff";
-
         /// <summary>
         /// Get the currently executing assembly path
         /// </summary>

@@ -3,6 +3,8 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using Microsoft.Build.Framework.BuildException;
 
@@ -18,6 +20,11 @@ namespace Microsoft.Build.Framework
     [Serializable]
     internal sealed class InternalErrorException : BuildExceptionBase
     {
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void Throw(string message)
+            => throw new InternalErrorException(message);
+
         /// <summary>
         /// Default constructor.
         /// SHOULD ONLY BE CALLED BY DESERIALIZER.

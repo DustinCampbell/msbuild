@@ -27,6 +27,9 @@ namespace Microsoft.Build.Framework
 
         internal static readonly char[] Slashes = [UnixDirectorySeparator, WindowsDirectorySeparator];
 
+        // ISO 8601 Universal time with sortable format
+        public const string FileTimeFormat = "yyyy'-'MM'-'dd HH':'mm':'ss'.'fffffff";
+
         /// <summary>
         /// AsyncLocal working directory for use during property/item expansion in multithreaded mode.
         /// Set by MultiThreadedTaskEnvironmentDriver when building projects. null in multi-process mode.

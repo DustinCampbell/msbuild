@@ -161,8 +161,8 @@ internal static class ItemSpecModifiers
     [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity", Justification = "Pre-existing")]
     internal static string GetItemSpecModifier(string currentDirectory, string itemSpec, string definingProjectEscaped, string modifier, ref string fullPath)
     {
-        ErrorUtilities.VerifyThrow(itemSpec != null, "Need item-spec to modify.");
-        ErrorUtilities.VerifyThrow(modifier != null, "Need modifier to apply to item-spec.");
+        FrameworkErrorUtilities.VerifyThrow(itemSpec != null, "Need item-spec to modify.");
+        FrameworkErrorUtilities.VerifyThrow(modifier != null, "Need modifier to apply to item-spec.");
 
         string modifiedItemSpec = null;
 
@@ -180,7 +180,7 @@ internal static class ItemSpecModifiers
                     currentDirectory = FrameworkFileUtilities.CurrentThreadWorkingDirectory ?? string.Empty;
                 }
 
-                modifiedItemSpec = FileUtilities.GetFullPath(itemSpec, currentDirectory);
+                modifiedItemSpec = FrameworkFileUtilities.GetFullPath(itemSpec, currentDirectory);
                 fullPath = modifiedItemSpec;
 
                 ThrowForUrl(modifiedItemSpec, itemSpec, currentDirectory);
@@ -193,7 +193,8 @@ internal static class ItemSpecModifiers
 
                 if (!FrameworkFileUtilities.EndsWithSlash(modifiedItemSpec))
                 {
-                    ErrorUtilities.VerifyThrow(FileUtilitiesRegex.StartsWithUncPattern(modifiedItemSpec),
+                    FrameworkErrorUtilities.VerifyThrow(
+                        FileUtilitiesRegex.StartsWithUncPattern(modifiedItemSpec),
                         "Only UNC shares should be missing trailing slashes.");
 
                     // restore/append trailing slash if Path.GetPathRoot() has either removed it, or failed to add it
@@ -232,15 +233,15 @@ internal static class ItemSpecModifiers
             }
             else if (string.Equals(modifier, RelativeDir, StringComparison.OrdinalIgnoreCase))
             {
-                modifiedItemSpec = FileUtilities.GetDirectory(itemSpec);
+                modifiedItemSpec = FrameworkFileUtilities.GetDirectory(itemSpec);
             }
             else if (string.Equals(modifier, Directory, StringComparison.OrdinalIgnoreCase))
             {
                 GetItemSpecModifier(currentDirectory, itemSpec, definingProjectEscaped, FullPath, ref fullPath);
 
-                modifiedItemSpec = FileUtilities.GetDirectory(fullPath);
+                modifiedItemSpec = FrameworkFileUtilities.GetDirectory(fullPath);
 
-                if (NativeMethodsShared.IsWindows)
+                if (NativeMethods.IsWindows)
                 {
                     int length = -1;
                     if (FileUtilitiesRegex.StartsWithDrivePattern(modifiedItemSpec))
@@ -254,16 +255,18 @@ internal static class ItemSpecModifiers
 
                     if (length != -1)
                     {
-                        ErrorUtilities.VerifyThrow((modifiedItemSpec.Length > length) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[length]),
-                                                   "Root directory must have a trailing slash.");
+                        FrameworkErrorUtilities.VerifyThrow(
+                            (modifiedItemSpec.Length > length) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[length]),
+                            "Root directory must have a trailing slash.");
 
                         modifiedItemSpec = modifiedItemSpec.Substring(length + 1);
                     }
                 }
                 else
                 {
-                    ErrorUtilities.VerifyThrow(!string.IsNullOrEmpty(modifiedItemSpec) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[0]),
-                                               "Expected a full non-windows path rooted at '/'.");
+                    FrameworkErrorUtilities.VerifyThrow(
+                        !string.IsNullOrEmpty(modifiedItemSpec) && FrameworkFileUtilities.IsSlash(modifiedItemSpec[0]),
+                        "Expected a full non-windows path rooted at '/'.");
 
                     // A full unix path is always rooted at
                     // `/`, and a root-relative path is the
@@ -286,11 +289,11 @@ internal static class ItemSpecModifiers
                 // to unescape first.
                 string unescapedItemSpec = EscapingUtilities.UnescapeAll(itemSpec);
 
-                FileInfo info = FileUtilities.GetFileInfoNoThrow(unescapedItemSpec);
+                FileInfo info = FrameworkFileUtilities.GetFileInfoNoThrow(unescapedItemSpec);
 
                 if (info != null)
                 {
-                    modifiedItemSpec = info.LastWriteTime.ToString(FileUtilities.FileTimeFormat, null);
+                    modifiedItemSpec = info.LastWriteTime.ToString(FrameworkFileUtilities.FileTimeFormat, null);
                 }
                 else
                 {
@@ -306,7 +309,7 @@ internal static class ItemSpecModifiers
 
                 if (FileSystems.Default.FileExists(unescapedItemSpec))
                 {
-                    modifiedItemSpec = File.GetCreationTime(unescapedItemSpec).ToString(FileUtilities.FileTimeFormat, null);
+                    modifiedItemSpec = File.GetCreationTime(unescapedItemSpec).ToString(FrameworkFileUtilities.FileTimeFormat, null);
                 }
                 else
                 {
@@ -322,7 +325,7 @@ internal static class ItemSpecModifiers
 
                 if (FileSystems.Default.FileExists(unescapedItemSpec))
                 {
-                    modifiedItemSpec = File.GetLastAccessTime(unescapedItemSpec).ToString(FileUtilities.FileTimeFormat, null);
+                    modifiedItemSpec = File.GetLastAccessTime(unescapedItemSpec).ToString(FrameworkFileUtilities.FileTimeFormat, null);
                 }
                 else
                 {
@@ -364,7 +367,7 @@ internal static class ItemSpecModifiers
                         }
                         else
                         {
-                            ErrorUtilities.ThrowInternalError("\"{0}\" is not a valid item-spec modifier.", modifier);
+                            InternalErrorException.Throw($"\"{modifier}\" is not a valid item-spec modifier.");
                         }
 
                         modifiedItemSpec = GetItemSpecModifier(currentDirectory, definingProjectEscaped, null, additionalModifier);
@@ -373,12 +376,12 @@ internal static class ItemSpecModifiers
             }
             else
             {
-                ErrorUtilities.ThrowInternalError("\"{0}\" is not a valid item-spec modifier.", modifier);
+                InternalErrorException.Throw($"\"{modifier}\" is not a valid item-spec modifier.");
             }
         }
-        catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
+        catch (Exception e) when (FrameworkExceptionHandling.IsIoRelatedException(e))
         {
-            ErrorUtilities.ThrowInvalidOperation("Shared.InvalidFilespecForTransform", modifier, itemSpec, e.Message);
+            InvalidOperationException.Throw(SR.FormatInvalidFileSpecForTransform(modifier, itemSpec, e.Message));
         }
 
         return modifiedItemSpec;
