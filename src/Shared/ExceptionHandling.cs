@@ -152,21 +152,7 @@ namespace Microsoft.Build.Shared
         /// <param name="e">The exception to check.</param>
         /// <returns>True if exception is IO related.</returns>
         internal static bool IsIoRelatedException(Exception e)
-        {
-            // These all derive from IOException
-            //     DirectoryNotFoundException
-            //     DriveNotFoundException
-            //     EndOfStreamException
-            //     FileLoadException
-            //     FileNotFoundException
-            //     PathTooLongException
-            //     PipeException
-            return e is UnauthorizedAccessException
-                   || e is NotSupportedException
-                   || (e is ArgumentException && !(e is ArgumentNullException))
-                   || e is SecurityException
-                   || e is IOException;
-        }
+            => FrameworkExceptionHandling.IsIoRelatedException(e);
 
         /// <summary> Checks if the exception is an XML one. </summary>
         /// <param name="e"> Exception to check. </param>
