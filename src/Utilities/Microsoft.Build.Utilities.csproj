@@ -72,6 +72,9 @@
     <Compile Include="..\Shared\EventArgsFormatting.cs">
       <Link>Shared\EventArgsFormatting.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\ExceptionDumper.cs">
+      <Link>Shared\ExceptionDumper.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\ExceptionHandling.cs">
       <Link>Shared\ExceptionHandling.cs</Link>
     </Compile>

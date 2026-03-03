@@ -115,7 +115,7 @@ namespace Microsoft.Build.Shared
                         }
 
                         // Hook up last minute dumping of any exceptions
-                        taskAppDomain.UnhandledException += ExceptionHandling.UnhandledExceptionHandler;
+                        taskAppDomain.UnhandledException += ExceptionDumper.UnhandledExceptionHandler;
                         appDomainCreated?.Invoke(taskAppDomain);
                     }
                 }

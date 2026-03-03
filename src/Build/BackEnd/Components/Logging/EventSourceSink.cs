@@ -421,7 +421,7 @@ namespace Microsoft.Build.BackEnd.Logging
                         // We ought to dump this further up the stack, but if for example a task is logging an event within a
                         // catch(Exception) block and not rethrowing it, there's the possibility that this exception could
                         // just get silently eaten.  So better to have duplicates than to not log the problem at all. :)
-                        ExceptionHandling.DumpExceptionToFile(exception);
+                        ExceptionDumper.DumpExceptionToFile(exception);
 
                         throw;
                     }
@@ -431,7 +431,7 @@ namespace Microsoft.Build.BackEnd.Logging
                     // We ought to dump this further up the stack, but if for example a task is logging an event within a
                     // catch(Exception) block and not rethrowing it, there's the possibility that this exception could
                     // just get silently eaten.  So better to have duplicates than to not log the problem at all. :)
-                    ExceptionHandling.DumpExceptionToFile(exception);
+                    ExceptionDumper.DumpExceptionToFile(exception);
 
                     if (ExceptionHandling.IsCriticalException(exception))
                     {

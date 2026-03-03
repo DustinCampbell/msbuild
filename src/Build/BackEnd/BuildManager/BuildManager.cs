@@ -1246,7 +1246,7 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// Extracts build state under lock and delegates to <see cref="CrashTelemetryRecorder"/>
         /// for EndBuild hang diagnostic telemetry emission. Also writes diagnostics to disk
-        /// via <see cref="ExceptionHandling.DumpHangDiagnosticsToFile"/>.
+        /// via <see cref="ExceptionDumper.DumpHangDiagnosticsToFile"/>.
         /// </summary>
         private void EmitEndBuildHangDiagnostics(string waitPhase, Stopwatch hangWatch)
         {
@@ -1276,7 +1276,7 @@ namespace Microsoft.Build.Execution
                 $"PendingSubmissions={pendingSubmissionCount}, WithResultNoLogging={submissionsWithResultNoLogging}, " +
                 $"ThreadException={threadExceptionRecorded}, UnmatchedProjectStarted={unmatchedProjectStartedCount}";
 
-            ExceptionHandling.DumpHangDiagnosticsToFile(diagnostics);
+            ExceptionDumper.DumpHangDiagnosticsToFile(diagnostics);
 
             CrashTelemetryRecorder.CollectAndEmitEndBuildHangDiagnostics(
                 waitPhase,
@@ -1759,7 +1759,7 @@ namespace Microsoft.Build.Execution
             {
                 // On the off chance we get an exception from our exception handler (oh, the irony!), we want to know about it (and still not kill this block
                 // which could lead to a somewhat mysterious hang.)
-                ExceptionHandling.DumpExceptionToFile(e);
+                ExceptionDumper.DumpExceptionToFile(e);
             }
         }
 
@@ -2662,8 +2662,8 @@ namespace Microsoft.Build.Execution
                     foreach (BuildSubmissionBase submission in _buildSubmissions.Values)
                     {
                         BuildEventContext buildEventContext = new BuildEventContext(submission.SubmissionId, BuildEventContext.InvalidNodeId, BuildEventContext.InvalidProjectInstanceId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidTaskId);
-                        string exception = ExceptionHandling.ReadAnyExceptionFromFile(_instantiationTimeUtc);
-                        loggingService?.LogError(buildEventContext, new BuildEventFileInfo(string.Empty) /* no project file */, "ChildExitedPrematurely", node, ExceptionHandling.DebugDumpPath, exception);
+                        string exception = ExceptionDumper.ReadAnyExceptionFromFile(_instantiationTimeUtc);
+                        loggingService?.LogError(buildEventContext, new BuildEventFileInfo(string.Empty) /* no project file */, "ChildExitedPrematurely", node, ExceptionDumper.DebugDumpPath, exception);
                     }
                 }
                 else if (shutdownPacket.Reason == NodeShutdownReason.Error && _buildSubmissions.Values.Count == 0)
@@ -2672,7 +2672,7 @@ namespace Microsoft.Build.Execution
                     if (shutdownPacket.Exception != null)
                     {
                         ILoggingService loggingService = ((IBuildComponentHost)this).GetComponent<ILoggingService>(BuildComponentType.LoggingService);
-                        loggingService?.LogError(BuildEventContext.Invalid, new BuildEventFileInfo(string.Empty) /* no project file */, "ChildExitedPrematurely", node, ExceptionHandling.DebugDumpPath, shutdownPacket.Exception.ToString());
+                        loggingService?.LogError(BuildEventContext.Invalid, new BuildEventFileInfo(string.Empty) /* no project file */, "ChildExitedPrematurely", node, ExceptionDumper.DebugDumpPath, shutdownPacket.Exception.ToString());
                         OnThreadException(shutdownPacket.Exception);
                     }
                 }

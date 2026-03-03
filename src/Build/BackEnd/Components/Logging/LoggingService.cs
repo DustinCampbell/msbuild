@@ -1530,7 +1530,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 // Dump all engine exceptions to a temp file
                 // so that we have something to go on in the
                 // event of a failure
-                ExceptionHandling.DumpExceptionToFile(e);
+                ExceptionDumper.DumpExceptionToFile(e);
 
                 // Catch all exceptions in order to pass them over to the engine thread. Due to
                 // hosts expecting to get logger exceptions on the same thread the engine was called from.

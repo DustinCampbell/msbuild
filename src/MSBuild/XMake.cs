@@ -660,7 +660,7 @@ namespace Microsoft.Build.CommandLine
 
             ErrorUtilities.VerifyThrowArgumentLength(commandLine);
 
-            AppDomain.CurrentDomain.UnhandledException += ExceptionHandling.UnhandledExceptionHandler;
+            AppDomain.CurrentDomain.UnhandledException += ExceptionDumper.UnhandledExceptionHandler;
 
             ExitType exitType = ExitType.Success;
 

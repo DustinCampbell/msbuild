@@ -844,7 +844,7 @@ namespace Microsoft.Build.BackEnd
                     // Dump all engine exceptions to a temp file
                     // so that we have something to go on in the
                     // event of a failure
-                    ExceptionHandling.DumpExceptionToFile(ex);
+                    ExceptionDumper.DumpExceptionToFile(ex);
 
                     // This includes InternalErrorException, which we definitely want a callstack for.
                     // Fortunately the default console UnhandledExceptionHandler will log the callstack even

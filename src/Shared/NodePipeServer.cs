@@ -155,7 +155,7 @@ namespace Microsoft.Build.Internal
                         _pipeServer.Disconnect();
                     }
 
-                    ExceptionHandling.DumpExceptionToFile(e);
+                    ExceptionDumper.DumpExceptionToFile(e);
                     return LinkStatus.Failed;
                 }
             }

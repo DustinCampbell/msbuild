@@ -514,7 +514,7 @@ namespace Microsoft.Build.BackEnd
                         localPipeServer.Disconnect();
                     }
 
-                    ExceptionHandling.DumpExceptionToFile(e);
+                    ExceptionDumper.DumpExceptionToFile(e);
                     ChangeLinkStatus(LinkStatus.Failed);
                     return;
                 }
@@ -663,7 +663,7 @@ namespace Microsoft.Build.BackEnd
                             {
                                 // Lost communications.  Abort (but allow node reuse)
                                 CommunicationsUtilities.Trace("Exception reading from server.  {0}", e);
-                                ExceptionHandling.DumpExceptionToFile(e);
+                                ExceptionDumper.DumpExceptionToFile(e);
                                 ChangeLinkStatus(LinkStatus.Inactive);
                                 exitLoop = true;
                                 break;
@@ -722,7 +722,7 @@ namespace Microsoft.Build.BackEnd
                             {
                                 // Error while deserializing or handling packet.  Abort.
                                 CommunicationsUtilities.Trace("Exception while deserializing packet {0}: {1}", packetType, e);
-                                ExceptionHandling.DumpExceptionToFile(e);
+                                ExceptionDumper.DumpExceptionToFile(e);
                                 ChangeLinkStatus(LinkStatus.Failed);
                                 exitLoop = true;
                                 break;
@@ -781,7 +781,7 @@ namespace Microsoft.Build.BackEnd
                         {
                             // Error while deserializing or handling packet.  Abort.
                             CommunicationsUtilities.Trace("Exception while serializing packets: {0}", e);
-                            ExceptionHandling.DumpExceptionToFile(e);
+                            ExceptionDumper.DumpExceptionToFile(e);
                             ChangeLinkStatus(LinkStatus.Failed);
                             exitLoop = true;
                             break;
