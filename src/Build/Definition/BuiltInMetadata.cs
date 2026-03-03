@@ -49,7 +49,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="name">The name of the metadata.</param>
         /// <param name="fullPath">The generated full path, for caching</param>
         /// <returns>The unescaped metadata value.</returns>
-        internal static string GetMetadataValue(string currentDirectory, string evaluatedIncludeBeforeWildcardExpansionEscaped, string evaluatedIncludeEscaped, string definingProjectEscaped, string name, ref string fullPath)
+        internal static string GetMetadataValue(string currentDirectory, string evaluatedIncludeBeforeWildcardExpansionEscaped, string evaluatedIncludeEscaped, string definingProjectEscaped, string name, ref string? fullPath)
         {
             return EscapingUtilities.UnescapeAll(GetMetadataValueEscaped(currentDirectory, evaluatedIncludeBeforeWildcardExpansionEscaped, evaluatedIncludeEscaped, definingProjectEscaped, name, ref fullPath));
         }
@@ -68,7 +68,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="name">The name of the metadata.</param>
         /// <param name="fullPath">The generated full path, for caching</param>
         /// <returns>The escaped as necessary metadata value.</returns>
-        internal static string GetMetadataValueEscaped(string currentDirectory, string evaluatedIncludeBeforeWildcardExpansionEscaped, string evaluatedIncludeEscaped, string definingProjectEscaped, string name, ref string fullPath)
+        internal static string GetMetadataValueEscaped(string currentDirectory, string evaluatedIncludeBeforeWildcardExpansionEscaped, string evaluatedIncludeEscaped, string definingProjectEscaped, string name, ref string? fullPath)
         {
             // This is an assert, not a VerifyThrow, because the caller should already have done this check, and it's slow/hot.
             Debug.Assert(ItemSpecModifiers.IsItemSpecModifier(name));
@@ -80,7 +80,7 @@ namespace Microsoft.Build.Evaluation
             }
             else
             {
-                value = ItemSpecModifiers.GetItemSpecModifier(currentDirectory, evaluatedIncludeEscaped, definingProjectEscaped, name, ref fullPath);
+                value = ItemSpecModifiers.GetItemSpecModifier(name, evaluatedIncludeEscaped, currentDirectory, definingProjectEscaped, ref fullPath);
             }
 
             return value;

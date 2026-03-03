@@ -2554,7 +2554,7 @@ namespace Microsoft.Build.Evaluation
                             string directoryToUse = item.Value.ProjectDirectory ?? FrameworkFileUtilities.CurrentThreadWorkingDirectory ?? Directory.GetCurrentDirectory();
                             string definingProjectEscaped = item.Value.GetMetadataValueEscaped(ItemSpecModifiers.DefiningProjectFullPath);
 
-                            result = ItemSpecModifiers.GetItemSpecModifier(directoryToUse, item.Key, definingProjectEscaped, functionName);
+                            result = ItemSpecModifiers.GetItemSpecModifier(functionName, item.Key, directoryToUse, definingProjectEscaped);
                         }
                         // InvalidOperationException is how GetItemSpecModifier communicates invalid conditions upwards, so
                         // we do not want to rethrow in that case.
@@ -3322,7 +3322,7 @@ namespace Microsoft.Build.Evaluation
                             string directoryToUse = sourceOfMetadata.ProjectDirectory ?? FrameworkFileUtilities.CurrentThreadWorkingDirectory ?? Directory.GetCurrentDirectory();
                             string definingProjectEscaped = sourceOfMetadata.GetMetadataValueEscaped(ItemSpecModifiers.DefiningProjectFullPath);
 
-                            value = ItemSpecModifiers.GetItemSpecModifier(directoryToUse, itemSpec, definingProjectEscaped, match.Name);
+                            value = ItemSpecModifiers.GetItemSpecModifier(match.Name, itemSpec, directoryToUse, definingProjectEscaped);
                         }
                         else
                         {
