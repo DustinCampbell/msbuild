@@ -236,7 +236,7 @@ namespace Microsoft.Build.Framework
             {
                 path = NormalizePath(path);
             }
-            catch (Exception ex) when (FrameworkExceptionHandling.IsIoRelatedException(ex))
+            catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
             }
 
@@ -415,7 +415,7 @@ namespace Microsoft.Build.Framework
             {
                 fileInfo = new FileInfo(filePath);
             }
-            catch (Exception e) when (FrameworkExceptionHandling.IsIoRelatedException(e))
+            catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
                 // Invalid or inaccessible path: treat as if nonexistent file, just as File.Exists does
                 return null;
@@ -466,7 +466,7 @@ namespace Microsoft.Build.Framework
             {
                 return Path.IsPathRooted(FixFilePath(path));
             }
-            catch (Exception ex) when (FrameworkExceptionHandling.IsIoRelatedException(ex))
+            catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
                 return false;
             }

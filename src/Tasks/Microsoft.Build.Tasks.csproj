@@ -121,9 +121,6 @@
     <Compile Include="..\Shared\ExceptionDumper.cs">
       <Link>ExceptionDumper.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\ExceptionHandling.cs">
-      <Link>ExceptionHandling.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\FileUtilities.cs">
       <Link>FileUtilities.cs</Link>
     </Compile>

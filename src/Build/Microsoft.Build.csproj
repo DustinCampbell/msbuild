@@ -664,9 +664,6 @@
     <Compile Include="..\Shared\ExceptionDumper.cs">
       <Link>SharedUtilities\ExceptionDumper.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\ExceptionHandling.cs">
-      <Link>SharedUtilities\ExceptionHandling.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\FileMatcher.cs">
       <Link>SharedUtilities\FileMatcher.cs</Link>
     </Compile>
