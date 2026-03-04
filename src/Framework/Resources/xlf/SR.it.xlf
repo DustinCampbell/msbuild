@@ -57,6 +57,11 @@
         <target state="new">The value cannot be an empty string.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FailedCreatingTempFile">
+        <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
+        <target state="translated">non è stato possibile creare un file temporaneo. La cartella dei file temporanei è piena oppure il percorso è errato. {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InvalidFileSpecForTransform">
         <source>The item metadata "%({0})" cannot be applied to the path "{1}". {2}</source>
         <target state="translated">Non è possibile applicare i metadati dell'elemento "%({0})" al percorso "{1}". {2}</target>
