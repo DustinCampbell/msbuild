@@ -8,7 +8,6 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -40,19 +39,12 @@ namespace Microsoft.Build.Shared
         // This is the fake current executable we use in case we are running tests.
 
         /// <summary>
-        /// The directory where MSBuild stores cache information used during the build.
-        /// </summary>
-        internal static string cacheDirectory = null;
-
-        /// <summary>
         /// FOR UNIT TESTS ONLY
         /// Clear out the static variable used for the cache directory so that tests that
         /// modify it can validate their modifications.
         /// </summary>
         internal static void ClearCacheDirectoryPath()
-        {
-            cacheDirectory = null;
-        }
+            => FrameworkFileUtilities.ClearCacheDirectoryPath();
 
         /// <summary>
         /// Copied from https://github.com/dotnet/corefx/blob/056715ff70e14712419d82d51c8c50c54b9ea795/src/Common/src/System/IO/PathInternal.Windows.cs#L61
@@ -96,18 +88,9 @@ namespace Microsoft.Build.Shared
 
         private static readonly IFileSystem DefaultFileSystem = FileSystems.Default;
 
-        /// <summary>
-        /// Retrieves the MSBuild runtime cache directory
-        /// </summary>
+        /// <inheritdoc cref="FrameworkFileUtilities.GetCacheDirectory"/>
         internal static string GetCacheDirectory()
-        {
-            if (cacheDirectory == null)
-            {
-                cacheDirectory = Path.Combine(TempFileDirectory, string.Format(CultureInfo.CurrentUICulture, "MSBuild{0}-{1}", EnvironmentUtilities.CurrentProcessId, AppDomain.CurrentDomain.Id));
-            }
-
-            return cacheDirectory;
-        }
+            => FrameworkFileUtilities.GetCacheDirectory();
 
         /// <summary>
         /// Get the hex hash string for the string
@@ -172,18 +155,9 @@ namespace Microsoft.Build.Shared
             }
         }
 
-        /// <summary>
-        /// Clears the MSBuild runtime cache
-        /// </summary>
+        /// <inheritdoc cref="FrameworkFileUtilities.ClearCacheDirectory"/>
         internal static void ClearCacheDirectory()
-        {
-            string cacheDirectory = GetCacheDirectory();
-
-            if (DefaultFileSystem.DirectoryExists(cacheDirectory))
-            {
-                DeleteDirectoryNoThrow(cacheDirectory, true);
-            }
-        }
+            => FrameworkFileUtilities.ClearCacheDirectory();
 
         /// <summary>
         /// Ensures the path does not have a leading or trailing slash after removing the first 'start' characters.
@@ -539,33 +513,6 @@ namespace Microsoft.Build.Shared
             => FrameworkFileUtilities.GetDirectory(fileSpec);
 
         /// <summary>
-        /// Deletes all subdirectories within the specified directory without throwing exceptions.
-        /// This method enumerates all subdirectories in the given directory and attempts to delete
-        /// each one recursively. If any IO-related exceptions occur during enumeration or deletion,
-        /// they are silently ignored.
-        /// </summary>
-        /// <param name="directory">The directory whose subdirectories should be deleted.</param>
-        /// <remarks>
-        /// This method is useful for cleanup operations where partial failure is acceptable.
-        /// It will not delete the root directory itself, only its subdirectories.
-        /// IO exceptions during directory enumeration or deletion are caught and ignored.
-        /// </remarks>
-        internal static void DeleteSubdirectoriesNoThrow(string directory)
-        {
-            try
-            {
-                foreach (string dir in FileSystems.Default.EnumerateDirectories(directory))
-                {
-                    DeleteDirectoryNoThrow(dir, recursive: true, retryCount: 1);
-                }
-            }
-            catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
-            {
-                // If we can't enumerate the directories, ignore. Other cases should be handled by DeleteDirectoryNoThrow.
-            }
-        }
-
-        /// <summary>
         /// Determines whether the given assembly file name has one of the listed extensions.
         /// </summary>
         /// <param name="fileName">The name of the file</param>
@@ -687,48 +634,9 @@ namespace Microsoft.Build.Shared
             }
         }
 
-        /// <summary>
-        /// A variation on Directory.Delete that will throw ExceptionHandling.NotExpectedException exceptions
-        /// </summary>
-        [SuppressMessage("Microsoft.Usage", "CA1806:DoNotIgnoreMethodResults", MessageId = "System.Int32.TryParse(System.String,System.Int32@)", Justification = "We expect the out value to be 0 if the parse fails and compensate accordingly")]
+        /// <inheritdoc cref="FrameworkFileUtilities.DeleteDirectoryNoThrow(string, bool, int, int)"/>
         internal static void DeleteDirectoryNoThrow(string path, bool recursive, int retryCount = 0, int retryTimeOut = 0)
-        {
-            // Try parse will set the out parameter to 0 if the string passed in is null, or is outside the range of an int.
-            if (!int.TryParse(Environment.GetEnvironmentVariable("MSBUILDDIRECTORYDELETERETRYCOUNT"), out retryCount))
-            {
-                retryCount = 0;
-            }
-
-            if (!int.TryParse(Environment.GetEnvironmentVariable("MSBUILDDIRECTORYDELETRETRYTIMEOUT"), out retryTimeOut))
-            {
-                retryTimeOut = 0;
-            }
-
-            retryCount = retryCount < 1 ? 2 : retryCount;
-            retryTimeOut = retryTimeOut < 1 ? 500 : retryTimeOut;
-
-            path = FrameworkFileUtilities.FixFilePath(path);
-
-            for (int i = 0; i < retryCount; i++)
-            {
-                try
-                {
-                    if (DefaultFileSystem.DirectoryExists(path))
-                    {
-                        Directory.Delete(path, recursive);
-                        break;
-                    }
-                }
-                catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
-                {
-                }
-
-                if (i + 1 < retryCount) // should not wait for the final iteration since we not gonna check anyway
-                {
-                    Thread.Sleep(retryTimeOut);
-                }
-            }
-        }
+            => FrameworkFileUtilities.DeleteDirectoryNoThrow(path, recursive, retryCount, retryTimeOut);
 
         /// <summary>
         /// Deletes a directory, ensuring that Directory.Delete does not get a path ending in a slash.

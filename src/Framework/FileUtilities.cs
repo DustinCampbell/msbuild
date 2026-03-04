@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 using Microsoft.Build.Shared;
@@ -24,6 +25,9 @@ namespace Microsoft.Build.Framework
     /// </summary>
     internal static partial class FrameworkFileUtilities
     {
+        private const int DefaultRetryCount = 2;
+        private const int DefaultRetryTimeOut = 500;
+
         private const char UnixDirectorySeparator = '/';
         private const char WindowsDirectorySeparator = '\\';
 
@@ -77,6 +81,40 @@ namespace Microsoft.Build.Framework
         {
             get => s_currentThreadWorkingDirectory.Value;
             set => s_currentThreadWorkingDirectory.Value = value;
+        }
+
+        /// <summary>
+        /// The directory where MSBuild stores cache information used during the build.
+        /// </summary>
+        private static string? s_cacheDirectory = null;
+
+        /// <summary>
+        /// FOR UNIT TESTS ONLY
+        /// Clear out the static variable used for the cache directory so that tests that
+        /// modify it can validate their modifications.
+        /// </summary>
+        public static void ClearCacheDirectoryPath()
+        {
+            s_cacheDirectory = null;
+        }
+
+        /// <summary>
+        /// Retrieves the MSBuild runtime cache directory.
+        /// </summary>
+        public static string GetCacheDirectory()
+            => s_cacheDirectory ??= Path.Combine(TempFileDirectory, string.Format(CultureInfo.CurrentUICulture, "MSBuild{0}-{1}", EnvironmentUtilities.CurrentProcessId, AppDomain.CurrentDomain.Id));
+
+        /// <summary>
+        /// Clears the MSBuild runtime cache.
+        /// </summary>
+        internal static void ClearCacheDirectory()
+        {
+            string cacheDirectory = GetCacheDirectory();
+
+            if (FileSystems.Default.DirectoryExists(cacheDirectory))
+            {
+                DeleteDirectoryNoThrow(cacheDirectory, recursive: true);
+            }
         }
 
         /// <summary>
@@ -505,6 +543,79 @@ namespace Microsoft.Build.Framework
             catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// A variation on Directory.Delete that will throw ExceptionHandling.NotExpectedException exceptions.
+        /// </summary>
+        public static void DeleteDirectoryNoThrow(
+            string path,
+            bool recursive = false,
+            int retryCount = DefaultRetryCount,
+            int retryTimeOut = DefaultRetryTimeOut)
+        {
+            string? environmentRetryCount = Environment.GetEnvironmentVariable("MSBUILDDIRECTORYDELETERETRYCOUNT");
+
+            if (environmentRetryCount is not null && !int.TryParse(environmentRetryCount, out retryCount))
+            {
+                retryCount = DefaultRetryCount;
+            }
+
+            string? environmentRetryTimeOut = Environment.GetEnvironmentVariable("MSBUILDDIRECTORYDELETRETRYTIMEOUT");
+
+            if (environmentRetryTimeOut is not null && !int.TryParse(environmentRetryTimeOut, out retryTimeOut))
+            {
+                retryTimeOut = DefaultRetryTimeOut;
+            }
+
+            path = FixFilePath(path);
+
+            for (int i = 0; i < retryCount; i++)
+            {
+                try
+                {
+                    if (FileSystems.Default.DirectoryExists(path))
+                    {
+                        Directory.Delete(path, recursive);
+                        break;
+                    }
+                }
+                catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
+                {
+                }
+
+                if (i < retryCount - 1)
+                {
+                    Thread.Sleep(retryTimeOut);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Deletes all subdirectories within the specified directory without throwing exceptions.
+        /// This method enumerates all subdirectories in the given directory and attempts to delete
+        /// each one recursively. If any IO-related exceptions occur during enumeration or deletion,
+        /// they are silently ignored.
+        /// </summary>
+        /// <param name="directory">The directory whose subdirectories should be deleted.</param>
+        /// <remarks>
+        /// This method is useful for cleanup operations where partial failure is acceptable.
+        /// It will not delete the root directory itself, only its subdirectories.
+        /// IO exceptions during directory enumeration or deletion are caught and ignored.
+        /// </remarks>
+        internal static void DeleteSubdirectoriesNoThrow(string directory)
+        {
+            try
+            {
+                foreach (string dir in FileSystems.Default.EnumerateDirectories(directory))
+                {
+                    DeleteDirectoryNoThrow(dir, recursive: true, retryCount: 1);
+                }
+            }
+            catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
+            {
+                // If we can't enumerate the directories, ignore. Other cases should be handled by DeleteDirectoryNoThrow.
             }
         }
     }
