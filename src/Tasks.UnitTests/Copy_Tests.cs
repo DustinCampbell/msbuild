@@ -1136,7 +1136,7 @@ namespace Microsoft.Build.UnitTests
                     var t = new Copy
                     {
                         TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 1,  // speed up tests!
+                        RetryDelayMilliseconds = 1,  // speed up tests!
                         BuildEngine = engine,
                         SourceFiles = new[] { new TaskItem(sourceFile) },
                         DestinationFiles = new[] { new TaskItem(destinationFile) },
@@ -2040,7 +2040,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 1, // speed up tests!
+                RetryDelayMilliseconds = 1, // speed up tests!
                 BuildEngine = new MockEngine(_testOutputHelper),
                 SourceFiles = sourceFiles,
                 DestinationFolder = new TaskItem(Path.Combine(tempPath, "foo")),
@@ -2293,7 +2293,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 1,  // speed up tests!
+                RetryDelayMilliseconds = 1,  // speed up tests!
                 BuildEngine = new MockEngine(_testOutputHelper),
                 SourceFiles = new ITaskItem[] { new TaskItem("foo | bar") },
                 DestinationFolder = new TaskItem("dest"),
@@ -2318,7 +2318,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 1,  // speed up tests!
+                RetryDelayMilliseconds = 1,  // speed up tests!
                 BuildEngine = new MockEngine(_testOutputHelper),
                 SourceFiles = new ITaskItem[] { new TaskItem("foo") },
                 DestinationFolder = new TaskItem("here | there"),
@@ -2343,7 +2343,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 1, // speed up tests!
+                RetryDelayMilliseconds = 1, // speed up tests!
                 BuildEngine = engine,
                 SourceFiles = new ITaskItem[] { new TaskItem("c:\\source") },
                 DestinationFiles = new ITaskItem[] { new TaskItem("c:\\destination") },
@@ -2366,7 +2366,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    BuildEngine = engine,
+                BuildEngine = engine,
                 SourceFiles = new ITaskItem[] { new TaskItem("c:\\source") },
                 DestinationFiles = new ITaskItem[] { new TaskItem("c:\\destination") },
                 Retries = 1,
@@ -2391,7 +2391,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 1,  // speed up tests!
+                RetryDelayMilliseconds = 1,  // speed up tests!
                 BuildEngine = engine,
                 SourceFiles = new ITaskItem[] { new TaskItem("c:\\source") },
                 DestinationFiles = new ITaskItem[] { new TaskItem("c:\\destination") },
@@ -2443,7 +2443,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 1,  // speed up tests!
+                RetryDelayMilliseconds = 1,  // speed up tests!
             };
 
             Assert.False(t.UseHardlinksIfPossible);
@@ -2461,7 +2461,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 0, // Can't really test the delay, but at least try passing in a value
+                RetryDelayMilliseconds = 0, // Can't really test the delay, but at least try passing in a value
                 BuildEngine = engine,
                 SourceFiles = new ITaskItem[] { new TaskItem("c:\\source") },
                 DestinationFiles = new ITaskItem[] { new TaskItem("c:\\destination") },
@@ -2489,7 +2489,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    RetryDelayMilliseconds = 1, // Can't really test the delay, but at least try passing in a value
+                RetryDelayMilliseconds = 1, // Can't really test the delay, but at least try passing in a value
                 BuildEngine = engine,
                 SourceFiles = new ITaskItem[] { new TaskItem("c:\\source"), new TaskItem("c:\\source2") },
                 DestinationFiles = new ITaskItem[] { new TaskItem("c:\\destination"), new TaskItem("c:\\destination2") },
@@ -2978,7 +2978,7 @@ namespace Microsoft.Build.UnitTests
             var t = new Copy
             {
                 TaskEnvironment = TaskEnvironmentHelper.CreateForTest(),
-                    BuildEngine = engine,
+                BuildEngine = engine,
                 SourceFiles = new ITaskItem[] { new TaskItem("c:\\source") },
                 DestinationFiles = new ITaskItem[] { new TaskItem("c:\\destination") },
                 UseHardlinksIfPossible = false,
@@ -3162,7 +3162,7 @@ namespace Microsoft.Build.UnitTests
         public void CopyToFileWithSameCaseInsensitiveNameAsExistingDirectoryOnUnix()
         {
             // Skip this test on case-insensitive file systems (Windows, macOS with default APFS/HFS+)
-            if (!FileUtilities.GetIsFileSystemCaseSensitive())
+            if (!FrameworkFileUtilities.IsFileSystemCaseSensitive)
             {
                 return;
             }
@@ -3185,7 +3185,7 @@ namespace Microsoft.Build.UnitTests
                 // Create a few source files to copy (representing multiple files being copied to same dest dir)
                 string sourceDir = Path.Combine(tempDir, "CS", "obj", "Debug", RunnerUtilities.LatestDotNetCoreForMSBuild);
                 Directory.CreateDirectory(sourceDir);
-                
+
                 string sourceFile1 = Path.Combine(sourceDir, "apphost");
                 string sourceFile2 = Path.Combine(sourceDir, "app.dll");
                 File.WriteAllText(sourceFile1, "test apphost content");
@@ -3199,11 +3199,11 @@ namespace Microsoft.Build.UnitTests
                 t.TaskEnvironment = TaskEnvironmentHelper.CreateForTest();
                 MockEngine engine = new MockEngine();
                 t.BuildEngine = engine;
-                t.SourceFiles = new ITaskItem[] { 
+                t.SourceFiles = new ITaskItem[] {
                     new TaskItem(sourceFile1),
                     new TaskItem(sourceFile2)
                 };
-                t.DestinationFiles = new ITaskItem[] { 
+                t.DestinationFiles = new ITaskItem[] {
                     new TaskItem(destFile1),
                     new TaskItem(destFile2)
                 };
@@ -3221,7 +3221,7 @@ namespace Microsoft.Build.UnitTests
                 Assert.True(result, "Copy should succeed on Unix when destination file name differs in case from existing directory");
                 Assert.True(File.Exists(destFile1), "Destination file CS should be created");
                 Assert.True(File.Exists(destFile2), "Destination file app.dll should be created");
-                
+
                 // Ensure the directory still exists and wasn't corrupted
                 Assert.True(Directory.Exists(lowercaseDir), "The cs directory should still exist");
             }

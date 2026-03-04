@@ -924,7 +924,7 @@ public sealed partial class TerminalLogger : INodeLogger
         var projectDisplayPathSpan = outputPathSpan;
         var workingDirectorySpan = workingDir.Span;
         // under working dir case
-        if (outputPathSpan.StartsWith(workingDirectorySpan, FileUtilities.PathComparison))
+        if (outputPathSpan.StartsWith(workingDirectorySpan, FrameworkFileUtilities.PathComparison))
         {
             if (outputPathSpan.Length > workingDirectorySpan.Length
                 && (outputPathSpan[workingDirectorySpan.Length] == Path.DirectorySeparatorChar
@@ -937,7 +937,7 @@ public sealed partial class TerminalLogger : INodeLogger
         else if (sourceRoot is { Span: var sourceRootSpan })
         {
             var relativePathFromWorkingDirToSourceRoot = Path.GetRelativePath(workingDirectorySpan.ToString(), sourceRootSpan.ToString()).AsSpan();
-            if (outputPathSpan.StartsWith(sourceRootSpan, FileUtilities.PathComparison))
+            if (outputPathSpan.StartsWith(sourceRootSpan, FrameworkFileUtilities.PathComparison))
             {
                 if (outputPathSpan.Length > sourceRootSpan.Length
                     // offsets are -1 here compared to above for ***reasons***
@@ -1787,7 +1787,7 @@ public sealed partial class TerminalLogger : INodeLogger
         }
     }
     #endregion
-    
+
     #region Regex Patterns
     // Regex patterns for command line argument parsing
     private const string s_terminalLoggerArgPattern = @"(?:/|-|--)(?:tl|terminallogger):(?'value'on|off|true|false|auto)";

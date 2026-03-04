@@ -108,7 +108,7 @@ namespace Microsoft.Build.Tasks
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         // Bool is just a placeholder, we're mainly interested in a threadsafe key set.
-        private readonly ConcurrentDictionary<string, bool> _directoriesKnownToExist = new ConcurrentDictionary<string, bool>(DefaultCopyParallelism, DefaultCopyParallelism, FileUtilities.PathComparer);
+        private readonly ConcurrentDictionary<string, bool> _directoriesKnownToExist = new(DefaultCopyParallelism, DefaultCopyParallelism, FrameworkFileUtilities.PathComparer);
 
         /// <summary>
         /// Force the copy to retry even when it hits ERROR_ACCESS_DENIED -- normally we wouldn't retry in this case since
@@ -498,7 +498,7 @@ namespace Microsoft.Build.Tasks
             // { dest -> source }
             var filesActuallyCopied = new Dictionary<string, string>(
                 DestinationFiles.Length, // Set length to common case of 1:1 source->dest.
-                FileUtilities.PathComparer);
+                FrameworkFileUtilities.PathComparer);
 
             // Now that we have a list of destinationFolder files, copy from source to destinationFolder.
             for (int i = 0; i < SourceFiles.Length && !_cancellationTokenSource.IsCancellationRequested; ++i)
@@ -609,7 +609,7 @@ namespace Microsoft.Build.Tasks
             // Map: Destination path -> indexes in SourceFiles/DestinationItems array indices (ordered low->high).
             var partitionsByDestination = new Dictionary<string, List<int>>(
                 DestinationFiles.Length, // Set length to common case of 1:1 source->dest.
-                FileUtilities.PathComparer);
+                FrameworkFileUtilities.PathComparer);
 
             for (int i = 0; i < SourceFiles.Length && !_cancellationTokenSource.IsCancellationRequested; ++i)
             {

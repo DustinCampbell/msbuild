@@ -54,34 +54,6 @@ namespace Microsoft.Build.Shared
             cacheDirectory = null;
         }
 
-        internal static readonly StringComparison PathComparison = GetIsFileSystemCaseSensitive() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-
-        internal static readonly StringComparer PathComparer = GetIsFileSystemCaseSensitive() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-
-        /// <summary>
-        /// Determines whether the file system is case sensitive.
-        /// Copied from https://github.com/dotnet/runtime/blob/73ba11f3015216b39cb866d9fb7d3d25e93489f2/src/libraries/Common/src/System/IO/PathInternal.CaseSensitivity.cs#L41-L59
-        /// </summary>
-        public static bool GetIsFileSystemCaseSensitive()
-        {
-            try
-            {
-                string pathWithUpperCase = Path.Combine(Path.GetTempPath(), $"CASESENSITIVETEST{Guid.NewGuid():N}");
-                using (new FileStream(pathWithUpperCase, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 0x1000, FileOptions.DeleteOnClose))
-                {
-                    string lowerCased = pathWithUpperCase.ToLowerInvariant();
-                    return !FileSystems.Default.FileExists(lowerCased);
-                }
-            }
-            catch (Exception exc)
-            {
-                // In case something goes terribly wrong, we don't want to fail just because
-                // of a casing test, so we assume case-insensitive-but-preserving.
-                Debug.Fail("Casing test failed: " + exc);
-                return false;
-            }
-        }
-
         /// <summary>
         /// Copied from https://github.com/dotnet/corefx/blob/056715ff70e14712419d82d51c8c50c54b9ea795/src/Common/src/System/IO/PathInternal.Windows.cs#L61
         /// MSBuild should support the union of invalid path chars across the supported OSes, so builds can have the same behaviour crossplatform: https://github.com/dotnet/msbuild/issues/781#issuecomment-243942514
@@ -611,7 +583,7 @@ namespace Microsoft.Build.Shared
                 {
                     Debug.Assert(!String.IsNullOrEmpty(extension) && extension[0] == '.');
 
-                    if (fileName.EndsWith(extension, PathComparison))
+                    if (fileName.EndsWith(extension, FrameworkFileUtilities.PathComparison))
                     {
                         return true;
                     }
@@ -645,7 +617,10 @@ namespace Microsoft.Build.Shared
         /// <returns></returns>
         internal static bool ComparePathsNoThrow(string first, string second, string currentDirectory, bool alwaysIgnoreCase = false)
         {
-            StringComparison pathComparison = alwaysIgnoreCase ? StringComparison.OrdinalIgnoreCase : PathComparison;
+            StringComparison pathComparison = alwaysIgnoreCase
+                ? StringComparison.OrdinalIgnoreCase
+                : FrameworkFileUtilities.PathComparison;
+
             // perf: try comparing the bare strings first
             if (string.Equals(first, second, pathComparison))
             {
@@ -926,7 +901,7 @@ namespace Microsoft.Build.Shared
                 return false;
             }
 
-            return filename.EndsWith(extension, PathComparison);
+            return filename.EndsWith(extension, FrameworkFileUtilities.PathComparison);
         }
 
         /// <summary>
@@ -969,7 +944,7 @@ namespace Microsoft.Build.Shared
             }
 
             int index = 0;
-            while (index < splitBase.Length && index < splitPath.Length && splitBase[index].Equals(splitPath[index], PathComparison))
+            while (index < splitBase.Length && index < splitPath.Length && splitBase[index].Equals(splitPath[index], FrameworkFileUtilities.PathComparison))
             {
                 index++;
             }

@@ -108,7 +108,7 @@ namespace Microsoft.Build.Tasks
                 return false;
             }
             var deletedFilesList = new List<ITaskItem>();
-            var deletedFilesSet = new HashSet<string>(FileUtilities.PathComparer);
+            var deletedFilesSet = new HashSet<string>(FrameworkFileUtilities.PathComparer);
 
             foreach (ITaskItem file in Files)
             {

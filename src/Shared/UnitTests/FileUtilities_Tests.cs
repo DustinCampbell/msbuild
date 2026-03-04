@@ -267,7 +267,7 @@ namespace Microsoft.Build.UnitTests
         {
             var result = FileUtilities.HasExtension(fileName, allowedExtensions);
 
-            if (!FileUtilities.GetIsFileSystemCaseSensitive() || allowedExtensions.Any(extension => fileName.Contains(extension)))
+            if (!FrameworkFileUtilities.IsFileSystemCaseSensitive || allowedExtensions.Any(extension => fileName.Contains(extension)))
             {
                 result.ShouldBeTrue();
             }
@@ -307,7 +307,7 @@ namespace Microsoft.Build.UnitTests
 
                 var result = FileUtilities.HasExtension("foo.ini", new string[] { ".INI" });
 
-                result.ShouldBe(!FileUtilities.GetIsFileSystemCaseSensitive());
+                result.ShouldBe(!FrameworkFileUtilities.IsFileSystemCaseSensitive);
             }
             finally
             {

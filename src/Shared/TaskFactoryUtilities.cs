@@ -133,7 +133,7 @@ namespace Microsoft.Build.Shared
             }
 
             var directories = new List<string>();
-            var seenDirectories = new HashSet<string>(FileUtilities.PathComparer);
+            var seenDirectories = new HashSet<string>(FrameworkFileUtilities.PathComparer);
 
             foreach (string assemblyPath in assemblyPaths)
             {

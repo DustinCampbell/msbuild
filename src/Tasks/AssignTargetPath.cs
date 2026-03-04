@@ -81,7 +81,7 @@ namespace Microsoft.Build.Tasks
                     // NOTE: at this point fullRootPath may or may not have a trailing slash
                     // Ensure trailing slash otherwise c:\bin appears to match part of c:\bin2\foo
                     // Also ensure that relative segments in the path are resolved and throw on illegal characters in Path.GetFullPath to preserve pre-existing behavior.
-                    fullRootPathString = 
+                    fullRootPathString =
                         Path.GetFullPath(TaskEnvironment.GetAbsolutePath(FrameworkFileUtilities.EnsureTrailingSlash(RootFolder)));
 
                     // Ensure trailing slash for comparison. Current directory is already canonical, so we don't need to call GetCanonicalForm on it.
@@ -123,13 +123,13 @@ namespace Microsoft.Build.Tasks
                         }
                         else
                         {
-                            if (ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave18_5)) 
+                            if (ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave18_5))
                             {
-                                AbsolutePath itemSpecFullFileNamePath = 
+                                AbsolutePath itemSpecFullFileNamePath =
                                     TaskEnvironment.GetAbsolutePath(Files[i].ItemSpec).GetCanonicalForm();
 
 
-                                if (itemSpecFullFileNamePath.Value.StartsWith(fullRootPath.Value, FileUtilities.PathComparison))
+                                if (itemSpecFullFileNamePath.Value.StartsWith(fullRootPath.Value, FrameworkFileUtilities.PathComparison))
                                 {
                                     // The item spec file is in the "cone" of the RootFolder. Return the relative path from the cone root.
                                     targetPath = itemSpecFullFileNamePath.Value.Substring(fullRootPath.Value.Length);
@@ -140,9 +140,9 @@ namespace Microsoft.Build.Tasks
                                     targetPath = Path.GetFileName(Files[i].ItemSpec);
                                 }
                             }
-                            else 
+                            else
                             {
-                                string itemSpecFullFileNamePath = 
+                                string itemSpecFullFileNamePath =
                                     Path.GetFullPath(TaskEnvironment.GetAbsolutePath(Files[i].ItemSpec));
 
                                 if (String.Compare(fullRootPathString, 0, itemSpecFullFileNamePath, 0, fullRootPathString.Length, StringComparison.CurrentCultureIgnoreCase) == 0)

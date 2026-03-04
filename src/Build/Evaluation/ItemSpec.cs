@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Globbing;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
@@ -577,9 +578,12 @@ namespace Microsoft.Build.Evaluation
 
         internal MetadataTrie(MatchOnMetadataOptions options, IEnumerable<string> metadata, ItemSpec<P, I> itemSpec)
         {
-            StringComparer comparer = options == MatchOnMetadataOptions.CaseSensitive ? StringComparer.Ordinal :
-                options == MatchOnMetadataOptions.CaseInsensitive || FileUtilities.PathComparison == StringComparison.OrdinalIgnoreCase ? StringComparer.OrdinalIgnoreCase :
-                StringComparer.Ordinal;
+            StringComparer comparer = options == MatchOnMetadataOptions.CaseSensitive
+                ? StringComparer.Ordinal
+                : options == MatchOnMetadataOptions.CaseInsensitive || !FrameworkFileUtilities.IsFileSystemCaseSensitive
+                    ? StringComparer.OrdinalIgnoreCase
+                    : StringComparer.Ordinal;
+
             _children = new Dictionary<string, MetadataTrie<P, I>>(comparer);
             _normalize = options == MatchOnMetadataOptions.PathLike ? (Func<string, string>)(p => FileUtilities.NormalizePathForComparisonNoThrow(p, Environment.CurrentDirectory)) : p => p;
             foreach (ItemSpec<P, I>.ItemExpressionFragment frag in itemSpec.Fragments)

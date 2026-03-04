@@ -6,10 +6,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Experimental.BuildCheck.Checks;
+
 internal sealed class UntrustedLocationCheck : Check
 {
     public static CheckRule SupportedRule = new CheckRule(
@@ -40,7 +42,7 @@ internal sealed class UntrustedLocationCheck : Check
     private void EvaluatedPropertiesAction(BuildCheckDataContext<EvaluatedPropertiesCheckData> context)
     {
         if (checkedProjects.Add(context.Data.ProjectFilePath) &&
-            context.Data.ProjectFileDirectory.StartsWith(PathsHelper.Downloads, Shared.FileUtilities.PathComparison))
+            context.Data.ProjectFileDirectory.StartsWith(PathsHelper.Downloads, FrameworkFileUtilities.PathComparison))
         {
             context.ReportResult(BuildCheckResult.Create(
                 SupportedRule,
@@ -82,7 +84,7 @@ internal sealed class UntrustedLocationCheck : Check
                 string? locationFromEnv = Environment.GetEnvironmentVariable("XDG_DOWNLOAD_DIR");
                 if (locationFromEnv != null && FileSystems.Default.DirectoryExists(locationFromEnv))
                 {
-                    return locationFromEnv.TrimEnd(['\\','/']);
+                    return locationFromEnv.TrimEnd(['\\', '/']);
                 }
             }
 

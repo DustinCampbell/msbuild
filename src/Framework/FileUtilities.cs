@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Shared.FileSystem;
 
 #if NETFRAMEWORK
 using Path = Microsoft.IO.Path;
@@ -29,6 +31,40 @@ namespace Microsoft.Build.Framework
 
         // ISO 8601 Universal time with sortable format
         public const string FileTimeFormat = "yyyy'-'MM'-'dd HH':'mm':'ss'.'fffffff";
+
+        public static readonly bool IsFileSystemCaseSensitive = GetIsFileSystemCaseSensitive();
+
+        public static readonly StringComparison PathComparison = IsFileSystemCaseSensitive
+            ? StringComparison.Ordinal
+            : StringComparison.OrdinalIgnoreCase;
+
+        public static readonly StringComparer PathComparer = IsFileSystemCaseSensitive
+            ? StringComparer.Ordinal
+            : StringComparer.OrdinalIgnoreCase;
+
+        /// <summary>
+        /// Determines whether the file system is case sensitive.
+        /// Copied from https://github.com/dotnet/runtime/blob/73ba11f3015216b39cb866d9fb7d3d25e93489f2/src/libraries/Common/src/System/IO/PathInternal.CaseSensitivity.cs#L41-L59
+        /// </summary>
+        private static bool GetIsFileSystemCaseSensitive()
+        {
+            try
+            {
+                string pathWithUpperCase = Path.Combine(Path.GetTempPath(), $"CASESENSITIVETEST{Guid.NewGuid():N}");
+                using (new FileStream(pathWithUpperCase, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 0x1000, FileOptions.DeleteOnClose))
+                {
+                    string lowerCased = pathWithUpperCase.ToLowerInvariant();
+                    return !FileSystems.Default.FileExists(lowerCased);
+                }
+            }
+            catch (Exception ex)
+            {
+                // In case something goes terribly wrong, we don't want to fail just because
+                // of a casing test, so we assume case-insensitive-but-preserving.
+                Debug.Fail($"Casing test failed: {ex}");
+                return false;
+            }
+        }
 
         /// <summary>
         /// AsyncLocal working directory for use during property/item expansion in multithreaded mode.
