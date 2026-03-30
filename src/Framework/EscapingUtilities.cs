@@ -92,6 +92,39 @@ internal static class EscapingUtilities
         => (char)(value + (value < 10 ? '0' : 'a' - 10));
 
     /// <summary>
+    ///  Determines whether <paramref name="value"/> contains any MSBuild <c>%XX</c>
+    ///  escape sequence, where <c>XX</c> is a valid pair of hexadecimal digits.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the string contains at least one escape sequence;
+    ///  otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool ContainsEscapeSequence([NotNullWhen(true)] string? value)
+    {
+        if (value is null or { Length: < 3})
+        {
+            return false;
+        }
+
+        // Search for '%', knowing it must be followed by at least 2 more characters.
+        int percentIndex = value.IndexOf('%', startIndex: 0, value.Length - 2);
+
+        while (percentIndex != -1)
+        {
+            if (TryDecodeHexDigit(value[percentIndex + 1], out _) &&
+                TryDecodeHexDigit(value[percentIndex + 2], out _))
+            {
+                return true;
+            }
+
+            percentIndex = value.IndexOf('%', percentIndex + 1, value.Length - (percentIndex + 1) - 2);
+        }
+
+        return false;
+    }
+
+    /// <summary>
     ///  Replaces all instances of <c>%XX</c> in the input string with the character represented
     ///  by the hexadecimal number <c>XX</c>.
     /// </summary>

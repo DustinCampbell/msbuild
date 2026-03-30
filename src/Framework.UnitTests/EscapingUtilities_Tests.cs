@@ -92,4 +92,42 @@ public sealed class EscapingUtilities_Tests
     [InlineData("%3%3f", true)]
     public void ContainsEscapedWildcards(string value, bool expectedResult)
         => EscapingUtilities.ContainsEscapedWildcards(value).ShouldBe(expectedResult);
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("a", false)]
+    [InlineData("ab", false)]
+    [InlineData("foo", false)]
+    [InlineData("path\\to\\file", false)]
+    [InlineData("%", false)]
+    [InlineData("%%", false)]
+    [InlineData("%G0", false)] // G is not a hex digit
+    [InlineData("%0G", false)] // G is not a hex digit
+    [InlineData("100%", false)] // % at end, no room for two hex chars
+    [InlineData("100% done", false)] // % followed by space
+    [InlineData("%ZZ", false)] // Z is not a hex digit
+    [InlineData("%2", false)] // only one char after %
+    [InlineData("foo%", false)] // % at very end
+    [InlineData("foo%2", false)] // only one char after %
+    [InlineData("%00", true)]
+    [InlineData("%20", true)]
+    [InlineData("%2a", true)]
+    [InlineData("%2A", true)]
+    [InlineData("%3b", true)]
+    [InlineData("%3B", true)]
+    [InlineData("%3f", true)]
+    [InlineData("%3F", true)]
+    [InlineData("%25", true)] // escaped percent
+    [InlineData("%40", true)]
+    [InlineData("%ff", true)]
+    [InlineData("%FF", true)]
+    [InlineData("foo%20bar", true)] // escape in the middle
+    [InlineData("foo%3bbar", true)]
+    [InlineData("%%3b", true)] // first % invalid (only one hex char follows), second is valid
+    [InlineData("%ZZ%20", true)] // first invalid, second valid
+    [InlineData("%ZZ%GG%20", true)] // two invalid, third valid
+    [InlineData("no percent here; just special chars", false)]
+    public void ContainsEscapeSequence(string? value, bool expectedResult)
+        => EscapingUtilities.ContainsEscapeSequence(value!).ShouldBe(expectedResult);
 }
