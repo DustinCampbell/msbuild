@@ -765,13 +765,13 @@ namespace Microsoft.Build.Execution
             _project = projectToUse;
             _itemType = itemTypeToUse;
             _taskItem = new TaskItem(
-                            includeEscaped,
-                            includeBeforeWildcardExpansionEscaped,
-                            directMetadata, // copy on write!
-                            inheritedItemDefinitions,
-                            _project.Directory,
-                            _project.IsImmutable,
-                            definingFileEscaped);
+                includeEscaped,
+                includeBeforeWildcardExpansionEscaped,
+                directMetadata, // copy on write!
+                inheritedItemDefinitions,
+                _project.Directory,
+                _project.IsImmutable,
+                definingFileEscaped);
         }
 
         /// <summary>
@@ -797,7 +797,7 @@ namespace Microsoft.Build.Execution
             /// Evaluated include, escaped as necessary.
             /// </summary>
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private string _includeEscaped;
+            private MSBuildStringValue _include;
 
             /// <summary>
             /// The evaluated (escaped) include prior to wildcard expansion.  Used to determine the
@@ -846,7 +846,7 @@ namespace Microsoft.Build.Execution
             /// Creates an instance of this class given the item-spec.
             /// </summary>
             internal TaskItem(string includeEscaped, string definingFileEscaped)
-                : this(includeEscaped, includeEscaped, null, null, null, immutable: false, definingFileEscaped)
+                : this(includeEscaped, includeEscaped, directMetadata: null, itemDefinitions: null, projectDirectory: null, immutable: false, definingFileEscaped)
             {
             }
 
@@ -855,18 +855,18 @@ namespace Microsoft.Build.Execution
             /// Parameters are assumed to be ALREADY CLONED.
             /// </summary>
             internal TaskItem(
-                              string includeEscaped,
-                              string includeBeforeWildcardExpansionEscaped,
-                              IReadOnlyDictionary<string, string> directMetadata,
-                              IList<ProjectItemDefinitionInstance> itemDefinitions,
-                              string projectDirectory,
-                              bool immutable,
-                              string definingFileEscaped) // the actual project file (or import) that defines this item.
+                string includeEscaped,
+                string includeBeforeWildcardExpansionEscaped,
+                IReadOnlyDictionary<string, string> directMetadata,
+                IList<ProjectItemDefinitionInstance> itemDefinitions,
+                string projectDirectory,
+                bool immutable,
+                string definingFileEscaped) // the actual project file (or import) that defines this item.
             {
                 ErrorUtilities.VerifyThrowArgumentLength(includeEscaped);
                 ErrorUtilities.VerifyThrowArgumentLength(includeBeforeWildcardExpansionEscaped);
 
-                _includeEscaped = FileUtilities.FixFilePath(includeEscaped);
+                _include = MSBuildStringValue.FromEscaped(FileUtilities.FixFilePath(includeEscaped));
                 _includeBeforeWildcardExpansionEscaped = FileUtilities.FixFilePath(includeBeforeWildcardExpansionEscaped);
                 _directMetadata = (directMetadata == null || directMetadata.Count == 0) ? null : directMetadata; // If the metadata was all removed, toss the dictionary
                 _itemDefinitions = itemDefinitions;
@@ -890,7 +890,7 @@ namespace Microsoft.Build.Execution
             /// </summary>
             private TaskItem(TaskItem source, bool addOriginalItemSpec)
             {
-                _includeEscaped = source._includeEscaped;
+                _include = source._include;
                 _includeBeforeWildcardExpansionEscaped = source._includeBeforeWildcardExpansionEscaped;
                 source.CopyMetadataTo(this, addOriginalItemSpec);
                 _cachedModifiers = source._cachedModifiers;
@@ -923,20 +923,18 @@ namespace Microsoft.Build.Execution
             /// </comments>
             public string ItemSpec
             {
-                get
-                {
-                    return EscapingUtilities.UnescapeAll(_includeEscaped);
-                }
+                get => _include.Unescaped;
 
                 set
                 {
                     ProjectInstance.VerifyThrowNotImmutable(_isImmutable);
+                    ArgumentException.ThrowIfNullOrEmpty(value, paramName: nameof(ItemSpec));
 
-                    // Historically empty string was allowed
-                    ErrorUtilities.VerifyThrowArgumentNull(value, "ItemSpec");
-
-                    _includeEscaped = value;
-                    _cachedModifiers.Clear(); // Clear cached values
+                    if (!_include.Equals(value))
+                    {
+                        _include = MSBuildStringValue.FromEscaped(value);
+                        _cachedModifiers.Clear(); // Clear cached values
+                    }
                 }
             }
 
@@ -949,15 +947,10 @@ namespace Microsoft.Build.Execution
             /// </remarks>
             string ITaskItem2.EvaluatedIncludeEscaped
             {
-                get
-                {
-                    return _includeEscaped;
-                }
+                get => _include.Escaped;
 
                 set
                 {
-                    ProjectInstance.VerifyThrowNotImmutable(_isImmutable);
-
                     // setter on ItemSpec already expects an escaped value.
                     ItemSpec = value;
                 }
@@ -996,37 +989,25 @@ namespace Microsoft.Build.Execution
             /// Gets the number of metadata set on the item.
             /// Computed, not necessarily fast.
             /// </summary>
-            public int MetadataCount
-            {
-                get { return MetadataNames.Count; }
-            }
+            public int MetadataCount => MetadataNames.Count;
 
             /// <summary>
             /// Gets the evaluated include for this item, unescaped.
             /// </summary>
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            string IItem.EvaluatedInclude
-            {
-                get { return EscapingUtilities.UnescapeAll(_includeEscaped); }
-            }
+            string IItem.EvaluatedInclude => _include.Unescaped;
 
             /// <summary>
             /// Gets the evaluated include for this item, escaped.
             /// </summary>
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            string IItem.EvaluatedIncludeEscaped
-            {
-                get { return _includeEscaped; }
-            }
+            string IItem.EvaluatedIncludeEscaped => _include.Escaped;
 
             /// <summary>
             /// The directory of the project owning this TaskItem.
             /// May be null if this is not well defined.
             /// </summary>
-            string IItem.ProjectDirectory
-            {
-                get { return _projectDirectory; }
-            }
+            string IItem.ProjectDirectory => _projectDirectory;
 
             #region IKeyed Members
 
@@ -1034,10 +1015,7 @@ namespace Microsoft.Build.Execution
             /// Returns some value useful for a key in a dictionary
             /// </summary>
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            string Microsoft.Build.Collections.IKeyed.Key
-            {
-                get { return _includeEscaped; }
-            }
+            string IKeyed.Key => _include.Escaped;
 
             #endregion
 
@@ -1046,18 +1024,18 @@ namespace Microsoft.Build.Execution
             /// </summary>
             internal string IncludeEscaped
             {
-                get
-                {
-                    return _includeEscaped;
-                }
+                get => _include.Escaped;
 
                 set
                 {
                     ProjectInstance.VerifyThrowNotImmutable(_isImmutable);
+                    ArgumentException.ThrowIfNullOrEmpty(value, paramName: nameof(IncludeEscaped));
 
-                    ErrorUtilities.VerifyThrowArgumentLength(value, "IncludeEscaped");
-                    _includeEscaped = value;
-                    _cachedModifiers.Clear(); // Clear cached values
+                    if (!_include.Equals(value))
+                    {
+                        _include = MSBuildStringValue.FromEscaped(value);
+                        _cachedModifiers.Clear(); // Clear cached values
+                    }
                 }
             }
 
@@ -1066,9 +1044,7 @@ namespace Microsoft.Build.Execution
             /// Used to determine %(RecursiveDir)
             /// </summary>
             internal string IncludeBeforeWildcardExpansionEscaped
-            {
-                get { return _includeBeforeWildcardExpansionEscaped; }
-            }
+                => _includeBeforeWildcardExpansionEscaped;
 
             /// <summary>
             /// Number of pieces of metadata directly on this item
@@ -1293,7 +1269,7 @@ namespace Microsoft.Build.Execution
             /// </summary>
             public static explicit operator string(TaskItem that)
             {
-                return that._includeEscaped;
+                return that._include.Escaped;
             }
 
             /// <summary>
@@ -1334,7 +1310,7 @@ namespace Microsoft.Build.Execution
             /// </summary>
             public override string ToString()
             {
-                return _includeEscaped;
+                return _include.Escaped;
             }
 
 #if FEATURE_APPDOMAIN
@@ -1567,7 +1543,7 @@ namespace Microsoft.Build.Execution
                     if (String.IsNullOrEmpty(originalItemSpec))
                     {
                         // This does not appear to significantly cause a copy-on-write; otherwise, it could go in its own slot.
-                        destinationItem.SetMetadata("OriginalItemSpec", _includeEscaped);
+                        destinationItem.SetMetadata("OriginalItemSpec", _include.Escaped);
                     }
                 }
             }
@@ -1664,7 +1640,7 @@ namespace Microsoft.Build.Execution
             /// </summary>
             void ITranslatable.Translate(ITranslator translator)
             {
-                translator.Translate(ref _includeEscaped);
+                translator.Translate(ref _include, MSBuildStringValue.FactoryForDeserialization);
                 translator.Translate(ref _includeBeforeWildcardExpansionEscaped);
                 translator.Translate(ref _isImmutable);
                 translator.Translate(ref _definingFileEscaped);
@@ -1709,7 +1685,7 @@ namespace Microsoft.Build.Execution
                 // Ideally this would also hash in something like the metadata count. However this requires calculation,
                 // because local and inherited metadata are equally considered during equality comparison, and the
                 // former may mask some of the latter.
-                return StringComparer.OrdinalIgnoreCase.GetHashCode(_includeEscaped);
+                return StringComparer.OrdinalIgnoreCase.GetHashCode(_include.Escaped);
             }
 
             /// <summary>
@@ -1884,8 +1860,9 @@ namespace Microsoft.Build.Execution
                     ref _itemDefinitions,
                     ProjectItemDefinitionInstance.FactoryForDeserialization,
                     (capacity) => new List<ProjectItemDefinitionInstance>(capacity));
+
                 translator.Translate(ref _isImmutable);
-                translator.Translate(ref _includeEscaped);
+                translator.Translate(ref _include, MSBuildStringValue.FactoryForDeserialization);
 
                 if (translator.Mode == TranslationDirection.WriteToStream)
                 {
@@ -1912,6 +1889,7 @@ namespace Microsoft.Build.Execution
                 {
                     ReadInternString(translator, interner, ref _includeBeforeWildcardExpansionEscaped);
                     ReadInternString(translator, interner, ref _definingFileEscaped);
+
                     if (translator.TranslateNullable(_directMetadata))
                     {
                         int count = translator.Reader.ReadInt32();
@@ -2085,7 +2063,7 @@ namespace Microsoft.Build.Execution
             /// </summary>
             private string GetBuiltInMetadataEscaped(string name)
                 => ItemSpecModifiers.TryGetModifierKind(name, out ItemSpecModifierKind modifierKind)
-                    ? BuiltInMetadata.GetMetadataValueEscaped(_projectDirectory, _includeBeforeWildcardExpansionEscaped, _includeEscaped, _definingFileEscaped, modifierKind, ref _cachedModifiers)
+                    ? BuiltInMetadata.GetMetadataValueEscaped(_projectDirectory, _includeBeforeWildcardExpansionEscaped, _include.Escaped, _definingFileEscaped, modifierKind, ref _cachedModifiers)
                     : string.Empty;
 
             /// <summary>
