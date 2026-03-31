@@ -611,7 +611,7 @@ namespace Microsoft.Build.Graph
             ThrowOnEmptyTargetNames(entryProjectTargets);
 
             // Seed the dictionary with empty lists for every node. In this particular case though an empty list means "build nothing" rather than "default targets".
-            var targetLists = ProjectNodes.ToDictionary(node => node, node => ImmutableList<string>.Empty);
+            var targetLists = ProjectNodes.ToDictionary(node => node, node => new List<string>());
 
             var encounteredEdges = new HashSet<ProjectGraphBuildRequest>();
             var edgesToVisit = new Queue<ProjectGraphBuildRequest>();
@@ -709,7 +709,7 @@ namespace Microsoft.Build.Graph
                 var node = buildRequest.Node;
                 var requestedTargets = buildRequest.RequestedTargets;
 
-                targetLists[node] = targetLists[node].AddRange(requestedTargets);
+                targetLists[node].AddRange(requestedTargets);
 
                 // No need to continue if this node has no project references.
                 if (node.ProjectReferences.Count == 0)
@@ -746,40 +746,34 @@ namespace Microsoft.Build.Graph
                 }
             }
 
-            // Dedupe target lists
-            var entriesToUpdate = new List<KeyValuePair<ProjectGraphNode, ImmutableList<string>>>();
+            // Dedupe target lists and convert to ImmutableList<string> for the public API.
+            var result = new Dictionary<ProjectGraphNode, ImmutableList<string>>(targetLists.Count);
             foreach (var pair in targetLists)
             {
+                var node = pair.Key;
                 var targetList = pair.Value;
 
-                var seenTargets = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-                var i = 0;
-                while (i < targetList.Count)
+                if (targetList.Count == 0)
                 {
-                    if (seenTargets.Add(targetList[i]))
+                    result.Add(node, []);
+                    continue;
+                }
+
+                var seenTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var deduped = new List<string>(targetList.Count);
+
+                foreach (string target in targetList)
+                {
+                    if (seenTargets.Add(target))
                     {
-                        i++;
-                    }
-                    else
-                    {
-                        targetList = targetList.RemoveAt(i);
+                        deduped.Add(target);
                     }
                 }
 
-                // Only update if it changed
-                if (targetList != pair.Value)
-                {
-                    entriesToUpdate.Add(new KeyValuePair<ProjectGraphNode, ImmutableList<string>>(pair.Key, targetList));
-                }
+                result.Add(node, [.. deduped]);
             }
 
-            // Update in a separate pass to avoid modifying a collection while iterating it.
-            foreach (var pair in entriesToUpdate)
-            {
-                targetLists[pair.Key] = pair.Value;
-            }
-
-            return targetLists;
+            return result;
 
             void ThrowOnEmptyTargetNames(ICollection<string> targetNames)
             {
@@ -788,7 +782,7 @@ namespace Microsoft.Build.Graph
                     return;
                 }
 
-                if (targetNames.Any(targetName => string.IsNullOrWhiteSpace(targetName)))
+                if (targetNames.Any(string.IsNullOrWhiteSpace))
                 {
                     throw new ArgumentException(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("OM_TargetNameNullOrEmpty", nameof(GetTargetLists)));
                 }
