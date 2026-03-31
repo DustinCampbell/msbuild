@@ -621,8 +621,7 @@ namespace Microsoft.Build.Graph
                 // If no targets were specified, use every project's default targets.
                 foreach (ProjectGraphNode entryPointNode in EntryPointNodes)
                 {
-                    var entryTargets = ImmutableList.CreateRange(entryPointNode.ProjectInstance.DefaultTargets);
-                    var entryEdge = new ProjectGraphBuildRequest(entryPointNode, entryTargets);
+                    var entryEdge = new ProjectGraphBuildRequest(entryPointNode, [.. entryPointNode.ProjectInstance.DefaultTargets]);
                     encounteredEdges.Add(entryEdge);
                     edgesToVisit.Enqueue(entryEdge);
                 }
@@ -636,8 +635,7 @@ namespace Microsoft.Build.Graph
                     {
                         foreach (ProjectGraphNode entryPointNode in EntryPointNodes)
                         {
-                            var entryTargets = ImmutableList.CreateRange(entryPointNode.ProjectInstance.DefaultTargets);
-                            var entryEdge = new ProjectGraphBuildRequest(entryPointNode, entryTargets);
+                            var entryEdge = new ProjectGraphBuildRequest(entryPointNode, [.. entryPointNode.ProjectInstance.DefaultTargets]);
                             encounteredEdges.Add(entryEdge);
                             edgesToVisit.Enqueue(entryEdge);
                         }
@@ -663,7 +661,7 @@ namespace Microsoft.Build.Graph
                             {
                                 // Build a specific project with its default targets.
                                 ProjectGraphNode node = GetNodeForProject(project);
-                                ProjectGraphBuildRequest entryEdge = new(node, ImmutableList.CreateRange(node.ProjectInstance.DefaultTargets));
+                                ProjectGraphBuildRequest entryEdge = new(node, [.. node.ProjectInstance.DefaultTargets]);
                                 encounteredEdges.Add(entryEdge);
                                 edgesToVisit.Enqueue(entryEdge);
                                 isSolutionTraversalTarget = true;
@@ -797,39 +795,39 @@ namespace Microsoft.Build.Graph
             }
         }
 
-        private static ImmutableList<string> ExpandDefaultTargets(ImmutableList<string> targets, List<string> defaultTargets, ProjectItemInstance graphEdge)
+        private static ImmutableArray<string> ExpandDefaultTargets(ImmutableList<string> targets, List<string> defaultTargets, ProjectItemInstance graphEdge)
         {
-            var i = 0;
-            while (i < targets.Count)
+            var builder = ImmutableArray.CreateBuilder<string>(initialCapacity: targets.Count);
+
+            foreach (string target in targets)
             {
-                if (targets[i].Equals(MSBuildConstants.DefaultTargetsMarker, StringComparison.OrdinalIgnoreCase))
+                if (target.Equals(MSBuildConstants.DefaultTargetsMarker, StringComparison.OrdinalIgnoreCase))
                 {
-                    targets = targets
-                        .RemoveAt(i)
-                        .InsertRange(i, defaultTargets);
-                    i += defaultTargets.Count;
+                    builder.AddRange(defaultTargets);
                 }
-                else if (targets[i].Equals(MSBuildConstants.ProjectReferenceTargetsOrDefaultTargetsMarker, StringComparison.OrdinalIgnoreCase))
+                else if (target.Equals(MSBuildConstants.ProjectReferenceTargetsOrDefaultTargetsMarker, StringComparison.OrdinalIgnoreCase))
                 {
                     var targetsString = graphEdge.GetMetadataValue(ItemMetadataNames.ProjectReferenceTargetsMetadataName);
 
-                    var expandedTargets = string.IsNullOrEmpty(targetsString)
-                        ? defaultTargets
-                        : ExpressionShredder.SplitSemiColonSeparatedList(targetsString).ToList();
-
-                    targets = targets
-                        .RemoveAt(i)
-                        .InsertRange(i, expandedTargets);
-
-                    i += expandedTargets.Count;
+                    if (string.IsNullOrEmpty(targetsString))
+                    {
+                        builder.AddRange(defaultTargets);
+                    }
+                    else
+                    {
+                        foreach (string part in ExpressionShredder.SplitSemiColonSeparatedList(targetsString))
+                        {
+                            builder.Add(part);
+                        }
+                    }
                 }
                 else
                 {
-                    i++;
+                    builder.Add(target);
                 }
             }
 
-            return targets;
+            return builder.ToImmutable();
         }
 
         internal ProjectInstance DefaultProjectInstanceFactory(
@@ -840,10 +838,10 @@ namespace Microsoft.Build.Graph
             Debug.Assert(_evaluationContext is not null);
 
             return StaticProjectInstanceFactory(
-                                projectPath,
-                                globalProperties,
-                                projectCollection,
-                                _evaluationContext);
+                projectPath,
+                globalProperties,
+                projectCollection,
+                _evaluationContext);
         }
 
         internal static ProjectInstance StaticProjectInstanceFactory(
@@ -861,28 +859,30 @@ namespace Microsoft.Build.Graph
                 evaluationContext);
         }
 
-        private struct ProjectGraphBuildRequest : IEquatable<ProjectGraphBuildRequest>
+        private readonly struct ProjectGraphBuildRequest : IEquatable<ProjectGraphBuildRequest>
         {
-            public ProjectGraphBuildRequest(ProjectGraphNode node, ImmutableList<string> targets)
+            public ProjectGraphBuildRequest(ProjectGraphNode node, ImmutableArray<string> targets)
             {
-                Node = node ?? throw new ArgumentNullException(nameof(node));
-                RequestedTargets = targets ?? throw new ArgumentNullException(nameof(targets));
+                ArgumentNullException.ThrowIfNull(node);
+
+                Node = node;
+                RequestedTargets = targets.IsDefault ? [] : targets;
             }
 
             public ProjectGraphNode Node { get; }
 
-            public ImmutableList<string> RequestedTargets { get; }
+            public ImmutableArray<string> RequestedTargets { get; }
 
             public readonly bool Equals(ProjectGraphBuildRequest other)
             {
                 if (Node != other.Node
-                    || RequestedTargets.Count != other.RequestedTargets.Count)
+                    || RequestedTargets.Length != other.RequestedTargets.Length)
                 {
                     return false;
                 }
 
                 // Target order is important
-                for (var i = 0; i < RequestedTargets.Count; i++)
+                for (int i = 0; i < RequestedTargets.Length; i++)
                 {
                     if (!RequestedTargets[i].Equals(other.RequestedTargets[i], StringComparison.OrdinalIgnoreCase))
                     {
@@ -894,20 +894,19 @@ namespace Microsoft.Build.Graph
             }
 
             public override readonly bool Equals(object obj)
-            {
-                return !(obj is null) && obj is ProjectGraphBuildRequest graphNodeWithTargets && Equals(graphNodeWithTargets);
-            }
+                => obj is ProjectGraphBuildRequest other && Equals(other);
 
             public override readonly int GetHashCode()
             {
                 unchecked
                 {
                     const int salt = 397;
-                    var hashCode = Node.GetHashCode() * salt;
-                    for (var i = 0; i < RequestedTargets.Count; i++)
+                    int hashCode = Node.GetHashCode() * salt;
+
+                    foreach (string target in RequestedTargets)
                     {
                         hashCode *= salt;
-                        hashCode ^= StringComparer.OrdinalIgnoreCase.GetHashCode(RequestedTargets[i]);
+                        hashCode ^= StringComparer.OrdinalIgnoreCase.GetHashCode(target);
                     }
 
                     return hashCode;

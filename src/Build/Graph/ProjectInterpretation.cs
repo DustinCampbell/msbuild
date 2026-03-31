@@ -489,7 +489,7 @@ namespace Microsoft.Build.Graph
             /// <param name="project">Project containing the PRT protocol</param>
             /// <param name="entryTargets">Targets with which <paramref name="project"/> will get called</param>
             /// <returns></returns>
-            public static TargetsToPropagate FromProjectAndEntryTargets(ProjectInstance project, ImmutableList<string> entryTargets)
+            public static TargetsToPropagate FromProjectAndEntryTargets(ProjectInstance project, ImmutableArray<string> entryTargets)
             {
                 ImmutableList<TargetSpecification>.Builder targetsForOuterBuild = ImmutableList.CreateBuilder<TargetSpecification>();
                 ImmutableList<TargetSpecification>.Builder targetsForInnerBuild = ImmutableList.CreateBuilder<TargetSpecification>();
@@ -505,15 +505,14 @@ namespace Microsoft.Build.Graph
                             string targetsMetadataValue = projectReferenceTarget.GetMetadataValue(ItemMetadataNames.ProjectReferenceTargetsMetadataName);
                             bool skipNonexistentTargets = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue("SkipNonexistentTargets"));
                             bool targetsAreForOuterBuild = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue(ProjectReferenceTargetIsOuterBuildMetadataName));
-                            TargetSpecification[] targets = ExpressionShredder.SplitSemiColonSeparatedList(targetsMetadataValue)
-                                .Select(t => new TargetSpecification(t, skipNonexistentTargets)).ToArray();
-                            if (targetsAreForOuterBuild)
+
+                            ImmutableList<TargetSpecification>.Builder targets = targetsAreForOuterBuild
+                                ? targetsForOuterBuild
+                                : targetsForInnerBuild;
+
+                            foreach (string target in ExpressionShredder.SplitSemiColonSeparatedList(targetsMetadataValue))
                             {
-                                targetsForOuterBuild.AddRange(targets);
-                            }
-                            else
-                            {
-                                targetsForInnerBuild.AddRange(targets);
+                                targets.Add(new TargetSpecification(target, skipNonexistentTargets));
                             }
                         }
                     }
