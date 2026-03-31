@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Xml;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
@@ -300,10 +301,10 @@ namespace Microsoft.Build.Graph
         }
 
         /// <summary>
-        ///     Gets the effective global properties for a project reference item.
+        ///  Gets the effective global properties for a project reference item.
         /// </summary>
         /// <remarks>
-        ///     The behavior of this method should match the logic in the SDK
+        ///  The behavior of this method should match the logic in the SDK.
         /// </remarks>
         private static GlobalPropertyPartsForMSBuildTask ProjectReferenceGlobalPropertiesModifier(
             GlobalPropertyPartsForMSBuildTask defaultParts,
@@ -312,12 +313,13 @@ namespace Microsoft.Build.Graph
             // ProjectReference defines yet another metadata name containing properties to undefine. Merge it in if non empty.
             var globalPropertiesToRemove = SplitPropertyNames(projectReference.GetMetadataValue(GlobalPropertiesToRemoveMetadataName));
 
-            var newUndefineProperties = defaultParts.UndefineProperties;
+            var undefineBuilder = ImmutableArray.CreateBuilder<string>(
+                defaultParts.UndefineProperties.Length + globalPropertiesToRemove.Length + 1);
 
-            newUndefineProperties = newUndefineProperties.AddRange(defaultParts.UndefineProperties);
-            newUndefineProperties = newUndefineProperties.AddRange(globalPropertiesToRemove);
+            undefineBuilder.AddRange(defaultParts.UndefineProperties);
+            undefineBuilder.AddRange(globalPropertiesToRemove);
 
-            newUndefineProperties.Add("InnerBuildProperty");
+            undefineBuilder.Add("InnerBuildProperty");
 
             var newProperties = defaultParts.Properties;
 
@@ -329,7 +331,7 @@ namespace Microsoft.Build.Graph
                 var setPlatformString = projectReference.GetMetadataValue(SetPlatformMetadataName);
                 var setTargetFrameworkString = projectReference.GetMetadataValue(SetTargetFrameworkMetadataName);
 
-                if (!String.IsNullOrEmpty(setConfigurationString) || !String.IsNullOrEmpty(setPlatformString) || !String.IsNullOrEmpty(setTargetFrameworkString))
+                if (!string.IsNullOrEmpty(setConfigurationString) || !string.IsNullOrEmpty(setPlatformString) || !string.IsNullOrEmpty(setTargetFrameworkString))
                 {
                     newProperties = SplitPropertyNameValuePairs(
                         ItemMetadataNames.PropertiesMetadataName,
@@ -337,19 +339,19 @@ namespace Microsoft.Build.Graph
                 }
             }
 
-            return new GlobalPropertyPartsForMSBuildTask(newProperties, defaultParts.AdditionalProperties, newUndefineProperties);
+            return new GlobalPropertyPartsForMSBuildTask(newProperties, defaultParts.AdditionalProperties, undefineBuilder.MoveToImmutable());
         }
 
         private readonly struct GlobalPropertyPartsForMSBuildTask
         {
             public ImmutableDictionary<string, string> Properties { get; }
             public ImmutableDictionary<string, string> AdditionalProperties { get; }
-            public ImmutableList<string> UndefineProperties { get; }
+            public ImmutableArray<string> UndefineProperties { get; }
 
             public GlobalPropertyPartsForMSBuildTask(
                 ImmutableDictionary<string, string> properties,
                 ImmutableDictionary<string, string> additionalProperties,
-                ImmutableList<string> undefineProperties)
+                ImmutableArray<string> undefineProperties)
             {
                 Properties = properties;
                 AdditionalProperties = additionalProperties;
@@ -358,7 +360,7 @@ namespace Microsoft.Build.Graph
 
             public bool AllEmpty()
             {
-                return Properties.Count == 0 && AdditionalProperties.Count == 0 && UndefineProperties.Count == 0;
+                return Properties.Count == 0 && AdditionalProperties.Count == 0 && UndefineProperties.Length == 0;
             }
 
             public GlobalPropertyPartsForMSBuildTask AddPropertyToUndefine(string propertyToUndefine)
@@ -383,13 +385,13 @@ namespace Microsoft.Build.Graph
             IEnumerable<GlobalPropertiesModifier> globalPropertyModifiers)
         {
             ErrorUtilities.VerifyThrowInternalNull(projectReference);
-            ErrorUtilities.VerifyThrowArgumentNull(requesterGlobalProperties);
+            ArgumentNullException.ThrowIfNull(requesterGlobalProperties);
 
             var properties = SplitPropertyNameValuePairs(ItemMetadataNames.PropertiesMetadataName, projectReference.GetMetadataValue(ItemMetadataNames.PropertiesMetadataName));
             var additionalProperties = SplitPropertyNameValuePairs(ItemMetadataNames.AdditionalPropertiesMetadataName, projectReference.GetMetadataValue(ItemMetadataNames.AdditionalPropertiesMetadataName));
             var undefineProperties = SplitPropertyNames(projectReference.GetMetadataValue(ItemMetadataNames.UndefinePropertiesMetadataName));
 
-            var defaultParts = new GlobalPropertyPartsForMSBuildTask(properties.ToImmutableDictionary(), additionalProperties.ToImmutableDictionary(), undefineProperties.ToImmutableList());
+            var defaultParts = new GlobalPropertyPartsForMSBuildTask(properties.ToImmutableDictionary(), additionalProperties.ToImmutableDictionary(), undefineProperties);
 
             var globalPropertyParts = globalPropertyModifiers?.Aggregate(defaultParts, (currentProperties, modifier) => modifier(currentProperties, projectReference)) ?? defaultParts;
 
@@ -405,7 +407,6 @@ namespace Microsoft.Build.Graph
             MergeIntoPropertyDictionary(globalProperties, globalPropertyParts.Properties);
             MergeIntoPropertyDictionary(globalProperties, globalPropertyParts.AdditionalProperties);
             RemoveFromPropertyDictionary(globalProperties, globalPropertyParts.UndefineProperties);
-
             return globalProperties;
         }
 
@@ -444,19 +445,21 @@ namespace Microsoft.Build.Graph
                     propertyNameAndValuesString));
         }
 
-        private static IReadOnlyCollection<string> SplitPropertyNames(string propertyNamesString)
+        private static ImmutableArray<string> SplitPropertyNames(string propertyNamesString)
         {
-            if (String.IsNullOrEmpty(propertyNamesString))
+            if (string.IsNullOrEmpty(propertyNamesString))
             {
-                return ImmutableArray<string>.Empty;
+                return [];
             }
 
-            return propertyNamesString.Split(PropertySeparator, StringSplitOptions.RemoveEmptyEntries);
+            string[] properties = propertyNamesString.Split(PropertySeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            return ImmutableCollectionsMarshal.AsImmutableArray(properties);
         }
 
         private static void RemoveFromPropertyDictionary(
             PropertyDictionary<ProjectPropertyInstance> properties,
-            IReadOnlyCollection<string> propertyNamesToRemove)
+            ImmutableArray<string> propertyNamesToRemove)
         {
             foreach (var propertyName in propertyNamesToRemove)
             {
