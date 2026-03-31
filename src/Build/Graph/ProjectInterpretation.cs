@@ -45,8 +45,6 @@ namespace Microsoft.Build.Graph
 
         public static ProjectInterpretation Instance = new ProjectInterpretation();
 
-        private static readonly ImmutableArray<GlobalPropertiesModifier> ModifierForNonMultitargetingNodes = [(GlobalPropertiesModifier)ProjectReferenceGlobalPropertiesModifier];
-
         internal enum ProjectType
         {
             OuterBuild,
@@ -78,7 +76,6 @@ namespace Microsoft.Build.Graph
         public IEnumerable<ReferenceInfo> GetReferences(ProjectGraphNode projectGraphNode, ProjectCollection projectCollection, ProjectGraph.ProjectInstanceFactoryFunc projectInstanceFactory)
         {
             IEnumerable<ProjectItemInstance> projectReferenceItems;
-            ImmutableArray<GlobalPropertiesModifier> globalPropertiesModifiers = default;
 
             ProjectInstance requesterInstance = projectGraphNode.ProjectInstance;
 
@@ -88,11 +85,7 @@ namespace Microsoft.Build.Graph
                     projectReferenceItems = ConstructInnerBuildReferences(requesterInstance);
                     break;
                 case ProjectType.InnerBuild:
-                    globalPropertiesModifiers = ModifierForNonMultitargetingNodes.Add((parts, reference) => parts.AddPropertyToUndefine(GetInnerBuildPropertyName(requesterInstance)));
-                    projectReferenceItems = requesterInstance.GetItems(ItemTypeNames.ProjectReference);
-                    break;
                 case ProjectType.NonMultitargeting:
-                    globalPropertiesModifiers = ModifierForNonMultitargetingNodes;
                     projectReferenceItems = requesterInstance.GetItems(ItemTypeNames.ProjectReference);
                     break;
                 default:
@@ -128,7 +121,8 @@ namespace Microsoft.Build.Graph
                     // Only allow reuse in scenarios where we will not mutate the collection.
                     // TODO: Should these mutations be moved to globalPropertiesModifiers in the future?
                     allowCollectionReuse: solutionConfiguration == null && !enableDynamicPlatformResolution,
-                    globalPropertiesModifiers);
+                    projectGraphNode.ProjectType,
+                    requesterInstance);
 
                 bool configurationDefined = false;
 
@@ -301,88 +295,18 @@ namespace Microsoft.Build.Graph
         }
 
         /// <summary>
-        ///  Gets the effective global properties for a project reference item.
-        /// </summary>
-        /// <remarks>
-        ///  The behavior of this method should match the logic in the SDK.
-        /// </remarks>
-        private static GlobalPropertyPartsForMSBuildTask ProjectReferenceGlobalPropertiesModifier(
-            GlobalPropertyPartsForMSBuildTask defaultParts,
-            ProjectItemInstance projectReference)
-        {
-            // ProjectReference defines yet another metadata name containing properties to undefine. Merge it in if non empty.
-            var globalPropertiesToRemove = SplitPropertyNames(projectReference.GetMetadataValue(GlobalPropertiesToRemoveMetadataName));
-
-            var undefineBuilder = ImmutableArray.CreateBuilder<string>(
-                defaultParts.UndefineProperties.Length + globalPropertiesToRemove.Length + 1);
-
-            undefineBuilder.AddRange(defaultParts.UndefineProperties);
-            undefineBuilder.AddRange(globalPropertiesToRemove);
-
-            undefineBuilder.Add("InnerBuildProperty");
-
-            var newProperties = defaultParts.Properties;
-
-            // The properties on the project reference supersede the ones from the MSBuild task instead of appending.
-            if (newProperties.Count == 0)
-            {
-                // TODO: Mimic AssignProjectConfiguration's behavior for determining the values for these.
-                var setConfigurationString = projectReference.GetMetadataValue(SetConfigurationMetadataName);
-                var setPlatformString = projectReference.GetMetadataValue(SetPlatformMetadataName);
-                var setTargetFrameworkString = projectReference.GetMetadataValue(SetTargetFrameworkMetadataName);
-
-                if (!string.IsNullOrEmpty(setConfigurationString) || !string.IsNullOrEmpty(setPlatformString) || !string.IsNullOrEmpty(setTargetFrameworkString))
-                {
-                    newProperties = SplitPropertyNameValuePairs(
-                        ItemMetadataNames.PropertiesMetadataName,
-                        $"{setConfigurationString};{setPlatformString};{setTargetFrameworkString}").ToImmutableDictionary();
-                }
-            }
-
-            return new GlobalPropertyPartsForMSBuildTask(newProperties, defaultParts.AdditionalProperties, undefineBuilder.MoveToImmutable());
-        }
-
-        private readonly struct GlobalPropertyPartsForMSBuildTask
-        {
-            public ImmutableDictionary<string, string> Properties { get; }
-            public ImmutableDictionary<string, string> AdditionalProperties { get; }
-            public ImmutableArray<string> UndefineProperties { get; }
-
-            public GlobalPropertyPartsForMSBuildTask(
-                ImmutableDictionary<string, string> properties,
-                ImmutableDictionary<string, string> additionalProperties,
-                ImmutableArray<string> undefineProperties)
-            {
-                Properties = properties;
-                AdditionalProperties = additionalProperties;
-                UndefineProperties = undefineProperties;
-            }
-
-            public bool AllEmpty()
-            {
-                return Properties.Count == 0 && AdditionalProperties.Count == 0 && UndefineProperties.Length == 0;
-            }
-
-            public GlobalPropertyPartsForMSBuildTask AddPropertyToUndefine(string propertyToUndefine)
-            {
-                return new GlobalPropertyPartsForMSBuildTask(Properties, AdditionalProperties, UndefineProperties.Add(propertyToUndefine));
-            }
-        }
-
-        private delegate GlobalPropertyPartsForMSBuildTask GlobalPropertiesModifier(GlobalPropertyPartsForMSBuildTask defaultParts, ProjectItemInstance projectReference);
-
-        /// <summary>
         ///     Gets the effective global properties for an item that will get passed to <see cref="MSBuild.Projects"/>.
         /// </summary>
         /// <remarks>
         ///     The behavior of this method matches the hardcoded behaviour of the msbuild task
-        ///     and the <paramref name="globalPropertyModifiers"/> parameter can contain other mutations done at build time in targets / tasks
+        ///     and the project reference global properties modification done at build time in targets / tasks.
         /// </remarks>
         private static PropertyDictionary<ProjectPropertyInstance> GetGlobalPropertiesForItem(
             ProjectItemInstance projectReference,
             PropertyDictionary<ProjectPropertyInstance> requesterGlobalProperties,
             bool allowCollectionReuse,
-            ImmutableArray<GlobalPropertiesModifier> globalPropertyModifiers)
+            ProjectType projectType,
+            ProjectInstance requesterInstance)
         {
             ErrorUtilities.VerifyThrowInternalNull(projectReference);
             ArgumentNullException.ThrowIfNull(requesterGlobalProperties);
@@ -391,13 +315,44 @@ namespace Microsoft.Build.Graph
             var additionalProperties = SplitPropertyNameValuePairs(ItemMetadataNames.AdditionalPropertiesMetadataName, projectReference.GetMetadataValue(ItemMetadataNames.AdditionalPropertiesMetadataName));
             var undefineProperties = SplitPropertyNames(projectReference.GetMetadataValue(ItemMetadataNames.UndefinePropertiesMetadataName));
 
-            var defaultParts = new GlobalPropertyPartsForMSBuildTask(properties.ToImmutableDictionary(), additionalProperties.ToImmutableDictionary(), undefineProperties);
+            // For non-OuterBuild project types, compute the effective properties from the project reference.
+            // The behavior of this should match the logic in the SDK.
+            IReadOnlyDictionary<string, string> effectiveProperties = properties;
+            ImmutableArray<string> globalPropertiesToRemove = default;
 
-            var globalPropertyParts = !globalPropertyModifiers.IsDefault
-                ? globalPropertyModifiers.Aggregate(defaultParts, (currentProperties, modifier) => modifier(currentProperties, projectReference))
-                : defaultParts;
+            if (projectType is not ProjectType.OuterBuild)
+            {
+                globalPropertiesToRemove = SplitPropertyNames(projectReference.GetMetadataValue(GlobalPropertiesToRemoveMetadataName));
 
-            if (globalPropertyParts.AllEmpty() && allowCollectionReuse)
+                // The properties on the project reference supersede the ones from the MSBuild task instead of appending.
+                if (properties.Count == 0)
+                {
+                    // TODO: Mimic AssignProjectConfiguration's behavior for determining the values for these.
+                    var setConfigurationString = projectReference.GetMetadataValue(SetConfigurationMetadataName);
+                    var setPlatformString = projectReference.GetMetadataValue(SetPlatformMetadataName);
+                    var setTargetFrameworkString = projectReference.GetMetadataValue(SetTargetFrameworkMetadataName);
+
+                    if (!string.IsNullOrEmpty(setConfigurationString) || !string.IsNullOrEmpty(setPlatformString) || !string.IsNullOrEmpty(setTargetFrameworkString))
+                    {
+                        effectiveProperties = SplitPropertyNameValuePairs(
+                            ItemMetadataNames.PropertiesMetadataName,
+                            $"{setConfigurationString};{setPlatformString};{setTargetFrameworkString}");
+                    }
+                }
+            }
+
+            // For InnerBuild, we also need to undefine the inner build property.
+            string innerBuildPropertyName = projectType == ProjectType.InnerBuild
+                ? GetInnerBuildPropertyName(requesterInstance)
+                : null;
+
+            // Check if everything is empty — if so, we can reuse the requester's properties.
+            if (effectiveProperties.Count == 0
+                && additionalProperties.Count == 0
+                && undefineProperties.Length == 0
+                && globalPropertiesToRemove.IsDefaultOrEmpty
+                && innerBuildPropertyName is null
+                && allowCollectionReuse)
             {
                 return requesterGlobalProperties;
             }
@@ -405,10 +360,34 @@ namespace Microsoft.Build.Graph
             // Make a copy to avoid mutating the requester
             var globalProperties = new PropertyDictionary<ProjectPropertyInstance>(requesterGlobalProperties);
 
-            // Append and remove properties as specified by the various metadata
-            MergeIntoPropertyDictionary(globalProperties, globalPropertyParts.Properties);
-            MergeIntoPropertyDictionary(globalProperties, globalPropertyParts.AdditionalProperties);
-            RemoveFromPropertyDictionary(globalProperties, globalPropertyParts.UndefineProperties);
+            // Append properties as specified by the various metadata
+            MergeIntoPropertyDictionary(globalProperties, effectiveProperties);
+            MergeIntoPropertyDictionary(globalProperties, additionalProperties);
+
+            // Remove properties: undefine metadata + GlobalPropertiesToRemove metadata + InnerBuildProperty + inner build property name
+            foreach (var propertyName in undefineProperties)
+            {
+                globalProperties.Remove(propertyName);
+            }
+
+            if (!globalPropertiesToRemove.IsDefaultOrEmpty)
+            {
+                foreach (var propertyName in globalPropertiesToRemove)
+                {
+                    globalProperties.Remove(propertyName);
+                }
+            }
+
+            if (projectType is not ProjectType.OuterBuild)
+            {
+                globalProperties.Remove("InnerBuildProperty");
+            }
+
+            if (innerBuildPropertyName is not null)
+            {
+                globalProperties.Remove(innerBuildPropertyName);
+            }
+
             return globalProperties;
         }
 
@@ -457,16 +436,6 @@ namespace Microsoft.Build.Graph
             string[] properties = propertyNamesString.Split(PropertySeparator, StringSplitOptions.RemoveEmptyEntries);
 
             return ImmutableCollectionsMarshal.AsImmutableArray(properties);
-        }
-
-        private static void RemoveFromPropertyDictionary(
-            PropertyDictionary<ProjectPropertyInstance> properties,
-            ImmutableArray<string> propertyNamesToRemove)
-        {
-            foreach (var propertyName in propertyNamesToRemove)
-            {
-                properties.Remove(propertyName);
-            }
         }
 
         public readonly struct TargetsToPropagate
