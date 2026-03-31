@@ -795,9 +795,9 @@ namespace Microsoft.Build.Graph
             }
         }
 
-        private static ImmutableArray<string> ExpandDefaultTargets(ImmutableList<string> targets, List<string> defaultTargets, ProjectItemInstance graphEdge)
+        private static ImmutableArray<string> ExpandDefaultTargets(ImmutableArray<string> targets, List<string> defaultTargets, ProjectItemInstance graphEdge)
         {
-            var builder = ImmutableArray.CreateBuilder<string>(initialCapacity: targets.Count);
+            var builder = ImmutableArray.CreateBuilder<string>(initialCapacity: targets.Length);
 
             foreach (string target in targets)
             {

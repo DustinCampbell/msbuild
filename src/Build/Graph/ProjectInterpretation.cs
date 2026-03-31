@@ -466,10 +466,10 @@ namespace Microsoft.Build.Graph
 
         public readonly struct TargetsToPropagate
         {
-            private readonly ImmutableList<TargetSpecification> _outerBuildTargets;
-            private readonly ImmutableList<TargetSpecification> _allTargets;
+            private readonly ImmutableArray<TargetSpecification> _outerBuildTargets;
+            private readonly ImmutableArray<TargetSpecification> _allTargets;
 
-            private TargetsToPropagate(ImmutableList<TargetSpecification> outerBuildTargets, ImmutableList<TargetSpecification> nonOuterBuildTargets)
+            private TargetsToPropagate(ImmutableArray<TargetSpecification> outerBuildTargets, ImmutableArray<TargetSpecification> nonOuterBuildTargets)
             {
                 _outerBuildTargets = outerBuildTargets;
 
@@ -491,8 +491,8 @@ namespace Microsoft.Build.Graph
             /// <returns></returns>
             public static TargetsToPropagate FromProjectAndEntryTargets(ProjectInstance project, ImmutableArray<string> entryTargets)
             {
-                ImmutableList<TargetSpecification>.Builder targetsForOuterBuild = ImmutableList.CreateBuilder<TargetSpecification>();
-                ImmutableList<TargetSpecification>.Builder targetsForInnerBuild = ImmutableList.CreateBuilder<TargetSpecification>();
+                var targetsForOuterBuild = ImmutableArray.CreateBuilder<TargetSpecification>();
+                var targetsForInnerBuild = ImmutableArray.CreateBuilder<TargetSpecification>();
 
                 ICollection<ProjectItemInstance> projectReferenceTargets = project.GetItems(ItemTypeNames.ProjectReferenceTargets);
 
@@ -506,7 +506,7 @@ namespace Microsoft.Build.Graph
                             bool skipNonexistentTargets = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue("SkipNonexistentTargets"));
                             bool targetsAreForOuterBuild = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue(ProjectReferenceTargetIsOuterBuildMetadataName));
 
-                            ImmutableList<TargetSpecification>.Builder targets = targetsAreForOuterBuild
+                            ImmutableArray<TargetSpecification>.Builder targets = targetsAreForOuterBuild
                                 ? targetsForOuterBuild
                                 : targetsForInnerBuild;
 
@@ -521,15 +521,21 @@ namespace Microsoft.Build.Graph
                 return new TargetsToPropagate(targetsForOuterBuild.ToImmutable(), targetsForInnerBuild.ToImmutable());
             }
 
-            public ImmutableList<string> GetApplicableTargetsForReference(ProjectGraphNode projectGraphNode)
+            public ImmutableArray<string> GetApplicableTargetsForReference(ProjectGraphNode projectGraphNode)
             {
-                ImmutableList<string> RemoveNonexistentTargetsIfSkippable(ImmutableList<TargetSpecification> targets)
+                ImmutableArray<string> RemoveNonexistentTargetsIfSkippable(ImmutableArray<TargetSpecification> targets)
                 {
-                    // Keep targets that are non-skippable or that exist but are skippable.
-                    return targets
-                        .Where(t => !t.SkipIfNonexistent || projectGraphNode.ProjectInstance.Targets.ContainsKey(t.Target))
-                        .Select(t => t.Target)
-                        .ToImmutableList();
+                    var builder = ImmutableArray.CreateBuilder<string>(targets.Length);
+
+                    foreach (TargetSpecification t in targets)
+                    {
+                        if (!t.SkipIfNonexistent || projectGraphNode.ProjectInstance.Targets.ContainsKey(t.Target))
+                        {
+                            builder.Add(t.Target);
+                        }
+                    }
+
+                    return builder.ToImmutable();
                 }
 
                 return projectGraphNode.ProjectType switch
