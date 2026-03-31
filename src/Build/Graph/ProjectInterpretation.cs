@@ -45,7 +45,7 @@ namespace Microsoft.Build.Graph
 
         public static ProjectInterpretation Instance = new ProjectInterpretation();
 
-        private static readonly ImmutableList<GlobalPropertiesModifier> ModifierForNonMultitargetingNodes = [(GlobalPropertiesModifier)ProjectReferenceGlobalPropertiesModifier];
+        private static readonly ImmutableArray<GlobalPropertiesModifier> ModifierForNonMultitargetingNodes = [(GlobalPropertiesModifier)ProjectReferenceGlobalPropertiesModifier];
 
         internal enum ProjectType
         {
@@ -78,7 +78,7 @@ namespace Microsoft.Build.Graph
         public IEnumerable<ReferenceInfo> GetReferences(ProjectGraphNode projectGraphNode, ProjectCollection projectCollection, ProjectGraph.ProjectInstanceFactoryFunc projectInstanceFactory)
         {
             IEnumerable<ProjectItemInstance> projectReferenceItems;
-            IEnumerable<GlobalPropertiesModifier> globalPropertiesModifiers = null;
+            ImmutableArray<GlobalPropertiesModifier> globalPropertiesModifiers = default;
 
             ProjectInstance requesterInstance = projectGraphNode.ProjectInstance;
 
@@ -382,7 +382,7 @@ namespace Microsoft.Build.Graph
             ProjectItemInstance projectReference,
             PropertyDictionary<ProjectPropertyInstance> requesterGlobalProperties,
             bool allowCollectionReuse,
-            IEnumerable<GlobalPropertiesModifier> globalPropertyModifiers)
+            ImmutableArray<GlobalPropertiesModifier> globalPropertyModifiers)
         {
             ErrorUtilities.VerifyThrowInternalNull(projectReference);
             ArgumentNullException.ThrowIfNull(requesterGlobalProperties);
@@ -393,7 +393,9 @@ namespace Microsoft.Build.Graph
 
             var defaultParts = new GlobalPropertyPartsForMSBuildTask(properties.ToImmutableDictionary(), additionalProperties.ToImmutableDictionary(), undefineProperties);
 
-            var globalPropertyParts = globalPropertyModifiers?.Aggregate(defaultParts, (currentProperties, modifier) => modifier(currentProperties, projectReference)) ?? defaultParts;
+            var globalPropertyParts = !globalPropertyModifiers.IsDefault
+                ? globalPropertyModifiers.Aggregate(defaultParts, (currentProperties, modifier) => modifier(currentProperties, projectReference))
+                : defaultParts;
 
             if (globalPropertyParts.AllEmpty() && allowCollectionReuse)
             {
