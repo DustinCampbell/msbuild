@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Xml;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
@@ -40,8 +39,6 @@ namespace Microsoft.Build.Graph
         private const string ShouldUnsetParentConfigurationAndPlatformPropertyName = "ShouldUnsetParentConfigurationAndPlatform";
         private const string ProjectMetadataName = "Project";
         private const string ConfigurationMetadataName = "Configuration";
-
-        private static readonly char[] PropertySeparator = MSBuildConstants.SemicolonChar;
 
         public static ProjectInterpretation Instance = new ProjectInterpretation();
 
@@ -311,18 +308,27 @@ namespace Microsoft.Build.Graph
             ErrorUtilities.VerifyThrowInternalNull(projectReference);
             ArgumentNullException.ThrowIfNull(requesterGlobalProperties);
 
-            var properties = SplitPropertyNameValuePairs(ItemMetadataNames.PropertiesMetadataName, projectReference.GetMetadataValue(ItemMetadataNames.PropertiesMetadataName));
-            var additionalProperties = SplitPropertyNameValuePairs(ItemMetadataNames.AdditionalPropertiesMetadataName, projectReference.GetMetadataValue(ItemMetadataNames.AdditionalPropertiesMetadataName));
-            var undefineProperties = SplitPropertyNames(projectReference.GetMetadataValue(ItemMetadataNames.UndefinePropertiesMetadataName));
+            string propertiesMetadata = projectReference.GetMetadataValue(ItemMetadataNames.PropertiesMetadataName);
+            using var properties = new RefArrayBuilder<(string Name, string Value)>(initialCapacity: 8);
+            ref var refProperties = ref properties.AsRef();
+            SplitPropertyNameValuePairs(ItemMetadataNames.PropertiesMetadataName, propertiesMetadata, ref refProperties);
+
+            string additionalPropertiesMetadata = projectReference.GetMetadataValue(ItemMetadataNames.AdditionalPropertiesMetadataName);
+            using var additionalProperties = new RefArrayBuilder<(string Name, string Value)>(initialCapacity: 8);
+            SplitPropertyNameValuePairs(ItemMetadataNames.AdditionalPropertiesMetadataName, additionalPropertiesMetadata, ref additionalProperties.AsRef());
+
+            string undefinePropertiesMetadata = projectReference.GetMetadataValue(ItemMetadataNames.UndefinePropertiesMetadataName);
+            using var undefineProperties = new RefArrayBuilder<string>(initialCapacity: 8);
+            SplitPropertyNames(undefinePropertiesMetadata, ref undefineProperties.AsRef());
 
             // For non-OuterBuild project types, compute the effective properties from the project reference.
             // The behavior of this should match the logic in the SDK.
-            IReadOnlyDictionary<string, string> effectiveProperties = properties;
-            ImmutableArray<string> globalPropertiesToRemove = default;
+            using var globalPropertiesToRemove = new RefArrayBuilder<string>(initialCapacity: 8);
 
             if (projectType is not ProjectType.OuterBuild)
             {
-                globalPropertiesToRemove = SplitPropertyNames(projectReference.GetMetadataValue(GlobalPropertiesToRemoveMetadataName));
+                string globalPropertiesToRemoveMetadata = projectReference.GetMetadataValue(GlobalPropertiesToRemoveMetadataName);
+                SplitPropertyNames(globalPropertiesToRemoveMetadata, ref globalPropertiesToRemove.AsRef());
 
                 // The properties on the project reference supersede the ones from the MSBuild task instead of appending.
                 if (properties.Count == 0)
@@ -334,9 +340,12 @@ namespace Microsoft.Build.Graph
 
                     if (!string.IsNullOrEmpty(setConfigurationString) || !string.IsNullOrEmpty(setPlatformString) || !string.IsNullOrEmpty(setTargetFrameworkString))
                     {
-                        effectiveProperties = SplitPropertyNameValuePairs(
+                        refProperties.Count = 0;
+
+                        SplitPropertyNameValuePairs(
                             ItemMetadataNames.PropertiesMetadataName,
-                            $"{setConfigurationString};{setPlatformString};{setTargetFrameworkString}");
+                            $"{setConfigurationString};{setPlatformString};{setTargetFrameworkString}",
+                            ref refProperties);
                     }
                 }
             }
@@ -347,10 +356,10 @@ namespace Microsoft.Build.Graph
                 : null;
 
             // Check if everything is empty — if so, we can reuse the requester's properties.
-            if (effectiveProperties.Count == 0
-                && additionalProperties.Count == 0
-                && undefineProperties.Length == 0
-                && globalPropertiesToRemove.IsDefaultOrEmpty
+            if (properties.IsEmpty
+                && additionalProperties.IsEmpty
+                && undefineProperties.IsEmpty
+                && globalPropertiesToRemove.IsEmpty
                 && innerBuildPropertyName is null
                 && allowCollectionReuse)
             {
@@ -361,18 +370,30 @@ namespace Microsoft.Build.Graph
             var globalProperties = new PropertyDictionary<ProjectPropertyInstance>(requesterGlobalProperties);
 
             // Append properties as specified by the various metadata
-            MergeIntoPropertyDictionary(globalProperties, effectiveProperties);
-            MergeIntoPropertyDictionary(globalProperties, additionalProperties);
+            foreach (var (name, value) in properties.AsSpan())
+            {
+                globalProperties[name] = ProjectPropertyInstance.Create(name, value);
+            }
 
-            // Remove properties: undefine metadata + GlobalPropertiesToRemove metadata + InnerBuildProperty + inner build property name
-            foreach (var propertyName in undefineProperties)
+            foreach (var (name, value) in additionalProperties.AsSpan())
+            {
+                globalProperties[name] = ProjectPropertyInstance.Create(name, value);
+            }
+
+            // Remove properties:
+            // - undefine metadata
+            // - GlobalPropertiesToRemove metadata
+            // - InnerBuildProperty
+            // - inner build property name
+
+            foreach (var propertyName in undefineProperties.AsSpan())
             {
                 globalProperties.Remove(propertyName);
             }
 
-            if (!globalPropertiesToRemove.IsDefaultOrEmpty)
+            if (!globalPropertiesToRemove.IsEmpty)
             {
-                foreach (var propertyName in globalPropertiesToRemove)
+                foreach (var propertyName in globalPropertiesToRemove.AsSpan())
                 {
                     globalProperties.Remove(propertyName);
                 }
@@ -391,51 +412,116 @@ namespace Microsoft.Build.Graph
             return globalProperties;
         }
 
-        private static void MergeIntoPropertyDictionary(
-            PropertyDictionary<ProjectPropertyInstance> destination,
-            IReadOnlyDictionary<string, string> source)
+        private static void SplitPropertyNameValuePairs(string syntaxName, string propertyNameValuePairs, ref RefArrayBuilder<(string Name, string Value)> builder)
         {
-            foreach (var pair in source)
+            if (string.IsNullOrEmpty(propertyNameValuePairs))
             {
-                destination[pair.Key] = ProjectPropertyInstance.Create(pair.Key, pair.Value);
+                return;
             }
+
+            int startIndex = 0;
+
+            while (startIndex < propertyNameValuePairs.Length)
+            {
+                int semicolonIndex = propertyNameValuePairs.IndexOf(';', startIndex);
+
+                if (semicolonIndex < 0)
+                {
+                    semicolonIndex = propertyNameValuePairs.Length;
+                }
+
+                if (semicolonIndex > startIndex)
+                {
+                    int segmentLength = semicolonIndex - startIndex;
+                    int equalsIndex = propertyNameValuePairs.IndexOf('=', startIndex, segmentLength);
+
+                    if (equalsIndex >= 0)
+                    {
+                        string name = TrimmedSubstring(propertyNameValuePairs, startIndex, equalsIndex - startIndex);
+
+                        if (name.Length == 0)
+                        {
+                            ThrowInvalidProperty(syntaxName, propertyNameValuePairs);
+                        }
+
+                        string value = TrimmedSubstring(propertyNameValuePairs, equalsIndex + 1, semicolonIndex - equalsIndex - 1);
+
+                        builder.Add((name, EscapingUtilities.Escape(value)));
+                    }
+                    else if (builder.Count > 0)
+                    {
+                        // No '=' sign means this fragment is a continuation of the previous property's value.
+                        // This happens when the value contained semicolons (e.g., WarningsAsErrors=1234;5678;9999
+                        // becomes segments ["WarningsAsErrors=1234", "5678", "9999"] after splitting on ';').
+                        string value = TrimmedSubstring(propertyNameValuePairs, startIndex, segmentLength);
+
+                        ref var previous = ref builder[^1];
+                        previous = (previous.Name, previous.Value + ";" + EscapingUtilities.Escape(value));
+                    }
+                    else
+                    {
+                        ThrowInvalidProperty(syntaxName, propertyNameValuePairs);
+                    }
+                }
+
+                startIndex = semicolonIndex + 1;
+            }
+
+            // Returns the trimmed substring between startIndex (inclusive) and endIndex (exclusive),
+            // or empty if the trimmed result is empty.
+            static string TrimmedSubstring(string text, int startIndex, int length)
+            {
+                int endIndex = startIndex + length;
+
+                while (startIndex < endIndex && char.IsWhiteSpace(text[startIndex]))
+                {
+                    startIndex++;
+                }
+
+                while (endIndex > startIndex && char.IsWhiteSpace(text[endIndex - 1]))
+                {
+                    endIndex--;
+                }
+
+                return endIndex > startIndex
+                    ? text.Substring(startIndex, endIndex - startIndex)
+                    : string.Empty;
+            }
+
+            static void ThrowInvalidProperty(string syntaxName, string propertyNameValuePairs)
+                => throw new InvalidProjectFileException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        ResourceUtilities.GetResourceString("General.InvalidPropertyError"),
+                        syntaxName,
+                        propertyNameValuePairs));
         }
 
-        private static IReadOnlyDictionary<string, string> SplitPropertyNameValuePairs(string syntaxName, string propertyNameAndValuesString)
+        private static void SplitPropertyNames(string propertyNames, ref RefArrayBuilder<string> builder)
         {
-            if (String.IsNullOrEmpty(propertyNameAndValuesString))
+            if (string.IsNullOrEmpty(propertyNames))
             {
-                return ImmutableDictionary<string, string>.Empty;
+                return;
             }
 
-            if (PropertyParser.GetTableWithEscaping(
-                null,
-                null,
-                null,
-                propertyNameAndValuesString.Split(PropertySeparator, StringSplitOptions.RemoveEmptyEntries),
-                out var propertiesTable))
+            int startIndex = 0;
+
+            while (startIndex < propertyNames.Length)
             {
-                return propertiesTable;
+                int semicolonIndex = propertyNames.IndexOf(';', startIndex);
+
+                if (semicolonIndex < 0)
+                {
+                    semicolonIndex = propertyNames.Length;
+                }
+
+                if (semicolonIndex > startIndex)
+                {
+                    builder.Add(propertyNames.Substring(startIndex, semicolonIndex - startIndex));
+                }
+
+                startIndex = semicolonIndex + 1;
             }
-
-            throw new InvalidProjectFileException(
-                String.Format(
-                    CultureInfo.InvariantCulture,
-                    ResourceUtilities.GetResourceString("General.InvalidPropertyError"),
-                    syntaxName,
-                    propertyNameAndValuesString));
-        }
-
-        private static ImmutableArray<string> SplitPropertyNames(string propertyNamesString)
-        {
-            if (string.IsNullOrEmpty(propertyNamesString))
-            {
-                return [];
-            }
-
-            string[] properties = propertyNamesString.Split(PropertySeparator, StringSplitOptions.RemoveEmptyEntries);
-
-            return ImmutableCollectionsMarshal.AsImmutableArray(properties);
         }
 
         public readonly struct TargetsToPropagate
