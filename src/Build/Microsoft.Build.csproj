@@ -503,12 +503,23 @@
     <Compile Include="Evaluation\SimpleProjectRootElementCache.cs" />
     <Compile Include="Evaluation\SemiColonTokenizer.cs" />
     <Compile Include="Evaluation\StringMetadataTable.cs" />
-    <Compile Include="Evaluation\ExpressionShredder.cs" />
     <Compile Include="Evaluation\Evaluator.cs" />
-    <Compile Include="Evaluation\Expander.cs" />
-    <Compile Include="Evaluation\ToolsetProvider.cs" />
     <Compile Include="Evaluation\Expander\ArgumentParser.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
+    <Compile Include="Evaluation\Expander.cs" />
+    <Compile Include="Evaluation\Expander.Function.cs" />
+    <Compile Include="Evaluation\Expander.FunctionBuilder.cs" />
+    <Compile Include="Evaluation\Expander.ItemExpander.cs" />
+    <Compile Include="Evaluation\Expander.ItemExpander.IntrinsicItemFunctions.cs" />
+    <Compile Include="Evaluation\Expander.MetadataExpander.cs" />
+    <Compile Include="Evaluation\Expander.MetadataMatchEvaluator.cs" />
+    <Compile Include="Evaluation\Expander.PropertyExpander.cs" />
+    <Compile Include="Evaluation\Expander.RegularExpressions.cs" />
+    <Compile Include="Evaluation\Expander.SpanBasedConcatenator.cs" />
+    <Compile Include="Evaluation\ExpanderOptions.cs" />
+    <Compile Include="Evaluation\ExpressionShredder.cs" />
+    <Compile Include="Evaluation\IntrinsicFunctionOverload.cs" />
+    <Compile Include="Evaluation\ToolsetProvider.cs" />
     <Compile Include="Globbing\CompositeGlob.cs" />
     <Compile Include="Globbing\Extensions\MSBuildGlobExtensions.cs" />
     <Compile Include="Globbing\Visitor\GlobVisitor.cs" />
@@ -671,7 +682,8 @@
     </XmlPeek>
 
     <PropertyGroup>
-      <NuGetFrameworkWrapperRedirects_Content><![CDATA[
+      <NuGetFrameworkWrapperRedirects_Content>
+        <![CDATA[
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
