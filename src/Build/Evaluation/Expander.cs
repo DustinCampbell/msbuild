@@ -190,13 +190,8 @@ internal partial class Expander<P, I>
 
     /// <summary>
     /// Accessor for the metadata.
-    /// Set temporarily during item metadata evaluation.
     /// </summary>
-    internal IMetadataTable Metadata
-    {
-        get { return _metadata; }
-        set { _metadata = value; }
-    }
+    internal IMetadataTable Metadata => _metadata;
 
     /// <summary>
     /// If a property is expanded but evaluates to null then it is considered to be un-initialized.
@@ -207,6 +202,8 @@ internal partial class Expander<P, I>
         get { return _propertiesUseTracker; }
         set { _propertiesUseTracker = value; }
     }
+
+    public bool HasMetadata => _metadata is not null;
 
     /// <summary>
     /// Tests to see if the expression may contain expandable expressions, i.e.

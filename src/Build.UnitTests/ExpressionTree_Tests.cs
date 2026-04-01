@@ -99,33 +99,35 @@ namespace Microsoft.Build.UnitTests
             Parser p = new Parser();
             GenericExpressionNode tree;
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(new PropertyDictionary<ProjectPropertyInstance>(), new ItemDictionary<ProjectItemInstance>(), FileSystems.Default, null);
-            expander.Metadata = new StringMetadataTable(null);
-            bool value;
-
-            string fileThatMustAlwaysExist = FileUtilities.GetTemporaryFileName();
-            File.WriteAllText(fileThatMustAlwaysExist, "foo");
-            string command = "Exists('" + fileThatMustAlwaysExist + "')";
-            tree = p.Parse(command, ParserOptions.AllowAll, ElementLocation.EmptyLocation);
-
-            ConditionEvaluator.IConditionEvaluationState state =
-                            new ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance>(
-                                    command,
-                                    expander,
-                                    ExpanderOptions.ExpandAll,
-                                    null,
-                                    Directory.GetCurrentDirectory(),
-                                    ElementLocation.EmptyLocation,
-                                    FileSystems.Default);
-
-            value = tree.Evaluate(state);
-            Assert.True(value);
-
-            if (File.Exists(fileThatMustAlwaysExist))
+            using (expander.OpenMetadataScope(new StringMetadataTable(null)))
             {
-                File.Delete(fileThatMustAlwaysExist);
-            }
+                bool value;
 
-            AssertParseEvaluate(p, "Exists('c:\\IShouldntExist.sys')", expander, false);
+                string fileThatMustAlwaysExist = FileUtilities.GetTemporaryFileName();
+                File.WriteAllText(fileThatMustAlwaysExist, "foo");
+                string command = "Exists('" + fileThatMustAlwaysExist + "')";
+                tree = p.Parse(command, ParserOptions.AllowAll, ElementLocation.EmptyLocation);
+
+                ConditionEvaluator.IConditionEvaluationState state =
+                    new ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance>(
+                        command,
+                        expander,
+                        ExpanderOptions.ExpandAll,
+                        null,
+                        Directory.GetCurrentDirectory(),
+                        ElementLocation.EmptyLocation,
+                        FileSystems.Default);
+
+                value = tree.Evaluate(state);
+                Assert.True(value);
+
+                if (File.Exists(fileThatMustAlwaysExist))
+                {
+                    File.Delete(fileThatMustAlwaysExist);
+                }
+
+                AssertParseEvaluate(p, "Exists('c:\\IShouldntExist.sys')", expander, false);
+            }
         }
 
         /// <summary>
@@ -430,9 +432,11 @@ namespace Microsoft.Build.UnitTests
 
         private void AssertParseEvaluate(Parser p, string expression, Expander<ProjectPropertyInstance, ProjectItemInstance> expander, bool expected, ConditionEvaluator.IConditionEvaluationState state)
         {
-            if (expander.Metadata == null)
+            using var metadataScope = expander.OpenMetadataScope();
+
+            if (!expander.HasMetadata)
             {
-                expander.Metadata = new StringMetadataTable(null);
+                metadataScope.Update(new StringMetadataTable(null));
             }
 
             GenericExpressionNode tree = p.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
@@ -441,13 +445,13 @@ namespace Microsoft.Build.UnitTests
             {
                 state =
                 new ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance>(
-                        String.Empty,
-                        expander,
-                        ExpanderOptions.ExpandAll,
-                        null,
-                        Directory.GetCurrentDirectory(),
-                        ElementLocation.EmptyLocation,
-                        FileSystems.Default);
+                    String.Empty,
+                    expander,
+                    ExpanderOptions.ExpandAll,
+                    null,
+                    Directory.GetCurrentDirectory(),
+                    ElementLocation.EmptyLocation,
+                    FileSystems.Default);
             }
 
             bool result = tree.Evaluate(state);
@@ -464,9 +468,11 @@ namespace Microsoft.Build.UnitTests
         {
             bool fExceptionCaught;
 
-            if (expander.Metadata == null)
+            using var metadataScope = expander.OpenMetadataScope();
+
+            if (!expander.HasMetadata)
             {
-                expander.Metadata = new StringMetadataTable(null);
+                metadataScope.Update(new StringMetadataTable(null));
             }
 
             try
@@ -477,13 +483,13 @@ namespace Microsoft.Build.UnitTests
                 {
                     state =
                     new ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance>(
-                            String.Empty,
-                            expander,
-                            ExpanderOptions.ExpandAll,
-                            null,
-                            Directory.GetCurrentDirectory(),
-                            ElementLocation.EmptyLocation,
-                            FileSystems.Default);
+                        String.Empty,
+                        expander,
+                        ExpanderOptions.ExpandAll,
+                        null,
+                        Directory.GetCurrentDirectory(),
+                        ElementLocation.EmptyLocation,
+                        FileSystems.Default);
                 }
                 tree.Evaluate(state);
             }
