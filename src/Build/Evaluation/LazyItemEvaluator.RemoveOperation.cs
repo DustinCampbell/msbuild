@@ -19,10 +19,18 @@ namespace Microsoft.Build.Evaluation
             private readonly ImmutableList<string> _matchOnMetadata;
             private MetadataTrie<P, I> _metadataSet;
 
-            public RemoveOperation(RemoveOperationBuilder builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            public RemoveOperation(
+                ProjectItemElement itemElement,
+                string itemType,
+                ItemSpec<P, I> itempec,
+                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                bool conditionResult,
+                ImmutableList<string> matchOnMetadata,
+                MatchOnMetadataOptions matchOnMetadataOptions,
+                LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+                : base(itemElement, itemType, itempec, referencedItemLists, conditionResult, lazyEvaluator)
             {
-                _matchOnMetadata = builder.MatchOnMetadata.ToImmutable();
+                _matchOnMetadata = matchOnMetadata;
 
                 ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
                     _matchOnMetadata.IsEmpty || _itemSpec.Fragments.All(f => f is ItemSpec<P, I>.ItemExpressionFragment),
@@ -31,7 +39,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (!_matchOnMetadata.IsEmpty)
                 {
-                    _metadataSet = new MetadataTrie<P, I>(builder.MatchOnMetadataOptions, _matchOnMetadata, _itemSpec);
+                    _metadataSet = new MetadataTrie<P, I>(matchOnMetadataOptions, _matchOnMetadata, _itemSpec);
                 }
             }
 

@@ -538,7 +538,14 @@ namespace Microsoft.Build.Evaluation
 
             ProcessMetadataElements(itemElement, operationBuilder);
 
-            return new UpdateOperation(operationBuilder, this);
+            return new UpdateOperation(
+                operationBuilder.ItemElement,
+                operationBuilder.ItemType,
+                operationBuilder.ItemSpec,
+                operationBuilder.ReferencedItemLists.ToImmutable(),
+                operationBuilder.ConditionResult,
+                operationBuilder.Metadata.ToImmutable(),
+                lazyEvaluator: this);
         }
 
         private IncludeOperation BuildIncludeOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
@@ -575,7 +582,17 @@ namespace Microsoft.Build.Evaluation
             // Process Metadata (STEP 5: Evaluate each metadata XML and apply them to each item we have so far)
             ProcessMetadataElements(itemElement, operationBuilder);
 
-            return new IncludeOperation(operationBuilder, this);
+            return new IncludeOperation(
+                operationBuilder.ItemElement,
+                operationBuilder.ItemType,
+                operationBuilder.ItemSpec,
+                operationBuilder.ReferencedItemLists.ToImmutable(),
+                operationBuilder.ConditionResult,
+                operationBuilder.Metadata.ToImmutable(),
+                operationBuilder.ElementOrder,
+                operationBuilder.RootDirectory,
+                operationBuilder.Excludes.ToImmutable(),
+                lazyEvaluator: this);
         }
 
         private RemoveOperation BuildRemoveOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
@@ -609,7 +626,15 @@ namespace Microsoft.Build.Evaluation
                 operationBuilder.MatchOnMetadataOptions = options;
             }
 
-            return new RemoveOperation(operationBuilder, this);
+            return new RemoveOperation(
+                operationBuilder.ItemElement,
+                operationBuilder.ItemType,
+                operationBuilder.ItemSpec,
+                operationBuilder.ReferencedItemLists.ToImmutable(),
+                operationBuilder.ConditionResult,
+                operationBuilder.MatchOnMetadata.ToImmutable(),
+                operationBuilder.MatchOnMetadataOptions,
+                lazyEvaluator: this);
         }
 
         private void ProcessItemSpec(string rootDirectory, string itemSpec, IElementLocation itemSpecLocation, OperationBuilder builder)

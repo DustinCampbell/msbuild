@@ -24,14 +24,24 @@ namespace Microsoft.Build.Evaluation
             private readonly ImmutableSegmentedList<string> _excludes;
             private readonly ImmutableArray<ProjectMetadataElement> _metadata;
 
-            public IncludeOperation(IncludeOperationBuilder builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            public IncludeOperation(
+                ProjectItemElement itemElement,
+                string itemType,
+                ItemSpec<P, I> itemSpec,
+                ImmutableDictionary<string, LazyItemList> referencedItemLists,
+                bool conditionResult,
+                ImmutableArray<ProjectMetadataElement> metadata,
+                int elementOrder,
+                string? rootDirectory,
+                ImmutableSegmentedList<string> excludes,
+                LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+                : base(itemElement, itemType, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
-                _elementOrder = builder.ElementOrder;
-                _rootDirectory = builder.RootDirectory;
+                _elementOrder = elementOrder;
+                _rootDirectory = rootDirectory;
 
-                _excludes = builder.Excludes.ToImmutable();
-                _metadata = builder.Metadata.ToImmutable();
+                _excludes = excludes;
+                _metadata = metadata;
             }
 
             protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
