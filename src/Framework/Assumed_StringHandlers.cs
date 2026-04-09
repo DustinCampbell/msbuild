@@ -1,0 +1,172 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
+
+namespace Microsoft.Build.Framework;
+
+internal static partial class Assumed
+{
+    [InterpolatedStringHandler]
+    public readonly ref struct IsNullInterpolatedStringHandler<T>
+    {
+        private readonly PooledStringBuilderHelper _builder;
+
+        public IsNullInterpolatedStringHandler(int literalLength, int formattedCount, T? value, out bool success)
+        {
+            success = value is null;
+            _builder = new(literalLength, success);
+        }
+
+        public void AppendLiteral(string value)
+            => _builder.AppendLiteral(value);
+
+        public void AppendFormatted<TValue>(TValue value)
+            => _builder.AppendFormatted(value);
+
+        public void AppendFormatted<TValue>(TValue value, string format)
+            where TValue : IFormattable
+            => _builder.AppendFormatted(value, format);
+
+        public string GetFormattedText()
+            => _builder.GetFormattedText();
+    }
+
+    [InterpolatedStringHandler]
+    public readonly ref struct IsNullOrEmptyInterpolatedStringHandler
+    {
+        private readonly PooledStringBuilderHelper _builder;
+
+        public IsNullOrEmptyInterpolatedStringHandler(int literalLength, int formattedCount, string? value, out bool success)
+        {
+            success = value is { Length: > 0 };
+            _builder = new(literalLength, success);
+        }
+
+        public void AppendLiteral(string value)
+            => _builder.AppendLiteral(value);
+
+        public void AppendFormatted<TValue>(TValue value)
+            => _builder.AppendFormatted(value);
+
+        public void AppendFormatted<TValue>(TValue value, string format)
+            where TValue : IFormattable
+            => _builder.AppendFormatted(value, format);
+
+        public string GetFormattedText()
+            => _builder.GetFormattedText();
+    }
+
+    [InterpolatedStringHandler]
+    public readonly ref struct ConditionTrueInterpolatedStringHandler
+    {
+        private readonly PooledStringBuilderHelper _builder;
+
+        public ConditionTrueInterpolatedStringHandler(int literalLength, int formattedCount, bool condition, out bool success)
+        {
+            success = condition;
+            _builder = new(literalLength, success);
+        }
+
+        public void AppendLiteral(string value)
+            => _builder.AppendLiteral(value);
+
+        public void AppendFormatted<TValue>(TValue value)
+            => _builder.AppendFormatted(value);
+
+        public void AppendFormatted<TValue>(TValue value, string format)
+            where TValue : IFormattable
+            => _builder.AppendFormatted(value, format);
+
+        public string GetFormattedText()
+            => _builder.GetFormattedText();
+    }
+
+    [InterpolatedStringHandler]
+    public readonly ref struct ConditionFalseInterpolatedStringHandler
+    {
+        private readonly PooledStringBuilderHelper _builder;
+
+        public ConditionFalseInterpolatedStringHandler(int literalLength, int formattedCount, bool condition, out bool success)
+        {
+            success = !condition;
+            _builder = new(literalLength, success);
+        }
+
+        public void AppendLiteral(string value)
+            => _builder.AppendLiteral(value);
+
+        public void AppendFormatted<TValue>(TValue value)
+            => _builder.AppendFormatted(value);
+
+        public void AppendFormatted<TValue>(TValue value, string format)
+            where TValue : IFormattable
+            => _builder.AppendFormatted(value, format);
+
+        public string GetFormattedText()
+            => _builder.GetFormattedText();
+    }
+
+    [InterpolatedStringHandler]
+    public readonly ref struct UnconditionalInterpolatedStringHandler
+    {
+        private readonly PooledStringBuilderHelper _builder;
+
+        public UnconditionalInterpolatedStringHandler(int literalLength, int formattedCount)
+        {
+            _builder = new(literalLength, condition: true);
+        }
+
+        public void AppendLiteral(string value)
+            => _builder.AppendLiteral(value);
+
+        public void AppendFormatted<TValue>(TValue value)
+            => _builder.AppendFormatted(value);
+
+        public void AppendFormatted<TValue>(TValue value, string format)
+            where TValue : IFormattable
+            => _builder.AppendFormatted(value, format);
+
+        public string GetFormattedText()
+            => _builder.GetFormattedText();
+    }
+
+    private ref struct PooledStringBuilderHelper
+    {
+        private StringBuilder? _builder;
+
+        public PooledStringBuilderHelper(int capacity, bool condition)
+        {
+            if (condition)
+            {
+                _builder = StringBuilderCache.Acquire(capacity);
+            }
+        }
+
+        public readonly void AppendLiteral(string value)
+            => _builder!.Append(value);
+
+        public readonly void AppendFormatted<T>(T value)
+            => _builder!.Append(value?.ToString());
+
+        public readonly void AppendFormatted<TValue>(TValue value, string format)
+            where TValue : IFormattable
+            => _builder!.Append(value?.ToString(format, formatProvider: null));
+
+        public string GetFormattedText()
+        {
+            var builder = Interlocked.Exchange(ref _builder, null);
+
+            if (builder is not null)
+            {
+                return StringBuilderCache.GetStringAndRelease(builder);
+            }
+
+            // GetFormattedText() should never be called if the condition passed in was false.
+            return Unreachable<string>();
+        }
+    }
+}

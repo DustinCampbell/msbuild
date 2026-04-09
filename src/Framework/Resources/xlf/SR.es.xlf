@@ -82,9 +82,34 @@
         <target state="translated">La ruta de acceso "{0}" usada para los registros de depuración es demasiado larga. Establézcalo en un valor más corto con la variable de entorno MSBUILDDEBUGPATH o cambie la configuración del sistema para permitir rutas de acceso largas.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExpectedFalse">
+        <source>Expected condition to be false.</source>
+        <target state="new">Expected condition to be false.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonEmptyString">
+        <source>Expected '{0}' to be non-empty string.</source>
+        <target state="new">Expected '{0}' to be non-empty string.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonNullValue">
+        <source>Expected '{0}' to be non-null.</source>
+        <target state="new">Expected '{0}' to be non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedTrue">
+        <source>Expected condition to be false.</source>
+        <target state="new">Expected condition to be false.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedCreatingTempFile">
         <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
         <target state="translated">No se pudo crear un archivo temporal. La carpeta de archivos temporales está llena o su ruta de acceso es incorrecta. {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FileAndLine">
+        <source>File='{0}', Line={1}</source>
+        <target state="new">File='{0}', Line={1}</target>
         <note />
       </trans-unit>
       <trans-unit id="GlobExpansionFailed">
@@ -120,6 +145,11 @@
       <trans-unit id="PathTooLong">
         <source>Path: {0} exceeds the OS max path limit. The fully qualified file name must be less than {1} characters.</source>
         <target state="translated">La ruta de acceso {0} supera el límite máximo para la ruta de acceso del sistema operativo. El nombre de archivo completo debe ser inferior a {1} caracteres.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnreachableLocation">
+        <source>This program location is thought to be unreachable.</source>
+        <target state="new">This program location is thought to be unreachable.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">

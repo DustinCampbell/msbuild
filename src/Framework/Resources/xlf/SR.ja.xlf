@@ -82,9 +82,34 @@
         <target state="translated">デバッグ ログに使用されるパス "{0}" が長すぎます。MSBUILDDEBUGPATH 環境変数を使用して短い値に設定するか、長いパスを許可するようにシステム構成を変更してください。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExpectedFalse">
+        <source>Expected condition to be false.</source>
+        <target state="new">Expected condition to be false.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonEmptyString">
+        <source>Expected '{0}' to be non-empty string.</source>
+        <target state="new">Expected '{0}' to be non-empty string.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonNullValue">
+        <source>Expected '{0}' to be non-null.</source>
+        <target state="new">Expected '{0}' to be non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedTrue">
+        <source>Expected condition to be false.</source>
+        <target state="new">Expected condition to be false.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedCreatingTempFile">
         <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
         <target state="translated">一時ファイルを作成できませんでした。一時ファイル フォルダーがいっぱいであるか、またはそのパスが正しくありません。{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FileAndLine">
+        <source>File='{0}', Line={1}</source>
+        <target state="new">File='{0}', Line={1}</target>
         <note />
       </trans-unit>
       <trans-unit id="GlobExpansionFailed">
@@ -120,6 +145,11 @@
       <trans-unit id="PathTooLong">
         <source>Path: {0} exceeds the OS max path limit. The fully qualified file name must be less than {1} characters.</source>
         <target state="translated">パス: {0} は OS のパスの上限を越えています。完全修飾のファイル名は {1} 文字以下にする必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnreachableLocation">
+        <source>This program location is thought to be unreachable.</source>
+        <target state="new">This program location is thought to be unreachable.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">

@@ -199,4 +199,22 @@
   <data name="ParameterCannotHaveInvalidPathChars" xml:space="preserve">
     <value>Parameter "{0}" with assigned value "{1}" cannot have invalid path or invalid file characters.</value>
   </data>
+  <data name="UnreachableLocation" xml:space="preserve">
+    <value>This program location is thought to be unreachable.</value>
+  </data>
+  <data name="FileAndLine" xml:space="preserve">
+    <value>File='{0}', Line={1}</value>
+  </data>
+  <data name="ExpectedFalse" xml:space="preserve">
+    <value>Expected condition to be false.</value>
+  </data>
+  <data name="ExpectedTrue" xml:space="preserve">
+    <value>Expected condition to be false.</value>
+  </data>
+  <data name="ExpectedNonNullValue" xml:space="preserve">
+    <value>Expected '{0}' to be non-null.</value>
+  </data>
+  <data name="ExpectedNonEmptyString" xml:space="preserve">
+    <value>Expected '{0}' to be non-empty string.</value>
+  </data>
 </root>

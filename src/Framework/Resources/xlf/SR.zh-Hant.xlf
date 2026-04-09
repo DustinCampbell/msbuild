@@ -82,9 +82,34 @@
         <target state="translated">用於偵錯記錄檔 "{0}" 的路徑太長。使用 MSBUILDDEBUGPATH 環境變數將它設定為較短的值，或變更您的系統設定以允許長路徑。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExpectedFalse">
+        <source>Expected condition to be false.</source>
+        <target state="new">Expected condition to be false.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonEmptyString">
+        <source>Expected '{0}' to be non-empty string.</source>
+        <target state="new">Expected '{0}' to be non-empty string.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonNullValue">
+        <source>Expected '{0}' to be non-null.</source>
+        <target state="new">Expected '{0}' to be non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedTrue">
+        <source>Expected condition to be false.</source>
+        <target state="new">Expected condition to be false.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedCreatingTempFile">
         <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
         <target state="translated">無法建立暫存檔案。暫存檔案資料夾已滿或其路徑錯誤。{0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FileAndLine">
+        <source>File='{0}', Line={1}</source>
+        <target state="new">File='{0}', Line={1}</target>
         <note />
       </trans-unit>
       <trans-unit id="GlobExpansionFailed">
@@ -122,9 +147,14 @@
         <target state="translated">路徑: {0} 超過 OS 路徑上限。完整檔案名稱必須少於 {1} 個字元。</target>
         <note />
       </trans-unit>
+      <trans-unit id="UnreachableLocation">
+        <source>This program location is thought to be unreachable.</source>
+        <target state="new">This program location is thought to be unreachable.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">
         <source>.NET Framework version "{0}" is not supported. Please specify a value from the enumeration Microsoft.Build.Utilities.TargetDotNetFrameworkVersion.</source>
-          <target state="translated">不支援 .NET Framework 版本 "{0}"。請從列舉 Microsoft.Build.Utilities.TargetDotNetFrameworkVersion 中指定值。</target>
+        <target state="translated">不支援 .NET Framework 版本 "{0}"。請從列舉 Microsoft.Build.Utilities.TargetDotNetFrameworkVersion 中指定值。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersionForWindowsSdk">
