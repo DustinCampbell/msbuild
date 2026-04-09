@@ -88,6 +88,18 @@ namespace Microsoft.Build.Framework
         }
 
         /// <summary>
+        /// Throws an ArgumentNullException if the given string parameter is null
+        /// and ArgumentException if it has zero length.
+        /// </summary>
+        internal static void VerifyThrowArgumentInvalidPath(string parameter, [CallerArgumentExpression(nameof(parameter))] string? paramName = null)
+        {
+            if (FileUtilities.PathIsInvalid(parameter))
+            {
+                throw new ArgumentException(SR.FormatParameterCannotHaveInvalidPathChars(paramName, parameter), paramName);
+            }
+        }
+
+        /// <summary>
         ///  Verify the parameters provided to a standard <see cref="ICollection{T}.CopyTo(T[], int)"/> call.
         /// </summary>
         /// <typeparam name="T">The element type of the destination array.</typeparam>

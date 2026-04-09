@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../SR.resx">
     <body>
@@ -105,6 +105,11 @@
       <trans-unit id="InvalidGetPathOfFileAboveParameter">
         <source>The parameter '{0}' can only be a file name and cannot include a directory.</source>
         <target state="translated">O parâmetro '{0}' pode ser somente um nome de arquivo e não pode incluir um diretório.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterCannotHaveInvalidPathChars">
+        <source>Parameter "{0}" with assigned value "{1}" cannot have invalid path or invalid file characters.</source>
+        <target state="translated">O parâmetro "{0}" com o valor "{1}" atribuído não pode ter um caminho inválido ou caracteres de arquivo inválidos.</target>
         <note />
       </trans-unit>
       <trans-unit id="PathMustBeRooted">

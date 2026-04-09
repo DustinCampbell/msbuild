@@ -226,10 +226,6 @@
         <source>MSB4233: There was an exception while reading the log file: {0}</source>
         <note>{StrBegin="MSB4233: "}This is shown when the Binary Logger can't read the log file.</note>
       </trans-unit>
-      <trans-unit id="Shared.ParameterCannotHaveInvalidPathChars">
-        <source>Parameter "{0}" with assigned value "{1}" cannot have invalid path or invalid file characters.</source>
-        <note />
-      </trans-unit>
     </body>
   </file>
 </xliff>

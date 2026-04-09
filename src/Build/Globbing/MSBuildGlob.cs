@@ -171,7 +171,7 @@ namespace Microsoft.Build.Globbing
         {
             ErrorUtilities.VerifyThrowArgumentNull(globRoot);
             ErrorUtilities.VerifyThrowArgumentNull(fileSpec);
-            ErrorUtilities.VerifyThrowArgumentInvalidPath(globRoot, nameof(globRoot));
+            FrameworkErrorUtilities.VerifyThrowArgumentInvalidPath(globRoot);
 
             if (string.IsNullOrEmpty(globRoot))
             {

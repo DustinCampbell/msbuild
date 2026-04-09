@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -235,9 +235,6 @@
   </data>
   <data name="Shared.ParameterCannotBeNull" xml:space="preserve">
     <value>Parameter "{0}" cannot be null.</value>
-  </data>
-  <data name="Shared.ParameterCannotHaveInvalidPathChars" xml:space="preserve">
-    <value>Parameter "{0}" with assigned value "{1}" cannot have invalid path or invalid file characters.</value>
   </data>
   <data name="Shared.ParameterCannotHaveZeroLength" xml:space="preserve">
     <value>Parameter "{0}" cannot have zero length.</value>

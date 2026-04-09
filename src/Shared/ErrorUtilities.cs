@@ -545,20 +545,6 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Throws an ArgumentNullException if the given string parameter is null
-        /// and ArgumentException if it has zero length.
-        /// </summary>
-        internal static void VerifyThrowArgumentInvalidPath([NotNull] string parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        {
-            VerifyThrowArgumentNull(parameter, parameterName);
-
-            if (FileUtilities.PathIsInvalid(parameter))
-            {
-                ThrowArgument("Shared.ParameterCannotHaveInvalidPathChars", parameterName, parameter);
-            }
-        }
-
-        /// <summary>
         /// Throws an ArgumentException if the string has zero length, unless it is
         /// null, in which case no exception is thrown.
         /// </summary>
