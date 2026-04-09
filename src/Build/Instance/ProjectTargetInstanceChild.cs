@@ -3,7 +3,7 @@
 
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Construction;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework;
 
 namespace Microsoft.Build.Execution
 {
@@ -43,7 +43,7 @@ namespace Microsoft.Build.Execution
         void ITranslatable.Translate(ITranslator translator)
         {
             // all subclasses should be translateable
-            ErrorUtilities.ThrowInternalErrorUnreachable();
+            Assumed.Unreachable();
         }
 
         internal static ProjectTargetInstanceChild FactoryForDeserialization(ITranslator translator)

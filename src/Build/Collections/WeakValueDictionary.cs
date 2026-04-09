@@ -5,7 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
@@ -102,7 +102,7 @@ namespace Microsoft.Build.Collections
                     // Trigger KeyNotFoundException
                     wrappedValue = _dictionary[key];
 
-                    ErrorUtilities.ThrowInternalErrorUnreachable();
+                    Assumed.Unreachable();
                 }
 
                 return value;

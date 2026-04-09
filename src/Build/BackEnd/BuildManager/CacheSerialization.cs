@@ -50,7 +50,7 @@ namespace Microsoft.Build.Execution
                             configCacheToSerialize = configCacheWithOverride.CurrentCache;
                             break;
                         default:
-                            ErrorUtilities.ThrowInternalErrorUnreachable();
+                            Assumed.Unreachable();
                             break;
                     }
 
@@ -63,7 +63,7 @@ namespace Microsoft.Build.Execution
                             resultsCacheToSerialize = resultsCacheWithOverride.CurrentCache;
                             break;
                         default:
-                            ErrorUtilities.ThrowInternalErrorUnreachable();
+                            Assumed.Unreachable();
                             break;
                     }
 

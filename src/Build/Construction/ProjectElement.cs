@@ -631,7 +631,7 @@ namespace Microsoft.Build.Construction
             /// </summary>
             internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
             {
-                ErrorUtilities.ThrowInternalErrorUnreachable();
+                Assumed.Unreachable();
             }
 
             /// <inheritdoc />

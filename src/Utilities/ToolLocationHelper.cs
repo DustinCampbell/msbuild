@@ -3405,8 +3405,7 @@ namespace Microsoft.Build.Utilities
                     return ProcessorArchitecture.CurrentProcessArchitecture;
             }
 
-            ErrorUtilities.ThrowInternalErrorUnreachable();
-            return null;
+            return Assumed.Unreachable<string>();
         }
 
         /// <summary>
@@ -3716,27 +3715,15 @@ namespace Microsoft.Build.Utilities
         /// Microsoft.Build.Shared.DotNetFrameworkArchitecture enum.
         /// </summary>
         private static SharedDotNetFrameworkArchitecture ConvertToSharedDotNetFrameworkArchitecture(UtilitiesDotNetFrameworkArchitecture architecture)
-        {
-            SharedDotNetFrameworkArchitecture sharedArchitecture = SharedDotNetFrameworkArchitecture.Current;
-            switch (architecture)
+            => architecture switch
             {
-                case UtilitiesDotNetFrameworkArchitecture.Current:
-                    sharedArchitecture = SharedDotNetFrameworkArchitecture.Current;
-                    break;
-                case UtilitiesDotNetFrameworkArchitecture.Bitness32:
-                    sharedArchitecture = SharedDotNetFrameworkArchitecture.Bitness32;
-                    break;
-                case UtilitiesDotNetFrameworkArchitecture.Bitness64:
-                    sharedArchitecture = SharedDotNetFrameworkArchitecture.Bitness64;
-                    break;
-                default:
-                    // Should never reach here -- If any new values are added to the DotNetFrameworkArchitecture enum, they should be added here as well.
-                    ErrorUtilities.ThrowInternalErrorUnreachable();
-                    break;
-            }
+                UtilitiesDotNetFrameworkArchitecture.Current => SharedDotNetFrameworkArchitecture.Current,
+                UtilitiesDotNetFrameworkArchitecture.Bitness32 => SharedDotNetFrameworkArchitecture.Bitness32,
+                UtilitiesDotNetFrameworkArchitecture.Bitness64 => SharedDotNetFrameworkArchitecture.Bitness64,
 
-            return sharedArchitecture;
-        }
+                // Should never reach here -- If any new values are added to the DotNetFrameworkArchitecture enum, they should be added here as well.
+                _ => Assumed.Unreachable<SharedDotNetFrameworkArchitecture>(),
+            };
 
         /// <summary>
         /// Given a string which may start with a "v" convert the string to a version object.
@@ -4005,6 +3992,6 @@ namespace Microsoft.Build.Utilities
             }
         }
 
-#endregion
+        #endregion
     }
 }

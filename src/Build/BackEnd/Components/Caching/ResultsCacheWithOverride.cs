@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Build.BackEnd;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Execution
@@ -31,7 +32,7 @@ namespace Microsoft.Build.Execution
 
         public void Translate(ITranslator translator)
         {
-            ErrorUtilities.ThrowInternalErrorUnreachable();
+            Assumed.Unreachable();
         }
 
         public void AddResult(BuildResult result)

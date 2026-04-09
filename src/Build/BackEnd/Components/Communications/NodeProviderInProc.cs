@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 
@@ -264,38 +265,25 @@ namespace Microsoft.Build.BackEnd
         /// Registers a packet handler.  Not used in the in-proc node.
         /// </summary>
         public void RegisterPacketHandler(NodePacketType packetType, NodePacketFactoryMethod factory, INodePacketHandler handler)
-        {
-            // Not used
-            ErrorUtilities.ThrowInternalErrorUnreachable();
-        }
+            => Assumed.Unreachable();
 
         /// <summary>
         /// Unregisters a packet handler.  Not used in the in-proc node.
         /// </summary>
         public void UnregisterPacketHandler(NodePacketType packetType)
-        {
-            // Not used
-            ErrorUtilities.ThrowInternalErrorUnreachable();
-        }
+            => Assumed.Unreachable();
 
         /// <summary>
         /// Deserializes and routes a packet.  Not used in the in-proc node.
         /// </summary>
         public void DeserializeAndRoutePacket(int nodeId, NodePacketType packetType, ITranslator translator)
-        {
-            // Not used
-            ErrorUtilities.ThrowInternalErrorUnreachable();
-        }
+            => Assumed.Unreachable();
 
         /// <summary>
         /// Deserializes and routes a packet.  Not used in the in-proc node.
         /// </summary>
         public INodePacket DeserializePacket(NodePacketType packetType, ITranslator translator)
-        {
-            // Not used
-            ErrorUtilities.ThrowInternalErrorUnreachable();
-            return null;
-        }
+            => Assumed.Unreachable<INodePacket>();
 
         /// <summary>
         /// Routes a packet.

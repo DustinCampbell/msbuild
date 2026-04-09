@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Build.BackEnd;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -43,7 +44,7 @@ namespace Microsoft.Build.Execution
 
         public void Translate(ITranslator translator)
         {
-            ErrorUtilities.ThrowInternalErrorUnreachable();
+            Assumed.Unreachable();
         }
 
         public BuildRequestConfiguration this[int configId]

@@ -708,7 +708,7 @@ namespace Microsoft.Build.Internal
                     }
                     else
                     {
-                        ErrorUtilities.ThrowInternalErrorUnreachable();
+                        Assumed.Unreachable();
                     }
 
                     architectureFlagToSet = taskHostParameters.Architecture;
@@ -742,7 +742,7 @@ namespace Microsoft.Build.Internal
                     context |= HandshakeOptions.NET;
                     break;
                 default:
-                    ErrorUtilities.ThrowInternalErrorUnreachable();
+                    Assumed.Unreachable();
                     break;
             }
 
