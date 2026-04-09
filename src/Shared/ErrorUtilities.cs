@@ -479,27 +479,6 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Throws an argument out of range exception.
-        /// </summary>
-        [DoesNotReturn]
-        internal static void ThrowArgumentOutOfRange(string? parameterName)
-        {
-            throw new ArgumentOutOfRangeException(parameterName);
-        }
-
-        /// <summary>
-        /// Throws an ArgumentOutOfRangeException using the given parameter name
-        /// if the condition is false.
-        /// </summary>
-        internal static void VerifyThrowArgumentOutOfRange([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? parameterName = null)
-        {
-            if (!condition)
-            {
-                ThrowArgumentOutOfRange(parameterName);
-            }
-        }
-
-        /// <summary>
         /// Throws an ArgumentNullException if the given string parameter is null
         /// and ArgumentException if it has zero length.
         /// </summary>

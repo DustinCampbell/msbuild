@@ -1788,8 +1788,7 @@ namespace Microsoft.Build.Evaluation
                                 case SdkReferencePropertyExpansionMode.NoExpansion:
                                 case SdkReferencePropertyExpansionMode.DefaultExpand:
                                 default:
-                                    ErrorUtilities.ThrowArgumentOutOfRange(nameof(mode));
-                                    return value;
+                                    throw new ArgumentOutOfRangeException(nameof(mode));
                             }
                         }
 
