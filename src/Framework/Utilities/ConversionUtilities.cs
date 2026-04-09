@@ -155,8 +155,8 @@ namespace Microsoft.Build.Shared
             {
                 return result;
             }
-            FrameworkErrorUtilities.ThrowInternalError("Cannot numeric evaluate");
-            return 0.0D;
+
+            return Assumed.Unreachable<double>("Cannot numeric evaluate");
         }
 
         internal static bool TryConvertDecimalOrHexToDouble(string number, out double doubleValue)

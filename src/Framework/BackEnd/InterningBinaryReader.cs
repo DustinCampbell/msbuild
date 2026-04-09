@@ -116,10 +116,7 @@ namespace Microsoft.Build
                         // we're occasionally seeing it when we do the decoder.GetChars below -- by providing
                         // a bit more information when we do hit the error, in the place where (by code inspection)
                         // the actual error seems most likely to be occurring.
-                        if (n < 0)
-                        {
-                            FrameworkErrorUtilities.ThrowInternalError($"From calculating based on the memorystream, about to read n = {n}. length = {length}, rawPosition = {rawPosition}, readLength = {readLength}, stringLength = {stringLength}, currPos = {currPos}.");
-                        }
+                        Assumed.False(n < 0, $"From calculating based on the memorystream, about to read n = {n}. length = {length}, rawPosition = {rawPosition}, readLength = {readLength}, stringLength = {stringLength}, currPos = {currPos}.");
 
                         memoryStream.Seek(n, SeekOrigin.Current);
                     }
@@ -131,10 +128,7 @@ namespace Microsoft.Build
                         n = BaseStream.Read(rawBuffer, 0, readLength);
 
                         // See above explanation -- the OutOfRange exception may also be coming from our setting of n here ...
-                        if (n < 0)
-                        {
-                            FrameworkErrorUtilities.ThrowInternalError($"From getting the length out of BaseStream.Read directly, about to read n = {n}. readLength = {readLength}, stringLength = {stringLength}, currPos = {currPos}");
-                        }
+                        Assumed.False(n < 0, $"From getting the length out of BaseStream.Read directly, about to read n = {n}. readLength = {readLength}, stringLength = {stringLength}, currPos = {currPos}");
                     }
 
                     if (n == 0)

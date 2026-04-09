@@ -67,11 +67,11 @@ namespace Microsoft.Build.Shared
             out int emptySplits,
             params char[] separator)
         {
-            FrameworkErrorUtilities.VerifyThrow(maxSplits >= 2, "There is no point calling this method for less than two splits.");
+            Assumed.True(maxSplits >= 2, "There is no point calling this method for less than two splits.");
 
             string separators = new StringBuilder().Append(separator).ToString();
 
-            FrameworkErrorUtilities.VerifyThrow(separators.IndexOf('"') == -1, "The double-quote character is not supported as a separator.");
+            Assumed.True(separators.IndexOf('"') == -1, "The double-quote character is not supported as a separator.");
 
             StringBuilder splitString = new StringBuilder();
             splitString.EnsureCapacity(input.Length);

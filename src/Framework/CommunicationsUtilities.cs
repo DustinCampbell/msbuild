@@ -22,7 +22,7 @@ namespace Microsoft.Build.Framework
         /// Case-insensitive string comparer for environment variable names.
         /// </summary>
         internal static StringComparer EnvironmentVariableComparer => StringComparer.OrdinalIgnoreCase;
-        
+
         /// <summary>
         /// A set of environment variables cached from the last time we called GetEnvironmentVariables.
         /// Used to avoid allocations if the environment has not changed.
@@ -87,7 +87,7 @@ namespace Microsoft.Build.Framework
             // The FrameworkDebugUtils static constructor can set the MSBUILDDEBUGPATH environment variable to propagate the debug path to out of proc nodes.
             // Need to ensure that constructor is called before this method returns in order to capture its env var write.
             // Otherwise the env var is not captured and thus gets deleted when RequestBuilder resets the environment based on the cached results of this method.
-            FrameworkErrorUtilities.VerifyThrowInternalNull(FrameworkDebugUtils.ProcessInfoString, nameof(FrameworkDebugUtils.DebugPath));
+            Assumed.NotNull(FrameworkDebugUtils.ProcessInfoString);
 
             unsafe
             {

@@ -68,7 +68,7 @@ internal static partial class FileUtilities
         string path;
 
 #if NET
-            path = Directory.CreateTempSubdirectory(msbuildTempFolderPrefix).FullName;
+        path = Directory.CreateTempSubdirectory(msbuildTempFolderPrefix).FullName;
 #else
         // CreateTempSubdirectory API is not available in .NET Framework
         path = Path.Combine(Path.GetTempPath(), $"{msbuildTempFolderPrefix}{Guid.NewGuid():N}");
@@ -192,7 +192,7 @@ internal static partial class FileUtilities
 
             string file = Path.Combine(directory, $"{fileName}{extension}");
 
-            FrameworkErrorUtilities.VerifyThrow(!FileSystems.Default.FileExists(file), "Guid should be unique");
+            Assumed.False(FileSystems.Default.FileExists(file), "Guid should be unique");
 
             if (createFile)
             {
