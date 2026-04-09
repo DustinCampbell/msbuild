@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../Strings.shared.resx">
     <body>
@@ -15,11 +15,6 @@
       <trans-unit id="BuildStarted">
         <source>Build started.</source>
         <target state="translated">Compilazione avviata.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="CollectionCopyToFailureProvidedArrayIsTooSmall">
-        <source>The number of elements in the collection is greater than the available space in the destination array (when starting at the specified index).</source>
-        <target state="translated">Il numero di elementi nella raccolta è maggiore dello spazio disponibile nella matrice di destinazione (a partire dall'indice specificato).</target>
         <note />
       </trans-unit>
       <trans-unit id="ConflictingTaskAssembly">

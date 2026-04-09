@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -360,9 +360,6 @@
   </data>
   <data name="OM_NotSupportedReadOnlyCollection" xml:space="preserve">
     <value>This collection is read-only.</value>
-  </data>
-  <data name="CollectionCopyToFailureProvidedArrayIsTooSmall" xml:space="preserve">
-    <value>The number of elements in the collection is greater than the available space in the destination array (when starting at the specified index).</value>
   </data>
   <data name="Message.InvalidImportance" xml:space="preserve">
     <value>MSB3511: "{0}" is an invalid value for the "Importance" parameter. Valid values are: High, Normal and Low.</value>

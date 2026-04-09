@@ -5,8 +5,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Framework;
 using Microsoft.Build.ObjectModelRemoting;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Instance
 {
@@ -53,7 +53,7 @@ namespace Microsoft.Build.Instance
         public void CopyTo(string[] array, int arrayIndex)
         {
             var items = EnsureListInitialized();
-            ErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, items.Count);
+            FrameworkErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, items.Count);
 
             items.CopyTo(array, arrayIndex);
         }

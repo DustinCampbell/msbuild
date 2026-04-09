@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework;
 
 #nullable disable
 
@@ -85,7 +85,7 @@ namespace Microsoft.Build.Instance.ImmutableProjectCollections
 
         public void CopyTo(KeyValuePair<string, ProjectPropertyInstance>[] array, int arrayIndex)
         {
-            ErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, _globalProperties.Count);
+            FrameworkErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, _globalProperties.Count);
 
             int currentIndex = arrayIndex;
             foreach (var itemKey in _globalProperties.Keys)
@@ -204,7 +204,7 @@ namespace Microsoft.Build.Instance.ImmutableProjectCollections
 
             public void CopyTo(ProjectPropertyInstance[] array, int arrayIndex, int count)
             {
-                ErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, _parent._globalProperties.Count);
+                FrameworkErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, _parent._globalProperties.Count);
 
                 int currentIndex = arrayIndex;
                 int currentCount = 0;

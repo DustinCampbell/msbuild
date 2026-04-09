@@ -193,4 +193,7 @@
   <data name="CouldNotGenerateReferenceAssemblyDirectory" xml:space="preserve">
     <value>When attempting to generate a reference assembly path from the path "{0}" and the framework moniker "{1}" there was an error. {2}</value>
   </data>
+  <data name="CollectionCopyToFailureProvidedArrayIsTooSmall" xml:space="preserve">
+    <value>The number of elements in the collection is greater than the available space in the destination array (when starting at the specified index).</value>
+  </data>
 </root>
