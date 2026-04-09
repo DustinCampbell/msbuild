@@ -101,33 +101,6 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Helper to throw an InternalErrorException when the specified parameter is null or zero length.
-        /// This should be used ONLY if this would indicate a bug in MSBuild rather than
-        /// anything caused by user action.
-        /// </summary>
-        /// <param name="parameterValue">The value of the argument.</param>
-        /// <param name="parameterName">Parameter that should not be null or zero length</param>
-        internal static void VerifyThrowInternalLength([NotNull] string? parameterValue, [CallerArgumentExpression(nameof(parameterValue))] string? parameterName = null)
-        {
-            VerifyThrowInternalNull(parameterValue, parameterName);
-
-            if (parameterValue.Length == 0)
-            {
-                ThrowInternalError("{0} unexpectedly empty", parameterName);
-            }
-        }
-
-        public static void VerifyThrowInternalLength<T>([NotNull] T[]? parameterValue, [CallerArgumentExpression(nameof(parameterValue))] string? parameterName = null)
-        {
-            VerifyThrowInternalNull(parameterValue, parameterName);
-
-            if (parameterValue.Length == 0)
-            {
-                ThrowInternalError("{0} unexpectedly empty", parameterName);
-            }
-        }
-
-        /// <summary>
         /// Helper to throw an InternalErrorException when the specified parameter is not a rooted path.
         /// This should be used ONLY if this would indicate a bug in MSBuild rather than
         /// anything caused by user action.

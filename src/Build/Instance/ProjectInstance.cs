@@ -673,7 +673,7 @@ namespace Microsoft.Build.Execution
         internal ProjectInstance(Evaluation.Project.Data data, string directory, string fullPath, HostServices hostServices, PropertyDictionary<ProjectPropertyInstance> environmentVariableProperties, ProjectInstanceSettings settings)
         {
             ErrorUtilities.VerifyThrowInternalNull(data);
-            ErrorUtilities.VerifyThrowInternalLength(directory, nameof(directory));
+            Assumed.NotNullOrEmpty(directory);
             ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(fullPath, nameof(fullPath));
 
             _directory = directory;
@@ -2898,7 +2898,7 @@ namespace Microsoft.Build.Execution
         {
             VerifyThrowNotImmutable();
 
-            ErrorUtilities.VerifyThrowInternalLength(targetName, nameof(targetName));
+            Assumed.NotNullOrEmpty(targetName);
             ErrorUtilities.VerifyThrow(!_actualTargets.ContainsKey(targetName), "Target {0} already exists.", targetName);
 
             ProjectTargetInstance target = new ProjectTargetInstance(

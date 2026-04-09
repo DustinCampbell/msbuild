@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using ObjectModel = System.Collections.ObjectModel;
 
@@ -162,7 +163,7 @@ namespace Microsoft.Build.Execution
             ObjectModel.ReadOnlyCollection<ProjectOnErrorInstance> onErrorChildren,
             bool parentProjectSupportsReturnsAttribute)
         {
-            ErrorUtilities.VerifyThrowInternalLength(name, nameof(name));
+            Assumed.NotNullOrEmpty(name);
             ErrorUtilities.VerifyThrowInternalNull(condition);
             ErrorUtilities.VerifyThrowInternalNull(inputs);
             ErrorUtilities.VerifyThrowInternalNull(outputs);
@@ -541,7 +542,7 @@ namespace Microsoft.Build.Execution
         /// <returns>The new task instance.</returns>
         internal ProjectTaskInstance AddTask(string taskName, string condition, string continueOnError, string msbuildRuntime, string msbuildArchitecture)
         {
-            ErrorUtilities.VerifyThrowInternalLength(taskName, nameof(taskName));
+            Assumed.NotNullOrEmpty(taskName);
             ProjectTaskInstance task = new ProjectTaskInstance(taskName, _location, condition ?? String.Empty, continueOnError ?? String.Empty, msbuildRuntime ?? String.Empty, msbuildArchitecture ?? String.Empty);
             this.AddProjectTargetInstanceChild(task);
             return task;

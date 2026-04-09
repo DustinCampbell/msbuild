@@ -3,6 +3,7 @@
 
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -57,8 +58,8 @@ namespace Microsoft.Build.Execution
         /// </summary>
         internal ProjectTaskOutputItemInstance(string itemType, string taskParameter, string condition, ElementLocation location, ElementLocation itemTypeLocation, ElementLocation taskParameterLocation, ElementLocation conditionLocation)
         {
-            ErrorUtilities.VerifyThrowInternalLength(itemType, nameof(itemType));
-            ErrorUtilities.VerifyThrowInternalLength(taskParameter, nameof(taskParameter));
+            Assumed.NotNullOrEmpty(itemType);
+            Assumed.NotNullOrEmpty(taskParameter);
             ErrorUtilities.VerifyThrowInternalNull(location);
             ErrorUtilities.VerifyThrowInternalNull(itemTypeLocation);
             ErrorUtilities.VerifyThrowInternalNull(taskParameterLocation);

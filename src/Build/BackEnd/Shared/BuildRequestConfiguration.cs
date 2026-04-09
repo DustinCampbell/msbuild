@@ -170,7 +170,7 @@ namespace Microsoft.Build.BackEnd
         internal BuildRequestConfiguration(int configId, BuildRequestData data, string defaultToolsVersion)
         {
             ErrorUtilities.VerifyThrowArgumentNull(data);
-            ErrorUtilities.VerifyThrowInternalLength(data.ProjectFullPath, "data.ProjectFullPath");
+            Assumed.NotNullOrEmpty(data.ProjectFullPath);
 
             _configId = configId;
             _projectFullPath = data.ProjectFullPath;
@@ -820,7 +820,7 @@ namespace Microsoft.Build.BackEnd
         public bool ShouldSkipIsolationConstraintsForReference(string referenceFullPath)
         {
             ErrorUtilities.VerifyThrowInternalNull(Project);
-            ErrorUtilities.VerifyThrowInternalLength(referenceFullPath, nameof(referenceFullPath));
+            Assumed.NotNullOrEmpty(referenceFullPath);
             ErrorUtilities.VerifyThrow(Path.IsPathRooted(referenceFullPath), "Method does not treat path normalization cases");
 
             if (shouldSkipStaticGraphIsolationOnReference == null)

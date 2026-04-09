@@ -10,10 +10,12 @@ using BuildXL.Processes;
 using BuildXL.Utilities.Core;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.FileAccesses;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using static BuildXL.Processes.FileAccessManifest;
+using AbsolutePath = BuildXL.Utilities.Core.AbsolutePath;
 #if RUNTIME_TYPE_NETCORE
 using Constants = Microsoft.Build.Framework.Constants;
 #endif
@@ -57,7 +59,7 @@ namespace Microsoft.Build.BackEnd
         public Process Start(NodeLaunchData launchData, int nodeId)
         {
             // Should always have been set already.
-            ErrorUtilities.VerifyThrowInternalLength(launchData.MSBuildLocation, nameof(launchData.MSBuildLocation));
+            Assumed.NotNullOrEmpty(launchData.MSBuildLocation);
 
             ErrorUtilities.VerifyThrowInternalNull(_fileAccessManager, nameof(_fileAccessManager));
 

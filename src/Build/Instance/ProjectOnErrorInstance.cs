@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -55,7 +56,7 @@ namespace Microsoft.Build.Execution
             ElementLocation executeTargetsLocation,
             ElementLocation conditionLocation)
         {
-            ErrorUtilities.VerifyThrowInternalLength(executeTargets, nameof(executeTargets));
+            Assumed.NotNullOrEmpty(executeTargets);
             ErrorUtilities.VerifyThrowInternalNull(condition);
             ErrorUtilities.VerifyThrowInternalNull(location);
 

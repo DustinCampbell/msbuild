@@ -184,7 +184,7 @@ namespace Microsoft.Build.Internal
             string? buildEventFileInfoFullPath = null,
             bool disableExcludeDriveEnumerationWarning = false)
         {
-            ErrorUtilities.VerifyThrowInternalLength(filespecEscaped, nameof(filespecEscaped));
+            Assumed.NotNullOrEmpty(filespecEscaped);
 
             string[] fileList = [];
 
