@@ -1819,7 +1819,7 @@ namespace Microsoft.Build.BackEnd
 
                         if (affinityMismatch)
                         {
-                            ErrorUtilities.VerifyThrowInternalError(
+                            Assumed.True(
                                 _configCache.HasConfiguration(request.ConfigurationId),
                                 "A request should have a configuration if it makes it this far in the build process.");
 

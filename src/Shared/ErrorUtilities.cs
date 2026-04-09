@@ -35,14 +35,6 @@ namespace Microsoft.Build.Shared
             }
         }
 
-        internal static void VerifyThrowInternalError([DoesNotReturnIf(false)] bool condition, string message, params object?[]? args)
-        {
-            if (!condition)
-            {
-                ThrowInternalError(message, args);
-            }
-        }
-
         /// <summary>
         /// Throws InternalErrorException.
         /// This is only for situations that would mean that there is a bug in MSBuild itself.
