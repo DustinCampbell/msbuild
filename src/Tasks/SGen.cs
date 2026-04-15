@@ -3,15 +3,13 @@
 
 #if !RUNTIME_TYPE_NETCORE
 using System;
-using System.IO;
 using System.Diagnostics;
-#endif
-using Microsoft.Build.Framework;
+using System.IO;
 using Microsoft.Build.Shared;
-#if !RUNTIME_TYPE_NETCORE
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Utilities;
 #endif
+using Microsoft.Build.Framework;
 
 #nullable disable
 
@@ -112,19 +110,10 @@ namespace Microsoft.Build.Tasks
         #region Tool Members
 
         protected override string ToolName
-        {
-            get
-            {
-                ErrorUtilities.ThrowInternalErrorUnreachable();
-                return null;
-            }
-        }
+            => Assumed.Unreachable<string>();
 
         protected override string GenerateFullPathToTool()
-        {
-            ErrorUtilities.ThrowInternalErrorUnreachable();
-            return null;
-        }
+            => Assumed.Unreachable<string>();
 
         public override bool Execute()
         {

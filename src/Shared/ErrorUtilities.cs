@@ -74,22 +74,11 @@ namespace Microsoft.Build.Shared
         /// Indicates the code path followed should not have been possible.
         /// This is only for situations that would mean that there is a bug in MSBuild itself.
         /// </summary>
-        [DoesNotReturn]
-        internal static void ThrowInternalErrorUnreachable()
-        {
-            throw new InternalErrorException("Unreachable?");
-        }
-
-        /// <summary>
-        /// Throws InternalErrorException.
-        /// Indicates the code path followed should not have been possible.
-        /// This is only for situations that would mean that there is a bug in MSBuild itself.
-        /// </summary>
         internal static void VerifyThrowInternalErrorUnreachable([DoesNotReturnIf(false)] bool condition)
         {
             if (!condition)
             {
-                ThrowInternalErrorUnreachable();
+                Assumed.Unreachable();
             }
         }
 

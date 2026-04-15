@@ -584,7 +584,7 @@ internal static class CommunicationsUtilities
                 }
                 else
                 {
-                    FrameworkErrorUtilities.ThrowInternalErrorUnreachable();
+                    Assumed.Unreachable();
                 }
 
                 architectureFlagToSet = taskHostParameters.Architecture;
@@ -618,7 +618,7 @@ internal static class CommunicationsUtilities
                 context |= HandshakeOptions.NET;
                 break;
             default:
-                FrameworkErrorUtilities.ThrowInternalErrorUnreachable();
+                Assumed.Unreachable();
                 break;
         }
 

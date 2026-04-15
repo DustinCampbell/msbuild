@@ -57,7 +57,7 @@ internal static class CurrentHost
                     }
                     else
                     {
-                        ErrorUtilities.ThrowInternalErrorUnreachable();
+                        Assumed.Unreachable();
                     }
                 }
             }

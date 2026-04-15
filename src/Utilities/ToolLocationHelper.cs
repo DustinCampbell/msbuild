@@ -3377,37 +3377,34 @@ namespace Microsoft.Build.Utilities
         /// <param name="architecture"></param>
         /// <returns></returns>
         internal static string ConvertDotNetFrameworkArchitectureToProcessorArchitecture(DotNetFrameworkArchitecture architecture)
-        {
-            switch (architecture)
+            => architecture switch
             {
-                case DotNetFrameworkArchitecture.Bitness32:
-                    if (ProcessorArchitecture.CurrentProcessArchitecture == ProcessorArchitecture.ARM ||
-                        ProcessorArchitecture.CurrentProcessArchitecture == ProcessorArchitecture.ARM64)
-                    {
-                        return ProcessorArchitecture.ARM;
-                    }
-                    return ProcessorArchitecture.X86;
-                case DotNetFrameworkArchitecture.Bitness64:
-                    // We need to know which 64-bit architecture we're on.
-                    return NativeMethodsShared.ProcessorArchitectureNative switch
-                    {
-                        NativeMethodsShared.ProcessorArchitectures.X64 => ProcessorArchitecture.AMD64,
-                        NativeMethodsShared.ProcessorArchitectures.IA64 => ProcessorArchitecture.IA64,
-                        NativeMethodsShared.ProcessorArchitectures.ARM64 => ProcessorArchitecture.ARM64,
-                        // Error, OK, we're trying to get the 64-bit path on a 32-bit machine.
-                        // That ... doesn't make sense.
-                        NativeMethodsShared.ProcessorArchitectures.X86 => null,
-                        NativeMethodsShared.ProcessorArchitectures.ARM => null,
-                        // unknown architecture? return null
-                        _ => null,
-                    };
-                case DotNetFrameworkArchitecture.Current:
-                    return ProcessorArchitecture.CurrentProcessArchitecture;
-            }
+                DotNetFrameworkArchitecture.Bitness32 => ProcessorArchitecture.CurrentProcessArchitecture switch
+                {
+                    ProcessorArchitecture.ARM or ProcessorArchitecture.ARM64 => ProcessorArchitecture.ARM,
+                    _ => ProcessorArchitecture.X86,
+                },
 
-            ErrorUtilities.ThrowInternalErrorUnreachable();
-            return null;
-        }
+                DotNetFrameworkArchitecture.Bitness64 => NativeMethodsShared.ProcessorArchitectureNative switch
+                {
+                    // We need to know which 64-bit architecture we're on.
+                    NativeMethodsShared.ProcessorArchitectures.X64 => ProcessorArchitecture.AMD64,
+                    NativeMethodsShared.ProcessorArchitectures.IA64 => ProcessorArchitecture.IA64,
+                    NativeMethodsShared.ProcessorArchitectures.ARM64 => ProcessorArchitecture.ARM64,
+
+                    // Error, OK, we're trying to get the 64-bit path on a 32-bit machine.
+                    // That ... doesn't make sense.
+                    NativeMethodsShared.ProcessorArchitectures.X86 => null,
+                    NativeMethodsShared.ProcessorArchitectures.ARM => null,
+
+                    // unknown architecture? return null
+                    _ => null,
+                },
+
+                DotNetFrameworkArchitecture.Current => ProcessorArchitecture.CurrentProcessArchitecture,
+
+                _ => Assumed.Unreachable<string>(),
+            };
 
         /// <summary>
         /// Returns the path to the Windows SDK for the desired .NET Framework and Visual Studio version.  Note that
@@ -3716,27 +3713,15 @@ namespace Microsoft.Build.Utilities
         /// Microsoft.Build.Shared.DotNetFrameworkArchitecture enum.
         /// </summary>
         private static SharedDotNetFrameworkArchitecture ConvertToSharedDotNetFrameworkArchitecture(UtilitiesDotNetFrameworkArchitecture architecture)
-        {
-            SharedDotNetFrameworkArchitecture sharedArchitecture = SharedDotNetFrameworkArchitecture.Current;
-            switch (architecture)
+            => architecture switch
             {
-                case UtilitiesDotNetFrameworkArchitecture.Current:
-                    sharedArchitecture = SharedDotNetFrameworkArchitecture.Current;
-                    break;
-                case UtilitiesDotNetFrameworkArchitecture.Bitness32:
-                    sharedArchitecture = SharedDotNetFrameworkArchitecture.Bitness32;
-                    break;
-                case UtilitiesDotNetFrameworkArchitecture.Bitness64:
-                    sharedArchitecture = SharedDotNetFrameworkArchitecture.Bitness64;
-                    break;
-                default:
-                    // Should never reach here -- If any new values are added to the DotNetFrameworkArchitecture enum, they should be added here as well.
-                    ErrorUtilities.ThrowInternalErrorUnreachable();
-                    break;
-            }
+                UtilitiesDotNetFrameworkArchitecture.Current => SharedDotNetFrameworkArchitecture.Current,
+                UtilitiesDotNetFrameworkArchitecture.Bitness32 => SharedDotNetFrameworkArchitecture.Bitness32,
+                UtilitiesDotNetFrameworkArchitecture.Bitness64 => SharedDotNetFrameworkArchitecture.Bitness64,
 
-            return sharedArchitecture;
-        }
+                // Should never reach here -- If any new values are added to the DotNetFrameworkArchitecture enum, they should be added here as well.
+                _ => Assumed.Unreachable<SharedDotNetFrameworkArchitecture>(),
+            };
 
         /// <summary>
         /// Given a string which may start with a "v" convert the string to a version object.
@@ -4005,6 +3990,6 @@ namespace Microsoft.Build.Utilities
             }
         }
 
-#endregion
+        #endregion
     }
 }

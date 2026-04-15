@@ -536,7 +536,7 @@ namespace Microsoft.Build.BackEnd
                     HandleCoresRequest(packet as TaskHostCoresRequest);
                     break;
                 default:
-                    ErrorUtilities.ThrowInternalErrorUnreachable();
+                    Assumed.Unreachable();
                     break;
             }
         }
@@ -737,8 +737,8 @@ namespace Microsoft.Build.BackEnd
             string msbuildLocation = taskHostLocation ??
                 // We don't know the path -- probably we're trying to get a 64-bit assembly on a
                 // 32-bit machine.  At least give them the exe name to look for, though ...
-                ((requiredContext & HandshakeOptions.CLR2) == HandshakeOptions.CLR2 
-                ? "MSBuildTaskHost.exe" 
+                ((requiredContext & HandshakeOptions.CLR2) == HandshakeOptions.CLR2
+                ? "MSBuildTaskHost.exe"
                 : NodeProviderOutOfProcTaskHost.GetTaskHostNameFromHostContext(requiredContext));
 
             if (e == null)

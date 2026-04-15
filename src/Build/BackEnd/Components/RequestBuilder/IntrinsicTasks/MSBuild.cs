@@ -165,30 +165,15 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         public string SkipNonexistentProjects
         {
-            get
+            get => _skipNonExistentProjects switch
             {
-                switch (_skipNonExistentProjects)
-                {
-                    case SkipNonExistentProjectsBehavior.Undefined:
-                        return "Undefined";
+                SkipNonExistentProjectsBehavior.Undefined => "Undefined",
+                SkipNonExistentProjectsBehavior.Build => "Build",
+                SkipNonExistentProjectsBehavior.Error => "False",
+                SkipNonExistentProjectsBehavior.Skip => "True",
 
-                    case SkipNonExistentProjectsBehavior.Build:
-                        return "Build";
-
-                    case SkipNonExistentProjectsBehavior.Error:
-                        return "False";
-
-                    case SkipNonExistentProjectsBehavior.Skip:
-                        return "True";
-
-                    default:
-                        ErrorUtilities.ThrowInternalError("Unexpected case {0}", _skipNonExistentProjects);
-                        break;
-                }
-
-                ErrorUtilities.ThrowInternalErrorUnreachable();
-                return null;
-            }
+                var value => Assumed.Unreachable<string>($"Unexpected case {value}"),
+            };
 
             set
             {

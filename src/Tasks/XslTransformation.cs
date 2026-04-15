@@ -512,7 +512,7 @@ namespace Microsoft.Build.Tasks
                         throw new PlatformNotSupportedException("Precompiled XSLTs are not supported in .NET Core");
 #endif
                     default:
-                        ErrorUtilities.ThrowInternalErrorUnreachable();
+                        Assumed.Unreachable();
                         break;
                 }
 

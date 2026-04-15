@@ -128,7 +128,7 @@ namespace Microsoft.Build.Tasks
 
                             // Otherwise this will give at least something
                             NativeMethodsShared.ThrowExceptionForErrorCode(error);
-                            ErrorUtilities.ThrowInternalErrorUnreachable();
+                            Assumed.Unreachable();
                         }
 
                         Exists = true;

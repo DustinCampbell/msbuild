@@ -43,7 +43,7 @@ namespace Microsoft.Build.Execution
 
         public void Translate(ITranslator translator)
         {
-            ErrorUtilities.ThrowInternalErrorUnreachable();
+            Assumed.Unreachable();
         }
 
         public BuildRequestConfiguration this[int configId]
