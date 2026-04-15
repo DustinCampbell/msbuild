@@ -77,6 +77,26 @@
         <target state="translated">Il percorso "{0}" usato per i log di debug è troppo lungo. Impostarlo su un valore più breve usando la variabile dell'ambiente MSBUILDDEBUGPATH o modificare la configurazione del sistema per consentire percorsi lunghi.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExpectedFalse">
+        <source>Expected to be false.</source>
+        <target state="new">Expected to be false.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonNull">
+        <source>Expected '{0}' to be non-null.</source>
+        <target state="new">Expected '{0}' to be non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNull">
+        <source>Expected '{0}' to be null.</source>
+        <target state="new">Expected '{0}' to be null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedTrue">
+        <source>Expected to be true.</source>
+        <target state="new">Expected to be true.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedCreatingTempFile">
         <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
         <target state="translated">Non è stato possibile creare un file temporaneo. La cartella dei file temporanei è piena oppure il percorso è errato. {0}</target>

@@ -77,6 +77,26 @@
         <target state="translated">디버그 로그에 사용된 경로 "{0}"이(가) 너무 깁니다. MSBUILDDEBUGPATH 환경 변수를 사용하여 값을 더 짧게 설정하거나 긴 경로를 허용하도록 시스템 구성을 변경합니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExpectedFalse">
+        <source>Expected to be false.</source>
+        <target state="new">Expected to be false.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonNull">
+        <source>Expected '{0}' to be non-null.</source>
+        <target state="new">Expected '{0}' to be non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNull">
+        <source>Expected '{0}' to be null.</source>
+        <target state="new">Expected '{0}' to be null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedTrue">
+        <source>Expected to be true.</source>
+        <target state="new">Expected to be true.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedCreatingTempFile">
         <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
         <target state="translated">임시 파일을 만들지 못했습니다. 임시 파일 폴더가 꽉 찼거나 경로가 올바르지 않습니다. {0}</target>

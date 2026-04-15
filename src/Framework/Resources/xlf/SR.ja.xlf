@@ -77,6 +77,26 @@
         <target state="translated">デバッグ ログに使用されるパス "{0}" が長すぎます。MSBUILDDEBUGPATH 環境変数を使用して短い値に設定するか、長いパスを許可するようにシステム構成を変更してください。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExpectedFalse">
+        <source>Expected to be false.</source>
+        <target state="new">Expected to be false.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNonNull">
+        <source>Expected '{0}' to be non-null.</source>
+        <target state="new">Expected '{0}' to be non-null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedNull">
+        <source>Expected '{0}' to be null.</source>
+        <target state="new">Expected '{0}' to be null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedTrue">
+        <source>Expected to be true.</source>
+        <target state="new">Expected to be true.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedCreatingTempFile">
         <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
         <target state="translated">一時ファイルを作成できませんでした。一時ファイル フォルダーがいっぱいであるか、またはそのパスが正しくありません。{0}</target>

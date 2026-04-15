@@ -199,4 +199,16 @@
   <data name="FileAndLine" xml:space="preserve">
     <value>File='{0}', Line={1}</value>
   </data>
+  <data name="ExpectedTrue" xml:space="preserve">
+    <value>Expected to be true.</value>
+  </data>
+  <data name="ExpectedFalse" xml:space="preserve">
+    <value>Expected to be false.</value>
+  </data>
+  <data name="ExpectedNull" xml:space="preserve">
+    <value>Expected '{0}' to be null.</value>
+  </data>
+  <data name="ExpectedNonNull" xml:space="preserve">
+    <value>Expected '{0}' to be non-null.</value>
+  </data>
 </root>
