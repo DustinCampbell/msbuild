@@ -82,6 +82,11 @@
         <target state="translated">Не удалось создать временный файл. Папка временных файлов переполнена, или указан неверный путь. {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="FileAndLine">
+        <source>File='{0}', Line={1}</source>
+        <target state="new">File='{0}', Line={1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GlobExpansionFailed">
         <source>An exception occurred while expanding a fileSpec with globs: fileSpec: "{0}", assuming it is a file name. Exception: {1}</source>
         <target state="translated">Возникло исключение при расширении fileSpec со стандартными масками: fileSpec: "{0}", предполагая, что это имя файла. Исключение: {1}</target>
@@ -110,6 +115,11 @@
       <trans-unit id="PathTooLong">
         <source>Path: {0} exceeds the OS max path limit. The fully qualified file name must be less than {1} characters.</source>
         <target state="translated">Длина пути {0} превышает максимально допустимую в ОС. Символов в полном имени файла должно быть не больше {1}.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Unreachable">
+        <source>This program location is thought to be unreachable.</source>
+        <target state="new">This program location is thought to be unreachable.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">

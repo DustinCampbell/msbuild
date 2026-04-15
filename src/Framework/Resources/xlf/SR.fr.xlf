@@ -82,6 +82,11 @@
         <target state="translated">Échec de la création d’un fichier temporaire. Le dossier de fichiers temporaires est plein ou son chemin est incorrect. {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="FileAndLine">
+        <source>File='{0}', Line={1}</source>
+        <target state="new">File='{0}', Line={1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GlobExpansionFailed">
         <source>An exception occurred while expanding a fileSpec with globs: fileSpec: "{0}", assuming it is a file name. Exception: {1}</source>
         <target state="translated">Une exception s’est produite lors du développement d’un fileSpec avec globs: fileSpec: '{0}', en supposant qu’il s’agit d’un nom de fichier. Exception : {1}</target>
@@ -110,6 +115,11 @@
       <trans-unit id="PathTooLong">
         <source>Path: {0} exceeds the OS max path limit. The fully qualified file name must be less than {1} characters.</source>
         <target state="translated">Le chemin {0} dépasse la limite maximale de chemin du système d'exploitation. Le nom du fichier qualifié complet doit contenir moins de {1} caractères.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Unreachable">
+        <source>This program location is thought to be unreachable.</source>
+        <target state="new">This program location is thought to be unreachable.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">

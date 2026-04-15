@@ -193,4 +193,10 @@
   <data name="CouldNotGenerateReferenceAssemblyDirectory" xml:space="preserve">
     <value>When attempting to generate a reference assembly path from the path "{0}" and the framework moniker "{1}" there was an error. {2}</value>
   </data>
+  <data name="Unreachable" xml:space="preserve">
+    <value>This program location is thought to be unreachable.</value>
+  </data>
+  <data name="FileAndLine" xml:space="preserve">
+    <value>File='{0}', Line={1}</value>
+  </data>
 </root>

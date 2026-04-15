@@ -82,6 +82,11 @@
         <target state="translated">一時ファイルを作成できませんでした。一時ファイル フォルダーがいっぱいであるか、またはそのパスが正しくありません。{0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="FileAndLine">
+        <source>File='{0}', Line={1}</source>
+        <target state="new">File='{0}', Line={1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GlobExpansionFailed">
         <source>An exception occurred while expanding a fileSpec with globs: fileSpec: "{0}", assuming it is a file name. Exception: {1}</source>
         <target state="translated">glob を使用して fileSpec を展開中に例外が発生しました: fileSpec: "{0}"、これはファイル名であると仮定します。例外: {1}</target>
@@ -110,6 +115,11 @@
       <trans-unit id="PathTooLong">
         <source>Path: {0} exceeds the OS max path limit. The fully qualified file name must be less than {1} characters.</source>
         <target state="translated">パス: {0} は OS のパスの上限を越えています。完全修飾のファイル名は {1} 文字以下にする必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Unreachable">
+        <source>This program location is thought to be unreachable.</source>
+        <target state="new">This program location is thought to be unreachable.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">

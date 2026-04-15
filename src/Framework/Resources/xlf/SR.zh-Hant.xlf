@@ -82,6 +82,11 @@
         <target state="translated">無法建立暫存檔案。暫存檔案資料夾已滿或其路徑錯誤。{0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="FileAndLine">
+        <source>File='{0}', Line={1}</source>
+        <target state="new">File='{0}', Line={1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GlobExpansionFailed">
         <source>An exception occurred while expanding a fileSpec with globs: fileSpec: "{0}", assuming it is a file name. Exception: {1}</source>
         <target state="translated">展開具有 glob 的 fileSpec 時發生例外狀況: fileSpec: "{0}" (假設它是檔案名稱)。例外狀況: {1}</target>
@@ -112,9 +117,14 @@
         <target state="translated">路徑: {0} 超過 OS 路徑上限。完整檔案名稱必須少於 {1} 個字元。</target>
         <note />
       </trans-unit>
+      <trans-unit id="Unreachable">
+        <source>This program location is thought to be unreachable.</source>
+        <target state="new">This program location is thought to be unreachable.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">
         <source>.NET Framework version "{0}" is not supported. Please specify a value from the enumeration Microsoft.Build.Utilities.TargetDotNetFrameworkVersion.</source>
-          <target state="translated">不支援 .NET Framework 版本 "{0}"。請從列舉 Microsoft.Build.Utilities.TargetDotNetFrameworkVersion 中指定值。</target>
+        <target state="translated">不支援 .NET Framework 版本 "{0}"。請從列舉 Microsoft.Build.Utilities.TargetDotNetFrameworkVersion 中指定值。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersionForWindowsSdk">
