@@ -85,13 +85,7 @@ namespace Microsoft.Build.Construction
         /// This does not allow conditions, so it should not be called.
         /// </summary>
         public override ElementLocation ConditionLocation
-        {
-            get
-            {
-                ErrorUtilities.ThrowInternalError("Should not evaluate this");
-                return null;
-            }
-        }
+            => Assumed.Unreachable<ElementLocation>("Should not evaluate this");
 
         /// <summary>
         /// Get or set the content of the first sub-element

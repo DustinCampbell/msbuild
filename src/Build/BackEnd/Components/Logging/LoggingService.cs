@@ -1006,7 +1006,7 @@ namespace Microsoft.Build.BackEnd.Logging
             // PERF: Not using VerifyThrow to avoid allocations for enum.ToString (boxing of NodePacketType) in the non-error case.
             if (packet.Type != NodePacketType.LogMessage)
             {
-                ErrorUtilities.ThrowInternalError("Expected packet type \"{0}\" but instead got packet type \"{1}\".", nameof(NodePacketType.LogMessage), packet.Type.ToString());
+                Assumed.Unreachable($"""Expected packet type "{nameof(NodePacketType.LogMessage)}" but instead got packet type "{packet.Type}".""");
             }
 
             LogMessagePacket loggingPacket = (LogMessagePacket)packet;
@@ -1598,7 +1598,7 @@ namespace Microsoft.Build.BackEnd.Logging
             BuildEventArgs buildEventArgs = loggingEvent as BuildEventArgs ?? (loggingEvent as KeyValuePair<int, BuildEventArgs>?)?.Value;
             if (buildEventArgs is null)
             {
-                ErrorUtilities.ThrowInternalError("Unknown logging item in queue:" + loggingEvent.GetType().FullName);
+                Assumed.Unreachable($"Unknown logging item in queue: {loggingEvent.GetType().FullName}");
             }
 
             if (buildEventArgs is BuildWarningEventArgs warningEvent)
@@ -1987,9 +1987,8 @@ namespace Microsoft.Build.BackEnd.Logging
             // PERF: Not using VerifyThrow to avoid boxing an int in the non-error case.
             if (projectFile == null && !allowCacheMiss)
             {
-                ErrorUtilities.ThrowInternalError(
-                    "ContextID {0} should have been in the ID-to-project file mapping but wasn't! Encountered during logging message: '{1}'",
-                    context.ProjectContextId, eventArgs.Message);
+                Assumed.Unreachable(
+                    $"ContextID {context.ProjectContextId} should have been in the ID-to-project file mapping but wasn't! Encountered during logging message: '{eventArgs.Message}'");
             }
 
             return projectFile;

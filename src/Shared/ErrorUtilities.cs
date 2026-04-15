@@ -93,7 +93,7 @@ namespace Microsoft.Build.Shared
             // Check it has a real implementation of ToString()
             if (String.Equals(param.GetType().ToString(), param.ToString(), StringComparison.Ordinal))
             {
-                ThrowInternalError("This type does not implement ToString() properly {0}", param.GetType().FullName!);
+                Assumed.Unreachable($"This type does not implement ToString() properly {param.GetType().FullName}");
             }
 #endif
         }
@@ -109,7 +109,7 @@ namespace Microsoft.Build.Shared
         {
             if (parameter is null)
             {
-                ThrowInternalError("{0} unexpectedly null", parameterName);
+                Assumed.Unreachable($"{parameterName} unexpectedly null");
             }
         }
 
@@ -123,7 +123,7 @@ namespace Microsoft.Build.Shared
         {
             if (!Monitor.IsEntered(locker))
             {
-                ThrowInternalError("Lock should already have been taken");
+                Assumed.Unreachable("Lock should already have been taken");
             }
         }
 
@@ -140,7 +140,7 @@ namespace Microsoft.Build.Shared
 
             if (parameterValue.Length == 0)
             {
-                ThrowInternalError("{0} unexpectedly empty", parameterName);
+                Assumed.Unreachable($"{parameterName} unexpectedly empty");
             }
         }
 
@@ -150,7 +150,7 @@ namespace Microsoft.Build.Shared
 
             if (parameterValue.Length == 0)
             {
-                ThrowInternalError("{0} unexpectedly empty", parameterName);
+                Assumed.Unreachable($"{parameterName} unexpectedly empty");
             }
         }
 
@@ -164,7 +164,7 @@ namespace Microsoft.Build.Shared
         {
             if (!Path.IsPathRooted(value))
             {
-                ThrowInternalError("{0} unexpectedly not a rooted path", value);
+                Assumed.Unreachable($"{value} unexpectedly not a rooted path");
             }
         }
 
@@ -179,7 +179,7 @@ namespace Microsoft.Build.Shared
         {
             if (!condition)
             {
-                ThrowInternalError(unformattedMessage, null, null);
+                Assumed.Unreachable(unformattedMessage);
             }
         }
 

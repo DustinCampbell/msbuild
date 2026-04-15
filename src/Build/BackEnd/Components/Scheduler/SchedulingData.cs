@@ -302,7 +302,7 @@ namespace Microsoft.Build.BackEnd
                     break;
 
                 case SchedulableRequestState.Completed:
-                    ErrorUtilities.ThrowInternalError("Should not be updating a request after it has reached the Completed state.");
+                    Assumed.Unreachable("Should not be updating a request after it has reached the Completed state.");
                     break;
 
                 case SchedulableRequestState.Executing:
@@ -404,7 +404,7 @@ namespace Microsoft.Build.BackEnd
                     break;
 
                 case SchedulableRequestState.Unscheduled:
-                    ErrorUtilities.ThrowInternalError("Request with global id {0} cannot transition to the Unscheduled state", request.BuildRequest.GlobalRequestId);
+                    Assumed.Unreachable($"Request with global id {request.BuildRequest.GlobalRequestId} cannot transition to the Unscheduled state");
                     break;
             }
 
@@ -725,7 +725,7 @@ namespace Microsoft.Build.BackEnd
             SchedulableRequest request = InternalGetScheduledRequestByGlobalRequestId(globalRequestId);
             if (request == null)
             {
-                ErrorUtilities.ThrowInternalError("Request {0} was expected to be in state {1} but is not scheduled at all (it may be unscheduled or may be unknown to the system.)", globalRequestId, state);
+                Assumed.Unreachable($"Request {globalRequestId} was expected to be in state {state} but is not scheduled at all (it may be unscheduled or may be unknown to the system.)");
             }
             else
             {

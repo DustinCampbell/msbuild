@@ -793,7 +793,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (packet is not ITaskHostCallbackPacket callbackPacket)
             {
-                ErrorUtilities.ThrowInternalError("HandleCallbackResponse called with non-callback packet type: {0}", packet.GetType().Name);
+                Assumed.Unreachable($"HandleCallbackResponse called with non-callback packet type: {packet.GetType().Name}");
                 return;
             }
 

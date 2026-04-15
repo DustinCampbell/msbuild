@@ -1013,7 +1013,7 @@ namespace Microsoft.Build.Utilities
                             break;
 
                         default:
-                            ErrorUtilities.ThrowInternalError("Unknown tool notification.");
+                            Assumed.Unreachable("Unknown tool notification.");
                             break;
                     }
                 }

@@ -224,24 +224,17 @@ namespace Microsoft.Build.Execution
             ErrorUtilities.VerifyThrowArgumentNull(task);
             ErrorUtilities.VerifyThrowArgumentNull(property);
 
-            IGeneratedTask? generatedTask = task as IGeneratedTask;
-            if (generatedTask != null)
+            if (task is IGeneratedTask generatedTask)
             {
                 return generatedTask.GetPropertyValue(property);
             }
-            else
+
+            return property switch
             {
-                ReflectableTaskPropertyInfo? propertyInfo = property as ReflectableTaskPropertyInfo;
-                if (propertyInfo != null)
-                {
-                    return propertyInfo.Reflection?.GetValue(task, null);
-                }
-                else
-                {
-                    ErrorUtilities.ThrowInternalError("Task does not implement IGeneratedTask and we don't have {0} either.", typeof(ReflectableTaskPropertyInfo).Name);
-                    throw new InternalErrorException(); // unreachable
-                }
-            }
+                ReflectableTaskPropertyInfo propertyInfo => propertyInfo.Reflection?.GetValue(task, null),
+
+                _ => Assumed.Unreachable<object>($"Task does not implement IGeneratedTask and we don't have {typeof(ReflectableTaskPropertyInfo).Name} either."),
+            };
         }
 
         /// <summary>

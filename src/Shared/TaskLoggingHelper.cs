@@ -1404,7 +1404,7 @@ namespace Microsoft.Build.Utilities
                         }
 
                     default:
-                        ErrorUtilities.ThrowInternalError("Impossible canonical part.");
+                        Assumed.Unreachable("Impossible canonical part.");
                         break;
                 }
             }

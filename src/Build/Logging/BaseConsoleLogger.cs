@@ -279,23 +279,16 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <returns>The logger verbosity required to log a message of the given <paramref name="importance"/>.</returns>
         internal static LoggerVerbosity ImportanceToMinimumVerbosity(MessageImportance importance, out bool lightenText)
         {
-            switch (importance)
+            (LoggerVerbosity result, lightenText) = importance switch
             {
-                case MessageImportance.High:
-                    lightenText = false;
-                    return LoggerVerbosity.Minimal;
-                case MessageImportance.Normal:
-                    lightenText = true;
-                    return LoggerVerbosity.Normal;
-                case MessageImportance.Low:
-                    lightenText = true;
-                    return LoggerVerbosity.Detailed;
+                MessageImportance.High => (LoggerVerbosity.Minimal, false),
+                MessageImportance.Normal => (LoggerVerbosity.Normal, true),
+                MessageImportance.Low => (LoggerVerbosity.Detailed, true),
 
-                default:
-                    ErrorUtilities.ThrowInternalError("Impossible");
-                    lightenText = false;
-                    return LoggerVerbosity.Detailed;
-            }
+                _ => Assumed.Unreachable<(LoggerVerbosity, bool)>("Impossible"),
+            };
+
+            return result;
         }
 
         /// <summary>

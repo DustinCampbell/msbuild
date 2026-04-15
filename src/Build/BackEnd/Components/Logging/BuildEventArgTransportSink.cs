@@ -124,7 +124,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         public void Consume(BuildEventArgs buildEvent)
         {
-            ErrorUtilities.ThrowInternalError("Do not use this method for the transport sink");
+            Assumed.Unreachable("Do not use this method for the transport sink");
         }
 
         /// <summary>

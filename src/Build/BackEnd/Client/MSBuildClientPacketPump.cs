@@ -257,11 +257,11 @@ namespace Microsoft.Build.BackEnd.Client
                                             break;
                                         }
 
-                                        ErrorUtilities.ThrowInternalError("Server disconnected abruptly");
+                                        Assumed.Unreachable("Server disconnected abruptly");
                                     }
                                     else
                                     {
-                                        ErrorUtilities.ThrowInternalError("Incomplete header read.  {0} of {1} bytes read", headerBytesRead, headerByte.Length);
+                                        Assumed.Unreachable($"Incomplete header read.  {headerBytesRead} of {headerByte.Length} bytes read");
                                     }
                                 }
 
@@ -285,7 +285,7 @@ namespace Microsoft.Build.BackEnd.Client
                                     if (bytesRead == 0)
                                     {
                                         // Incomplete read.  Abort.
-                                        ErrorUtilities.ThrowInternalError($"Incomplete packet read. {packetBytesRead} of {packetLength} bytes read");
+                                        Assumed.Unreachable($"Incomplete packet read. {packetBytesRead} of {packetLength} bytes read");
                                     }
 
                                     packetBytesRead += bytesRead;
@@ -321,7 +321,7 @@ namespace Microsoft.Build.BackEnd.Client
                             break;
 
                         default:
-                            ErrorUtilities.ThrowInternalError("WaitId {0} out of range.", waitId);
+                            Assumed.Unreachable($"WaitId {waitId} out of range.");
                             break;
                     }
                 }

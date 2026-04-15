@@ -123,7 +123,7 @@ namespace Microsoft.Build.BackEnd
         {
             if (!_nodeIdToProvider.TryGetValue(node, out INodeProvider? provider))
             {
-                ErrorUtilities.ThrowInternalError("Node {0} does not have a provider.", node);
+                Assumed.Unreachable($"Node {node} does not have a provider.");
             }
             else
             {
@@ -316,8 +316,7 @@ namespace Microsoft.Build.BackEnd
             // If no provider was passed in, we obviously can't create a node.
             if (nodeProvider == null)
             {
-                ErrorUtilities.ThrowInternalError("No node provider provided.");
-                return new List<NodeInfo>();
+                return Assumed.Unreachable<IList<NodeInfo>>("No node provider provided.");
             }
 
             // Are there any free slots on this provider?

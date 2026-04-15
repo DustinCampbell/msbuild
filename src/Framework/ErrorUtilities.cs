@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -26,7 +25,7 @@ namespace Microsoft.Build.Framework
         {
             if (!condition)
             {
-                ThrowInternalError(unformattedMessage, innerException: null, args: null);
+                Assumed.Unreachable(unformattedMessage);
             }
         }
 
@@ -41,7 +40,7 @@ namespace Microsoft.Build.Framework
         {
             if (parameter is null)
             {
-                ThrowInternalError("{0} unexpectedly null", innerException: null, args: parameterName);
+                Assumed.Unreachable($"{parameterName} unexpectedly null");
             }
         }
 
@@ -58,32 +57,8 @@ namespace Microsoft.Build.Framework
 
             if (parameterValue.Length == 0)
             {
-                ThrowInternalError("{0} unexpectedly empty", innerException: null, args: parameterName);
+                Assumed.Unreachable($"{parameterName} unexpectedly empty");
             }
-        }
-
-        /// <summary>
-        /// Throws InternalErrorException.
-        /// This is only for situations that would mean that there is a bug in MSBuild itself.
-        /// </summary>
-        [DoesNotReturn]
-        internal static void ThrowInternalError(string message)
-        {
-            throw new InternalErrorException(message);
-        }
-
-        /// <summary>
-        /// Throws InternalErrorException.
-        /// This is only for situations that would mean that there is a bug in MSBuild itself.
-        /// </summary>
-        [DoesNotReturn]
-        internal static void ThrowInternalError(string message, Exception? innerException, params object?[]? args)
-        {
-            throw new InternalErrorException(
-                args is null ?
-                    message :
-                    string.Format(message, args),
-                innerException);
         }
     }
 }

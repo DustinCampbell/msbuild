@@ -114,7 +114,7 @@ namespace Microsoft.Build.Tasks.AssemblyDependency
                             _pipeServer.Disconnect();
                             break;
                         default:
-                            ErrorUtilities.ThrowInternalError($"Received unexpected packet type {packetType}");
+                            Assumed.Unreachable($"Received unexpected packet type {packetType}");
                             break;
                     }
                 }

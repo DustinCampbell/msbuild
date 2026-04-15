@@ -51,7 +51,7 @@ namespace Microsoft.Build.Shared
         // until Cloudbuild switches to EvaluationContext, we need to keep their dependence on global glob caching via an environment variable
         private static readonly Lazy<ConcurrentDictionary<string, IReadOnlyList<string>>> s_cachedGlobExpansions = new Lazy<ConcurrentDictionary<string, IReadOnlyList<string>>>(() => new ConcurrentDictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase));
         private static readonly Lazy<ConcurrentDictionary<string, object>> s_cachedGlobExpansionsLock = new Lazy<ConcurrentDictionary<string, object>>(() => new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase));
-        private static readonly Lazy<ConcurrentDictionary<string, (Regex regex, bool needsRecursion, bool isLegalFileSpec)>> s_regexCache = new(() =>new(StringComparer.Ordinal));
+        private static readonly Lazy<ConcurrentDictionary<string, (Regex regex, bool needsRecursion, bool isLegalFileSpec)>> s_regexCache = new(() => new(StringComparer.Ordinal));
 
         private readonly ConcurrentDictionary<string, IReadOnlyList<string>> _cachedGlobExpansions;
         private readonly Lazy<ConcurrentDictionary<string, object>> _cachedGlobExpansionsLock = new Lazy<ConcurrentDictionary<string, object>>(() => new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase));
@@ -234,16 +234,15 @@ namespace Microsoft.Build.Shared
         private static IReadOnlyList<string> GetAccessibleFileSystemEntries(IFileSystem fileSystem, FileSystemEntity entityType, string path, string pattern, string projectDirectory, bool stripProjectDirectory)
         {
             path = FileUtilities.FixFilePath(path);
-            switch (entityType)
+
+            return entityType switch
             {
-                case FileSystemEntity.Files: return GetAccessibleFiles(fileSystem, path, pattern, projectDirectory, stripProjectDirectory);
-                case FileSystemEntity.Directories: return GetAccessibleDirectories(fileSystem, path, pattern);
-                case FileSystemEntity.FilesAndDirectories: return GetAccessibleFilesAndDirectories(fileSystem, path, pattern);
-                default:
-                    FrameworkErrorUtilities.ThrowInternalError("Unexpected filesystem entity type.");
-                    break;
-            }
-            return [];
+                FileSystemEntity.Files => GetAccessibleFiles(fileSystem, path, pattern, projectDirectory, stripProjectDirectory),
+                FileSystemEntity.Directories => GetAccessibleDirectories(fileSystem, path, pattern),
+                FileSystemEntity.FilesAndDirectories => GetAccessibleFilesAndDirectories(fileSystem, path, pattern),
+
+                _ => Assumed.Unreachable<IReadOnlyList<string>>("Unexpected filesystem entity type."),
+            };
         }
 
         /// <summary>
@@ -1690,8 +1689,9 @@ namespace Microsoft.Build.Shared
         {
             if (input == ReadOnlySpan<char>.Empty)
             {
-                FrameworkErrorUtilities.ThrowInternalError("Unexpected empty 'input' provided.");
+                Assumed.Unreachable("Unexpected empty 'input' provided.");
             }
+
             if (pattern == null)
             {
                 throw new ArgumentNullException(nameof(pattern));

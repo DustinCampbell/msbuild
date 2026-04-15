@@ -479,7 +479,7 @@ namespace Microsoft.Build.BackEnd
             {
                 if (isArm64)
                 {
-                    ErrorUtilities.ThrowInternalError("ARM64 CLR2 task hosts are not supported.");
+                    Assumed.Unreachable("ARM64 CLR2 task hosts are not supported.");
                 }
 
                 return isX64
@@ -537,12 +537,12 @@ namespace Microsoft.Build.BackEnd
 
                 if (string.IsNullOrEmpty(path))
                 {
-                    ErrorUtilities.ThrowInternalError(ResourceUtilities.GetResourceString("SDKPathResolution_Failed"));
+                    Assumed.Unreachable(ResourceUtilities.GetResourceString("SDKPathResolution_Failed"));
                 }
 
                 if (!FileSystems.Default.DirectoryExists(path))
                 {
-                    ErrorUtilities.ThrowInternalError(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("SDKPathCheck_Failed", path));
+                    Assumed.Unreachable(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("SDKPathCheck_Failed", path));
                 }
 
                 var sdkVersion = ExtractSdkVersionFromPath(path);

@@ -438,7 +438,7 @@ namespace Microsoft.Build.BackEnd
                     break;
 
                 case NodeEngineShutdownReason.ConnectionFailed:
-                    ErrorUtilities.ThrowInternalError("Unexpected shutdown code {0} received.", reason);
+                    Assumed.Unreachable($"Unexpected shutdown code {reason} received.");
                     break;
             }
         }

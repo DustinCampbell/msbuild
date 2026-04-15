@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -52,7 +51,7 @@ namespace Microsoft.Build.BackEnd
             // PERF: Not using VerifyThrow to avoid boxing of packetType in the non-error case
             if (!_packetFactories.TryGetValue(packetType, out PacketFactoryRecord record))
             {
-                ErrorUtilities.ThrowInternalError("No packet handler for type {0}", packetType);
+                Assumed.Unreachable($"No packet handler for type {packetType}");
             }
 
             INodePacket packet = record.DeserializePacket(translator);
@@ -67,7 +66,7 @@ namespace Microsoft.Build.BackEnd
             // PERF: Not using VerifyThrow to avoid boxing of packetType in the non-error case
             if (!_packetFactories.TryGetValue(packetType, out PacketFactoryRecord record))
             {
-                ErrorUtilities.ThrowInternalError("No packet handler for type {0}", packetType);
+                Assumed.Unreachable($"No packet handler for type {packetType}");
             }
 
             return record.DeserializePacket(translator);
@@ -81,7 +80,7 @@ namespace Microsoft.Build.BackEnd
             // PERF: Not using VerifyThrow to avoid boxing of packetType in the non-error case
             if (!_packetFactories.TryGetValue(packet.Type, out PacketFactoryRecord record))
             {
-                ErrorUtilities.ThrowInternalError("No packet handler for type {0}", packet.Type);
+                Assumed.Unreachable($"No packet handler for type {packet.Type}");
             }
 
             record.RoutePacket(nodeId, packet);

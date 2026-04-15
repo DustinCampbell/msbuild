@@ -7,7 +7,6 @@ using System.Diagnostics;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Telemetry;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.Debugging;
 using InternalLoggerException = Microsoft.Build.Exceptions.InternalLoggerException;
 
@@ -301,7 +300,7 @@ namespace Microsoft.Build.BackEnd.Logging
                         break;
 
                     default:
-                        ErrorUtilities.ThrowInternalError("Unknown event args type.");
+                        Assumed.Unreachable("Unknown event args type.");
                         break;
                 }
             }
@@ -350,13 +349,13 @@ namespace Microsoft.Build.BackEnd.Logging
                 case WorkerNodeTelemetryEventArgs:
                     break;
                 default:
-                    ErrorUtilities.ThrowInternalError("Unknown event args type.");
+                    Assumed.Unreachable("Unknown event args type.");
                     break;
             }
         }
 
         /// <summary>
-        /// Shutdown and displose of any resource this object is holding onto.
+        /// Shutdown and dispose of any resources this object is holding onto.
         /// </summary>
         public void ShutDown()
         {

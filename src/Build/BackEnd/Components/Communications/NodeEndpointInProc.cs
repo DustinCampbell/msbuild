@@ -451,7 +451,7 @@ namespace Microsoft.Build.BackEnd
                             break;
 
                         default:
-                            ErrorUtilities.ThrowInternalError("waitId {0} out of range.", waitId);
+                            Assumed.Unreachable($"waitId {waitId} out of range.");
                             break;
                     }
                 }

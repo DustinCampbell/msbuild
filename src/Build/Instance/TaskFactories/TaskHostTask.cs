@@ -667,7 +667,7 @@ namespace Microsoft.Build.BackEnd
                     }
                     else
                     {
-                        ErrorUtilities.ThrowInternalError("Unknown event args type.");
+                        Assumed.Unreachable("Unknown event args type.");
                     }
 
                     break;

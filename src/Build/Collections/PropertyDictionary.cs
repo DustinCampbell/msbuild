@@ -112,15 +112,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         ICollection<string> IDictionary<string, T>.Keys
-        {
-            get
-            {
-                ErrorUtilities.ThrowInternalError("Keys is not supported on PropertyDictionary.");
-
-                // Show the compiler that this always throws:
-                throw new NotImplementedException();
-            }
-        }
+            => Assumed.Unreachable<ICollection<string>>("Keys is not supported on PropertyDictionary.");
 
         /// <summary>
         /// Accessor for the list of properties
@@ -443,9 +435,7 @@ namespace Microsoft.Build.Collections
         /// Not implemented
         /// </summary>
         void ICollection<KeyValuePair<string, T>>.CopyTo(KeyValuePair<string, T>[] array, int arrayIndex)
-        {
-            ErrorUtilities.ThrowInternalError("CopyTo is not supported on PropertyDictionary.");
-        }
+            => Assumed.Unreachable("CopyTo is not supported on PropertyDictionary.");
 
         /// <summary>
         /// Removes a property from the collection

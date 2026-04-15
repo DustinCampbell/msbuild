@@ -299,7 +299,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         void ICollection<KeyValuePair<string, T>>.CopyTo(KeyValuePair<string, T>[] array, int arrayIndex)
         {
-            ErrorUtilities.ThrowInternalError("CopyTo is not supported on PropertyDictionary.");
+            Assumed.Unreachable("CopyTo is not supported on PropertyDictionary.");
         }
 
         /// <summary>

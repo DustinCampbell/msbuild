@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -49,7 +48,7 @@ namespace Microsoft.Build.BackEnd
         {
             if (!String.Equals(taskName, TaskType.Name, StringComparison.OrdinalIgnoreCase))
             {
-                ErrorUtilities.ThrowInternalError("Unexpected task name {0}.  Expected {1}", taskName, TaskType.Name);
+                Assumed.Unreachable($"Unexpected task name {taskName}.  Expected {TaskType.Name}");
             }
 
             return true;
@@ -84,8 +83,7 @@ namespace Microsoft.Build.BackEnd
                 return new CallTarget();
             }
 
-            ErrorUtilities.ThrowInternalError("Unexpected intrinsic task type {0}", TaskType);
-            return null;
+            return Assumed.Unreachable<ITask>($"Unexpected intrinsic task type {TaskType}");
         }
 
         /// <summary>
