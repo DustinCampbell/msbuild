@@ -18,7 +18,6 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Collections;
 
 #nullable disable
 
@@ -513,7 +512,7 @@ namespace Microsoft.Build.Evaluation
             ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Include, itemElement.IncludeLocation, rootDirectory, referencedItemLists);
 
             // Code corresponds to Evaluator.EvaluateItemElement
-            ImmutableSegmentedList<string>.Builder excludes = null;
+            using RefArrayBuilder<string> excludes = default;
 
             // Process exclude (STEP 4: Evaluate, split, expand and subtract any Exclude)
             if (itemElement.Exclude.Length > 0)
@@ -526,7 +525,6 @@ namespace Microsoft.Build.Evaluation
                 {
                     foreach (string exclude in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude))
                     {
-                        excludes ??= ImmutableSegmentedList.CreateBuilder<string>();
                         excludes.Add(exclude);
 
                         AddItemReferences(exclude, itemElement.ExcludeLocation, referencedItemLists);
@@ -546,7 +544,7 @@ namespace Microsoft.Build.Evaluation
                 metadata,
                 elementOrder: _nextElementOrder++,
                 rootDirectory,
-                excludes?.ToImmutable() ?? [],
+                excludes.ToImmutable(),
                 lazyEvaluator: this);
         }
 
@@ -557,7 +555,7 @@ namespace Microsoft.Build.Evaluation
             ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Remove, itemElement.RemoveLocation, rootDirectory, referencedItemLists);
 
             // Process MatchOnMetadata
-            ImmutableList<string>.Builder matchOnMetadata = null;
+            using RefArrayBuilder<string> matchOnMetadata = default;
 
             if (itemElement.MatchOnMetadata.Length > 0)
             {
@@ -572,7 +570,6 @@ namespace Microsoft.Build.Evaluation
 
                         foreach (string metadataSplit in ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded))
                         {
-                            matchOnMetadata ??= ImmutableList.CreateBuilder<string>();
                             matchOnMetadata.Add(metadataSplit);
                         }
                     }
@@ -592,7 +589,7 @@ namespace Microsoft.Build.Evaluation
                 itemSpec,
                 referencedItemLists.ToImmutable(),
                 conditionResult,
-                matchOnMetadata?.ToImmutable() ?? [],
+                matchOnMetadata.ToImmutable(),
                 matchOnMetadataOptions,
                 lazyEvaluator: this);
         }
@@ -640,7 +637,7 @@ namespace Microsoft.Build.Evaluation
                 return [];
             }
 
-            ImmutableArray<ProjectMetadataElement>.Builder metadata = null;
+            using RefArrayBuilder<ProjectMetadataElement> metadata = default;
 
             ItemsAndMetadataPair itemsAndMetadataFound = default;
 
@@ -650,7 +647,6 @@ namespace Microsoft.Build.Evaluation
             const ExpanderOptions expanderOptions = ExpanderOptions.ExpandProperties | ExpanderOptions.LeavePropertiesUnexpandedOnError;
             foreach (ProjectMetadataElement metadatumElement in itemElement.MetadataEnumerable)
             {
-                metadata ??= ImmutableArray.CreateBuilder<ProjectMetadataElement>();
                 metadata.Add(metadatumElement);
 
                 string expression = _expander.ExpandIntoStringLeaveEscaped(
@@ -676,7 +672,7 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            return metadata?.ToImmutable() ?? [];
+            return metadata.ToImmutable();
         }
 
         private void AddItemReferences(string expression, IElementLocation elementLocation, ImmutableDictionary<string, LazyItemList>.Builder referencedItemLists)

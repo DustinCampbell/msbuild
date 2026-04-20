@@ -11,7 +11,6 @@ using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
-using Microsoft.CodeAnalysis.Collections;
 
 namespace Microsoft.Build.Evaluation
 {
@@ -21,7 +20,7 @@ namespace Microsoft.Build.Evaluation
         {
             private readonly int _elementOrder;
             private readonly string? _rootDirectory;
-            private readonly ImmutableSegmentedList<string> _excludes;
+            private readonly ImmutableArray<string> _excludes;
             private readonly ImmutableArray<ProjectMetadataElement> _metadata;
 
             public IncludeOperation(
@@ -33,7 +32,7 @@ namespace Microsoft.Build.Evaluation
                 ImmutableArray<ProjectMetadataElement> metadata,
                 int elementOrder,
                 string? rootDirectory,
-                ImmutableSegmentedList<string> excludes,
+                ImmutableArray<string> excludes,
                 LazyItemEvaluator<P, I, M, D> lazyEvaluator)
                 : base(itemElement, itemType, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
