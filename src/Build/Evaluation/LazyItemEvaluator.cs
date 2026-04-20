@@ -1,15 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Collections;
-using Microsoft.Build.Construction;
-using Microsoft.Build.Evaluation.Context;
-using Microsoft.Build.Eventing;
-using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -18,6 +9,16 @@ using System.Diagnostics;
 #endif
 using System.Linq;
 using System.Threading;
+using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Construction;
+using Microsoft.Build.Evaluation.Context;
+using Microsoft.Build.Eventing;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
+using Microsoft.Build.Shared.FileSystem;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Collections;
 
 #nullable disable
 
@@ -29,6 +30,14 @@ namespace Microsoft.Build.Evaluation
         where M : class, IMetadatum
         where D : class, IItemDefinition<M>
     {
+        // WORKAROUND: Unnecessary boxed allocation: https://github.com/dotnet/corefx/issues/24563
+        private static readonly ImmutableDictionary<string, LazyItemList> s_emptyIgnoreCase = ImmutableDictionary.Create<string, LazyItemList>(StringComparer.OrdinalIgnoreCase);
+
+        private static ImmutableDictionary<string, LazyItemList>.Builder CreateReferenceItemListsBuilder()
+            => Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames
+                ? ImmutableDictionary.CreateBuilder<string, LazyItemList>()
+                : s_emptyIgnoreCase.ToBuilder();
+
         private readonly IEvaluatorData<P, I, M, D> _outerEvaluatorData;
         private readonly Expander<P, I> _outerExpander;
         private readonly IEvaluatorData<P, I, M, D> _evaluatorData;
@@ -456,38 +465,6 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private class OperationBuilder
-        {
-            // WORKAROUND: Unnecessary boxed allocation: https://github.com/dotnet/corefx/issues/24563
-            private static readonly ImmutableDictionary<string, LazyItemList> s_emptyIgnoreCase = ImmutableDictionary.Create<string, LazyItemList>(StringComparer.OrdinalIgnoreCase);
-
-            public ProjectItemElement ItemElement { get; set; }
-            public string ItemType { get; set; }
-            public ItemSpec<P, I> ItemSpec { get; set; }
-
-            public ImmutableDictionary<string, LazyItemList>.Builder ReferencedItemLists { get; } = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
-                ImmutableDictionary.CreateBuilder<string, LazyItemList>() :
-                s_emptyIgnoreCase.ToBuilder();
-
-            public bool ConditionResult { get; set; }
-
-            public OperationBuilder(ProjectItemElement itemElement, bool conditionResult)
-            {
-                ItemElement = itemElement;
-                ItemType = itemElement.ItemType;
-                ConditionResult = conditionResult;
-            }
-        }
-
-        private class OperationBuilderWithMetadata : OperationBuilder
-        {
-            public readonly ImmutableArray<ProjectMetadataElement>.Builder Metadata = ImmutableArray.CreateBuilder<ProjectMetadataElement>();
-
-            public OperationBuilderWithMetadata(ProjectItemElement itemElement, bool conditionResult) : base(itemElement, conditionResult)
-            {
-            }
-        }
-
         private void AddReferencedItemList(string itemType, IDictionary<string, LazyItemList> referencedItemLists)
         {
             if (_itemLists.TryGetValue(itemType, out LazyItemList itemList))
@@ -509,15 +486,15 @@ namespace Microsoft.Build.Evaluation
 
             if (itemElement.IncludeLocation != null)
             {
-                operation = BuildIncludeOperation(rootDirectory, itemElement, conditionResult);
+                operation = CreateIncludeOperation(itemElement, rootDirectory, conditionResult);
             }
             else if (itemElement.RemoveLocation != null)
             {
-                operation = BuildRemoveOperation(rootDirectory, itemElement, conditionResult);
+                operation = CreateRemoveOperation(itemElement, rootDirectory, conditionResult);
             }
             else if (itemElement.UpdateLocation != null)
             {
-                operation = BuildUpdateOperation(rootDirectory, itemElement, conditionResult);
+                operation = CreateUpdateOperation(itemElement, rootDirectory, conditionResult);
             }
             else
             {
@@ -529,36 +506,14 @@ namespace Microsoft.Build.Evaluation
             _itemLists[itemElement.ItemType] = newList;
         }
 
-        private UpdateOperation BuildUpdateOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
+        private IncludeOperation CreateIncludeOperation(ProjectItemElement itemElement, string rootDirectory, bool conditionResult)
         {
-            OperationBuilderWithMetadata operationBuilder = new OperationBuilderWithMetadata(itemElement, conditionResult);
+            ImmutableDictionary<string, LazyItemList>.Builder referencedItemLists = CreateReferenceItemListsBuilder();
 
-            // Proces Update attribute
-            ProcessItemSpec(rootDirectory, itemElement.Update, itemElement.UpdateLocation, operationBuilder);
-
-            ProcessMetadataElements(itemElement, operationBuilder);
-
-            return new UpdateOperation(
-                operationBuilder.ItemElement,
-                operationBuilder.ItemType,
-                operationBuilder.ItemSpec,
-                operationBuilder.ReferencedItemLists.ToImmutable(),
-                operationBuilder.ConditionResult,
-                operationBuilder.Metadata.ToImmutable(),
-                lazyEvaluator: this);
-        }
-
-        private IncludeOperation BuildIncludeOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
-        {
-            IncludeOperationBuilder operationBuilder = new IncludeOperationBuilder(itemElement, conditionResult);
-            operationBuilder.ElementOrder = _nextElementOrder++;
-            operationBuilder.RootDirectory = rootDirectory;
-            operationBuilder.ConditionResult = conditionResult;
-
-            // Process include
-            ProcessItemSpec(rootDirectory, itemElement.Include, itemElement.IncludeLocation, operationBuilder);
+            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Include, itemElement.IncludeLocation, rootDirectory, referencedItemLists);
 
             // Code corresponds to Evaluator.EvaluateItemElement
+            ImmutableSegmentedList<string>.Builder excludes = null;
 
             // Process exclude (STEP 4: Evaluate, split, expand and subtract any Exclude)
             if (itemElement.Exclude.Length > 0)
@@ -569,158 +524,194 @@ namespace Microsoft.Build.Evaluation
 
                 if (evaluatedExclude.Length > 0)
                 {
-                    var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude);
-
-                    foreach (var excludeSplit in excludeSplits)
+                    foreach (string exclude in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude))
                     {
-                        operationBuilder.Excludes.Add(excludeSplit);
-                        AddItemReferences(excludeSplit, operationBuilder, itemElement.ExcludeLocation);
+                        excludes ??= ImmutableSegmentedList.CreateBuilder<string>();
+                        excludes.Add(exclude);
+
+                        AddItemReferences(exclude, itemElement.ExcludeLocation, referencedItemLists);
                     }
                 }
             }
 
             // Process Metadata (STEP 5: Evaluate each metadata XML and apply them to each item we have so far)
-            ProcessMetadataElements(itemElement, operationBuilder);
+            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, referencedItemLists);
 
             return new IncludeOperation(
-                operationBuilder.ItemElement,
-                operationBuilder.ItemType,
-                operationBuilder.ItemSpec,
-                operationBuilder.ReferencedItemLists.ToImmutable(),
-                operationBuilder.ConditionResult,
-                operationBuilder.Metadata.ToImmutable(),
-                operationBuilder.ElementOrder,
-                operationBuilder.RootDirectory,
-                operationBuilder.Excludes.ToImmutable(),
+                itemElement,
+                itemElement.ItemType,
+                itemSpec,
+                referencedItemLists.ToImmutable(),
+                conditionResult,
+                metadata,
+                elementOrder: _nextElementOrder++,
+                rootDirectory,
+                excludes?.ToImmutable() ?? [],
                 lazyEvaluator: this);
         }
 
-        private RemoveOperation BuildRemoveOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
+        private RemoveOperation CreateRemoveOperation(ProjectItemElement itemElement, string rootDirectory, bool conditionResult)
         {
-            RemoveOperationBuilder operationBuilder = new RemoveOperationBuilder(itemElement, conditionResult);
+            ImmutableDictionary<string, LazyItemList>.Builder referencedItemLists = CreateReferenceItemListsBuilder();
 
-            ProcessItemSpec(rootDirectory, itemElement.Remove, itemElement.RemoveLocation, operationBuilder);
+            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Remove, itemElement.RemoveLocation, rootDirectory, referencedItemLists);
 
             // Process MatchOnMetadata
+            ImmutableList<string>.Builder matchOnMetadata = null;
+
             if (itemElement.MatchOnMetadata.Length > 0)
             {
                 string evaluatedmatchOnMetadata = _expander.ExpandIntoStringLeaveEscaped(itemElement.MatchOnMetadata, ExpanderOptions.ExpandProperties, itemElement.MatchOnMetadataLocation);
 
                 if (evaluatedmatchOnMetadata.Length > 0)
                 {
-                    var matchOnMetadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedmatchOnMetadata);
-
-                    foreach (var matchOnMetadataSplit in matchOnMetadataSplits)
+                    foreach (string matchOnMetadataSplit in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedmatchOnMetadata))
                     {
-                        AddItemReferences(matchOnMetadataSplit, operationBuilder, itemElement.MatchOnMetadataLocation);
+                        AddItemReferences(matchOnMetadataSplit, itemElement.MatchOnMetadataLocation, referencedItemLists);
                         string metadataExpanded = _expander.ExpandIntoStringLeaveEscaped(matchOnMetadataSplit, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
-                        var metadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded);
-                        operationBuilder.MatchOnMetadata.AddRange(metadataSplits);
+
+                        foreach (string metadataSplit in ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded))
+                        {
+                            matchOnMetadata ??= ImmutableList.CreateBuilder<string>();
+                            matchOnMetadata.Add(metadataSplit);
+                        }
                     }
                 }
             }
 
-            operationBuilder.MatchOnMetadataOptions = MatchOnMetadataOptions.CaseSensitive;
+            MatchOnMetadataOptions matchOnMetadataOptions = MatchOnMetadataOptions.CaseSensitive;
+
             if (Enum.TryParse(itemElement.MatchOnMetadataOptions, out MatchOnMetadataOptions options))
             {
-                operationBuilder.MatchOnMetadataOptions = options;
+                matchOnMetadataOptions = options;
             }
 
             return new RemoveOperation(
-                operationBuilder.ItemElement,
-                operationBuilder.ItemType,
-                operationBuilder.ItemSpec,
-                operationBuilder.ReferencedItemLists.ToImmutable(),
-                operationBuilder.ConditionResult,
-                operationBuilder.MatchOnMetadata.ToImmutable(),
-                operationBuilder.MatchOnMetadataOptions,
+                itemElement,
+                itemElement.ItemType,
+                itemSpec,
+                referencedItemLists.ToImmutable(),
+                conditionResult,
+                matchOnMetadata?.ToImmutable() ?? [],
+                matchOnMetadataOptions,
                 lazyEvaluator: this);
         }
 
-        private void ProcessItemSpec(string rootDirectory, string itemSpec, IElementLocation itemSpecLocation, OperationBuilder builder)
+        private UpdateOperation CreateUpdateOperation(ProjectItemElement itemElement, string rootDirectory, bool conditionResult)
         {
-            builder.ItemSpec = new ItemSpec<P, I>(itemSpec, _outerExpander, itemSpecLocation, rootDirectory);
+            ImmutableDictionary<string, LazyItemList>.Builder referencedItemLists = CreateReferenceItemListsBuilder();
 
-            foreach (ItemSpecFragment fragment in builder.ItemSpec.Fragments)
+            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Update, itemElement.UpdateLocation, rootDirectory, referencedItemLists);
+
+            // Process Metadata (STEP 5: Evaluate each metadata XML and apply them to each item we have so far)
+            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, referencedItemLists);
+
+            return new UpdateOperation(
+                itemElement,
+                itemElement.ItemType,
+                itemSpec,
+                referencedItemLists.ToImmutable(),
+                conditionResult,
+                metadata,
+                lazyEvaluator: this);
+        }
+
+        private ItemSpec<P, I> ProcessItemSpec(string itemSpec, IElementLocation itemSpecLocation, string rootDirectory, ImmutableDictionary<string, LazyItemList>.Builder referencedItemLists)
+        {
+            var result = new ItemSpec<P, I>(itemSpec, _outerExpander, itemSpecLocation, rootDirectory);
+
+            foreach (ItemSpecFragment fragment in result.Fragments)
             {
                 if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemExpression)
                 {
-                    AddReferencedItemLists(builder, itemExpression.Capture);
+                    AddReferencedItemLists(itemExpression.Capture, referencedItemLists);
                 }
             }
+
+            return result;
         }
 
-        private void ProcessMetadataElements(ProjectItemElement itemElement, OperationBuilderWithMetadata operationBuilder)
+        private ImmutableArray<ProjectMetadataElement> ProcessMetadataElements(
+            ProjectItemElement itemElement,
+            ImmutableDictionary<string, LazyItemList>.Builder referencedItemLists)
         {
-            if (itemElement.HasMetadata)
+            if (!itemElement.HasMetadata)
             {
-                ItemsAndMetadataPair itemsAndMetadataFound = new ItemsAndMetadataPair(null, null);
+                return [];
+            }
 
-                // Since we're just attempting to expand properties in order to find referenced items and not expanding metadata,
-                // unexpected errors may occur when evaluating property functions on unexpanded metadata. Just ignore them if that happens.
-                // See: https://github.com/dotnet/msbuild/issues/3460
-                const ExpanderOptions expanderOptions = ExpanderOptions.ExpandProperties | ExpanderOptions.LeavePropertiesUnexpandedOnError;
-                foreach (var metadatumElement in itemElement.MetadataEnumerable)
+            ImmutableArray<ProjectMetadataElement>.Builder metadata = null;
+
+            ItemsAndMetadataPair itemsAndMetadataFound = default;
+
+            // Since we're just attempting to expand properties in order to find referenced items and not expanding metadata,
+            // unexpected errors may occur when evaluating property functions on unexpanded metadata. Just ignore them if that happens.
+            // See: https://github.com/dotnet/msbuild/issues/3460
+            const ExpanderOptions expanderOptions = ExpanderOptions.ExpandProperties | ExpanderOptions.LeavePropertiesUnexpandedOnError;
+            foreach (ProjectMetadataElement metadatumElement in itemElement.MetadataEnumerable)
+            {
+                metadata ??= ImmutableArray.CreateBuilder<ProjectMetadataElement>();
+                metadata.Add(metadatumElement);
+
+                string expression = _expander.ExpandIntoStringLeaveEscaped(
+                    metadatumElement.Value,
+                    expanderOptions,
+                    metadatumElement.Location);
+
+                ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+
+                expression = _expander.ExpandIntoStringLeaveEscaped(
+                    metadatumElement.Condition,
+                    expanderOptions,
+                    metadatumElement.ConditionLocation);
+
+                ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+            }
+
+            if (itemsAndMetadataFound.Items != null)
+            {
+                foreach (string itemType in itemsAndMetadataFound.Items)
                 {
-                    operationBuilder.Metadata.Add(metadatumElement);
-
-                    string expression = _expander.ExpandIntoStringLeaveEscaped(
-                        metadatumElement.Value,
-                        expanderOptions,
-                        metadatumElement.Location);
-
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
-
-                    expression = _expander.ExpandIntoStringLeaveEscaped(
-                        metadatumElement.Condition,
-                        expanderOptions,
-                        metadatumElement.ConditionLocation);
-
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
-                }
-
-                if (itemsAndMetadataFound.Items != null)
-                {
-                    foreach (var itemType in itemsAndMetadataFound.Items)
-                    {
-                        AddReferencedItemList(itemType, operationBuilder.ReferencedItemLists);
-                    }
+                    AddReferencedItemList(itemType, referencedItemLists);
                 }
             }
+
+            return metadata?.ToImmutable() ?? [];
         }
 
-        private void AddItemReferences(string expression, OperationBuilder operationBuilder, IElementLocation elementLocation)
+        private void AddItemReferences(string expression, IElementLocation elementLocation, ImmutableDictionary<string, LazyItemList>.Builder referencedItemLists)
         {
             if (expression.Length == 0)
             {
                 return;
             }
-            else
+
+            ExpressionShredder.ItemExpressionCapture? match = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
+                expression, ExpanderOptions.ExpandItems, elementLocation);
+
+            if (match is { } matchValue)
             {
-                ExpressionShredder.ItemExpressionCapture? match = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
-                    expression, ExpanderOptions.ExpandItems, elementLocation);
-
-                if (match == null)
-                {
-                    return;
-                }
-
-                AddReferencedItemLists(operationBuilder, match.Value);
+                AddReferencedItemLists(matchValue, referencedItemLists);
             }
         }
 
-        private void AddReferencedItemLists(OperationBuilder operationBuilder, ExpressionShredder.ItemExpressionCapture match)
+        private void AddReferencedItemLists(
+            ExpressionShredder.ItemExpressionCapture match,
+            ImmutableDictionary<string, LazyItemList>.Builder referencedItemLists)
         {
-            if (match.ItemType != null)
+            if (match.ItemType is string itemType)
             {
-                AddReferencedItemList(match.ItemType, operationBuilder.ReferencedItemLists);
+                AddReferencedItemList(itemType, referencedItemLists);
             }
-            if (match.Captures != null)
+
+            if (match.Captures is not { } subMatches)
             {
-                foreach (var subMatch in match.Captures)
-                {
-                    AddReferencedItemLists(operationBuilder, subMatch);
-                }
+                return;
+            }
+
+            foreach (ExpressionShredder.ItemExpressionCapture subMatch in subMatches)
+            {
+                AddReferencedItemLists(subMatch, referencedItemLists);
             }
         }
     }

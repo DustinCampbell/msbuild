@@ -225,17 +225,5 @@ namespace Microsoft.Build.Evaluation
                 }
             }
         }
-
-        private class IncludeOperationBuilder : OperationBuilderWithMetadata
-        {
-            public int ElementOrder { get; set; }
-            public string? RootDirectory { get; set; }
-
-            public ImmutableSegmentedList<string>.Builder Excludes { get; } = ImmutableSegmentedList.CreateBuilder<string>();
-
-            public IncludeOperationBuilder(ProjectItemElement itemElement, bool conditionResult) : base(itemElement, conditionResult)
-            {
-            }
-        }
     }
 }

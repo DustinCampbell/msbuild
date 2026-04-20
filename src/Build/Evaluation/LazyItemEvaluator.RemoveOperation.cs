@@ -116,16 +116,5 @@ namespace Microsoft.Build.Evaluation
                 return builder;
             }
         }
-
-        private class RemoveOperationBuilder : OperationBuilder
-        {
-            public ImmutableList<string>.Builder MatchOnMetadata { get; } = ImmutableList.CreateBuilder<string>();
-
-            public MatchOnMetadataOptions MatchOnMetadataOptions { get; set; }
-
-            public RemoveOperationBuilder(ProjectItemElement itemElement, bool conditionResult) : base(itemElement, conditionResult)
-            {
-            }
-        }
     }
 }
