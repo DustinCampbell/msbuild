@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
@@ -45,7 +45,7 @@ namespace Microsoft.Build.Evaluation
 
             protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
-                var items = SelectItems(listBuilder, globsToIgnore);
+                var items = SelectItems(globsToIgnore);
                 MutateItems(items);
                 SaveItems(items, listBuilder);
             }
@@ -54,24 +54,28 @@ namespace Microsoft.Build.Evaluation
             /// Produce the items to operate on. For example, create new ones or select existing ones
             /// </summary>
             [SuppressMessage("Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "_lazyEvaluator._evaluationProfiler has own dipose logic.")]
-            private ImmutableArray<I> SelectItems(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            private ImmutableArray<I> SelectItems(ImmutableHashSet<string> globsToIgnore)
             {
-                ImmutableArray<I>.Builder? itemsToAdd = null;
+                using RefArrayBuilder<string> excludePatterns = default;
 
-                ImmutableList<string>.Builder excludePatterns = ImmutableList.CreateBuilder<string>();
                 if (_excludes != null)
                 {
                     // STEP 4: Evaluate, split, expand and subtract any Exclude
                     foreach (string exclude in _excludes)
                     {
                         string excludeExpanded = _expander.ExpandIntoStringLeaveEscaped(exclude, ExpanderOptions.ExpandPropertiesAndItems, _itemElement.ExcludeLocation);
-                        var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(excludeExpanded);
-                        excludePatterns.AddRange(excludeSplits);
+
+                        foreach (string excludeSplit in ExpressionShredder.SplitSemiColonSeparatedList(excludeExpanded))
+                        {
+                            excludePatterns.Add(excludeSplit);
+                        }
                     }
                 }
 
-                ISet<string>? excludePatternsForGlobs = null;
+                ImmutableHashSet<string>? excludePatternsForGlobs = null;
                 FileSpecMatcherTester?[]? matchers = null;
+
+                using RefArrayBuilder<I> itemsToAdd = default;
 
                 foreach (var fragment in _itemSpec.Fragments)
                 {
@@ -87,15 +91,13 @@ namespace Microsoft.Build.Evaluation
                             isTransformExpression: out _,
                             elementLocation: _itemElement.IncludeLocation);
 
-                        itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
-
                         if (excludePatterns.Count > 0)
                         {
                             matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
 
                             foreach (var item in itemsFromExpression)
                             {
-                                if (!ExcludeTester(_rootDirectory, excludePatterns, matchers, item.EvaluatedInclude))
+                                if (!ExcludeTester(_rootDirectory, excludePatterns.AsSpan(), matchers, item.EvaluatedInclude))
                                 {
                                     itemsToAdd.Add(item);
                                 }
@@ -103,7 +105,10 @@ namespace Microsoft.Build.Evaluation
                         }
                         else
                         {
-                            itemsToAdd.AddRange(itemsFromExpression);
+                            for (int i = 0; i < itemsFromExpression.Count; i++)
+                            {
+                                itemsToAdd.Add(itemsFromExpression[i]);
+                            }
                         }
                     }
                     else if (fragment is ValueFragment valueFragment)
@@ -111,9 +116,8 @@ namespace Microsoft.Build.Evaluation
                         string value = valueFragment.TextFragment;
                         matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
 
-                        if (excludePatterns.Count == 0 || !ExcludeTester(_rootDirectory, excludePatterns, matchers, EscapingUtilities.UnescapeAll(value)))
+                        if (excludePatterns.Count == 0 || !ExcludeTester(_rootDirectory, excludePatterns.AsSpan(), matchers, EscapingUtilities.UnescapeAll(value)))
                         {
-                            itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
                             itemsToAdd.Add(_itemFactory.CreateItem(value, value, _itemElement.ContainingProject.FullPath));
                         }
                     }
@@ -126,10 +130,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             string glob = globFragment.TextFragment;
 
-                            if (excludePatternsForGlobs == null)
-                            {
-                                excludePatternsForGlobs = BuildExcludePatternsForGlobs(globsToIgnore, excludePatterns);
-                            }
+                            excludePatternsForGlobs ??= BuildExcludePatternsForGlobs(globsToIgnore, excludePatterns.AsSpan());
 
                             string[] includeSplitFilesEscaped;
                             if (MSBuildEventSource.Log.IsEnabled())
@@ -156,7 +157,6 @@ namespace Microsoft.Build.Evaluation
 
                             foreach (string includeSplitFileEscaped in includeSplitFilesEscaped)
                             {
-                                itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
                                 itemsToAdd.Add(_itemFactory.CreateItem(includeSplitFileEscaped, glob, _itemElement.ContainingProject.FullPath));
                             }
                         }
@@ -167,11 +167,11 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
 
-                return itemsToAdd?.ToImmutable() ?? ImmutableArray<I>.Empty;
+                return itemsToAdd.ToImmutable();
 
-                static bool ExcludeTester(string? directory, ImmutableList<string>.Builder excludePatterns, FileSpecMatcherTester?[] matchers, string item)
+                static bool ExcludeTester(string? directory, ReadOnlySpan<string> excludePatterns, FileSpecMatcherTester?[] matchers, string item)
                 {
-                    if (excludePatterns.Count == 0)
+                    if (excludePatterns.IsEmpty)
                     {
                         return false;
                     }
@@ -179,14 +179,9 @@ namespace Microsoft.Build.Evaluation
                     bool found = false;
                     for (int i = 0; i < matchers.Length; ++i)
                     {
-                        FileSpecMatcherTester? matcher = matchers[i];
-                        if (!matcher.HasValue)
-                        {
-                            matcher = FileSpecMatcherTester.Parse(directory, excludePatterns[i]);
-                            matchers[i] = matcher;
-                        }
+                        FileSpecMatcherTester matcher = matchers[i] ??= FileSpecMatcherTester.Parse(directory, excludePatterns[i]);
 
-                        if (matcher.Value.IsMatch(item))
+                        if (matcher.IsMatch(item))
                         {
                             found = true;
                             break;
@@ -197,17 +192,26 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            private static ISet<string> BuildExcludePatternsForGlobs(ImmutableHashSet<string> globsToIgnore, ImmutableList<string>.Builder excludePatterns)
+            private static ImmutableHashSet<string> BuildExcludePatternsForGlobs(ImmutableHashSet<string> globsToIgnore, ReadOnlySpan<string> excludePatterns)
             {
-                var anyExcludes = excludePatterns.Count > 0;
-                var anyGlobsToIgnore = globsToIgnore.Count > 0;
-
-                if (anyGlobsToIgnore && anyExcludes)
+                if (excludePatterns.Length == 0)
                 {
-                    return excludePatterns.Concat(globsToIgnore).ToImmutableHashSet();
+                    return globsToIgnore;
                 }
 
-                return anyExcludes ? excludePatterns.ToImmutableHashSet() : globsToIgnore;
+                if (globsToIgnore.Count == 0)
+                {
+                    return ImmutableHashSet.Create(excludePatterns);
+                }
+
+                var builder = globsToIgnore.ToBuilder();
+
+                foreach (string excludePattern in excludePatterns)
+                {
+                    builder.Add(excludePattern);
+                }
+
+                return builder.ToImmutable();
             }
 
             // todo Refactoring: MutateItems should clone each item before mutation. See https://github.com/dotnet/msbuild/issues/2328
