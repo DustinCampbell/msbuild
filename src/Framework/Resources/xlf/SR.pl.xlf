@@ -137,6 +137,11 @@
         <target state="new">'{0}' does not contain matching element.</target>
         <note />
       </trans-unit>
+      <trans-unit id="_0_is_empty">
+        <source>'{0}' is empty.</source>
+        <target state="new">'{0}' is empty.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
