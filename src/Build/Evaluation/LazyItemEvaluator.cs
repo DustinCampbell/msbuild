@@ -170,7 +170,7 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private class MemoizedOperation : IItemOperation
+        private class MemoizedOperation
         {
             public LazyItemOperation Operation { get; }
             private Dictionary<ISet<string>, OrderedItemDataCollection> _cache;
