@@ -167,6 +167,8 @@
     <Compile Include="Collections\IKeyed.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Errors\ProjectErrorUtilities.cs" />
+    <Compile Include="Errors\ProjectFileErrorUtilities.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="Evaluation\ToolsetElement.cs" />
@@ -610,12 +612,6 @@
     </Compile>
     <Compile Include="..\Shared\InprocTrackingNativeMethods.cs">
       <Link>InprocTrackingNativeMethods.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\ProjectErrorUtilities.cs">
-      <Link>Errors\ProjectErrorUtilities.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\ProjectFileErrorUtilities.cs">
-      <Link>Errors\ProjectFileErrorUtilities.cs</Link>
     </Compile>
     <Compile Include="..\Shared\ResourceUtilities.cs">
       <Link>SharedUtilities\ResourceUtilities.cs</Link>
