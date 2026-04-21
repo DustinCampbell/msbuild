@@ -127,7 +127,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
 
                 if (!assemblyAdded)
                 {
-                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(location), "SdkResolverNoDllOrManifest", subfolder.FullName);
+                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(location), "SdkResolverNoDllOrManifest", subfolder.FullName);
                 }
             }
 
@@ -190,18 +190,18 @@ namespace Microsoft.Build.BackEnd.SdkResolution
 
                 if (manifest == null || string.IsNullOrEmpty(manifest.Path))
                 {
-                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(location), "SdkResolverDllInManifestMissing", pathToManifest, string.Empty);
+                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(location), "SdkResolverDllInManifestMissing", pathToManifest, string.Empty);
                 }
             }
             catch (XmlException e)
             {
                 // Note: Not logging e.ToString() as most of the information is not useful, the Message will contain what is wrong with the XML file.
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(location), e, "SdkResolverManifestInvalid", pathToManifest, e.Message);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(location), e, "SdkResolverManifestInvalid", pathToManifest, e.Message);
             }
 
             if (string.IsNullOrEmpty(manifest.Path) || !FileUtilities.FileExistsNoThrow(manifest.Path))
             {
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(location), "SdkResolverDllInManifestMissing", pathToManifest, manifest.Path);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(location), "SdkResolverDllInManifestMissing", pathToManifest, manifest.Path);
             }
 
             manifestsList.Add(manifest);
@@ -302,7 +302,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
             }
             catch (Exception e)
             {
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(location), e, "CouldNotLoadSdkResolverAssembly", resolverPath, e.Message);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(location), e, "CouldNotLoadSdkResolverAssembly", resolverPath, e.Message);
 
                 return;
             }
@@ -319,11 +319,11 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                     // Attempt to get the inner exception in this case, but fall back to the top exception message
                     string message = e.InnerException?.Message ?? e.Message;
 
-                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(location), e.InnerException ?? e, "CouldNotLoadSdkResolver", type.Name, message);
+                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(location), e.InnerException ?? e, "CouldNotLoadSdkResolver", type.Name, message);
                 }
                 catch (Exception e)
                 {
-                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(location), e, "CouldNotLoadSdkResolver", type.Name, e.Message);
+                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(location), e, "CouldNotLoadSdkResolver", type.Name, e.Message);
                 }
             }
         }

@@ -3350,7 +3350,7 @@ namespace Microsoft.Build.Evaluation
             {
                 if (!IsBuildEnabled)
                 {
-                    LoggingService.LogError(s_buildEventContext, new BuildEventFileInfo(FullPath), "SecurityProjectBuildDisabled");
+                    LoggingService.LogError(s_buildEventContext, BuildEventFileInfo.From(FullPath), "SecurityProjectBuildDisabled");
                     if (LoggingService is LoggingService defaultLoggingService)
                     {
                         defaultLoggingService.WaitForLoggingToProcessEvents();

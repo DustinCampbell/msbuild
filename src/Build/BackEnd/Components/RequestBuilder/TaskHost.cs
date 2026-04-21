@@ -1122,7 +1122,7 @@ namespace Microsoft.Build.BackEnd
             if (!e.GetType().GetTypeInfo().IsSerializable && e is not IExtendedBuildEventArgs)
 #pragma warning restore SYSLIB0050
             {
-                _taskLoggingContext.LogWarning(null, new BuildEventFileInfo(string.Empty), "ExpectedEventToBeSerializable", e.GetType().Name);
+                _taskLoggingContext.LogWarning(subcategoryResourceName: null, BuildEventFileInfo.Empty, "ExpectedEventToBeSerializable", e.GetType().Name);
                 return false;
             }
 
@@ -1255,7 +1255,7 @@ namespace Microsoft.Build.BackEnd
                                 subcategoryResourceName: null,
                                 errorCode: null,
                                 helpKeyword: null,
-                                file: new BuildEventFileInfo(ProjectFileOfTaskNode, LineNumberOfTaskNode, ColumnNumberOfTaskNode),
+                                file: BuildEventFileInfo.From(ProjectFileOfTaskNode, LineNumberOfTaskNode, ColumnNumberOfTaskNode),
                                 message: results[i].SchedulerInducedError);
                         }
                     }

@@ -389,7 +389,11 @@ namespace Microsoft.Build.BackEnd
                 e is not GeneratedFileUsedEventArgs)
 #pragma warning restore SYSLIB0050
             {
-                _loggingContext.LogWarning(null, new BuildEventFileInfo(string.Empty), "ExpectedEventToBeSerializable", e.GetType().Name);
+                _loggingContext.LogWarning(
+                    subcategoryResourceName: null,
+                    BuildEventFileInfo.Empty,
+                    "ExpectedEventToBeSerializable",
+                    e.GetType().Name);
                 return false;
             }
 

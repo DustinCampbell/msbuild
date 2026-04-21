@@ -2120,7 +2120,7 @@ namespace Microsoft.Build.Execution
                         if (ex is not InvalidProjectFileException)
                         {
                             var buildEventContext = new BuildEventContext(submission.SubmissionId, 1, BuildEventContext.InvalidProjectInstanceId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidTaskId);
-                            ((IBuildComponentHost)this).LoggingService.LogFatalBuildError(buildEventContext, ex, new BuildEventFileInfo(submission.BuildRequestData.ProjectFullPath));
+                            ((IBuildComponentHost)this).LoggingService.LogFatalBuildError(buildEventContext, ex, BuildEventFileInfo.From(submission.BuildRequestData.ProjectFullPath));
                         }
                     }
 
@@ -2754,7 +2754,13 @@ namespace Microsoft.Build.Execution
                     {
                         BuildEventContext buildEventContext = new BuildEventContext(submission.SubmissionId, BuildEventContext.InvalidNodeId, BuildEventContext.InvalidProjectInstanceId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidTaskId);
                         string exception = DebugUtils.ReadAnyExceptionFromFile(_instantiationTimeUtc);
-                        loggingService?.LogError(buildEventContext, new BuildEventFileInfo(string.Empty) /* no project file */, "ChildExitedPrematurely", node, DebugUtils.DebugDumpPath, exception);
+                        loggingService?.LogError(
+                            buildEventContext,
+                            BuildEventFileInfo.Empty, // no project file
+                            "ChildExitedPrematurely",
+                            node,
+                            DebugUtils.DebugDumpPath,
+                            exception);
                     }
                 }
                 else if (shutdownPacket.Reason == NodeShutdownReason.Error && _buildSubmissions.Values.Count == 0)
@@ -2763,7 +2769,13 @@ namespace Microsoft.Build.Execution
                     if (shutdownPacket.Exception != null)
                     {
                         ILoggingService loggingService = ((IBuildComponentHost)this).GetComponent<ILoggingService>(BuildComponentType.LoggingService);
-                        loggingService?.LogError(BuildEventContext.Invalid, new BuildEventFileInfo(string.Empty) /* no project file */, "ChildExitedPrematurely", node, DebugUtils.DebugDumpPath, shutdownPacket.Exception.ToString());
+                        loggingService?.LogError(
+                            BuildEventContext.Invalid,
+                            BuildEventFileInfo.Empty, // no project file
+                            "ChildExitedPrematurely",
+                            node,
+                            DebugUtils.DebugDumpPath,
+                            shutdownPacket.Exception.ToString());
                         OnThreadException(shutdownPacket.Exception);
                     }
                 }
@@ -2909,7 +2921,11 @@ namespace Microsoft.Build.Execution
                         if (newNodes?.Count != response.NumberOfNodesToCreate || newNodes.Any(n => n == null))
                         {
                             BuildEventContext buildEventContext = new BuildEventContext(0, Scheduler.VirtualNode, BuildEventContext.InvalidProjectInstanceId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidTaskId);
-                            ((IBuildComponentHost)this).LoggingService.LogError(buildEventContext, new BuildEventFileInfo(String.Empty), "UnableToCreateNode", response.RequiredNodeType.ToString("G"));
+                            ((IBuildComponentHost)this).LoggingService.LogError(
+                                buildEventContext,
+                                BuildEventFileInfo.Empty,
+                                "UnableToCreateNode",
+                                response.RequiredNodeType.ToString("G"));
 
                             throw new BuildAbortedException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("UnableToCreateNode", response.RequiredNodeType.ToString("G")));
                         }

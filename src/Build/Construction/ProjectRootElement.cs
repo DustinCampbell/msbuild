@@ -2058,7 +2058,7 @@ namespace Microsoft.Build.Construction
             {
                 if (FileUtilities.IsVCProjFilename(projectFile))
                 {
-                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(projectFile), "ProjectUpgradeNeededToVcxProj", projectFile);
+                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(projectFile), "ProjectUpgradeNeededToVcxProj", projectFile);
                 }
 
                 // OK it's a regular project file, load it normally.
@@ -2070,7 +2070,7 @@ namespace Microsoft.Build.Construction
             }
             catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(projectFile), ex, "InvalidProjectFile", ex.Message);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(projectFile), ex, "InvalidProjectFile", ex.Message);
                 throw; // Without this there's a spurious CS0161 because csc 1.2.0.60317 can't see that the above is an unconditional throw.
             }
         }
@@ -2122,8 +2122,8 @@ namespace Microsoft.Build.Construction
             catch (Exception ex) when (!ExceptionHandling.NotExpectedIoOrXmlException(ex))
             {
                 BuildEventFileInfo fileInfo = ex is XmlException xmlException
-                    ? new BuildEventFileInfo(fullPath, xmlException)
-                    : new BuildEventFileInfo(fullPath);
+                    ? BuildEventFileInfo.From(fullPath, xmlException)
+                    : BuildEventFileInfo.From(fullPath);
 
                 ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, ex, "InvalidProjectFile", ex.Message);
             }
@@ -2147,9 +2147,7 @@ namespace Microsoft.Build.Construction
             }
             catch (XmlException ex)
             {
-                BuildEventFileInfo fileInfo = new BuildEventFileInfo(ex);
-
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, "InvalidProjectFile", ex.Message);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(BuildEventFileInfo.From(ex), "InvalidProjectFile", ex.Message);
             }
 
             return document;

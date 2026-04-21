@@ -943,9 +943,7 @@ namespace Microsoft.Build.BackEnd
                 }
                 catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                 {
-                    _nodeLoggingContext.LogFatalBuildError(
-                        e,
-                        new BuildEventFileInfo(Construction.ElementLocation.EmptyLocation));
+                    _nodeLoggingContext.LogFatalBuildError(e, BuildEventFileInfo.Empty);
                     throw new BuildAbortedException(e.Message, e);
                 }
             }

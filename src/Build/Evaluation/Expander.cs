@@ -1186,8 +1186,12 @@ namespace Microsoft.Build.Evaluation
                         evaluator._metadata is IItemTypeDefinition itemMetadata &&
                         (string.IsNullOrEmpty(itemType) || string.Equals(itemType, itemMetadata.ItemType, StringComparison.Ordinal)))
                     {
-                        evaluator._loggingContext.LogComment(MessageImportance.Low, new BuildEventFileInfo(evaluator._elementLocation),
-                            "ItemReferencingSelfInTarget", itemMetadata.ItemType, metadataName);
+                        evaluator._loggingContext.LogComment(
+                            MessageImportance.Low,
+                            BuildEventFileInfo.From(evaluator._elementLocation),
+                            "ItemReferencingSelfInTarget",
+                            itemMetadata.ItemType,
+                            metadataName);
                     }
 
                     if (IsTruncationEnabled(evaluator._options) && metadataValue.Length > CharacterLimitPerExpansion)

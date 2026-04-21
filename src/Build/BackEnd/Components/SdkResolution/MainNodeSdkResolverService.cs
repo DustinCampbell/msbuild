@@ -84,7 +84,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
 
                 EvaluationLoggingContext loggingContext = new EvaluationLoggingContext(loggingService, request.BuildEventContext, request.ProjectPath);
 
-                loggingService.LogFatalBuildError(loggingContext.BuildEventContext, e, new BuildEventFileInfo(request.ElementLocation));
+                loggingService.LogFatalBuildError(loggingContext.BuildEventContext, e, BuildEventFileInfo.From(request.ElementLocation));
             }
             finally
             {

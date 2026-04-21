@@ -596,19 +596,19 @@ namespace Microsoft.Build.Evaluation
                 if (defaultTasksFiles.Length == 0)
                 {
                     loggingContext.LogWarning(
-                        null,
-                        new BuildEventFileInfo(/* this warning truly does not involve any file */ String.Empty),
+                        subcategoryResourceName: null,
+                        BuildEventFileInfo.Empty, // this warning truly does not involve any file
                         taskFileWarning,
                         taskPattern,
                         searchPath,
-                        String.Empty);
+                        string.Empty);
                 }
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
                 loggingContext.LogWarning(
-                    null,
-                    new BuildEventFileInfo(/* this warning truly does not involve any file */ String.Empty),
+                    subcategoryResourceName: null,
+                    BuildEventFileInfo.Empty, // this warning truly does not involve any file
                     taskFileWarning,
                     taskPattern,
                     searchPath,
@@ -863,7 +863,10 @@ namespace Microsoft.Build.Evaluation
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                loggingContext.LogError(new BuildEventFileInfo(/* this warning truly does not involve any file it is just gathering properties */String.Empty), "TasksPropertyBagError", e.Message);
+                loggingContext.LogError(
+                    BuildEventFileInfo.Empty, // this error truly does not involve any file it is just gathering properties
+                    "TasksPropertyBagError",
+                    e.Message);
             }
         }
 
@@ -904,14 +907,22 @@ namespace Microsoft.Build.Evaluation
                                     if (!overrideDirectoryExists)
                                     {
                                         string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", _overrideTasksPath);
-                                        loggingContext.LogWarning(null, new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), "OverrideTasksFileFailure", rootedPathMessage);
+                                        loggingContext.LogWarning(
+                                            subcategoryResourceName: null,
+                                            BuildEventFileInfo.Empty, // this warning truly does not involve any file
+                                            "OverrideTasksFileFailure",
+                                            rootedPathMessage);
                                     }
                                 }
                             }
                             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                             {
                                 string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskProblemWithPath", _overrideTasksPath, e.Message);
-                                loggingContext.LogWarning(null, new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), "OverrideTasksFileFailure", rootedPathMessage);
+                                loggingContext.LogWarning(
+                                    subcategoryResourceName: null,
+                                    BuildEventFileInfo.Empty, // this warning truly does not involve any file
+                                    "OverrideTasksFileFailure",
+                                    rootedPathMessage);
                             }
 
                             if (overrideDirectoryExists)
@@ -951,13 +962,17 @@ namespace Microsoft.Build.Evaluation
             catch (XmlException e)
             {
                 // handle XML errors in the default tasks file
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(currentTasksFile, e),
-                    taskFileError, e.Message);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(
+                    BuildEventFileInfo.From(currentTasksFile, e),
+                    taskFileError,
+                    e.Message);
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                loggingContext.LogError(new BuildEventFileInfo(currentTasksFile),
-                    taskFileError, e.Message);
+                loggingContext.LogError(
+                    BuildEventFileInfo.From(currentTasksFile),
+                    taskFileError,
+                    e.Message);
             }
 
             IEnumerable<(ProjectUsingTaskElement projectUsingTaskXml, string directoryOfImportingFile)> EnumerateTasksRegistrations()
