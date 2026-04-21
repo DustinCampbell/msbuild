@@ -547,7 +547,7 @@ namespace Microsoft.Build.Shared
         [DoesNotReturn]
         private static void ThrowArgumentLength(string? parameterName)
         {
-            throw new ArgumentException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Shared.ParameterCannotHaveZeroLength", parameterName));
+            throw new ArgumentException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ParameterCannotHaveZeroLength", parameterName));
         }
 
         /// <summary>
@@ -560,7 +560,7 @@ namespace Microsoft.Build.Shared
 
             if (FileUtilities.PathIsInvalid(parameter))
             {
-                ThrowArgument("Shared.ParameterCannotHaveInvalidPathChars", parameterName, parameter);
+                ThrowArgument("ParameterCannotHaveInvalidPathChars", parameterName, parameter);
             }
         }
 
@@ -581,7 +581,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         internal static void VerifyThrowArgumentNull([NotNull] object? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
         {
-            VerifyThrowArgumentNull(parameter, parameterName, "Shared.ParameterCannotBeNull");
+            VerifyThrowArgumentNull(parameter, parameterName, "ParameterCannotBeNull");
         }
 
         /// <summary>
@@ -638,7 +638,7 @@ namespace Microsoft.Build.Shared
             if (requiredCapacity > arrayCapacity)
             {
                 throw new ArgumentException(
-                    ResourceUtilities.GetResourceString("Shared.CollectionCopyToFailureProvidedArrayIsTooSmall"),
+                    ResourceUtilities.GetResourceString("CollectionCopyToFailureProvidedArrayIsTooSmall"),
                     arrayParameterName);
             }
         }

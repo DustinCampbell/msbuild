@@ -62,6 +62,11 @@
         <target state="translated">La cadena "{0}" no puede convertirse en un valor booleano (true/false).</target>
         <note />
       </trans-unit>
+      <trans-unit id="CollectionCopyToFailureProvidedArrayIsTooSmall">
+        <source>The number of elements in the collection is greater than the available space in the destination array (when starting at the specified index).</source>
+        <target state="translated">El número de elementos de la colección es mayor que el espacio disponible en la matriz de destino (a partir del índice especificado).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CollectionIsReadOnly">
         <source>This collection is read-only.</source>
         <target state="translated">Esta colección es de solo lectura.</target>
@@ -81,6 +86,11 @@
         <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
         <target state="translated">No se pudo crear un archivo temporal. La carpeta de archivos temporales está llena o su ruta de acceso es incorrecta. {0}</target>
         <note />
+      </trans-unit>
+      <trans-unit id="FailedDeletingTempFile">
+        <source>MSB5018: Failed to delete the temporary file "{0}". {1} {2}</source>
+        <target state="translated">MSB5018: No se pudo eliminar el archivo temporal "{0}". {1} {2}</target>
+        <note>{StrBegin="MSB5018: "}</note>
       </trans-unit>
       <trans-unit id="GlobExpansionFailed">
         <source>An exception occurred while expanding a fileSpec with globs: fileSpec: "{0}", assuming it is a file name. Exception: {1}</source>
@@ -102,6 +112,11 @@
         <target state="translated">El parámetro "{0}" solo puede ser el nombre de un archivo y no puede incluir un directorio.</target>
         <note />
       </trans-unit>
+      <trans-unit id="LoggingBeforeTaskInitialization">
+        <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
+        <target state="translated">MSB6005: La tarea intentó registrarse antes de inicializarse. El mensaje era: {0}</target>
+        <note>{StrBegin="MSB6005: "}UE: This occurs if the task attempts to log something in its own constructor.</note>
+      </trans-unit>
       <trans-unit id="PathMustBeRooted">
         <source>Path must be rooted.</source>
         <target state="translated">Debe ser una ruta de acceso raíz.</target>
@@ -110,6 +125,46 @@
       <trans-unit id="PathTooLong">
         <source>Path: {0} exceeds the OS max path limit. The fully qualified file name must be less than {1} characters.</source>
         <target state="translated">La ruta de acceso {0} supera el límite máximo para la ruta de acceso del sistema operativo. El nombre de archivo completo debe ser inferior a {1} caracteres.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotChangeItemSpecModifiers">
+        <source>"{0}" is a reserved item metadata, and cannot be modified or deleted.</source>
+        <target state="translated">"{0}" es un metadato de elemento reservado y no se puede modificar ni eliminar.</target>
+        <note>UE: Tasks and OM users are not allowed to remove or change the value of the built-in metadata on items e.g. the meta-data "FullPath", "RelativeDir", etc. are reserved.</note>
+      </trans-unit>
+      <trans-unit id="Message_InvalidImportance">
+        <source>MSB3511: "{0}" is an invalid value for the "Importance" parameter. Valid values are: High, Normal and Low.</source>
+        <target state="translated">MSB3511: "{0}" no es un valor válido para el parámetro "Importance". Los valores válidos son: High, Normal y Low.</target>
+        <note>{StrBegin="MSB3511: "}UE: This message is shown when a user specifies a value for the importance attribute of Message which is not valid.
+            The importance enumeration is: High, Normal and Low.  Specifying any other importance will result in this message being shown
+            LOCALIZATION: "Importance" should not be localized.
+            High should not be localized.
+            Normal should not be localized.
+            Low should not be localized.</note>
+      </trans-unit>
+      <trans-unit id="ParameterCannotBeNull">
+        <source>Parameter "{0}" cannot be null.</source>
+        <target state="translated">El parámetro "{0}" no puede ser NULL.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterCannotHaveInvalidPathChars">
+        <source>Parameter "{0}" with assigned value "{1}" cannot have invalid path or invalid file characters.</source>
+        <target state="translated">El parámetro "{0}" con el valor asignado "{1}" no puede tener una ruta de acceso no válida o caracteres de archivo no válidos.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterCannotHaveZeroLength">
+        <source>Parameter "{0}" cannot have zero length.</source>
+        <target state="translated">La longitud del parámetro "{0}" no puede ser cero.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskResourcesNotRegistered">
+        <source>The "{0}" task has not registered its resources. In order to use the "TaskLoggingHelper.FormatResourceString()" method this task needs to register its resources either during construction, or via the "TaskResources" property.</source>
+        <target state="translated">La tarea "{0}" no registró sus recursos. Para usar el método "TaskLoggingHelper.FormatResourceString()", esta tarea tiene que registrar sus recursos durante la construcción o mediante la propiedad "TaskResources".</target>
+        <note>LOCALIZATION: "TaskLoggingHelper.FormatResourceString()" and "TaskResources" should not be localized.</note>
+      </trans-unit>
+      <trans-unit id="TaskResourceNotFound">
+        <source>The resource string "{0}" for the "{1}" task cannot be found. Confirm that the resource name "{0}" is correctly spelled, and the resource exists in the task's assembly.</source>
+        <target state="translated">No se encuentra la cadena de recursos "{0}" para la tarea "{1}". Asegúrese de que el nombre del recurso "{0}" está escrito correctamente y de que el recurso existe en el ensamblado de la tarea.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">
@@ -136,6 +191,27 @@
         <source>'{0}' does not contain matching element.</source>
         <target state="new">'{0}' does not contain matching element.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="WildcardResultsInDriveEnumeration">
+        <source>MSB5029: The value "{0}" of the "{1}" attribute in element &lt;{2}&gt; in file "{3}" is a wildcard that results in enumerating all files on the drive, which was likely not intended. Check that referenced properties are always defined and that the project and current working directory are not at the drive root.</source>
+        <target state="translated">MSB5029: el valor "{0}" del atributo "{1}" en el elemento &lt;{2}&gt; en el archivo "{3}" es un carácter comodín que da como resultado enumerar todos los archivos de la unidad, lo que probablemente no estaba previsto. Compruebe que las propiedades a las que se hace referencia siempre están definidas y que el proyecto y el directorio de trabajo actual no están en la raíz de la unidad.</target>
+        <note>{StrBegin="MSB5029: "}UE: This is a generic message that is displayed when we find a project element that has a drive enumerating wildcard value for one of its
+      attributes e.g. &lt;Compile Include="$(NotAlwaysDefined)\**\*.cs"&gt; -- if the property is undefined, the value of Include should not result in enumerating all files on drive.</note>
+      </trans-unit>
+      <trans-unit id="NameInvalid">
+        <source>MSB5016: The name "{0}" contains an invalid character "{1}".</source>
+        <target state="translated">MSB5016: El nombre "{0}" contiene un carácter no válido "{1}".</target>
+        <note>{StrBegin="MSB5016: "}</note>
+      </trans-unit>
+      <trans-unit id="KillingProcess">
+        <source>MSB5002: Terminating the task executable "{0}" because it did not finish within the specified limit of {1} milliseconds.</source>
+        <target state="translated">MSB5002: Finalizando el ejecutable de la tarea "{0}" porque no se completó dentro del límite especificado de {1} milisegundos.</target>
+        <note>{StrBegin="MSB5002: "}</note>
+      </trans-unit>
+      <trans-unit id="KillingProcessByCancellation">
+        <source>MSB5021: Terminating the task executable "{0}" and its child processes because the build was canceled.</source>
+        <target state="translated">MSB5021: Finalizando el ejecutable de la tarea "{0}" y sus procesos secundarios porque se canceló la compilación.</target>
+        <note>{StrBegin="MSB5021: "}</note>
       </trans-unit>
     </body>
   </file>

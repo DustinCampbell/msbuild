@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -150,6 +150,13 @@
   <data name="ArgumentOutOfRange_Generic_MustBeNotEqual" xml:space="preserve">
     <value>{0} ('{1}') must not be equal to '{2}'.</value>
   </data>
+  <data name="CollectionCopyToFailureProvidedArrayIsTooSmall" xml:space="preserve">
+    <value>The number of elements in the collection is greater than the available space in the destination array (when starting at the specified index).</value>
+  </data>
+  <data name="LoggingBeforeTaskInitialization" xml:space="preserve">
+    <value>MSB6005: Task attempted to log before it was initialized. Message was: {0}</value>
+    <comment>{StrBegin="MSB6005: "}UE: This occurs if the task attempts to log something in its own constructor.</comment>
+  </data>
   <data name="PathMustBeRooted" xml:space="preserve">
     <value>Path must be rooted.</value>
   </data>
@@ -158,6 +165,10 @@
   </data>
   <data name="FailedCreatingTempFile" xml:space="preserve">
     <value>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</value>
+  </data>
+  <data name="FailedDeletingTempFile" xml:space="preserve">
+    <value>MSB5018: Failed to delete the temporary file "{0}". {1} {2}</value>
+    <comment>{StrBegin="MSB5018: "}</comment>
   </data>
   <data name="InvalidGetPathOfFileAboveParameter" xml:space="preserve">
     <value>The parameter '{0}' can only be a file name and cannot include a directory.</value>
@@ -181,6 +192,35 @@
   <data name="GlobExpansionFailed" xml:space="preserve">
     <value>An exception occurred while expanding a fileSpec with globs: fileSpec: "{0}", assuming it is a file name. Exception: {1}</value>
   </data>
+  <data name="CannotChangeItemSpecModifiers" xml:space="preserve">
+    <value>"{0}" is a reserved item metadata, and cannot be modified or deleted.</value>
+    <comment>UE: Tasks and OM users are not allowed to remove or change the value of the built-in metadata on items e.g. the meta-data "FullPath", "RelativeDir", etc. are reserved.</comment>
+  </data>
+  <data name="Message_InvalidImportance" xml:space="preserve">
+    <value>MSB3511: "{0}" is an invalid value for the "Importance" parameter. Valid values are: High, Normal and Low.</value>
+    <comment>{StrBegin="MSB3511: "}UE: This message is shown when a user specifies a value for the importance attribute of Message which is not valid.
+            The importance enumeration is: High, Normal and Low.  Specifying any other importance will result in this message being shown
+            LOCALIZATION: "Importance" should not be localized.
+            High should not be localized.
+            Normal should not be localized.
+            Low should not be localized.</comment>
+  </data>
+  <data name="ParameterCannotBeNull" xml:space="preserve">
+    <value>Parameter "{0}" cannot be null.</value>
+  </data>
+  <data name="ParameterCannotHaveInvalidPathChars" xml:space="preserve">
+    <value>Parameter "{0}" with assigned value "{1}" cannot have invalid path or invalid file characters.</value>
+  </data>
+  <data name="ParameterCannotHaveZeroLength" xml:space="preserve">
+    <value>Parameter "{0}" cannot have zero length.</value>
+  </data>
+  <data name="TaskResourcesNotRegistered" xml:space="preserve">
+    <value>The "{0}" task has not registered its resources. In order to use the "TaskLoggingHelper.FormatResourceString()" method this task needs to register its resources either during construction, or via the "TaskResources" property.</value>
+    <comment>LOCALIZATION: "TaskLoggingHelper.FormatResourceString()" and "TaskResources" should not be localized.</comment>
+  </data>
+  <data name="TaskResourceNotFound" xml:space="preserve">
+    <value>The resource string "{0}" for the "{1}" task cannot be found. Confirm that the resource name "{0}" is correctly spelled, and the resource exists in the task's assembly.</value>
+  </data>
   <data name="UnsupportedFrameworkVersionForWindowsSdk" xml:space="preserve">
     <value>.NET Framework version "{0}" is not supported when explicitly targeting the Windows SDK, which is only supported on .NET 4.5 and later.  Please specify a value from the enumeration Microsoft.Build.Utilities.TargetDotNetFrameworkVersion that is Version45 or above.</value>
   </data>
@@ -198,5 +238,22 @@
   </data>
   <data name="_0_contains_no_elements" xml:space="preserve">
     <value>'{0}' contains no elements.</value>
+  </data>
+  <data name="WildcardResultsInDriveEnumeration" xml:space="preserve">
+    <value>MSB5029: The value "{0}" of the "{1}" attribute in element &lt;{2}&gt; in file "{3}" is a wildcard that results in enumerating all files on the drive, which was likely not intended. Check that referenced properties are always defined and that the project and current working directory are not at the drive root.</value>
+    <comment>{StrBegin="MSB5029: "}UE: This is a generic message that is displayed when we find a project element that has a drive enumerating wildcard value for one of its
+      attributes e.g. &lt;Compile Include="$(NotAlwaysDefined)\**\*.cs"&gt; -- if the property is undefined, the value of Include should not result in enumerating all files on drive.</comment>
+  </data>
+  <data name="NameInvalid" xml:space="preserve">
+    <value>MSB5016: The name "{0}" contains an invalid character "{1}".</value>
+    <comment>{StrBegin="MSB5016: "}</comment>
+  </data>
+  <data name="KillingProcess" xml:space="preserve">
+    <value>MSB5002: Terminating the task executable "{0}" because it did not finish within the specified limit of {1} milliseconds.</value>
+    <comment>{StrBegin="MSB5002: "}</comment>
+  </data>
+  <data name="KillingProcessByCancellation" xml:space="preserve">
+    <value>MSB5021: Terminating the task executable "{0}" and its child processes because the build was canceled.</value>
+    <comment>{StrBegin="MSB5021: "}</comment>
   </data>
 </root>

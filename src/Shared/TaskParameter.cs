@@ -735,7 +735,7 @@ namespace Microsoft.Build.BackEnd
 
                 // Non-derivable metadata can only be set at construction time.
                 // That's why this is IsItemSpecModifier and not IsDerivableItemSpecModifier.
-                ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsDerivableItemSpecModifier(metadataName), "Shared.CannotChangeItemSpecModifiers", metadataName);
+                ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsDerivableItemSpecModifier(metadataName), "CannotChangeItemSpecModifiers", metadataName);
 
                 _customEscapedMetadata ??= new Dictionary<string, string>(MSBuildNameIgnoreCaseComparer.Default);
 
@@ -749,7 +749,7 @@ namespace Microsoft.Build.BackEnd
             public void RemoveMetadata(string metadataName)
             {
                 ErrorUtilities.VerifyThrowArgumentNull(metadataName);
-                ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsItemSpecModifier(metadataName), "Shared.CannotChangeItemSpecModifiers", metadataName);
+                ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsItemSpecModifier(metadataName), "CannotChangeItemSpecModifiers", metadataName);
 
                 if (_customEscapedMetadata == null)
                 {

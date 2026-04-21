@@ -918,7 +918,7 @@ namespace Microsoft.Build.Utilities
 
                 // Warn only -- occasionally temp files fail to delete because of virus checkers; we
                 // don't want the build to fail in such cases
-                LogShared.LogWarningWithCodeFromResources("Shared.FailedDeletingTempFile", filePath.OriginalValue, e.Message, lockedFileMessage);
+                LogShared.LogWarningWithCodeFromResources("FailedDeletingTempFile", filePath.OriginalValue, e.Message, lockedFileMessage);
             }
         }
 
@@ -1052,11 +1052,11 @@ namespace Microsoft.Build.Utilities
                     ErrorUtilities.VerifyThrow(Timeout != System.Threading.Timeout.Infinite,
                         "A time-out value must have been specified or the task must be cancelled.");
 
-                    LogShared.LogWarningWithCodeFromResources("Shared.KillingProcess", processName, Timeout);
+                    LogShared.LogWarningWithCodeFromResources("KillingProcess", processName, Timeout);
                 }
                 else
                 {
-                    LogShared.LogWarningWithCodeFromResources("Shared.KillingProcessByCancellation", processName);
+                    LogShared.LogWarningWithCodeFromResources("KillingProcessByCancellation", processName);
                 }
 
                 int timeout = TaskProcessTerminationTimeout >= -1 ? TaskProcessTerminationTimeout : 5000;
@@ -1380,7 +1380,7 @@ namespace Microsoft.Build.Utilities
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("Message.InvalidImportance", StandardErrorImportance);
+                    Log.LogErrorWithCodeFromResources("Message_InvalidImportance", StandardErrorImportance);
                     return false;
                 }
             }
@@ -1400,7 +1400,7 @@ namespace Microsoft.Build.Utilities
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("Message.InvalidImportance", StandardOutputImportance);
+                    Log.LogErrorWithCodeFromResources("Message_InvalidImportance", StandardOutputImportance);
                     return false;
                 }
             }

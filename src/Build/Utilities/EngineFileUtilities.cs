@@ -12,12 +12,13 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using SharedSR = Microsoft.Build.Framework.Resources.SR;
 
 namespace Microsoft.Build.Internal
 {
     internal static class EngineFileUtilities
     {
-        private const string DriveEnumeratingWildcardMessageResourceName = "WildcardResultsInDriveEnumeration";
+        private static string DriveEnumeratingWildcardMessageResourceName => nameof(SharedSR.WildcardResultsInDriveEnumeration);
 
         // Regexes for wildcard filespecs that should not get expanded
         // By default all wildcards are expanded.

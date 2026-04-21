@@ -175,7 +175,7 @@ namespace Microsoft.Build.Tasks.DataDriven
                     throw;
                 // Warn only -- occasionally temp files fail to delete because of virus checkers; we
                 // don't want the build to fail in such cases
-                Log.LogWarningWithCodeFromResources("Shared.FailedDeletingTempFile", fileName, e.Message);
+                Log.LogWarningWithCodeFromResources("FailedDeletingTempFile", fileName, e.Message);
             }
         }
 #endif

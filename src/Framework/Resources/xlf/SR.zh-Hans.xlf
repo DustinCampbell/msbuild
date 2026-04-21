@@ -62,6 +62,11 @@
         <target state="translated">无法将字符串“{0}”转换为布尔值(true/false)。</target>
         <note />
       </trans-unit>
+      <trans-unit id="CollectionCopyToFailureProvidedArrayIsTooSmall">
+        <source>The number of elements in the collection is greater than the available space in the destination array (when starting at the specified index).</source>
+        <target state="translated">集合中的元素数大于目标阵列中的可用空间 (从指定索引开始时)。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CollectionIsReadOnly">
         <source>This collection is read-only.</source>
         <target state="translated">此集合是只读的。</target>
@@ -81,6 +86,11 @@
         <source>Failed to create a temporary file. Temporary files folder is full or its path is incorrect. {0}</source>
         <target state="translated">未能创建临时文件。临时文件文件夹已满或其路径不正确。{0}</target>
         <note />
+      </trans-unit>
+      <trans-unit id="FailedDeletingTempFile">
+        <source>MSB5018: Failed to delete the temporary file "{0}". {1} {2}</source>
+        <target state="translated">MSB5018: 未能删除临时文件“{0}”。{1} {2}</target>
+        <note>{StrBegin="MSB5018: "}</note>
       </trans-unit>
       <trans-unit id="GlobExpansionFailed">
         <source>An exception occurred while expanding a fileSpec with globs: fileSpec: "{0}", assuming it is a file name. Exception: {1}</source>
@@ -102,6 +112,11 @@
         <target state="translated">参数“{0}”只能是文件名，不能包含目录。</target>
         <note />
       </trans-unit>
+      <trans-unit id="LoggingBeforeTaskInitialization">
+        <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
+        <target state="translated">MSB6005: 任务尚未初始化就尝试进行日志记录。消息为: {0}</target>
+        <note>{StrBegin="MSB6005: "}UE: This occurs if the task attempts to log something in its own constructor.</note>
+      </trans-unit>
       <trans-unit id="PathMustBeRooted">
         <source>Path must be rooted.</source>
         <target state="translated">路径必须是根路径。</target>
@@ -110,6 +125,46 @@
       <trans-unit id="PathTooLong">
         <source>Path: {0} exceeds the OS max path limit. The fully qualified file name must be less than {1} characters.</source>
         <target state="translated">路径: {0} 超过 OS 最大路径限制。完全限定的文件名必须少于 {1} 个字符。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CannotChangeItemSpecModifiers">
+        <source>"{0}" is a reserved item metadata, and cannot be modified or deleted.</source>
+        <target state="translated">“{0}”是保留的项元数据，不能修改或删除。</target>
+        <note>UE: Tasks and OM users are not allowed to remove or change the value of the built-in metadata on items e.g. the meta-data "FullPath", "RelativeDir", etc. are reserved.</note>
+      </trans-unit>
+      <trans-unit id="Message_InvalidImportance">
+        <source>MSB3511: "{0}" is an invalid value for the "Importance" parameter. Valid values are: High, Normal and Low.</source>
+        <target state="translated">MSB3511: “{0}”是无效的“Importance”参数值。有效值包括: High、Normal 和 Low。</target>
+        <note>{StrBegin="MSB3511: "}UE: This message is shown when a user specifies a value for the importance attribute of Message which is not valid.
+            The importance enumeration is: High, Normal and Low.  Specifying any other importance will result in this message being shown
+            LOCALIZATION: "Importance" should not be localized.
+            High should not be localized.
+            Normal should not be localized.
+            Low should not be localized.</note>
+      </trans-unit>
+      <trans-unit id="ParameterCannotBeNull">
+        <source>Parameter "{0}" cannot be null.</source>
+        <target state="translated">参数“{0}”不能为 null。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterCannotHaveInvalidPathChars">
+        <source>Parameter "{0}" with assigned value "{1}" cannot have invalid path or invalid file characters.</source>
+        <target state="translated">分配有值“{1}”的参数“{0}”不可具有无效路径或无效的文件字符。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterCannotHaveZeroLength">
+        <source>Parameter "{0}" cannot have zero length.</source>
+        <target state="translated">参数“{0}”的长度不能为零。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskResourcesNotRegistered">
+        <source>The "{0}" task has not registered its resources. In order to use the "TaskLoggingHelper.FormatResourceString()" method this task needs to register its resources either during construction, or via the "TaskResources" property.</source>
+        <target state="translated">任务“{0}”尚未注册其资源。此任务需要在构造期间或通过“TaskResources”属性注册其资源，然后才能使用“TaskLoggingHelper.FormatResourceString()”方法。</target>
+        <note>LOCALIZATION: "TaskLoggingHelper.FormatResourceString()" and "TaskResources" should not be localized.</note>
+      </trans-unit>
+      <trans-unit id="TaskResourceNotFound">
+        <source>The resource string "{0}" for the "{1}" task cannot be found. Confirm that the resource name "{0}" is correctly spelled, and the resource exists in the task's assembly.</source>
+        <target state="translated">找不到“{1}”任务的资源字符串“{0}”。请确认资源名称“{0}”的拼写正确，并且任务的程序集中存在该资源。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">
@@ -136,6 +191,27 @@
         <source>'{0}' does not contain matching element.</source>
         <target state="new">'{0}' does not contain matching element.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="WildcardResultsInDriveEnumeration">
+        <source>MSB5029: The value "{0}" of the "{1}" attribute in element &lt;{2}&gt; in file "{3}" is a wildcard that results in enumerating all files on the drive, which was likely not intended. Check that referenced properties are always defined and that the project and current working directory are not at the drive root.</source>
+        <target state="translated">MSB5029: 文件“{3}”中元素 &lt;{2}&gt; 中“{1}”属性的值“{0}”是通配符，可导致枚举驱动器上的所有文件，这可能不是预期的行为。确认始终定义了引用的属性，并且项目和当前工作目录不在驱动器根目录下。</target>
+        <note>{StrBegin="MSB5029: "}UE: This is a generic message that is displayed when we find a project element that has a drive enumerating wildcard value for one of its
+      attributes e.g. &lt;Compile Include="$(NotAlwaysDefined)\**\*.cs"&gt; -- if the property is undefined, the value of Include should not result in enumerating all files on drive.</note>
+      </trans-unit>
+      <trans-unit id="NameInvalid">
+        <source>MSB5016: The name "{0}" contains an invalid character "{1}".</source>
+        <target state="translated">MSB5016: 名称“{0}”包含无效字符“{1}”。</target>
+        <note>{StrBegin="MSB5016: "}</note>
+      </trans-unit>
+      <trans-unit id="KillingProcess">
+        <source>MSB5002: Terminating the task executable "{0}" because it did not finish within the specified limit of {1} milliseconds.</source>
+        <target state="translated">MSB5002: 终止任务可执行文件“{0}”，因为它未在指定的 {1} 毫秒限制内完成。</target>
+        <note>{StrBegin="MSB5002: "}</note>
+      </trans-unit>
+      <trans-unit id="KillingProcessByCancellation">
+        <source>MSB5021: Terminating the task executable "{0}" and its child processes because the build was canceled.</source>
+        <target state="translated">MSB5021: 终止任务可执行文件“{0}”及其子进程，因为已取消生成。</target>
+        <note>{StrBegin="MSB5021: "}</note>
       </trans-unit>
     </body>
   </file>

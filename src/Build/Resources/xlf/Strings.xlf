@@ -19,13 +19,132 @@
         <note>{StrBegin="MSB4003: "}UE: Tasks are not allowed to use incorrect case for reserved attributes on the task nodes e.g. "continueonerror"
     instead of the "ContinueOnError".</note>
       </trans-unit>
+      <trans-unit id="BuildAborted">
+        <source>MSB4188: Build was canceled.</source>
+        <note>{StrBegin="MSB4188: "} Error when the build stops suddenly for some reason. For example, because a child node died.</note>
+      </trans-unit>
       <trans-unit id="BuildInProgress">
         <source>The operation cannot be completed because a build is already in progress.</source>
         <note />
       </trans-unit>
+      <trans-unit id="ConflictingTaskAssembly">
+        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
+        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
+      </trans-unit>
+      <trans-unit id="ExpectedEventToBeSerializable">
+        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
+        <note />
+      </trans-unit>
+      <trans-unit id="FileLocation">
+        <source>{0} ({1},{2})</source>
+        <note>A file location to be embedded in a string.</note>
+      </trans-unit>
+      <trans-unit id="InvalidVerbosity">
+        <source>MSB4103: "{0}" is not a valid logger verbosity level.</source>
+        <note>{StrBegin="MSB4103: "}</note>
+      </trans-unit>
       <trans-unit id="NoBuildInProgress">
         <source>The operation cannot be completed because BeginBuild has not yet been called.</source>
         <note />
+      </trans-unit>
+      <trans-unit id="InvalidProjectFile">
+        <source>MSB4025: The project file could not be loaded. {0}</source>
+        <note>{StrBegin="MSB4025: "}UE: This message is shown when the project file given to the engine cannot be loaded because the filename/path is
+    invalid, or due to lack of permissions, or incorrect XML. The project filename is not part of the message because it is
+    provided separately to loggers.
+    LOCALIZATION: {0} is a localized message from the CLR/FX explaining why the project is invalid.</note>
+      </trans-unit>
+      <trans-unit id="MalformedProjectFile">
+        <source>MSB5019: The project file is malformed: "{0}". {1}</source>
+        <note>{StrBegin="MSB5019: "}</note>
+      </trans-unit>
+      <trans-unit id="OM_NotSupportedReadOnlyCollection">
+        <source>This collection is read-only.</source>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileCouldNotBeLoaded">
+        <source>MSB5020: Could not load the project file: "{0}". {1}</source>
+        <note>{StrBegin="MSB5020: "}</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseDuplicateProject">
+        <source>MSB5004: The solution file has two projects named "{0}".</source>
+        <note>{StrBegin="MSB5004: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseInvalidProjectFileNameCharacters">
+        <source>MSB5005: Error parsing project section for project "{0}". The project file name "{1}" contains invalid characters.</source>
+        <note>{StrBegin="MSB5005: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseInvalidProjectFileNameEmpty">
+        <source>MSB5006: Error parsing project section for project "{0}". The project file name is empty.</source>
+        <note>{StrBegin="MSB5006: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseInvalidProjectSolutionConfigurationEntry">
+        <source>MSB5007: Error parsing the project configuration section in solution file. The entry "{0}" is invalid.</source>
+        <note>{StrBegin="MSB5007: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseInvalidSolutionConfigurationEntry">
+        <source>MSB5008: Error parsing the solution configuration section in solution file. The entry "{0}" is invalid.</source>
+        <note>{StrBegin="MSB5008: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseNestedProjectError">
+        <source>MSB5009: Error parsing the nested project section in solution file.</source>
+        <note>{StrBegin="MSB5009: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseNestedProjectUndefinedError">
+        <source>MSB5023: Error parsing the nested project section in solution file. A project with the GUID "{0}" is listed as being nested under project "{1}", but does not exist in the solution.</source>
+        <note>{StrBegin="MSB5023: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseNoHeaderError">
+        <source>MSB5010: No file format header found.</source>
+        <note>{StrBegin="MSB5010: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseProjectDepGuidError">
+        <source>MSB5011: Parent project GUID not found in "{0}" project dependency section.</source>
+        <note>{StrBegin="MSB5011: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseProjectEofError">
+        <source>MSB5012: Unexpected end-of-file reached inside "{0}" project section.</source>
+        <note>{StrBegin="MSB5012: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseProjectError">
+        <source>MSB5013: Error parsing a project section.</source>
+        <note>{StrBegin="MSB5013: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseVersionMismatchError">
+        <source>MSB5014: File format version is not recognized.  MSBuild can only read solution files between versions {0}.0 and {1}.0, inclusive.</source>
+        <note>{StrBegin="MSB5014: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseWebProjectPropertiesError">
+        <source>MSB5015: The properties could not be read from the WebsiteProperties section of the "{0}" project.</source>
+        <note>{StrBegin="MSB5015: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SubCategoryForSchemaValidationErrors">
+        <source>Schema validation</source>
+        <note>
+      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
+      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
+      "MSBUILD : Schema validation error MSB0000: This is an error."
+      LOCALIZATION: This fragment needs to be localized.
+    </note>
+      </trans-unit>
+      <trans-unit id="SubCategoryForSolutionParsingErrors">
+        <source>Solution file</source>
+        <note>UE: this fragment is used to describe errors found while parsing solution files. For example, if a normal error is
+      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from solution parsing would look like this:
+      "MSBUILD : Solution file error MSB0000: This is an error."
+      LOCALIZATION: This fragment needs to be localized.</note>
+      </trans-unit>
+      <trans-unit id="TaskNotMarshalByRef">
+        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
+        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
+      </trans-unit>
+      <trans-unit id="UnrecognizedSolutionComment">
+        <source>Unrecognized solution version "{0}", attempting to continue.</source>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnrecognizedToolsVersion">
+        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
+        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="WaitingForEndOfBuild">
         <source>The operation cannot be completed because EndBuild has already been called but existing submissions have not yet completed.</source>
@@ -1478,10 +1597,6 @@ Utilization:          {0} Average Utilization: {1:###.0}</source>
       <trans-unit id="BuildStarted">
         <source>Build started.</source>
         <note />
-      </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <note>A file location to be embedded in a string.</note>
       </trans-unit>
       <trans-unit id="MSBuild.CannotRebaseOutputItemPath">
         <source>MSB3203: The output path "{0}" cannot be rebased. {1}</source>

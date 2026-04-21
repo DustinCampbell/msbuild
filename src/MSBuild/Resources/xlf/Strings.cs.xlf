@@ -10,6 +10,11 @@
       fire this error.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
+      <trans-unit id="BuildEngineCallbacksInTaskHostUnsupported">
+        <source>MSB5022: The MSBuild task host does not support running tasks that perform IBuildEngine callbacks. If you wish to perform these operations, please run your task in the core MSBuild process instead.  A task will automatically execute in the task host if the UsingTask has been attributed with a "Runtime" or "Architecture" value, or the task invocation has been attributed with an "MSBuildRuntime" or "MSBuildArchitecture" value, that does not match the current runtime or architecture of MSBuild.</source>
+        <target state="translated">MSB5022: Hostitel úlohy nástroje MSBuild nepodporuje spouštění úloh, které provádějí zpětná volání rozhraní IBuildEngine. Pokud chcete tyto operace provádět, spusťte svou úlohu v hlavním procesu nástroje MSBuild.  Úloha bude automaticky provedena v hostiteli úlohy, pokud v deklaraci UsingTask byly použity atributy s hodnotami Runtime nebo Architecture nebo pokud pro volání úlohy byly použity atributy s hodnotami MSBuildRuntime nebo MSBuildArchitecture, které neodpovídají aktuálnímu modulu runtime nebo architektuře nástroje MSBuild.</target>
+        <note>{StrBegin="MSB5022: "} "Runtime", "Architecture", "MSBuildRuntime", and "MSBuildArchitecture" are all attributes in the project file, and thus should not be localized.</note>
+      </trans-unit>
       <trans-unit id="BuildFailedWithPropertiesItemsOrTargetResultsRequested">
         <source>Build failed. Properties, Items, and Target results cannot be obtained. See details in stderr above.</source>
         <target state="translated">Sestavení se nezdařilo. Nelze získat výsledky vlastností, položek a cíle. Viz podrobnosti ve stderr výše.</target>
@@ -33,10 +38,20 @@
         <target state="translated">MSBUILD : error MSB1027: Přepínač -noAutoResponse nelze zadat v souboru automatických odpovědí MSBuild.rsp ani v žádném jiném souboru odpovědí, na který se v souboru automatických odpovědí odkazuje.</target>
         <note>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</note>
       </trans-unit>
+      <trans-unit id="ConflictingTaskAssembly">
+        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
+        <target state="translated">MSB4008: Bylo nalezeno konfliktní sestavení pro sestavení úlohy {0} v umístění {1}.</target>
+        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
+      </trans-unit>
       <trans-unit id="DuplicateBinaryLoggerPathsIgnored">
         <source>Duplicate binary log path(s) specified and ignored: {0}</source>
         <target state="translated">Byly zadány duplicitní cesty k binárnímu protokolu a byly ignorovány: {0}</target>
         <note>{0} is the list of duplicate paths that were filtered out</note>
+      </trans-unit>
+      <trans-unit id="ExpectedEventToBeSerializable">
+        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
+        <target state="translated">Očekávalo se, že typ události {0} bude možné serializovat pomocí serializátoru .NET. Událost nebylo možné serializovat a byla ignorována.</target>
+        <note />
       </trans-unit>
       <trans-unit id="HelpMessage_41_QuestionSwitch">
         <source>  -question
@@ -305,6 +320,11 @@
     LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
   </note>
       </trans-unit>
+      <trans-unit id="InvalidLogFileFormat">
+        <source>MSB4233: There was an exception while reading the log file: {0}</source>
+        <target state="translated">MSB4233: Došlo k výjimce při čtení souboru protokolu: {0}.</target>
+        <note>{StrBegin="MSB4233: "}This is shown when the Binary Logger can't read the log file.</note>
+      </trans-unit>
       <trans-unit id="InvalidLowPriorityValue">
         <source>MSBUILD : error MSB1064: Low priority value is not valid. {0}</source>
         <target state="translated">MSBUILD : error MSB1064: Hodnota s nízkou prioritou není platná. {0}</target>
@@ -325,6 +345,7 @@
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
+
       <trans-unit id="InvalidTerminalLoggerValue">
         <source>MSBUILD : error MSB1065: Terminal logger value is not valid. It should be one of 'auto', 'true', or 'false'. {0}</source>
         <target state="translated">MSBUILD : error MSB1065: Hodnota terminálového protokolovacího nástroje není platná. Mělo by to být auto, true nebo false. {0}</target>
@@ -379,6 +400,16 @@
         <source>not set</source>
         <target state="translated">nenastaveno</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ModifyingTaskHostEnvironmentHeader">
+        <source>Making the following modifications to the environment received from the parent node before applying it to the task host:</source>
+        <target state="translated">Předtím, než bude pro hostitele úlohy použito prostředí přijaté z nadřazeného uzlu, budou provedeny jeho následující úpravy:</target>
+        <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
+      </trans-unit>
+      <trans-unit id="ModifyingTaskHostEnvironmentVariable">
+        <source>  Setting '{0}' to '{1}' rather than the parent environment's value, '{2}'.</source>
+        <target state="translated">  Nastavení proměnné {0} na hodnotu {1} místo hodnoty {2} proměnné prostředí nadřazeného uzlu</target>
+        <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="MSBuildVersionMessage">
         <source>MSBuild version {0} for {1}</source>
@@ -1700,13 +1731,6 @@ Když se nastaví na MessageUponIsolationViolation (nebo jeho krátký
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
-      <trans-unit id="NameInvalid">
-        <source>MSBUILD : error MSB5016: The name "{0}" contains an invalid character "{1}".</source>
-        <target state="translated">MSBUILD : error MSB5016: Název {0} obsahuje neplatný znak {1}.</target>
-        <note>
-      {StrBegin="MSBUILD : error MSB5016: "}
-    </note>
-      </trans-unit>
       <trans-unit id="NotWarnAsErrorWithoutWarnAsError">
         <source>MSBUILD : error MSB1062: The -warnnotaserror switch cannot be specified unless the -warnaserror switch is also specified and left empty.</source>
         <target state="translated">MSBUILD : error MSB1062: Přepínač -warnnotaserror nelze zadat, pokud není zadán také přepínač -warnaserror a není prázdný.</target>
@@ -1838,6 +1862,16 @@ Když se nastaví na MessageUponIsolationViolation (nebo jeho krátký
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
+      <trans-unit id="SubCategoryForSchemaValidationErrors">
+        <source>Schema validation</source>
+        <target state="translated">Ověřování schématu</target>
+        <note>
+      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
+      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
+      "MSBUILD : Schema validation error MSB0000: This is an error."
+      LOCALIZATION: This fragment needs to be localized.
+    </note>
+      </trans-unit>
       <trans-unit id="SwitchErrorWithArguments">
         <source>{0}
     Full command line: '{1}'
@@ -1856,6 +1890,11 @@ Když se nastaví na MessageUponIsolationViolation (nebo jeho krátký
         <source>Task output parameter "{0}" contained {1} null element(s) which have been filtered out.</source>
         <target state="translated">Výstupní parametr úlohy {0} obsahoval elementy null (celkem {1}), které byly odfiltrovány.</target>
         <note>LOCALIZATION: {0} is the name of the task output parameter, {1} is the count of null elements filtered.</note>
+      </trans-unit>
+      <trans-unit id="TaskNotMarshalByRef">
+        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
+        <target state="translated">MSB4077: Úloha {0} byla označena atributem LoadInSeparateAppDomain, není ale odvozena od třídy MarshalByRefObject. Zkontrolujte, jestli je úloha odvozena od třídy MarshalByRefObject nebo AppDomainIsolatedTask.</target>
+        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedAutomated">
         <source>Terminal Logger was not used because it was detected that the build is running in an automated environment.</source>
@@ -1889,6 +1928,11 @@ Když se nastaví na MessageUponIsolationViolation (nebo jeho krátký
         <target state="translated">MSBUILD : error MSB1001: Neznámý přepínač.</target>
         <note>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
+      </trans-unit>
+      <trans-unit id="UnrecognizedToolsVersion">
+        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
+        <target state="translated">MSB4132: Verze nástrojů {0} je neznámá. Dostupné verze nástrojů jsou {1}.</target>
+        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="UnsupportedOS">
         <source>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</source>
@@ -1968,16 +2012,6 @@ Když se nastaví na MessageUponIsolationViolation (nebo jeho krátký
         <source>MSBUILD : error MSB1048: Solution files cannot be debugged directly. Run MSBuild first with an environment variable MSBUILDEMITSOLUTION=1 to create a corresponding ".sln.metaproj" file. Then debug that.</source>
         <target state="translated">MSBUILD : error MSB1048: Soubory řešení nejde ladit přímo. Nejdřív spusťte příkaz MSBuild s proměnnou prostředí MSBUILDEMITSOLUTION=1, abyste vytvořili odpovídající soubor .sln.metaproj. Potom tento soubor odlaďte.</target>
         <note>{StrBegin="MSBUILD : error MSB1048: "} LOC: ".SLN" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="BuildStarted">
-        <source>Build started.</source>
-        <target state="translated">Vytváření sestavení bylo zahájeno.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0} ({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
       </trans-unit>
       <trans-unit id="AmbiguousProjectDirectoryError">
         <source>MSBUILD : error MSB1050: Specify which project or solution file to use because the folder "{0}" contains more than one project or solution file.</source>

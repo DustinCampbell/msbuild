@@ -10,6 +10,11 @@
       fire this error.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
+      <trans-unit id="BuildEngineCallbacksInTaskHostUnsupported">
+        <source>MSB5022: The MSBuild task host does not support running tasks that perform IBuildEngine callbacks. If you wish to perform these operations, please run your task in the core MSBuild process instead.  A task will automatically execute in the task host if the UsingTask has been attributed with a "Runtime" or "Architecture" value, or the task invocation has been attributed with an "MSBuildRuntime" or "MSBuildArchitecture" value, that does not match the current runtime or architecture of MSBuild.</source>
+        <target state="translated">MSB5022: MSBuild 작업 호스트는 IBuildEngine 콜백을 수행하는 작업의 실행을 지원하지 않습니다. 이러한 작업을 수행하려면 대신 코어 MSBuild 프로세스에서 작업을 실행하세요.  UsingTask에 "Runtime" 또는 "Architecture" 값이 사용되었거나 작업 호출에 MSBuild의 현재 런타임 또는 아키텍처와 일치하지 않는 "MSBuildRuntime" 또는 "MSBuildArchitecture" 값이 사용된 경우 작업 호스트에서 작업이 자동으로 실행됩니다.</target>
+        <note>{StrBegin="MSB5022: "} "Runtime", "Architecture", "MSBuildRuntime", and "MSBuildArchitecture" are all attributes in the project file, and thus should not be localized.</note>
+      </trans-unit>
       <trans-unit id="BuildFailedWithPropertiesItemsOrTargetResultsRequested">
         <source>Build failed. Properties, Items, and Target results cannot be obtained. See details in stderr above.</source>
         <target state="translated">빌드하지 못했습니다. 속성, 항목 및 대상 결과를 가져올 수 없습니다. 위의 stderr에서 세부 정보를 참조하세요.</target>
@@ -33,10 +38,20 @@
         <target state="translated">MSBUILD : error MSB1027: MSBuild.rsp 자동 지시 파일과 자동 지시 파일에서 참조하는 모든 지시 파일에는 -noAutoResponse 스위치를 지정할 수 없습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</note>
       </trans-unit>
+      <trans-unit id="ConflictingTaskAssembly">
+        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
+        <target state="translated">MSB4008: 작업 어셈블리 "{0}"과(와) 충돌하는 어셈블리가 "{1}"에 있습니다.</target>
+        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
+      </trans-unit>
       <trans-unit id="DuplicateBinaryLoggerPathsIgnored">
         <source>Duplicate binary log path(s) specified and ignored: {0}</source>
         <target state="translated">중복된 이진 로그 경로가 지정되어 무시되었습니다. {0}</target>
         <note>{0} is the list of duplicate paths that were filtered out</note>
+      </trans-unit>
+      <trans-unit id="ExpectedEventToBeSerializable">
+        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
+        <target state="translated">이벤트 유형 "{0}"은(는) .NET serializer를 사용하여 serialize할 수 있어야 합니다. 이 이벤트는 serialize할 수 없으므로 무시되었습니다.</target>
+        <note />
       </trans-unit>
       <trans-unit id="HelpMessage_41_QuestionSwitch">
         <source>  -question
@@ -306,6 +321,11 @@
     LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
   </note>
       </trans-unit>
+      <trans-unit id="InvalidLogFileFormat">
+        <source>MSB4233: There was an exception while reading the log file: {0}</source>
+        <target state="translated">MSB4233: 로그 파일을 읽는 동안 예외가 발생했습니다. {0}</target>
+        <note>{StrBegin="MSB4233: "}This is shown when the Binary Logger can't read the log file.</note>
+      </trans-unit>
       <trans-unit id="InvalidLowPriorityValue">
         <source>MSBUILD : error MSB1064: Low priority value is not valid. {0}</source>
         <target state="translated">MSBUILD : error MSB1064: 낮은 우선 순위 값이 유효하지 않습니다. {0}</target>
@@ -380,6 +400,16 @@
         <source>not set</source>
         <target state="translated">설정 안 함</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ModifyingTaskHostEnvironmentHeader">
+        <source>Making the following modifications to the environment received from the parent node before applying it to the task host:</source>
+        <target state="translated">작업 호스트에 적용하기 전에 부모 노드로부터 받은 환경을 다음과 같이 수정하고 있습니다.</target>
+        <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
+      </trans-unit>
+      <trans-unit id="ModifyingTaskHostEnvironmentVariable">
+        <source>  Setting '{0}' to '{1}' rather than the parent environment's value, '{2}'.</source>
+        <target state="translated">  '{0}'을(를) 부모 환경 값인 '{2}' 대신 '{1}'(으)로 설정하고 있습니다.</target>
+        <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="MSBuildVersionMessage">
         <source>MSBuild version {0} for {1}</source>
@@ -1689,13 +1719,6 @@
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
-      <trans-unit id="NameInvalid">
-        <source>MSBUILD : error MSB5016: The name "{0}" contains an invalid character "{1}".</source>
-        <target state="translated">MSBUILD : error MSB5016: "{0}" 이름에 잘못된 문자 "{1}"이(가) 사용되었습니다.</target>
-        <note>
-      {StrBegin="MSBUILD : error MSB5016: "}
-    </note>
-      </trans-unit>
       <trans-unit id="NotWarnAsErrorWithoutWarnAsError">
         <source>MSBUILD : error MSB1062: The -warnnotaserror switch cannot be specified unless the -warnaserror switch is also specified and left empty.</source>
         <target state="translated">MSBUILD : error MSB1062: -warnaserror 스위치도 지정하고 비어 있지 않으면 -warnnotaserror 스위치를 지정할 수 없습니다.</target>
@@ -1827,6 +1850,16 @@
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
+      <trans-unit id="SubCategoryForSchemaValidationErrors">
+        <source>Schema validation</source>
+        <target state="translated">스키마 유효성 검사</target>
+        <note>
+      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
+      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
+      "MSBUILD : Schema validation error MSB0000: This is an error."
+      LOCALIZATION: This fragment needs to be localized.
+    </note>
+      </trans-unit>
       <trans-unit id="SwitchErrorWithArguments">
         <source>{0}
     Full command line: '{1}'
@@ -1845,6 +1878,11 @@
         <source>Task output parameter "{0}" contained {1} null element(s) which have been filtered out.</source>
         <target state="translated">작업 출력 매개 변수 "{0}"에 필터링된 {1}개의 null 요소가 포함되어 있습니다.</target>
         <note>LOCALIZATION: {0} is the name of the task output parameter, {1} is the count of null elements filtered.</note>
+      </trans-unit>
+      <trans-unit id="TaskNotMarshalByRef">
+        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
+        <target state="translated">MSB4077: "{0}" 작업이 LoadInSeparateAppDomain 특성으로 표시되었지만 MarshalByRefObject에서 파생되지 않습니다. 해당 작업이 MarshalByRefObject 또는 AppDomainIsolatedTask에서 파생되는지 확인하십시오.</target>
+        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedAutomated">
         <source>Terminal Logger was not used because it was detected that the build is running in an automated environment.</source>
@@ -1878,6 +1916,11 @@
         <target state="translated">MSBUILD : error MSB1001: 알 수 없는 스위치입니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
+      </trans-unit>
+      <trans-unit id="UnrecognizedToolsVersion">
+        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
+        <target state="translated">MSB4132: 도구 버전 "{0}"을(를) 인식할 수 없습니다. 사용할 수 있는 도구 버전은 {1}입니다.</target>
+        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="UnsupportedOS">
         <source>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</source>
@@ -1957,16 +2000,6 @@
         <source>MSBUILD : error MSB1048: Solution files cannot be debugged directly. Run MSBuild first with an environment variable MSBUILDEMITSOLUTION=1 to create a corresponding ".sln.metaproj" file. Then debug that.</source>
         <target state="translated">MSBUILD : error MSB1048: 솔루션 파일을 직접 디버그할 수 없습니다. 우선 환경 변수 MSBUILDEMITSOLUTION=1과 함께 MSBuild를 실행하여 해당 ".sln.metaproj" 파일을 만드세요. 그런 다음 이를 디버그하세요.</target>
         <note>{StrBegin="MSBUILD : error MSB1048: "} LOC: ".SLN" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="BuildStarted">
-        <source>Build started.</source>
-        <target state="translated">빌드를 시작했습니다.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0}({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
       </trans-unit>
       <trans-unit id="AmbiguousProjectDirectoryError">
         <source>MSBUILD : error MSB1050: Specify which project or solution file to use because the folder "{0}" contains more than one project or solution file.</source>

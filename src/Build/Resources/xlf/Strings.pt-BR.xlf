@@ -136,6 +136,11 @@
         <target state="translated">Não há suporte para gravação.</target>
         <note />
       </trans-unit>
+      <trans-unit id="BuildAborted">
+        <source>MSB4188: Build was canceled.</source>
+        <target state="translated">MSB4188: Compilação cancelada.</target>
+        <note>{StrBegin="MSB4188: "} Error when the build stops suddenly for some reason. For example, because a child node died.</note>
+      </trans-unit>
       <trans-unit id="BuildCheckEnabled">
         <source>The BuildCheck is enabled for this build.</source>
         <target state="translated">O BuildCheck está habilitado para esse build.</target>
@@ -416,6 +421,11 @@
         <note>{StrBegin="MSB4006: "}UE: This message is shown when the build engine detects a target referenced in a circular manner -- a project cannot
     request a target to build itself (perhaps via a chain of other targets).</note>
       </trans-unit>
+      <trans-unit id="ConflictingTaskAssembly">
+        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
+        <target state="translated">MSB4008: Foi encontrado um assembly conflitante no assembly da tarefa "{0}" em "{1}".</target>
+        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
+      </trans-unit>
       <trans-unit id="CustomCheckAssemblyNotExist">
         <source>Failed to find the specified custom check assembly: '{0}'. Please check if it exists.</source>
         <target state="translated">Falha ao localizar o assembly de verificação personalizado especificado: '{0}'. Verifique se existe.</target>
@@ -459,6 +469,11 @@
       <trans-unit id="DefaultSDKResolverError">
         <source>MSB4276: The default SDK resolver failed to resolve SDK "{0}" because directory "{1}" did not exist.</source>
         <target state="translated">MSB4276: O resolvedor SDK padrão falhou ao resolver SDK "{0}" porque o diretório "{1}" não existia.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeprecatedEventSerialization">
+        <source>Custom event type '{0}' is not supported as all custom event types were deprecated. Please use Extended*EventArgs instead. More info: https://aka.ms/msbuild/eventargs</source>
+        <target state="translated">Não há suporte '{0}' tipo de evento personalizado porque todos os tipos de eventos personalizados foram preteridos. Use Extended*EventArgs em vez disso. Mais informações: https://aka.ms/msbuild/eventargs</target>
         <note />
       </trans-unit>
       <trans-unit id="DotnetHostPathIsDirectory">
@@ -514,6 +529,11 @@
         <target state="translated">MSB4258: a gravação do arquivo de cache do resultado de saída no caminho "{0}" encontrou um erro: {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="ExpectedEventToBeSerializable">
+        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
+        <target state="translated">Era esperado que o tipo de evento "{0}" fosse serializável usando o serializador .NET. O evento não era serializável e foi ignorado.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FailedToResolveSDK">
         <source>Could not resolve SDK "{0}". Exactly one of the probing messages below indicates why we could not resolve the SDK. Investigate and resolve that message to correctly specify the SDK.
   {1}</source>
@@ -529,6 +549,11 @@
         <note>{StrBegin="MSB4017: "}UE: This message is used for a special exception that is thrown when a logger fails while logging an event (most
     likely because of a programming error in the logger). When a logger dies, we cannot proceed with the build, and we throw a
     special exception to abort the build.</note>
+      </trans-unit>
+      <trans-unit id="FileLocation">
+        <source>{0} ({1},{2})</source>
+        <target state="translated">{0} ({1},{2})</target>
+        <note>A file location to be embedded in a string.</note>
       </trans-unit>
       <trans-unit id="General.TwoVectorsMustHaveSameLength">
         <source>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</source>
@@ -559,6 +584,11 @@
         <source>MSB4255: The following input result cache files do not exist: "{0}"</source>
         <target state="translated">MSB4255: os arquivos de cache do resultado de entrada a seguir não existem: "{0}"</target>
         <note />
+      </trans-unit>
+      <trans-unit id="InvalidVerbosity">
+        <source>MSB4103: "{0}" is not a valid logger verbosity level.</source>
+        <target state="translated">MSB4103: "{0}" não é um nível de detalhamento de agente de log válido.</target>
+        <note>{StrBegin="MSB4103: "}</note>
       </trans-unit>
       <trans-unit id="InvalidVersionFormat">
         <source>Version string was not in a correct format.</source>
@@ -660,6 +690,11 @@
       <trans-unit id="OM_NoMatchOnMetadataOutsideTargets">
         <source>MatchOnMetadata cannot be used outside of a &lt;Target&gt;.</source>
         <target state="translated">MatchOnMetadata não pode ser usado fora de um &lt;Target&gt;.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OM_NotSupportedReadOnlyCollection">
+        <source>This collection is read-only.</source>
+        <target state="translated">Esta coleção é somente leitura.</target>
         <note />
       </trans-unit>
       <trans-unit id="OM_TargetNameNullOrEmpty">
@@ -942,6 +977,24 @@ Erros: {3}</target>
         <target state="new">An SDK set the environment variable "{0}" to "{1}", overriding the value "{2}" inherited from the process.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidProjectFile">
+        <source>MSB4025: The project file could not be loaded. {0}</source>
+        <target state="translated">MSB4025: Não foi possível carregar o arquivo de projeto. {0}</target>
+        <note>{StrBegin="MSB4025: "}UE: This message is shown when the project file given to the engine cannot be loaded because the filename/path is
+    invalid, or due to lack of permissions, or incorrect XML. The project filename is not part of the message because it is
+    provided separately to loggers.
+    LOCALIZATION: {0} is a localized message from the CLR/FX explaining why the project is invalid.</note>
+      </trans-unit>
+      <trans-unit id="MalformedProjectFile">
+        <source>MSB5019: The project file is malformed: "{0}". {1}</source>
+        <target state="translated">MSB5019: Arquivo de projeto malformado: "{0}". {1}</target>
+        <note>{StrBegin="MSB5019: "}</note>
+      </trans-unit>
+      <trans-unit id="ProjectFileCouldNotBeLoaded">
+        <source>MSB5020: Could not load the project file: "{0}". {1}</source>
+        <target state="translated">MSB5020: Não foi possível carregar o arquivo de projeto: "{0}". {1}</target>
+        <note>{StrBegin="MSB5020: "}</note>
+      </trans-unit>
       <trans-unit id="SingleResolverFailedToResolveSDK">
         <source>SDK '{0}' could not be resolved by the SDK resolver '{1}'. {2}</source>
         <target state="translated">O SDK '{0}' não pôde ser resolvido pelo resolvedor de SDK '{1}'. {2}</target>
@@ -953,6 +1006,91 @@ Erros: {3}</target>
         <note>
       LOCALIZATION: {0} and {1} are file paths
     </note>
+      </trans-unit>
+      <trans-unit id="SolutionFilterFilterContainsProjectNotInSolution">
+        <source>MSB5028: Solution filter file at "{0}" includes project "{1}" that is not in the solution file at "{2}".</source>
+        <target state="translated">MSB5028: o arquivo de filtro da solução em "{0}" inclui o projeto "{1}" que não está no arquivo da solução em "{2}".</target>
+        <note>{StrBegin="MSB5028: "}UE: The project filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionFilterJsonParsingError">
+        <source>MSB5025: Json in solution filter file "{0}" is incorrectly formatted.</source>
+        <target state="translated">MSB5025: o JSON no arquivo de filtro da solução "{0}" está formatado incorretamente.</target>
+        <note>{StrBegin="MSB5025: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionFilterMissingSolutionError">
+        <source>MSB5026: The solution filter file at "{0}" specifies there will be a solution file at "{1}", but that file does not exist.</source>
+        <target state="translated">MSB5026: o arquivo de filtro da solução em "{0}" especifica que haverá um arquivo de solução em "{1}", mas esse arquivo não existe.</target>
+        <note>{StrBegin="MSB5026: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseDuplicateProject">
+        <source>MSB5004: The solution file has two projects named "{0}".</source>
+        <target state="translated">MSB5004: O arquivo de solução tem dois projetos denominados "{0}".</target>
+        <note>{StrBegin="MSB5004: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseInvalidProjectFileNameCharacters">
+        <source>MSB5005: Error parsing project section for project "{0}". The project file name "{1}" contains invalid characters.</source>
+        <target state="translated">MSB5005: Erro ao analisar a seção do projeto para o projeto "{0}". O nome do arquivo de projeto "{1}" contém caracteres inválidos.</target>
+        <note>{StrBegin="MSB5005: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseInvalidProjectFileNameEmpty">
+        <source>MSB5006: Error parsing project section for project "{0}". The project file name is empty.</source>
+        <target state="translated">MSB5006: Erro ao analisar a seção do projeto para o projeto "{0}". O nome do arquivo de projeto está vazio.</target>
+        <note>{StrBegin="MSB5006: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseInvalidProjectSolutionConfigurationEntry">
+        <source>MSB5007: Error parsing the project configuration section in solution file. The entry "{0}" is invalid.</source>
+        <target state="translated">MSB5007: Erro ao analisar a seção de configuração do projeto no arquivo de solução. A entrada "{0}" não é válida.</target>
+        <note>{StrBegin="MSB5007: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseInvalidSolutionConfigurationEntry">
+        <source>MSB5008: Error parsing the solution configuration section in solution file. The entry "{0}" is invalid.</source>
+        <target state="translated">MSB5008: Erro ao analisar a seção de configuração da solução no arquivo de solução. A entrada "{0}" não é válida.</target>
+        <note>{StrBegin="MSB5008: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseNestedProjectError">
+        <source>MSB5009: Error parsing the nested project section in solution file.</source>
+        <target state="translated">MSB5009: Erro ao analisar a seção do projeto aninhado no arquivo de solução.</target>
+        <note>{StrBegin="MSB5009: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseNestedProjectErrorWithNameAndGuid">
+        <source>MSB5009: Error parsing the project "{0}" section with GUID: "{1}". It is nested under "{2}" but that project is not found in the solution.</source>
+        <target state="translated">MSB5009: erro ao analisar a seção do projeto "{0}" com o GUID: "{1}". Ela está aninhada em "{2}", mas o projeto não foi encontrado na solução.</target>
+        <note>{StrBegin="MSB5009: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseNestedProjectUndefinedError">
+        <source>MSB5023: Error parsing the nested project section in solution file. A project with the GUID "{0}" is listed as being nested under project "{1}", but does not exist in the solution.</source>
+        <target state="translated">MSB5023: Erro ao analisar a seção do projeto aninhado no arquivo de solução. Um projeto com o GUID "{0}" é listado como aninhado no projeto "{1}", mas não existe na solução.</target>
+        <note>{StrBegin="MSB5023: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseNoHeaderError">
+        <source>MSB5010: No file format header found.</source>
+        <target state="translated">MSB5010: Nenhum cabeçalho de formato de arquivo encontrado.</target>
+        <note>{StrBegin="MSB5010: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseProjectDepGuidError">
+        <source>MSB5011: Parent project GUID not found in "{0}" project dependency section.</source>
+        <target state="translated">MSB5011: O projeto pai GUID não foi encontrado na seção de dependência do projeto "{0}".</target>
+        <note>{StrBegin="MSB5011: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseProjectEofError">
+        <source>MSB5012: Unexpected end-of-file reached inside "{0}" project section.</source>
+        <target state="translated">MSB5012: Fim de arquivo inesperado na seção do projeto "{0}".</target>
+        <note>{StrBegin="MSB5012: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseProjectError">
+        <source>MSB5013: Error parsing a project section.</source>
+        <target state="translated">MSB5013: Erro ao analisar uma seção do projeto.</target>
+        <note>{StrBegin="MSB5013: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseVersionMismatchError">
+        <source>MSB5014: File format version is not recognized.  MSBuild can only read solution files between versions {0}.0 and {1}.0, inclusive.</source>
+        <target state="translated">MSB5014: A versão de formato do arquivo não é reconhecida.  O MSBuild pode ler apenas os arquivos de solução entre as versões {0}.0 e {1}.0, inclusive.</target>
+        <note>{StrBegin="MSB5014: "}UE: The solution filename is provided separately to loggers.</note>
+      </trans-unit>
+      <trans-unit id="SolutionParseWebProjectPropertiesError">
+        <source>MSB5015: The properties could not be read from the WebsiteProperties section of the "{0}" project.</source>
+        <target state="translated">MSB5015: As propriedades não podem ser lidas a partir da seção WebsiteProperties do projeto "{0}".</target>
+        <note>{StrBegin="MSB5015: "}UE: The solution filename is provided separately to loggers.</note>
       </trans-unit>
       <trans-unit id="SolutionPathPropertyMustBeSetOnVSSubmissions">
         <source>"MSB4264: Invalid $(SolutionPath) property: {0}"</source>
@@ -998,6 +1136,24 @@ Erros: {3}</target>
       LOCALIZATION: {0} is a file, {1} and {2} are semicolon delimited lists of messages
     </note>
       </trans-unit>
+      <trans-unit id="SubCategoryForSchemaValidationErrors">
+        <source>Schema validation</source>
+        <target state="translated">Validação de esquema</target>
+        <note>
+      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
+      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
+      "MSBUILD : Schema validation error MSB0000: This is an error."
+      LOCALIZATION: This fragment needs to be localized.
+    </note>
+      </trans-unit>
+      <trans-unit id="SubCategoryForSolutionParsingErrors">
+        <source>Solution file</source>
+        <target state="translated">Arquivo de solução</target>
+        <note>UE: this fragment is used to describe errors found while parsing solution files. For example, if a normal error is
+      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from solution parsing would look like this:
+      "MSBUILD : Solution file error MSB0000: This is an error."
+      LOCALIZATION: This fragment needs to be localized.</note>
+      </trans-unit>
       <trans-unit id="SucceededToResolveSDK">
         <source>The SDK "{0}" was successfully resolved by the "{1}" resolver to location "{2}" and version "{3}".</source>
         <target state="translated">O SDK "{0}" foi resolvido com êxito pelo resolvedor "{1}" para o local "{2}" e a versão "{3}".</target>
@@ -1022,6 +1178,11 @@ Erros: {3}</target>
         <source>Task assembly was loaded from '{0}' while the desired location was '{1}'.</source>
         <target state="translated">O assembly da tarefa foi carregado de "{0}" enquanto o local desejado era "{1}".</target>
         <note />
+      </trans-unit>
+      <trans-unit id="TaskNotMarshalByRef">
+        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
+        <target state="translated">MSB4077: A tarefa "{0}" foi marcada com o atributo LoadInSeparateAppDomain, mas não é derivada de MarshalByRefObject. Verifique se a tarefa é derivada de MarshalByRefObject ou de AppDomainIsolatedTask.</target>
+        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
       </trans-unit>
       <trans-unit id="TaskReleasedCores">
         <source>Task "{0}" released {1} cores and now holds {2} cores total.</source>
@@ -1129,6 +1290,16 @@ Erros: {3}</target>
         <source>Logging type {0} is not understood by {1}.</source>
         <target state="translated">O tipo {0} registro em log não é compreendido por {1}.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="UnrecognizedSolutionComment">
+        <source>Unrecognized solution version "{0}", attempting to continue.</source>
+        <target state="translated">Versão de solução não reconhecida "{0}". Tentando continuar.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnrecognizedToolsVersion">
+        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
+        <target state="translated">MSB4132: A versão das ferramentas "{0}" não é reconhecida. As versões das ferramentas disponíveis são {1}.</target>
+        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="UsingInputCaches">
         <source>Using input build results caches: {0}</source>
@@ -2931,11 +3102,6 @@ Utilização:          {0} Utilização Média: {1:###.0}</target>
         <source>Build started.</source>
         <target state="translated">Compilação iniciada.</target>
         <note />
-      </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0} ({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
       </trans-unit>
       <trans-unit id="MSBuild.CannotRebaseOutputItemPath">
         <source>MSB3203: The output path "{0}" cannot be rebased. {1}</source>

@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
+using SharedSR = Microsoft.Build.Framework.Resources.SR;
 
 #nullable disable
 
@@ -22,7 +23,8 @@ namespace Microsoft.Build.Shared
         internal static string GetString(string name)
         {
             // NOTE: the ResourceManager.GetString() method is thread-safe
-            string resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture) ?? SharedResources.GetString(name, CultureInfo.CurrentUICulture);
+            string resource = PrimaryResources.GetString(name, CultureInfo.CurrentUICulture)
+                ?? SharedResources.GetString(name, CultureInfo.CurrentUICulture);
 
             ErrorUtilities.VerifyThrow(resource != null, "Missing resource '{0}'", name);
 
@@ -38,7 +40,8 @@ namespace Microsoft.Build.Shared
         internal static string GetInvariantString(string name)
         {
             // NOTE: the ResourceManager.GetString() method is thread-safe
-            string resource = PrimaryResources.GetString(name, CultureInfo.InvariantCulture) ?? SharedResources.GetString(name, CultureInfo.InvariantCulture);
+            string resource = PrimaryResources.GetString(name, CultureInfo.InvariantCulture)
+                ?? SharedResources.GetString(name, CultureInfo.InvariantCulture);
 
             ErrorUtilities.VerifyThrow(resource != null, "Missing resource '{0}'", name);
 
@@ -57,7 +60,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <remarks>This property is thread-safe.</remarks>
         /// <value>ResourceManager for shared resources.</value>
-        internal static ResourceManager SharedResources { get; } = new ResourceManager("Microsoft.Build.Tasks.Core.Strings.shared", typeof(AssemblyResources).GetTypeInfo().Assembly);
+        internal static ResourceManager SharedResources => SharedSR.ResourceManager;
 
         // assembly resources
         // shared resources
