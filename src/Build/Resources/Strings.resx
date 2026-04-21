@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
     Microsoft ResX Schema
@@ -2011,9 +2011,9 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
     </comment>
   </data>
   <data name="ProjectCacheHitWithOutputs" xml:space="preserve">
-    <value>{0} -> Cache Hit</value>
+    <value>{0} -&gt; Cache Hit</value>
     <comment>
-      {StrBegin="{0} -> "}LOCALIZATION: This string is used to indicate progress and matches the format for a log message from Microsoft.Common.CurrentVersion.targets. {0} is a project name.
+      {StrBegin="{0} -&gt; "}LOCALIZATION: This string is used to indicate progress and matches the format for a log message from Microsoft.Common.CurrentVersion.targets. {0} is a project name.
     </comment>
   </data>
   <data name="ProjectCacheMissWithDefaultTargets" xml:space="preserve">
@@ -2082,7 +2082,7 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
     <value>Imported files archive exceeded 2GB limit and it's not embedded.</value>
   </data>
   <data name="Binlog_FwdCompatUnsupported" xml:space="preserve">
-    <value>Forward compatible reading is not supported for file format version {0} (needs >= 18).</value>
+    <value>Forward compatible reading is not supported for file format version {0} (needs &gt;= 18).</value>
     <comment>
       LOCALIZATION: {0} is an integer number denoting version.
     </comment>
