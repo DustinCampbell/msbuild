@@ -38,20 +38,10 @@
         <target state="translated">MSBUILD : error MSB1027: MSBuild.rsp 自動応答ファイルや、自動応答ファイルによって参照される応答ファイルに -noAutoResponse スイッチを指定することはできません。</target>
         <note>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</note>
       </trans-unit>
-      <trans-unit id="ConflictingTaskAssembly">
-        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
-        <target state="translated">MSB4008: タスク アセンブリ "{0}" に対して競合しているアセンブリが "{1}" で見つかりました。</target>
-        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
-      </trans-unit>
       <trans-unit id="DuplicateBinaryLoggerPathsIgnored">
         <source>Duplicate binary log path(s) specified and ignored: {0}</source>
         <target state="translated">重複するバイナリ ログ パスが指定され、次は無視されました: {0}</target>
         <note>{0} is the list of duplicate paths that were filtered out</note>
-      </trans-unit>
-      <trans-unit id="ExpectedEventToBeSerializable">
-        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
-        <target state="translated">イベントの種類 "{0}" は .NET シリアライザーを使用してシリアル化可能であることが想定されていましたが、シリアル化可能でなかったため無視されました。</target>
-        <note />
       </trans-unit>
       <trans-unit id="HelpMessage_41_QuestionSwitch">
         <source>  -question
@@ -1849,16 +1839,6 @@
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
-      <trans-unit id="SubCategoryForSchemaValidationErrors">
-        <source>Schema validation</source>
-        <target state="translated">スキーマの検証</target>
-        <note>
-      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
-      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
-      "MSBUILD : Schema validation error MSB0000: This is an error."
-      LOCALIZATION: This fragment needs to be localized.
-    </note>
-      </trans-unit>
       <trans-unit id="SwitchErrorWithArguments">
         <source>{0}
     Full command line: '{1}'
@@ -1877,11 +1857,6 @@
         <source>Task output parameter "{0}" contained {1} null element(s) which have been filtered out.</source>
         <target state="translated">タスク出力パラメーター "{0}" には、フィルターで除外された {1} 個の null 要素が含まれていました。</target>
         <note>LOCALIZATION: {0} is the name of the task output parameter, {1} is the count of null elements filtered.</note>
-      </trans-unit>
-      <trans-unit id="TaskNotMarshalByRef">
-        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
-        <target state="translated">MSB4077: "{0}" タスクに属性 LoadInSeparateAppDomain が設定されていますが、MarshalByRefObject から派生していません。そのタスクが MarshalByRefObject または AppDomainIsolatedTask から派生していることを確認してください。</target>
-        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedAutomated">
         <source>Terminal Logger was not used because it was detected that the build is running in an automated environment.</source>
@@ -1915,11 +1890,6 @@
         <target state="translated">MSBUILD : error MSB1001: 不明なスイッチです。</target>
         <note>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
-      </trans-unit>
-      <trans-unit id="UnrecognizedToolsVersion">
-        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
-        <target state="translated">MSB4132: ツール バージョン "{0}" が認識されません。使用可能なツール バージョンは {1} です。</target>
-        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="UnsupportedOS">
         <source>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</source>

@@ -1324,7 +1324,7 @@ namespace Microsoft.Build.Tasks
             // make sure that if the output resources were set, they exactly match the number of input sources
             if ((OutputResources != null) && (OutputResources.Length != Sources.Length))
             {
-                Log.LogErrorWithCodeFromResources("General.TwoVectorsMustHaveSameLength", Sources.Length, OutputResources.Length, "Sources", "OutputResources");
+                Log.LogErrorWithCodeFromResources("General_TwoVectorsMustHaveSameLength", Sources.Length, OutputResources.Length, "Sources", "OutputResources");
                 return false;
             }
 

@@ -355,33 +355,6 @@
         <source>MSB3099: Invalid assembly name "{0}". {1}</source>
         <note>{StrBegin="MSB3099: "}UE: This message is shown when RegisterAssembly or UnregisterAssembly is passed an assembly with an invalid filename. "{0}" is the name of the file, and "{1}" is a message explaining the problem. LOCALIZATION: "{1}" is a localized message.</note>
       </trans-unit>
-      <trans-unit id="General.InvalidPropertyError">
-        <source>MSB3100: Syntax for "{0}" parameter is not valid ({1}). Correct syntax is {0}="&lt;name&gt;=&lt;value&gt;".</source>
-        <note>{StrBegin="MSB3100: "}This error is shown if the user does any of the following:
-    Properties="foo"              (missing property value)
-    Properties="=4"               (missing property name)
-    The user must pass in an actual property name and value, as in Properties="Configuration=Debug".</note>
-      </trans-unit>
-      <trans-unit id="General.GlobalProperties">
-        <source>Global Properties:</source>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.UndefineProperties">
-        <source>Removing Properties:</source>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.OverridingProperties">
-        <source>Overriding Global Properties for project "{0}" with:</source>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.AdditionalProperties">
-        <source>Additional Properties for project "{0}":</source>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.ProjectUndefineProperties">
-        <source>Removing Properties for project "{0}":</source>
-        <note />
-      </trans-unit>
       <trans-unit id="General.InvalidResxFile">
         <source>MSB3103: Invalid Resx file. {0}</source>
         <note>{StrBegin="MSB3103: "}</note>
@@ -425,10 +398,6 @@
       <trans-unit id="General.ToolCommandFailed">
         <source>MSB3093: The command exited with code {0}.</source>
         <note>{StrBegin="MSB3093: "}</note>
-      </trans-unit>
-      <trans-unit id="General.TwoVectorsMustHaveSameLength">
-        <source>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</source>
-        <note>{StrBegin="MSB3094: "}</note>
       </trans-unit>
       <trans-unit id="GenerateBindingRedirects.MissingConfigurationNode">
         <source>MSB3831: The application configuration file must have root configuration element.</source>
@@ -1007,43 +976,6 @@
       <trans-unit id="Move.SourceIsDirectory">
         <source>MSB3681: The source file "{0}" is a directory. The "Move" task does not support moving directories.</source>
         <note>{StrBegin="MSB3681: "}</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.CannotRebaseOutputItemPath">
-        <source>MSB3203: The output path "{0}" cannot be rebased. {1}</source>
-        <note>{StrBegin="MSB3203: "}UE: This message is shown when the user asks the "MSBuild" task to rebase the paths of its output items relative to the project from where the "MSBuild" task is called (as opposed to the project(s) on which the "MSBuild" task is called), and one of the output item paths is invalid. LOCALIZATION: "{1}" is a localized message from a CLR/FX exception explaining the problem.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectFileNotFound">
-        <source>MSB3202: The project file "{0}" was not found.</source>
-        <note>{StrBegin="MSB3202: "}UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter.
-             and they have not specified the SkipNonexistentProjects parameter, or it is set to false.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectFileNotFoundMessage">
-        <source>Skipping project "{0}" because it was not found.</source>
-        <note>UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter, and they have specified the SkipNonexistentProjects parameter.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectUpgradeNeededToVcxProj">
-        <source>MSB3204: The project file "{0}" is in the ".vcproj" file format, which MSBuild no longer supports. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or use MSBuild 3.5 or earlier to build it.</source>
-        <note>{StrBegin="MSB3204: "} LOC: ".vcproj" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.InvalidSkipNonexistentProjectValue">
-        <source>MSB3205: SkipNonexistentProject can only accept values of "True", "False" and "Build".</source>
-        <note>{StrBegin="MSB3205: "} LOC: "SkipNonexistentProject", "True", "False" and "Build" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.SkippingRemainingProjects">
-        <source>The MSBuild task is skipping the remaining projects because the StopOnFirstFailure parameter was set to true.</source>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.SkippingRemainingTargets">
-        <source>The MSBuild task is skipping the remaining targets because the StopOnFirstFailure parameter was set to true.</source>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.NotBuildingInParallel">
-        <source>Overriding the BuildingInParallel property by setting it to false. This is due to the system being run in single process mode with StopOnFirstFailure set to true.</source>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild", "BuildingInParallel", or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.NoStopOnFirstFailure">
-        <source>StopOnFirstFailure will have no effect when the following conditions are all present: 1) The system is running in multiple process mode 2) The BuildInParallel property is true. 3) The RunEachTargetSeparately property is false.</source>
-        <note>LOCALIZATION:  Do not localize the words "RunEachTargetSeparately", "BuildingInParallel", or "StopOnFirstFailure".</note>
       </trans-unit>
       <trans-unit id="ReadLinesFromFile.ErrorOrWarning">
         <source>MSB3501: Could not read lines from file "{0}". {1}</source>

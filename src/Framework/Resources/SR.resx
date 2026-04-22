@@ -153,9 +153,81 @@
   <data name="CollectionCopyToFailureProvidedArrayIsTooSmall" xml:space="preserve">
     <value>The number of elements in the collection is greater than the available space in the destination array (when starting at the specified index).</value>
   </data>
+  <data name="ConflictingTaskAssembly" xml:space="preserve">
+    <value>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</value>
+    <comment>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</comment>
+  </data>
+  <data name="ExpectedEventToBeSerializable" xml:space="preserve">
+    <value>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</value>
+  </data>
+  <data name="General_UndefineProperties" xml:space="preserve">
+    <value>Removing Properties:</value>
+  </data>
+  <data name="General_ProjectUndefineProperties" xml:space="preserve">
+    <value>Removing Properties for project "{0}":</value>
+  </data>
+  <data name="General_OverridingProperties" xml:space="preserve">
+    <value>Overriding Global Properties for project "{0}" with:</value>
+  </data>
+  <data name="General_GlobalProperties" xml:space="preserve">
+    <value>Global Properties:</value>
+  </data>
+  <data name="General_AdditionalProperties" xml:space="preserve">
+    <value>Additional Properties for project "{0}":</value>
+  </data>
+  <data name="General_InvalidPropertyError" xml:space="preserve">
+    <value>MSB3100: Syntax for "{0}" parameter is not valid ({1}). Correct syntax is {0}="&lt;name&gt;=&lt;value&gt;".</value>
+    <comment>{StrBegin="MSB3100: "}This error is shown if the user does any of the following:
+    Properties="foo"              (missing property value)
+    Properties="=4"               (missing property name)
+    The user must pass in an actual property name and value, as in Properties="Configuration=Debug".</comment>
+  </data>
+  <data name="General_TwoVectorsMustHaveSameLength">
+    <value>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</value>
+    <comment>{StrBegin="MSB3094: "}</comment>
+  </data>
   <data name="LoggingBeforeTaskInitialization" xml:space="preserve">
     <value>MSB6005: Task attempted to log before it was initialized. Message was: {0}</value>
     <comment>{StrBegin="MSB6005: "}UE: This occurs if the task attempts to log something in its own constructor.</comment>
+  </data>
+  <data name="MSBuild_SkippingRemainingTargets" xml:space="preserve">
+    <value>The MSBuild task is skipping the remaining targets because the StopOnFirstFailure parameter was set to true.</value>
+    <comment>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</comment>
+  </data>
+  <data name="MSBuild_SkippingRemainingProjects" xml:space="preserve">
+    <value>The MSBuild task is skipping the remaining projects because the StopOnFirstFailure parameter was set to true.</value>
+    <comment>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</comment>
+  </data>
+  <data name="MSBuild_ProjectUpgradeNeededToVcxProj" xml:space="preserve">
+    <value>MSB3204: The project file "{0}" is in the ".vcproj" file format, which MSBuild no longer supports. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or use MSBuild 3.5 or earlier to build it.</value>
+    <comment>{StrBegin="MSB3204: "} LOC: ".vcproj" should not be localized</comment>
+  </data>
+  <data name="MSBuild_ProjectFileNotFound" xml:space="preserve">
+    <value>MSB3202: The project file "{0}" was not found.</value>
+    <comment>
+      {StrBegin="MSB3202: "}UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter.
+      and they have not specified the SkipNonexistentProjects parameter, or it is set to false.
+    </comment>
+  </data>
+  <data name="MSBuild_ProjectFileNotFoundMessage" xml:space="preserve">
+    <value>Skipping project "{0}" because it was not found.</value>
+    <comment>UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter, and they have specified the SkipNonexistentProjects parameter.</comment>
+  </data>
+  <data name="MSBuild_NotBuildingInParallel" xml:space="preserve">
+    <value>Overriding the BuildingInParallel property by setting it to false. This is due to the system being run in single process mode with StopOnFirstFailure set to true.</value>
+    <comment>LOCALIZATION:  Do not localize the words "MSBuild", "BuildingInParallel", or "StopOnFirstFailure".</comment>
+  </data>
+  <data name="MSBuild_NoStopOnFirstFailure" xml:space="preserve">
+    <value>StopOnFirstFailure will have no effect when the following conditions are all present: 1) The system is running in multiple process mode 2) The BuildInParallel property is true. 3) The RunEachTargetSeparately property is false.</value>
+    <comment>LOCALIZATION:  Do not localize the words "RunEachTargetSeparately", "BuildingInParallel", or "StopOnFirstFailure".</comment>
+  </data>
+  <data name="MSBuild_InvalidSkipNonexistentProjectValue" xml:space="preserve">
+    <value>MSB3205: SkipNonexistentProject can only accept values of "True", "False" and "Build".</value>
+    <comment>{StrBegin="MSB3205: "} LOC: "SkipNonexistentProject", "True", "False" and "Build" should not be localized</comment>
+  </data>
+  <data name="MSBuild_CannotRebaseOutputItemPath" xml:space="preserve">
+    <value>MSB3203: The output path "{0}" cannot be rebased. {1}</value>
+    <comment>{StrBegin="MSB3203: "}UE: This message is shown when the user asks the "MSBuild" task to rebase the paths of its output items relative to the project from where the "MSBuild" task is called (as opposed to the project(s) on which the "MSBuild" task is called), and one of the output item paths is invalid. LOCALIZATION: "{1}" is a localized message from a CLR/FX exception explaining the problem.</comment>
   </data>
   <data name="PathMustBeRooted" xml:space="preserve">
     <value>Path must be rooted.</value>
@@ -214,12 +286,29 @@
   <data name="ParameterCannotHaveZeroLength" xml:space="preserve">
     <value>Parameter "{0}" cannot have zero length.</value>
   </data>
+  <data name="SubCategoryForSchemaValidationErrors" xml:space="preserve">
+    <value>Schema validation</value>
+    <comment>
+      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
+      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
+      "MSBUILD : Schema validation error MSB0000: This is an error."
+      LOCALIZATION: This fragment needs to be localized.
+    </comment>
+  </data>
+  <data name="TaskNotMarshalByRef" xml:space="preserve">
+    <value>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</value>
+    <comment>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</comment>
+  </data>
   <data name="TaskResourcesNotRegistered" xml:space="preserve">
     <value>The "{0}" task has not registered its resources. In order to use the "TaskLoggingHelper.FormatResourceString()" method this task needs to register its resources either during construction, or via the "TaskResources" property.</value>
     <comment>LOCALIZATION: "TaskLoggingHelper.FormatResourceString()" and "TaskResources" should not be localized.</comment>
   </data>
   <data name="TaskResourceNotFound" xml:space="preserve">
     <value>The resource string "{0}" for the "{1}" task cannot be found. Confirm that the resource name "{0}" is correctly spelled, and the resource exists in the task's assembly.</value>
+  </data>
+  <data name="UnrecognizedToolsVersion" xml:space="preserve">
+    <value>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</value>
+    <comment>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</comment>
   </data>
   <data name="UnsupportedFrameworkVersionForWindowsSdk" xml:space="preserve">
     <value>.NET Framework version "{0}" is not supported when explicitly targeting the Windows SDK, which is only supported on .NET 4.5 and later.  Please specify a value from the enumeration Microsoft.Build.Utilities.TargetDotNetFrameworkVersion that is Version45 or above.</value>

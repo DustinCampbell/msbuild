@@ -659,19 +659,6 @@
         <target state="translated">MSB3099: nome di assembly "{0}" non valido. {1}</target>
         <note>{StrBegin="MSB3099: "}UE: This message is shown when RegisterAssembly or UnregisterAssembly is passed an assembly with an invalid filename. "{0}" is the name of the file, and "{1}" is a message explaining the problem. LOCALIZATION: "{1}" is a localized message.</note>
       </trans-unit>
-      <trans-unit id="General.InvalidPropertyError">
-        <source>MSB3100: Syntax for "{0}" parameter is not valid ({1}). Correct syntax is {0}="&lt;name&gt;=&lt;value&gt;".</source>
-        <target state="translated">MSB3100: la sintassi del parametro "{0}" non è valida ({1}). La sintassi corretta è {0}="&lt;nome&gt;=&lt;valore&gt;".</target>
-        <note>{StrBegin="MSB3100: "}This error is shown if the user does any of the following:
-    Properties="foo"              (missing property value)
-    Properties="=4"               (missing property name)
-    The user must pass in an actual property name and value, as in Properties="Configuration=Debug".</note>
-      </trans-unit>
-      <trans-unit id="General.GlobalProperties">
-        <source>Global Properties:</source>
-        <target state="translated">Proprietà globali:</target>
-        <note />
-      </trans-unit>
       <trans-unit id="General.StateFileAlreadyPresent">
         <source>MSB3667: There is already a file at "{0}". If you are trying to create a precomputed cache, ensure that you are building a single project that depends on your assemblies rather than building your assemblies themselves. If you are running the ResolveAssemblyReference task normally, do not set the "AssemblyInformationCacheOutputPath" parameter of the ResolveAssemblyReference task.</source>
         <target state="translated">MSB3667: alla posizione "{0}" esiste già un file. Se si prova a creare una cache precalcolata, assicurarsi di compilare un singolo progetto che dipende dagli assembly invece di compilare gli assembly stessi. Se si esegue normalmente l'attività ResolveAssemblyReference, non impostare il parametro "AssemblyInformationCacheOutputPath" dell'attività ResolveAssemblyReference.</target>
@@ -681,26 +668,6 @@
         <source>MSB3096: Task "{0}" is only supported when building on Windows.</source>
         <target state="translated">MSB3096: l'attività "{0}" è supportata solo durante la compilazione in Windows.</target>
         <note>{StrBegin="MSB3096: "}</note>
-      </trans-unit>
-      <trans-unit id="General.UndefineProperties">
-        <source>Removing Properties:</source>
-        <target state="translated">Rimozione proprietà:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.OverridingProperties">
-        <source>Overriding Global Properties for project "{0}" with:</source>
-        <target state="translated">Override delle proprietà globali per il progetto "{0}" con:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.AdditionalProperties">
-        <source>Additional Properties for project "{0}":</source>
-        <target state="translated">Proprietà aggiuntive per il progetto "{0}":</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.ProjectUndefineProperties">
-        <source>Removing Properties for project "{0}":</source>
-        <target state="translated">Rimozione delle proprietà per il progetto "{0}":</target>
-        <note />
       </trans-unit>
       <trans-unit id="General.InvalidResxFile">
         <source>MSB3103: Invalid Resx file. {0}</source>
@@ -756,11 +723,6 @@
         <source>MSB3093: The command exited with code {0}.</source>
         <target state="translated">MSB3093: uscita dal comando con codice {0}.</target>
         <note>{StrBegin="MSB3093: "}</note>
-      </trans-unit>
-      <trans-unit id="General.TwoVectorsMustHaveSameLength">
-        <source>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</source>
-        <target state="translated">MSB3094: "{2}" fa riferimento a {0} elemento/i, mentre "{3}" fa riferimento a {1} elemento/i. Devono avere lo stesso numero di elementi.</target>
-        <note>{StrBegin="MSB3094: "}</note>
       </trans-unit>
       <trans-unit id="GenerateBindingRedirects.CreatingBindingRedirectionFile">
         <source>Creating binding redirection file "{0}".</source>
@@ -1640,52 +1602,6 @@
         <source>MSB3681: The source file "{0}" is a directory. The "Move" task does not support moving directories.</source>
         <target state="translated">MSB3681: il file di origine "{0}" è una directory. L'attività "Sposta" non supporta lo spostamento delle directory.</target>
         <note>{StrBegin="MSB3681: "}</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.CannotRebaseOutputItemPath">
-        <source>MSB3203: The output path "{0}" cannot be rebased. {1}</source>
-        <target state="translated">MSB3203: non è possibile riassegnare il percorso di output "{0}". {1}</target>
-        <note>{StrBegin="MSB3203: "}UE: This message is shown when the user asks the "MSBuild" task to rebase the paths of its output items relative to the project from where the "MSBuild" task is called (as opposed to the project(s) on which the "MSBuild" task is called), and one of the output item paths is invalid. LOCALIZATION: "{1}" is a localized message from a CLR/FX exception explaining the problem.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectFileNotFound">
-        <source>MSB3202: The project file "{0}" was not found.</source>
-        <target state="translated">MSB3202: il file di progetto "{0}" non è stato trovato.</target>
-        <note>{StrBegin="MSB3202: "}UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter.
-             and they have not specified the SkipNonexistentProjects parameter, or it is set to false.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectFileNotFoundMessage">
-        <source>Skipping project "{0}" because it was not found.</source>
-        <target state="translated">Il progetto "{0}" non è stato trovato e verrà ignorato.</target>
-        <note>UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter, and they have specified the SkipNonexistentProjects parameter.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectUpgradeNeededToVcxProj">
-        <source>MSB3204: The project file "{0}" is in the ".vcproj" file format, which MSBuild no longer supports. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or use MSBuild 3.5 or earlier to build it.</source>
-        <target state="translated">MSB3204: il file di progetto "{0}" è in formato ".vcproj", che non è più supportato in MSBuild. Per convertire il progetto, aprirlo in Visual Studio IDE o eseguire lo strumento di conversione oppure compilarlo con MSBuild 3.5 o versione successiva.</target>
-        <note>{StrBegin="MSB3204: "} LOC: ".vcproj" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.InvalidSkipNonexistentProjectValue">
-        <source>MSB3205: SkipNonexistentProject can only accept values of "True", "False" and "Build".</source>
-        <target state="translated">MSB3205: SkipNonexistentProject può accettare solo i valori "True", "False" e "Build".</target>
-        <note>{StrBegin="MSB3205: "} LOC: "SkipNonexistentProject", "True", "False" and "Build" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.SkippingRemainingProjects">
-        <source>The MSBuild task is skipping the remaining projects because the StopOnFirstFailure parameter was set to true.</source>
-        <target state="translated">Il parametro StopOnFirstFailure è stato impostato su true. Con l'attività MSBuild verranno ignorati i progetti rimanenti.</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.SkippingRemainingTargets">
-        <source>The MSBuild task is skipping the remaining targets because the StopOnFirstFailure parameter was set to true.</source>
-        <target state="translated">Il parametro StopOnFirstFailure è stato impostato su true, di conseguenza con l'attività MSBuild verranno ignorate le destinazioni rimanenti.</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.NotBuildingInParallel">
-        <source>Overriding the BuildingInParallel property by setting it to false. This is due to the system being run in single process mode with StopOnFirstFailure set to true.</source>
-        <target state="translated">Impostando su false la proprietà BuildingInParallel ne viene eseguito l'override. Ciò è dovuto all'esecuzione del sistema in modalità a processo singolo con StopOnFirstFailure impostato su true.</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild", "BuildingInParallel", or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.NoStopOnFirstFailure">
-        <source>StopOnFirstFailure will have no effect when the following conditions are all present: 1) The system is running in multiple process mode 2) The BuildInParallel property is true. 3) The RunEachTargetSeparately property is false.</source>
-        <target state="translated">StopOnFirstFailure non avrà alcun effetto in presenza di tutte le condizioni seguenti: 1) il sistema è in esecuzione in modalità a più processi 2) la proprietà BuildInParallel è true. 3) la proprietà RunEachTargetSeparately è false.</target>
-        <note>LOCALIZATION:  Do not localize the words "RunEachTargetSeparately", "BuildingInParallel", or "StopOnFirstFailure".</note>
       </trans-unit>
       <trans-unit id="AddToWin32Manifest.AssemblyNodeIsMissed">
         <source>The assembly element is missing from the application manifest.</source>

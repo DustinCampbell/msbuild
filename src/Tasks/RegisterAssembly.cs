@@ -68,7 +68,7 @@ namespace Microsoft.Build.Tasks
             // TypeLibFiles isn't [Required], but if it is specified, it must have the same length as Assemblies
             if ((TypeLibFiles != null) && (TypeLibFiles.Length != Assemblies.Length))
             {
-                Log.LogErrorWithCodeFromResources("General.TwoVectorsMustHaveSameLength", Assemblies.Length, TypeLibFiles.Length, "Assemblies", "TypeLibFiles");
+                Log.LogErrorWithCodeFromResources("General_TwoVectorsMustHaveSameLength", Assemblies.Length, TypeLibFiles.Length, "Assemblies", "TypeLibFiles");
                 return false;
             }
 

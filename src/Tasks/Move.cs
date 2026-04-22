@@ -118,7 +118,7 @@ namespace Microsoft.Build.Tasks
             // If the caller passed in DestinationFiles, then its length must match SourceFiles.
             if (DestinationFiles != null && DestinationFiles.Length != SourceFiles.Length)
             {
-                Log.LogErrorWithCodeFromResources("General.TwoVectorsMustHaveSameLength", DestinationFiles.Length, SourceFiles.Length, "DestinationFiles", "SourceFiles");
+                Log.LogErrorWithCodeFromResources("General_TwoVectorsMustHaveSameLength", DestinationFiles.Length, SourceFiles.Length, "DestinationFiles", "SourceFiles");
                 return false;
             }
 

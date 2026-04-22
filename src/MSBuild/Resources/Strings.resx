@@ -148,13 +148,6 @@
     <value>MSBUILD : error MSB1027: The -noAutoResponse switch cannot be specified in the MSBuild.rsp auto-response file, nor in any response file that is referenced by the auto-response file.</value>
     <comment>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</comment>
   </data>
-  <data name="ConflictingTaskAssembly" xml:space="preserve">
-    <value>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</value>
-    <comment>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</comment>
-  </data>
-  <data name="ExpectedEventToBeSerializable" xml:space="preserve">
-    <value>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</value>
-  </data>
   <data name="InvalidLogFileFormat" xml:space="preserve">
     <value>MSB4233: There was an exception while reading the log file: {0}</value>
     <comment>{StrBegin="MSB4233: "}This is shown when the Binary Logger can't read the log file.</comment>
@@ -1399,19 +1392,6 @@
     that an explicit schema file was passed and existed when the command line parameters were checked but was deleted from disk before this check was made.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</comment>
   </data>
-  <data name="SubCategoryForSchemaValidationErrors" xml:space="preserve">
-    <value>Schema validation</value>
-    <comment>
-      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
-      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
-      "MSBUILD : Schema validation error MSB0000: This is an error."
-      LOCALIZATION: This fragment needs to be localized.
-    </comment>
-  </data>
-  <data name="TaskNotMarshalByRef" xml:space="preserve">
-    <value>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</value>
-    <comment>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</comment>
-  </data>
   <data name="UnexpectedParametersError" xml:space="preserve">
     <value>MSBUILD : error MSB1002: This switch does not take any parameters.</value>
     <comment>{StrBegin="MSBUILD : error MSB1002: "}UE: For example, if somebody types "msbuild.exe -noLogo:1", they would get this error because the -noLogo switch
@@ -1422,10 +1402,6 @@
     <value>MSBUILD : error MSB1001: Unknown switch.</value>
     <comment>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</comment>
-  </data>
-  <data name="UnrecognizedToolsVersion" xml:space="preserve">
-    <value>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</value>
-    <comment>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</comment>
   </data>
   <data name="UnsupportedOS" xml:space="preserve">
     <value>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</value>

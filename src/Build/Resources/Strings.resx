@@ -140,15 +140,8 @@
   <data name="BuildInProgress" xml:space="preserve">
     <value>The operation cannot be completed because a build is already in progress.</value>
   </data>
-  <data name="ConflictingTaskAssembly" xml:space="preserve">
-    <value>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</value>
-    <comment>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</comment>
-  </data>
   <data name="DeprecatedEventSerialization" xml:space="preserve">
     <value>Custom event type '{0}' is not supported as all custom event types were deprecated. Please use Extended*EventArgs instead. More info: https://aka.ms/msbuild/eventargs</value>
-  </data>
-  <data name="ExpectedEventToBeSerializable" xml:space="preserve">
-    <value>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</value>
   </data>
   <data name="FileLocation" xml:space="preserve">
     <value>{0} ({1},{2})</value>
@@ -250,15 +243,6 @@
     <value>MSB5015: The properties could not be read from the WebsiteProperties section of the "{0}" project.</value>
     <comment>{StrBegin="MSB5015: "}UE: The solution filename is provided separately to loggers.</comment>
   </data>
-  <data name="SubCategoryForSchemaValidationErrors" xml:space="preserve">
-    <value>Schema validation</value>
-    <comment>
-      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
-      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
-      "MSBUILD : Schema validation error MSB0000: This is an error."
-      LOCALIZATION: This fragment needs to be localized.
-    </comment>
-  </data>
   <data name="SubCategoryForSolutionParsingErrors" xml:space="preserve">
     <value>Solution file</value>
     <comment>UE: this fragment is used to describe errors found while parsing solution files. For example, if a normal error is
@@ -266,16 +250,8 @@
       "MSBUILD : Solution file error MSB0000: This is an error."
       LOCALIZATION: This fragment needs to be localized.</comment>
   </data>
-  <data name="TaskNotMarshalByRef" xml:space="preserve">
-    <value>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</value>
-    <comment>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</comment>
-  </data>
   <data name="UnrecognizedSolutionComment" xml:space="preserve">
     <value>Unrecognized solution version "{0}", attempting to continue.</value>
-  </data>
-  <data name="UnrecognizedToolsVersion" xml:space="preserve">
-    <value>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</value>
-    <comment>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</comment>
   </data>
   <data name="WaitingForEndOfBuild" xml:space="preserve">
     <value>The operation cannot be completed because EndBuild has already been called but existing submissions have not yet completed.</value>
@@ -613,10 +589,6 @@
     <comment>{StrBegin="MSB4017: "}UE: This message is used for a special exception that is thrown when a logger fails while logging an event (most
     likely because of a programming error in the logger). When a logger dies, we cannot proceed with the build, and we throw a
     special exception to abort the build.</comment>
-  </data>
-  <data name="General.TwoVectorsMustHaveSameLength">
-    <value>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</value>
-    <comment>{StrBegin="MSB3094: "}</comment>
   </data>
   <data name="FatalTaskError" xml:space="preserve">
     <value>MSB4018: The "{0}" task failed unexpectedly.</value>
@@ -1820,67 +1792,6 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
   </data>
   <data name="BuildStarted" xml:space="preserve">
     <value>Build started.</value>
-  </data>
-  <data name="MSBuild.CannotRebaseOutputItemPath" xml:space="preserve">
-    <value>MSB3203: The output path "{0}" cannot be rebased. {1}</value>
-    <comment>{StrBegin="MSB3203: "}UE: This message is shown when the user asks the "MSBuild" task to rebase the paths of its output items relative to the project from where the "MSBuild" task is called (as opposed to the project(s) on which the "MSBuild" task is called), and one of the output item paths is invalid. LOCALIZATION: "{1}" is a localized message from a CLR/FX exception explaining the problem.</comment>
-  </data>
-  <data name="MSBuild.ProjectFileNotFound" xml:space="preserve">
-    <value>MSB3202: The project file "{0}" was not found.</value>
-    <comment>
-      {StrBegin="MSB3202: "}UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter.
-      and they have not specified the SkipNonexistentProjects parameter, or it is set to false.
-    </comment>
-  </data>
-  <data name="MSBuild.ProjectFileNotFoundMessage" xml:space="preserve">
-    <value>Skipping project "{0}" because it was not found.</value>
-    <comment>UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter, and they have specified the SkipNonexistentProjects parameter.</comment>
-  </data>
-  <data name="MSBuild.ProjectUpgradeNeededToVcxProj" xml:space="preserve">
-    <value>MSB3204: The project file "{0}" is in the ".vcproj" file format, which MSBuild no longer supports. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or use MSBuild 3.5 or earlier to build it.</value>
-    <comment>{StrBegin="MSB3204: "} LOC: ".vcproj" should not be localized</comment>
-  </data>
-  <data name="MSBuild.InvalidSkipNonexistentProjectValue" xml:space="preserve">
-    <value>MSB3205: SkipNonexistentProject can only accept values of "True", "False" and "Build".</value>
-    <comment>{StrBegin="MSB3205: "} LOC: "SkipNonexistentProject", "True", "False" and "Build" should not be localized</comment>
-  </data>
-  <data name="MSBuild.SkippingRemainingProjects" xml:space="preserve">
-    <value>The MSBuild task is skipping the remaining projects because the StopOnFirstFailure parameter was set to true.</value>
-    <comment>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</comment>
-  </data>
-  <data name="MSBuild.SkippingRemainingTargets" xml:space="preserve">
-    <value>The MSBuild task is skipping the remaining targets because the StopOnFirstFailure parameter was set to true.</value>
-    <comment>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</comment>
-  </data>
-  <data name="MSBuild.NotBuildingInParallel" xml:space="preserve">
-    <value>Overriding the BuildingInParallel property by setting it to false. This is due to the system being run in single process mode with StopOnFirstFailure set to true.</value>
-    <comment>LOCALIZATION:  Do not localize the words "MSBuild", "BuildingInParallel", or "StopOnFirstFailure".</comment>
-  </data>
-  <data name="MSBuild.NoStopOnFirstFailure" xml:space="preserve">
-    <value>StopOnFirstFailure will have no effect when the following conditions are all present: 1) The system is running in multiple process mode 2) The BuildInParallel property is true. 3) The RunEachTargetSeparately property is false.</value>
-    <comment>LOCALIZATION:  Do not localize the words "RunEachTargetSeparately", "BuildingInParallel", or "StopOnFirstFailure".</comment>
-  </data>
-  <data name="General.InvalidPropertyError" xml:space="preserve">
-    <value>MSB3100: Syntax for "{0}" parameter is not valid ({1}). Correct syntax is {0}="&lt;name&gt;=&lt;value&gt;".</value>
-    <comment>{StrBegin="MSB3100: "}This error is shown if the user does any of the following:
-    Properties="foo"              (missing property value)
-    Properties="=4"               (missing property name)
-    The user must pass in an actual property name and value, as in Properties="Configuration=Debug".</comment>
-  </data>
-  <data name="General.GlobalProperties" xml:space="preserve">
-    <value>Global Properties:</value>
-  </data>
-  <data name="General.UndefineProperties" xml:space="preserve">
-    <value>Removing Properties:</value>
-  </data>
-  <data name="General.OverridingProperties" xml:space="preserve">
-    <value>Overriding Global Properties for project "{0}" with:</value>
-  </data>
-  <data name="General.AdditionalProperties" xml:space="preserve">
-    <value>Additional Properties for project "{0}":</value>
-  </data>
-  <data name="General.ProjectUndefineProperties" xml:space="preserve">
-    <value>Removing Properties for project "{0}":</value>
   </data>
   <data name="TaskInstantiationFailureNotSupported" xml:space="preserve">
     <value>MSB4802: The "{0}" task could not be instantiated from "{1}". This version of MSBuild does not support {2}.</value>

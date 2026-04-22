@@ -38,20 +38,10 @@
         <target state="translated">MSBUILD : error MSB1027: A opção /noAutoResponse não pode ser especificada no arquivo de resposta automática MSBuild.rsp nem em qualquer arquivo de resposta usado como referência para o arquivo de resposta automática.</target>
         <note>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</note>
       </trans-unit>
-      <trans-unit id="ConflictingTaskAssembly">
-        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
-        <target state="translated">MSB4008: Foi encontrado um assembly conflitante no assembly da tarefa "{0}" em "{1}".</target>
-        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
-      </trans-unit>
       <trans-unit id="DuplicateBinaryLoggerPathsIgnored">
         <source>Duplicate binary log path(s) specified and ignored: {0}</source>
         <target state="translated">Caminhos de log binários duplicados especificados e ignorados: {0}</target>
         <note>{0} is the list of duplicate paths that were filtered out</note>
-      </trans-unit>
-      <trans-unit id="ExpectedEventToBeSerializable">
-        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
-        <target state="translated">Era esperado que o tipo de evento "{0}" fosse serializável usando o serializador .NET. O evento não era serializável e foi ignorado.</target>
-        <note />
       </trans-unit>
       <trans-unit id="HelpMessage_41_QuestionSwitch">
         <source>  -question
@@ -1849,16 +1839,6 @@ arquivo de resposta.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
-      <trans-unit id="SubCategoryForSchemaValidationErrors">
-        <source>Schema validation</source>
-        <target state="translated">Validação de esquema</target>
-        <note>
-      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
-      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
-      "MSBUILD : Schema validation error MSB0000: This is an error."
-      LOCALIZATION: This fragment needs to be localized.
-    </note>
-      </trans-unit>
       <trans-unit id="SwitchErrorWithArguments">
         <source>{0}
     Full command line: '{1}'
@@ -1877,11 +1857,6 @@ arquivo de resposta.
         <source>Task output parameter "{0}" contained {1} null element(s) which have been filtered out.</source>
         <target state="translated">O parâmetro de saída "{0}" continha {1} elemento(s) nulo(s) que foram filtrados.</target>
         <note>LOCALIZATION: {0} is the name of the task output parameter, {1} is the count of null elements filtered.</note>
-      </trans-unit>
-      <trans-unit id="TaskNotMarshalByRef">
-        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
-        <target state="translated">MSB4077: A tarefa "{0}" foi marcada com o atributo LoadInSeparateAppDomain, mas não é derivada de MarshalByRefObject. Verifique se a tarefa é derivada de MarshalByRefObject ou de AppDomainIsolatedTask.</target>
-        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedAutomated">
         <source>Terminal Logger was not used because it was detected that the build is running in an automated environment.</source>
@@ -1915,11 +1890,6 @@ arquivo de resposta.
         <target state="translated">MSBUILD : error MSB1001: Opção desconhecida.</target>
         <note>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
-      </trans-unit>
-      <trans-unit id="UnrecognizedToolsVersion">
-        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
-        <target state="translated">MSB4132: A versão das ferramentas "{0}" não é reconhecida. As versões das ferramentas disponíveis são {1}.</target>
-        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="UnsupportedOS">
         <source>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</source>

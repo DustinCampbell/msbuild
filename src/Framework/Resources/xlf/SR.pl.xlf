@@ -72,6 +72,11 @@
         <target state="translated">Ta kolekcja jest tylko do odczytu.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConflictingTaskAssembly">
+        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
+        <target state="translated">MSB4008: Zestaw, który wywołuje konflikt z zestawem zadania „{0}”, został znaleziony w „{1}”.</target>
+        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
+      </trans-unit>
       <trans-unit id="CouldNotGenerateReferenceAssemblyDirectory">
         <source>When attempting to generate a reference assembly path from the path "{0}" and the framework moniker "{1}" there was an error. {2}</source>
         <target state="translated">Wystąpił błąd podczas próby wygenerowania ścieżki zestawu odwołania ze ścieżki „{0}” i monikera struktury „{1}”. {2}</target>
@@ -80,6 +85,11 @@
       <trans-unit id="DebugPathTooLong">
         <source>The path "{0}" used for debug logs is too long. Set it to a shorter value using the MSBUILDDEBUGPATH environment variable or change your system configuration to allow long paths.</source>
         <target state="translated">Ścieżka „{0}” używana w dziennikach debugowania jest za długa. Ustaw ją na krótszą wartość przy użyciu zmiennej środowiskowej MSBUILDEBUGPATH lub zmień konfigurację systemu, aby zezwolić na długie ścieżki.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExpectedEventToBeSerializable">
+        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
+        <target state="translated">Oczekiwano, że zdarzenie typu „{0}” będzie uszeregowane przy użyciu serializatora platformy .NET. Zdarzenie nie może podlegać szeregowaniu, dlatego zostało zignorowane.</target>
         <note />
       </trans-unit>
       <trans-unit id="FailedCreatingTempFile">
@@ -91,6 +101,44 @@
         <source>MSB5018: Failed to delete the temporary file "{0}". {1} {2}</source>
         <target state="translated">MSB5018: nie można usunąć pliku tymczasowego „{0}”. {1} {2}</target>
         <note>{StrBegin="MSB5018: "}</note>
+      </trans-unit>
+      <trans-unit id="General_UndefineProperties">
+        <source>Removing Properties:</source>
+        <target state="translated">Usuwanie właściwości:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="General_ProjectUndefineProperties">
+        <source>Removing Properties for project "{0}":</source>
+        <target state="translated">Usuwanie właściwości projektu {0}:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="General_OverridingProperties">
+        <source>Overriding Global Properties for project "{0}" with:</source>
+        <target state="translated">Przesłanianie globalnych właściwości projektu „{0}” przy użyciu następujących wartości:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="General_GlobalProperties">
+        <source>Global Properties:</source>
+        <target state="translated">Właściwości globalne:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="General_AdditionalProperties">
+        <source>Additional Properties for project "{0}":</source>
+        <target state="translated">Dodatkowe właściwości projektu „{0}”:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="General_InvalidPropertyError">
+        <source>MSB3100: Syntax for "{0}" parameter is not valid ({1}). Correct syntax is {0}="&lt;name&gt;=&lt;value&gt;".</source>
+        <target state="translated">MSB3100: Składnia parametru „{0}” jest nieprawidłowa ({1}). Poprawna składnia to {0}="&lt;name&gt;=&lt;value&gt;".</target>
+        <note>{StrBegin="MSB3100: "}This error is shown if the user does any of the following:
+    Properties="foo"              (missing property value)
+    Properties="=4"               (missing property name)
+    The user must pass in an actual property name and value, as in Properties="Configuration=Debug".</note>
+      </trans-unit>
+      <trans-unit id="General_TwoVectorsMustHaveSameLength">
+        <source>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</source>
+        <target state="translated">MSB3094: „{2}” odwołuje się do następującej liczby elementów: {0}, a „{3}” odwołuje się do następującej liczby elementów: {1}. Liczba tych elementów musi być taka sama.</target>
+        <note>{StrBegin="MSB3094: "}</note>
       </trans-unit>
       <trans-unit id="GlobExpansionFailed">
         <source>An exception occurred while expanding a fileSpec with globs: fileSpec: "{0}", assuming it is a file name. Exception: {1}</source>
@@ -116,6 +164,54 @@
         <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
         <target state="translated">MSB6005: Zadanie podjęło próbę zarejestrowania przed zainicjowaniem. Pojawił się komunikat: {0}</target>
         <note>{StrBegin="MSB6005: "}UE: This occurs if the task attempts to log something in its own constructor.</note>
+      </trans-unit>
+      <trans-unit id="MSBuild_SkippingRemainingTargets">
+        <source>The MSBuild task is skipping the remaining targets because the StopOnFirstFailure parameter was set to true.</source>
+        <target state="translated">Zadanie programu MSBuild pomija pozostałe elementy docelowe, ponieważ w parametrze StopOnFirstFailure ustawiono wartość true.</target>
+        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
+      </trans-unit>
+      <trans-unit id="MSBuild_SkippingRemainingProjects">
+        <source>The MSBuild task is skipping the remaining projects because the StopOnFirstFailure parameter was set to true.</source>
+        <target state="translated">Zadanie programu MSBuild pomija pozostałe projekty, ponieważ w parametrze StopOnFirstFailure ustawiono wartość true.</target>
+        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
+      </trans-unit>
+      <trans-unit id="MSBuild_ProjectUpgradeNeededToVcxProj">
+        <source>MSB3204: The project file "{0}" is in the ".vcproj" file format, which MSBuild no longer supports. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or use MSBuild 3.5 or earlier to build it.</source>
+        <target state="translated">MSB3204: Plik projektu „{0}” ma format „.vcproj”, którego program MSBuild już nie obsługuje. Przekonwertuj projekt, otwierając go w programie Visual Studio IDE lub uruchamiając narzędzie do konwersji, albo użyj programu MSBuild w wersji 3.5 lub starszej do skompilowania go.</target>
+        <note>{StrBegin="MSB3204: "} LOC: ".vcproj" should not be localized</note>
+      </trans-unit>
+      <trans-unit id="MSBuild_ProjectFileNotFound">
+        <source>MSB3202: The project file "{0}" was not found.</source>
+        <target state="translated">MSB3202: Nie można odnaleźć pliku projektu „{0}”.</target>
+        <note>
+      {StrBegin="MSB3202: "}UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter.
+      and they have not specified the SkipNonexistentProjects parameter, or it is set to false.
+    </note>
+      </trans-unit>
+      <trans-unit id="MSBuild_ProjectFileNotFoundMessage">
+        <source>Skipping project "{0}" because it was not found.</source>
+        <target state="translated">Projekt „{0}” jest pomijany, ponieważ nie został odnaleziony.</target>
+        <note>UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter, and they have specified the SkipNonexistentProjects parameter.</note>
+      </trans-unit>
+      <trans-unit id="MSBuild_NotBuildingInParallel">
+        <source>Overriding the BuildingInParallel property by setting it to false. This is due to the system being run in single process mode with StopOnFirstFailure set to true.</source>
+        <target state="translated">Nastąpi przesłonięcie właściwości BuildingInParallel przez ustawienie jej na wartość False. Ta akcja jest wykonywana, ponieważ system działa w trybie jednoprocesowym, a parametr StopOnFirstFailure ma wartość true.</target>
+        <note>LOCALIZATION:  Do not localize the words "MSBuild", "BuildingInParallel", or "StopOnFirstFailure".</note>
+      </trans-unit>
+      <trans-unit id="MSBuild_NoStopOnFirstFailure">
+        <source>StopOnFirstFailure will have no effect when the following conditions are all present: 1) The system is running in multiple process mode 2) The BuildInParallel property is true. 3) The RunEachTargetSeparately property is false.</source>
+        <target state="translated">Działanie funkcji StopOnFirstFailure nie przyniesie efektu, jeśli będą spełnione wszystkie następujące warunki: 1) System działa w trybie wieloprocesowym. 2) Właściwość BuildInParallel ma wartość true. 3) Właściwość RunEachTargetSeparately ma wartość false.</target>
+        <note>LOCALIZATION:  Do not localize the words "RunEachTargetSeparately", "BuildingInParallel", or "StopOnFirstFailure".</note>
+      </trans-unit>
+      <trans-unit id="MSBuild_InvalidSkipNonexistentProjectValue">
+        <source>MSB3205: SkipNonexistentProject can only accept values of "True", "False" and "Build".</source>
+        <target state="translated">MSB3205: Parametr SkipNonexistentProject może przyjmować tylko wartości True, False i Build.</target>
+        <note>{StrBegin="MSB3205: "} LOC: "SkipNonexistentProject", "True", "False" and "Build" should not be localized</note>
+      </trans-unit>
+      <trans-unit id="MSBuild_CannotRebaseOutputItemPath">
+        <source>MSB3203: The output path "{0}" cannot be rebased. {1}</source>
+        <target state="translated">MSB3203: Ścieżka wyjściowa „{0}” nie może mieć zmienianego adresu bazowego. {1}</target>
+        <note>{StrBegin="MSB3203: "}UE: This message is shown when the user asks the "MSBuild" task to rebase the paths of its output items relative to the project from where the "MSBuild" task is called (as opposed to the project(s) on which the "MSBuild" task is called), and one of the output item paths is invalid. LOCALIZATION: "{1}" is a localized message from a CLR/FX exception explaining the problem.</note>
       </trans-unit>
       <trans-unit id="PathMustBeRooted">
         <source>Path must be rooted.</source>
@@ -157,6 +253,21 @@
         <target state="translated">Parametr „{0}” nie może mieć zerowej długości.</target>
         <note />
       </trans-unit>
+      <trans-unit id="SubCategoryForSchemaValidationErrors">
+        <source>Schema validation</source>
+        <target state="translated">Walidacja schematu</target>
+        <note>
+      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
+      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
+      "MSBUILD : Schema validation error MSB0000: This is an error."
+      LOCALIZATION: This fragment needs to be localized.
+    </note>
+      </trans-unit>
+      <trans-unit id="TaskNotMarshalByRef">
+        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
+        <target state="translated">MSB4077: Zadanie „{0}” zostało oznaczone atrybutem LoadInSeparateAppDomain, ale nie pochodzi od obiektu MarshalByRefObject. Sprawdź, czy zadanie pochodzi od obiektu MarshalByRefObject lub zadania AppDomainIsolatedTask.</target>
+        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
+      </trans-unit>
       <trans-unit id="TaskResourcesNotRegistered">
         <source>The "{0}" task has not registered its resources. In order to use the "TaskLoggingHelper.FormatResourceString()" method this task needs to register its resources either during construction, or via the "TaskResources" property.</source>
         <target state="translated">Zadanie „{0}” nie zarejestrowało swoich zasobów. Aby było możliwe użycie metody „TaskLoggingHelper.FormatResourceString()”, to zadanie musi zarejestrować swoje zasoby podczas konstruowania lub przy użyciu właściwości „TaskResources”.</target>
@@ -166,6 +277,11 @@
         <source>The resource string "{0}" for the "{1}" task cannot be found. Confirm that the resource name "{0}" is correctly spelled, and the resource exists in the task's assembly.</source>
         <target state="translated">Nie można odnaleźć ciągu zasobu „{0}” dla zadania „{1}”. Upewnij się, że nazwa zasobu „{0}” ma poprawną pisownię i że zasób istnieje w zestawie zadania.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="UnrecognizedToolsVersion">
+        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
+        <target state="translated">MSB4132: Wersja narzędzi „{0}” nie została rozpoznana. Dostępne wersje narzędzi to {1}.</target>
+        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="UnsupportedFrameworkVersion">
         <source>.NET Framework version "{0}" is not supported. Please specify a value from the enumeration Microsoft.Build.Utilities.TargetDotNetFrameworkVersion.</source>

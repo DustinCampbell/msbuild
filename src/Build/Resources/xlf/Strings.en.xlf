@@ -97,11 +97,6 @@
         <note>{StrBegin="MSB4006: "}UE: This message is shown when the build engine detects a target referenced in a circular manner -- a project cannot
     request a target to build itself (perhaps via a chain of other targets).</note>
       </trans-unit>
-      <trans-unit id="ConflictingTaskAssembly">
-        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
-        <target state="new">MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</target>
-        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
-      </trans-unit>
       <trans-unit id="EmptyOutputCacheFile">
         <source>MSB4257: The specified output result cache file is empty.</source>
         <target state="new">MSB4257: The specified output result cache file is empty.</target>
@@ -120,11 +115,6 @@
       <trans-unit id="ErrorWritingCacheFile">
         <source>MSB4258: Writing output result cache file in path "{0}" encountered an error: {1}</source>
         <target state="new">MSB4258: Writing output result cache file in path "{0}" encountered an error: {1}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ExpectedEventToBeSerializable">
-        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
-        <target state="new">Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</target>
         <note />
       </trans-unit>
       <trans-unit id="FileLocation">
@@ -428,16 +418,6 @@
       LOCALIZATION: {0} is a file, {1} and {2} are semicolon delimited lists of messages
     </note>
       </trans-unit>
-      <trans-unit id="SubCategoryForSchemaValidationErrors">
-        <source>Schema validation</source>
-        <target state="new">Schema validation</target>
-        <note>
-      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
-      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
-      "MSBUILD : Schema validation error MSB0000: This is an error."
-      LOCALIZATION: This fragment needs to be localized.
-    </note>
-      </trans-unit>
       <trans-unit id="SubCategoryForSolutionParsingErrors">
         <source>Solution file</source>
         <target state="new">Solution file</target>
@@ -450,11 +430,6 @@
         <source>Task "{0}" requested {1} cores, acquired {2} cores, and now holds {3} cores total.</source>
         <target state="new">Task "{0}" requested {1} cores, acquired {2} cores, and now holds {3} cores total.</target>
         <note />
-      </trans-unit>
-      <trans-unit id="TaskNotMarshalByRef">
-        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
-        <target state="new">MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</target>
-        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
       </trans-unit>
       <trans-unit id="TaskReleasedCores">
         <source>Task "{0}" released {1} cores and now holds {2} cores total.</source>
@@ -488,11 +463,6 @@
         <source>Unrecognized solution version "{0}", attempting to continue.</source>
         <target state="new">Unrecognized solution version "{0}", attempting to continue.</target>
         <note />
-      </trans-unit>
-      <trans-unit id="UnrecognizedToolsVersion">
-        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
-        <target state="new">MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</target>
-        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="UsingInputCaches">
         <source>Using input build results caches: {0}</source>
@@ -2394,87 +2364,6 @@ Utilization:          {0} Average Utilization: {1:###.0}</target>
       <trans-unit id="BuildStarted">
         <source>Build started.</source>
         <target state="new">Build started.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MSBuild.CannotRebaseOutputItemPath">
-        <source>MSB3203: The output path "{0}" cannot be rebased. {1}</source>
-        <target state="new">MSB3203: The output path "{0}" cannot be rebased. {1}</target>
-        <note>{StrBegin="MSB3203: "}UE: This message is shown when the user asks the "MSBuild" task to rebase the paths of its output items relative to the project from where the "MSBuild" task is called (as opposed to the project(s) on which the "MSBuild" task is called), and one of the output item paths is invalid. LOCALIZATION: "{1}" is a localized message from a CLR/FX exception explaining the problem.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectFileNotFound">
-        <source>MSB3202: The project file "{0}" was not found.</source>
-        <target state="new">MSB3202: The project file "{0}" was not found.</target>
-        <note>
-      {StrBegin="MSB3202: "}UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter.
-      and they have not specified the SkipNonexistentProjects parameter, or it is set to false.
-    </note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectFileNotFoundMessage">
-        <source>Skipping project "{0}" because it was not found.</source>
-        <target state="new">Skipping project "{0}" because it was not found.</target>
-        <note>UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter, and they have specified the SkipNonexistentProjects parameter.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectUpgradeNeededToVcxProj">
-        <source>MSB3204: The project file "{0}" is in the ".vcproj" file format, which MSBuild no longer supports. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or use MSBuild 3.5 or earlier to build it.</source>
-        <target state="new">MSB3204: The project file "{0}" is in the ".vcproj" file format, which MSBuild no longer supports. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or use MSBuild 3.5 or earlier to build it.</target>
-        <note>{StrBegin="MSB3204: "} LOC: ".vcproj" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.InvalidSkipNonexistentProjectValue">
-        <source>MSB3205: SkipNonexistentProject can only accept values of "True", "False" and "Build".</source>
-        <target state="new">MSB3205: SkipNonexistentProject can only accept values of "True", "False" and "Build".</target>
-        <note>{StrBegin="MSB3205: "} LOC: "SkipNonexistentProject", "True", "False" and "Build" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.SkippingRemainingProjects">
-        <source>The MSBuild task is skipping the remaining projects because the StopOnFirstFailure parameter was set to true.</source>
-        <target state="new">The MSBuild task is skipping the remaining projects because the StopOnFirstFailure parameter was set to true.</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.SkippingRemainingTargets">
-        <source>The MSBuild task is skipping the remaining targets because the StopOnFirstFailure parameter was set to true.</source>
-        <target state="new">The MSBuild task is skipping the remaining targets because the StopOnFirstFailure parameter was set to true.</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.NotBuildingInParallel">
-        <source>Overriding the BuildingInParallel property by setting it to false. This is due to the system being run in single process mode with StopOnFirstFailure set to true.</source>
-        <target state="new">Overriding the BuildingInParallel property by setting it to false. This is due to the system being run in single process mode with StopOnFirstFailure set to true.</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild", "BuildingInParallel", or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.NoStopOnFirstFailure">
-        <source>StopOnFirstFailure will have no effect when the following conditions are all present: 1) The system is running in multiple process mode 2) The BuildInParallel property is true. 3) The RunEachTargetSeparately property is false.</source>
-        <target state="new">StopOnFirstFailure will have no effect when the following conditions are all present: 1) The system is running in multiple process mode 2) The BuildInParallel property is true. 3) The RunEachTargetSeparately property is false.</target>
-        <note>LOCALIZATION:  Do not localize the words "RunEachTargetSeparately", "BuildingInParallel", or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="General.InvalidPropertyError">
-        <source>MSB3100: Syntax for "{0}" parameter is not valid ({1}). Correct syntax is {0}="&lt;name&gt;=&lt;value&gt;".</source>
-        <target state="new">MSB3100: Syntax for "{0}" parameter is not valid ({1}). Correct syntax is {0}="&lt;name&gt;=&lt;value&gt;".</target>
-        <note>{StrBegin="MSB3100: "}This error is shown if the user does any of the following:
-    Properties="foo"              (missing property value)
-    Properties="=4"               (missing property name)
-    The user must pass in an actual property name and value, as in Properties="Configuration=Debug".</note>
-      </trans-unit>
-      <trans-unit id="General.GlobalProperties">
-        <source>Global Properties:</source>
-        <target state="new">Global Properties:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.UndefineProperties">
-        <source>Removing Properties:</source>
-        <target state="new">Removing Properties:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.OverridingProperties">
-        <source>Overriding Global Properties for project "{0}" with:</source>
-        <target state="new">Overriding Global Properties for project "{0}" with:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.AdditionalProperties">
-        <source>Additional Properties for project "{0}":</source>
-        <target state="new">Additional Properties for project "{0}":</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.ProjectUndefineProperties">
-        <source>Removing Properties for project "{0}":</source>
-        <target state="new">Removing Properties for project "{0}":</target>
         <note />
       </trans-unit>
       <trans-unit id="TaskInstantiationFailureNotSupported">

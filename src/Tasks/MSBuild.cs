@@ -211,7 +211,7 @@ namespace Microsoft.Build.Tasks
             }
 
             // Parse the global properties into a hashtable.
-            if (!PropertyParser.GetTableWithEscaping(Log, ResourceUtilities.GetResourceString("General.GlobalProperties"), "Properties", Properties, out Dictionary<string, string> propertiesTable))
+            if (!PropertyParser.GetTableWithEscaping(Log, ResourceUtilities.GetResourceString("General_GlobalProperties"), "Properties", Properties, out Dictionary<string, string> propertiesTable))
             {
                 return false;
             }
@@ -220,7 +220,7 @@ namespace Microsoft.Build.Tasks
             string[] undefinePropertiesArray = null;
             if (!String.IsNullOrEmpty(RemoveProperties))
             {
-                Log.LogMessageFromResources(MessageImportance.Low, "General.UndefineProperties");
+                Log.LogMessageFromResources(MessageImportance.Low, "General_UndefineProperties");
                 undefinePropertiesArray = RemoveProperties.Split(MSBuildConstants.SemicolonChar);
                 foreach (string property in undefinePropertiesArray)
                 {
@@ -235,7 +235,7 @@ namespace Microsoft.Build.Tasks
             if (!isRunningMultipleNodes && StopOnFirstFailure && BuildInParallel)
             {
                 BuildInParallel = false;
-                Log.LogMessageFromResources(MessageImportance.Low, "MSBuild.NotBuildingInParallel");
+                Log.LogMessageFromResources(MessageImportance.Low, "MSBuild_NotBuildingInParallel");
             }
 
             // When the condition below is met, provide an information message indicating stopOnFirstFailure
@@ -245,7 +245,7 @@ namespace Microsoft.Build.Tasks
             // therefore the first failure seen will be the only failure seen.
             if (isRunningMultipleNodes && BuildInParallel && StopOnFirstFailure && !RunEachTargetSeparately)
             {
-                Log.LogMessageFromResources(MessageImportance.Low, "MSBuild.NoStopOnFirstFailure");
+                Log.LogMessageFromResources(MessageImportance.Low, "MSBuild_NoStopOnFirstFailure");
             }
 
             // This is a list of string[].  That is, each element in the list is a string[].  Each
@@ -281,7 +281,7 @@ namespace Microsoft.Build.Tasks
                 if (StopOnFirstFailure && !success)
                 {
                     // Inform the user that we skipped the remaining projects because StopOnFirstFailure=true.
-                    Log.LogMessageFromResources(MessageImportance.Low, "MSBuild.SkippingRemainingProjects");
+                    Log.LogMessageFromResources(MessageImportance.Low, "MSBuild_SkippingRemainingProjects");
 
                     // We have encountered a failure.  Caller has requested that we not
                     // continue with remaining projects.
@@ -312,7 +312,7 @@ namespace Microsoft.Build.Tasks
                 {
                     if (FileUtilities.IsVCProjFilename(projectPath))
                     {
-                        Log.LogErrorWithCodeFromResources("MSBuild.ProjectUpgradeNeededToVcxProj", project.ItemSpec);
+                        Log.LogErrorWithCodeFromResources("MSBuild_ProjectUpgradeNeededToVcxProj", project.ItemSpec);
                         success = false;
                         continue;
                     }
@@ -348,12 +348,12 @@ namespace Microsoft.Build.Tasks
                 {
                     if (skipNonExistProjects == SkipNonExistentProjectsBehavior.Skip)
                     {
-                        Log.LogMessageFromResources(MessageImportance.High, "MSBuild.ProjectFileNotFoundMessage", project.ItemSpec);
+                        Log.LogMessageFromResources(MessageImportance.High, "MSBuild_ProjectFileNotFoundMessage", project.ItemSpec);
                     }
                     else
                     {
                         ErrorUtilities.VerifyThrow(skipNonExistProjects == SkipNonExistentProjectsBehavior.Error, "skipNonexistentProjects has unexpected value {0}", skipNonExistProjects);
-                        Log.LogErrorWithCodeFromResources("MSBuild.ProjectFileNotFound", project.ItemSpec);
+                        Log.LogErrorWithCodeFromResources("MSBuild_ProjectFileNotFound", project.ItemSpec);
                         success = false;
                     }
                 }
@@ -519,7 +519,7 @@ namespace Microsoft.Build.Tasks
                     if (!String.IsNullOrEmpty(projects[i].GetMetadata("Properties")))
                     {
                         if (!PropertyParser.GetTableWithEscaping(
-                             log, ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("General.OverridingProperties", projectNames[i]), "Properties", projects[i].GetMetadata("Properties").Split(MSBuildConstants.SemicolonChar),
+                             log, ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("General_OverridingProperties", projectNames[i]), "Properties", projects[i].GetMetadata("Properties").Split(MSBuildConstants.SemicolonChar),
                               out Dictionary<string, string> preProjectPropertiesTable))
                         {
                             return false;
@@ -545,7 +545,7 @@ namespace Microsoft.Build.Tasks
 
                         if (log != null && propertiesToUndefine.Length > 0)
                         {
-                            log.LogMessageFromResources(MessageImportance.Low, "General.ProjectUndefineProperties", projectNames[i]);
+                            log.LogMessageFromResources(MessageImportance.Low, "General_ProjectUndefineProperties", projectNames[i]);
                             foreach (string property in propertiesToUndefine)
                             {
                                 undefinePropertiesPerProject[i].Add(property);
@@ -559,7 +559,7 @@ namespace Microsoft.Build.Tasks
                     if (!String.IsNullOrEmpty(projects[i].GetMetadata("AdditionalProperties")))
                     {
                         if (!PropertyParser.GetTableWithEscaping(
-                             log, ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("General.AdditionalProperties", projectNames[i]), "AdditionalProperties", projects[i].GetMetadata("AdditionalProperties").Split(MSBuildConstants.SemicolonChar),
+                             log, ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("General_AdditionalProperties", projectNames[i]), "AdditionalProperties", projects[i].GetMetadata("AdditionalProperties").Split(MSBuildConstants.SemicolonChar),
                               out Dictionary<string, string> additionalProjectPropertiesTable))
                         {
                             return false;
@@ -597,7 +597,7 @@ namespace Microsoft.Build.Tasks
                 if (stopOnFirstFailure && !success)
                 {
                     // Inform the user that we skipped the remaining targets StopOnFirstFailure=true.
-                    log.LogMessageFromResources(MessageImportance.Low, "MSBuild.SkippingRemainingTargets");
+                    log.LogMessageFromResources(MessageImportance.Low, "MSBuild_SkippingRemainingTargets");
 
                     // We have encountered a failure.  Caller has requested that we not
                     // continue with remaining targets.
@@ -643,7 +643,7 @@ namespace Microsoft.Build.Tasks
                                             }
                                             catch (ArgumentException e)
                                             {
-                                                log.LogWarningWithCodeFromResources(null, projects[i].ItemSpec, 0, 0, 0, 0, "MSBuild.CannotRebaseOutputItemPath", outputItemFromTarget.ItemSpec, e.Message);
+                                                log.LogWarningWithCodeFromResources(null, projects[i].ItemSpec, 0, 0, 0, 0, "MSBuild_CannotRebaseOutputItemPath", outputItemFromTarget.ItemSpec, e.Message);
                                             }
                                         }
 
@@ -688,7 +688,7 @@ namespace Microsoft.Build.Tasks
             }
             else
             {
-                ErrorUtilities.VerifyThrowArgument(ConversionUtilities.CanConvertStringToBool(value), "MSBuild.InvalidSkipNonexistentProjectValue");
+                ErrorUtilities.VerifyThrowArgument(ConversionUtilities.CanConvertStringToBool(value), "MSBuild_InvalidSkipNonexistentProjectValue");
                 bool originalSkipValue = ConversionUtilities.ConvertStringToBool(value);
                 behavior = originalSkipValue ? SkipNonExistentProjectsBehavior.Skip : SkipNonExistentProjectsBehavior.Error;
             }

@@ -421,11 +421,6 @@
         <note>{StrBegin="MSB4006: "}UE: This message is shown when the build engine detects a target referenced in a circular manner -- a project cannot
     request a target to build itself (perhaps via a chain of other targets).</note>
       </trans-unit>
-      <trans-unit id="ConflictingTaskAssembly">
-        <source>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</source>
-        <target state="translated">MSB4008: タスク アセンブリ "{0}" に対して競合しているアセンブリが "{1}" で見つかりました。</target>
-        <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
-      </trans-unit>
       <trans-unit id="CustomCheckAssemblyNotExist">
         <source>Failed to find the specified custom check assembly: '{0}'. Please check if it exists.</source>
         <target state="translated">指定されたカスタム チェック アセンブリが見つかりませんでした: '{0}'。存在するかどうか確認してください。</target>
@@ -529,11 +524,6 @@
         <target state="translated">MSB4258: パス "{0}" の出力結果キャッシュ ファイルに書き込む処理でエラーが発生しました: {1}</target>
         <note />
       </trans-unit>
-      <trans-unit id="ExpectedEventToBeSerializable">
-        <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
-        <target state="translated">イベントの種類 "{0}" は .NET シリアライザーを使用してシリアル化可能であることが想定されていましたが、シリアル化可能でなかったため無視されました。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FailedToResolveSDK">
         <source>Could not resolve SDK "{0}". Exactly one of the probing messages below indicates why we could not resolve the SDK. Investigate and resolve that message to correctly specify the SDK.
   {1}</source>
@@ -554,11 +544,6 @@
         <source>{0} ({1},{2})</source>
         <target state="translated">{0} ({1},{2})</target>
         <note>A file location to be embedded in a string.</note>
-      </trans-unit>
-      <trans-unit id="General.TwoVectorsMustHaveSameLength">
-        <source>MSB3094: "{2}" refers to {0} item(s), and "{3}" refers to {1} item(s). They must have the same number of items.</source>
-        <target state="translated">MSB3094: "{2}" は {0} 項目を参照し、"{3}" は {1} 項目を参照します。これらは同じ項目数を持たなければなりません。</target>
-        <note>{StrBegin="MSB3094: "}</note>
       </trans-unit>
       <trans-unit id="HostObjectFailure">
         <source>The task "{0}" failed to acquire its host object. {1} Contact the author of the task to report this problem.</source>
@@ -1136,16 +1121,6 @@ Errors: {3}</source>
       LOCALIZATION: {0} is a file, {1} and {2} are semicolon delimited lists of messages
     </note>
       </trans-unit>
-      <trans-unit id="SubCategoryForSchemaValidationErrors">
-        <source>Schema validation</source>
-        <target state="translated">スキーマの検証</target>
-        <note>
-      UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
-      displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
-      "MSBUILD : Schema validation error MSB0000: This is an error."
-      LOCALIZATION: This fragment needs to be localized.
-    </note>
-      </trans-unit>
       <trans-unit id="SubCategoryForSolutionParsingErrors">
         <source>Solution file</source>
         <target state="translated">ソリューション ファイル</target>
@@ -1178,11 +1153,6 @@ Errors: {3}</source>
         <source>Task assembly was loaded from '{0}' while the desired location was '{1}'.</source>
         <target state="translated">タスク アセンブリは '{0}' から読み込まれましたが、必要な場所は '{1}' でした。</target>
         <note />
-      </trans-unit>
-      <trans-unit id="TaskNotMarshalByRef">
-        <source>MSB4077: The "{0}" task has been marked with the attribute LoadInSeparateAppDomain, but does not derive from MarshalByRefObject. Check that the task derives from MarshalByRefObject or AppDomainIsolatedTask.</source>
-        <target state="translated">MSB4077: "{0}" タスクに属性 LoadInSeparateAppDomain が設定されていますが、MarshalByRefObject から派生していません。そのタスクが MarshalByRefObject または AppDomainIsolatedTask から派生していることを確認してください。</target>
-        <note>{StrBegin="MSB4077: "}LOCALIZATION: &lt;LoadInSeparateAppDomain&gt;, &lt;MarshalByRefObject&gt;, &lt;AppDomainIsolatedTask&gt; should not be localized.</note>
       </trans-unit>
       <trans-unit id="TaskReleasedCores">
         <source>Task "{0}" released {1} cores and now holds {2} cores total.</source>
@@ -1295,11 +1265,6 @@ Errors: {3}</source>
         <source>Unrecognized solution version "{0}", attempting to continue.</source>
         <target state="translated">"{0}" は認識できないソリューション バージョンです。続行を試みます。</target>
         <note />
-      </trans-unit>
-      <trans-unit id="UnrecognizedToolsVersion">
-        <source>MSB4132: The tools version "{0}" is unrecognized. Available tools versions are {1}.</source>
-        <target state="translated">MSB4132: ツール バージョン "{0}" が認識されません。使用可能なツール バージョンは {1} です。</target>
-        <note>{StrBegin="MSB4132: "}LOCALIZATION: {1} contains a comma separated list.</note>
       </trans-unit>
       <trans-unit id="UsingInputCaches">
         <source>Using input build results caches: {0}</source>
@@ -3101,87 +3066,6 @@ Utilization:          {0} Average Utilization: {1:###.0}</source>
       <trans-unit id="BuildStarted">
         <source>Build started.</source>
         <target state="translated">ビルドを開始しました。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MSBuild.CannotRebaseOutputItemPath">
-        <source>MSB3203: The output path "{0}" cannot be rebased. {1}</source>
-        <target state="translated">MSB3203: 出力パス "{0}" を再ベースすることはできません。{1}</target>
-        <note>{StrBegin="MSB3203: "}UE: This message is shown when the user asks the "MSBuild" task to rebase the paths of its output items relative to the project from where the "MSBuild" task is called (as opposed to the project(s) on which the "MSBuild" task is called), and one of the output item paths is invalid. LOCALIZATION: "{1}" is a localized message from a CLR/FX exception explaining the problem.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectFileNotFound">
-        <source>MSB3202: The project file "{0}" was not found.</source>
-        <target state="translated">MSB3202: プロジェクト ファイル "{0}" が見つかりませんでした。</target>
-        <note>
-      {StrBegin="MSB3202: "}UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter.
-      and they have not specified the SkipNonexistentProjects parameter, or it is set to false.
-    </note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectFileNotFoundMessage">
-        <source>Skipping project "{0}" because it was not found.</source>
-        <target state="translated">プロジェクト "{0}" は見つからなかったためスキップします。</target>
-        <note>UE: This message is shown when the user passes a non-existent project file to the MSBuild task, in the "Projects" parameter, and they have specified the SkipNonexistentProjects parameter.</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.ProjectUpgradeNeededToVcxProj">
-        <source>MSB3204: The project file "{0}" is in the ".vcproj" file format, which MSBuild no longer supports. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or use MSBuild 3.5 or earlier to build it.</source>
-        <target state="translated">MSB3204: プロジェクト ファイル "{0}" は ".vcproj" ファイル形式であり、MSBuild では現在サポートされていません。Visual Studio IDE で開くか変換ツールを実行することでプロジェクトを変換するか、MSBuild 3.5 またはそれより前のバージョンを使用してビルドしてください。</target>
-        <note>{StrBegin="MSB3204: "} LOC: ".vcproj" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.InvalidSkipNonexistentProjectValue">
-        <source>MSB3205: SkipNonexistentProject can only accept values of "True", "False" and "Build".</source>
-        <target state="translated">MSB3205: SkipNonexistentProject は値として "True"、"False"、および "Build" のみを受け取ります。</target>
-        <note>{StrBegin="MSB3205: "} LOC: "SkipNonexistentProject", "True", "False" and "Build" should not be localized</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.SkippingRemainingProjects">
-        <source>The MSBuild task is skipping the remaining projects because the StopOnFirstFailure parameter was set to true.</source>
-        <target state="translated">MSBuild タスクは、StopOnFirstFailure パラメーターが true に設定されていたため、残りのプロジェクトを省略します。</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.SkippingRemainingTargets">
-        <source>The MSBuild task is skipping the remaining targets because the StopOnFirstFailure parameter was set to true.</source>
-        <target state="translated">MSBuild タスクは、StopOnFirstFailure パラメーターが true に設定されていたため、残りのターゲットを省略します。</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild" or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.NotBuildingInParallel">
-        <source>Overriding the BuildingInParallel property by setting it to false. This is due to the system being run in single process mode with StopOnFirstFailure set to true.</source>
-        <target state="translated">BuildingInParallel プロパティを false に設定して、値を上書きします。これは、StopOnFirstFailure が true に設定されているときにシステムがシングル プロセッサ モードで実行されていることが原因です。</target>
-        <note>LOCALIZATION:  Do not localize the words "MSBuild", "BuildingInParallel", or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="MSBuild.NoStopOnFirstFailure">
-        <source>StopOnFirstFailure will have no effect when the following conditions are all present: 1) The system is running in multiple process mode 2) The BuildInParallel property is true. 3) The RunEachTargetSeparately property is false.</source>
-        <target state="translated">StopOnFirstFailure は、次のすべての条件に該当する場合に無効となります。1) システムがマルチプロセッサ モードで実行されている。2) BuildInParallel プロパティが true に設定されている。3) RunEachTargetSeparately プロパティが false に設定されている。</target>
-        <note>LOCALIZATION:  Do not localize the words "RunEachTargetSeparately", "BuildingInParallel", or "StopOnFirstFailure".</note>
-      </trans-unit>
-      <trans-unit id="General.InvalidPropertyError">
-        <source>MSB3100: Syntax for "{0}" parameter is not valid ({1}). Correct syntax is {0}="&lt;name&gt;=&lt;value&gt;".</source>
-        <target state="translated">MSB3100: "{0}" パラメーターの構文が無効です ({1})。正しい構文は {0}="&lt;名前&gt;=&lt;値&gt;" です。</target>
-        <note>{StrBegin="MSB3100: "}This error is shown if the user does any of the following:
-    Properties="foo"              (missing property value)
-    Properties="=4"               (missing property name)
-    The user must pass in an actual property name and value, as in Properties="Configuration=Debug".</note>
-      </trans-unit>
-      <trans-unit id="General.GlobalProperties">
-        <source>Global Properties:</source>
-        <target state="translated">グローバル プロパティ:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.UndefineProperties">
-        <source>Removing Properties:</source>
-        <target state="translated">プロパティの削除:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.OverridingProperties">
-        <source>Overriding Global Properties for project "{0}" with:</source>
-        <target state="translated">プロジェクト "{0}" のグローバル プロパティを次の値でオーバーライド:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.AdditionalProperties">
-        <source>Additional Properties for project "{0}":</source>
-        <target state="translated">プロジェクト "{0}" の追加のプロパティ:</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="General.ProjectUndefineProperties">
-        <source>Removing Properties for project "{0}":</source>
-        <target state="translated">プロジェクト "{0}" のプロパティの削除:</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidAttributeExclusive">
