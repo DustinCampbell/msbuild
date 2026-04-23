@@ -1020,22 +1020,22 @@
     <value>Output files: {0}</value>
     <comment>{0} is a semicolon-separated list of filenames.</comment>
   </data>
-  <data name="AspNetCompiler.TargetingHigherFrameworksDefaultsTo40" xml:space="preserve">
+  <data name="AspNetCompiler_TargetingHigherFrameworksDefaultsTo40" xml:space="preserve">
     <value>{0}: Defaulting .NET Framework v{1} to the .NET Framework v4.0 version of aspnet_compiler.exe. To change the version of the tool used, please set the "ToolPath" parameter with the correct path to the tool.</value>
   </data>
-  <data name="AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET" xml:space="preserve">
+  <data name="AspNetCompiler_InvalidTargetFrameworkMonikerNotDotNET" xml:space="preserve">
     <value>MSB4203: {0}: Invalid TargetFrameworkMoniker {1}. The AspNetCompiler task only supports targeting the .NET Framework.</value>
     <comment>{StrBegin="MSB4203: "}</comment>
   </data>
-  <data name="AspNetCompiler.20NotInstalled" xml:space="preserve">
+  <data name="AspNetCompiler_20NotInstalled" xml:space="preserve">
     <value>MSB4205: The website project in this solution is targeting the v2.0 runtime, but it is not installed.</value>
     <comment>{StrBegin="MSB4205: "}</comment>
   </data>
-  <data name="AspNetCompiler.UnsupportedMSBuildVersion" xml:space="preserve">
+  <data name="AspNetCompiler_UnsupportedMSBuildVersion" xml:space="preserve">
     <value>MSB4249: Unable to build website project "{0}". The ASP.NET compiler is only available on the .NET Framework version of MSBuild.</value>
     <comment>{StrBegin="MSB4249: "}</comment>
   </data>
-  <data name="AspNetCompiler.InvalidTargetFrameworkMonikerFromException" xml:space="preserve">
+  <data name="AspNetCompiler_InvalidTargetFrameworkMonikerFromException" xml:space="preserve">
     <value>MSB4204: {0}: Invalid TargetFrameworkMoniker {1}. {2}.</value>
     <comment>{StrBegin="MSB4204: "}</comment>
   </data>
@@ -1812,7 +1812,7 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
     <value>MSB4231: ProjectRootElement can't reload if it contains unsaved changes.</value>
     <comment>{StrBegin="MSB4231: "}</comment>
   </data>
-  <data name="LogTaskInputs.Truncated">
+  <data name="LogTaskInputs_Truncated">
     <value>The parameters have been truncated beyond this point. To view all parameters, clear the MSBUILDTRUNCATETASKINPUTLOGGING environment variable.</value>
   </data>
   <data name="MetaprojectGenerated" xml:space="preserve">

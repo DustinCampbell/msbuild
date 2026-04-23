@@ -10,6 +10,7 @@ using System.Resources;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Resources;
 using Shouldly;
 using Xunit;
 using ProjectCollection = Microsoft.Build.Evaluation.ProjectCollection;
@@ -441,16 +442,10 @@ namespace Microsoft.Build.UnitTests
             }
         }
 
-        // Lazy-init property returning the MSBuild engine resource manager
-        private static ResourceManager EngineResourceManager => s_engineResourceManager ?? (s_engineResourceManager = new ResourceManager(
-            "Microsoft.Build.Strings",
-            typeof(ProjectCollection).GetTypeInfo().Assembly));
-
-        private static ResourceManager s_engineResourceManager;
         private bool _reportTelemetry;
 
         // Gets the resource string given the resource ID
-        public static string GetString(string stringId) => EngineResourceManager.GetString(stringId, CultureInfo.CurrentUICulture);
+        public static string GetString(string stringId) => SR.ResourceManager.GetString(stringId, CultureInfo.CurrentUICulture);
 
         /// <summary>
         /// Assert that the log file contains the given strings, in order.

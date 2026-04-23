@@ -1292,7 +1292,7 @@ namespace Microsoft.Build.Construction
                 ProjectFileErrorUtilities.ThrowInvalidProjectFile(
                     "SubCategoryForSolutionParsingErrors",
                     BuildEventFileInfo.From(_solutionFile.FullPath),
-                    "AspNetCompiler.UnsupportedMSBuildVersion",
+                    "AspNetCompiler_UnsupportedMSBuildVersion",
                     project.ProjectName);
 #else
                 // Set WebConfigFileName property if web.config exists (for RAR AppConfigFile parameter)
@@ -1618,7 +1618,7 @@ namespace Microsoft.Build.Construction
                 ProjectFileErrorUtilities.ThrowInvalidProjectFile(
                     BuildEventFileInfo.From(_solutionFile.FullPath),
                     e,
-                    "AspNetCompiler.InvalidTargetFrameworkMonikerFromException",
+                    "AspNetCompiler_InvalidTargetFrameworkMonikerFromException",
                     project.ProjectName,
                     project.TargetFrameworkMoniker,
                     e.Message);
@@ -1635,7 +1635,7 @@ namespace Microsoft.Build.Construction
                 _loggingService.LogComment(
                     _projectBuildEventContext,
                     MessageImportance.Low,
-                    "AspNetCompiler.TargetingHigherFrameworksDefaultsTo40",
+                    "AspNetCompiler_TargetingHigherFrameworksDefaultsTo40",
                     project.ProjectName,
                     targetFramework.Version.ToString());
             }
@@ -1644,7 +1644,7 @@ namespace Microsoft.Build.Construction
                 ProjectFileErrorUtilities.ThrowInvalidProjectFile(
                     "SubCategoryForSolutionParsingErrors",
                     BuildEventFileInfo.From(_solutionFile.FullPath),
-                    "AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET",
+                    "AspNetCompiler_InvalidTargetFrameworkMonikerNotDotNET",
                     project.ProjectName,
                     project.TargetFrameworkMoniker);
             }
@@ -1665,7 +1665,7 @@ namespace Microsoft.Build.Construction
                 aspnetCompilerPath != null,
                 "SubCategoryForSolutionParsingErrors",
                 BuildEventFileInfo.From(_solutionFile.FullPath),
-                "AspNetCompiler.20NotInstalled");
+                "AspNetCompiler_20NotInstalled");
 
             task.SetParameter("ToolPath", aspnetCompilerPath);
         }

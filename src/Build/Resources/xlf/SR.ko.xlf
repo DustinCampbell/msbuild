@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="ko" original="../Strings.resx">
+  <file datatype="xml" source-language="en" target-language="ko" original="../SR.resx">
     <body>
       <trans-unit id="AbortingBuild">
         <source>Attempting to cancel the build...</source>
@@ -13,7 +13,7 @@
         <note>{StrBegin="MSB4001: "}UE: This message is shown when a task has more than one .NET property with the same name -- it's unclear which of
     those properties the task wants to use as a parameter in project files.</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.UnsupportedMSBuildVersion">
+      <trans-unit id="AspNetCompiler_UnsupportedMSBuildVersion">
         <source>MSB4249: Unable to build website project "{0}". The ASP.NET compiler is only available on the .NET Framework version of MSBuild.</source>
         <target state="translated">MSB4249: "{0}" 웹 사이트 프로젝트를 빌드할 수 없습니다. ASP.NET 컴파일러는 .NET Framework 버전의 MSBuild에서만 사용할 수 있습니다.</target>
         <note>{StrBegin="MSB4249: "}</note>
@@ -607,7 +607,7 @@
       LOCALIZATION: {0} is an enum value of LoggerVerbosity.
     </note>
       </trans-unit>
-      <trans-unit id="LogTaskInputs.Truncated">
+      <trans-unit id="LogTaskInputs_Truncated">
         <source>The parameters have been truncated beyond this point. To view all parameters, clear the MSBUILDTRUNCATETASKINPUTLOGGING environment variable.</source>
         <target state="translated">이 지점 이후의 매개 변수가 잘렸습니다. 모든 매개 변수를 보려면 MSBUILDTRUNCATETASKINPUTLOGGING 환경 변수를 지우세요.</target>
         <note />
@@ -2159,22 +2159,22 @@ Errors: {3}</source>
         <target state="translated">출력 파일: {0}</target>
         <note>{0} is a semicolon-separated list of filenames.</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.TargetingHigherFrameworksDefaultsTo40">
+      <trans-unit id="AspNetCompiler_TargetingHigherFrameworksDefaultsTo40">
         <source>{0}: Defaulting .NET Framework v{1} to the .NET Framework v4.0 version of aspnet_compiler.exe. To change the version of the tool used, please set the "ToolPath" parameter with the correct path to the tool.</source>
         <target state="translated">{0}: .NET Framework v{1}을(를) aspnet_compiler.exe의 .NET Framework v4.0 버전으로 기본 설정합니다. 사용되는 도구의 버전을 변경하려면 "ToolPath" 매개 변수에 해당 도구의 올바른 경로를 설정하세요.</target>
         <note />
       </trans-unit>
-      <trans-unit id="AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET">
+      <trans-unit id="AspNetCompiler_InvalidTargetFrameworkMonikerNotDotNET">
         <source>MSB4203: {0}: Invalid TargetFrameworkMoniker {1}. The AspNetCompiler task only supports targeting the .NET Framework.</source>
         <target state="translated">MSB4203: {0}: TargetFrameworkMoniker {1}이(가) 잘못되었습니다. AspNetCompiler 작업에서는 .NET Framework만 대상으로 지정할 수 있습니다.</target>
         <note>{StrBegin="MSB4203: "}</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.20NotInstalled">
+      <trans-unit id="AspNetCompiler_20NotInstalled">
         <source>MSB4205: The website project in this solution is targeting the v2.0 runtime, but it is not installed.</source>
         <target state="translated">MSB4205: 이 솔루션의 웹 사이트 프로젝트는 v2.0 런타임을 대상으로 하지만, v2.0이 설치되지 않았습니다.</target>
         <note>{StrBegin="MSB4205: "}</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.InvalidTargetFrameworkMonikerFromException">
+      <trans-unit id="AspNetCompiler_InvalidTargetFrameworkMonikerFromException">
         <source>MSB4204: {0}: Invalid TargetFrameworkMoniker {1}. {2}.</source>
         <target state="translated">MSB4204: {0}: TargetFrameworkMoniker {1}이(가) 잘못되었습니다. {2}.</target>
         <note>{StrBegin="MSB4204: "}</note>
