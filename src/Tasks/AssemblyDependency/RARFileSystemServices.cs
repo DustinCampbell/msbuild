@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
 using Microsoft.Build.Framework;
@@ -25,6 +26,10 @@ namespace Microsoft.Build.Tasks
     /// </summary>
     internal class RARFileSystemServices
     {
+        // PE header constants for ReadMachineTypeFromPEHeader
+        private const int PEHeaderOffset = 0x3c;
+        private const uint PEHeaderSignature = 0x00004550; // "PE\0\0"
+
         /// <summary>
         /// Singleton instance for production use.
         /// </summary>
@@ -149,9 +154,44 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="dllPath">The path to the DLL file.</param>
         /// <returns>The machine type value from the PE header.</returns>
+        /// <remarks>
+        /// PE header layout:
+        /// - At offset 0x3c is the file offset to the PE signature
+        /// - The PE signature is "PE\0\0" (0x00004550)
+        /// - After the signature is the COFF header where the first 2 bytes are the machine type
+        /// 
+        /// Machine type values:
+        /// - IMAGE_FILE_MACHINE_UNKNOWN (0x0): Any machine type
+        /// - IMAGE_FILE_MACHINE_AMD64 (0x8664): x64
+        /// - IMAGE_FILE_MACHINE_ARM (0x1c0): ARM little endian
+        /// - IMAGE_FILE_MACHINE_I386 (0x14c): Intel 386 or later
+        /// - IMAGE_FILE_MACHINE_IA64 (0x200): Intel Itanium
+        /// </remarks>
         public virtual ushort ReadMachineTypeFromPEHeader(string dllPath)
         {
-            return ReferenceTable.ReadMachineTypeFromPEHeader(dllPath);
+            ushort machineType = NativeMethods.IMAGE_FILE_MACHINE_INVALID;
+            using (FileStream stream = new FileStream(dllPath, FileMode.Open, FileAccess.Read))
+            {
+                // Seek to location that contains PE offset
+                stream.Seek(PEHeaderOffset, SeekOrigin.Begin);
+
+                using (BinaryReader reader = new BinaryReader(stream))
+                {
+                    // Read the offset to the PE header
+                    int peOffset = reader.ReadInt32();
+                    stream.Seek(peOffset, SeekOrigin.Begin);
+
+                    // Read the PE signature (should be "PE\0\0")
+                    uint peSignature = reader.ReadUInt32();
+                    if (peSignature == PEHeaderSignature)
+                    {
+                        // Read the machine type (first 2 bytes of COFF header)
+                        machineType = reader.ReadUInt16();
+                    }
+                }
+            }
+
+            return machineType;
         }
 
         /// <summary>

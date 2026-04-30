@@ -151,12 +151,6 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         internal delegate void LogExclusionReason(bool displayPrimaryReferenceMessage, AssemblyNameExtension assemblyName, Reference reference, ITaskItem referenceItem, string targetedFramework);
 
-        // Offset to the PE header
-        private const int PEOFFSET = 0x3c;
-
-        // PEHeader
-        private const int PEHEADER = 0x00004550;
-
         /// <summary>
         /// Construct.
         /// </summary>
@@ -2819,50 +2813,6 @@ namespace Microsoft.Build.Tasks
                 _log.LogErrorWithCodeFromResources("ResolveAssemblyReference.ProblemReadingImplementationDll", dllPath, e.Message);
                 return false;
             }
-        }
-
-        /// <summary>
-        /// Read the PE header to get the machine type
-        /// </summary>
-        internal static UInt16 ReadMachineTypeFromPEHeader(string dllPath)
-        {
-            /*
-             At location 0x3c, the stub has the file offset to the PE signature. This information enables Windows to properly execute the image file, even though it has an MS DOS stub. This file offset is placed at location 0x3c during linking.
-            * After the MS DOS stub, at the file offset specified at offset 0x3c, is a 4-byte signature that identifies the file as a PE format image file. This signature is "PE\0\0" (the letters "P" and "E" followed by two null bytes).
-            * At the beginning of an object file, or immediately after the signature of an image file, is a standard COFF file header in the following format. Note that the Windows loader limits the number of sections to 96.
-            Offset
-                    Size	Field	Description
-                    0	2	Machine	The number that identifies the type of target machine. For more information, see section 3.3.1, "Machine Types."
-
-                    IMAGE_FILE_MACHINE_UNKNOWN	0x0	The contents of this field are assumed to be applicable to any machine type
-                    IMAGE_FILE_MACHINE_AMD64	0x8664	x64
-                    IMAGE_FILE_MACHINE_ARM	0x1c0	ARM little endian
-                    IMAGE_FILE_MACHINE_I386	0x14c	Intel 386 or later processors and compatible processors
-                    IMAGE_FILE_MACHINE_IA64	0x200	Intel Itanium processor family
-            * */
-
-            UInt16 machineType = NativeMethods.IMAGE_FILE_MACHINE_INVALID;
-            using (FileStream implementationStream = new FileStream(dllPath, FileMode.Open, FileAccess.Read))
-            {
-                // Seek to location that contains PE offset.
-                implementationStream.Seek(PEOFFSET, SeekOrigin.Begin);
-
-                using (BinaryReader reader = new BinaryReader(implementationStream))
-                {
-                    // Read the offset to the PE header
-                    Int32 offSet = reader.ReadInt32();
-                    implementationStream.Seek(offSet, SeekOrigin.Begin);
-
-                    // Read the PE header should be PE\0\0
-                    UInt32 peHeader = reader.ReadUInt32();
-                    if (peHeader == PEHEADER)
-                    {
-                        machineType = reader.ReadUInt16();
-                    }
-                }
-            }
-
-            return machineType;
         }
 
         /// <summary>
