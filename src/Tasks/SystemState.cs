@@ -415,7 +415,7 @@ namespace Microsoft.Build.Tasks
             return InitializeFileState(path, lastModified);
         }
 
-        private DateTime GetAndCacheLastModified(string path)
+        internal DateTime GetAndCacheLastModified(string path)
         {
             if (!instanceLocalLastModifiedCache.TryGetValue(path, out DateTime lastModified))
             {
@@ -448,7 +448,7 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="path">The path to the file</param>
         /// <returns>The assembly name.</returns>
-        private AssemblyNameExtension GetAssemblyName(string path)
+        internal AssemblyNameExtension GetAssemblyName(string path)
         {
             // If the assembly is in an FX folder and its a well-known assembly
             // then we can short-circuit the File IO involved with GetAssemblyName()
@@ -501,7 +501,7 @@ namespace Microsoft.Build.Tasks
         /// Cached implementation. Given a path, crack it open and retrieve runtimeversion for the assembly.
         /// </summary>
         /// <param name="path">Path to the assembly.</param>
-        private string GetRuntimeVersion(string path)
+        internal string GetRuntimeVersion(string path)
         {
             FileState fileState = GetFileState(path);
             if (String.IsNullOrEmpty(fileState.RuntimeVersion))
@@ -525,7 +525,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="dependencies">Receives the list of dependencies.</param>
         /// <param name="scatterFiles">Receives the list of associated scatter files.</param>
         /// <param name="frameworkName"></param>
-        private void GetAssemblyMetadata(
+        internal void GetAssemblyMetadata(
             string path,
             ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
             out AssemblyNameExtension[] dependencies,
@@ -626,7 +626,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="path"></param>
         /// <param name="pattern"></param>
         /// <returns>The list of directories from the specified path.</returns>
-        private string[] GetDirectories(string path, string pattern)
+        internal string[] GetDirectories(string path, string pattern)
         {
             // Only cache the *. pattern. This is by far the most common pattern
             // and generalized caching would require a call to Path.Combine which
@@ -655,7 +655,7 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="path">Path to file.</param>
         /// <returns>True if the file exists.</returns>
-        private bool FileExists(string path)
+        internal bool FileExists(string path)
         {
             DateTime lastModified = GetAndCacheLastModified(path);
             return FileTimestampIndicatesFileExists(lastModified);
@@ -672,7 +672,7 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="path">Path to file.</param>
         /// <returns>True if the directory exists.</returns>
-        private bool DirectoryExists(string path)
+        internal bool DirectoryExists(string path)
         {
             if (instanceLocalDirectoryExists.TryGetValue(path, out bool flag))
             {
@@ -682,6 +682,125 @@ namespace Microsoft.Build.Tasks
             bool exists = directoryExists(path);
             instanceLocalDirectoryExists[path] = exists;
             return exists;
+        }
+
+        /// <summary>
+        /// Creates a caching services instance that wraps the given services with caching provided by this SystemState.
+        /// </summary>
+        /// <param name="services">The underlying services to wrap.</param>
+        /// <returns>A caching services instance.</returns>
+        internal RARFileSystemServices CreateCachingServices(RARFileSystemServices services)
+        {
+            // Store the underlying delegates for caching
+            getAssemblyName = services.GetAssemblyName;
+            getAssemblyMetadata = services.GetAssemblyMetadata;
+            directoryExists = services.DirectoryExists;
+            getDirectories = services.GetDirectories;
+            getAssemblyRuntimeVersion = services.GetAssemblyRuntimeVersion;
+            getLastWriteTime = services.GetLastWriteTime;
+
+            return new CachingRARFileSystemServices(this, services);
+        }
+
+        /// <summary>
+        /// A caching wrapper around RARFileSystemServices that uses SystemState for caching.
+        /// </summary>
+        private sealed class CachingRARFileSystemServices : RARFileSystemServices
+        {
+            private readonly SystemState _cache;
+            private readonly RARFileSystemServices _inner;
+
+            private Func<string, bool> _isImmutableFileFunc;
+            private Func<string, AssemblyNameExtension> _getImmutableFileAssemblyNameFunc;
+
+            internal CachingRARFileSystemServices(SystemState cache, RARFileSystemServices inner)
+            {
+                _cache = cache;
+                _inner = inner;
+            }
+
+            public override void SetImmutableFileCallbacks(
+                Func<string, bool> isImmutableFile,
+                Func<string, AssemblyNameExtension> getImmutableFileAssemblyName)
+            {
+                _isImmutableFileFunc = isImmutableFile;
+                _getImmutableFileAssemblyNameFunc = getImmutableFileAssemblyName;
+            }
+
+            public override bool FileExists(string path) => _cache.FileExists(path);
+
+            public override bool DirectoryExists(string path) => _cache.DirectoryExists(path);
+
+            public override string[] GetDirectories(string path, string searchPattern) => _cache.GetDirectories(path, searchPattern);
+
+            public override AssemblyNameExtension GetAssemblyName(string path)
+            {
+                // Check immutable files first
+                AssemblyNameExtension assemblyName = _getImmutableFileAssemblyNameFunc?.Invoke(path);
+                if (assemblyName != null)
+                {
+                    return assemblyName;
+                }
+
+                return _cache.GetAssemblyName(path);
+            }
+
+            public override void GetAssemblyMetadata(
+                string path,
+                ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
+                out AssemblyNameExtension[] dependencies,
+                out string[] scatterFiles,
+                out FrameworkName frameworkNameAttribute)
+            {
+                _cache.GetAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
+            }
+
+            public override DateTime GetLastWriteTime(string path)
+            {
+                if (_isImmutableFileFunc?.Invoke(path) == true)
+                {
+                    // Return a fixed marker value for immutable files to avoid I/O
+                    return FileState.ImmutableFileLastModifiedMarker;
+                }
+
+                return _cache.GetAndCacheLastModified(path);
+            }
+
+            public override string GetAssemblyRuntimeVersion(string path)
+            {
+                if (_isImmutableFileFunc?.Invoke(path) == true)
+                {
+                    // There are no WinRT assemblies in the SDK, everything has the .NET metadata version.
+                    return ResolveAssemblyReference.DotNetAssemblyRuntimeVersion;
+                }
+
+                return _cache.GetRuntimeVersion(path);
+            }
+
+            public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd)
+            {
+                return _inner.IsWinMDFile(fullPath, out imageRuntimeVersion, out isManagedWinmd);
+            }
+
+            public override ushort ReadMachineTypeFromPEHeader(string dllPath) => _inner.ReadMachineTypeFromPEHeader(dllPath);
+
+            public override string GetAssemblyPathInGac(
+                AssemblyNameExtension assemblyName,
+                System.Reflection.ProcessorArchitecture targetProcessorArchitecture,
+                Version targetedRuntimeVersion,
+                bool fullFusionName,
+                bool specificVersion)
+            {
+                return _inner.GetAssemblyPathInGac(assemblyName, targetProcessorArchitecture, targetedRuntimeVersion, fullFusionName, specificVersion);
+            }
+
+#if FEATURE_WIN32_REGISTRY
+            public override Microsoft.Win32.RegistryKey OpenBaseKey(Microsoft.Win32.RegistryHive hive, Microsoft.Win32.RegistryView view) => _inner.OpenBaseKey(hive, view);
+
+            public override System.Collections.Generic.IEnumerable<string> GetRegistrySubKeyNames(Microsoft.Win32.RegistryKey baseKey, string subKey) => _inner.GetRegistrySubKeyNames(baseKey, subKey);
+
+            public override string GetRegistrySubKeyDefaultValue(Microsoft.Win32.RegistryKey baseKey, string subKey) => _inner.GetRegistrySubKeyDefaultValue(baseKey, subKey);
+#endif
         }
     }
 }

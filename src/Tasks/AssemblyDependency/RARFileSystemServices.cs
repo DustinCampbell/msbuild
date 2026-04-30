@@ -155,6 +155,19 @@ namespace Microsoft.Build.Tasks
         }
 
         /// <summary>
+        /// Sets up callbacks for handling immutable (SDK) files.
+        /// Override in subclasses that need to optimize handling of SDK files.
+        /// </summary>
+        /// <param name="isImmutableFile">Callback to check if a file is immutable.</param>
+        /// <param name="getImmutableFileAssemblyName">Callback to get assembly name for immutable files.</param>
+        public virtual void SetImmutableFileCallbacks(
+            Func<string, bool> isImmutableFile,
+            Func<string, AssemblyNameExtension> getImmutableFileAssemblyName)
+        {
+            // Default implementation does nothing - subclasses can override to use these callbacks
+        }
+
+        /// <summary>
         /// Gets the path to an assembly in the Global Assembly Cache.
         /// </summary>
         /// <param name="assemblyName">The assembly name to look up.</param>
@@ -219,209 +232,6 @@ namespace Microsoft.Build.Tasks
         {
             return RegistryHelper.GetDefaultValue(baseKey, subKey);
         }
-#endif
-
-        #region Delegate Adapters
-
-        /// <summary>
-        /// Creates a FileExists delegate that calls this instance's FileExists method.
-        /// </summary>
-        internal FileExists CreateFileExistsDelegate() => FileExists;
-
-        /// <summary>
-        /// Creates a DirectoryExists delegate that calls this instance's DirectoryExists method.
-        /// </summary>
-        internal DirectoryExists CreateDirectoryExistsDelegate() => DirectoryExists;
-
-        /// <summary>
-        /// Creates a GetDirectories delegate that calls this instance's GetDirectories method.
-        /// </summary>
-        internal Tasks.GetDirectories CreateGetDirectoriesDelegate() => GetDirectories;
-
-        /// <summary>
-        /// Creates a GetAssemblyName delegate that calls this instance's GetAssemblyName method.
-        /// </summary>
-        internal GetAssemblyName CreateGetAssemblyNameDelegate() => GetAssemblyName;
-
-        /// <summary>
-        /// Creates a GetAssemblyMetadata delegate that calls this instance's GetAssemblyMetadata method.
-        /// </summary>
-        internal GetAssemblyMetadata CreateGetAssemblyMetadataDelegate() => GetAssemblyMetadata;
-
-        /// <summary>
-        /// Creates a GetLastWriteTime delegate that calls this instance's GetLastWriteTime method.
-        /// </summary>
-        internal Tasks.GetLastWriteTime CreateGetLastWriteTimeDelegate() => GetLastWriteTime;
-
-        /// <summary>
-        /// Creates a GetAssemblyRuntimeVersion delegate that calls this instance's GetAssemblyRuntimeVersion method.
-        /// </summary>
-        internal GetAssemblyRuntimeVersion CreateGetAssemblyRuntimeVersionDelegate() => GetAssemblyRuntimeVersion;
-
-        /// <summary>
-        /// Creates an IsWinMDFile delegate that calls this instance's IsWinMDFile method.
-        /// </summary>
-        internal Tasks.IsWinMDFile CreateIsWinMDFileDelegate()
-        {
-            return (string fullPath, GetAssemblyRuntimeVersion getAssemblyRuntimeVersion, FileExists fileExists, out string imageRuntimeVersion, out bool isManagedWinmd)
-                => IsWinMDFile(fullPath, out imageRuntimeVersion, out isManagedWinmd);
-        }
-
-        /// <summary>
-        /// Creates a ReadMachineTypeFromPEHeader delegate that calls this instance's method.
-        /// </summary>
-        internal ReadMachineTypeFromPEHeader CreateReadMachineTypeFromPEHeaderDelegate() => ReadMachineTypeFromPEHeader;
-
-        /// <summary>
-        /// Creates a GetAssemblyPathInGac delegate that calls this instance's method.
-        /// </summary>
-        internal GetAssemblyPathInGac CreateGetAssemblyPathInGacDelegate()
-        {
-            return (AssemblyNameExtension assemblyName, System.Reflection.ProcessorArchitecture targetProcessorArchitecture, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVersion, FileExists fileExists, bool fullFusionName, bool specificVersion)
-                => GetAssemblyPathInGac(assemblyName, targetProcessorArchitecture, targetedRuntimeVersion, fullFusionName, specificVersion);
-        }
-
-#if FEATURE_WIN32_REGISTRY
-        /// <summary>
-        /// Creates an OpenBaseKey delegate that calls this instance's method.
-        /// </summary>
-        internal OpenBaseKey CreateOpenBaseKeyDelegate() => OpenBaseKey;
-
-        /// <summary>
-        /// Creates a GetRegistrySubKeyNames delegate that calls this instance's method.
-        /// </summary>
-        internal Shared.GetRegistrySubKeyNames CreateGetRegistrySubKeyNamesDelegate() => GetRegistrySubKeyNames;
-
-        /// <summary>
-        /// Creates a GetRegistrySubKeyDefaultValue delegate that calls this instance's method.
-        /// </summary>
-        internal Shared.GetRegistrySubKeyDefaultValue CreateGetRegistrySubKeyDefaultValueDelegate() => GetRegistrySubKeyDefaultValue;
-#endif
-
-        #endregion
-    }
-
-    /// <summary>
-    /// A wrapper around RARFileSystemServices that uses cached delegates for I/O operations.
-    /// This allows the caching infrastructure in ResolveAssemblyReference to be used
-    /// while still providing a services-based API to internal classes.
-    /// </summary>
-    internal sealed class CachedRARFileSystemServices : RARFileSystemServices
-    {
-        private readonly FileExists _fileExists;
-        private readonly DirectoryExists _directoryExists;
-        private readonly Tasks.GetDirectories _getDirectories;
-        private readonly GetAssemblyName _getAssemblyName;
-        private readonly GetAssemblyMetadata _getAssemblyMetadata;
-        private readonly Tasks.GetLastWriteTime _getLastWriteTime;
-        private readonly GetAssemblyRuntimeVersion _getRuntimeVersion;
-        private readonly Tasks.IsWinMDFile _isWinMDFile;
-        private readonly ReadMachineTypeFromPEHeader _readMachineTypeFromPEHeader;
-        private readonly GetAssemblyPathInGac _getAssemblyPathInGac;
-#if FEATURE_WIN32_REGISTRY
-        private readonly OpenBaseKey _openBaseKey;
-        private readonly Shared.GetRegistrySubKeyNames _getRegistrySubKeyNames;
-        private readonly Shared.GetRegistrySubKeyDefaultValue _getRegistrySubKeyDefaultValue;
-#endif
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CachedRARFileSystemServices"/> class
-        /// with the specified cached delegates.
-        /// </summary>
-        internal CachedRARFileSystemServices(
-            FileExists fileExists,
-            DirectoryExists directoryExists,
-            Tasks.GetDirectories getDirectories,
-            GetAssemblyName getAssemblyName,
-            GetAssemblyMetadata getAssemblyMetadata,
-            Tasks.GetLastWriteTime getLastWriteTime,
-            GetAssemblyRuntimeVersion getRuntimeVersion,
-            Tasks.IsWinMDFile isWinMDFile,
-            ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader,
-#if FEATURE_WIN32_REGISTRY
-            GetAssemblyPathInGac getAssemblyPathInGac,
-            OpenBaseKey openBaseKey,
-            Shared.GetRegistrySubKeyNames getRegistrySubKeyNames,
-            Shared.GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue)
-#else
-            GetAssemblyPathInGac getAssemblyPathInGac)
-#endif
-        {
-            _fileExists = fileExists;
-            _directoryExists = directoryExists;
-            _getDirectories = getDirectories;
-            _getAssemblyName = getAssemblyName;
-            _getAssemblyMetadata = getAssemblyMetadata;
-            _getLastWriteTime = getLastWriteTime;
-            _getRuntimeVersion = getRuntimeVersion;
-            _isWinMDFile = isWinMDFile;
-            _readMachineTypeFromPEHeader = readMachineTypeFromPEHeader;
-            _getAssemblyPathInGac = getAssemblyPathInGac;
-#if FEATURE_WIN32_REGISTRY
-            _openBaseKey = openBaseKey;
-            _getRegistrySubKeyNames = getRegistrySubKeyNames;
-            _getRegistrySubKeyDefaultValue = getRegistrySubKeyDefaultValue;
-#endif
-        }
-
-        /// <inheritdoc />
-        public override bool FileExists(string path) => _fileExists(path);
-
-        /// <inheritdoc />
-        public override bool DirectoryExists(string path) => _directoryExists(path);
-
-        /// <inheritdoc />
-        public override string[] GetDirectories(string path, string searchPattern) => _getDirectories(path, searchPattern);
-
-        /// <inheritdoc />
-        public override AssemblyNameExtension GetAssemblyName(string path) => _getAssemblyName(path);
-
-        /// <inheritdoc />
-        public override void GetAssemblyMetadata(
-            string path,
-            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-            out AssemblyNameExtension[] dependencies,
-            out string[] scatterFiles,
-            out FrameworkName frameworkNameAttribute)
-        {
-            _getAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
-        }
-
-        /// <inheritdoc />
-        public override DateTime GetLastWriteTime(string path) => _getLastWriteTime(path);
-
-        /// <inheritdoc />
-        public override string GetAssemblyRuntimeVersion(string path) => _getRuntimeVersion(path);
-
-        /// <inheritdoc />
-        public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd)
-        {
-            return _isWinMDFile(fullPath, _getRuntimeVersion, _fileExists, out imageRuntimeVersion, out isManagedWinmd);
-        }
-
-        /// <inheritdoc />
-        public override ushort ReadMachineTypeFromPEHeader(string dllPath) => _readMachineTypeFromPEHeader(dllPath);
-
-        /// <inheritdoc />
-        public override string GetAssemblyPathInGac(
-            AssemblyNameExtension assemblyName,
-            System.Reflection.ProcessorArchitecture targetProcessorArchitecture,
-            Version targetedRuntimeVersion,
-            bool fullFusionName,
-            bool specificVersion)
-        {
-            return _getAssemblyPathInGac(assemblyName, targetProcessorArchitecture, _getRuntimeVersion, targetedRuntimeVersion, _fileExists, fullFusionName, specificVersion);
-        }
-
-#if FEATURE_WIN32_REGISTRY
-        /// <inheritdoc />
-        public override RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view) => _openBaseKey(hive, view);
-
-        /// <inheritdoc />
-        public override IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey) => _getRegistrySubKeyNames(baseKey, subKey);
-
-        /// <inheritdoc />
-        public override string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey) => _getRegistrySubKeyDefaultValue(baseKey, subKey);
 #endif
     }
 }

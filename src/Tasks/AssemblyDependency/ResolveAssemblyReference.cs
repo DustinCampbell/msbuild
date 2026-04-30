@@ -47,7 +47,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// The well-known CLR 4.0 metadata version used in all managed assemblies.
         /// </summary>
-        private const string DotNetAssemblyRuntimeVersion = "v4.0.30319";
+        internal const string DotNetAssemblyRuntimeVersion = "v4.0.30319";
 
         /// <summary>
         /// Delegate to a method that takes a targetFrameworkDirectory and returns an array of redist or subset list paths
@@ -2168,22 +2168,6 @@ namespace Microsoft.Build.Tasks
 #endif
         internal bool Execute(RARFileSystemServices services)
         {
-            // Extract delegates from services for caching
-            FileExists fileExists = services.CreateFileExistsDelegate();
-            DirectoryExists directoryExists = services.CreateDirectoryExistsDelegate();
-            Tasks.GetDirectories getDirectories = services.CreateGetDirectoriesDelegate();
-            GetAssemblyName getAssemblyName = services.CreateGetAssemblyNameDelegate();
-            GetAssemblyMetadata getAssemblyMetadata = services.CreateGetAssemblyMetadataDelegate();
-            Tasks.GetLastWriteTime getLastWriteTime = services.CreateGetLastWriteTimeDelegate();
-            GetAssemblyRuntimeVersion getRuntimeVersion = services.CreateGetAssemblyRuntimeVersionDelegate();
-            Tasks.IsWinMDFile isWinMDFile = services.CreateIsWinMDFileDelegate();
-            ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader = services.CreateReadMachineTypeFromPEHeaderDelegate();
-            GetAssemblyPathInGac getAssemblyPathInGac = services.CreateGetAssemblyPathInGacDelegate();
-#if FEATURE_WIN32_REGISTRY
-            Shared.GetRegistrySubKeyNames getRegistrySubKeyNames = services.CreateGetRegistrySubKeyNamesDelegate();
-            Shared.GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue = services.CreateGetRegistrySubKeyDefaultValueDelegate();
-            OpenBaseKey openBaseKey = services.CreateOpenBaseKeyDelegate();
-#endif
             bool success = true;
             MSBuildEventSource.Log.RarOverallStart();
             {
@@ -2334,47 +2318,11 @@ namespace Microsoft.Build.Tasks
                     }
 
                     // Load any prior saved state.
-                    ReadStateFile(fileExists);
+                    ReadStateFile(services.FileExists);
                     _cache.SetInstalledAssemblyInformation(installedAssemblyTableInfo);
 
-                    // Cache delegates.
-                    getAssemblyMetadata = _cache.CacheDelegate(getAssemblyMetadata);
-                    fileExists = _cache.CacheDelegate();
-                    directoryExists = _cache.CacheDelegate(directoryExists);
-                    getDirectories = _cache.CacheDelegate(getDirectories);
-
-                    ReferenceTable dependencyTable = null;
-
-                    // Wrap the GetLastWriteTime callback with a check for SDK/immutable files.
-                    _cache.SetGetLastWriteTime(path =>
-                    {
-                        if (dependencyTable?.IsImmutableFile(path) == true)
-                        {
-                            // We don't want to perform I/O to see what the actual timestamp on disk is so we return a fixed made up value.
-                            // Note that this value makes the file exist per the check in SystemState.FileTimestampIndicatesFileExists.
-                            return SystemState.FileState.ImmutableFileLastModifiedMarker;
-                        }
-                        return getLastWriteTime(path);
-                    });
-
-                    // Wrap the GetAssemblyName and GetRuntimeVersion callbacks with a check for SDK/immutable files.
-                    GetAssemblyName originalGetAssemblyName = getAssemblyName;
-                    getAssemblyName = _cache.CacheDelegate(path =>
-                    {
-                        AssemblyNameExtension assemblyName = dependencyTable?.GetImmutableFileAssemblyName(path);
-                        return assemblyName ?? originalGetAssemblyName(path);
-                    });
-
-                    GetAssemblyRuntimeVersion originalGetRuntimeVersion = getRuntimeVersion;
-                    getRuntimeVersion = _cache.CacheDelegate(path =>
-                    {
-                        if (dependencyTable?.IsImmutableFile(path) == true)
-                        {
-                            // There are no WinRT assemblies in the SDK, everything has the .NET metadata version.
-                            return DotNetAssemblyRuntimeVersion;
-                        }
-                        return originalGetRuntimeVersion(path);
-                    });
+                    // Create cached services that wrap the underlying services with caching
+                    var cachedServices = _cache.CreateCachingServices(services);
 
                     _projectTargetFramework = FrameworkVersionFromString(_projectTargetFrameworkAsString);
 
@@ -2403,28 +2351,8 @@ namespace Microsoft.Build.Tasks
                             ? new ConcurrentDictionary<string, AssemblyMetadata>()
                             : null;
 
-                    // Create cached services instance using the cached delegates
-                    var cachedServices = new CachedRARFileSystemServices(
-                        fileExists,
-                        directoryExists,
-                        getDirectories,
-                        getAssemblyName,
-                        getAssemblyMetadata,
-                        getLastWriteTime,
-                        getRuntimeVersion,
-                        isWinMDFile,
-                        readMachineTypeFromPEHeader,
-#if FEATURE_WIN32_REGISTRY
-                        getAssemblyPathInGac,
-                        openBaseKey,
-                        getRegistrySubKeyNames,
-                        getRegistrySubKeyDefaultValue);
-#else
-                        getAssemblyPathInGac);
-#endif
-
                     // Start the table of dependencies with all of the primary references.
-                    dependencyTable = new ReferenceTable(
+                    ReferenceTable dependencyTable = new ReferenceTable(
                         BuildEngine,
                         _findDependencies,
                         _findSatellites,
@@ -2453,6 +2381,11 @@ namespace Microsoft.Build.Tasks
                         _unresolveFrameworkAssembliesFromHigherFrameworks,
                         assemblyMetadataCache,
                         _nonCultureResourceDirectories);
+
+                    // Wire up immutable file callbacks now that the dependency table exists
+                    cachedServices.SetImmutableFileCallbacks(
+                        dependencyTable.IsImmutableFile,
+                        dependencyTable.GetImmutableFileAssemblyName);
 
                     dependencyTable.FindDependenciesOfExternallyResolvedReferences = FindDependenciesOfExternallyResolvedReferences;
 
@@ -2587,7 +2520,7 @@ namespace Microsoft.Build.Tasks
                                 continue;
                             }
 
-                            var rawDependencies = GetDependencies(resolvedReference, fileExists, getAssemblyMetadata, assemblyMetadataCache);
+                            var rawDependencies = GetDependencies(resolvedReference, cachedServices.FileExists, cachedServices.GetAssemblyMetadata, assemblyMetadataCache);
                             if (rawDependencies != null)
                             {
                                 foreach (var dependentReference in rawDependencies)
@@ -2618,7 +2551,7 @@ namespace Microsoft.Build.Tasks
                     WriteStateFile();
 
                     // Save the new state out and put into the file exists if it is actually on disk.
-                    if (_stateFile != null && fileExists(_stateFile))
+                    if (_stateFile != null && cachedServices.FileExists(_stateFile))
                     {
                         _filesWritten.Add(new TaskItem(_stateFile));
                     }
@@ -2634,11 +2567,11 @@ namespace Microsoft.Build.Tasks
                         {
                             AssemblyNameExtension assemblyName = null;
 
-                            if (fileExists(item.ItemSpec) && !Reference.IsFrameworkFile(item.ItemSpec, _targetFrameworkDirectories))
+                            if (cachedServices.FileExists(item.ItemSpec) && !Reference.IsFrameworkFile(item.ItemSpec, _targetFrameworkDirectories))
                             {
                                 try
                                 {
-                                    assemblyName = getAssemblyName(item.ItemSpec);
+                                    assemblyName = cachedServices.GetAssemblyName(item.ItemSpec);
                                 }
                                 catch (System.IO.FileLoadException)
                                 {
