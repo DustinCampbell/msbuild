@@ -83,34 +83,9 @@ namespace Microsoft.Build.Tasks
         private bool isDirty;
 
         /// <summary>
-        /// Delegate used internally.
+        /// The underlying services for file system and assembly operations.
         /// </summary>
-        private GetLastWriteTime getLastWriteTime;
-
-        /// <summary>
-        /// Cached delegate.
-        /// </summary>
-        private GetAssemblyName getAssemblyName;
-
-        /// <summary>
-        /// Cached delegate.
-        /// </summary>
-        private GetAssemblyMetadata getAssemblyMetadata;
-
-        /// <summary>
-        /// Cached delegate.
-        /// </summary>
-        private DirectoryExists directoryExists;
-
-        /// <summary>
-        /// Cached delegate.
-        /// </summary>
-        private GetDirectories getDirectories;
-
-        /// <summary>
-        /// Cached delegate
-        /// </summary>
-        private GetAssemblyRuntimeVersion getAssemblyRuntimeVersion;
+        private RARFileSystemServices _services;
 
         /// <summary>
         /// Class that holds the current file state.
@@ -286,74 +261,6 @@ namespace Microsoft.Build.Tasks
             set { isDirty = value; }
         }
 
-        /// <summary>
-        /// Set the GetLastWriteTime delegate.
-        /// </summary>
-        /// <param name="getLastWriteTimeValue">Delegate used to get the last write time.</param>
-        internal void SetGetLastWriteTime(GetLastWriteTime getLastWriteTimeValue)
-        {
-            getLastWriteTime = getLastWriteTimeValue;
-        }
-
-        /// <summary>
-        /// Cache the results of a GetAssemblyName delegate.
-        /// </summary>
-        /// <param name="getAssemblyNameValue">The delegate.</param>
-        /// <returns>Cached version of the delegate.</returns>
-        internal GetAssemblyName CacheDelegate(GetAssemblyName getAssemblyNameValue)
-        {
-            getAssemblyName = getAssemblyNameValue;
-            return GetAssemblyName;
-        }
-
-        /// <summary>
-        /// Cache the results of a GetAssemblyMetadata delegate.
-        /// </summary>
-        /// <param name="getAssemblyMetadataValue">The delegate.</param>
-        /// <returns>Cached version of the delegate.</returns>
-        internal GetAssemblyMetadata CacheDelegate(GetAssemblyMetadata getAssemblyMetadataValue)
-        {
-            getAssemblyMetadata = getAssemblyMetadataValue;
-            return GetAssemblyMetadata;
-        }
-
-        /// <summary>
-        /// Cache the results of a FileExists delegate.
-        /// </summary>
-        /// <returns>Cached version of the delegate.</returns>
-        internal FileExists CacheDelegate()
-        {
-            return FileExists;
-        }
-
-        public DirectoryExists CacheDelegate(DirectoryExists directoryExistsValue)
-        {
-            directoryExists = directoryExistsValue;
-            return DirectoryExists;
-        }
-
-        /// <summary>
-        /// Cache the results of a GetDirectories delegate.
-        /// </summary>
-        /// <param name="getDirectoriesValue">The delegate.</param>
-        /// <returns>Cached version of the delegate.</returns>
-        internal GetDirectories CacheDelegate(GetDirectories getDirectoriesValue)
-        {
-            getDirectories = getDirectoriesValue;
-            return GetDirectories;
-        }
-
-        /// <summary>
-        /// Cache the results of a GetAssemblyRuntimeVersion delegate.
-        /// </summary>
-        /// <param name="getAssemblyRuntimeVersion">The delegate.</param>
-        /// <returns>Cached version of the delegate.</returns>
-        internal GetAssemblyRuntimeVersion CacheDelegate(GetAssemblyRuntimeVersion getAssemblyRuntimeVersion)
-        {
-            this.getAssemblyRuntimeVersion = getAssemblyRuntimeVersion;
-            return GetRuntimeVersion;
-        }
-
         internal FileState GetFileState(string path)
         {
             // Looking up an assembly to get its metadata can be expensive for projects that reference large amounts
@@ -419,7 +326,7 @@ namespace Microsoft.Build.Tasks
         {
             if (!instanceLocalLastModifiedCache.TryGetValue(path, out DateTime lastModified))
             {
-                lastModified = getLastWriteTime(path);
+                lastModified = _services.GetLastWriteTime(path);
                 instanceLocalLastModifiedCache[path] = lastModified;
             }
 
@@ -474,10 +381,10 @@ namespace Microsoft.Build.Tasks
             FileState fileState = GetFileState(path);
             if (fileState.Assembly == null)
             {
-                fileState.Assembly = getAssemblyName(path);
+                fileState.Assembly = _services.GetAssemblyName(path);
 
                 // Certain assemblies, like mscorlib may not have metadata.
-                // Avoid continuously calling getAssemblyName on these files by
+                // Avoid continuously calling GetAssemblyName on these files by
                 // recording these as having an empty name.
                 if (fileState.Assembly == null)
                 {
@@ -506,7 +413,7 @@ namespace Microsoft.Build.Tasks
             FileState fileState = GetFileState(path);
             if (String.IsNullOrEmpty(fileState.RuntimeVersion))
             {
-                fileState.RuntimeVersion = getAssemblyRuntimeVersion(path);
+                fileState.RuntimeVersion = _services.GetAssemblyRuntimeVersion(path);
                 if (fileState.IsWorthPersisting)
                 {
                     isDirty = true;
@@ -535,7 +442,7 @@ namespace Microsoft.Build.Tasks
             FileState fileState = GetFileState(path);
             if (fileState.dependencies == null)
             {
-                getAssemblyMetadata(
+                _services.GetAssemblyMetadata(
                     path,
                     assemblyMetadataCache,
                     out fileState.dependencies,
@@ -636,7 +543,7 @@ namespace Microsoft.Build.Tasks
                 instanceLocalDirectories.TryGetValue(path, out string[] cached);
                 if (cached == null)
                 {
-                    string[] directories = getDirectories(path, pattern);
+                    string[] directories = _services.GetDirectories(path, pattern);
                     instanceLocalDirectories[path] = directories;
                     return directories;
                 }
@@ -647,7 +554,7 @@ namespace Microsoft.Build.Tasks
             // that this is an unoptimized path.
             Debug.Assert(false, "Using slow-path in SystemState.GetDirectories, was this intentional?");
 
-            return getDirectories(path, pattern);
+            return _services.GetDirectories(path, pattern);
         }
 
         /// <summary>
@@ -679,7 +586,7 @@ namespace Microsoft.Build.Tasks
                 return flag;
             }
 
-            bool exists = directoryExists(path);
+            bool exists = _services.DirectoryExists(path);
             instanceLocalDirectoryExists[path] = exists;
             return exists;
         }
@@ -691,14 +598,7 @@ namespace Microsoft.Build.Tasks
         /// <returns>A caching services instance.</returns>
         internal RARFileSystemServices CreateCachingServices(RARFileSystemServices services)
         {
-            // Store the underlying delegates for caching
-            getAssemblyName = services.GetAssemblyName;
-            getAssemblyMetadata = services.GetAssemblyMetadata;
-            directoryExists = services.DirectoryExists;
-            getDirectories = services.GetDirectories;
-            getAssemblyRuntimeVersion = services.GetAssemblyRuntimeVersion;
-            getLastWriteTime = services.GetLastWriteTime;
-
+            _services = services;
             return new CachingRARFileSystemServices(this, services);
         }
 

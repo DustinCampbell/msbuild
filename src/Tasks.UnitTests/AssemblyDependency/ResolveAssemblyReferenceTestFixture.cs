@@ -44,6 +44,34 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         internal static Microsoft.Build.Tasks.IsWinMDFile isWinMDFile = new Microsoft.Build.Tasks.IsWinMDFile(IsWinMDFile);
         internal static Microsoft.Build.Tasks.ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader = new Microsoft.Build.Tasks.ReadMachineTypeFromPEHeader(ReadMachineTypeFromPEHeader);
 
+        /// <summary>
+        /// Test services instance that wraps the delegate fields for tests that need RARFileSystemServices.
+        /// </summary>
+        internal static RARFileSystemServices testServices = new TestRARFileSystemServices();
+
+        /// <summary>
+        /// A test implementation of RARFileSystemServices that delegates to the delegate fields.
+        /// This allows tests to temporarily swap delegates (e.g., in GenerateHelperDelegatesAndExecuteTask).
+        /// </summary>
+        private sealed class TestRARFileSystemServices : RARFileSystemServices
+        {
+            public override bool FileExists(string path) => fileExists(path);
+            public override bool DirectoryExists(string path) => directoryExists(path);
+            public override string[] GetDirectories(string path, string searchPattern) => getDirectories(path, searchPattern);
+            public override AssemblyNameExtension GetAssemblyName(string path) => getAssemblyName(path);
+            public override void GetAssemblyMetadata(string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkNameAttribute) => getAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
+            public override DateTime GetLastWriteTime(string path) => getLastWriteTime(path);
+            public override string GetAssemblyRuntimeVersion(string path) => getRuntimeVersion(path);
+            public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd) => isWinMDFile(fullPath, getRuntimeVersion, fileExists, out imageRuntimeVersion, out isManagedWinmd);
+            public override ushort ReadMachineTypeFromPEHeader(string dllPath) => readMachineTypeFromPEHeader(dllPath);
+            public override string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, Version targetedRuntimeVersion, bool fullFusionName, bool specificVersion) => checkIfAssemblyIsInGac(assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, fullFusionName, specificVersion);
+#if FEATURE_WIN32_REGISTRY
+            public override RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view) => openBaseKey(hive, view);
+            public override IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey) => getRegistrySubKeyNames(baseKey, subKey);
+            public override string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey) => getRegistrySubKeyDefaultValue(baseKey, subKey);
+#endif
+        }
+
         // Performance checks.
         internal static Dictionary<string, int> uniqueFileExists = null;
         internal static Dictionary<string, int> uniqueGetAssemblyName = null;
@@ -3011,7 +3039,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     t.FindSerializationAssemblies = false;
                     t.FindRelatedFiles = false;
                     t.StateFile = null;
-                    t.Execute(TestRARFileSystemServices.Instance);
+                    t.Execute(testServices);
 
                     // A few checks. These should always be true or it may be a perf issue for project load.
                     ITaskItem[] loadModeResolvedFiles = Array.Empty<TaskItem>();
@@ -3053,7 +3081,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     string cache = rarCacheFile;
                     t.StateFile = cache;
                     File.Delete(t.StateFile);
-                    succeeded = t.Execute(TestRARFileSystemServices.Instance);
+                    succeeded = t.Execute(testServices);
                     if (FileUtilities.FileExistsNoThrow(t.StateFile))
                     {
                         Assert.Single(t.FilesWritten);

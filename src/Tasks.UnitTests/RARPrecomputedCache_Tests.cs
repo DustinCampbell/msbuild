@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Tasks.AssemblyDependency;
 using Microsoft.Build.UnitTests;
 using Microsoft.Build.Utilities;
 using Shouldly;
@@ -16,6 +17,21 @@ namespace Microsoft.Build.Tasks.UnitTests
 {
     public class RARPrecomputedCache_Tests
     {
+        /// <summary>
+        /// A minimal test services class for cache tests.
+        /// </summary>
+        private sealed class TestCacheServices : RARFileSystemServices
+        {
+            private readonly DateTime _now;
+
+            public TestCacheServices(DateTime now)
+            {
+                _now = now;
+            }
+
+            public override DateTime GetLastWriteTime(string path) => _now;
+        }
+
         [Fact]
         public void TestPrecomputedCacheOutput()
         {
@@ -30,7 +46,7 @@ namespace Microsoft.Build.Tasks.UnitTests
                 t._cache.instanceLocalFileStateCache = new Dictionary<string, SystemState.FileState>() {
                     { Path.Combine(standardCache.Path, "assembly1"), new SystemState.FileState(now) },
                     { Path.Combine(standardCache.Path, "assembly2"), new SystemState.FileState(now) { Assembly = new Shared.AssemblyNameExtension("hi") } } };
-                t._cache.SetGetLastWriteTime(_ => now);
+                t._cache.CreateCachingServices(new TestCacheServices(now));
                 _ = t._cache.GetFileState("assembly1");
                 _ = t._cache.GetFileState("assembly2");
                 t._cache.IsDirty = true;
@@ -65,7 +81,7 @@ namespace Microsoft.Build.Tasks.UnitTests
                 rarWriterTask._cache.instanceLocalFileStateCache = new() {
                     { "path1", new SystemState.FileState(now) },
                 };
-                rarWriterTask._cache.SetGetLastWriteTime(_ => now);
+                rarWriterTask._cache.CreateCachingServices(new TestCacheServices(now));
                 rarWriterTask.StateFile = standardCache.Path;
                 _ = rarWriterTask._cache.GetFileState("path1");
                 rarWriterTask._cache.IsDirty = true;

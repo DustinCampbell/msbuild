@@ -370,24 +370,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.TargetFrameworkMonikerDisplayName = "Foo";
             t.SearchPaths = new string[] { @"c:\Frameworks\" };
             Assert.True(
-                t.Execute(
-                    fileExists,
-                    directoryExists,
-                    getDirectories,
-                    getAssemblyName,
-                    getAssemblyMetadata,
-#if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
-#endif
-                    getLastWriteTime,
-                    getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                    openBaseKey,
-#endif
-                    checkIfAssemblyIsInGac,
-                    isWinMDFile,
-                    readMachineTypeFromPEHeader));
+                t.Execute(testServices));
 
 
             Assert.Equal(0, e.Warnings); // "No warning expected in this scenario."

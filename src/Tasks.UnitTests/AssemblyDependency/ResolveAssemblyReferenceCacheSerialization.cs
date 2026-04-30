@@ -49,6 +49,23 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             _ => throw new ArgumentException(),
         };
 
+        /// <summary>
+        /// A minimal test services class for cache serialization tests.
+        /// </summary>
+        private sealed class TestCacheServices : RARFileSystemServices
+        {
+            public override DateTime GetLastWriteTime(string path) => GetLastWriteTimeStatic(path);
+            private static DateTime GetLastWriteTimeStatic(string path) => path switch
+            {
+                "path1" => s_now,
+                "path2" => s_now,
+                "dllName" => s_now.AddSeconds(-10),
+                _ => throw new ArgumentException(),
+            };
+        }
+
+        private static readonly TestCacheServices s_testServices = new();
+
         [Fact]
         public void RoundTripEmptyState()
         {
@@ -109,7 +126,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                         FrameworkNameAttribute = new FrameworkName(".NETFramework", Version.Parse("4.7.2"), "Profile"),
                         scatterFiles = new string[] { "first", "second" } } } };
             SystemState sysState = new();
-            sysState.SetGetLastWriteTime(GetLastWriteTime);
+            sysState.CreateCachingServices(s_testServices);
             sysState.instanceLocalFileStateCache = cache;
 
             // Get all FileState entries to make sure they are marked as having been used.
@@ -147,7 +164,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     { "path1", new SystemState.FileState(GetLastWriteTime("path1")) },
                     { "path2", new SystemState.FileState(GetLastWriteTime("path2")) } };
             SystemState sysState = new();
-            sysState.SetGetLastWriteTime(GetLastWriteTime);
+            sysState.CreateCachingServices(s_testServices);
             sysState.instanceLocalFileStateCache = cache;
 
             // Get only the first FileState entry.
@@ -176,7 +193,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     { "path1", new SystemState.FileState(GetLastWriteTime("path1")) },
                     { "path2", new SystemState.FileState(GetLastWriteTime("path2")) } };
             SystemState sysState = new();
-            sysState.SetGetLastWriteTime(GetLastWriteTime);
+            sysState.CreateCachingServices(s_testServices);
             sysState.instanceLocalFileStateCache = cache;
 
             sysState.HasStateToSave.ShouldBe(false);

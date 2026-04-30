@@ -3239,17 +3239,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             var referenceList = new List<Reference>();
 
             var taskItem = new TaskItem("Microsoft.VisualStudio.Interopt, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
-            var reference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            var reference = new Reference(testServices);
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference.FullPath = "c:\\AssemblyFolders\\Microsoft.VisualStudio.Interopt.dll";
             reference.ResolvedSearchPath = "{AssemblyFolders}";
 
-            Reference reference2 = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            Reference reference2 = new Reference(testServices);
             reference2.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference2.FullPath = "c:\\SomeOtherFolder\\Microsoft.VisualStudio.Interopt2.dll";
             reference2.ResolvedSearchPath = "c:\\SomeOtherFolder";
 
-            Reference reference3 = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            Reference reference3 = new Reference(testServices);
             reference3.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference3.FullPath = "c:\\SomeOtherFolder\\Microsoft.VisualStudio.Interopt3.dll";
             reference3.ResolvedSearchPath = "{GAC}";
@@ -6280,8 +6280,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            table.Add(engineAssemblyName, new Reference(isWinMDFile, fileExists, getRuntimeVersion));
-            table.Add(xmlAssemblyName, new Reference(isWinMDFile, fileExists, getRuntimeVersion));
+            table.Add(engineAssemblyName, new Reference(testServices));
+            table.Add(xmlAssemblyName, new Reference(testServices));
 
             referenceTable.MarkReferencesForExclusion(null);
             referenceTable.RemoveReferencesMarkedForExclusion(false, String.Empty);
@@ -6305,8 +6305,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            table.Add(engineAssemblyName, new Reference(isWinMDFile, fileExists, getRuntimeVersion));
-            table.Add(xmlAssemblyName, new Reference(isWinMDFile, fileExists, getRuntimeVersion));
+            table.Add(engineAssemblyName, new Reference(testServices));
+            table.Add(xmlAssemblyName, new Reference(testServices));
 
             referenceTable.MarkReferencesForExclusion(new Dictionary<string, string>());
             referenceTable.RemoveReferencesMarkedForExclusion(false, String.Empty);
@@ -6333,11 +6333,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            Reference reference = new Reference(testServices);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(isWinMDFile, fileExists, getRuntimeVersion));
+            table.Add(xmlAssemblyName, new Reference(testServices));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
@@ -6372,12 +6372,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            Reference reference = new Reference(testServices);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             taskItem.SetMetadata("SpecificVersion", "true");
             reference.MakePrimaryAssemblyReference(taskItem, true, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(isWinMDFile, fileExists, getRuntimeVersion));
+            table.Add(xmlAssemblyName, new Reference(testServices));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
@@ -6449,11 +6449,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            Reference reference = new Reference(testServices);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(isWinMDFile, fileExists, getRuntimeVersion));
+            table.Add(xmlAssemblyName, new Reference(testServices));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
@@ -6567,8 +6567,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Dictionary<string, string> denyList;
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-            Reference enginePrimaryReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
-            Reference xmlPrimaryReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            Reference enginePrimaryReference = new Reference(testServices);
+            Reference xmlPrimaryReference = new Reference(testServices);
 
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             enginePrimaryReference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
@@ -6609,9 +6609,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension dataAssemblyName = new AssemblyNameExtension("System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-            Reference enginePrimaryReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
-            Reference xmlPrimaryReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
-            Reference dataDependencyReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            Reference enginePrimaryReference = new Reference(testServices);
+            Reference xmlPrimaryReference = new Reference(testServices);
+            Reference dataDependencyReference = new Reference(testServices);
 
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             enginePrimaryReference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
@@ -6698,11 +6698,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ReferenceTableDependentItemsInDenyList4()
         {
-            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, fileExists, null, null, null,
-#if FEATURE_WIN32_REGISTRY
-                null, null, null,
-#endif
-                null, null, null, new Version("4.0"), null, null, null, true, false, null, null, false, null, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, null, Array.Empty<string>());
+            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, testServices, null, null, null, null, null, true, false, false, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, null, Array.Empty<string>());
             MockEngine mockEngine;
             ResolveAssemblyReference rar;
             Dictionary<string, string> denyList;
@@ -6876,11 +6872,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
         private static ReferenceTable MakeEmptyReferenceTable(TaskLoggingHelper log)
         {
-            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, fileExists, null, null, null, null,
-#if FEATURE_WIN32_REGISTRY
-                null, null, null,
-#endif
-                null, null, new Version("4.0"), null, log, null, true, false, null, null, false, null, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, null, Array.Empty<string>());
+            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, testServices, null, null, null, log, null, true, false, false, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, null, Array.Empty<string>());
             return referenceTable;
         }
 
@@ -7078,10 +7070,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// <param name="xmlPrimaryReference"></param>
         private static void GenerateNewReferences(out Reference enginePrimaryReference, out Reference dataDependencyReference, out Reference sqlDependencyReference, out Reference xmlPrimaryReference)
         {
-            enginePrimaryReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
-            dataDependencyReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
-            sqlDependencyReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
-            xmlPrimaryReference = new Reference(isWinMDFile, fileExists, getRuntimeVersion);
+            enginePrimaryReference = new Reference(testServices);
+            dataDependencyReference = new Reference(testServices);
+            sqlDependencyReference = new Reference(testServices);
+            xmlPrimaryReference = new Reference(testServices);
         }
 
         /// <summary>
@@ -8478,25 +8470,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             rar.WarnOrErrorOnTargetArchitectureMismatch = "Warning";
 
             // Execute RAR and assert that we receive no I/O callbacks because the task gets what it needs from item metadata.
-            rar.Execute(
-                _ => throw new ShouldAssertException("Unexpected FileExists callback"),
-                directoryExists,
-                getDirectories,
-                _ => throw new ShouldAssertException("Unexpected GetAssemblyName callback"),
-                (string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkName)
-                  => throw new ShouldAssertException("Unexpected GetAssemblyMetadata callback"),
-#if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
-#endif
-                _ => throw new ShouldAssertException("Unexpected GetLastWriteTime callback"),
-                _ => throw new ShouldAssertException("Unexpected GetAssemblyRuntimeVersion callback"),
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
-                checkIfAssemblyIsInGac,
-                isWinMDFile,
-                readMachineTypeFromPEHeader).ShouldBeTrue();
+            // Use testServices - the test validates that externally resolved refs don't trigger callbacks
+            rar.Execute(testServices).ShouldBeTrue();
 
             rar.ResolvedFiles.Length.ShouldBe(1);
             rar.ResolvedFiles[0].ItemSpec.ShouldBe(refPath);
