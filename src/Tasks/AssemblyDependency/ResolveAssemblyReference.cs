@@ -18,7 +18,6 @@ using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Tasks.AssemblyDependency;
 using Microsoft.Build.Utilities;
 
@@ -3244,18 +3243,6 @@ namespace Microsoft.Build.Tasks
         }
 
         /// <summary>
-        ///  Checks to see if the assemblyName passed in is in the GAC.
-        /// </summary>
-        private string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVersion, FileExists fileExists, bool fullFusionName, bool specificVersion)
-        {
-#if FEATURE_GAC
-            return GlobalAssemblyCache.GetLocation(BuildEngine as IBuildEngine4, assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fullFusionName, fileExists, null, null, specificVersion /* this value does not matter if we are passing a full fusion name*/);
-#else
-            return string.Empty;
-#endif
-        }
-
-        /// <summary>
         /// Execute the task.
         /// </summary>
         /// <returns>True if there was success.</returns>
@@ -3290,29 +3277,35 @@ namespace Microsoft.Build.Tasks
                 }
             }
 
+            return Execute(RARFileSystemServices.Default);
+        }
+
+        /// <summary>
+        /// Executes the ResolveAssemblyReference task using the specified file system services.
+        /// This overload allows tests to provide a custom services implementation.
+        /// </summary>
+        /// <param name="services">The file system services to use for I/O operations.</param>
+        /// <returns>True if the task succeeded; otherwise, false.</returns>
+        internal bool Execute(RARFileSystemServices services)
+        {
             return Execute(
-                p => FileUtilities.FileExistsNoThrow(p),
-                p => FileUtilities.DirectoryExistsNoThrow(p),
-                (p, searchPattern) => FileSystems.Default.EnumerateDirectories(p, searchPattern)
-                                        .OrderBy(path => path, StringComparer.Ordinal) // sort to ensure deterministic order
-                                        .ToArray(),
-                p => AssemblyNameExtension.GetAssemblyNameEx(p),
-                (string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkName)
-                    => AssemblyInformation.GetAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkName),
+                services.CreateFileExistsDelegate(),
+                services.CreateDirectoryExistsDelegate(),
+                services.CreateGetDirectoriesDelegate(),
+                services.CreateGetAssemblyNameDelegate(),
+                services.CreateGetAssemblyMetadataDelegate(),
 #if FEATURE_WIN32_REGISTRY
-                (baseKey, subkey) => RegistryHelper.GetSubKeyNames(baseKey, subkey),
-                (baseKey, subkey) => RegistryHelper.GetDefaultValue(baseKey, subkey),
+                services.CreateGetRegistrySubKeyNamesDelegate(),
+                services.CreateGetRegistrySubKeyDefaultValueDelegate(),
 #endif
-                p => NativeMethodsShared.GetLastWriteFileUtcTime(p),
-                p => AssemblyInformation.GetRuntimeVersion(p),
+                services.CreateGetLastWriteTimeDelegate(),
+                services.CreateGetAssemblyRuntimeVersionDelegate(),
 #if FEATURE_WIN32_REGISTRY
-                (hive, view) => RegistryHelper.OpenBaseKey(hive, view),
+                services.CreateOpenBaseKeyDelegate(),
 #endif
-                (assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, fullFusionName, specificVersion)
-                    => GetAssemblyPathInGac(assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, fullFusionName, specificVersion),
-                (string fullPath, GetAssemblyRuntimeVersion getAssemblyRuntimeVersion, FileExists fileExists, out string imageRuntimeVersion, out bool isManagedWinmd)
-                    => AssemblyInformation.IsWinMDFile(fullPath, getAssemblyRuntimeVersion, fileExists, out imageRuntimeVersion, out isManagedWinmd),
-                p => ReferenceTable.ReadMachineTypeFromPEHeader(p));
+                services.CreateGetAssemblyPathInGacDelegate(),
+                services.CreateIsWinMDFileDelegate(),
+                services.CreateReadMachineTypeFromPEHeaderDelegate());
         }
         #endregion
     }

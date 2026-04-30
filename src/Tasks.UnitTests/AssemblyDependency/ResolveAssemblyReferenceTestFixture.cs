@@ -3011,24 +3011,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     t.FindSerializationAssemblies = false;
                     t.FindRelatedFiles = false;
                     t.StateFile = null;
-                    t.Execute(
-                        fileExists,
-                        directoryExists,
-                        getDirectories,
-                        getAssemblyName,
-                        getAssemblyMetadata,
-#if FEATURE_WIN32_REGISTRY
-                        getRegistrySubKeyNames,
-                        getRegistrySubKeyDefaultValue,
-#endif
-                        getLastWriteTime,
-                        getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                        openBaseKey,
-#endif
-                        checkIfAssemblyIsInGac,
-                        isWinMDFile,
-                        readMachineTypeFromPEHeader);
+                    t.Execute(TestRARFileSystemServices.Instance);
 
                     // A few checks. These should always be true or it may be a perf issue for project load.
                     ITaskItem[] loadModeResolvedFiles = Array.Empty<TaskItem>();
@@ -3070,25 +3053,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     string cache = rarCacheFile;
                     t.StateFile = cache;
                     File.Delete(t.StateFile);
-                    succeeded =
-                        t.Execute(
-                            fileExists,
-                            directoryExists,
-                            getDirectories,
-                            getAssemblyName,
-                            getAssemblyMetadata,
-#if FEATURE_WIN32_REGISTRY
-                            getRegistrySubKeyNames,
-                            getRegistrySubKeyDefaultValue,
-#endif
-                            getLastWriteTime,
-                            getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                            openBaseKey,
-#endif
-                            checkIfAssemblyIsInGac,
-                            isWinMDFile,
-                            readMachineTypeFromPEHeader);
+                    succeeded = t.Execute(TestRARFileSystemServices.Instance);
                     if (FileUtilities.FileExistsNoThrow(t.StateFile))
                     {
                         Assert.Single(t.FilesWritten);
