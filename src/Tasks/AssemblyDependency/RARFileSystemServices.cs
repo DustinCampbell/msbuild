@@ -136,17 +136,42 @@ namespace Microsoft.Build.Tasks
         /// <param name="imageRuntimeVersion">Receives the image runtime version if applicable.</param>
         /// <param name="isManagedWinmd">Receives a value indicating whether the file is a managed WinMD.</param>
         /// <returns>True if the file is a WinMD file; otherwise, false.</returns>
+        /// <remarks>
+        /// A WinMD file is identified by having "WindowsRuntime" in its image runtime version.
+        /// A managed WinMD also contains "CLR" in the runtime version string.
+        /// </remarks>
         public virtual bool IsWinMDFile(
             string fullPath,
             out string imageRuntimeVersion,
             out bool isManagedWinmd)
         {
-            return AssemblyInformation.IsWinMDFile(
-                fullPath,
-                GetAssemblyRuntimeVersion,
-                FileExists,
-                out imageRuntimeVersion,
-                out isManagedWinmd);
+            imageRuntimeVersion = String.Empty;
+            isManagedWinmd = false;
+
+            if (!NativeMethodsShared.IsWindows)
+            {
+                return false;
+            }
+
+            // May be null or empty if the file was never resolved to a path on disk.
+            if (!String.IsNullOrEmpty(fullPath) && FileExists(fullPath))
+            {
+                imageRuntimeVersion = GetAssemblyRuntimeVersion(fullPath);
+                if (!String.IsNullOrEmpty(imageRuntimeVersion))
+                {
+                    bool containsWindowsRuntime = imageRuntimeVersion.IndexOf(
+                        "WindowsRuntime",
+                        StringComparison.OrdinalIgnoreCase) >= 0;
+
+                    if (containsWindowsRuntime)
+                    {
+                        isManagedWinmd = imageRuntimeVersion.IndexOf("CLR", StringComparison.OrdinalIgnoreCase) >= 0;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -59,19 +59,9 @@ namespace Microsoft.Build.Tasks
         private readonly ConcurrentQueue<string> _exceptions = new ConcurrentQueue<string>();
 
         /// <summary>
-        /// Delegate to get the assembly name
+        /// File system services for assembly operations.
         /// </summary>
-        private GetAssemblyName _getAssemblyName;
-
-        /// <summary>
-        /// Get the image runtime version from a file
-        /// </summary>
-        private GetAssemblyRuntimeVersion _getRuntimeVersion;
-
-        /// <summary>
-        /// File exists delegate
-        /// </summary>
-        private FileExists _fileExists;
+        private RARFileSystemServices _services;
 
         /// <summary>
         /// When false, allow fire-and-forget background work.
@@ -232,17 +222,15 @@ namespace Microsoft.Build.Tasks
                 Log.LogErrorWithCodeFromResources("General.TaskRequiresWindows", nameof(GetSDKReferenceFiles));
                 return false;
             }
-            return Execute(AssemblyNameExtension.GetAssemblyNameEx, AssemblyInformation.GetRuntimeVersion, p => FileUtilities.FileExistsNoThrow(p), synchronous: false);
+            return Execute(RARFileSystemServices.Default, synchronous: false);
         }
 
         /// <summary>
-        /// Execute the task
+        /// Execute the task with custom services.
         /// </summary>
-        internal bool Execute(GetAssemblyName getAssemblyName, GetAssemblyRuntimeVersion getRuntimeVersion, FileExists fileExists, bool synchronous)
+        internal bool Execute(RARFileSystemServices services, bool synchronous)
         {
-            _getAssemblyName = getAssemblyName;
-            _getRuntimeVersion = getRuntimeVersion;
-            _fileExists = fileExists;
+            _services = services;
             _synchronous = synchronous;
 
             try
@@ -655,7 +643,7 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         private void PopulateReferencesForSDK(IEnumerable<ITaskItem> sdks)
         {
-            var sdkFilesCache = new SDKFilesCache(_exceptions, _cacheFilePath, _getAssemblyName, _getRuntimeVersion, _fileExists);
+            var sdkFilesCache = new SDKFilesCache(_exceptions, _cacheFilePath, _services);
 
             // Go through each sdk which has been resolved in this project
             foreach (ITaskItem sdk in sdks)
@@ -888,19 +876,9 @@ namespace Microsoft.Build.Tasks
             private readonly ConcurrentQueue<string> _exceptionMessages;
 
             /// <summary>
-            /// Delegate to get the assembly name
+            /// File system services for assembly operations.
             /// </summary>
-            private readonly GetAssemblyName _getAssemblyName;
-
-            /// <summary>
-            /// Get the image runtime version from a file
-            /// </summary>
-            private readonly GetAssemblyRuntimeVersion _getRuntimeVersion;
-
-            /// <summary>
-            /// File exists delegate
-            /// </summary>
-            private readonly FileExists _fileExists;
+            private readonly RARFileSystemServices _services;
 
             /// <summary>
             /// Location for the cache files to be written to
@@ -910,13 +888,11 @@ namespace Microsoft.Build.Tasks
             /// <summary>
             /// Constructor
             /// </summary>
-            internal SDKFilesCache(ConcurrentQueue<string> exceptionQueue, string cacheFileDirectory, GetAssemblyName getAssemblyName, GetAssemblyRuntimeVersion getRuntimeVersion, FileExists fileExists)
+            internal SDKFilesCache(ConcurrentQueue<string> exceptionQueue, string cacheFileDirectory, RARFileSystemServices services)
             {
                 _exceptionMessages = exceptionQueue;
                 _cacheFileDirectory = cacheFileDirectory;
-                _getAssemblyName = getAssemblyName;
-                _getRuntimeVersion = getRuntimeVersion;
-                _fileExists = fileExists;
+                _services = services;
             }
 
             /// <summary>
@@ -1125,11 +1101,11 @@ namespace Microsoft.Build.Tasks
 
                 try
                 {
-                    AssemblyNameExtension assemblyNameExtension = _getAssemblyName(referencePath);
+                    AssemblyNameExtension assemblyNameExtension = _services.GetAssemblyName(referencePath);
                     if (assemblyNameExtension != null)
                     {
                         AssemblyName assembly = assemblyNameExtension.AssemblyName;
-                        isWinMDFile = AssemblyInformation.IsWinMDFile(referencePath, _getRuntimeVersion, _fileExists, out imageRuntimeVersion, out isManagedWinMD);
+                        isWinMDFile = _services.IsWinMDFile(referencePath, out imageRuntimeVersion, out isManagedWinMD);
                         if (assembly != null)
                         {
                             fusionName = assembly.FullName;

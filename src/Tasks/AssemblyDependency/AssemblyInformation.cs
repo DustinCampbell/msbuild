@@ -226,45 +226,6 @@ namespace Microsoft.Build.Tasks
             }
         }
 
-        /// <summary>
-        /// Determine if an file is a winmd file or not.
-        /// </summary>
-        internal static bool IsWinMDFile(
-            string fullPath,
-            GetAssemblyRuntimeVersion getAssemblyRuntimeVersion,
-            FileExists fileExists,
-            out string imageRuntimeVersion,
-            out bool isManagedWinmd)
-        {
-            imageRuntimeVersion = String.Empty;
-            isManagedWinmd = false;
-
-            if (!NativeMethodsShared.IsWindows)
-            {
-                return false;
-            }
-
-            // May be null or empty is the file was never resolved to a path on disk.
-            if (!String.IsNullOrEmpty(fullPath) && fileExists(fullPath))
-            {
-                imageRuntimeVersion = getAssemblyRuntimeVersion(fullPath);
-                if (!String.IsNullOrEmpty(imageRuntimeVersion))
-                {
-                    bool containsWindowsRuntime = imageRuntimeVersion.IndexOf(
-                        "WindowsRuntime",
-                        StringComparison.OrdinalIgnoreCase) >= 0;
-
-                    if (containsWindowsRuntime)
-                    {
-                        isManagedWinmd = imageRuntimeVersion.IndexOf("CLR", StringComparison.OrdinalIgnoreCase) >= 0;
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
 #if !FEATURE_ASSEMBLYLOADCONTEXT
         /// <summary>
         /// Collects the metadata and attributes for specified assembly.
