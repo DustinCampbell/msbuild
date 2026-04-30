@@ -26,10 +26,6 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
     {
         internal Microsoft.Build.UnitTests.MockEngine.GetStringDelegate resourceDelegate = new Microsoft.Build.UnitTests.MockEngine.GetStringDelegate(AssemblyResources.GetString);
 
-        // Delegate instances that wrap the static methods. Used by tests that call low-level APIs requiring delegates.
-        internal static readonly Microsoft.Build.Shared.FileExists fileExists = new Microsoft.Build.Shared.FileExists(FileExists);
-        internal static readonly Microsoft.Build.Tasks.GetAssemblyRuntimeVersion getRuntimeVersion = new Microsoft.Build.Tasks.GetAssemblyRuntimeVersion(GetRuntimeVersion);
-
         /// <summary>
         /// Default test services instance that calls the fixture's static methods.
         /// Most tests use this. Tests needing custom behavior create their own TestRARFileSystemServices with overrides.

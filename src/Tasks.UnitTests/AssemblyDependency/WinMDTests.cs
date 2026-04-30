@@ -33,7 +33,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             string imageRuntime;
             bool isManagedWinMD;
-            Assert.False(AssemblyInformation.IsWinMDFile(null, getRuntimeVersion, fileExists, out imageRuntime, out isManagedWinMD));
+            Assert.False(AssemblyInformation.IsWinMDFile(null, testServices.GetAssemblyRuntimeVersion, testServices.FileExists, out imageRuntime, out isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -45,7 +45,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             string imageRuntime;
             bool isManagedWinMD;
-            Assert.False(AssemblyInformation.IsWinMDFile(String.Empty, getRuntimeVersion, fileExists, out imageRuntime, out isManagedWinMD));
+            Assert.False(AssemblyInformation.IsWinMDFile(String.Empty, testServices.GetAssemblyRuntimeVersion, testServices.FileExists, out imageRuntime, out isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -57,7 +57,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             string imageRuntime;
             bool isManagedWinMD;
-            Assert.False(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleDoesNotExist.Winmd", getRuntimeVersion, fileExists, out imageRuntime, out isManagedWinMD));
+            Assert.False(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleDoesNotExist.Winmd", testServices.GetAssemblyRuntimeVersion, testServices.FileExists, out imageRuntime, out isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -69,7 +69,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             string imageRuntime;
             bool isManagedWinMD;
-            Assert.True(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", getRuntimeVersion, fileExists, out imageRuntime, out isManagedWinMD));
+            Assert.True(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", testServices.GetAssemblyRuntimeVersion, testServices.FileExists, out imageRuntime, out isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -81,7 +81,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             string imageRuntime;
             bool isManagedWinMD;
-            Assert.True(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleWindowsRuntimeAndCLR.Winmd", getRuntimeVersion, fileExists, out imageRuntime, out isManagedWinMD));
+            Assert.True(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleWindowsRuntimeAndCLR.Winmd", testServices.GetAssemblyRuntimeVersion, testServices.FileExists, out imageRuntime, out isManagedWinMD));
             Assert.True(isManagedWinMD);
         }
 
@@ -93,7 +93,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             string imageRuntime;
             bool isManagedWinMD;
-            Assert.False(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleClrOnly.Winmd", getRuntimeVersion, fileExists, out imageRuntime, out isManagedWinMD));
+            Assert.False(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleClrOnly.Winmd", testServices.GetAssemblyRuntimeVersion, testServices.FileExists, out imageRuntime, out isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -105,7 +105,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             string imageRuntime;
             bool isManagedWinMD;
-            Assert.False(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleBadWindowsRuntime.Winmd", getRuntimeVersion, fileExists, out imageRuntime, out isManagedWinMD));
+            Assert.False(AssemblyInformation.IsWinMDFile(@"C:\WinMD\SampleBadWindowsRuntime.Winmd", testServices.GetAssemblyRuntimeVersion, testServices.FileExists, out imageRuntime, out isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -117,7 +117,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             string imageRuntime;
             bool isManagedWinMD;
-            Assert.False(AssemblyInformation.IsWinMDFile(@"C:\Framework\Whidbey\System.dll", getRuntimeVersion, fileExists, out imageRuntime, out isManagedWinMD));
+            Assert.False(AssemblyInformation.IsWinMDFile(@"C:\Framework\Whidbey\System.dll", testServices.GetAssemblyRuntimeVersion, testServices.FileExists, out imageRuntime, out isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
