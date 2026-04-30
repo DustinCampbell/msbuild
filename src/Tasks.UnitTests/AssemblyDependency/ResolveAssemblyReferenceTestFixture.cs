@@ -24,51 +24,53 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 {
     public class ResolveAssemblyReferenceTestFixture : IDisposable
     {
-        // Create the mocks.
-        internal static Microsoft.Build.Shared.FileExists fileExists = new Microsoft.Build.Shared.FileExists(FileExists);
-        internal static Microsoft.Build.Shared.DirectoryExists directoryExists = new Microsoft.Build.Shared.DirectoryExists(DirectoryExists);
-        internal static Microsoft.Build.Tasks.GetDirectories getDirectories = new Microsoft.Build.Tasks.GetDirectories(GetDirectories);
-        internal static Microsoft.Build.Tasks.GetAssemblyName getAssemblyName = new Microsoft.Build.Tasks.GetAssemblyName(GetAssemblyName);
-        internal static Microsoft.Build.Tasks.GetAssemblyMetadata getAssemblyMetadata = new Microsoft.Build.Tasks.GetAssemblyMetadata(GetAssemblyMetadata);
-#if FEATURE_WIN32_REGISTRY
-        internal static Microsoft.Build.Shared.GetRegistrySubKeyNames getRegistrySubKeyNames = new Microsoft.Build.Shared.GetRegistrySubKeyNames(GetRegistrySubKeyNames);
-        internal static Microsoft.Build.Shared.GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue = new Microsoft.Build.Shared.GetRegistrySubKeyDefaultValue(GetRegistrySubKeyDefaultValue);
-#endif
-        internal static Microsoft.Build.Tasks.GetLastWriteTime getLastWriteTime = new Microsoft.Build.Tasks.GetLastWriteTime(GetLastWriteTime);
-        internal static Microsoft.Build.Tasks.GetAssemblyRuntimeVersion getRuntimeVersion = new Microsoft.Build.Tasks.GetAssemblyRuntimeVersion(GetRuntimeVersion);
-        internal static Microsoft.Build.Tasks.GetAssemblyPathInGac checkIfAssemblyIsInGac = new Microsoft.Build.Tasks.GetAssemblyPathInGac(GetPathForAssemblyInGac);
-#if FEATURE_WIN32_REGISTRY
-        internal static Microsoft.Build.Shared.OpenBaseKey openBaseKey = new Microsoft.Build.Shared.OpenBaseKey(GetBaseKey);
-#endif
         internal Microsoft.Build.UnitTests.MockEngine.GetStringDelegate resourceDelegate = new Microsoft.Build.UnitTests.MockEngine.GetStringDelegate(AssemblyResources.GetString);
-        internal static Microsoft.Build.Tasks.IsWinMDFile isWinMDFile = new Microsoft.Build.Tasks.IsWinMDFile(IsWinMDFile);
-        internal static Microsoft.Build.Tasks.ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader = new Microsoft.Build.Tasks.ReadMachineTypeFromPEHeader(ReadMachineTypeFromPEHeader);
+
+        // Delegate instances that wrap the static methods. Used by tests that call low-level APIs requiring delegates.
+        internal static readonly Microsoft.Build.Shared.FileExists fileExists = new Microsoft.Build.Shared.FileExists(FileExists);
+        internal static readonly Microsoft.Build.Tasks.GetAssemblyRuntimeVersion getRuntimeVersion = new Microsoft.Build.Tasks.GetAssemblyRuntimeVersion(GetRuntimeVersion);
 
         /// <summary>
-        /// Test services instance that wraps the delegate fields for tests that need RARFileSystemServices.
+        /// Default test services instance that calls the fixture's static methods.
+        /// Most tests use this. Tests needing custom behavior create their own TestRARFileSystemServices with overrides.
         /// </summary>
         internal static RARFileSystemServices testServices = new TestRARFileSystemServices();
 
         /// <summary>
-        /// A test implementation of RARFileSystemServices that delegates to the delegate fields.
-        /// This allows tests to temporarily swap delegates (e.g., in GenerateHelperDelegatesAndExecuteTask).
+        /// A test implementation of RARFileSystemServices that calls the fixture's static methods.
+        /// For tests needing custom behavior, pass Func overrides to the constructor.
         /// </summary>
-        private sealed class TestRARFileSystemServices : RARFileSystemServices
+        internal sealed class TestRARFileSystemServices : RARFileSystemServices
         {
-            public override bool FileExists(string path) => fileExists(path);
-            public override bool DirectoryExists(string path) => directoryExists(path);
-            public override string[] GetDirectories(string path, string searchPattern) => getDirectories(path, searchPattern);
-            public override AssemblyNameExtension GetAssemblyName(string path) => getAssemblyName(path);
-            public override void GetAssemblyMetadata(string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkNameAttribute) => getAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
-            public override DateTime GetLastWriteTime(string path) => getLastWriteTime(path);
-            public override string GetAssemblyRuntimeVersion(string path) => getRuntimeVersion(path);
-            public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd) => isWinMDFile(fullPath, getRuntimeVersion, fileExists, out imageRuntimeVersion, out isManagedWinmd);
-            public override ushort ReadMachineTypeFromPEHeader(string dllPath) => readMachineTypeFromPEHeader(dllPath);
-            public override string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, Version targetedRuntimeVersion, bool fullFusionName, bool specificVersion) => checkIfAssemblyIsInGac(assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, fullFusionName, specificVersion);
+            private readonly Func<string, bool> _fileExists;
+            private readonly Func<string, AssemblyNameExtension> _getAssemblyName;
+
+            /// <summary>
+            /// Creates test services with optional overrides for specific operations.
+            /// Pass null for any parameter to use the default fixture implementation.
+            /// </summary>
+            public TestRARFileSystemServices(
+                Func<string, bool> fileExists = null,
+                Func<string, AssemblyNameExtension> getAssemblyName = null)
+            {
+                _fileExists = fileExists ?? ResolveAssemblyReferenceTestFixture.FileExists;
+                _getAssemblyName = getAssemblyName ?? ResolveAssemblyReferenceTestFixture.GetAssemblyName;
+            }
+
+            public override bool FileExists(string path) => _fileExists(path);
+            public override bool DirectoryExists(string path) => ResolveAssemblyReferenceTestFixture.DirectoryExists(path);
+            public override string[] GetDirectories(string path, string searchPattern) => ResolveAssemblyReferenceTestFixture.GetDirectories(path, searchPattern);
+            public override AssemblyNameExtension GetAssemblyName(string path) => _getAssemblyName(path);
+            public override void GetAssemblyMetadata(string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkNameAttribute) => ResolveAssemblyReferenceTestFixture.GetAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
+            public override DateTime GetLastWriteTime(string path) => FileExists(path) ? DateTime.FromFileTimeUtc(1) : DateTime.FromFileTimeUtc(0);
+            public override string GetAssemblyRuntimeVersion(string path) => ResolveAssemblyReferenceTestFixture.GetRuntimeVersion(path);
+            public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd) => ResolveAssemblyReferenceTestFixture.IsWinMDFile(fullPath, GetAssemblyRuntimeVersion, FileExists, out imageRuntimeVersion, out isManagedWinmd);
+            public override ushort ReadMachineTypeFromPEHeader(string dllPath) => ResolveAssemblyReferenceTestFixture.ReadMachineTypeFromPEHeader(dllPath);
+            public override string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, Version targetedRuntimeVersion, bool fullFusionName, bool specificVersion) => ResolveAssemblyReferenceTestFixture.GetPathForAssemblyInGac(assemblyName, targetProcessorArchitecture, GetAssemblyRuntimeVersion, targetedRuntimeVersion, FileExists, fullFusionName, specificVersion);
 #if FEATURE_WIN32_REGISTRY
-            public override RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view) => openBaseKey(hive, view);
-            public override IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey) => getRegistrySubKeyNames(baseKey, subKey);
-            public override string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey) => getRegistrySubKeyDefaultValue(baseKey, subKey);
+            public override RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view) => ResolveAssemblyReferenceTestFixture.GetBaseKey(hive, view);
+            public override IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey) => ResolveAssemblyReferenceTestFixture.GetRegistrySubKeyNames(baseKey, subKey);
+            public override string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey) => ResolveAssemblyReferenceTestFixture.GetRegistrySubKeyDefaultValue(baseKey, subKey);
 #endif
         }
 
@@ -2941,16 +2943,6 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 #endif
 
         /// <summary>
-        /// Delegate for System.IO.File.GetLastWriteTime
-        /// </summary>
-        /// <param name="path">The file name</param>
-        /// <returns>The last write time.</returns>
-        private static DateTime GetLastWriteTime(string path)
-        {
-            return fileExists(path) ? DateTime.FromFileTimeUtc(1) : DateTime.FromFileTimeUtc(0);
-        }
-
-        /// <summary>
         /// Write out an appConfig file.
         /// Return the filename that was written.
         /// </summary>
@@ -2996,7 +2988,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// </remarks>
         protected static bool Execute(ResolveAssemblyReference t, RARSimulationMode RARSimulationMode = RARSimulationMode.LoadAndBuildProject)
         {
-            return Execute(t, true, RARSimulationMode);
+            return Execute(t, testServices, true, RARSimulationMode);
+        }
+
+        /// <summary>
+        /// Execute the task with custom services.
+        /// </summary>
+        internal static bool Execute(ResolveAssemblyReference t, RARFileSystemServices services, RARSimulationMode RARSimulationMode = RARSimulationMode.LoadAndBuildProject)
+        {
+            return Execute(t, services, true, RARSimulationMode);
         }
 
         [Flags]
@@ -3012,6 +3012,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// This is because profiles could cause the number of primary references to be different.
         /// </summary>
         protected static bool Execute(ResolveAssemblyReference t, bool buildConsistencyCheck, RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
+        {
+            return Execute(t, testServices, buildConsistencyCheck, rarSimulationMode);
+        }
+
+        /// <summary>
+        /// Execute the task with custom services and optional consistency check.
+        /// </summary>
+        internal static bool Execute(ResolveAssemblyReference t, RARFileSystemServices services, bool buildConsistencyCheck, RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
         {
             string tempPath = Path.GetTempPath();
             string redistListPath = Path.Combine(tempPath, Guid.NewGuid() + ".xml");
@@ -3039,7 +3047,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     t.FindSerializationAssemblies = false;
                     t.FindRelatedFiles = false;
                     t.StateFile = null;
-                    t.Execute(testServices);
+                    t.Execute(services);
 
                     // A few checks. These should always be true or it may be a perf issue for project load.
                     ITaskItem[] loadModeResolvedFiles = Array.Empty<TaskItem>();
@@ -3081,7 +3089,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     string cache = rarCacheFile;
                     t.StateFile = cache;
                     File.Delete(t.StateFile);
-                    succeeded = t.Execute(testServices);
+                    succeeded = t.Execute(services);
                     if (FileUtilities.FileExistsNoThrow(t.StateFile))
                     {
                         Assert.Single(t.FilesWritten);

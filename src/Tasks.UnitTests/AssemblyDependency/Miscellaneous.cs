@@ -3404,13 +3404,6 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Create the engine.
             MockEngine engine = new MockEngine(_output);
 
-            // Create the mocks.
-            Microsoft.Build.Shared.FileExists fileExists = new Microsoft.Build.Shared.FileExists(FileExists);
-            Microsoft.Build.Shared.DirectoryExists directoryExists = new Microsoft.Build.Shared.DirectoryExists(DirectoryExists);
-            Microsoft.Build.Tasks.GetDirectories getDirectories = new Microsoft.Build.Tasks.GetDirectories(GetDirectories);
-            Microsoft.Build.Tasks.GetAssemblyName getAssemblyName = new Microsoft.Build.Tasks.GetAssemblyName(GetAssemblyName);
-            Microsoft.Build.Tasks.GetAssemblyMetadata getAssemblyMetadata = new Microsoft.Build.Tasks.GetAssemblyMetadata(GetAssemblyMetadata);
-
             // Also construct a set of assembly names to pass in.
             ITaskItem[] assemblyNames = new TaskItem[]
             {
@@ -5360,31 +5353,23 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             };
             t.TargetFrameworkDirectories = new string[] { @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx" };
 
-            FileExists cachedFileExists = fileExists;
-            GetAssemblyName cachedGetAssemblyName = getAssemblyName;
             string redistFile = CreateGenericRedistList();
 
             bool success = false;
             try
             {
-                fileExists = new FileExists(delegate (string path)
-                {
-                    if (String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
+                var customServices = new TestRARFileSystemServices(
+                    fileExists: path =>
+                        String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
                         String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\System.Xml.dll", StringComparison.OrdinalIgnoreCase) ||
-                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                    return false;
-                });
+                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase));
+
                 t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(redistFile) };
 
-                success = Execute(t);
+                success = Execute(t, customServices);
             }
             finally
             {
-                fileExists = cachedFileExists;
-                getAssemblyName = cachedGetAssemblyName;
                 File.Delete(redistFile);
             }
 
@@ -5419,9 +5404,6 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             };
             t.TargetFrameworkDirectories = new string[] { @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx" };
 
-            FileExists cachedFileExists = fileExists;
-            GetAssemblyName cachedGetAssemblyName = getAssemblyName;
-
             // Create a redist list which will contains both of the assemblies to search for
             string redistListContents =
                     "<FileList Redist='Microsoft-Windows-CLRCoreComp' >" +
@@ -5436,42 +5418,35 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             bool success = false;
             try
             {
-                fileExists = new FileExists(delegate (string path)
-                {
-                    if (String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
+                var customServices = new TestRARFileSystemServices(
+                    fileExists: path =>
+                        String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
                         String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\System.Xml.dll", StringComparison.OrdinalIgnoreCase) ||
                         String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\B.dll", StringComparison.OrdinalIgnoreCase) ||
                         String.Equals(path, @"c:\somewhere\c.dll", StringComparison.OrdinalIgnoreCase) ||
                         String.Equals(path, @"c:\somewhere\d.dll", StringComparison.OrdinalIgnoreCase) ||
-                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
+                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),
+                    getAssemblyName: path =>
                     {
-                        return true;
-                    }
-                    return false;
-                });
+                        if (String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\B.dll", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return new AssemblyNameExtension("B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+                        }
 
-                getAssemblyName = new GetAssemblyName(delegate (string path)
-                {
-                    if (String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\B.dll", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return new AssemblyNameExtension("B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-                    }
+                        if (String.Equals(path, @"c:\somewhere\d.dll", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return new AssemblyNameExtension("D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+                        }
 
-                    if (String.Equals(path, @"c:\somewhere\d.dll", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return new AssemblyNameExtension("D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-                    }
+                        return null;
+                    });
 
-                    return null;
-                });
                 t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(redistFile) };
 
-                success = Execute(t);
+                success = Execute(t, customServices);
             }
             finally
             {
-                fileExists = cachedFileExists;
-                getAssemblyName = cachedGetAssemblyName;
                 File.Delete(redistFile);
             }
 
@@ -6223,44 +6198,26 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Only the explicitly specified redist list should be used
             t.IgnoreDefaultInstalledAssemblyTables = true;
 
-            FileExists cachedFileExists = fileExists;
-            GetAssemblyName cachedGetAssemblyName = getAssemblyName;
-
-            fileExists = new FileExists(delegate (string path)
-            {
-                if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
+            var customServices = new TestRARFileSystemServices(
+                fileExists: path =>
+                    String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
                     String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
-                    path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
+                    path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),
+                getAssemblyName: path =>
                 {
-                    return true;
-                }
-                return false;
-            });
+                    if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+                    }
+                    else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+                    }
 
-            getAssemblyName = new GetAssemblyName(delegate (string path)
-            {
-                if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
-                {
-                    return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-                }
-                else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
-                {
-                    return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-                }
+                    return null;
+                });
 
-                return null;
-            });
-
-            bool success;
-            try
-            {
-                success = Execute(t);
-            }
-            finally
-            {
-                fileExists = cachedFileExists;
-                getAssemblyName = cachedGetAssemblyName;
-            }
+            bool success = Execute(t, customServices);
 
             Assert.True(success); // "Expected no errors."
             Assert.Single(t.ResolvedFiles); // "Expected one resolved assembly."
@@ -7122,49 +7079,31 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         /// <summary>
-        /// Generate helper delegates for returning the file existence and the assembly name.
-        /// Also run the rest and return the result.
+        /// Generate helper services for returning the file existence and the assembly name.
+        /// Also run the test and return the result.
         /// </summary>
         private bool GenerateHelperDelegatesAndExecuteTask(ResolveAssemblyReference t, string microsoftBuildEnginePath, string systemXmlPath)
         {
-            FileExists cachedFileExists = fileExists;
-            GetAssemblyName cachedGetAssemblyName = getAssemblyName;
-            fileExists = new FileExists(delegate (string path)
-            {
-                if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
+            var customServices = new TestRARFileSystemServices(
+                fileExists: path =>
+                    String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
                     String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
-                    path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
+                    path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),
+                getAssemblyName: path =>
                 {
-                    return true;
-                }
-                return false;
-            });
+                    if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+                    }
+                    else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+                    }
 
-            getAssemblyName = new GetAssemblyName(delegate (string path)
-            {
-                if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
-                {
-                    return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-                }
-                else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
-                {
-                    return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-                }
+                    return null;
+                });
 
-                return null;
-            });
-
-            bool success;
-            try
-            {
-                success = Execute(t);
-            }
-            finally
-            {
-                fileExists = cachedFileExists;
-                getAssemblyName = cachedGetAssemblyName;
-            }
-            return success;
+            return Execute(t, customServices);
         }
 
         /// <summary>
@@ -7416,43 +7355,26 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(redistListPath) };
 
-                FileExists cachedFileExists = fileExists;
-                GetAssemblyName cachedGetAssemblyName = getAssemblyName;
-
                 // Note that Microsoft.Build.Engine.dll does not exist
-                fileExists = new FileExists(delegate (string path)
-                {
-                    if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) || path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
+                var customServices = new TestRARFileSystemServices(
+                    fileExists: path =>
+                        String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
+                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),
+                    getAssemblyName: path =>
                     {
-                        return true;
-                    }
-                    return false;
-                });
+                        if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+                        }
+                        else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+                        }
 
-                getAssemblyName = new GetAssemblyName(delegate (string path)
-                {
-                    if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-                    }
-                    else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-                    }
+                        return null;
+                    });
 
-                    return null;
-                });
-
-                bool success;
-                try
-                {
-                    success = Execute(t);
-                }
-                finally
-                {
-                    fileExists = cachedFileExists;
-                    getAssemblyName = cachedGetAssemblyName;
-                }
+                bool success = Execute(t, customServices);
 
                 Assert.True(success); // "Expected no errors."
                 Assert.Single(t.ResolvedFiles); // "Expected one resolved assembly."
