@@ -30,6 +30,11 @@ namespace Microsoft.Build.Tasks.AssemblyFoldersFromConfig
                 RegexOptions.IgnoreCase | RegexOptions.Compiled));
 
         /// <summary>
+        /// Cached file exists delegate, can be replaced by cache.
+        /// </summary>
+        private FileExists _fileExists;
+
+        /// <summary>
         /// Whether or not the search path could be cracked.
         /// </summary>
         private bool _wasMatch;
@@ -72,16 +77,16 @@ namespace Microsoft.Build.Tasks.AssemblyFoldersFromConfig
         /// <summary>
         /// Construct.
         /// </summary>
-        public AssemblyFoldersFromConfigResolver(string searchPathElement, GetAssemblyName getAssemblyName,
-            FileExists fileExists, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVesion,
+        public AssemblyFoldersFromConfigResolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion,
             ProcessorArchitecture targetProcessorArchitecture, bool compareProcessorArchitecture,
             IBuildEngine buildEngine, TaskLoggingHelper log)
             : base(
-                searchPathElement, getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVesion,
+                searchPathElement, services, targetedRuntimeVesion,
                 targetProcessorArchitecture, compareProcessorArchitecture)
         {
             _buildEngine = buildEngine as IBuildEngine4;
             _taskLogger = log;
+            _fileExists = services.FileExists;
         }
 
         /// <summary>
@@ -133,7 +138,7 @@ namespace Microsoft.Build.Tasks.AssemblyFoldersFromConfig
                         try
                         {
                             AssemblyFoldersFromConfig assemblyFolders = new AssemblyFoldersFromConfig(_assemblyFolderConfigFile, _targetRuntimeVersion, targetProcessorArchitecture);
-                            _assemblyFoldersCache = new AssemblyFoldersFromConfigCache(assemblyFolders, fileExists);
+                            _assemblyFoldersCache = new AssemblyFoldersFromConfigCache(assemblyFolders, _fileExists);
                             if (useCache)
                             {
                                 _buildEngine?.RegisterTaskObject(key, _assemblyFoldersCache, RegisteredTaskObjectLifetime.Build, true /* dispose early ok*/);
@@ -146,7 +151,7 @@ namespace Microsoft.Build.Tasks.AssemblyFoldersFromConfig
                         }
                     }
 
-                    fileExists = _assemblyFoldersCache.FileExists;
+                    _fileExists = _assemblyFoldersCache.FileExists;
                 }
             }
         }
@@ -198,7 +203,7 @@ namespace Microsoft.Build.Tasks.AssemblyFoldersFromConfig
                                 }
 
                                 // Lets see if the processor architecture matches, note this this method will cache the result when it was first called.
-                                AssemblyNameExtension foundAssembly = getAssemblyName(candidatePath);
+                                AssemblyNameExtension foundAssembly = services.GetAssemblyName(candidatePath);
 
                                 // If the processor architecture does not match then we should continue to see if there is a better match.
                                 if (foundAssembly != null && (foundAssembly.AssemblyName.ProcessorArchitecture == ProcessorArchitecture.MSIL || foundAssembly.AssemblyName.ProcessorArchitecture == ProcessorArchitecture.None))

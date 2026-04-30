@@ -64,13 +64,13 @@ namespace Microsoft.Build.Tasks.UnitTests
 
             result.ShouldBe(false);
         }
+
         private bool ResolveHintPath(string hintPath)
         {
+            var services = new HintPathTestServices();
             var hintPathResolver = new HintPathResolver(
                 searchPathElement: "{HintPathFromItem}",
-                getAssemblyName: (path) => throw new NotImplementedException(), // not called in this code path
-                fileExists: p => FileUtilities.FileExistsNoThrow(p),
-                getRuntimeVersion: (path) => throw new NotImplementedException(), // not called in this code path
+                services: services,
                 targetedRuntimeVesion: Version.Parse("4.0.30319"));
 
             var result = hintPathResolver.Resolve(new AssemblyNameExtension("FakeSystem.Net.Http"),
@@ -86,6 +86,19 @@ namespace Microsoft.Build.Tasks.UnitTests
                 foundPath: out var findPath,
                 userRequestedSpecificFile: out var userResquestedSpecificFile);
             return result;
+        }
+
+        /// <summary>
+        /// Test services class that provides only FileExists functionality.
+        /// Other methods are not called in this code path.
+        /// </summary>
+        private sealed class HintPathTestServices : RARFileSystemServices
+        {
+            public override bool FileExists(string path) => FileUtilities.FileExistsNoThrow(path);
+
+            public override AssemblyNameExtension GetAssemblyName(string path) => throw new NotImplementedException("not called in this code path");
+
+            public override string GetAssemblyRuntimeVersion(string path) => throw new NotImplementedException("not called in this code path");
         }
     }
 }

@@ -300,4 +300,128 @@ namespace Microsoft.Build.Tasks
 
         #endregion
     }
+
+    /// <summary>
+    /// A wrapper around RARFileSystemServices that uses cached delegates for I/O operations.
+    /// This allows the caching infrastructure in ResolveAssemblyReference to be used
+    /// while still providing a services-based API to internal classes.
+    /// </summary>
+    internal sealed class CachedRARFileSystemServices : RARFileSystemServices
+    {
+        private readonly FileExists _fileExists;
+        private readonly DirectoryExists _directoryExists;
+        private readonly Tasks.GetDirectories _getDirectories;
+        private readonly GetAssemblyName _getAssemblyName;
+        private readonly GetAssemblyMetadata _getAssemblyMetadata;
+        private readonly Tasks.GetLastWriteTime _getLastWriteTime;
+        private readonly GetAssemblyRuntimeVersion _getRuntimeVersion;
+        private readonly Tasks.IsWinMDFile _isWinMDFile;
+        private readonly ReadMachineTypeFromPEHeader _readMachineTypeFromPEHeader;
+        private readonly GetAssemblyPathInGac _getAssemblyPathInGac;
+#if FEATURE_WIN32_REGISTRY
+        private readonly OpenBaseKey _openBaseKey;
+        private readonly Shared.GetRegistrySubKeyNames _getRegistrySubKeyNames;
+        private readonly Shared.GetRegistrySubKeyDefaultValue _getRegistrySubKeyDefaultValue;
+#endif
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CachedRARFileSystemServices"/> class
+        /// with the specified cached delegates.
+        /// </summary>
+        internal CachedRARFileSystemServices(
+            FileExists fileExists,
+            DirectoryExists directoryExists,
+            Tasks.GetDirectories getDirectories,
+            GetAssemblyName getAssemblyName,
+            GetAssemblyMetadata getAssemblyMetadata,
+            Tasks.GetLastWriteTime getLastWriteTime,
+            GetAssemblyRuntimeVersion getRuntimeVersion,
+            Tasks.IsWinMDFile isWinMDFile,
+            ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader,
+#if FEATURE_WIN32_REGISTRY
+            GetAssemblyPathInGac getAssemblyPathInGac,
+            OpenBaseKey openBaseKey,
+            Shared.GetRegistrySubKeyNames getRegistrySubKeyNames,
+            Shared.GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue)
+#else
+            GetAssemblyPathInGac getAssemblyPathInGac)
+#endif
+        {
+            _fileExists = fileExists;
+            _directoryExists = directoryExists;
+            _getDirectories = getDirectories;
+            _getAssemblyName = getAssemblyName;
+            _getAssemblyMetadata = getAssemblyMetadata;
+            _getLastWriteTime = getLastWriteTime;
+            _getRuntimeVersion = getRuntimeVersion;
+            _isWinMDFile = isWinMDFile;
+            _readMachineTypeFromPEHeader = readMachineTypeFromPEHeader;
+            _getAssemblyPathInGac = getAssemblyPathInGac;
+#if FEATURE_WIN32_REGISTRY
+            _openBaseKey = openBaseKey;
+            _getRegistrySubKeyNames = getRegistrySubKeyNames;
+            _getRegistrySubKeyDefaultValue = getRegistrySubKeyDefaultValue;
+#endif
+        }
+
+        /// <inheritdoc />
+        public override bool FileExists(string path) => _fileExists(path);
+
+        /// <inheritdoc />
+        public override bool DirectoryExists(string path) => _directoryExists(path);
+
+        /// <inheritdoc />
+        public override string[] GetDirectories(string path, string searchPattern) => _getDirectories(path, searchPattern);
+
+        /// <inheritdoc />
+        public override AssemblyNameExtension GetAssemblyName(string path) => _getAssemblyName(path);
+
+        /// <inheritdoc />
+        public override void GetAssemblyMetadata(
+            string path,
+            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
+            out AssemblyNameExtension[] dependencies,
+            out string[] scatterFiles,
+            out FrameworkName frameworkNameAttribute)
+        {
+            _getAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
+        }
+
+        /// <inheritdoc />
+        public override DateTime GetLastWriteTime(string path) => _getLastWriteTime(path);
+
+        /// <inheritdoc />
+        public override string GetAssemblyRuntimeVersion(string path) => _getRuntimeVersion(path);
+
+        /// <inheritdoc />
+        public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd)
+        {
+            return _isWinMDFile(fullPath, _getRuntimeVersion, _fileExists, out imageRuntimeVersion, out isManagedWinmd);
+        }
+
+        /// <inheritdoc />
+        public override ushort ReadMachineTypeFromPEHeader(string dllPath) => _readMachineTypeFromPEHeader(dllPath);
+
+        /// <inheritdoc />
+        public override string GetAssemblyPathInGac(
+            AssemblyNameExtension assemblyName,
+            System.Reflection.ProcessorArchitecture targetProcessorArchitecture,
+            Version targetedRuntimeVersion,
+            bool fullFusionName,
+            bool specificVersion)
+        {
+            return _getAssemblyPathInGac(assemblyName, targetProcessorArchitecture, _getRuntimeVersion, targetedRuntimeVersion, _fileExists, fullFusionName, specificVersion);
+        }
+
+#if FEATURE_WIN32_REGISTRY
+        /// <inheritdoc />
+        public override RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view) => _openBaseKey(hive, view);
+
+        /// <inheritdoc />
+        public override IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey) => _getRegistrySubKeyNames(baseKey, subKey);
+
+        /// <inheritdoc />
+        public override string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey) => _getRegistrySubKeyDefaultValue(baseKey, subKey);
+#endif
+    }
 }

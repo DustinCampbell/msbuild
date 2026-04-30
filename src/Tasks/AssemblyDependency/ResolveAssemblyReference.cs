@@ -2157,55 +2157,33 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Execute the task.
         /// </summary>
-        /// <param name="fileExists">Delegate used for checking for the existence of a file.</param>
-        /// <param name="directoryExists">Delegate used for checking for the existence of a directory.</param>
-        /// <param name="getDirectories">Delegate used for finding directories.</param>
-        /// <param name="getAssemblyName">Delegate used for finding fusion names of assemblyFiles.</param>
-        /// <param name="getAssemblyMetadata">Delegate used for finding dependencies of a file.</param>
-        /// <param name="getRegistrySubKeyNames">Used to get registry subkey names.</param>
-        /// <param name="getRegistrySubKeyDefaultValue">Used to get registry default values.</param>
-        /// <param name="getLastWriteTime">Delegate used to get the last write time.</param>
-        /// <param name="getRuntimeVersion">Delegate used to get the runtime version.</param>
-        /// <param name="openBaseKey">Key object to open.</param>
-        /// <param name="getAssemblyPathInGac">Delegate to get assembly path in the GAC.</param>
-        /// <param name="isWinMDFile">Delegate used for checking whether it is a WinMD file.</param>
-        /// <param name="readMachineTypeFromPEHeader">Delegate use to read machine type from PE Header</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <returns>True if there was success.</returns>
 #else
         /// <summary>
         /// Execute the task.
         /// </summary>
-        /// <param name="fileExists">Delegate used for checking for the existence of a file.</param>
-        /// <param name="directoryExists">Delegate used for checking for the existence of a directory.</param>
-        /// <param name="getDirectories">Delegate used for finding directories.</param>
-        /// <param name="getAssemblyName">Delegate used for finding fusion names of assemblyFiles.</param>
-        /// <param name="getAssemblyMetadata">Delegate used for finding dependencies of a file.</param>
-        /// <param name="getLastWriteTime">Delegate used to get the last write time.</param>
-        /// <param name="getRuntimeVersion">Delegate used to get the runtime version.</param>
-        /// <param name="getAssemblyPathInGac">Delegate to get assembly path in the GAC.</param>
-        /// <param name="isWinMDFile">Delegate used for checking whether it is a WinMD file.</param>
-        /// <param name="readMachineTypeFromPEHeader">Delegate use to read machine type from PE Header</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <returns>True if there was success.</returns>
 #endif
-        internal bool Execute(
-            FileExists fileExists,
-            DirectoryExists directoryExists,
-            GetDirectories getDirectories,
-            GetAssemblyName getAssemblyName,
-            GetAssemblyMetadata getAssemblyMetadata,
-#if FEATURE_WIN32_REGISTRY
-            GetRegistrySubKeyNames getRegistrySubKeyNames,
-            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
-#endif
-            GetLastWriteTime getLastWriteTime,
-            GetAssemblyRuntimeVersion getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-            OpenBaseKey openBaseKey,
-#endif
-            GetAssemblyPathInGac getAssemblyPathInGac,
-            IsWinMDFile isWinMDFile,
-            ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader)
+        internal bool Execute(RARFileSystemServices services)
         {
+            // Extract delegates from services for caching
+            FileExists fileExists = services.CreateFileExistsDelegate();
+            DirectoryExists directoryExists = services.CreateDirectoryExistsDelegate();
+            Tasks.GetDirectories getDirectories = services.CreateGetDirectoriesDelegate();
+            GetAssemblyName getAssemblyName = services.CreateGetAssemblyNameDelegate();
+            GetAssemblyMetadata getAssemblyMetadata = services.CreateGetAssemblyMetadataDelegate();
+            Tasks.GetLastWriteTime getLastWriteTime = services.CreateGetLastWriteTimeDelegate();
+            GetAssemblyRuntimeVersion getRuntimeVersion = services.CreateGetAssemblyRuntimeVersionDelegate();
+            Tasks.IsWinMDFile isWinMDFile = services.CreateIsWinMDFileDelegate();
+            ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader = services.CreateReadMachineTypeFromPEHeaderDelegate();
+            GetAssemblyPathInGac getAssemblyPathInGac = services.CreateGetAssemblyPathInGacDelegate();
+#if FEATURE_WIN32_REGISTRY
+            Shared.GetRegistrySubKeyNames getRegistrySubKeyNames = services.CreateGetRegistrySubKeyNamesDelegate();
+            Shared.GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue = services.CreateGetRegistrySubKeyDefaultValueDelegate();
+            OpenBaseKey openBaseKey = services.CreateOpenBaseKeyDelegate();
+#endif
             bool success = true;
             MSBuildEventSource.Log.RarOverallStart();
             {
@@ -2425,6 +2403,26 @@ namespace Microsoft.Build.Tasks
                             ? new ConcurrentDictionary<string, AssemblyMetadata>()
                             : null;
 
+                    // Create cached services instance using the cached delegates
+                    var cachedServices = new CachedRARFileSystemServices(
+                        fileExists,
+                        directoryExists,
+                        getDirectories,
+                        getAssemblyName,
+                        getAssemblyMetadata,
+                        getLastWriteTime,
+                        getRuntimeVersion,
+                        isWinMDFile,
+                        readMachineTypeFromPEHeader,
+#if FEATURE_WIN32_REGISTRY
+                        getAssemblyPathInGac,
+                        openBaseKey,
+                        getRegistrySubKeyNames,
+                        getRegistrySubKeyDefaultValue);
+#else
+                        getAssemblyPathInGac);
+#endif
+
                     // Start the table of dependencies with all of the primary references.
                     dependencyTable = new ReferenceTable(
                         BuildEngine,
@@ -2441,17 +2439,7 @@ namespace Microsoft.Build.Tasks
                         _targetFrameworkDirectories,
                         installedAssemblies,
                         processorArchitecture,
-                        fileExists,
-                        directoryExists,
-                        getDirectories,
-                        getAssemblyName,
-                        getAssemblyMetadata,
-#if FEATURE_WIN32_REGISTRY
-                        getRegistrySubKeyNames,
-                        getRegistrySubKeyDefaultValue,
-                        openBaseKey,
-#endif
-                        getRuntimeVersion,
+                        cachedServices,
                         targetedRuntimeVersion,
                         _projectTargetFramework,
                         frameworkMoniker,
@@ -2459,10 +2447,7 @@ namespace Microsoft.Build.Tasks
                         _latestTargetFrameworkDirectories,
                         _copyLocalDependenciesWhenParentReferenceInGac,
                         DoNotCopyLocalIfInGac,
-                        getAssemblyPathInGac,
-                        isWinMDFile,
                         _ignoreVersionForFrameworkReferences,
-                        readMachineTypeFromPEHeader,
                         _warnOrErrorOnTargetArchitectureMismatch,
                         _ignoreTargetFrameworkAttributeVersionMismatch,
                         _unresolveFrameworkAssembliesFromHigherFrameworks,
@@ -3278,34 +3263,6 @@ namespace Microsoft.Build.Tasks
             }
 
             return Execute(RARFileSystemServices.Default);
-        }
-
-        /// <summary>
-        /// Executes the ResolveAssemblyReference task using the specified file system services.
-        /// This overload allows tests to provide a custom services implementation.
-        /// </summary>
-        /// <param name="services">The file system services to use for I/O operations.</param>
-        /// <returns>True if the task succeeded; otherwise, false.</returns>
-        internal bool Execute(RARFileSystemServices services)
-        {
-            return Execute(
-                services.CreateFileExistsDelegate(),
-                services.CreateDirectoryExistsDelegate(),
-                services.CreateGetDirectoriesDelegate(),
-                services.CreateGetAssemblyNameDelegate(),
-                services.CreateGetAssemblyMetadataDelegate(),
-#if FEATURE_WIN32_REGISTRY
-                services.CreateGetRegistrySubKeyNamesDelegate(),
-                services.CreateGetRegistrySubKeyDefaultValueDelegate(),
-#endif
-                services.CreateGetLastWriteTimeDelegate(),
-                services.CreateGetAssemblyRuntimeVersionDelegate(),
-#if FEATURE_WIN32_REGISTRY
-                services.CreateOpenBaseKeyDelegate(),
-#endif
-                services.CreateGetAssemblyPathInGacDelegate(),
-                services.CreateIsWinMDFileDelegate(),
-                services.CreateReadMachineTypeFromPEHeaderDelegate());
         }
         #endregion
     }

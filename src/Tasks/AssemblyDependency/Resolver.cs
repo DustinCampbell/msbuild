@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -23,19 +23,9 @@ namespace Microsoft.Build.Tasks
         protected string searchPathElement;
 
         /// <summary>
-        /// Delegate.
+        /// The services instance providing file system and assembly operations.
         /// </summary>
-        protected GetAssemblyName getAssemblyName;
-
-        /// <summary>
-        /// Delegate.
-        /// </summary>
-        protected FileExists fileExists;
-
-        /// <summary>
-        /// Delegate
-        /// </summary>
-        protected GetAssemblyRuntimeVersion getRuntimeVersion;
+        protected RARFileSystemServices services;
 
         /// <summary>
         /// Runtime we are targeting
@@ -55,12 +45,10 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Construct.
         /// </summary>
-        protected Resolver(string searchPathElement, GetAssemblyName getAssemblyName, FileExists fileExists, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVersion, ProcessorArchitecture targetedProcessorArchitecture, bool compareProcessorArchitecture)
+        protected Resolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVersion, ProcessorArchitecture targetedProcessorArchitecture, bool compareProcessorArchitecture)
         {
             this.searchPathElement = searchPathElement;
-            this.getAssemblyName = getAssemblyName;
-            this.fileExists = fileExists;
-            this.getRuntimeVersion = getRuntimeVersion;
+            this.services = services;
             this.targetedRuntimeVersion = targetedRuntimeVersion;
             this.targetProcessorArchitecture = targetedProcessorArchitecture;
             this.compareProcessorArchitecture = compareProcessorArchitecture;
@@ -180,7 +168,7 @@ namespace Microsoft.Build.Tasks
 
             bool isSimpleAssemblyName = assemblyName?.IsSimpleName == true;
 
-            if (fileExists(pathToCandidateAssembly))
+            if (services.FileExists(pathToCandidateAssembly))
             {
                 // If the resolver we are using is targeting a given processor architecture then we must crack open the assembly and make sure the architecture is compatible
                 // We cannot do these simple name matches.
@@ -203,7 +191,7 @@ namespace Microsoft.Build.Tasks
                 AssemblyNameExtension targetAssemblyName = null;
                 try
                 {
-                    targetAssemblyName = getAssemblyName(pathToCandidateAssembly);
+                    targetAssemblyName = services.GetAssemblyName(pathToCandidateAssembly);
                 }
                 catch (FileLoadException)
                 {
@@ -351,7 +339,7 @@ namespace Microsoft.Build.Tasks
                         if (targetProcessorArchitecture == ProcessorArchitecture.MSIL)
                         {
                             // Lets see if the processor architecture matches
-                            AssemblyNameExtension foundAssembly = getAssemblyName(fullPath);
+                            AssemblyNameExtension foundAssembly = services.GetAssemblyName(fullPath);
 
                             // If the processor architecture does not match the we should continue to see if there is a better match.
                             if (foundAssembly?.AssemblyName.ProcessorArchitecture == ProcessorArchitecture.MSIL)

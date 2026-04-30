@@ -123,25 +123,13 @@ namespace Microsoft.Build.Tasks
         private HashSet<AssemblyRemapping> _remappedAssemblyNames = new HashSet<AssemblyRemapping>();
 
         /// <summary>
-        /// Delegate to determine if the file is a winmd file or not
+        /// The services instance providing file system and assembly operations.
         /// </summary>
-        private IsWinMDFile _isWinMDFile;
+        private RARFileSystemServices _services;
 
-        /// <summary>
-        /// Delegate to check to see if the file exists on disk
-        /// </summary>
-        private FileExists _fileExists;
-
-        /// <summary>
-        /// Delegate to get the imageruntime version from a file.
-        /// </summary>
-        private GetAssemblyRuntimeVersion _getRuntimeVersion;
-
-        internal Reference(IsWinMDFile isWinMDFile, FileExists fileExists, GetAssemblyRuntimeVersion getRuntimeVersion)
+        internal Reference(RARFileSystemServices services)
         {
-            _isWinMDFile = isWinMDFile;
-            _fileExists = fileExists;
-            _getRuntimeVersion = getRuntimeVersion;
+            _services = services;
         }
 
         /// <summary>
@@ -513,7 +501,7 @@ namespace Microsoft.Build.Tasks
                     }
                     else if (NativeMethodsShared.IsWindows)
                     {
-                        IsWinMDFile = _isWinMDFile(_fullPath, _getRuntimeVersion, _fileExists, out _imageRuntimeVersion, out _isManagedWinMDFile);
+                        IsWinMDFile = _services.IsWinMDFile(_fullPath, out _imageRuntimeVersion, out _isManagedWinMDFile);
                     }
                 }
             }
@@ -943,10 +931,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="assemblyName">The name of the assembly.</param>
         /// <param name="frameworkPaths">The framework paths.</param>
         /// <param name="targetProcessorArchitecture">Like x86 or IA64\AMD64.</param>
-        /// <param name="getRuntimeVersion">Delegate to get runtime version.</param>
         /// <param name="targetedRuntimeVersion">The targeted runtime version.</param>
-        /// <param name="fileExists">Delegate to check if a file exists.</param>
-        /// <param name="getAssemblyPathInGac">Delegate to get the path to an assembly in the system GAC.</param>
         /// <param name="copyLocalDependenciesWhenParentReferenceInGac">if set to true, copy local dependencies when only parent reference in gac.</param>
         /// <param name="doNotCopyLocalIfInGac">If set to true, do not copy local a reference that exists in the GAC (legacy behavior).</param>
         /// <param name="referenceTable">The reference table.</param>
@@ -954,10 +939,7 @@ namespace Microsoft.Build.Tasks
             AssemblyNameExtension assemblyName,
             string[] frameworkPaths,
             ProcessorArchitecture targetProcessorArchitecture,
-            GetAssemblyRuntimeVersion getRuntimeVersion,
             Version targetedRuntimeVersion,
-            FileExists fileExists,
-            GetAssemblyPathInGac getAssemblyPathInGac,
             bool copyLocalDependenciesWhenParentReferenceInGac,
             bool doNotCopyLocalIfInGac,
             ReferenceTable referenceTable)
@@ -1074,7 +1056,7 @@ namespace Microsoft.Build.Tasks
                         // Legacy behavior, don't copy local if the assembly is in the GAC at all
                         if (!primaryReference.FoundInGac.HasValue)
                         {
-                            primaryReference.FoundInGac = !string.IsNullOrEmpty(getAssemblyPathInGac(primaryAssemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, true, false));
+                            primaryReference.FoundInGac = !string.IsNullOrEmpty(_services.GetAssemblyPathInGac(primaryAssemblyName, targetProcessorArchitecture, targetedRuntimeVersion, fullFusionName: true, specificVersion: false));
                         }
 
                         if (!primaryReference.FoundInGac.Value)
@@ -1106,7 +1088,7 @@ namespace Microsoft.Build.Tasks
                 // Legacy behavior, don't copy local if the assembly is in the GAC at all
                 if (!FoundInGac.HasValue)
                 {
-                    FoundInGac = !string.IsNullOrEmpty(getAssemblyPathInGac(assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, true, false));
+                    FoundInGac = !string.IsNullOrEmpty(_services.GetAssemblyPathInGac(assemblyName, targetProcessorArchitecture, targetedRuntimeVersion, fullFusionName: true, specificVersion: false));
                 }
 
                 if (FoundInGac.Value)

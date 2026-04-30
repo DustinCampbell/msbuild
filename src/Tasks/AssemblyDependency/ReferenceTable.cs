@@ -91,30 +91,10 @@ namespace Microsoft.Build.Tasks
         private readonly InstalledAssemblies _installedAssemblies;
         /// <summary>Like x86 or IA64\AMD64, the processor architecture being targetted.</summary>
         private readonly SystemProcessorArchitecture _targetProcessorArchitecture;
-        /// <summary>Delegate used for checking for the existence of a file.</summary>
-        private readonly FileExists _fileExists;
-        /// <summary>Delegate used for checking for the existence of a directory.</summary>
-        private readonly DirectoryExists _directoryExists;
-        /// <summary>Delegate used for getting directories.</summary>
-        private readonly GetDirectories _getDirectories;
-        /// <summary>Delegate used for getting assembly names.</summary>
-        private readonly GetAssemblyName _getAssemblyName;
-        /// <summary>Delegate used for finding dependencies of a file.</summary>
-        private readonly GetAssemblyMetadata _getAssemblyMetadata;
-        /// <summary>Delegate used to get the image runtime version of a file</summary>
-        private readonly GetAssemblyRuntimeVersion _getRuntimeVersion;
+        /// <summary>The services instance providing file system and assembly operations.</summary>
+        private readonly RARFileSystemServices _services;
         /// <summary>Version of the runtime we are targeting</summary>
         private readonly Version _targetedRuntimeVersion;
-
-        /// <summary>
-        /// Delegate used to get the machineType from the PE header of the dll.
-        /// </summary>
-        private readonly ReadMachineTypeFromPEHeader _readMachineTypeFromPEHeader;
-
-        /// <summary>
-        /// Is the file a winMD file
-        /// </summary>
-        private readonly IsWinMDFile _isWinMDFile;
 
         /// <summary>Version of the framework targeted by this project.</summary>
         private readonly Version _projectTargetFramework;
@@ -147,11 +127,6 @@ namespace Microsoft.Build.Tasks
         private readonly bool _ignoreFrameworkAttributeVersionMismatch;
 
         /// <summary>
-        /// Delegate to determine if an assembly name is in the GAC.
-        /// </summary>
-        private readonly GetAssemblyPathInGac _getAssemblyPathInGac;
-
-        /// <summary>
         /// Contains the list of directories that should NOT be considered as custom culture directories.
         /// </summary>
         private readonly string[] _nonCultureResourceDirectories = [];
@@ -182,50 +157,6 @@ namespace Microsoft.Build.Tasks
         // PEHeader
         private const int PEHEADER = 0x00004550;
 
-#if FEATURE_WIN32_REGISTRY
-        /// <summary>
-        /// Construct.
-        /// </summary>
-        /// <param name="buildEngine"></param>
-        /// <param name="findDependencies">If true, then search for dependencies.</param>
-        /// <param name="findSatellites">If true, then search for satellite files.</param>
-        /// <param name="findSerializationAssemblies">If true, then search for serialization assembly files.</param>
-        /// <param name="findRelatedFiles">If true, then search for related files.</param>
-        /// <param name="enableCustomCulture">If true, custom culture processing is enabled.</param>
-        /// <param name="searchPaths">Paths to search for dependent assemblies on.</param>
-        /// <param name="relatedFileExtensions"></param>
-        /// <param name="candidateAssemblyFiles">List of literal assembly file names to be considered when SearchPaths has {CandidateAssemblyFiles}.</param>
-        /// <param name="resolvedSDKItems">Resolved sdk items</param>
-        /// <param name="frameworkPaths">Path to the FX.</param>
-        /// <param name="installedAssemblies">Installed assembly XML tables.</param>
-        /// <param name="targetProcessorArchitecture">Like x86 or IA64\AMD64, the processor architecture being targetted.</param>
-        /// <param name="fileExists">Delegate used for checking for the existence of a file.</param>
-        /// <param name="directoryExists">Delegate used for files.</param>
-        /// <param name="getDirectories">Delegate used for getting directories.</param>
-        /// <param name="getAssemblyName">Delegate used for getting assembly names.</param>
-        /// <param name="getAssemblyMetadata">Delegate used for finding dependencies of a file.</param>
-        /// <param name="getRegistrySubKeyNames">Used to get registry subkey names.</param>
-        /// <param name="getRegistrySubKeyDefaultValue">Used to get registry default values.</param>
-        /// <param name="openBaseKey"></param>
-        /// <param name="unresolveFrameworkAssembliesFromHigherFrameworks"></param>
-        /// <param name="assemblyMetadataCache">Cache of metadata already read from paths.</param>
-        /// <param name="allowedAssemblyExtensions"></param>
-        /// <param name="getRuntimeVersion"></param>
-        /// <param name="targetedRuntimeVersion">Version of the runtime to target.</param>
-        /// <param name="projectTargetFramework">Version of the framework targeted by the project.</param>
-        /// <param name="targetFrameworkMoniker">Target framework moniker we are targeting.</param>
-        /// <param name="log">Logging helper to allow the logging of meessages from the Reference Table.</param>
-        /// <param name="latestTargetFrameworkDirectories"></param>
-        /// <param name="copyLocalDependenciesWhenParentReferenceInGac"></param>
-        /// <param name="doNotCopyLocalIfInGac"></param>
-        /// <param name="getAssemblyPathInGac"></param>
-        /// <param name="isWinMDFile"></param>
-        /// <param name="ignoreVersionForFrameworkReferences"></param>
-        /// <param name="readMachineTypeFromPEHeader"></param>
-        /// <param name="warnOrErrorOnTargetArchitectureMismatch"></param>
-        /// <param name="ignoreFrameworkAttributeVersionMismatch"></param>
-        /// <param name="nonCultureResourceDirectories"></param>
-#else
         /// <summary>
         /// Construct.
         /// </summary>
@@ -242,15 +173,10 @@ namespace Microsoft.Build.Tasks
         /// <param name="frameworkPaths">Path to the FX.</param>
         /// <param name="installedAssemblies">Installed assembly XML tables.</param>
         /// <param name="targetProcessorArchitecture">Like x86 or IA64\AMD64, the processor architecture being targeted.</param>
-        /// <param name="fileExists">Delegate used for checking for the existence of a file.</param>
-        /// <param name="directoryExists">Delegate used for files.</param>
-        /// <param name="getDirectories">Delegate used for getting directories.</param>
-        /// <param name="getAssemblyName">Delegate used for getting assembly names.</param>
-        /// <param name="getAssemblyMetadata">Delegate used for finding dependencies of a file.</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="unresolveFrameworkAssembliesFromHigherFrameworks"></param>
         /// <param name="assemblyMetadataCache">Cache of metadata already read from paths.</param>
         /// <param name="allowedAssemblyExtensions"></param>
-        /// <param name="getRuntimeVersion"></param>
         /// <param name="targetedRuntimeVersion">Version of the runtime to target.</param>
         /// <param name="projectTargetFramework">Version of the framework targeted by the project.</param>
         /// <param name="targetFrameworkMoniker">Target framework moniker we are targeting.</param>
@@ -258,14 +184,10 @@ namespace Microsoft.Build.Tasks
         /// <param name="latestTargetFrameworkDirectories"></param>
         /// <param name="copyLocalDependenciesWhenParentReferenceInGac"></param>
         /// <param name="doNotCopyLocalIfInGac"></param>
-        /// <param name="getAssemblyPathInGac"></param>
-        /// <param name="isWinMDFile"></param>
         /// <param name="ignoreVersionForFrameworkReferences"></param>
-        /// <param name="readMachineTypeFromPEHeader"></param>
         /// <param name="warnOrErrorOnTargetArchitectureMismatch"></param>
         /// <param name="ignoreFrameworkAttributeVersionMismatch"></param>
         /// <param name="nonCultureResourceDirectories"></param>
-#endif
         internal ReferenceTable(
             IBuildEngine buildEngine,
             bool findDependencies,
@@ -281,17 +203,7 @@ namespace Microsoft.Build.Tasks
             string[] frameworkPaths,
             InstalledAssemblies installedAssemblies,
             System.Reflection.ProcessorArchitecture targetProcessorArchitecture,
-            FileExists fileExists,
-            DirectoryExists directoryExists,
-            GetDirectories getDirectories,
-            GetAssemblyName getAssemblyName,
-            GetAssemblyMetadata getAssemblyMetadata,
-#if FEATURE_WIN32_REGISTRY
-            GetRegistrySubKeyNames getRegistrySubKeyNames,
-            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
-            OpenBaseKey openBaseKey,
-#endif
-            GetAssemblyRuntimeVersion getRuntimeVersion,
+            RARFileSystemServices services,
             Version targetedRuntimeVersion,
             Version projectTargetFramework,
             FrameworkNameVersioning targetFrameworkMoniker,
@@ -299,10 +211,7 @@ namespace Microsoft.Build.Tasks
             string[] latestTargetFrameworkDirectories,
             bool copyLocalDependenciesWhenParentReferenceInGac,
             bool doNotCopyLocalIfInGac,
-            GetAssemblyPathInGac getAssemblyPathInGac,
-            IsWinMDFile isWinMDFile,
             bool ignoreVersionForFrameworkReferences,
-            ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader,
             WarnOrErrorOnTargetArchitectureMismatchBehavior warnOrErrorOnTargetArchitectureMismatch,
             bool ignoreFrameworkAttributeVersionMismatch,
             bool unresolveFrameworkAssembliesFromHigherFrameworks,
@@ -319,21 +228,13 @@ namespace Microsoft.Build.Tasks
             _relatedFileExtensions = relatedFileExtensions;
             _installedAssemblies = installedAssemblies;
             _targetProcessorArchitecture = targetProcessorArchitecture;
-            _fileExists = fileExists;
-            _directoryExists = directoryExists;
-            _getDirectories = getDirectories;
-            _getAssemblyName = getAssemblyName;
-            _getAssemblyMetadata = getAssemblyMetadata;
-            _getRuntimeVersion = getRuntimeVersion;
+            _services = services;
             _projectTargetFramework = projectTargetFramework;
             _targetedRuntimeVersion = targetedRuntimeVersion;
             _targetFrameworkMoniker = targetFrameworkMoniker;
             _latestTargetFrameworkDirectories = latestTargetFrameworkDirectories;
             _copyLocalDependenciesWhenParentReferenceInGac = copyLocalDependenciesWhenParentReferenceInGac;
             _doNotCopyLocalIfInGac = doNotCopyLocalIfInGac;
-            _getAssemblyPathInGac = getAssemblyPathInGac;
-            _isWinMDFile = isWinMDFile;
-            _readMachineTypeFromPEHeader = readMachineTypeFromPEHeader;
             _warnOrErrorOnTargetArchitectureMismatch = warnOrErrorOnTargetArchitectureMismatch;
             _ignoreFrameworkAttributeVersionMismatch = ignoreFrameworkAttributeVersionMismatch;
             _assemblyMetadataCache = assemblyMetadataCache;
@@ -367,17 +268,9 @@ namespace Microsoft.Build.Tasks
                     candidateAssemblyFiles,
                     targetProcessorArchitecture,
                     frameworkPaths,
-                    fileExists,
-                    getAssemblyName,
-#if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
-                    openBaseKey,
-#endif
+                    services,
                     installedAssemblies,
-                    getRuntimeVersion,
                     targetedRuntimeVersion,
-                    getAssemblyPathInGac,
                     log);
         }
 
@@ -477,15 +370,15 @@ namespace Microsoft.Build.Tasks
 
             try
             {
-                if (_fileExists(assemblyFileName))
+                if (_services.FileExists(assemblyFileName))
                 {
-                    assemblyName = _getAssemblyName(assemblyFileName);
+                    assemblyName = _services.GetAssemblyName(assemblyFileName);
                     if (assemblyName != null)
                     {
                         reference.ResolvedSearchPath = assemblyFileName;
                     }
                 }
-                else if (_directoryExists(assemblyFileName))
+                else if (_services.DirectoryExists(assemblyFileName))
                 {
                     assemblyName = new AssemblyNameExtension("*directory*");
 
@@ -595,7 +488,7 @@ namespace Microsoft.Build.Tasks
             bool isSimpleName = (assemblyName?.IsSimpleName == true);
 
             // Create the reference.
-            var reference = new Reference(_isWinMDFile, _fileExists, _getRuntimeVersion);
+            var reference = new Reference(_services);
             reference.MakePrimaryAssemblyReference(referenceAssemblyName, wantSpecificVersion, executableExtension);
 
             // Escape simple names.
@@ -662,7 +555,7 @@ namespace Microsoft.Build.Tasks
                     {
                         // This may throw if, for example, the culture embedded in the assembly's manifest
                         // is not recognised by AssemblyName.GetAssemblyName
-                        possiblyBetterAssemblyName = _getAssemblyName(reference.FullPath);
+                        possiblyBetterAssemblyName = _services.GetAssemblyName(reference.FullPath);
                     }
                     catch (ArgumentException)
                     {
@@ -884,7 +777,7 @@ namespace Microsoft.Build.Tasks
             try
             {
                 // Create the reference.
-                var reference = new Reference(_isWinMDFile, _fileExists, _getRuntimeVersion);
+                var reference = new Reference(_services);
 
                 string itemSpec = referenceAssemblyFile.ItemSpec;
                 bool hasSpecificVersionMetadata = MetadataConversionUtilities.TryConvertItemMetadataToBool(referenceAssemblyFile, ItemMetadataNames.specificVersion);
@@ -934,7 +827,7 @@ namespace Microsoft.Build.Tasks
             {
                 string companionFile = baseName + companionExtension;
 
-                if (_fileExists(companionFile))
+                if (_services.FileExists(companionFile))
                 {
                     reference.AddRelatedFileExtension(companionExtension);
                 }
@@ -957,7 +850,7 @@ namespace Microsoft.Build.Tasks
                     }
                 }
 
-                if (_fileExists(companionFile))
+                if (_services.FileExists(companionFile))
                 {
                     reference.ImplementationAssembly = companionFile;
                 }
@@ -977,12 +870,12 @@ namespace Microsoft.Build.Tasks
                 // where we were passed in a pre-resolved reference from a P2P reference
                 // that hasn't actually been built yet), then GetDirectories will throw.
                 // Avoid that by just short-circuiting here.
-                if (!_directoryExists(reference.DirectoryName))
+                if (!_services.DirectoryExists(reference.DirectoryName))
                 {
                     return;
                 }
 
-                string[] subDirectories = _getDirectories(reference.DirectoryName, "*");
+                string[] subDirectories = _services.GetDirectories(reference.DirectoryName, "*");
                 string satelliteFilename = subDirectories.Length > 0
                     ? reference.FileNameWithoutExtension + ".resources.dll"
                     : string.Empty;
@@ -997,7 +890,7 @@ namespace Microsoft.Build.Tasks
                         || CultureInfoCache.IsValidCultureString(cultureName))
                     {
                         string satelliteAssembly = Path.Combine(subDirectory, satelliteFilename);
-                        if (_fileExists(satelliteAssembly))
+                        if (_services.FileExists(satelliteAssembly))
                         {
                             // This is valid satellite assembly.
                             reference.AddSatelliteFile(Path.Combine(cultureName, satelliteFilename));
@@ -1020,7 +913,7 @@ namespace Microsoft.Build.Tasks
         {
             string serializationAssemblyFilename = reference.FileNameWithoutExtension + ".XmlSerializers.dll";
             string serializationAssemblyPath = Path.Combine(reference.DirectoryName, serializationAssemblyFilename);
-            if (_fileExists(serializationAssemblyPath))
+            if (_services.FileExists(serializationAssemblyPath))
             {
                 // This is valid serialization assembly.
                 reference.AddSerializationAssemblyFile(serializationAssemblyFilename);
@@ -1045,7 +938,7 @@ namespace Microsoft.Build.Tasks
                 return;
             }
 
-            _getAssemblyMetadata(
+            _services.GetAssemblyMetadata(
                 reference.FullPath,
                 _assemblyMetadataCache,
                 out AssemblyNameExtension[] dependentAssemblies,
@@ -1127,7 +1020,7 @@ namespace Microsoft.Build.Tasks
             // Before checking for dependencies check to see if the reference itself exists.
             // Even though to get to this point the reference must be resolved
             // the reference may not exist on disk if the reference is a project to project reference.
-            if (!_fileExists(reference.FullPath))
+            if (!_services.FileExists(reference.FullPath))
             {
                 reference.AddError(
                           new DependencyResolutionException(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("General.ExpectedFileMissing", reference.FullPath), null));
@@ -1154,7 +1047,7 @@ namespace Microsoft.Build.Tasks
                     if (existingReference == null)
                     {
                         // This is valid reference.
-                        Reference newReference = new Reference(_isWinMDFile, _fileExists, _getRuntimeVersion);
+                        Reference newReference = new Reference(_services);
 
                         newReference.MakeDependentAssemblyReference(reference);
                         if (unifiedDependency.IsUnified)
@@ -1313,14 +1206,14 @@ namespace Microsoft.Build.Tasks
             // If a reference has the SDKName metadata on it then we will only search using a single resolver, that is the InstalledSDKResolver.
             if (reference.SDKName.Length > 0)
             {
-                jaggedResolvers.Add([new InstalledSDKResolver(_resolvedSDKReferences, "SDKResolver", _getAssemblyName, _fileExists, _getRuntimeVersion, _targetedRuntimeVersion)]);
+                jaggedResolvers.Add([new InstalledSDKResolver(_resolvedSDKReferences, "SDKResolver", _services, _targetedRuntimeVersion)]);
             }
             else
             {
                 // Do not probe near dependees if the reference is primary and resolved externally. If resolved externally, the search paths should have been specified in such a way to point to the assembly file.
                 if (parentReferenceFolders.Count > 0 && (assemblyName == null || !_externallyResolvedPrimaryReferences.Contains(assemblyName.Name)))
                 {
-                    jaggedResolvers.Add(AssemblyResolution.CompileDirectories(parentReferenceFolders, _fileExists, _getAssemblyName, _getRuntimeVersion, _targetedRuntimeVersion));
+                    jaggedResolvers.Add(AssemblyResolution.CompileDirectories(parentReferenceFolders, _services, _targetedRuntimeVersion));
                 }
 
                 jaggedResolvers.Add(Resolvers);
@@ -2166,7 +2059,7 @@ namespace Microsoft.Build.Tasks
             // In this method have we marked a reference as needing to be excluded
             bool haveMarkedReference = false;
 
-            if (!(reference.IsResolved && _fileExists(reference.FullPath)) || reference.IsPrerequisite || (_frameworkPaths != null && Reference.IsFrameworkFile(reference.FullPath, _frameworkPaths)))
+            if (!(reference.IsResolved && _services.FileExists(reference.FullPath)) || reference.IsPrerequisite || (_frameworkPaths != null && Reference.IsFrameworkFile(reference.FullPath, _frameworkPaths)))
             {
                 return false;
             }
@@ -2617,10 +2510,7 @@ namespace Microsoft.Build.Tasks
                     assemblyName,
                     _frameworkPaths,
                     _targetProcessorArchitecture,
-                    _getRuntimeVersion,
                     _targetedRuntimeVersion,
-                    _fileExists,
-                    _getAssemblyPathInGac,
                     _copyLocalDependenciesWhenParentReferenceInGac,
                     _doNotCopyLocalIfInGac,
                     this);
@@ -2860,7 +2750,7 @@ namespace Microsoft.Build.Tasks
         {
             try
             {
-                UInt16 machineType = _readMachineTypeFromPEHeader(dllPath);
+                UInt16 machineType = _services.ReadMachineTypeFromPEHeader(dllPath);
                 SystemProcessorArchitecture dllArchitecture = SystemProcessorArchitecture.None;
 
                 if (machineType == NativeMethods.IMAGE_FILE_MACHINE_INVALID)

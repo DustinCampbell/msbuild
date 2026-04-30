@@ -18,12 +18,10 @@ namespace Microsoft.Build.Tasks
         /// Construct.
         /// </summary>
         /// <param name="searchPathElement">The corresponding element from the search path.</param>
-        /// <param name="getAssemblyName">Delegate that gets the assembly name.</param>
-        /// <param name="fileExists">Delegate that returns if the file exists.</param>
-        /// <param name="getRuntimeVersion">Delegate that returns the clr runtime version for the file.</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="targetedRuntimeVesion">The targeted runtime version.</param>
-        public AssemblyFoldersResolver(string searchPathElement, GetAssemblyName getAssemblyName, FileExists fileExists, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVesion)
-            : base(searchPathElement, getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVesion, System.Reflection.ProcessorArchitecture.None, false)
+        public AssemblyFoldersResolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion)
+            : base(searchPathElement, services, targetedRuntimeVesion, System.Reflection.ProcessorArchitecture.None, false)
         {
         }
 

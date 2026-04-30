@@ -22,8 +22,8 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Construct.
         /// </summary>
-        public DirectoryResolver(string searchPathElement, GetAssemblyName getAssemblyName, FileExists fileExists, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVesion, string parentAssembly)
-            : base(searchPathElement, getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVesion, System.Reflection.ProcessorArchitecture.None, false)
+        public DirectoryResolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion, string parentAssembly)
+            : base(searchPathElement, services, targetedRuntimeVesion, System.Reflection.ProcessorArchitecture.None, false)
         {
             this.parentAssembly = parentAssembly;
         }

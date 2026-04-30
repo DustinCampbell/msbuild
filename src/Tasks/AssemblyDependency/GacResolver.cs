@@ -15,24 +15,15 @@ namespace Microsoft.Build.Tasks
     internal class GacResolver : Resolver
     {
         /// <summary>
-        /// Delegate to get the assembly path in the GAC
-        /// </summary>
-        private readonly GetAssemblyPathInGac _getAssemblyPathInGac;
-
-        /// <summary>
         /// Construct.
         /// </summary>
         /// <param name="targetProcessorArchitecture">Like x86 or IA64\AMD64, the processor architecture being targeted.</param>
         /// <param name="searchPathElement">The search path element.</param>
-        /// <param name="getAssemblyName">Delegate to get the assembly name object.</param>
-        /// <param name="fileExists">Delegate to check if the file exists.</param>
-        /// <param name="getRuntimeVersion">Delegate to get the runtime version.</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="targetedRuntimeVesion">The targeted runtime version.</param>
-        /// <param name="getAssemblyPathInGac">Delegate to get assembly path in the GAC.</param>
-        public GacResolver(System.Reflection.ProcessorArchitecture targetProcessorArchitecture, string searchPathElement, GetAssemblyName getAssemblyName, FileExists fileExists, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVesion, GetAssemblyPathInGac getAssemblyPathInGac)
-            : base(searchPathElement, getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVesion, targetProcessorArchitecture, true)
+        public GacResolver(System.Reflection.ProcessorArchitecture targetProcessorArchitecture, string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion)
+            : base(searchPathElement, services, targetedRuntimeVesion, targetProcessorArchitecture, true)
         {
-            _getAssemblyPathInGac = getAssemblyPathInGac;
         }
 
         /// <inheritdoc/>
@@ -56,10 +47,10 @@ namespace Microsoft.Build.Tasks
             if (assemblyName != null)
             {
                 // {GAC} was passed in.
-                string gacResolved = _getAssemblyPathInGac(assemblyName, targetProcessorArchitecture, getRuntimeVersion,
-                    targetedRuntimeVersion, fileExists, fullFusionName: false, specificVersion: wantSpecificVersion);
+                string gacResolved = services.GetAssemblyPathInGac(assemblyName, targetProcessorArchitecture,
+                    targetedRuntimeVersion, fullFusionName: false, specificVersion: wantSpecificVersion);
 
-                if (!string.IsNullOrEmpty(gacResolved) && fileExists(gacResolved))
+                if (!string.IsNullOrEmpty(gacResolved) && services.FileExists(gacResolved))
                 {
                     foundPath = gacResolved;
                     return true;

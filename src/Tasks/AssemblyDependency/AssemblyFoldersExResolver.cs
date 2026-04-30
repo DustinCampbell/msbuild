@@ -32,19 +32,9 @@ namespace Microsoft.Build.Tasks
                 RegexOptions.IgnoreCase | RegexOptions.Compiled));
 
         /// <summary>
-        /// Delegate.
+        /// Cached file exists delegate, can be replaced by cache.
         /// </summary>
-        private readonly GetRegistrySubKeyNames _getRegistrySubKeyNames;
-
-        /// <summary>
-        /// Delegate
-        /// </summary>
-        private readonly GetRegistrySubKeyDefaultValue _getRegistrySubKeyDefaultValue;
-
-        /// <summary>
-        /// Open the base registry key given a hive and a view
-        /// </summary>
-        private readonly OpenBaseKey _openBaseKey;
+        private FileExists _fileExists;
 
         /// <summary>
         /// Whether or not the search path could be cracked.
@@ -99,13 +89,11 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Construct.
         /// </summary>
-        public AssemblyFoldersExResolver(string searchPathElement, GetAssemblyName getAssemblyName, FileExists fileExists, GetRegistrySubKeyNames getRegistrySubKeyNames, GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue, GetAssemblyRuntimeVersion getRuntimeVersion, OpenBaseKey openBaseKey, Version targetedRuntimeVesion, ProcessorArchitecture targetProcessorArchitecture, bool compareProcessorArchitecture, IBuildEngine buildEngine)
-            : base(searchPathElement, getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVesion, targetProcessorArchitecture, compareProcessorArchitecture)
+        public AssemblyFoldersExResolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion, ProcessorArchitecture targetProcessorArchitecture, bool compareProcessorArchitecture, IBuildEngine buildEngine)
+            : base(searchPathElement, services, targetedRuntimeVesion, targetProcessorArchitecture, compareProcessorArchitecture)
         {
             _buildEngine = buildEngine as IBuildEngine4;
-            _getRegistrySubKeyNames = getRegistrySubKeyNames;
-            _getRegistrySubKeyDefaultValue = getRegistrySubKeyDefaultValue;
-            _openBaseKey = openBaseKey;
+            _fileExists = services.FileExists;
         }
 
         /// <summary>
@@ -170,15 +158,15 @@ namespace Microsoft.Build.Tasks
 
                     if (_assemblyFoldersCache == null)
                     {
-                        AssemblyFoldersEx assemblyFolders = new AssemblyFoldersEx(_registryKeyRoot, _targetRuntimeVersion, _registryKeySuffix, _osVersion, _platform, _getRegistrySubKeyNames, _getRegistrySubKeyDefaultValue, this.targetProcessorArchitecture, _openBaseKey);
-                        _assemblyFoldersCache = new AssemblyFoldersExCache(assemblyFolders, fileExists);
+                        AssemblyFoldersEx assemblyFolders = new AssemblyFoldersEx(_registryKeyRoot, _targetRuntimeVersion, _registryKeySuffix, _osVersion, _platform, services.GetRegistrySubKeyNames, services.GetRegistrySubKeyDefaultValue, this.targetProcessorArchitecture, services.OpenBaseKey);
+                        _assemblyFoldersCache = new AssemblyFoldersExCache(assemblyFolders, _fileExists);
                         if (useCache)
                         {
                             _buildEngine?.RegisterTaskObject(key, _assemblyFoldersCache, RegisteredTaskObjectLifetime.Build, true /* dispose early ok*/);
                         }
                     }
 
-                    fileExists = _assemblyFoldersCache.FileExists;
+                    _fileExists = _assemblyFoldersCache.FileExists;
                 }
             }
         }
@@ -231,7 +219,7 @@ namespace Microsoft.Build.Tasks
                                 else
                                 {
                                     // Lets see if the processor architecture matches, note this this method will cache the result when it was first called.
-                                    AssemblyNameExtension foundAssembly = getAssemblyName(candidatePath);
+                                    AssemblyNameExtension foundAssembly = services.GetAssemblyName(candidatePath);
 
                                     // If the processor architecture does not match the we should continue to see if there is a better match.
                                     if (foundAssembly != null && (foundAssembly.AssemblyName.ProcessorArchitecture == ProcessorArchitecture.MSIL || foundAssembly.AssemblyName.ProcessorArchitecture == ProcessorArchitecture.None))

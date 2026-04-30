@@ -27,12 +27,10 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="candidateAssemblyFiles">List of literal assembly file names to be considered when SearchPaths has {CandidateAssemblyFiles}.</param>
         /// <param name="searchPathElement">The corresponding element from the search path.</param>
-        /// <param name="getAssemblyName">Delegate that gets the assembly name.</param>
-        /// <param name="fileExists">Delegate that returns if the file exists.</param>
-        /// <param name="getRuntimeVersion">Delegate that returns the clr runtime version for the file.</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="targetedRuntimeVesion">The targeted runtime version.</param>
-        public CandidateAssemblyFilesResolver(string[] candidateAssemblyFiles, string searchPathElement, GetAssemblyName getAssemblyName, FileExists fileExists, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVesion)
-            : base(searchPathElement, getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVesion, ProcessorArchitecture.None, false)
+        public CandidateAssemblyFilesResolver(string[] candidateAssemblyFiles, string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion)
+            : base(searchPathElement, services, targetedRuntimeVesion, ProcessorArchitecture.None, false)
         {
             _candidateAssemblyFiles = candidateAssemblyFiles;
         }
