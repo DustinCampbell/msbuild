@@ -75,9 +75,6 @@
     <Compile Include="..\Shared\PropertyParser.cs">
       <Link>PropertyParser.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\RegistryDelegates.cs">
-      <Link>RegistryDelegates.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\TaskLoggingHelperExtension.cs">
       <Link>TaskLoggingHelperExtension.cs</Link>
     </Compile>

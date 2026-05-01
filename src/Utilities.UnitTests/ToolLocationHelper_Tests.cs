@@ -2910,10 +2910,8 @@ namespace Microsoft.Build.UnitTests
     public class GetPlatformExtensionSDKLocationsTestFixture : IDisposable
     {
 #if FEATURE_WIN32_REGISTRY
-        // Create delegates to mock the registry for the registry portion of the test.
-        private readonly OpenBaseKey _openBaseKey = GetBaseKey;
-        private readonly GetRegistrySubKeyNames getRegistrySubKeyNames = GetRegistrySubKeyNames;
-        private readonly GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue;
+        // Test registry service that provides mock registry data
+        private readonly TestRegistryService _testRegistryService;
 #endif
 
         // Path to the fake SDk directory structure created under the temp directory.
@@ -2922,12 +2920,12 @@ namespace Microsoft.Build.UnitTests
 
         public GetPlatformExtensionSDKLocationsTestFixture(ITestOutputHelper output)
         {
-#if FEATURE_WIN32_REGISTRY
-            getRegistrySubKeyDefaultValue = GetRegistrySubKeyDefaultValue;
-#endif
-
             _fakeStructureRoot = MakeFakeSDKStructure();
             _fakeStructureRoot2 = MakeFakeSDKStructure2();
+
+#if FEATURE_WIN32_REGISTRY
+            _testRegistryService = new TestRegistryService(_fakeStructureRoot);
+#endif
         }
 
         #region TestMethods
@@ -3851,8 +3849,8 @@ namespace Microsoft.Build.UnitTests
         {
             var targetPlatforms = new Dictionary<TargetPlatformSDK, TargetPlatformSDK>();
 
-            ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.CurrentUser, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, _openBaseKey, File.Exists);
-            ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.LocalMachine, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, _openBaseKey, File.Exists);
+            ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.CurrentUser, _testRegistryService, File.Exists);
+            ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.LocalMachine, _testRegistryService, File.Exists);
 
             TargetPlatformSDK key = new TargetPlatformSDK("Windows", new Version("1.0"), null);
             targetPlatforms[key].ExtensionSDKs.Count.ShouldBe(2);
@@ -3906,8 +3904,8 @@ namespace Microsoft.Build.UnitTests
 
             if (NativeMethodsShared.IsWindows)
             {
-                ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.CurrentUser, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, _openBaseKey, File.Exists);
-                ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.LocalMachine, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, _openBaseKey, File.Exists);
+                ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.CurrentUser, _testRegistryService, File.Exists);
+                ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.LocalMachine, _testRegistryService, File.Exists);
             }
 
             TargetPlatformSDK key = new TargetPlatformSDK("Windows", new Version("1.0"), null);
@@ -4566,199 +4564,183 @@ namespace Microsoft.Build.UnitTests
         }
         #endregion
 
-        #region HelperMethods
-
 #if FEATURE_WIN32_REGISTRY
         /// <summary>
-        /// Simplified registry access delegate. Given a baseKey and a subKey, get all of the subkey
-        /// names.
+        /// Test implementation of IRegistryService that provides mock registry data.
         /// </summary>
-        /// <param name="baseKey">The base registry key.</param>
-        /// <param name="subKey">The subkey</param>
-        /// <returns>An enumeration of strings.</returns>
-        private static IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey)
+        private sealed class TestRegistryService : IRegistryService
         {
-            if (baseKey == Registry.CurrentUser)
+            private readonly string _fakeStructureRoot;
+
+            public TestRegistryService(string fakeStructureRoot)
             {
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "Windows", "MyPlatform" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "v1.0", "1.0" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "MyAssembly" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\1.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "MyAssembly" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs\MyAssembly", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "v1.1", "1.0", "2.0", "3.0" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\1.0\ExtensionSDKs\MyAssembly", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "2.0" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "4.0", "5.0", "6.0", "9.0" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\4.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "MyAssembly" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\5.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { string.Empty };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\4.0\ExtensionSDKs\MyAssembly", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "1.0" };
-                }
+                _fakeStructureRoot = fakeStructureRoot;
             }
 
-            if (baseKey == Registry.LocalMachine)
+            public RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view)
             {
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs", StringComparison.OrdinalIgnoreCase))
+                return hive switch
                 {
-                    return new[] { "Windows" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "v2.0" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v2.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "MyAssembly" };
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v2.0\ExtensionSDKs\MyAssembly", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new[] { "3.0" };
-                }
+                    RegistryHive.CurrentUser => Registry.CurrentUser,
+                    RegistryHive.LocalMachine => Registry.LocalMachine,
+                    _ => null,
+                };
             }
 
-            return Array.Empty<string>();
-        }
-
-        /// <summary>
-        /// Simplified registry access delegate. Given a baseKey and subKey, get the default value
-        /// of the subKey.
-        /// </summary>
-        /// <param name="baseKey">The base registry key.</param>
-        /// <param name="subKey">The subkey</param>
-        /// <returns>A string containing the default value.</returns>
-        private string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey)
-        {
-            if (baseKey == Registry.CurrentUser)
+            public IEnumerable<string> GetSubKeyNames(RegistryKey baseKey, string subKey)
             {
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs\MyAssembly\1.0", StringComparison.OrdinalIgnoreCase))
+                if (baseKey == Registry.CurrentUser)
                 {
-                    return Path.Combine(_fakeStructureRoot, "Windows\\v1.0\\ExtensionSDKs\\MyAssembly\\1.0");
-                }
-
-                // This has a v in the sdk version and should not be found but we need a real path in case it is so it will show up in the returned list and fail the test.
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs\MyAssembly\v1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "Windows\\v1.0\\ExtensionSDKs\\MyAssembly\\1.0");
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\1.0\ExtensionSDKs\MyAssembly\2.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "Windows\\1.0\\ExtensionSDKs\\MyAssembly\\2.0");
-                }
-
-                // This has a set of bad char in the returned directory so it should not be allowed.
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs\MyAssembly\3.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return _fakeStructureRoot + @"\Windows\1.0\ExtensionSDKs\MyAssembly\<>?/";
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\5.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "MyPlatform\\5.0");
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\4.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "SomeOtherPlace\\MyPlatformOtherLocation\\4.0");
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\6.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "Windows Kits\\6.0");
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\9.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "MyPlatform\\9.0");
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\4.0\ExtensionSDKs\MyAssembly\1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "SomeOtherPlace\\MyPlatformOtherLocation\\4.0\\ExtensionSDKs\\MyAssembly\\1.0");
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "Windows\\1.0");
-                }
-            }
-
-            if (baseKey == Registry.LocalMachine)
-            {
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v2.0\ExtensionSDKs\MyAssembly\3.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "Windows\\2.0\\ExtensionSDKs\\MyAssembly\\3.0");
-                }
-
-                if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v2.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.Combine(_fakeStructureRoot, "Windows\\2.0");
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Registry access delegate. Given a hive and a view, return the registry base key.
-        /// </summary>
-        private static RegistryKey GetBaseKey(RegistryHive hive, RegistryView view)
-        {
-            switch (hive)
-            {
-                case RegistryHive.CurrentUser:
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs", StringComparison.OrdinalIgnoreCase))
                     {
-                        return Registry.CurrentUser;
+                        return ["Windows", "MyPlatform"];
                     }
-                case RegistryHive.LocalMachine:
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows", StringComparison.OrdinalIgnoreCase))
                     {
-                        return Registry.LocalMachine;
+                        return ["v1.0", "1.0"];
                     }
-                default:
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
                     {
-                        return null;
+                        return ["MyAssembly"];
                     }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\1.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["MyAssembly"];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs\MyAssembly", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["v1.1", "1.0", "2.0", "3.0"];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\1.0\ExtensionSDKs\MyAssembly", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["2.0"];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["4.0", "5.0", "6.0", "9.0"];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\4.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["MyAssembly"];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\5.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return [string.Empty];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\4.0\ExtensionSDKs\MyAssembly", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["1.0"];
+                    }
+                }
+
+                if (baseKey == Registry.LocalMachine)
+                {
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["Windows"];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["v2.0"];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v2.0\ExtensionSDKs", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["MyAssembly"];
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v2.0\ExtensionSDKs\MyAssembly", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ["3.0"];
+                    }
+                }
+
+                return [];
+            }
+
+            public string GetDefaultValue(RegistryKey baseKey, string subKey)
+            {
+                if (baseKey == Registry.CurrentUser)
+                {
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs\MyAssembly\1.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "Windows\\v1.0\\ExtensionSDKs\\MyAssembly\\1.0");
+                    }
+
+                    // This has a v in the sdk version and should not be found but we need a real path in case it is so it will show up in the returned list and fail the test.
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs\MyAssembly\v1.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "Windows\\v1.0\\ExtensionSDKs\\MyAssembly\\1.0");
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\1.0\ExtensionSDKs\MyAssembly\2.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "Windows\\1.0\\ExtensionSDKs\\MyAssembly\\2.0");
+                    }
+
+                    // This has a set of bad char in the returned directory so it should not be allowed.
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0\ExtensionSDKs\MyAssembly\3.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return _fakeStructureRoot + @"\Windows\1.0\ExtensionSDKs\MyAssembly\<>?/";
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\5.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "MyPlatform\\5.0");
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\4.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "SomeOtherPlace\\MyPlatformOtherLocation\\4.0");
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\6.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "Windows Kits\\6.0");
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\9.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "MyPlatform\\9.0");
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\MyPlatform\4.0\ExtensionSDKs\MyAssembly\1.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "SomeOtherPlace\\MyPlatformOtherLocation\\4.0\\ExtensionSDKs\\MyAssembly\\1.0");
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v1.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "Windows\\1.0");
+                    }
+                }
+
+                if (baseKey == Registry.LocalMachine)
+                {
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v2.0\ExtensionSDKs\MyAssembly\3.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "Windows\\2.0\\ExtensionSDKs\\MyAssembly\\3.0");
+                    }
+
+                    if (string.Equals(subKey, @"Software\Microsoft\MicrosoftSDKs\Windows\v2.0", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(_fakeStructureRoot, "Windows\\2.0");
+                    }
+                }
+
+                return null;
             }
         }
 #endif
-        #endregion
     }
 }
