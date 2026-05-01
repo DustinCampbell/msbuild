@@ -61,20 +61,16 @@ namespace Microsoft.Build.Shared
         /// <param name="registryKeySuffix">Like [ PocketPC | SmartPhone | WindowsCE]\AssemblyFoldersEx</param>
         /// <param name="osVersion">Operating system version</param>
         /// <param name="platform">Current platform</param>
-        /// <param name="getRegistrySubKeyNames">Used to find registry subkey names.</param>
-        /// <param name="getRegistrySubKeyDefaultValue">Used to find registry key default values.</param>
+        /// <param name="registryService">Service for registry access operations.</param>
         /// <param name="targetProcessorArchitecture">Architecture to seek.</param>
-        /// <param name="openBaseKey">Key object to open.</param>
         internal AssemblyFoldersEx(
             string registryKeyRoot,
             string targetRuntimeVersion,
             string registryKeySuffix,
             string osVersion,
             string platform,
-            GetRegistrySubKeyNames getRegistrySubKeyNames,
-            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
-            ProcessorArchitecture targetProcessorArchitecture,
-            OpenBaseKey openBaseKey)
+            IRegistryService registryService,
+            ProcessorArchitecture targetProcessorArchitecture)
         {
             // No extensions are supported, except on Windows
             if (!NativeMethodsShared.IsWindows)
@@ -101,7 +97,7 @@ namespace Microsoft.Build.Shared
             */
 
             // Under WOW64 the HKEY_CURRENT_USER\SOFTWARE key is shared. This means the values are the same in the 64 bit and 32 bit views. This means we only need to get one view of this key.
-            FindDirectories(RegistryView.Default, RegistryHive.CurrentUser, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, openBaseKey);
+            FindDirectories(RegistryView.Default, RegistryHive.CurrentUser, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, registryService);
 
             if (is64bitOS)
             {
@@ -109,18 +105,18 @@ namespace Microsoft.Build.Shared
 
                 if (targeting64bit)
                 {
-                    FindDirectories(RegistryView.Registry64, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, openBaseKey);
-                    FindDirectories(RegistryView.Registry32, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, openBaseKey);
+                    FindDirectories(RegistryView.Registry64, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, registryService);
+                    FindDirectories(RegistryView.Registry32, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, registryService);
                 }
                 else
                 {
-                    FindDirectories(RegistryView.Registry32, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, openBaseKey);
-                    FindDirectories(RegistryView.Registry64, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, openBaseKey);
+                    FindDirectories(RegistryView.Registry32, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, registryService);
+                    FindDirectories(RegistryView.Registry64, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, registryService);
                 }
             }
             else
             {
-                FindDirectories(RegistryView.Default, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, openBaseKey);
+                FindDirectories(RegistryView.Default, RegistryHive.LocalMachine, registryKeyRoot, targetRuntimeVersion, registryKeySuffix, osVersion, platform, registryService);
             }
         }
 
@@ -134,9 +130,7 @@ namespace Microsoft.Build.Shared
         /// <param name="registryKeySuffix">Like [ PocketPC | SmartPhone | WindowsCE]\AssemblyFoldersEx</param>
         /// <param name="osVersion">Operating system version</param>
         /// <param name="platform">Current platform</param>
-        /// <param name="getRegistrySubKeyNames">Used to find registry subkey names.</param>
-        /// <param name="getRegistrySubKeyDefaultValue">Used to find registry key default values.</param>
-        /// <param name="openBaseKey">Key object to open.</param>
+        /// <param name="registryService">Service for registry access operations.</param>
         private void FindDirectories(
             RegistryView view,
             RegistryHive hive,
@@ -145,14 +139,12 @@ namespace Microsoft.Build.Shared
             string registryKeySuffix,
             string osVersion,
             string platform,
-            GetRegistrySubKeyNames getRegistrySubKeyNames,
-            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
-            OpenBaseKey openBaseKey)
+            IRegistryService registryService)
         {
             // Open the hive for a given view
-            using (RegistryKey baseKey = openBaseKey(hive, view))
+            using (RegistryKey baseKey = registryService.OpenBaseKey(hive, view))
             {
-                IEnumerable<string> versions = getRegistrySubKeyNames(baseKey, registryKeyRoot);
+                IEnumerable<string> versions = registryService.GetSubKeyNames(baseKey, registryKeyRoot);
 
                 // No versions found.
                 if (versions == null)
@@ -169,7 +161,7 @@ namespace Microsoft.Build.Shared
                 {
                     // Make like SOFTWARE\MICROSOFT\.NetFramework\v2.0.x86chk\AssemblyFoldersEx
                     string fullVersionKey = registryKeyRoot + @"\" + versionString.RegistryKey + @"\" + registryKeySuffix;
-                    IEnumerable<string> components = getRegistrySubKeyNames(baseKey, fullVersionKey);
+                    IEnumerable<string> components = registryService.GetSubKeyNames(baseKey, fullVersionKey);
 
                     if (components != null)
                     {
@@ -201,7 +193,7 @@ namespace Microsoft.Build.Shared
 
                 foreach (ExtensionFoldersRegistryKey componentKey in componentKeys)
                 {
-                    IEnumerable<string> servicingKeys = getRegistrySubKeyNames(baseKey, componentKey.RegistryKey);
+                    IEnumerable<string> servicingKeys = registryService.GetSubKeyNames(baseKey, componentKey.RegistryKey);
 
                     if (servicingKeys != null)
                     {
@@ -257,7 +249,7 @@ namespace Microsoft.Build.Shared
                         }
                     }
 
-                    string directoryName = getRegistrySubKeyDefaultValue(baseKey, directoryKey.RegistryKey);
+                    string directoryName = registryService.GetDefaultValue(baseKey, directoryKey.RegistryKey);
 
                     if (directoryName != null)
                     {

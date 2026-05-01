@@ -697,9 +697,9 @@ namespace Microsoft.Build.Tasks
 #if FEATURE_WIN32_REGISTRY
             public override Microsoft.Win32.RegistryKey OpenBaseKey(Microsoft.Win32.RegistryHive hive, Microsoft.Win32.RegistryView view) => _inner.OpenBaseKey(hive, view);
 
-            public override System.Collections.Generic.IEnumerable<string> GetRegistrySubKeyNames(Microsoft.Win32.RegistryKey baseKey, string subKey) => _inner.GetRegistrySubKeyNames(baseKey, subKey);
+            public override System.Collections.Generic.IEnumerable<string> GetSubKeyNames(Microsoft.Win32.RegistryKey baseKey, string subKey) => _inner.GetSubKeyNames(baseKey, subKey);
 
-            public override string GetRegistrySubKeyDefaultValue(Microsoft.Win32.RegistryKey baseKey, string subKey) => _inner.GetRegistrySubKeyDefaultValue(baseKey, subKey);
+            public override string GetDefaultValue(Microsoft.Win32.RegistryKey baseKey, string subKey) => _inner.GetDefaultValue(baseKey, subKey);
 #endif
         }
     }

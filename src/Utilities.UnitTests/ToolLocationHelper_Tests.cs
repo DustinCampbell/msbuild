@@ -2755,7 +2755,7 @@ namespace Microsoft.Build.UnitTests
 #if FEATURE_WIN32_REGISTRY
         private static string GetRegistryValueHelper(RegistryHive hive, RegistryView view, string subKeyPath, string name)
         {
-            using (var key = RegistryHelper.OpenBaseKey(hive, view))
+            using (var key = RegistryService.Instance.OpenBaseKey(hive, view))
             using (var subKey = key.OpenSubKey(subKeyPath))
             {
                 if (subKey != null)

@@ -66,9 +66,6 @@
     <Compile Include="..\Shared\RegistryDelegates.cs">
       <Link>Shared\RegistryDelegates.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\RegistryHelper.cs">
-      <Link>Shared\RegistryHelper.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\ResourceUtilities.cs">
       <Link>Shared\ResourceUtilities.cs</Link>
     </Compile>

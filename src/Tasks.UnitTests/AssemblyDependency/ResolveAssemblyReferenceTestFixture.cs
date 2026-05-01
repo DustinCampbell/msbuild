@@ -65,8 +65,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             public override string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, Version targetedRuntimeVersion, bool fullFusionName, bool specificVersion) => ResolveAssemblyReferenceTestFixture.GetPathForAssemblyInGac(assemblyName, targetProcessorArchitecture, GetAssemblyRuntimeVersion, targetedRuntimeVersion, FileExists, fullFusionName, specificVersion);
 #if FEATURE_WIN32_REGISTRY
             public override RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view) => ResolveAssemblyReferenceTestFixture.GetBaseKey(hive, view);
-            public override IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey) => ResolveAssemblyReferenceTestFixture.GetRegistrySubKeyNames(baseKey, subKey);
-            public override string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey) => ResolveAssemblyReferenceTestFixture.GetRegistrySubKeyDefaultValue(baseKey, subKey);
+            public override IEnumerable<string> GetSubKeyNames(RegistryKey baseKey, string subKey) => ResolveAssemblyReferenceTestFixture.GetRegistrySubKeyNames(baseKey, subKey);
+            public override string GetDefaultValue(RegistryKey baseKey, string subKey) => ResolveAssemblyReferenceTestFixture.GetRegistrySubKeyDefaultValue(baseKey, subKey);
 #endif
         }
 
@@ -740,8 +740,16 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// </summary>
         private static bool IsWinMDFile(string fullPath, GetAssemblyRuntimeVersion getAssemblyRuntimeVersion, FileExists fileExists, out string imageRuntimeVersion, out bool isManagedWinMD)
         {
-            imageRuntimeVersion = getAssemblyRuntimeVersion(fullPath);
+            imageRuntimeVersion = string.Empty;
             isManagedWinMD = false;
+
+            // May be null or empty if the file was never resolved to a path on disk.
+            if (string.IsNullOrEmpty(fullPath))
+            {
+                return false;
+            }
+
+            imageRuntimeVersion = getAssemblyRuntimeVersion(fullPath);
 
             if (String.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", StringComparison.OrdinalIgnoreCase))
             {

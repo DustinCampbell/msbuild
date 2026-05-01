@@ -331,7 +331,7 @@ namespace Microsoft.Build.Utilities
             ErrorUtilities.VerifyThrowArgumentLength(registryKeySuffix);
             ErrorUtilities.VerifyThrowArgumentLength(targetFrameworkVersion);
 
-            AssemblyFoldersEx assemblyFoldersEx = new AssemblyFoldersEx(registryRoot, targetFrameworkVersion, registryKeySuffix, osVersion, platform, new GetRegistrySubKeyNames(RegistryHelper.GetSubKeyNames), new GetRegistrySubKeyDefaultValue(RegistryHelper.GetDefaultValue), targetProcessorArchitecture, new OpenBaseKey(RegistryHelper.OpenBaseKey));
+            AssemblyFoldersEx assemblyFoldersEx = new AssemblyFoldersEx(registryRoot, targetFrameworkVersion, registryKeySuffix, osVersion, platform, RegistryService.Instance, targetProcessorArchitecture);
 
             var assemblyFolders = new List<AssemblyFoldersExInfo>();
             assemblyFolders.AddRange(assemblyFoldersEx);
@@ -2864,9 +2864,9 @@ namespace Microsoft.Build.Utilities
         private static void GatherSDKListFromRegistry(string registryRoot, Dictionary<TargetPlatformSDK, TargetPlatformSDK> platformMonikers)
         {
             // Setup some delegates because the methods we call use them during unit testing.
-            GetRegistrySubKeyNames getSubkeyNames = new GetRegistrySubKeyNames(RegistryHelper.GetSubKeyNames);
-            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue = new GetRegistrySubKeyDefaultValue(RegistryHelper.GetDefaultValue);
-            OpenBaseKey openBaseKey = new OpenBaseKey(RegistryHelper.OpenBaseKey);
+            GetRegistrySubKeyNames getSubkeyNames = new GetRegistrySubKeyNames(RegistryService.Instance.GetSubKeyNames);
+            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue = new GetRegistrySubKeyDefaultValue(RegistryService.Instance.GetDefaultValue);
+            OpenBaseKey openBaseKey = new OpenBaseKey(RegistryService.Instance.OpenBaseKey);
             FileExists fileExists = new FileExists(File.Exists);
 
             bool is64bitOS = Environment.Is64BitOperatingSystem;

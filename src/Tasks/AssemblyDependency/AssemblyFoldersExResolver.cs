@@ -32,11 +32,6 @@ namespace Microsoft.Build.Tasks
                 RegexOptions.IgnoreCase | RegexOptions.Compiled));
 
         /// <summary>
-        /// Cached file exists delegate, can be replaced by cache.
-        /// </summary>
-        private FileExists _fileExists;
-
-        /// <summary>
         /// Whether or not the search path could be cracked.
         /// </summary>
         private bool _wasMatch;
@@ -93,7 +88,6 @@ namespace Microsoft.Build.Tasks
             : base(searchPathElement, services, targetedRuntimeVesion, targetProcessorArchitecture, compareProcessorArchitecture)
         {
             _buildEngine = buildEngine as IBuildEngine4;
-            _fileExists = services.FileExists;
         }
 
         /// <summary>
@@ -158,15 +152,13 @@ namespace Microsoft.Build.Tasks
 
                     if (_assemblyFoldersCache == null)
                     {
-                        AssemblyFoldersEx assemblyFolders = new AssemblyFoldersEx(_registryKeyRoot, _targetRuntimeVersion, _registryKeySuffix, _osVersion, _platform, services.GetRegistrySubKeyNames, services.GetRegistrySubKeyDefaultValue, this.targetProcessorArchitecture, services.OpenBaseKey);
-                        _assemblyFoldersCache = new AssemblyFoldersExCache(assemblyFolders, _fileExists);
+                        AssemblyFoldersEx assemblyFolders = new AssemblyFoldersEx(_registryKeyRoot, _targetRuntimeVersion, _registryKeySuffix, _osVersion, _platform, services, this.targetProcessorArchitecture);
+                        _assemblyFoldersCache = new AssemblyFoldersExCache(assemblyFolders, services);
                         if (useCache)
                         {
                             _buildEngine?.RegisterTaskObject(key, _assemblyFoldersCache, RegisteredTaskObjectLifetime.Build, true /* dispose early ok*/);
                         }
                     }
-
-                    _fileExists = _assemblyFoldersCache.FileExists;
                 }
             }
         }
@@ -256,22 +248,22 @@ namespace Microsoft.Build.Tasks
         private readonly HashSet<string> _filesInDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// File exists delegate we are replacing
+        /// File system services for fallback file existence checks.
         /// </summary>
-        private readonly FileExists _fileExists;
+        private readonly RARFileSystemServices _services;
 
         /// <summary>
-        /// Should we use the original on or use our own
+        /// Should we use the original services or use our cached lookup
         /// </summary>
         private readonly bool _useOriginalFileExists;
 
         /// <summary>
         /// Constructor
         /// </summary>
-        internal AssemblyFoldersExCache(AssemblyFoldersEx assemblyFoldersEx, FileExists fileExists)
+        internal AssemblyFoldersExCache(AssemblyFoldersEx assemblyFoldersEx, RARFileSystemServices services)
         {
             AssemblyFoldersEx = assemblyFoldersEx;
-            _fileExists = fileExists;
+            _services = services;
 
             if (Environment.GetEnvironmentVariable("MSBUILDDISABLEASSEMBLYFOLDERSEXCACHE") != null)
             {
@@ -316,7 +308,7 @@ namespace Microsoft.Build.Tasks
                 bool exists = _filesInDirectories.Contains(path);
                 return exists;
             }
-            return _fileExists(path);
+            return _services.FileExists(path);
         }
     }
 }

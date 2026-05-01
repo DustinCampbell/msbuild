@@ -12,6 +12,7 @@ using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Tasks.AssemblyDependency;
 #if FEATURE_WIN32_REGISTRY
 using System.Collections.Generic;
+using Microsoft.Build.Utilities;
 using Microsoft.Win32;
 #endif
 
@@ -25,6 +26,9 @@ namespace Microsoft.Build.Tasks
     /// enabling tests to override specific operations by inheriting from this class.
     /// </summary>
     internal class RARFileSystemServices
+#if FEATURE_WIN32_REGISTRY
+        : IRegistryService
+#endif
     {
         // PE header constants for ReadMachineTypeFromPEHeader
         private const int PEHeaderOffset = 0x3c;
@@ -273,7 +277,7 @@ namespace Microsoft.Build.Tasks
         /// <returns>The opened registry key.</returns>
         public virtual RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view)
         {
-            return RegistryHelper.OpenBaseKey(hive, view);
+            return RegistryService.Instance.OpenBaseKey(hive, view);
         }
 
         /// <summary>
@@ -282,9 +286,9 @@ namespace Microsoft.Build.Tasks
         /// <param name="baseKey">The base registry key.</param>
         /// <param name="subKey">The subkey path.</param>
         /// <returns>An enumeration of subkey names.</returns>
-        public virtual IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey)
+        public virtual IEnumerable<string> GetSubKeyNames(RegistryKey baseKey, string subKey)
         {
-            return RegistryHelper.GetSubKeyNames(baseKey, subKey);
+            return RegistryService.Instance.GetSubKeyNames(baseKey, subKey);
         }
 
         /// <summary>
@@ -293,9 +297,9 @@ namespace Microsoft.Build.Tasks
         /// <param name="baseKey">The base registry key.</param>
         /// <param name="subKey">The subkey path.</param>
         /// <returns>The default value of the subkey.</returns>
-        public virtual string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey)
+        public virtual string GetDefaultValue(RegistryKey baseKey, string subKey)
         {
-            return RegistryHelper.GetDefaultValue(baseKey, subKey);
+            return RegistryService.Instance.GetDefaultValue(baseKey, subKey);
         }
 #endif
     }
