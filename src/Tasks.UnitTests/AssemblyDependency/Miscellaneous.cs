@@ -5358,7 +5358,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             bool success = false;
             try
             {
-                var customServices = new TestRARFileSystemServices(
+                var customServices = new TestRARServices(
                     fileExists: path =>
                         String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
                         String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\System.Xml.dll", StringComparison.OrdinalIgnoreCase) ||
@@ -5418,7 +5418,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             bool success = false;
             try
             {
-                var customServices = new TestRARFileSystemServices(
+                var customServices = new TestRARServices(
                     fileExists: path =>
                         String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
                         String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\System.Xml.dll", StringComparison.OrdinalIgnoreCase) ||
@@ -6198,7 +6198,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Only the explicitly specified redist list should be used
             t.IgnoreDefaultInstalledAssemblyTables = true;
 
-            var customServices = new TestRARFileSystemServices(
+            var customServices = new TestRARServices(
                 fileExists: path =>
                     String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
                     String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
@@ -7084,7 +7084,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// </summary>
         private bool GenerateHelperDelegatesAndExecuteTask(ResolveAssemblyReference t, string microsoftBuildEnginePath, string systemXmlPath)
         {
-            var customServices = new TestRARFileSystemServices(
+            var customServices = new TestRARServices(
                 fileExists: path =>
                     String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
                     String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
@@ -7356,7 +7356,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(redistListPath) };
 
                 // Note that Microsoft.Build.Engine.dll does not exist
-                var customServices = new TestRARFileSystemServices(
+                var customServices = new TestRARServices(
                     fileExists: path =>
                         String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
                         path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),

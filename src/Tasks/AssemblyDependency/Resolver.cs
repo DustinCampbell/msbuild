@@ -25,7 +25,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// The services instance providing file system and assembly operations.
         /// </summary>
-        protected RARFileSystemServices services;
+        protected RARServices services;
 
         /// <summary>
         /// Runtime we are targeting
@@ -45,7 +45,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Construct.
         /// </summary>
-        protected Resolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVersion, ProcessorArchitecture targetedProcessorArchitecture, bool compareProcessorArchitecture)
+        protected Resolver(string searchPathElement, RARServices services, Version targetedRuntimeVersion, ProcessorArchitecture targetedProcessorArchitecture, bool compareProcessorArchitecture)
         {
             this.searchPathElement = searchPathElement;
             this.services = services;

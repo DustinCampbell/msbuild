@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -24,7 +24,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Construct.
         /// </summary>
-        public InstalledSDKResolver(Dictionary<string, ITaskItem> resolvedSDKs, string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVersion)
+        public InstalledSDKResolver(Dictionary<string, ITaskItem> resolvedSDKs, string searchPathElement, RARServices services, Version targetedRuntimeVersion)
             : base(searchPathElement, services, targetedRuntimeVersion, System.Reflection.ProcessorArchitecture.None, false)
         {
             _resolvedSDKs = resolvedSDKs;

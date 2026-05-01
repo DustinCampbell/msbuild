@@ -20,7 +20,7 @@ namespace Microsoft.Build.Tasks.UnitTests
         /// <summary>
         /// A minimal test services class for cache tests.
         /// </summary>
-        private sealed class TestCacheServices : RARFileSystemServices
+        private sealed class TestCacheServices : RARServices
         {
             private readonly DateTime _now;
 

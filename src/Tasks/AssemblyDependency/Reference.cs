@@ -125,9 +125,9 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// The services instance providing file system and assembly operations.
         /// </summary>
-        private RARFileSystemServices _services;
+        private RARServices _services;
 
-        internal Reference(RARFileSystemServices services)
+        internal Reference(RARServices services)
         {
             _services = services;
         }

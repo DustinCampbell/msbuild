@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\DebuggingSources.proj" />
 
@@ -123,7 +123,7 @@
     <Compile Include="AssemblyDependency\InstalledAssemblies.cs" />
     <Compile Include="AssemblyDependency\InvalidReferenceAssemblyNameException.cs" />
     <Compile Include="AssemblyDependency\NoMatchReason.cs" />
-    <Compile Include="AssemblyDependency\RARFileSystemServices.cs" />
+    <Compile Include="AssemblyDependency\RARServices.cs" />
     <Compile Include="AssemblyDependency\RawFilenameResolver.cs" />
     <Compile Include="AssemblyDependency\Reference.cs" />
     <Compile Include="AssemblyDependency\ReferenceResolutionException.cs" />

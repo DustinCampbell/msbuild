@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -120,7 +120,7 @@ namespace Microsoft.Build.Tasks
             string[] candidateAssemblyFiles,
             System.Reflection.ProcessorArchitecture targetProcessorArchitecture,
             string[] frameworkPaths,
-            RARFileSystemServices services,
+            RARServices services,
             InstalledAssemblies installedAssemblies,
             Version targetedRuntimeVersion,
             TaskLoggingHelper log)
@@ -183,7 +183,7 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         internal static Resolver[] CompileDirectories(
             List<DirectoryWithParentAssembly> parentReferenceDirectories,
-            RARFileSystemServices services,
+            RARServices services,
             Version targetedRuntimeVersion)
         {
             var resolvers = new Resolver[parentReferenceDirectories.Count];

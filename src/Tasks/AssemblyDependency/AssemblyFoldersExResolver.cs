@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #if FEATURE_WIN32_REGISTRY
@@ -84,7 +84,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Construct.
         /// </summary>
-        public AssemblyFoldersExResolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion, ProcessorArchitecture targetProcessorArchitecture, bool compareProcessorArchitecture, IBuildEngine buildEngine)
+        public AssemblyFoldersExResolver(string searchPathElement, RARServices services, Version targetedRuntimeVesion, ProcessorArchitecture targetProcessorArchitecture, bool compareProcessorArchitecture, IBuildEngine buildEngine)
             : base(searchPathElement, services, targetedRuntimeVesion, targetProcessorArchitecture, compareProcessorArchitecture)
         {
             _buildEngine = buildEngine as IBuildEngine4;
@@ -250,7 +250,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// File system services for fallback file existence checks.
         /// </summary>
-        private readonly RARFileSystemServices _services;
+        private readonly RARServices _services;
 
         /// <summary>
         /// Should we use the original services or use our cached lookup
@@ -260,7 +260,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Constructor
         /// </summary>
-        internal AssemblyFoldersExCache(AssemblyFoldersEx assemblyFoldersEx, RARFileSystemServices services)
+        internal AssemblyFoldersExCache(AssemblyFoldersEx assemblyFoldersEx, RARServices services)
         {
             AssemblyFoldersEx = assemblyFoldersEx;
             _services = services;

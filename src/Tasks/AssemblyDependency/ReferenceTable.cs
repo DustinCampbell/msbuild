@@ -92,7 +92,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>Like x86 or IA64\AMD64, the processor architecture being targetted.</summary>
         private readonly SystemProcessorArchitecture _targetProcessorArchitecture;
         /// <summary>The services instance providing file system and assembly operations.</summary>
-        private readonly RARFileSystemServices _services;
+        private readonly RARServices _services;
         /// <summary>Version of the runtime we are targeting</summary>
         private readonly Version _targetedRuntimeVersion;
 
@@ -197,7 +197,7 @@ namespace Microsoft.Build.Tasks
             string[] frameworkPaths,
             InstalledAssemblies installedAssemblies,
             System.Reflection.ProcessorArchitecture targetProcessorArchitecture,
-            RARFileSystemServices services,
+            RARServices services,
             Version targetedRuntimeVersion,
             Version projectTargetFramework,
             FrameworkNameVersioning targetFrameworkMoniker,

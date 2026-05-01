@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -20,7 +20,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="searchPathElement">The corresponding element from the search path.</param>
         /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="targetedRuntimeVesion">The targeted runtime version.</param>
-        public AssemblyFoldersResolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion)
+        public AssemblyFoldersResolver(string searchPathElement, RARServices services, Version targetedRuntimeVesion)
             : base(searchPathElement, services, targetedRuntimeVesion, System.Reflection.ProcessorArchitecture.None, false)
         {
         }

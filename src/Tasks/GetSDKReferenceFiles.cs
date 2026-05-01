@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -61,7 +61,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// File system services for assembly operations.
         /// </summary>
-        private RARFileSystemServices _services;
+        private RARServices _services;
 
         /// <summary>
         /// When false, allow fire-and-forget background work.
@@ -222,13 +222,13 @@ namespace Microsoft.Build.Tasks
                 Log.LogErrorWithCodeFromResources("General.TaskRequiresWindows", nameof(GetSDKReferenceFiles));
                 return false;
             }
-            return Execute(RARFileSystemServices.Default, synchronous: false);
+            return Execute(RARServices.Default, synchronous: false);
         }
 
         /// <summary>
         /// Execute the task with custom services.
         /// </summary>
-        internal bool Execute(RARFileSystemServices services, bool synchronous)
+        internal bool Execute(RARServices services, bool synchronous)
         {
             _services = services;
             _synchronous = synchronous;
@@ -878,7 +878,7 @@ namespace Microsoft.Build.Tasks
             /// <summary>
             /// File system services for assembly operations.
             /// </summary>
-            private readonly RARFileSystemServices _services;
+            private readonly RARServices _services;
 
             /// <summary>
             /// Location for the cache files to be written to
@@ -888,7 +888,7 @@ namespace Microsoft.Build.Tasks
             /// <summary>
             /// Constructor
             /// </summary>
-            internal SDKFilesCache(ConcurrentQueue<string> exceptionQueue, string cacheFileDirectory, RARFileSystemServices services)
+            internal SDKFilesCache(ConcurrentQueue<string> exceptionQueue, string cacheFileDirectory, RARServices services)
             {
                 _exceptionMessages = exceptionQueue;
                 _cacheFileDirectory = cacheFileDirectory;

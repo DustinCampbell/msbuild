@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -92,7 +92,7 @@ namespace Microsoft.Build.Tasks.UnitTests
         /// Test services class that provides only FileExists functionality.
         /// Other methods are not called in this code path.
         /// </summary>
-        private sealed class HintPathTestServices : RARFileSystemServices
+        private sealed class HintPathTestServices : RARServices
         {
             public override bool FileExists(string path) => FileUtilities.FileExistsNoThrow(path);
 

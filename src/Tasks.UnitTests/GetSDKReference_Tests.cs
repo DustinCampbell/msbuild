@@ -184,7 +184,7 @@ namespace Microsoft.Build.UnitTests.GetSDKReferenceFiles_Tests
         private readonly string _sdkDirectory;
         private readonly string _sdkDirectory2;
         private readonly MockEngine.GetStringDelegate _resourceDelegate;
-        private readonly RARFileSystemServices _testServices = TestGetSDKReferenceFilesServices.Instance;
+        private readonly RARServices _testServices = TestGetSDKReferenceFilesServices.Instance;
         private readonly string _cacheDirectory = Path.Combine(Path.GetTempPath(), "GetSDKReferenceFiles");
 
         public GetSDKReferenceFilesTestFixture(FakeSdkStructure fakeSdkStructure, ITestOutputHelper output)
@@ -1410,7 +1410,7 @@ namespace Microsoft.Build.UnitTests.GetSDKReferenceFiles_Tests
         /// <summary>
         /// Test services class that provides custom implementations for GetSDKReferenceFiles tests.
         /// </summary>
-        private sealed class TestGetSDKReferenceFilesServices : RARFileSystemServices
+        private sealed class TestGetSDKReferenceFilesServices : RARServices
         {
             public static TestGetSDKReferenceFilesServices Instance { get; } = new TestGetSDKReferenceFilesServices();
 

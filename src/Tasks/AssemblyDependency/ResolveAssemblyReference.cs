@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -2166,7 +2166,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <returns>True if there was success.</returns>
 #endif
-        internal bool Execute(RARFileSystemServices services)
+        internal bool Execute(RARServices services)
         {
             bool success = true;
             MSBuildEventSource.Log.RarOverallStart();
@@ -3195,7 +3195,7 @@ namespace Microsoft.Build.Tasks
                 }
             }
 
-            return Execute(RARFileSystemServices.Default);
+            return Execute(RARServices.Default);
         }
         #endregion
     }

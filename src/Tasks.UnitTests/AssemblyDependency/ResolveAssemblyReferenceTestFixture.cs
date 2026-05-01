@@ -28,15 +28,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
         /// <summary>
         /// Default test services instance that calls the fixture's static methods.
-        /// Most tests use this. Tests needing custom behavior create their own TestRARFileSystemServices with overrides.
+        /// Most tests use this. Tests needing custom behavior create their own TestRARServices with overrides.
         /// </summary>
-        internal static RARFileSystemServices testServices = new TestRARFileSystemServices();
+        internal static RARServices testServices = new TestRARServices();
 
         /// <summary>
-        /// A test implementation of RARFileSystemServices that calls the fixture's static methods.
+        /// A test implementation of RARServices that calls the fixture's static methods.
         /// For tests needing custom behavior, pass Func overrides to the constructor.
         /// </summary>
-        internal sealed class TestRARFileSystemServices : RARFileSystemServices
+        internal sealed class TestRARServices : RARServices
         {
             private readonly Func<string, bool> _fileExists;
             private readonly Func<string, AssemblyNameExtension> _getAssemblyName;
@@ -45,7 +45,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             /// Creates test services with optional overrides for specific operations.
             /// Pass null for any parameter to use the default fixture implementation.
             /// </summary>
-            public TestRARFileSystemServices(
+            public TestRARServices(
                 Func<string, bool> fileExists = null,
                 Func<string, AssemblyNameExtension> getAssemblyName = null)
             {
@@ -2998,7 +2998,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// <summary>
         /// Execute the task with custom services.
         /// </summary>
-        internal static bool Execute(ResolveAssemblyReference t, RARFileSystemServices services, RARSimulationMode RARSimulationMode = RARSimulationMode.LoadAndBuildProject)
+        internal static bool Execute(ResolveAssemblyReference t, RARServices services, RARSimulationMode RARSimulationMode = RARSimulationMode.LoadAndBuildProject)
         {
             return Execute(t, services, true, RARSimulationMode);
         }
@@ -3023,7 +3023,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// <summary>
         /// Execute the task with custom services and optional consistency check.
         /// </summary>
-        internal static bool Execute(ResolveAssemblyReference t, RARFileSystemServices services, bool buildConsistencyCheck, RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
+        internal static bool Execute(ResolveAssemblyReference t, RARServices services, bool buildConsistencyCheck, RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
         {
             string tempPath = Path.GetTempPath();
             string redistListPath = Path.Combine(tempPath, Guid.NewGuid() + ".xml");

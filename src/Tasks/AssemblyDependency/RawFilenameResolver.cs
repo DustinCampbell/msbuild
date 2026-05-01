@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -18,7 +18,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Construct.
         /// </summary>
-        public RawFilenameResolver(string searchPathElement, RARFileSystemServices services, Version targetedRuntimeVesion)
+        public RawFilenameResolver(string searchPathElement, RARServices services, Version targetedRuntimeVesion)
             : base(searchPathElement, services, targetedRuntimeVesion, ProcessorArchitecture.None, false)
         {
         }

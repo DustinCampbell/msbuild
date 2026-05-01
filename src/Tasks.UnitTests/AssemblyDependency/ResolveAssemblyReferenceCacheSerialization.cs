@@ -52,7 +52,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// <summary>
         /// A minimal test services class for cache serialization tests.
         /// </summary>
-        private sealed class TestCacheServices : RARFileSystemServices
+        private sealed class TestCacheServices : RARServices
         {
             public override DateTime GetLastWriteTime(string path) => GetLastWriteTimeStatic(path);
             private static DateTime GetLastWriteTimeStatic(string path) => path switch

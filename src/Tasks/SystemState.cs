@@ -85,7 +85,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// The underlying services for file system and assembly operations.
         /// </summary>
-        private RARFileSystemServices _services;
+        private RARServices _services;
 
         /// <summary>
         /// Class that holds the current file state.
@@ -596,24 +596,24 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="services">The underlying services to wrap.</param>
         /// <returns>A caching services instance.</returns>
-        internal RARFileSystemServices CreateCachingServices(RARFileSystemServices services)
+        internal RARServices CreateCachingServices(RARServices services)
         {
             _services = services;
-            return new CachingRARFileSystemServices(this, services);
+            return new CachingRARServices(this, services);
         }
 
         /// <summary>
-        /// A caching wrapper around RARFileSystemServices that uses SystemState for caching.
+        /// A caching wrapper around RARServices that uses SystemState for caching.
         /// </summary>
-        private sealed class CachingRARFileSystemServices : RARFileSystemServices
+        private sealed class CachingRARServices : RARServices
         {
             private readonly SystemState _cache;
-            private readonly RARFileSystemServices _inner;
+            private readonly RARServices _inner;
 
             private Func<string, bool> _isImmutableFileFunc;
             private Func<string, AssemblyNameExtension> _getImmutableFileAssemblyNameFunc;
 
-            internal CachingRARFileSystemServices(SystemState cache, RARFileSystemServices inner)
+            internal CachingRARServices(SystemState cache, RARServices inner)
             {
                 _cache = cache;
                 _inner = inner;
