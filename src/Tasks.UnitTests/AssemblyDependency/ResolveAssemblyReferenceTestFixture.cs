@@ -107,19 +107,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     return true;
                 }
 
-                // StartsWith patterns
+                // StartsWith patterns - C:\MyWinMDComponents doesn't require .winmd extension check
                 if (fullPath.StartsWith(@"C:\MyWinMDComponents", StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
 
-                if (fullPath.StartsWith(@"C:\DirectoryContains", StringComparison.OrdinalIgnoreCase) &&
-                    Path.GetExtension(fullPath).Equals(".winmd", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                if (fullPath.StartsWith(@"C:\WinMDArchVerification", StringComparison.OrdinalIgnoreCase) &&
+                // C:\DirectoryContains* and C:\WinMDArchVerification* require .winmd extension
+                if ((fullPath.StartsWith(@"C:\DirectoryContains", StringComparison.OrdinalIgnoreCase) ||
+                     fullPath.StartsWith(@"C:\WinMDArchVerification", StringComparison.OrdinalIgnoreCase)) &&
                     Path.GetExtension(fullPath).Equals(".winmd", StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
@@ -128,39 +124,33 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 return false;
             }
 
+            /// <summary>
+            /// GAC path mappings for specific assembly names. Value is path, or null for assemblies not in GAC.
+            /// </summary>
+            private static readonly FrozenDictionary<string, string> s_gacPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["V, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null"] = null,
+                ["W, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null"] = @"C:\MyComponents2\W.dll",
+                ["X, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null"] = @"C:\MyComponents\X.dll",
+                ["Y, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null"] = null,
+                ["Z, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null"] = null,
+            }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
             public override string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, Version targetedRuntimeVersion, bool fullFusionName, bool specificVersion)
             {
-                if (assemblyName.Equals(new AssemblyNameExtension("V, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
+                if (s_gacPaths.TryGetValue(assemblyName.FullName, out string gacPath))
                 {
-                    return null;
+                    return gacPath;
                 }
-                else if (assemblyName.Equals(new AssemblyNameExtension("W, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-                {
-                    return @"C:\MyComponents2\W.dll";
-                }
-                else if (assemblyName.Equals(new AssemblyNameExtension("Z, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-                {
-                    return null;
-                }
-                else if (assemblyName.Equals(new AssemblyNameExtension("X, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-                {
-                    return @"C:\MyComponents\X.dll";
-                }
-                else if (assemblyName.Equals(new AssemblyNameExtension("Y, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-                {
-                    return null;
-                }
-                else
-                {
-                    string gacLocation = null;
+
+                string gacLocation = null;
 #if FEATURE_GAC
-                    if (assemblyName.Version != null)
-                    {
-                        gacLocation = GlobalAssemblyCache.GetLocation(assemblyName, targetProcessorArchitecture, this, targetedRuntimeVersion, fullFusionName, null, null, specificVersion);
-                    }
-#endif
-                    return gacLocation;
+                if (assemblyName.Version != null)
+                {
+                    gacLocation = GlobalAssemblyCache.GetLocation(assemblyName, targetProcessorArchitecture, this, targetedRuntimeVersion, fullFusionName, null, null, specificVersion);
                 }
+#endif
+                return gacLocation;
             }
 
 #if FEATURE_WIN32_REGISTRY
@@ -791,45 +781,29 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         /// <summary>
+        /// PE header machine type mappings for ReadMachineTypeFromPEHeader.
+        /// </summary>
+        private static readonly FrozenDictionary<string, ushort> s_machineTypes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase)
+        {
+            [@"C:\WinMDArchVerification\DependsOnInvalidPeHeader.dll"] = NativeMethods.IMAGE_FILE_MACHINE_INVALID,
+            [@"C:\WinMDArchVerification\DependsOnAmd64.dll"] = NativeMethods.IMAGE_FILE_MACHINE_AMD64,
+            [@"C:\WinMDArchVerification\DependsOnX86.dll"] = NativeMethods.IMAGE_FILE_MACHINE_I386,
+            [@"C:\WinMDArchVerification\DependsOnArm.dll"] = NativeMethods.IMAGE_FILE_MACHINE_ARM,
+            [@"C:\WinMDArchVerification\DependsOnArmV7.dll"] = NativeMethods.IMAGE_FILE_MACHINE_ARMV7,
+            [@"C:\WinMDArchVerification\DependsOnIA64.dll"] = NativeMethods.IMAGE_FILE_MACHINE_IA64,
+            [@"C:\WinMDArchVerification\DependsOnUnknown.dll"] = NativeMethods.IMAGE_FILE_MACHINE_R4000,
+            [@"C:\WinMDArchVerification\DependsOnAnyCPUUnknown.dll"] = NativeMethods.IMAGE_FILE_MACHINE_UNKNOWN,
+            [@"C:\WinMD\SampleWindowsRuntimeOnly.dll"] = NativeMethods.IMAGE_FILE_MACHINE_I386,
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// Reads the machine type out of the PEHeader of the native dll
         /// </summary>
-        private static UInt16 ReadMachineTypeFromPEHeader(string dllPath)
+        private static ushort ReadMachineTypeFromPEHeader(string dllPath)
         {
-            if (@"C:\WinMDArchVerification\DependsOnInvalidPeHeader.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
+            if (s_machineTypes.TryGetValue(dllPath, out ushort machineType))
             {
-                return NativeMethods.IMAGE_FILE_MACHINE_INVALID;
-            }
-            else if (@"C:\WinMDArchVerification\DependsOnAmd64.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return NativeMethods.IMAGE_FILE_MACHINE_AMD64;
-            }
-            else if (@"C:\WinMDArchVerification\DependsOnX86.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return NativeMethods.IMAGE_FILE_MACHINE_I386;
-            }
-            else if (@"C:\WinMDArchVerification\DependsOnArm.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return NativeMethods.IMAGE_FILE_MACHINE_ARM;
-            }
-            else if (@"C:\WinMDArchVerification\DependsOnArmV7.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return NativeMethods.IMAGE_FILE_MACHINE_ARMV7;
-            }
-            else if (@"C:\WinMDArchVerification\DependsOnIA64.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return NativeMethods.IMAGE_FILE_MACHINE_IA64;
-            }
-            else if (@"C:\WinMDArchVerification\DependsOnUnknown.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return NativeMethods.IMAGE_FILE_MACHINE_R4000;
-            }
-            else if (@"C:\WinMDArchVerification\DependsOnAnyCPUUnknown.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return NativeMethods.IMAGE_FILE_MACHINE_UNKNOWN;
-            }
-            else if (@"C:\WinMD\SampleWindowsRuntimeOnly.dll".Equals(dllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return NativeMethods.IMAGE_FILE_MACHINE_I386;
+                return machineType;
             }
 
             return NativeMethods.IMAGE_FILE_MACHINE_INVALID;
@@ -857,14 +831,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Do IO monitoring if needed.
             if (uniqueFileExists != null)
             {
-                string lowerPath = path.ToLower();
-
-                if (!uniqueFileExists.ContainsKey(lowerPath))
+                if (!uniqueFileExists.ContainsKey(path))
                 {
-                    uniqueFileExists[lowerPath] = 0;
+                    uniqueFileExists[path] = 0;
                 }
 
-                uniqueFileExists[lowerPath]++;
+                uniqueFileExists[path]++;
             }
 
             // First, MyMissingAssembly doesn't exist anywhere.
@@ -891,30 +863,24 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         /// <summary>
+        /// Directories that are considered to exist.
+        /// </summary>
+        private static readonly FrozenSet<string> s_existentDirs = FrozenSet.Create(
+            StringComparer.OrdinalIgnoreCase,
+            [
+                s_myVersion20Path,
+                @"c:\SGenDependeicies",
+                Path.GetTempPath()
+            ]);
+
+        /// <summary>
         /// Mock the Directory.Exists method.
         /// </summary>
         /// <param name="path">The path to check.</param>
         /// <returns>'true' if the directory is supposed to exist</returns>
         internal static bool DirectoryExists(string path)
         {
-            // Now specify the remaining files.
-            string[] existentDirs = new string[]
-            {
-                s_myVersion20Path,
-                @"c:\SGenDependeicies",
-                Path.GetTempPath()
-            };
-
-            foreach (string dir in existentDirs)
-            {
-                if (String.Equals(path, dir, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            // Everything else doesn't exist.
-            return false;
+            return s_existentDirs.Contains(path);
         }
 
         /// <summary>
@@ -945,99 +911,62 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         /// <summary>
+        /// Runtime version mappings for GetRuntimeVersion.
+        /// </summary>
+        private static readonly FrozenDictionary<string, string> s_runtimeVersions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [@"C:\WinMD\SampleWindowsRuntimeAndCLR.Winmd"] = "WindowsRuntime 1.0, CLR V2.0.50727",
+            [@"C:\WinMD\SampleWindowsRuntimeOnly.Winmd"] = "WindowsRuntime 1.0",
+            [@"C:\WinMD\WinMDWithVersion255.Winmd"] = "WindowsRuntime 1.0",
+            [@"C:\WinMD\SampleWindowsRuntimeOnly2.Winmd"] = "WindowsRuntime 1.0",
+            [@"C:\WinMD\SampleWindowsRuntimeOnly3.Winmd"] = "WindowsRuntime 1.0",
+            [@"C:\WinMD\SampleWindowsRuntimeOnly4.Winmd"] = "WindowsRuntime 1.0",
+            [@"C:\WinMD\SampleWindowsRuntimeReferencingSystem.Winmd"] = "WindowsRuntime 1.0",
+            [@"C:\WinMD\SampleWindowsRuntimeReferencingSystemDNE.Winmd"] = "WindowsRuntime 1.0",
+            [@"C:\WinMD\SampleClrOnly.Winmd"] = "CLR V2.0.50727",
+            [@"C:\WinMD\SampleBadWindowsRuntime.Winmd"] = "Windows Runtime",
+            [@"C:\WinMD\SampleWindowsRuntimeAndOther.Winmd"] = "WindowsRuntime 1.0, Other V2.0.50727",
+            [@"C:\DirectoryContainsOnlyDll\a.dll"] = "V2.0.50727",
+            [@"C:\DirectoryContainsdllAndWinmd\b.dll"] = "V2.0.50727",
+            [@"C:\DirectoryContainsdllAndWinmd\c.winmd"] = "WindowsRuntime 1.0",
+            [@"C:\DirectoryContainstwoWinmd\a.winmd"] = "WindowsRuntime 1.0",
+            [@"C:\DirectoryContainstwoWinmd\c.winmd"] = "WindowsRuntime 1.0",
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// Given a path return the corosponding CLR runtime version
         /// </summary>
         /// <param name="path">Path to the file</param>
         /// <returns>Image runtime version</returns>
         internal static string GetRuntimeVersion(string path)
         {
-            if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeAndCLR.Winmd", StringComparison.OrdinalIgnoreCase))
+            // Check explicit path mappings first
+            if (s_runtimeVersions.TryGetValue(path, out string version))
             {
-                return "WindowsRuntime 1.0, CLR V2.0.50727";
+                return version;
             }
-            else if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return "WindowsRuntime 1.0";
-            }
-            else if (String.Equals(path, @"C:\WinMD\WinMDWithVersion255.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return "WindowsRuntime 1.0";
-            }
-            else if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeOnly2.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return "WindowsRuntime 1.0";
-            }
-            else if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeOnly3.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return "WindowsRuntime 1.0";
-            }
-            else if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeOnly4.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return "WindowsRuntime 1.0";
-            }
-            else if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeReferencingSystem.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return "WindowsRuntime 1.0";
-            }
-            else if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeReferencingSystemDNE.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return "WindowsRuntime 1.0";
-            }
-            else if (String.Equals(path, @"C:\WinMD\SampleClrOnly.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return "CLR V2.0.50727";
-            }
-            else if (String.Equals(path, @"C:\WinMD\SampleBadWindowsRuntime.Winmd", StringComparison.OrdinalIgnoreCase))
+
+            // StartsWith patterns
+            if (path.StartsWith(@"C:\MyWinMDComponents", StringComparison.OrdinalIgnoreCase))
             {
                 return "Windows Runtime";
             }
-            else if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeAndOther.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return "WindowsRuntime 1.0, Other V2.0.50727";
-            }
-            else if (String.Equals(path, @"C:\DirectoryContainsOnlyDll\a.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return "V2.0.50727";
-            }
-            else if (String.Equals(path, @"C:\DirectoryContainsdllAndWinmd\b.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return "V2.0.50727";
-            }
-            else if (String.Equals(path, @"C:\DirectoryContainsdllAndWinmd\c.winmd", StringComparison.OrdinalIgnoreCase))
+
+            if (path.StartsWith(@"C:\WinMDArchVerification", StringComparison.OrdinalIgnoreCase) &&
+                path.EndsWith(".winmd", StringComparison.Ordinal))
             {
                 return "WindowsRuntime 1.0";
             }
-            else if (String.Equals(path, @"C:\DirectoryContainstwoWinmd\a.winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return "WindowsRuntime 1.0";
-            }
-            else if (String.Equals(path, @"C:\DirectoryContainstwoWinmd\c.winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return "WindowsRuntime 1.0";
-            }
-            else if (path.StartsWith(@"C:\MyWinMDComponents", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Windows Runtime";
-            }
-            else if (path.StartsWith(@"C:\WinMDArchVerification", StringComparison.OrdinalIgnoreCase) && path.EndsWith(".winmd", StringComparison.Ordinal))
-            {
-                return "WindowsRuntime 1.0";
-            }
-            else if (path.EndsWith(".dll", StringComparison.Ordinal) || path.EndsWith(".exe", StringComparison.Ordinal) || path.EndsWith(".winmd", StringComparison.Ordinal))
+
+            // Default for assemblies
+            if (path.EndsWith(".dll", StringComparison.Ordinal) ||
+                path.EndsWith(".exe", StringComparison.Ordinal) ||
+                path.EndsWith(".winmd", StringComparison.Ordinal))
             {
                 return "v2.0.50727";
             }
-            else
-            {
-                return "";
-            }
+
+            return "";
         }
 
         /// <summary>
@@ -1179,14 +1108,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Do IO monitoring if needed.
             if (uniqueGetAssemblyName != null)
             {
-                string lowerPath = path.ToLower();
-                if (!uniqueGetAssemblyName.ContainsKey(lowerPath))
+                if (!uniqueGetAssemblyName.ContainsKey(path))
                 {
-                    uniqueGetAssemblyName[lowerPath] = 0;
+                    uniqueGetAssemblyName[path] = 0;
                 }
                 else
                 {
-                    uniqueGetAssemblyName[lowerPath] = (int)uniqueGetAssemblyName[lowerPath] + 1;
+                    uniqueGetAssemblyName[path] = uniqueGetAssemblyName[path] + 1;
                 }
             }
 
@@ -1323,37 +1251,28 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// <summary>
         /// Cached implementation. Given an assembly name, crack it open and retrieve the TargetFrameworkAttribute
         /// </summary>
+        /// <summary>
+        /// Target framework attribute mappings for GetTargetFrameworkAttribute.
+        /// </summary>
+        private static readonly FrozenDictionary<string, string> s_targetFrameworks = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Path.Combine(s_frameworksPath, "DependsOnFoo4Framework.dll")] = "FoO, Version=v4.0",
+            [Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll")] = "FoO, Version=v4.5",
+            [Path.Combine(s_frameworksPath, "DependsOnFoo35Framework.dll")] = "FoO, Version=v3.5",
+            [Path.Combine(s_frameworksPath, "IndirectDependsOnFoo4Framework.dll")] = "FoO, Version=v4.0",
+            [Path.Combine(s_frameworksPath, "IndirectDependsOnFoo45Framework.dll")] = "FoO, Version=v4.0",
+            [Path.Combine(s_frameworksPath, "IndirectDependsOnFoo35Framework.dll")] = "FoO, Version=v4.0",
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
         internal static FrameworkNameVersioning GetTargetFrameworkAttribute(
             string path)
         {
-            FrameworkNameVersioning frameworkName = null;
-
-            if (String.Equals(path, Path.Combine(s_frameworksPath, "DependsOnFoo4Framework.dll"), StringComparison.OrdinalIgnoreCase))
+            if (s_targetFrameworks.TryGetValue(path, out string frameworkString))
             {
-                frameworkName = new FrameworkNameVersioning("FoO, Version=v4.0");
-            }
-            else if (String.Equals(path, Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                frameworkName = new FrameworkNameVersioning("FoO, Version=v4.5");
-            }
-            else if (String.Equals(path, Path.Combine(s_frameworksPath, "DependsOnFoo35Framework.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                frameworkName = new FrameworkNameVersioning("FoO, Version=v3.5");
-            }
-            else if (String.Equals(path, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo4Framework.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                frameworkName = new FrameworkNameVersioning("FoO, Version=v4.0");
-            }
-            else if (String.Equals(path, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo45Framework.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                frameworkName = new FrameworkNameVersioning("FoO, Version=v4.0");
-            }
-            else if (String.Equals(path, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo35Framework.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                frameworkName = new FrameworkNameVersioning("FoO, Version=v4.0");
+                return new FrameworkNameVersioning(frameworkString);
             }
 
-            return frameworkName;
+            return null;
         }
 
         /// <summary>
