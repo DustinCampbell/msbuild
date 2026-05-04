@@ -57,7 +57,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             public override bool DirectoryExists(string path) => ResolveAssemblyReferenceTestFixture.DirectoryExists(path);
             public override string[] GetDirectories(string path, string searchPattern) => ResolveAssemblyReferenceTestFixture.GetDirectories(path, searchPattern);
             public override AssemblyNameExtension GetAssemblyName(string path) => _getAssemblyName(path);
-            public override AssemblyMetadata GetAssemblyMetadata(string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache) => ResolveAssemblyReferenceTestFixture.GetAssemblyMetadata(path);
+            public override AssemblyMetadata GetAssemblyMetadata(string path) => ResolveAssemblyReferenceTestFixture.GetAssemblyMetadata(path);
             public override DateTime GetLastWriteTime(string path) => FileExists(path) ? DateTime.FromFileTimeUtc(1) : DateTime.FromFileTimeUtc(0);
             public override string GetAssemblyRuntimeVersion(string path) => ResolveAssemblyReferenceTestFixture.GetRuntimeVersion(path);
             public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd) => ResolveAssemblyReferenceTestFixture.IsWinMDFile(fullPath, GetAssemblyRuntimeVersion, FileExists, out imageRuntimeVersion, out isManagedWinmd);

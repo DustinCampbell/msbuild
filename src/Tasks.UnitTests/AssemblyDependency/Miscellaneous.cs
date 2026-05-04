@@ -6655,7 +6655,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ReferenceTableDependentItemsInDenyList4()
         {
-            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, testServices, null, null, null, null, null, true, false, false, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, null, Array.Empty<string>());
+            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, testServices, null, null, null, null, null, true, false, false, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, Array.Empty<string>());
             MockEngine mockEngine;
             ResolveAssemblyReference rar;
             Dictionary<string, string> denyList;
@@ -6829,7 +6829,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
         private static ReferenceTable MakeEmptyReferenceTable(TaskLoggingHelper log)
         {
-            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, testServices, null, null, null, log, null, true, false, false, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, null, Array.Empty<string>());
+            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, testServices, null, null, null, log, null, true, false, false, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, Array.Empty<string>());
             return referenceTable;
         }
 

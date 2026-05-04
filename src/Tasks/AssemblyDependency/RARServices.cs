@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using Microsoft.Build.Framework;
@@ -90,13 +89,9 @@ internal class RARServices
     /// Gets the assembly metadata from the specified assembly file.
     /// </summary>
     /// <param name="path">The path to the assembly file.</param>
-    /// <param name="assemblyMetadataCache">A cache of previously retrieved assembly metadata.</param>
     /// <returns>The <see cref="AssemblyMetadata"/> for the assembly.</returns>
-    public virtual AssemblyMetadata GetAssemblyMetadata(
-        string path,
-        ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
-        => assemblyMetadataCache?.GetOrAdd(path, p => new AssemblyMetadata(p))
-            ?? new AssemblyMetadata(path);
+    public virtual AssemblyMetadata GetAssemblyMetadata(string path)
+        => new AssemblyMetadata(path);
 
     /// <summary>
     /// Gets the last write time of the specified file.

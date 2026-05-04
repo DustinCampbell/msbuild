@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -141,8 +140,6 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         private readonly WarnOrErrorOnTargetArchitectureMismatchBehavior _warnOrErrorOnTargetArchitectureMismatch = WarnOrErrorOnTargetArchitectureMismatchBehavior.Warning;
 
-        private readonly ConcurrentDictionary<string, AssemblyMetadata> _assemblyMetadataCache;
-
         /// <summary>
         /// When we exclude an assembly from resolution because it is part of out exclusion list we need to let the user know why this is.
         /// There can be a number of reasons each for un-resolving a reference, these reasons are encapsulated by a different deny list. We need to log a specific message
@@ -169,7 +166,6 @@ namespace Microsoft.Build.Tasks
         /// <param name="targetProcessorArchitecture">Like x86 or IA64\AMD64, the processor architecture being targeted.</param>
         /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="unresolveFrameworkAssembliesFromHigherFrameworks"></param>
-        /// <param name="assemblyMetadataCache">Cache of metadata already read from paths.</param>
         /// <param name="allowedAssemblyExtensions"></param>
         /// <param name="targetedRuntimeVersion">Version of the runtime to target.</param>
         /// <param name="projectTargetFramework">Version of the framework targeted by the project.</param>
@@ -209,7 +205,6 @@ namespace Microsoft.Build.Tasks
             WarnOrErrorOnTargetArchitectureMismatchBehavior warnOrErrorOnTargetArchitectureMismatch,
             bool ignoreFrameworkAttributeVersionMismatch,
             bool unresolveFrameworkAssembliesFromHigherFrameworks,
-            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
             string[] nonCultureResourceDirectories)
         {
             _log = log;
@@ -231,7 +226,6 @@ namespace Microsoft.Build.Tasks
             _doNotCopyLocalIfInGac = doNotCopyLocalIfInGac;
             _warnOrErrorOnTargetArchitectureMismatch = warnOrErrorOnTargetArchitectureMismatch;
             _ignoreFrameworkAttributeVersionMismatch = ignoreFrameworkAttributeVersionMismatch;
-            _assemblyMetadataCache = assemblyMetadataCache;
             _nonCultureResourceDirectories = nonCultureResourceDirectories;
             _enableCustomCulture = enableCustomCulture;
 
@@ -932,7 +926,7 @@ namespace Microsoft.Build.Tasks
                 return;
             }
 
-            AssemblyMetadata metadata = _services.GetAssemblyMetadata(reference.FullPath, _assemblyMetadataCache);
+            AssemblyMetadata metadata = _services.GetAssemblyMetadata(reference.FullPath);
             AssemblyNameExtension[] dependentAssemblies = metadata.Dependencies;
             scatterFiles = metadata.ScatterFiles;
             reference.FrameworkNameAttribute = metadata.FrameworkName;

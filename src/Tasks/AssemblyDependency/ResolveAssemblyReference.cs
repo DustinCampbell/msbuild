@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 #if !NET
@@ -2346,11 +2345,6 @@ namespace Microsoft.Build.Tasks
 
                     SystemProcessorArchitecture processorArchitecture = TargetProcessorArchitectureToEnumeration(_targetProcessorArchitecture);
 
-                    ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache =
-                        Traits.Instance.EscapeHatches.CacheAssemblyInformation
-                            ? new ConcurrentDictionary<string, AssemblyMetadata>()
-                            : null;
-
                     // Start the table of dependencies with all of the primary references.
                     ReferenceTable dependencyTable = new ReferenceTable(
                         BuildEngine,
@@ -2379,7 +2373,6 @@ namespace Microsoft.Build.Tasks
                         _warnOrErrorOnTargetArchitectureMismatch,
                         _ignoreTargetFrameworkAttributeVersionMismatch,
                         _unresolveFrameworkAssembliesFromHigherFrameworks,
-                        assemblyMetadataCache,
                         _nonCultureResourceDirectories);
 
                     // Wire up immutable file callbacks now that the dependency table exists
@@ -2520,7 +2513,7 @@ namespace Microsoft.Build.Tasks
                                 continue;
                             }
 
-                            var rawDependencies = GetDependencies(resolvedReference, cachedServices, assemblyMetadataCache);
+                            var rawDependencies = GetDependencies(resolvedReference, cachedServices);
                             if (rawDependencies != null)
                             {
                                 foreach (var dependentReference in rawDependencies)
@@ -2644,9 +2637,8 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="resolvedReference">The resolved reference to get dependencies for.</param>
         /// <param name="services">The services instance providing file system and assembly operations.</param>
-        /// <param name="assemblyMetadataCache">Cache of pre-extracted assembly metadata.</param>
         /// <returns>List of dependencies, or <see langword="null"/> if the reference has no dependencies or is invalid.</returns>
-        private static AssemblyNameExtension[] GetDependencies(Reference resolvedReference, RARServices services, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
+        private static AssemblyNameExtension[] GetDependencies(Reference resolvedReference, RARServices services)
         {
             AssemblyNameExtension[] result = null;
             if (resolvedReference?.IsPrimary == true && !resolvedReference.IsBadImage)
@@ -2656,7 +2648,7 @@ namespace Microsoft.Build.Tasks
                     // in case of P2P that have not build the reference can be resolved but file does not exist on disk.
                     if (services.FileExists(resolvedReference.FullPath))
                     {
-                        result = services.GetAssemblyMetadata(resolvedReference.FullPath, assemblyMetadataCache).Dependencies;
+                        result = services.GetAssemblyMetadata(resolvedReference.FullPath).Dependencies;
                     }
                 }
                 catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))

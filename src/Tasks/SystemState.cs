@@ -437,7 +437,8 @@ namespace Microsoft.Build.Tasks
             FileState fileState = GetFileState(path);
             if (fileState.dependencies == null)
             {
-                AssemblyMetadata metadata = _services.GetAssemblyMetadata(path, assemblyMetadataCache);
+                AssemblyMetadata metadata = assemblyMetadataCache?.GetOrAdd(path, _services.GetAssemblyMetadata)
+                    ?? _services.GetAssemblyMetadata(path);
                 fileState.dependencies = metadata.Dependencies;
                 fileState.scatterFiles = metadata.ScatterFiles;
                 fileState.frameworkName = metadata.FrameworkName;
@@ -600,6 +601,7 @@ namespace Microsoft.Build.Tasks
         {
             private readonly SystemState _cache;
             private readonly RARServices _inner;
+            private readonly ConcurrentDictionary<string, AssemblyMetadata> _assemblyMetadataCache;
 
             private Func<string, bool> _isImmutableFileFunc;
             private Func<string, AssemblyNameExtension> _getImmutableFileAssemblyNameFunc;
@@ -608,6 +610,9 @@ namespace Microsoft.Build.Tasks
             {
                 _cache = cache;
                 _inner = inner;
+                _assemblyMetadataCache = Traits.Instance.EscapeHatches.CacheAssemblyInformation
+                    ? new ConcurrentDictionary<string, AssemblyMetadata>()
+                    : null;
             }
 
             public override void SetImmutableFileCallbacks(
@@ -636,10 +641,8 @@ namespace Microsoft.Build.Tasks
                 return _cache.GetAssemblyName(path);
             }
 
-            public override AssemblyMetadata GetAssemblyMetadata(
-                string path,
-                ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
-                => _cache.GetAssemblyMetadata(path, assemblyMetadataCache);
+            public override AssemblyMetadata GetAssemblyMetadata(string path)
+                => _cache.GetAssemblyMetadata(path, _assemblyMetadataCache);
 
             public override DateTime GetLastWriteTime(string path)
             {
