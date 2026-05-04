@@ -2,13 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Versioning;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Tasks.AssemblyDependency;
 
 #nullable disable
 
@@ -38,28 +35,6 @@ namespace Microsoft.Build.Tasks
     internal delegate void SetLastWriteTime(string path, DateTime timestamp);
 
     /// <summary>
-    /// GetDirectories delegate.
-    /// </summary>
-    /// <param name="path">The path to get directories for.</param>
-    /// <param name="pattern">The pattern to search for.</param>
-    /// <returns>An array of directories.</returns>
-    internal delegate string[] GetDirectories(string path, string pattern);
-
-    /// <summary>
-    /// CopyFile delegate
-    /// </summary>
-    /// <param name="source">Source file</param>
-    /// <param name="destination">Destination file</param>
-    internal delegate bool CopyFile(string source, string destination);
-
-    /// <summary>
-    /// GetAssemblyName delegate
-    /// </summary>
-    /// <param name="path">The path to the file</param>
-    /// <returns>The assembly name.</returns>
-    internal delegate AssemblyNameExtension GetAssemblyName(string path);
-
-    /// <summary>
     /// GetAssemblyRuntimeVersion delegate to get the clr runtime version of a file.
     /// </summary>
     /// <param name="path">The path to the file</param>
@@ -81,37 +56,6 @@ namespace Microsoft.Build.Tasks
     internal delegate string GetPathFromFusionName(string strongName);
 
     /// <summary>
-    /// Delegate. Given an assembly name, crack it open and retrieve the list of dependent
-    /// assemblies and  the list of scatter files.
-    /// </summary>
-    /// <param name="path">Path to the assembly.</param>
-    /// <param name="assemblyMetadataCache">Assembly metadata cache.</param>
-    /// <param name="dependencies">Receives the list of dependencies.</param>
-    /// <param name="scatterFiles">Receives the list of associated scatter files.</param>
-    /// <param name="frameworkNameAttribute">The framework name</param>
-    internal delegate void GetAssemblyMetadata(
-        string path,
-        ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-        out AssemblyNameExtension[] dependencies,
-        out string[] scatterFiles,
-        out FrameworkName frameworkNameAttribute);
-
-    /// <summary>
-    /// Delegate to take in a dll path and read the machine type from the PEHeader
-    /// </summary>
-    internal delegate UInt16 ReadMachineTypeFromPEHeader(string dllPath);
-
-    /// <summary>
-    /// Delegate to get the path to an assembly in the GAC.
-    /// </summary>
-    internal delegate string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, System.Reflection.ProcessorArchitecture targetProcessorArchitecture, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVersion, FileExists fileExists, bool fullFusionName, bool specificVersion);
-
-    /// <summary>
-    /// Determines if a assembly is an winmd file
-    /// </summary>
-    internal delegate bool IsWinMDFile(string fullpath, GetAssemblyRuntimeVersion getAssemblyRuntimeVersion, FileExists fileExists, out string imageRuntimeVersion, out bool isManagedWinmd);
-
-    /// <summary>
     /// CreateFileString delegate. Creates a stream on top of a file.
     /// </summary>
     /// <param name="path">Path to the file</param>
@@ -119,11 +63,4 @@ namespace Microsoft.Build.Tasks
     /// <param name="access">Access type</param>
     /// <returns>The Stream</returns>
     internal delegate Stream CreateFileStream(AbsolutePath path, FileMode mode, FileAccess access);
-
-    /// <summary>
-    /// Delegate for System.IO.File.GetLastWriteTime
-    /// </summary>
-    /// <param name="path">The file name</param>
-    /// <returns>The last write time.</returns>
-    internal delegate DateTime GetLastWriteTime(string path);
 }

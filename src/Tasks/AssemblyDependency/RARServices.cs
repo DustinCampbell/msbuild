@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
-using System.Runtime.Versioning;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -92,16 +91,12 @@ internal class RARServices
     /// </summary>
     /// <param name="path">The path to the assembly file.</param>
     /// <param name="assemblyMetadataCache">A cache of previously retrieved assembly metadata.</param>
-    /// <param name="dependencies">Receives the list of dependencies.</param>
-    /// <param name="scatterFiles">Receives the list of scatter files.</param>
-    /// <param name="frameworkNameAttribute">Receives the target framework name.</param>
-    public virtual void GetAssemblyMetadata(
+    /// <returns>The <see cref="AssemblyMetadata"/> for the assembly.</returns>
+    public virtual AssemblyMetadata GetAssemblyMetadata(
         string path,
-        ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-        out AssemblyNameExtension[] dependencies,
-        out string[] scatterFiles,
-        out FrameworkName frameworkNameAttribute)
-        => AssemblyInformation.GetAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
+        ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
+        => assemblyMetadataCache?.GetOrAdd(path, p => new AssemblyMetadata(p))
+            ?? new AssemblyMetadata(path);
 
     /// <summary>
     /// Gets the last write time of the specified file.

@@ -2520,7 +2520,7 @@ namespace Microsoft.Build.Tasks
                                 continue;
                             }
 
-                            var rawDependencies = GetDependencies(resolvedReference, cachedServices.FileExists, cachedServices.GetAssemblyMetadata, assemblyMetadataCache);
+                            var rawDependencies = GetDependencies(resolvedReference, cachedServices, assemblyMetadataCache);
                             if (rawDependencies != null)
                             {
                                 foreach (var dependentReference in rawDependencies)
@@ -2642,12 +2642,11 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Returns the raw list of direct dependent assemblies from assembly's metadata.
         /// </summary>
-        /// <param name="resolvedReference">reference we are interested</param>
-        /// <param name="fileExists">the delegate to check for the existence of a file.</param>
-        /// <param name="getAssemblyMetadata">the delegate to access assembly metadata</param>
+        /// <param name="resolvedReference">The resolved reference to get dependencies for.</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="assemblyMetadataCache">Cache of pre-extracted assembly metadata.</param>
-        /// <returns>list of dependencies</returns>
-        private AssemblyNameExtension[] GetDependencies(Reference resolvedReference, FileExists fileExists, GetAssemblyMetadata getAssemblyMetadata, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
+        /// <returns>List of dependencies, or <see langword="null"/> if the reference has no dependencies or is invalid.</returns>
+        private static AssemblyNameExtension[] GetDependencies(Reference resolvedReference, RARServices services, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
         {
             AssemblyNameExtension[] result = null;
             if (resolvedReference?.IsPrimary == true && !resolvedReference.IsBadImage)
@@ -2655,11 +2654,9 @@ namespace Microsoft.Build.Tasks
                 try
                 {
                     // in case of P2P that have not build the reference can be resolved but file does not exist on disk.
-                    if (fileExists(resolvedReference.FullPath))
+                    if (services.FileExists(resolvedReference.FullPath))
                     {
-                        FrameworkNameVersioning frameworkName;
-                        string[] scatterFiles;
-                        getAssemblyMetadata(resolvedReference.FullPath, assemblyMetadataCache, out result, out scatterFiles, out frameworkName);
+                        result = services.GetAssemblyMetadata(resolvedReference.FullPath, assemblyMetadataCache).Dependencies;
                     }
                 }
                 catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))

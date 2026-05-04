@@ -57,7 +57,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             public override bool DirectoryExists(string path) => ResolveAssemblyReferenceTestFixture.DirectoryExists(path);
             public override string[] GetDirectories(string path, string searchPattern) => ResolveAssemblyReferenceTestFixture.GetDirectories(path, searchPattern);
             public override AssemblyNameExtension GetAssemblyName(string path) => _getAssemblyName(path);
-            public override void GetAssemblyMetadata(string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkNameAttribute) => ResolveAssemblyReferenceTestFixture.GetAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
+            public override AssemblyMetadata GetAssemblyMetadata(string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache) => ResolveAssemblyReferenceTestFixture.GetAssemblyMetadata(path);
             public override DateTime GetLastWriteTime(string path) => FileExists(path) ? DateTime.FromFileTimeUtc(1) : DateTime.FromFileTimeUtc(0);
             public override string GetAssemblyRuntimeVersion(string path) => ResolveAssemblyReferenceTestFixture.GetRuntimeVersion(path);
             public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd) => ResolveAssemblyReferenceTestFixture.IsWinMDFile(fullPath, GetAssemblyRuntimeVersion, FileExists, out imageRuntimeVersion, out isManagedWinmd);
@@ -1816,33 +1816,26 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         /// <summary>
-        /// Cached implementation. Given an assembly name, crack it open and retrieve the list of dependent
-        /// assemblies and  the list of scatter files.
+        /// Given an assembly path, retrieve the metadata including dependencies, scatter files, and framework name.
         /// </summary>
         /// <param name="path">Path to the assembly.</param>
-        /// <param name="assemblyMetadataCache">Ignored.</param>
-        /// <param name="dependencies">Receives the list of dependencies.</param>
-        /// <param name="scatterFiles">Receives the list of associated scatter files.</param>
-        /// <param name="frameworkName">Receives the assembly framework name.</param>
-        internal static void GetAssemblyMetadata(
-            string path,
-            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-            out AssemblyNameExtension[] dependencies,
-            out string[] scatterFiles,
-            out FrameworkNameVersioning frameworkName)
+        /// <returns>The <see cref="AssemblyMetadata"/> for the assembly.</returns>
+        internal static AssemblyMetadata GetAssemblyMetadata(string path)
         {
-            dependencies = GetDependencies(path);
-            scatterFiles = null;
-            frameworkName = GetTargetFrameworkAttribute(path);
+            AssemblyNameExtension[] dependencies = GetDependencies(path);
+            FrameworkNameVersioning frameworkName = GetTargetFrameworkAttribute(path);
+            string[] scatterFiles = null;
 
             if (@"C:\Regress275161\a.dll" == path)
             {
-                scatterFiles = new string[]
-                {
+                scatterFiles =
+                [
                     @"m1.netmodule",
                     @"m2.netmodule"
-                };
+                ];
             }
+
+            return new AssemblyMetadata(dependencies, scatterFiles, frameworkName);
         }
 
         /// <summary>

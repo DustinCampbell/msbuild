@@ -21,6 +21,10 @@ namespace Microsoft.Build.Tasks.AssemblyDependency
         public readonly FrameworkName FrameworkName;
         public readonly string[] ScatterFiles;
 
+        /// <summary>
+        /// Creates an instance of <see cref="AssemblyMetadata"/> by reading the assembly at the specified path.
+        /// </summary>
+        /// <param name="path">The path to the assembly file.</param>
         public AssemblyMetadata(string path)
         {
             using (var import = new AssemblyInformation(path))
@@ -29,6 +33,22 @@ namespace Microsoft.Build.Tasks.AssemblyDependency
                 FrameworkName = import.FrameworkNameAttribute;
                 ScatterFiles = NativeMethodsShared.IsWindows ? import.Files : null;
             }
+        }
+
+        /// <summary>
+        /// Creates an instance of <see cref="AssemblyMetadata"/> with the specified values.
+        /// </summary>
+        /// <param name="dependencies">The assembly dependencies.</param>
+        /// <param name="scatterFiles">The scatter files associated with the assembly.</param>
+        /// <param name="frameworkName">The target framework of the assembly.</param>
+        public AssemblyMetadata(
+            AssemblyNameExtension[] dependencies,
+            string[] scatterFiles,
+            FrameworkName frameworkName)
+        {
+            Dependencies = dependencies;
+            ScatterFiles = scatterFiles;
+            FrameworkName = frameworkName;
         }
     }
 }

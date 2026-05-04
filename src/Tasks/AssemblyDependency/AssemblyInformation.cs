@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 #if !FEATURE_ASSEMBLYLOADCONTEXT
 using System.Runtime.InteropServices;
+using Microsoft.Build.Tasks.AssemblyDependency;
 using Microsoft.Build.Utilities;
 #endif
 using System.Reflection;
@@ -25,7 +25,6 @@ using System.Reflection.PortableExecutable;
 #else
 using Microsoft.Build.Framework;
 #endif
-using Microsoft.Build.Tasks.AssemblyDependency;
 
 #nullable disable
 
@@ -188,30 +187,6 @@ namespace Microsoft.Build.Tasks
 
                 return _frameworkName;
             }
-        }
-
-        /// <summary>
-        /// Given an assembly name, crack it open and retrieve the list of dependent
-        /// assemblies and  the list of scatter files.
-        /// </summary>
-        /// <param name="path">Path to the assembly.</param>
-        /// <param name="assemblyMetadataCache">Cache of pre-extracted assembly metadata.</param>
-        /// <param name="dependencies">Receives the list of dependencies.</param>
-        /// <param name="scatterFiles">Receives the list of associated scatter files.</param>
-        /// <param name="frameworkName">Gets the assembly name.</param>
-        internal static void GetAssemblyMetadata(
-            string path,
-            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-            out AssemblyNameExtension[] dependencies,
-            out string[] scatterFiles,
-            out FrameworkName frameworkName)
-        {
-            var import = assemblyMetadataCache?.GetOrAdd(path, p => new AssemblyMetadata(p))
-                ?? new AssemblyMetadata(path);
-
-            dependencies = import.Dependencies;
-            frameworkName = import.FrameworkName;
-            scatterFiles = import.ScatterFiles;
         }
 
         /// <summary>

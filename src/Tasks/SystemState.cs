@@ -429,25 +429,18 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="path">Path to the assembly.</param>
         /// <param name="assemblyMetadataCache">Cache for pre-extracted assembly metadata.</param>
-        /// <param name="dependencies">Receives the list of dependencies.</param>
-        /// <param name="scatterFiles">Receives the list of associated scatter files.</param>
-        /// <param name="frameworkName"></param>
-        internal void GetAssemblyMetadata(
+        /// <returns>The <see cref="AssemblyMetadata"/> for the assembly.</returns>
+        internal AssemblyMetadata GetAssemblyMetadata(
             string path,
-            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-            out AssemblyNameExtension[] dependencies,
-            out string[] scatterFiles,
-            out FrameworkName frameworkName)
+            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
         {
             FileState fileState = GetFileState(path);
             if (fileState.dependencies == null)
             {
-                _services.GetAssemblyMetadata(
-                    path,
-                    assemblyMetadataCache,
-                    out fileState.dependencies,
-                    out fileState.scatterFiles,
-                    out fileState.frameworkName);
+                AssemblyMetadata metadata = _services.GetAssemblyMetadata(path, assemblyMetadataCache);
+                fileState.dependencies = metadata.Dependencies;
+                fileState.scatterFiles = metadata.ScatterFiles;
+                fileState.frameworkName = metadata.FrameworkName;
 
                 if (fileState.IsWorthPersisting)
                 {
@@ -455,9 +448,7 @@ namespace Microsoft.Build.Tasks
                 }
             }
 
-            dependencies = fileState.dependencies;
-            scatterFiles = fileState.scatterFiles;
-            frameworkName = fileState.frameworkName;
+            return new AssemblyMetadata(fileState.dependencies, fileState.scatterFiles, fileState.frameworkName);
         }
 
         /// <summary>
@@ -645,15 +636,10 @@ namespace Microsoft.Build.Tasks
                 return _cache.GetAssemblyName(path);
             }
 
-            public override void GetAssemblyMetadata(
+            public override AssemblyMetadata GetAssemblyMetadata(
                 string path,
-                ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-                out AssemblyNameExtension[] dependencies,
-                out string[] scatterFiles,
-                out FrameworkName frameworkNameAttribute)
-            {
-                _cache.GetAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkNameAttribute);
-            }
+                ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
+                => _cache.GetAssemblyMetadata(path, assemblyMetadataCache);
 
             public override DateTime GetLastWriteTime(string path)
             {

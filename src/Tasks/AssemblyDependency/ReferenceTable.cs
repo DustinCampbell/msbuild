@@ -932,14 +932,10 @@ namespace Microsoft.Build.Tasks
                 return;
             }
 
-            _services.GetAssemblyMetadata(
-                reference.FullPath,
-                _assemblyMetadataCache,
-                out AssemblyNameExtension[] dependentAssemblies,
-                out scatterFiles,
-                out FrameworkName frameworkName);
-
-            reference.FrameworkNameAttribute = frameworkName;
+            AssemblyMetadata metadata = _services.GetAssemblyMetadata(reference.FullPath, _assemblyMetadataCache);
+            AssemblyNameExtension[] dependentAssemblies = metadata.Dependencies;
+            scatterFiles = metadata.ScatterFiles;
+            reference.FrameworkNameAttribute = metadata.FrameworkName;
 
             var dependencies = new List<AssemblyNameExtension>(dependentAssemblies?.Length ?? 0);
 
