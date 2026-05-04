@@ -1366,412 +1366,145 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         /// <summary>
+        /// Paths that return empty dependency arrays from GetDependencies.
+        /// </summary>
+        private static readonly FrozenSet<string> s_dependenciesEmptyPaths = FrozenSet.Create(
+            StringComparer.OrdinalIgnoreCase,
+            [
+                @"c:\Regress313086\mscorlib.dll",
+                @"MyRelativeAssembly.dll",
+                s_myLibraries_V1_E_EDllPath,
+                Path.Combine(s_myComponents2RootPath, "W.dll"),
+                Path.Combine(s_myComponentsRootPath, "Z.dll"),
+                Path.Combine(s_myComponentsRootPath, "Microsoft.Build.dll"),
+                @"C:\DirectoryContainsdllAndWinmd\c.winmd",
+                @"C:\DirectoryContainstwoWinmd\c.winmd",
+                @"C:\DirectoryTest\B.dll",
+                Path.Combine(s_myVersion20Path, "mscorlib.dll"),
+                Path.Combine(s_myVersionPocket20Path, "mscorlib.dll")
+            ]);
+
+        /// <summary>
+        /// Single dependency mappings (path → dependency assembly name string).
+        /// </summary>
+        private static readonly FrozenDictionary<string, string> s_singleDependencies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Path.Combine(s_frameworksPath, "IndirectDependsOnFoo4Framework.dll")] = "DependsOnFoo4Framework, Version=4.0.0.0, PublicKeyToken=null, Culture=Neutral",
+            [Path.Combine(s_frameworksPath, "IndirectDependsOnFoo45Framework.dll")] = "DependsOnFoo45Framework, Version=4.5.0.0, PublicKeyToken=null, Culture=Neutral",
+            [Path.Combine(s_frameworksPath, "IndirectDependsOnFoo35Framework.dll")] = "DependsOnFoo35Framework, Version=3.5.0.0, PublicKeyToken=null, Culture=Neutral",
+            [s_regress454863_ADllPath] = "B, Version=0.0.0.0, PublicKeyToken=null, Culture=Neutral",
+            [s_regress442570_BDllPath] = " A, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [@"C:\Regress313747\Microsoft.Office.Interop.Excel.dll"] = " Office, Version=12.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c",
+            [@"C:\Regress313747\MS.Internal.Test.Automation.Office.Excel.dll"] = " Office, Version=12.0.0.0, Culture=neutral, PublicKeyToken=94de0004b6e3fcc5",
+            [@"c:\Regress387218\A.dll"] = "D, Version=1.0.0.0, PublicKeyToken=null, Culture=Neutral",
+            [@"c:\Regress387218\B.dll"] = "D, Version=2.0.0.0, PublicKeyToken=null, Culture=Neutral",
+            [@"c:\Regress390219\A.dll"] = "D, Version=1.0.0.0, PublicKeyToken=b77a5c561934e089, Culture=fr",
+            [@"c:\Regress390219\B.dll"] = "D, Version=2.0.0.0,  PublicKeyToken=b77a5c561934e089, Culture=en",
+            [@"c:\OldClrBug\DependsMyFileLoadExceptionAssembly.dll"] = "MyFileLoadExceptionAssembly, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [@"c:\Regress563286\DependsOnBadImage.dll"] = "BadImage, Version=0.0.0.0, PublicKeyToken=null, Culture=Neutral",
+            [Path.Combine(s_myVersion20Path, "System.dll")] = "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [@"C:\WinMD\DotNetAssemblyDependsOnWinMD.dll"] = "SampleWindowsRuntimeOnly, Version=1.0.0.0",
+            [@"C:\WinMD\DotNetAssemblyDependsOn255WinMD.dll"] = "WinMDWithVersion255, Version=255.255.255.255",
+            [@"C:\WinMD\SampleWindowsRuntimeAndClr.Winmd"] = "mscorlib, Version=4.0.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089",
+            [@"C:\WinMD\SampleWindowsRuntimeOnly.Winmd"] = "mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [@"C:\WinMD\WinMDWithVersion255.Winmd"] = "mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [@"C:\WinMD\SampleWindowsRuntimeOnly2.Winmd"] = "SampleWindowsRuntimeOnly, Version=1.0.0.0",
+            [Path.Combine(s_myAppRootPath, "DependsOnSimpleA.dll")] = "A, Version=0.0.0.0, PublicKeyToken=null, Culture=Neutral",
+            [@"C:\Regress312873\b.dll"] = "A, Version=0.0.0.0, PublickEyToken=null, Culture=Neutral",
+            [@"C:\Regress339786\FolderA\a.dll"] = "C, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral",
+            [@"C:\Regress339786\FolderB\b.dll"] = "C, Version=2.0.0.0, PublickEyToken=null, Culture=Neutral",
+            [@"C:\Regress317975\a.dll"] = "B, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral",
+            [@"C:\myassemblies\My.Assembly.dll"] = "mscorlib, Version=2.0.0.0, Culture=NEUtraL, PublicKeyToken=b77a5c561934e089",
+            [Path.Combine(s_myComponentsRootPath, "MyGrid.dll")] = "mscorlib, VeRsIon=2.0.0.0, Culture=neuTRal, PublicKeyToken=b77a5c561934e089",
+            [@"C:\MyRawDropControls\MyRawDropControl.dll"] = "mscorlib, VeRsIon=2.0.0.0, Culture=neuTRal, PublicKeyToken=b77a5c561934e089",
+            [s_myLibraries_ADllPath] = "D, Version=1.0.0.0, CuLtUrE=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa",
+            [s_myLibraries_TDllPath] = "D, VeRsIon=1.0.0.0, Culture=neutral, PublicKeyToken=bbbbbbbbbbbbbbbb",
+            [s_myLibraries_V1_DDllPath] = "E, VERSIOn=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+            [s_myLibraries_V2_DDllPath] = "E, Version=0.0.0.0, Culture=neutRAL, PUblicKeyToken=null",
+            [Path.Combine(s_myApp_V05Path, "DependsOnWeaklyNamedUnified.dll")] = "UnifyMe, Version=0.0.0.0, PUBLICKeyToken=null, CuLTURE=Neutral",
+            [Path.Combine(s_myApp_V10Path, "DependsOnEverettSystem.dll")] = "System, VeRsiON=1.0.5000.0, Culture=neutral, PublicKeyToken=" + AssemblyRef.EcmaPublicKey,
+            [Path.Combine(s_myApp_V05Path, "DependsOnUnified.dll")] = "UnifyMe, Version=0.5.0.0, CuLTUre=neUTral, PubLICKeyToken=b77a5c561934e089",
+            [Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll")] = "UNIFyMe, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [Path.Combine(s_myApp_V20Path, "DependsOnUnified.dll")] = "UniFYme, Version=2.0.0.0, Culture=NeutraL, PublicKeyToken=b77a5c561934e089",
+            [Path.Combine(s_myApp_V30Path, "DependsOnUnified.dll")] = "UnIfyMe, Version=3.0.0.0, Culture=nEutral, PublicKEyToken=b77a5c561934e089",
+            [s_40ComponentDependsOnOnlyv4AssembliesDllPath] = "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [Path.Combine(s_myComponentsMiscPath, "DependsOn9Also.dll")] = "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [Path.Combine(s_myComponents10Path, "DependsOn9.dll")] = "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [Path.Combine(s_myComponents20Path, "DependsOn9.dll")] = "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            [s_regress444809_BDllPath] = "A, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null",
+            [s_regress444809_DDllPath] = "A, Version=20.0.0.0, Culture=neutral, PublicKeyToken=null",
+            [Path.Combine(s_myComponentsRootPath, "V.dll")] = "W, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null",
+            [Path.Combine(s_myComponentsRootPath, "X.dll")] = "Z, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null",
+            [Path.Combine(s_myComponentsRootPath, "Y.dll")] = "Z, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null",
+            [Path.Combine(s_myComponentsRootPath, "DependsOnMSBuild12.dll")] = "Microsoft.Build, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a",
+            [Path.Combine(s_myVersion40Path, "System.dll")] = "msCORlib, Version=2.0.0.0, Culture=NEutral, PublicKeyToken=b77a5c561934e089",
+            [Path.Combine(s_myVersion90Path, "System.dll")] = "msCORlib, Version=2.0.0.0, Culture=NEutral, PublicKeyToken=b77a5c561934e089",
+            [@"C:\DirectoryContainsOnlyDll\a.dll"] = "C, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral",
+            [@"C:\DirectoryContainsdllAndWinmd\b.dll"] = "C, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral",
+            [@"C:\DirectoryContainstwoWinmd\a.winmd"] = "C, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral",
+            [s_dependsOnNuGet_ADllPath] = "N, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Multiple dependency mappings (path → array of dependency assembly name strings).
+        /// </summary>
+        private static readonly FrozenDictionary<string, string[]> s_multipleDependencies = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            [@"C:\WinMD\SampleWindowsRuntimeOnly3.Winmd"] =
+            [
+                "mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "SampleWindowsRuntimeOnly, Version=1.0.0.0",
+                "SampleWindowsRuntimeReferencingSystem, Version=1.0.0.0",
+                "WinMDWithVersion255, Version=255.255.255.255"
+            ],
+            [@"C:\WinMD\SampleWindowsRuntimeOnly4.Winmd"] =
+            [
+                "mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "SampleWindowsRuntimeReferencingSystemDNE, Version=1.0.0.0"
+            ],
+            [@"C:\WinMD\SampleWindowsRuntimeReferencingSystem.Winmd"] =
+            [
+                "mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "System, Version=255.255.255.255, Culture=Neutral, PublicKeyToken=b77a5c561934e089"
+            ],
+            [@"C:\WinMD\SampleWindowsRuntimeReferencingSystemDNE.Winmd"] =
+            [
+                "mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "System.DoesNotExist, Version=255.255.255.255"
+            ],
+            [s_myLibraries_BDllPath] =
+            [
+                "D, Version=2.0.0.0, Culture=neutral, PuBlIcKeYToken=aaaaaaaaaaaaaaaa",
+                "G, Version=2.0.0.0, Culture=neutral, PuBlIcKeYToken=aaaaaaaaaaaaaaaa"
+            ],
+            [Path.Combine(s_myComponentsMiscPath, "ReferenceVersion9.dll")] =
+            [
+                "mscorlib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "RandomAssembly, Version=9.0.0.0, Culture=neutral, PublicKeyToken=c77a5c561934e089"
+            ],
+            [Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll")] =
+            [
+                "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "System.Data, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+            ],
+            [s_regress444809_CDllPath] =
+            [
+                "B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+                "A, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"
+            ],
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// Given an assembly, with optional assemblyName return all of the dependent assemblies.
         /// </summary>
         /// <param name="path">The full path to the parent assembly</param>
         /// <returns>The array of dependent assembly names.</returns>
         internal static AssemblyNameExtension[] GetDependencies(string path)
         {
-            if (String.Equals(path, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo4Framework.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("DependsOnFoo4Framework, Version=4.0.0.0, PublicKeyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo45Framework.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("DependsOnFoo45Framework, Version=4.5.0.0, PublicKeyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo35Framework.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("DependsOnFoo35Framework, Version=3.5.0.0, PublicKeyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, s_regress454863_ADllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("B, Version=0.0.0.0, PublicKeyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, s_regress442570_BDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension(" A, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, @"C:\Regress313747\Microsoft.Office.Interop.Excel.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension(" Office, Version=12.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c")
-                };
-            }
-
-            if (String.Equals(path, @"C:\Regress313747\MS.Internal.Test.Automation.Office.Excel.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension(" Office, Version=12.0.0.0, Culture=neutral, PublicKeyToken=94de0004b6e3fcc5")
-                };
-            }
-
-            if (String.Equals(path, @"c:\Regress387218\A.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("D, Version=1.0.0.0, PublicKeyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"c:\Regress387218\B.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("D, Version=2.0.0.0, PublicKeyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"c:\Regress390219\A.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("D, Version=1.0.0.0, PublicKeyToken=b77a5c561934e089, Culture=fr")
-                };
-            }
-
-            if (String.Equals(path, @"c:\Regress390219\B.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("D, Version=2.0.0.0,  PublicKeyToken=b77a5c561934e089, Culture=en")
-                };
-            }
-
-            if (String.Equals(path, s_regress442570_BDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension(" A, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, @"C:\Regress313747\Microsoft.Office.Interop.Excel.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension(" Office, Version=12.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c")
-                };
-            }
-
-            if (String.Equals(path, @"C:\Regress313747\MS.Internal.Test.Automation.Office.Excel.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension(" Office, Version=12.0.0.0, Culture=neutral, PublicKeyToken=94de0004b6e3fcc5")
-                };
-            }
-
-            if (String.Equals(path, @"c:\OldClrBug\DependsMyFileLoadExceptionAssembly.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("MyFileLoadExceptionAssembly, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, @"c:\Regress563286\DependsOnBadImage.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("BadImage, Version=0.0.0.0, PublicKeyToken=null, Culture=Neutral")
-                };
-            }
-
+            // Exception paths
             if (String.Equals(path, @"c:\MyInaccessible\A.dll", StringComparison.OrdinalIgnoreCase))
             {
                 throw new UnauthorizedAccessException();
-            }
-
-            if (String.Equals(path, @"c:\Regress313086\mscorlib.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return Array.Empty<AssemblyNameExtension>();
-            }
-
-            if (String.Equals(path, Path.Combine(s_myVersion20Path, "System.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\DotNetAssemblyDependsOnWinMD.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("SampleWindowsRuntimeOnly, Version=1.0.0.0")
-                };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\DotNetAssemblyDependsOn255WinMD.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("WinMDWithVersion255, Version=255.255.255.255")
-                };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeAndClr.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                 {
-                    new AssemblyNameExtension("mscorlib, Version=4.0.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089")
-                 };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                 {
-                    new AssemblyNameExtension("mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                 };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\WinMDWithVersion255.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeOnly2.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("SampleWindowsRuntimeOnly, Version=1.0.0.0")
-                };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeOnly3.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089"),
-                    new AssemblyNameExtension("SampleWindowsRuntimeOnly, Version=1.0.0.0"),
-                    new AssemblyNameExtension("SampleWindowsRuntimeReferencingSystem, Version=1.0.0.0"),
-                    new AssemblyNameExtension("WinMDWithVersion255, Version=255.255.255.255")
-                };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeOnly4.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089"),
-                    new AssemblyNameExtension("SampleWindowsRuntimeReferencingSystemDNE, Version=1.0.0.0"),
-                };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeReferencingSystem.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089"),
-                    new AssemblyNameExtension("System, Version=255.255.255.255, Culture=Neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, @"C:\WinMD\SampleWindowsRuntimeReferencingSystemDNE.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, Version=255.255.255.255, Culture=neutral, PublicKeyToken=b77a5c561934e089"),
-                    new AssemblyNameExtension("System.DoesNotExist, Version=255.255.255.255")
-                };
-            }
-
-            if
-            (
-                String.Equals(path, Path.Combine(s_myVersion20Path, "mscorlib.dll"), StringComparison.OrdinalIgnoreCase)
-                || String.Equals(path, Path.Combine(s_myVersionPocket20Path, "mscorlib.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return Array.Empty<AssemblyNameExtension>();
-            }
-
-            if (String.Equals(path, @"MyRelativeAssembly.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return Array.Empty<AssemblyNameExtension>();
-            }
-
-            if (String.Equals(path, Path.Combine(s_myAppRootPath, "DependsOnSimpleA.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("A, Version=0.0.0.0, PublicKeyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"C:\Regress312873\b.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("A, Version=0.0.0.0, PublickEyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"C:\Regress339786\FolderA\a.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("C, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"C:\Regress339786\FolderB\b.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("C, Version=2.0.0.0, PublickEyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"C:\Regress317975\a.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("B, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"C:\myassemblies\My.Assembly.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, Version=2.0.0.0, Culture=NEUtraL, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponentsRootPath, "MyGrid.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, VeRsIon=2.0.0.0, Culture=neuTRal, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, @"C:\MyRawDropControls\MyRawDropControl.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, VeRsIon=2.0.0.0, Culture=neuTRal, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-            if (String.Equals(path, s_myLibraries_ADllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("D, Version=1.0.0.0, CuLtUrE=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa")
-                };
-            }
-
-            if (String.Equals(path, s_myLibraries_TDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("D, VeRsIon=1.0.0.0, Culture=neutral, PublicKeyToken=bbbbbbbbbbbbbbbb")
-                };
-            }
-
-            if (String.Equals(path, s_myLibraries_BDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("D, Version=2.0.0.0, Culture=neutral, PuBlIcKeYToken=aaaaaaaaaaaaaaaa"),
-                    new AssemblyNameExtension("G, Version=2.0.0.0, Culture=neutral, PuBlIcKeYToken=aaaaaaaaaaaaaaaa")
-                };
-            }
-
-            if (String.Equals(path, s_myLibraries_V1_DDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("E, VERSIOn=0.0.0.0, Culture=neutral, PublicKeyToken=null")
-                };
-            }
-
-            if (String.Equals(path, s_myLibraries_V2_DDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("E, Version=0.0.0.0, Culture=neutRAL, PUblicKeyToken=null")
-                };
-            }
-
-            if (String.Equals(path, s_myLibraries_V1_E_EDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return Array.Empty<AssemblyNameExtension>();
-            }
-
-            if (String.Equals(path, Path.Combine(s_myApp_V05Path, "DependsOnWeaklyNamedUnified.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("UnifyMe, Version=0.0.0.0, PUBLICKeyToken=null, CuLTURE=Neutral")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myApp_V10Path, "DependsOnEverettSystem.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("System, VeRsiON=1.0.5000.0, Culture=neutral, PublicKeyToken="+AssemblyRef.EcmaPublicKey)
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myApp_V05Path, "DependsOnUnified.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("UnifyMe, Version=0.5.0.0, CuLTUre=neUTral, PubLICKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("UNIFyMe, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myApp_V20Path, "DependsOnUnified.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("UniFYme, Version=2.0.0.0, Culture=NeutraL, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myApp_V30Path, "DependsOnUnified.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("UnIfyMe, Version=3.0.0.0, Culture=nEutral, PublicKEyToken=b77a5c561934e089")
-                };
             }
 
             if (String.Equals(path, s_myMissingAssemblyAbsPath, StringComparison.OrdinalIgnoreCase))
@@ -1779,248 +1512,59 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 throw new FileNotFoundException(path);
             }
 
-            // Set up assembly names for testing target framework version checks
-            // Is version 4 and will only depends on 4.0 assemblies
-            if (String.Equals(path, s_40ComponentDependsOnOnlyv4AssembliesDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            // Is version 9 and will not have any dependencies, will be in the redist list
-            if (String.Equals(path, Path.Combine(s_myComponentsMiscPath, "ReferenceVersion9.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("mscorlib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"),
-                    new AssemblyNameExtension("RandomAssembly, Version=9.0.0.0, Culture=neutral, PublicKeyToken=c77a5c561934e089")
-                };
-            }
-
-            // Is a third party assembly which depends on a version 9 assembly
-            if (String.Equals(path, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"),
-                    new AssemblyNameExtension("System.Data, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            // A second assembly which depends on version 9 framework assemblies.
-            if (String.Equals(path, Path.Combine(s_myComponentsMiscPath, "DependsOn9Also.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponents10Path, "DependsOn9.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponents20Path, "DependsOn9.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, s_regress444809_CDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"),
-                    new AssemblyNameExtension("A, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null")
-                };
-            }
-
-            if (String.Equals(path, s_regress444809_BDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("A, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")
-                };
-            }
-
-            if (String.Equals(path, s_regress444809_DDllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("A, Version=20.0.0.0, Culture=neutral, PublicKeyToken=null")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponentsRootPath, "V.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("W, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponents2RootPath, "W.dll"), StringComparison.OrdinalIgnoreCase))
+            // Empty dependency paths
+            if (s_dependenciesEmptyPaths.Contains(path))
             {
                 return Array.Empty<AssemblyNameExtension>();
             }
 
-            if (String.Equals(path, Path.Combine(s_myComponentsRootPath, "X.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("Z, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponentsRootPath, "Z.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return Array.Empty<AssemblyNameExtension>();
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponentsRootPath, "Y.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("Z, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponentsRootPath, "Microsoft.Build.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return Array.Empty<AssemblyNameExtension>();
-            }
-
-            if (String.Equals(path, Path.Combine(s_myComponentsRootPath, "DependsOnMSBuild12.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("Microsoft.Build, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myVersion20Path, "System.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return new AssemblyNameExtension[]
-                {
-                     new AssemblyNameExtension("msCORlib, Version=2.0.0.0, Culture=NEutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myVersion40Path, "System.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return new AssemblyNameExtension[]
-                {
-                     new AssemblyNameExtension("msCORlib, Version=2.0.0.0, Culture=NEutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, Path.Combine(s_myVersion90Path, "System.dll"), StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return new AssemblyNameExtension[]
-                {
-                     new AssemblyNameExtension("msCORlib, Version=2.0.0.0, Culture=NEutral, PublicKeyToken=b77a5c561934e089")
-                };
-            }
-
-            if (String.Equals(path, @"C:\DirectoryContainsOnlyDll\a.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return new AssemblyNameExtension[]
-                {
-                     new AssemblyNameExtension("C, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"C:\DirectoryContainsdllAndWinmd\b.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return new AssemblyNameExtension[]
-                {
-                     new AssemblyNameExtension("C, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"C:\DirectoryContainsdllAndWinmd\c.winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return Array.Empty<AssemblyNameExtension>();
-            }
-
-            if (String.Equals(path, @"C:\DirectoryContainstwoWinmd\a.winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                // Simulate a strongly named assembly.
-                return new AssemblyNameExtension[]
-                {
-                     new AssemblyNameExtension("C, Version=1.0.0.0, PublickEyToken=null, Culture=Neutral")
-                };
-            }
-
-            if (String.Equals(path, @"C:\DirectoryContainstwoWinmd\c.winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return Array.Empty<AssemblyNameExtension>();
-            }
-
+            // StartsWith pattern for FakeSDK
             if (path.StartsWith(@"C:\FakeSDK\", StringComparison.OrdinalIgnoreCase))
             {
                 return Array.Empty<AssemblyNameExtension>();
             }
 
+            // Dynamic dependency calls (call GetAssemblyName)
             if (String.Equals(path, s_portableDllPath, StringComparison.OrdinalIgnoreCase))
             {
                 // Simulate a portable assembly with a reference to System.Runtime
-                return new AssemblyNameExtension[]
-                {
-                    GetAssemblyName(s_systemRuntimeDllPath)
-                };
+                return [GetAssemblyName(s_systemRuntimeDllPath)];
             }
 
             if (String.Equals(path, s_netstandardLibraryDllPath, StringComparison.OrdinalIgnoreCase))
             {
                 // Simulate a .NET Standard assembly
-                return new AssemblyNameExtension[]
-                {
-                    GetAssemblyName(s_netstandardDllPath)
-                };
-            }
-
-            if (String.Equals(path, s_dependsOnNuGet_ADllPath, StringComparison.OrdinalIgnoreCase))
-            {
-                return new AssemblyNameExtension[]
-                {
-                    new AssemblyNameExtension("N, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null")
-                };
+                return [GetAssemblyName(s_netstandardDllPath)];
             }
 
             if (String.Equals(path, @"C:\DirectoryTest\A.dll", StringComparison.OrdinalIgnoreCase))
             {
-                return new AssemblyNameExtension[]
+                return [GetAssemblyName(@"C:\DirectoryTest\B.dll")];
+            }
+
+            // Multiple dependency lookup
+            if (s_multipleDependencies.TryGetValue(path, out string[] multiDeps))
+            {
+                AssemblyNameExtension[] result = new AssemblyNameExtension[multiDeps.Length];
+                for (int i = 0; i < multiDeps.Length; i++)
                 {
-                    GetAssemblyName(@"C:\DirectoryTest\B.dll")
-                };
+                    result[i] = new AssemblyNameExtension(multiDeps[i]);
+                }
+                return result;
             }
 
-            if (String.Equals(path, @"C:\DirectoryTest\B.dll", StringComparison.OrdinalIgnoreCase))
+            // Single dependency lookup
+            if (s_singleDependencies.TryGetValue(path, out string singleDep))
             {
-                return Array.Empty<AssemblyNameExtension>();
+                return [new AssemblyNameExtension(singleDep)];
             }
 
-            // Use a default list.
-            return new AssemblyNameExtension[]
-            {
+            // Default dependencies
+            return
+            [
                 new AssemblyNameExtension("SysTem, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77A5c561934e089"),
                 new AssemblyNameExtension("msCORlib, Version=2.0.0.0, Culture=NEutral, PublicKeyToken=b77a5c561934e089")
-            };
+            ];
         }
 
 #if FEATURE_WIN32_REGISTRY
