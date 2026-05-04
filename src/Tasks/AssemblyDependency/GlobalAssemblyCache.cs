@@ -47,14 +47,22 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="assemblyName">The assembly name.</param>
         /// <param name="targetProcessorArchitecture">Like x86 or IA64\AMD64.</param>
-        /// <param name="getRuntimeVersion">Delegate to get the clr version of the file.</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="targetedRuntime">Version of the targetted runtime.</param>
-        /// <param name="fileExists">Delegate to check whether the file exists.</param>
         /// <param name="getPathFromFusionName">Delegate to get path to a file based on the fusion name.</param>
         /// <param name="getGacEnumerator">Delegate to get the enumerator which will enumerate over the GAC.</param>
         /// <param name="specificVersion">Whether to check for a specific version.</param>
+        /// <param name="runtimeVersionOverride">If specified, use this runtime version instead of reading from assembly.</param>
         /// <returns>The path to the assembly. Empty if none exists.</returns>
-        private static string GetLocationImpl(AssemblyNameExtension assemblyName, string targetProcessorArchitecture, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntime, FileExists fileExists, GetPathFromFusionName getPathFromFusionName, GetGacEnumerator getGacEnumerator, bool specificVersion)
+        private static string GetLocationImpl(
+            AssemblyNameExtension assemblyName,
+            string targetProcessorArchitecture,
+            RARServices services,
+            Version targetedRuntime,
+            GetPathFromFusionName getPathFromFusionName,
+            GetGacEnumerator getGacEnumerator,
+            bool specificVersion,
+            string runtimeVersionOverride = null)
         {
             // Extra checks for PInvoke-destined data.
             ErrorUtilities.VerifyThrowArgumentNull(assemblyName);
@@ -70,7 +78,7 @@ namespace Microsoft.Build.Tasks
             string assemblyPath = String.Empty;
 
             // Dictionary sorted by Version in reverse order, this will give the values enumeration the highest runtime version first.
-            SortedDictionary<Version, SortedDictionary<AssemblyNameExtension, string>> assembliesByRuntime = GenerateListOfAssembliesByRuntime(strongName, getRuntimeVersion, targetedRuntime, fileExists, getPathFromFusionName, getGacEnumerator, specificVersion);
+            SortedDictionary<Version, SortedDictionary<AssemblyNameExtension, string>> assembliesByRuntime = GenerateListOfAssembliesByRuntime(strongName, services, targetedRuntime, getPathFromFusionName, getGacEnumerator, specificVersion, runtimeVersionOverride);
             if (assembliesByRuntime != null)
             {
                 foreach (SortedDictionary<AssemblyNameExtension, string> runtimeBucket in assembliesByRuntime.Values)
@@ -116,7 +124,14 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Enumerate the gac and generate a list of assemblies which match the strongname by runtime.
         /// </summary>
-        private static SortedDictionary<Version, SortedDictionary<AssemblyNameExtension, string>> GenerateListOfAssembliesByRuntime(string strongName, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntime, FileExists fileExists, GetPathFromFusionName getPathFromFusionName, GetGacEnumerator getGacEnumerator, bool specificVersion)
+        private static SortedDictionary<Version, SortedDictionary<AssemblyNameExtension, string>> GenerateListOfAssembliesByRuntime(
+            string strongName,
+            RARServices services,
+            Version targetedRuntime,
+            GetPathFromFusionName getPathFromFusionName,
+            GetGacEnumerator getGacEnumerator,
+            bool specificVersion,
+            string runtimeVersionOverride = null)
         {
             ErrorUtilities.VerifyThrowArgumentNull(targetedRuntime);
 
@@ -134,10 +149,10 @@ namespace Microsoft.Build.Tasks
                     string assemblyPath = getPathFromFusionName(gacAssembly.FullName);
 
                     // Make sure we could get the path from the Fusion name and make sure the file actually exists.
-                    if (!String.IsNullOrEmpty(assemblyPath) && fileExists(assemblyPath))
+                    if (!String.IsNullOrEmpty(assemblyPath) && services.FileExists(assemblyPath))
                     {
                         // Get the runtime version from the found assembly.
-                        string runtimeVersionRaw = getRuntimeVersion(assemblyPath);
+                        string runtimeVersionRaw = runtimeVersionOverride ?? services.GetAssemblyRuntimeVersion(assemblyPath);
 
                         // Convert the runtime string to a version so we can properly compare them as per version object comparison rules.
                         // We will accept version which are less than or equal to the targeted runtime.
@@ -226,26 +241,26 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         /// <param name="strongName">The strong name.</param>
         /// <param name="targetProcessorArchitecture">Like x86 or IA64\AMD64.</param>
-        /// <param name="getRuntimeVersion">Delegate to get the runtime version from a file path</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="targetedRuntimeVersion">What version of the runtime are we targeting</param>
         /// <param name="fullFusionName">Are we guaranteed to have a full fusion name. This really can only happen if we have already resolved the assembly</param>
-        /// <param name="fileExists">Delegate to check whether the file exists.</param>
         /// <param name="getPathFromFusionName">Delegate to get path to a file based on the fusion name.</param>
         /// <param name="getGacEnumerator">Delegate to get the enumerator which will enumerate over the GAC.</param>
         /// <param name="specificVersion">Whether to check for a specific version.</param>
+        /// <param name="runtimeVersionOverride">If specified, use this runtime version instead of reading from assembly.</param>
         /// <returns>The path to the assembly. Empty if none exists.</returns>
         internal static string GetLocation(
             AssemblyNameExtension strongName,
             ProcessorArchitecture targetProcessorArchitecture,
-            GetAssemblyRuntimeVersion getRuntimeVersion,
+            RARServices services,
             Version targetedRuntimeVersion,
             bool fullFusionName,
-            FileExists fileExists,
             GetPathFromFusionName getPathFromFusionName,
             GetGacEnumerator getGacEnumerator,
-            bool specificVersion)
+            bool specificVersion,
+            string runtimeVersionOverride = null)
         {
-            return GetLocation(null, strongName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fullFusionName, fileExists, getPathFromFusionName, getGacEnumerator, specificVersion);
+            return GetLocation(null, strongName, targetProcessorArchitecture, services, targetedRuntimeVersion, fullFusionName, getPathFromFusionName, getGacEnumerator, specificVersion, runtimeVersionOverride);
         }
 
         /// <summary>
@@ -254,25 +269,25 @@ namespace Microsoft.Build.Tasks
         /// <param name="buildEngine">The build engine</param>
         /// <param name="strongName">The strong name.</param>
         /// <param name="targetProcessorArchitecture">Like x86 or IA64\AMD64.</param>
-        /// <param name="getRuntimeVersion">Delegate to get the runtime version from a file path</param>
+        /// <param name="services">The services instance providing file system and assembly operations.</param>
         /// <param name="targetedRuntimeVersion">What version of the runtime are we targeting</param>
         /// <param name="fullFusionName">Are we guranteed to have a full fusion name. This really can only happen if we have already resolved the assembly</param>
-        /// <param name="fileExists">Delegate to check whether the file exists.</param>
         /// <param name="getPathFromFusionName">Delegate to get path to a file based on the fusion name.</param>
         /// <param name="getGacEnumerator">Delegate to get the enumerator which will enumerate over the GAC.</param>
         /// <param name="specificVersion">Whether to check for a specific version.</param>
+        /// <param name="runtimeVersionOverride">If specified, use this runtime version instead of reading from assembly.</param>
         /// <returns>The path to the assembly. Empty if none exists.</returns>
         internal static string GetLocation(
             IBuildEngine4 buildEngine,
             AssemblyNameExtension strongName,
             ProcessorArchitecture targetProcessorArchitecture,
-            GetAssemblyRuntimeVersion getRuntimeVersion,
+            RARServices services,
             Version targetedRuntimeVersion,
             bool fullFusionName,
-            FileExists fileExists,
             GetPathFromFusionName getPathFromFusionName,
             GetGacEnumerator getGacEnumerator,
-            bool specificVersion)
+            bool specificVersion,
+            string runtimeVersionOverride = null)
         {
             ConcurrentDictionary<AssemblyNameExtension, string> fusionNameToResolvedPath = null;
             bool useGacRarCache = Environment.GetEnvironmentVariable("MSBUILDDISABLEGACRARCACHE") == null;
@@ -324,7 +339,7 @@ namespace Microsoft.Build.Tasks
                     }
                     else
                     {
-                        location = GetLocationImpl(strongName, processorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, getPathFromFusionName, getGacEnumerator, specificVersion);
+                        location = GetLocationImpl(strongName, processorArchitecture, services, targetedRuntimeVersion, getPathFromFusionName, getGacEnumerator, specificVersion, runtimeVersionOverride);
                     }
 
                     if (!string.IsNullOrEmpty(location))
@@ -341,7 +356,7 @@ namespace Microsoft.Build.Tasks
                 }
                 else
                 {
-                    location = GetLocationImpl(strongName, "MSIL", getRuntimeVersion, targetedRuntimeVersion, fileExists, getPathFromFusionName, getGacEnumerator, specificVersion);
+                    location = GetLocationImpl(strongName, "MSIL", services, targetedRuntimeVersion, getPathFromFusionName, getGacEnumerator, specificVersion, runtimeVersionOverride);
                 }
                 if (!string.IsNullOrEmpty(location))
                 {
@@ -357,7 +372,7 @@ namespace Microsoft.Build.Tasks
             }
             else
             {
-                location = GetLocationImpl(strongName, null, getRuntimeVersion, targetedRuntimeVersion, fileExists, getPathFromFusionName, getGacEnumerator, specificVersion);
+                location = GetLocationImpl(strongName, null, services, targetedRuntimeVersion, getPathFromFusionName, getGacEnumerator, specificVersion, runtimeVersionOverride);
             }
 
             if (!string.IsNullOrEmpty(location))

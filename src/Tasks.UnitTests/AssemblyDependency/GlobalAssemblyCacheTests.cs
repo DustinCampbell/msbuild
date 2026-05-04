@@ -8,6 +8,7 @@ using System.IO;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Tasks;
+using Microsoft.Build.Tasks.AssemblyDependency;
 using Microsoft.Build.Utilities;
 using Xunit;
 using SystemProcessorArchitecture = System.Reflection.ProcessorArchitecture;
@@ -30,9 +31,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         private const string system2Path = "c:\\clr2\\System.dll";
         private const string system1Path = "c:\\clr2\\System1.dll";
 
-        private GetAssemblyRuntimeVersion _runtimeVersion = new GetAssemblyRuntimeVersion(MockGetRuntimeVersion);
-        private GetPathFromFusionName _getPathFromFusionName = new GetPathFromFusionName(MockGetPathFromFusionName);
-        private GetGacEnumerator _gacEnumerator = new GetGacEnumerator(MockAssemblyCacheEnumerator);
+        private readonly GacTestServices _gacServices = new GacTestServices();
+        private readonly GetPathFromFusionName _getPathFromFusionName = new GetPathFromFusionName(MockGetPathFromFusionName);
+        private readonly GetGacEnumerator _gacEnumerator = new GetGacEnumerator(MockAssemblyCacheEnumerator);
 
         public GlobalAssemblyCacheTests(ITestOutputHelper output) : base(output)
         {
@@ -56,7 +57,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System");
 
 
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _runtimeVersion, new Version("2.0.57027"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, false);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _gacServices, new Version("2.0.57027"), false, _getPathFromFusionName, _gacEnumerator, false);
             Assert.NotNull(path);
             Assert.Equal(system2Path, path);
         }
@@ -81,7 +82,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System");
 
 
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _runtimeVersion, new Version("2.0.0"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _gacServices, new Version("2.0.0"), false, _getPathFromFusionName, _gacEnumerator, true);
             Assert.NotNull(path);
             Assert.Equal(system4Path, path);
         }
@@ -104,7 +105,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, Version=2.0.0.0");
 
 
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _runtimeVersion, new Version("2.0.0"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _gacServices, new Version("2.0.0"), false, _getPathFromFusionName, _gacEnumerator, true);
             Assert.NotNull(path);
             Assert.Equal(system2Path, path);
         }
@@ -127,7 +128,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System");
 
 
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _runtimeVersion, new Version("4.0.0"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, false);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _gacServices, new Version("4.0.0"), false, _getPathFromFusionName, _gacEnumerator, false);
             Assert.NotNull(path);
             Assert.Equal(system4Path, path);
         }
@@ -151,7 +152,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System");
 
 
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _runtimeVersion, new Version("4.0.0"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _gacServices, new Version("4.0.0"), false, _getPathFromFusionName, _gacEnumerator, true);
             Assert.NotNull(path);
             Assert.Equal(system4Path, path);
         }
@@ -172,7 +173,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, Version=4.0.0.0");
 
 
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _runtimeVersion, new Version("4.0.0.0"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, _gacServices, new Version("4.0.0.0"), false, _getPathFromFusionName, _gacEnumerator, true);
             Assert.NotNull(path);
             Assert.Equal(system4Path, path);
         }
@@ -186,7 +187,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Throws<FileLoadException>(() =>
             {
                 AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=");
-                string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices.GetAssemblyRuntimeVersion, new Version("2.0.50727"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, true);
+                string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, true);
             });
         }
 
@@ -197,7 +198,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyNullPublicKey()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=null");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices.GetAssemblyRuntimeVersion, new Version("2.0.50727"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, false);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, false);
             Assert.Null(path);
         }
 
@@ -208,7 +209,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyNullPublicKeyspecificVersion()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=null");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices.GetAssemblyRuntimeVersion, new Version("2.0.50727"), false, new FileExists(MockFileExists), _getPathFromFusionName, _gacEnumerator, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, true);
             Assert.Null(path);
         }
 
@@ -221,7 +222,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyProcessorArchitectureDoesNotCrash()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices.GetAssemblyRuntimeVersion, new Version("2.0.50727"), false, new FileExists(MockFileExists), _getPathFromFusionName, null /* use the real gac enumerator*/, false);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, null /* use the real gac enumerator*/, false);
             Assert.Null(path);
         }
 
@@ -233,7 +234,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyProcessorArchitectureDoesNotCrashSpecificVersion()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices.GetAssemblyRuntimeVersion, new Version("2.0.50727"), false, new FileExists(MockFileExists), _getPathFromFusionName, null /* use the real gac enumerator*/, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, null /* use the real gac enumerator*/, true);
             Assert.Null(path);
         }
 
@@ -245,7 +246,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyProcessorArchitectureDoesNotCrashFullFusionName()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices.GetAssemblyRuntimeVersion, new Version("2.0.50727"), true, new FileExists(MockFileExists), _getPathFromFusionName, null /* use the real gac enumerator*/, false);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices, new Version("2.0.50727"), true, _getPathFromFusionName, null /* use the real gac enumerator*/, false);
             Assert.Null(path);
         }
 
@@ -257,7 +258,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyProcessorArchitectureDoesNotCrashFullFusionNameSpecificVersion()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices.GetAssemblyRuntimeVersion, new Version("2.0.50727"), true, new FileExists(MockFileExists), _getPathFromFusionName, null /* use the real gac enumerator*/, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices, new Version("2.0.50727"), true, _getPathFromFusionName, null /* use the real gac enumerator*/, true);
             Assert.Null(path);
         }
 
@@ -558,31 +559,36 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal("true", t.DependsOnNETStandard, true); //                   "Expected netstandard dependency found during intellibuild."
         }
 
-        #region HelperDelegates
+        #region Helper Classes and Methods
 
-        private static string MockGetRuntimeVersion(string path)
+        /// <summary>
+        /// Test services class that provides mock implementations for GAC tests.
+        /// </summary>
+        private sealed class GacTestServices : RARServices
         {
-            if (path.Equals(system1Path, StringComparison.OrdinalIgnoreCase))
+            /// <inheritdoc />
+            public override bool FileExists(string path) => true;
+
+            /// <inheritdoc />
+            public override string GetAssemblyRuntimeVersion(string path)
             {
-                return "v2.0.50727";
+                if (path.Equals(system1Path, StringComparison.OrdinalIgnoreCase))
+                {
+                    return "v2.0.50727";
+                }
+
+                if (path.Equals(system4Path, StringComparison.OrdinalIgnoreCase))
+                {
+                    return "v4.0.0";
+                }
+
+                if (path.Equals(system2Path, StringComparison.OrdinalIgnoreCase))
+                {
+                    return "v2.0.50727";
+                }
+
+                return string.Empty;
             }
-
-            if (path.Equals(system4Path, StringComparison.OrdinalIgnoreCase))
-            {
-                return "v4.0.0";
-            }
-
-            if (path.Equals(system2Path, StringComparison.OrdinalIgnoreCase))
-            {
-                return "v2.0.50727";
-            }
-
-            return String.Empty;
-        }
-
-        private bool MockFileExists(string path)
-        {
-            return true;
         }
 
         private static string MockGetPathFromFusionName(string strongName)
@@ -607,12 +613,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 return system4Path;
             }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         private static IEnumerable<AssemblyNameExtension> MockAssemblyCacheEnumerator(string strongName)
         {
-            List<string> listOfAssemblies = new List<string>();
+            List<string> listOfAssemblies = [];
 
             if (strongName.StartsWith("System, Version=2.0.0.0", StringComparison.OrdinalIgnoreCase))
             {
@@ -633,13 +639,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
         internal sealed class MockEnumerator : IEnumerable<AssemblyNameExtension>
         {
-            private List<string> _assembliesToEnumerate = null;
+            private readonly List<string> _assembliesToEnumerate;
 
             public MockEnumerator(List<string> assembliesToEnumerate)
             {
                 _assembliesToEnumerate = assembliesToEnumerate;
             }
-
 
             public IEnumerator<AssemblyNameExtension> GetEnumerator()
             {
@@ -649,10 +654,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 }
             }
 
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return (IEnumerator)GetEnumerator();
-            }
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
         #endregion

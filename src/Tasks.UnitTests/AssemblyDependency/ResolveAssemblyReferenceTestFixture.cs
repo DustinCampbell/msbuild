@@ -60,9 +60,117 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             public override AssemblyMetadata GetAssemblyMetadata(string path) => ResolveAssemblyReferenceTestFixture.GetAssemblyMetadata(path);
             public override DateTime GetLastWriteTime(string path) => FileExists(path) ? DateTime.FromFileTimeUtc(1) : DateTime.FromFileTimeUtc(0);
             public override string GetAssemblyRuntimeVersion(string path) => ResolveAssemblyReferenceTestFixture.GetRuntimeVersion(path);
-            public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinmd) => ResolveAssemblyReferenceTestFixture.IsWinMDFile(fullPath, GetAssemblyRuntimeVersion, FileExists, out imageRuntimeVersion, out isManagedWinmd);
             public override ushort ReadMachineTypeFromPEHeader(string dllPath) => ResolveAssemblyReferenceTestFixture.ReadMachineTypeFromPEHeader(dllPath);
-            public override string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, Version targetedRuntimeVersion, bool fullFusionName, bool specificVersion) => ResolveAssemblyReferenceTestFixture.GetPathForAssemblyInGac(assemblyName, targetProcessorArchitecture, GetAssemblyRuntimeVersion, targetedRuntimeVersion, FileExists, fullFusionName, specificVersion);
+
+            public override bool IsWinMDFile(string fullPath, out string imageRuntimeVersion, out bool isManagedWinMD)
+            {
+                imageRuntimeVersion = string.Empty;
+                isManagedWinMD = false;
+
+                // May be null or empty if the file was never resolved to a path on disk.
+                if (string.IsNullOrEmpty(fullPath))
+                {
+                    return false;
+                }
+
+                imageRuntimeVersion = GetAssemblyRuntimeVersion(fullPath);
+
+                if (string.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeAndCLR.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    isManagedWinMD = true;
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\WinMD\WinMDWithVersion255.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly2.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly3.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly4.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeReferencingSystem.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeReferencingSystemDNE.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (fullPath.StartsWith(@"C:\MyWinMDComponents", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\FakeSDK\WindowsMetadata\SDKWinMD2.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (fullPath.StartsWith(@"C:\DirectoryContains", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(fullPath).Equals(".winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (fullPath.StartsWith(@"C:\WinMDArchVerification", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(fullPath).Equals(".winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\FakeSDK\WindowsMetadata\SDKWinMD.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                else if (string.Equals(fullPath, @"C:\WinMDLib\LibWithWinmdAndNoDll.Winmd", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            public override string GetAssemblyPathInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, Version targetedRuntimeVersion, bool fullFusionName, bool specificVersion)
+            {
+                if (assemblyName.Equals(new AssemblyNameExtension("V, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
+                {
+                    return null;
+                }
+                else if (assemblyName.Equals(new AssemblyNameExtension("W, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
+                {
+                    return @"C:\MyComponents2\W.dll";
+                }
+                else if (assemblyName.Equals(new AssemblyNameExtension("Z, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
+                {
+                    return null;
+                }
+                else if (assemblyName.Equals(new AssemblyNameExtension("X, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
+                {
+                    return @"C:\MyComponents\X.dll";
+                }
+                else if (assemblyName.Equals(new AssemblyNameExtension("Y, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
+                {
+                    return null;
+                }
+                else
+                {
+                    string gacLocation = null;
+#if FEATURE_GAC
+                    if (assemblyName.Version != null)
+                    {
+                        gacLocation = GlobalAssemblyCache.GetLocation(assemblyName, targetProcessorArchitecture, this, targetedRuntimeVersion, fullFusionName, null, null, specificVersion);
+                    }
+#endif
+                    return gacLocation;
+                }
+            }
+
 #if FEATURE_WIN32_REGISTRY
             public override RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view) => ResolveAssemblyReferenceTestFixture.GetBaseKey(hive, view);
             public override IEnumerable<string> GetSubKeyNames(RegistryKey baseKey, string subKey) => ResolveAssemblyReferenceTestFixture.GetRegistrySubKeyNames(baseKey, subKey);
@@ -736,125 +844,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         /// <summary>
-        ///  Checks to see if the file is a winmd file.
-        /// </summary>
-        private static bool IsWinMDFile(string fullPath, GetAssemblyRuntimeVersion getAssemblyRuntimeVersion, FileExists fileExists, out string imageRuntimeVersion, out bool isManagedWinMD)
-        {
-            imageRuntimeVersion = string.Empty;
-            isManagedWinMD = false;
-
-            // May be null or empty if the file was never resolved to a path on disk.
-            if (string.IsNullOrEmpty(fullPath))
-            {
-                return false;
-            }
-
-            imageRuntimeVersion = getAssemblyRuntimeVersion(fullPath);
-
-            if (String.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeAndCLR.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                isManagedWinMD = true;
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\WinMD\WinMDWithVersion255.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly2.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly3.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeOnly4.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeReferencingSystem.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\WinMD\SampleWindowsRuntimeReferencingSystemDNE.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (fullPath.StartsWith(@"C:\MyWinMDComponents", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\FakeSDK\WindowsMetadata\SDKWinMD2.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (fullPath.StartsWith(@"C:\DirectoryContains", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(fullPath).Equals(".winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (fullPath.StartsWith(@"C:\WinMDArchVerification", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(fullPath).Equals(".winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\FakeSDK\WindowsMetadata\SDKWinMD.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else if (String.Equals(fullPath, @"C:\WinMDLib\LibWithWinmdAndNoDll.Winmd", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        ///  Checks to see if the assemblyName passed in is in the GAC.
-        /// </summary>
-        private static string GetPathForAssemblyInGac(AssemblyNameExtension assemblyName, SystemProcessorArchitecture targetProcessorArchitecture, GetAssemblyRuntimeVersion getRuntimeVersion, Version targetedRuntimeVersion, FileExists fileExists, bool fullFusionName, bool specificVersion)
-        {
-            if (assemblyName.Equals(new AssemblyNameExtension("V, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-            {
-                return null;
-            }
-            else if (assemblyName.Equals(new AssemblyNameExtension("W, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-            {
-                return @"C:\MyComponents2\W.dll";
-            }
-            else if (assemblyName.Equals(new AssemblyNameExtension("Z, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-            {
-                return null;
-            }
-            else if (assemblyName.Equals(new AssemblyNameExtension("X, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-            {
-                return @"C:\MyComponents\X.dll";
-            }
-            else if (assemblyName.Equals(new AssemblyNameExtension("Y, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")))
-            {
-                return null;
-            }
-            else
-            {
-                string gacLocation = null;
-#if FEATURE_GAC
-                if (assemblyName.Version != null)
-                {
-                    gacLocation = GlobalAssemblyCache.GetLocation(assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fullFusionName, fileExists, null, null, specificVersion /* this value does not matter if we are passing a full fusion name*/);
-                }
-#endif
-                return gacLocation;
-            }
-        }
-
-        /// <summary>
         /// Mock the File.Exists method.
         /// </summary>
         /// <param name="path">The path to check.</param>
-        /// <returns>'true' if the file is supposed to exist</returns>
+        /// <returns><see langword="true"/> if the file is supposed to exist.</returns>
         internal static bool FileExists(string path)
         {
             // For very long paths, File.Exists just returns false

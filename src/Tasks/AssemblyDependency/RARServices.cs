@@ -228,10 +228,9 @@ internal class RARServices
         return GlobalAssemblyCache.GetLocation(
             assemblyName,
             targetProcessorArchitecture,
-            GetAssemblyRuntimeVersion,
+            this,
             targetedRuntimeVersion,
             fullFusionName,
-            FileExists,
             GlobalAssemblyCache.pathFromFusionName,
             GlobalAssemblyCache.gacEnumerator,
             specificVersion);

@@ -35,13 +35,6 @@ namespace Microsoft.Build.Tasks
     internal delegate void SetLastWriteTime(string path, DateTime timestamp);
 
     /// <summary>
-    /// GetAssemblyRuntimeVersion delegate to get the clr runtime version of a file.
-    /// </summary>
-    /// <param name="path">The path to the file</param>
-    /// <returns>The clr runtime version for the file</returns>
-    internal delegate string GetAssemblyRuntimeVersion(string path);
-
-    /// <summary>
     /// GetGacEnumerator delegate to get the enumerator which will enumerate over the GAC
     /// </summary>
     /// <param name="strongName">StrongName to get an enumerator for</param>

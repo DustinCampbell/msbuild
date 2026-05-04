@@ -44,13 +44,13 @@ namespace Microsoft.Build.Tasks
             string path = GlobalAssemblyCache.GetLocation(
                 sentinelAssemblyName,
                 SystemProcessorArchitecture.MSIL,
-                runtimeVersion => "v2.0.50727",
+                RARServices.Default,
                 new Version("2.0.57027"),
                 false,
-                new FileExists(p => FileUtilities.FileExistsNoThrow(p)),
                 GlobalAssemblyCache.pathFromFusionName,
                 GlobalAssemblyCache.gacEnumerator,
-                false);
+                false,
+                runtimeVersionOverride: "v2.0.50727");
 
             return !string.IsNullOrEmpty(path);
         }, LazyThreadSafetyMode.PublicationOnly);
