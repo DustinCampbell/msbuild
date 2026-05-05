@@ -353,31 +353,27 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void HigherVersionDirectDependenciesFalse()
         {
-            MockEngine e = new MockEngine(_output);
+            MockEngine engine = new(_output);
 
-            TaskItem item = new TaskItem("DependsOnFoo45Framework");
+            ITaskItem[] items = [new TaskItem("DependsOnFoo45Framework")];
 
-            ITaskItem[] items = new ITaskItem[]
+            ResolveAssemblyReference task = new()
             {
-                item
+                BuildEngine = engine,
+                Assemblies = items,
+                FindDependencies = false,
+                TargetFrameworkMoniker = "Foo, Version=4.0",
+                TargetFrameworkMonikerDisplayName = "Foo",
+                SearchPaths = [@"c:\Frameworks\"]
             };
 
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-            t.BuildEngine = e;
-            t.Assemblies = items;
-            t.FindDependencies = false;
-            t.TargetFrameworkMoniker = "Foo, Version=4.0";
-            t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { @"c:\Frameworks\" };
-            Assert.True(
-                t.Execute(testServices));
+            Assert.True(task.Execute(TestRARServices.Default));
 
-
-            Assert.Equal(0, e.Warnings); // "No warning expected in this scenario."
-            Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
-            Assert.Single(t.ResolvedFiles);
-            Assert.Empty(t.ResolvedDependencyFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.Equal(0, engine.Warnings); // "No warning expected in this scenario."
+            Assert.Equal(0, engine.Errors); // "No errors expected in this scenario."
+            Assert.Single(task.ResolvedFiles);
+            Assert.Empty(task.ResolvedDependencyFiles);
+            Assert.True(ContainsItem(task.ResolvedFiles, Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
         }
     }
 }

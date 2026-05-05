@@ -1417,8 +1417,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(2, t.ResolvedFiles.Length);
             Assert.Equal(2, mockEngine.Warnings);
             Assert.Equal(0, mockEngine.Errors);
-            mockEngine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"A", "X86");
-            mockEngine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"B", "X86");
+            mockEngine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"A", "X86");
+            mockEngine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"B", "X86");
             t.ResolvedFiles[0].GetMetadata("ResolvedFrom").ShouldBe(@"{Registry:Software\Regress714052,v2.0.0,X86}", StringCompareShould.IgnoreCase);
         }
 
@@ -1440,8 +1440,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(2, t.ResolvedFiles.Length);
             Assert.Equal(2, mockEngine.Warnings);
             Assert.Equal(0, mockEngine.Errors);
-            mockEngine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"A", "X86");
-            mockEngine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"B", "X86");
+            mockEngine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"A", "X86");
+            mockEngine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"B", "X86");
             t.ResolvedFiles[0].GetMetadata("ResolvedFrom").ShouldBe(@"{Registry:Software\Regress714052,v2.0.0,X86}", StringCompareShould.IgnoreCase);
         }
 
@@ -1464,8 +1464,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(2, t.ResolvedFiles.Length);
             Assert.Equal(0, mockEngine.Warnings);
             Assert.Equal(2, mockEngine.Errors);
-            mockEngine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"A", "X86");
-            mockEngine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"B", "X86");
+            mockEngine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"A", "X86");
+            mockEngine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArch", "MSIL", @"B", "X86");
             t.ResolvedFiles[0].GetMetadata("ResolvedFrom").ShouldBe(@"{Registry:Software\Regress714052,v2.0.0,X86}", StringCompareShould.IgnoreCase);
         }
 
@@ -2498,7 +2498,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 List<AssemblyEntry> assembliesReadIn = new List<AssemblyEntry>();
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, null);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, null);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Equal(4, assembliesReadIn.Count);
@@ -2652,7 +2652,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 AssemblyTableInfo info = new AssemblyTableInfo(redistFile, String.Empty);
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remapEntries);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remapEntries);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Equal(assembliesReadIn.Count, numberOfExpectedEntries);
@@ -2689,7 +2689,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 List<AssemblyRemapping> remap = new List<AssemblyRemapping>();
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Single(remap);
@@ -2730,7 +2730,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 List<AssemblyRemapping> remap = new List<AssemblyRemapping>();
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Single(remap);
@@ -2773,7 +2773,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 List<AssemblyRemapping> remap = new List<AssemblyRemapping>();
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Equal(2, remap.Count);
@@ -2816,7 +2816,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 List<AssemblyRemapping> remap = new List<AssemblyRemapping>();
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Single(remap);
@@ -2849,7 +2849,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 List<AssemblyRemapping> remap = new List<AssemblyRemapping>();
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Empty(remap);
@@ -2884,7 +2884,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 List<AssemblyRemapping> remap = new List<AssemblyRemapping>();
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Single(remap);
@@ -2922,7 +2922,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 List<AssemblyRemapping> remap = new List<AssemblyRemapping>();
                 List<Exception> errors = new List<Exception>();
                 List<string> errorFileNames = new List<string>();
-                RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
+                Tasks.RedistList.ReadFile(info, assembliesReadIn, errors, errorFileNames, remap);
                 Assert.Empty(errors); // "Expected no Errors"
                 Assert.Empty(errorFileNames); // "Expected no Error file names"
                 Assert.Empty(remap);
@@ -3239,17 +3239,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             var referenceList = new List<Reference>();
 
             var taskItem = new TaskItem("Microsoft.VisualStudio.Interopt, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
-            var reference = new Reference(testServices);
+            var reference = new Reference(TestRARServices.Default);
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference.FullPath = "c:\\AssemblyFolders\\Microsoft.VisualStudio.Interopt.dll";
             reference.ResolvedSearchPath = "{AssemblyFolders}";
 
-            Reference reference2 = new Reference(testServices);
+            Reference reference2 = new(TestRARServices.Default);
             reference2.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference2.FullPath = "c:\\SomeOtherFolder\\Microsoft.VisualStudio.Interopt2.dll";
             reference2.ResolvedSearchPath = "c:\\SomeOtherFolder";
 
-            Reference reference3 = new Reference(testServices);
+            Reference reference3 = new(TestRARServices.Default);
             reference3.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference3.FullPath = "c:\\SomeOtherFolder\\Microsoft.VisualStudio.Interopt3.dll";
             reference3.ResolvedSearchPath = "{GAC}";
@@ -3519,11 +3519,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             ResourceManager resources = new ResourceManager("Microsoft.Build.Tasks.Strings", Assembly.GetExecutingAssembly());
 
             // Unresolved primary reference with itemspec "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null".
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.UnifiedReferenceDependsOn", "A, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_ADllPath);
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.ReferenceDependsOn", "A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_V2_ADllPath);
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_CDllPath);
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_BDllPath);
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_V2_ADllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.UnifiedReferenceDependsOn", "A, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_ADllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.ReferenceDependsOn", "A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_V2_ADllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_CDllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_BDllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_V2_ADllPath);
         }
 
         /// <summary>
@@ -3564,11 +3564,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             bool result = Execute(t);
 
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.ReferenceDependsOn", "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null", String.Empty);
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.UnifiedReferenceDependsOn", "A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_V2_ADllPath);
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.UnResolvedPrimaryItemSpec", "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null");
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_DDllPath);
-            engine.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_BDllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.ReferenceDependsOn", "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null", String.Empty);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.UnifiedReferenceDependsOn", "A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_V2_ADllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.UnResolvedPrimaryItemSpec", "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null");
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_DDllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_BDllPath);
         }
 
         /// <summary>
@@ -4849,7 +4849,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             ResolveAssemblyReference t = new ResolveAssemblyReference();
 
-            MockEngine e = new (_output);
+            MockEngine e = new(_output);
             t.BuildEngine = e;
 
             t.Assemblies = [new TaskItem("A")]; // Resolved by HintPath
@@ -5305,7 +5305,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 AssemblyNameExtension Av3 = new AssemblyNameExtension(v3);
 
                 AssemblyTableInfo assemblyTableInfo = new AssemblyTableInfo(redistFile, "MyFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { assemblyTableInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { assemblyTableInfo });
                 InstalledAssemblies installedAssemblies = new InstalledAssemblies(redistList);
 
                 AssemblyNameExtension assemblyName = new AssemblyNameExtension("A");
@@ -5484,7 +5484,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             try
             {
-                RedistList.GetRedistListPathsFromDisk(null);
+                Tasks.RedistList.GetRedistListPathsFromDisk(null);
             }
             catch (ArgumentNullException)
             {
@@ -5503,7 +5503,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void RedistListGenerateDenyListEmptyAssemblyInfoNoRedistAssemblies()
         {
-            RedistList redistList = RedistList.GetRedistList(Array.Empty<AssemblyTableInfo>());
+            RedistList redistList = Tasks.RedistList.GetRedistList(Array.Empty<AssemblyTableInfo>());
             List<Exception> allowListErrors = new List<Exception>();
             List<string> allowListErrorFileNames = new List<string>();
             Dictionary<string, string> denyList = redistList.GenerateDenyList(Array.Empty<AssemblyTableInfo>(), allowListErrors, allowListErrorFileNames);
@@ -5521,7 +5521,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             try
             {
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(Array.Empty<AssemblyTableInfo>(), allowListErrors, allowListErrorFileNames);
@@ -5545,7 +5545,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             try
             {
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
 
@@ -5586,7 +5586,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(garbageSubsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -5631,7 +5631,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(subsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -5684,7 +5684,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(subsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -5729,7 +5729,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(subsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -5764,7 +5764,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(subsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -5850,7 +5850,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(goodSubsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -5883,7 +5883,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(goodSubsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -5927,7 +5927,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(goodSubsetFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo2 = new AssemblyTableInfo(goodSubsetFile2, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
 
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
@@ -5967,7 +5967,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(goodSubsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -5999,7 +5999,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(goodSubsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFileNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFileNames);
@@ -6040,7 +6040,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 AssemblyTableInfo redistListInfo = new AssemblyTableInfo(redistFile, "TargetFrameworkDirectory");
                 AssemblyTableInfo subsetListInfo = new AssemblyTableInfo(goodSubsetFile, "TargetFrameworkDirectory");
-                RedistList redistList = RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
+                RedistList redistList = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { redistListInfo });
                 List<Exception> allowListErrors = new List<Exception>();
                 List<string> allowListErrorFilesNames = new List<string>();
                 Dictionary<string, string> denyList = redistList.GenerateDenyList(new AssemblyTableInfo[] { subsetListInfo }, allowListErrors, allowListErrorFilesNames);
@@ -6237,13 +6237,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            table.Add(engineAssemblyName, new Reference(testServices));
-            table.Add(xmlAssemblyName, new Reference(testServices));
+            table.Add(engineAssemblyName, new Reference(TestRARServices.Default));
+            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
 
-            referenceTable.MarkReferencesForExclusion(null);
-            referenceTable.RemoveReferencesMarkedForExclusion(false, String.Empty);
+            referenceTable.MarkReferencesForExclusion(exclusionList: null);
+            referenceTable.RemoveReferencesMarkedForExclusion(removeOnlyNoWarning: false, subsetName: string.Empty);
             Dictionary<AssemblyNameExtension, Reference> table2 = referenceTable.References;
-            Assert.False(Object.ReferenceEquals(table, table2)); // "Expected Dictionary to be a different instance"
+            Assert.NotSame(table, table2); // "Expected Dictionary to be a different instance"
             Assert.Equal(2, table2.Count); // "Expected there to be two elements in the Dictionary"
             Assert.True(table2.ContainsKey(engineAssemblyName)); // "Expected to find the engineAssemblyName in the referenceList"
             Assert.True(table2.ContainsKey(xmlAssemblyName)); // "Expected to find the xmlssemblyName in the referenceList"
@@ -6262,13 +6262,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            table.Add(engineAssemblyName, new Reference(testServices));
-            table.Add(xmlAssemblyName, new Reference(testServices));
+            table.Add(engineAssemblyName, new Reference(TestRARServices.Default));
+            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
 
-            referenceTable.MarkReferencesForExclusion(new Dictionary<string, string>());
-            referenceTable.RemoveReferencesMarkedForExclusion(false, String.Empty);
+            referenceTable.MarkReferencesForExclusion(exclusionList: []);
+            referenceTable.RemoveReferencesMarkedForExclusion(removeOnlyNoWarning: false, subsetName: string.Empty);
             Dictionary<AssemblyNameExtension, Reference> table2 = referenceTable.References;
-            Assert.False(Object.ReferenceEquals(table, table2)); // "Expected Dictionary to be a different instance"
+            Assert.NotSame(table, table2); // "Expected Dictionary to be a different instance"
             Assert.Equal(2, table2.Count); // "Expected there to be two elements in the Dictionary"
             Assert.True(table2.ContainsKey(engineAssemblyName)); // "Expected to find the engineAssemblyName in the referenceList"
             Assert.True(table2.ContainsKey(xmlAssemblyName)); // "Expected to find the xmlssemblyName in the referenceList"
@@ -6287,19 +6287,18 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             ReferenceTable referenceTable = MakeEmptyReferenceTable(rar.Log);
             Dictionary<AssemblyNameExtension, Reference> table = referenceTable.References;
 
-            AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-            AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+            AssemblyNameExtension engineAssemblyName = new("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+            AssemblyNameExtension xmlAssemblyName = new("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new Reference(testServices);
+            Reference reference = new(TestRARServices.Default);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(testServices));
+            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
-            string[] targetFrameworks = new string[] { "Client", "Web" };
-            string subSetName = ResolveAssemblyReference.GenerateSubSetName(targetFrameworks, null);
+            string subSetName = ResolveAssemblyReference.GenerateSubSetName(frameworkSubSetNames: ["Client", "Web"], installedSubSetNames: null);
 
             referenceTable.MarkReferencesForExclusion(denyList);
             referenceTable.RemoveReferencesMarkedForExclusion(false, subSetName);
@@ -6329,17 +6328,16 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new Reference(testServices);
+            Reference reference = new(TestRARServices.Default);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             taskItem.SetMetadata("SpecificVersion", "true");
             reference.MakePrimaryAssemblyReference(taskItem, true, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(testServices));
+            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
-            string[] targetFrameworks = new string[] { "Client", "Web" };
-            string subSetName = ResolveAssemblyReference.GenerateSubSetName(targetFrameworks, null);
+            string subSetName = ResolveAssemblyReference.GenerateSubSetName(frameworkSubSetNames: ["Client", "Web"], installedSubSetNames: null);
             referenceTable.MarkReferencesForExclusion(denyList);
             referenceTable.RemoveReferencesMarkedForExclusion(false, subSetName);
 
@@ -6406,19 +6404,19 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new Reference(testServices);
+            Reference reference = new(TestRARServices.Default);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(testServices));
+            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
             referenceTable.MarkReferencesForExclusion(denyList);
-            referenceTable.RemoveReferencesMarkedForExclusion(true, String.Empty);
+            referenceTable.RemoveReferencesMarkedForExclusion(true, string.Empty);
 
             Dictionary<AssemblyNameExtension, Reference> table2 = referenceTable.References;
-            string subSetName = ResolveAssemblyReference.GenerateSubSetName(Array.Empty<string>(), null);
+            string subSetName = ResolveAssemblyReference.GenerateSubSetName(frameworkSubSetNames: [], installedSubSetNames: null);
             string warningMessage = rar.Log.FormatResourceString("ResolveAssemblyReference.FailedToResolveReferenceBecausePrimaryAssemblyInExclusionList", taskItem.ItemSpec, subSetName);
             Assert.False(Object.ReferenceEquals(table, table2)); // "Expected dictionary to be a different instance"
             Assert.Single(table2); // "Expected there to be one elements in the dictionary"
@@ -6524,8 +6522,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Dictionary<string, string> denyList;
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-            Reference enginePrimaryReference = new Reference(testServices);
-            Reference xmlPrimaryReference = new Reference(testServices);
+            Reference enginePrimaryReference = new Reference(TestRARServices.Default);
+            Reference xmlPrimaryReference = new Reference(TestRARServices.Default);
 
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             enginePrimaryReference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
@@ -6566,9 +6564,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension dataAssemblyName = new AssemblyNameExtension("System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-            Reference enginePrimaryReference = new Reference(testServices);
-            Reference xmlPrimaryReference = new Reference(testServices);
-            Reference dataDependencyReference = new Reference(testServices);
+            Reference enginePrimaryReference = new Reference(TestRARServices.Default);
+            Reference xmlPrimaryReference = new Reference(TestRARServices.Default);
+            Reference dataDependencyReference = new Reference(TestRARServices.Default);
 
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             enginePrimaryReference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
@@ -6655,7 +6653,35 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ReferenceTableDependentItemsInDenyList4()
         {
-            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, testServices, null, null, null, null, null, true, false, false, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, Array.Empty<string>());
+            ReferenceTable referenceTable = new(
+                buildEngine: null,
+                findDependencies: false,
+                findSatellites: false,
+                findSerializationAssemblies: false,
+                findRelatedFiles: false,
+                enableCustomCulture: false,
+                searchPaths: [],
+                allowedAssemblyExtensions: null,
+                relatedFileExtensions: null,
+                candidateAssemblyFiles: null,
+                resolvedSDKItems: null,
+                frameworkPaths: null,
+                installedAssemblies: null,
+                targetProcessorArchitecture: SystemProcessorArchitecture.None,
+                services: TestRARServices.Default,
+                targetedRuntimeVersion: null,
+                projectTargetFramework: null,
+                targetFrameworkMoniker: null,
+                log: null,
+                latestTargetFrameworkDirectories: null,
+                copyLocalDependenciesWhenParentReferenceInGac: true,
+                doNotCopyLocalIfInGac: false,
+                ignoreVersionForFrameworkReferences: false,
+                warnOrErrorOnTargetArchitectureMismatch: WarnOrErrorOnTargetArchitectureMismatchBehavior.None,
+                ignoreFrameworkAttributeVersionMismatch: false,
+                unresolveFrameworkAssembliesFromHigherFrameworks: false,
+                nonCultureResourceDirectories: []);
+
             MockEngine mockEngine;
             ResolveAssemblyReference rar;
             Dictionary<string, string> denyList;
@@ -6828,10 +6854,34 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         private static ReferenceTable MakeEmptyReferenceTable(TaskLoggingHelper log)
-        {
-            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, testServices, null, null, null, log, null, true, false, false, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, Array.Empty<string>());
-            return referenceTable;
-        }
+            => new(
+                buildEngine: null,
+                findDependencies: false,
+                findSatellites: false,
+                findSerializationAssemblies: false,
+                findRelatedFiles: false,
+                enableCustomCulture: false,
+                searchPaths: [],
+                allowedAssemblyExtensions: null,
+                relatedFileExtensions: null,
+                candidateAssemblyFiles: null,
+                resolvedSDKItems: null,
+                frameworkPaths: null,
+                installedAssemblies: null,
+                targetProcessorArchitecture: SystemProcessorArchitecture.None,
+                services: TestRARServices.Default,
+                targetedRuntimeVersion: null,
+                projectTargetFramework: null,
+                targetFrameworkMoniker: null,
+                log: log,
+                latestTargetFrameworkDirectories: null,
+                copyLocalDependenciesWhenParentReferenceInGac: true,
+                doNotCopyLocalIfInGac: false,
+                ignoreVersionForFrameworkReferences: false,
+                warnOrErrorOnTargetArchitectureMismatch: WarnOrErrorOnTargetArchitectureMismatchBehavior.None,
+                ignoreFrameworkAttributeVersionMismatch: false,
+                unresolveFrameworkAssembliesFromHigherFrameworks: false,
+                nonCultureResourceDirectories: []);
 
         /// <summary>
         /// Verify the correct references are still in the references table and that references which are in the deny list are not in the references table
@@ -7027,10 +7077,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// <param name="xmlPrimaryReference"></param>
         private static void GenerateNewReferences(out Reference enginePrimaryReference, out Reference dataDependencyReference, out Reference sqlDependencyReference, out Reference xmlPrimaryReference)
         {
-            enginePrimaryReference = new Reference(testServices);
-            dataDependencyReference = new Reference(testServices);
-            sqlDependencyReference = new Reference(testServices);
-            xmlPrimaryReference = new Reference(testServices);
+            enginePrimaryReference = new Reference(TestRARServices.Default);
+            dataDependencyReference = new Reference(TestRARServices.Default);
+            sqlDependencyReference = new Reference(TestRARServices.Default);
+            xmlPrimaryReference = new Reference(TestRARServices.Default);
         }
 
         /// <summary>
@@ -7801,7 +7851,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     "</FileList >");
 
                 AssemblyTableInfo tableInfo = new AssemblyTableInfo(redistFile, "DoesNotExist");
-                RedistList redist = RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
+                RedistList redist = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
                 List<AssemblyEntry> entryArray = [.. redist.FindAssemblyNameFromSimpleName("System")];
 
                 Assert.Equal(6, entryArray.Count);
@@ -7841,7 +7891,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     "</FileList >");
 
                 AssemblyTableInfo tableInfo = new AssemblyTableInfo(redistFile, "DoesNotExist");
-                RedistList redist = RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
+                RedistList redist = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
 
                 AssemblyNameExtension a1 = new AssemblyNameExtension("System, Version=10.0.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089");
                 bool inRedistList = redist.FrameworkAssemblyEntryInRedist(a1);
@@ -7869,7 +7919,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     "</FileList >");
 
                 AssemblyTableInfo tableInfo = new AssemblyTableInfo(redistFile, "DoesNotExist");
-                RedistList redist = RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
+                RedistList redist = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
 
                 AssemblyNameExtension a1 = new AssemblyNameExtension("System, Version=10.0.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089");
                 bool inRedistList = redist.FrameworkAssemblyEntryInRedist(a1);
@@ -7897,7 +7947,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     "</FileList >");
 
                 AssemblyTableInfo tableInfo = new AssemblyTableInfo(redistFile, "DoesNotExist");
-                RedistList redist = RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
+                RedistList redist = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
 
                 AssemblyNameExtension a1 = new AssemblyNameExtension("System, Version=10.0.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089");
                 bool inRedistList = redist.FrameworkAssemblyEntryInRedist(a1);
@@ -7937,7 +7987,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     "</FileList >");
 
                 AssemblyTableInfo tableInfo = new AssemblyTableInfo(redistFile, "DoesNotExist");
-                RedistList redist = RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
+                RedistList redist = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
 
                 AssemblyNameExtension a1 = new AssemblyNameExtension("System, Version=5.0.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089");
                 bool inRedistList = redist.FrameworkAssemblyEntryInRedist(a1);
@@ -7966,7 +8016,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     "</FileList >");
 
                 AssemblyTableInfo tableInfo = new AssemblyTableInfo(redistFile, "DoesNotExist");
-                RedistList redist = RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
+                RedistList redist = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
 
                 AssemblyNameExtension a1 = new AssemblyNameExtension("System, Version=5.0.0.0, Culture=Neutral, PublicKeyToken=b67a5c561934e089");
                 bool inRedistList = redist.FrameworkAssemblyEntryInRedist(a1);
@@ -7995,7 +8045,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     "</FileList >");
 
                 AssemblyTableInfo tableInfo = new AssemblyTableInfo(redistFile, "DoesNotExist");
-                RedistList redist = RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
+                RedistList redist = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
 
                 AssemblyNameExtension a1 = new AssemblyNameExtension("System, Version=10.0.0.0, Culture=Neutral, PublicKeyToken=b67a5c561934e089");
                 bool inRedistList = redist.FrameworkAssemblyEntryInRedist(a1);
@@ -8024,7 +8074,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     "</FileList >");
 
                 AssemblyTableInfo tableInfo = new AssemblyTableInfo(redistFile, "DoesNotExist");
-                RedistList redist = RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
+                RedistList redist = Tasks.RedistList.GetRedistList(new AssemblyTableInfo[] { tableInfo });
 
                 AssemblyNameExtension a1 = new AssemblyNameExtension("Something, Version=10.0.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089");
                 bool inRedistList = redist.FrameworkAssemblyEntryInRedist(a1);
@@ -8393,7 +8443,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             // Execute RAR and assert that we receive no I/O callbacks because the task gets what it needs from item metadata.
             // Use testServices - the test validates that externally resolved refs don't trigger callbacks
-            rar.Execute(testServices).ShouldBeTrue();
+            rar.Execute(TestRARServices.Default).ShouldBeTrue();
 
             rar.ResolvedFiles.Length.ShouldBe(1);
             rar.ResolvedFiles[0].ItemSpec.ShouldBe(refPath);

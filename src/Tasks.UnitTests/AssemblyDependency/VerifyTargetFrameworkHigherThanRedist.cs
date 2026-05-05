@@ -84,8 +84,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             ExecuteRAROnItemsAndRedist(t, e, items, redistString, false);
 
             Assert.Equal(0, e.Warnings); // "Expected NO warning in this scenario."
-            e.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.RemappedReference", "DependsOnOnlyv4Assemblies", "ReferenceVersion9, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b17a5c561934e089");
-            e.AssertLogContainsMessageFromResource(resourceDelegate, "ResolveAssemblyReference.RemappedReference", "AnotherOne", "ReferenceVersion9, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b17a5c561934e089");
+            e.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.RemappedReference", "DependsOnOnlyv4Assemblies", "ReferenceVersion9, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b17a5c561934e089");
+            e.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.RemappedReference", "AnotherOne", "ReferenceVersion9, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b17a5c561934e089");
 
             Assert.Single(t.ResolvedFiles);
 
@@ -490,35 +490,43 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void MixedDependenciesSpecificVersionOnLowerVersionMetadataSet()
         {
-            MockEngine e = new MockEngine(_output);
+            MockEngine engine = new(_output);
 
-            ITaskItem[] items = new ITaskItem[]
-            {
+            ITaskItem[] items =
+            [
                 new TaskItem("DependsOnOnlyv4Assemblies, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b17a5c561934e089"),
                 new TaskItem("DependsOn9, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b17a5c561934e089")
-            };
+            ];
 
             items[0].SetMetadata("SpecificVersion", "true");
 
-            string redistString = "<FileList Redist='Microsoft-Windows-CLRCoreComp-Random' >" +
-                                      "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='true' />" +
-                                  "</FileList >";
+            const string RedistString = """
+                <FileList Redist='Microsoft-Windows-CLRCoreComp-Random' >
+                    <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='true' />
+                </FileList >
+                """;
 
-            List<string> additionalPaths = new List<string>();
-            additionalPaths.Add(s_myComponents40ComponentPath);
-            additionalPaths.Add(s_myVersion40Path);
-            additionalPaths.Add(s_myVersion90Path + Path.DirectorySeparatorChar);
+            ResolveAssemblyReference task = new();
 
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            ExecuteRAROnItemsAndRedist(
+                task,
+                engine,
+                items,
+                RedistString,
+                consistencyCheck: false,
+                additionalSearchPaths:
+                [
+                    s_myComponents40ComponentPath,
+                    s_myVersion40Path,
+                    s_myVersion90Path + Path.DirectorySeparatorChar,
+                ]);
 
-            ExecuteRAROnItemsAndRedist(t, e, items, redistString, false, additionalPaths);
-
-            Assert.Equal(1, e.Warnings); // "No warnings expected in this scenario."
-            Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
-            Assert.Single(t.ResolvedFiles);
-            Assert.Single(t.ResolvedDependencyFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_40ComponentDependsOnOnlyv4AssembliesDllPath)); // "Expected to find assembly, but didn't."
-            Assert.False(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.Equal(1, engine.Warnings); // "No warnings expected in this scenario."
+            Assert.Equal(0, engine.Errors); // "No errors expected in this scenario."
+            Assert.Single(task.ResolvedFiles);
+            Assert.Single(task.ResolvedDependencyFiles);
+            Assert.True(ContainsItem(task.ResolvedFiles, s_40ComponentDependsOnOnlyv4AssembliesDllPath)); // "Expected to find assembly, but didn't."
+            Assert.False(ContainsItem(task.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
         }
     }
 }

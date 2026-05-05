@@ -187,7 +187,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Throws<FileLoadException>(() =>
             {
                 AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=");
-                string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, true);
+                string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, TestRARServices.Default, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, true);
             });
         }
 
@@ -198,7 +198,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyNullPublicKey()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=null");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, false);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, TestRARServices.Default, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, false);
             Assert.Null(path);
         }
 
@@ -209,7 +209,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyNullPublicKeyspecificVersion()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=null");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.None, TestRARServices.Default, new Version("2.0.50727"), false, _getPathFromFusionName, _gacEnumerator, true);
             Assert.Null(path);
         }
 
@@ -222,7 +222,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyProcessorArchitectureDoesNotCrash()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, null /* use the real gac enumerator*/, false);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, TestRARServices.Default, new Version("2.0.50727"), false, _getPathFromFusionName, null /* use the real gac enumerator*/, false);
             Assert.Null(path);
         }
 
@@ -234,7 +234,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyProcessorArchitectureDoesNotCrashSpecificVersion()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices, new Version("2.0.50727"), false, _getPathFromFusionName, null /* use the real gac enumerator*/, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, TestRARServices.Default, new Version("2.0.50727"), false, _getPathFromFusionName, null /* use the real gac enumerator*/, true);
             Assert.Null(path);
         }
 
@@ -246,7 +246,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyProcessorArchitectureDoesNotCrashFullFusionName()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices, new Version("2.0.50727"), true, _getPathFromFusionName, null /* use the real gac enumerator*/, false);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, TestRARServices.Default, new Version("2.0.50727"), true, _getPathFromFusionName, null /* use the real gac enumerator*/, false);
             Assert.Null(path);
         }
 
@@ -258,7 +258,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void VerifyProcessorArchitectureDoesNotCrashFullFusionNameSpecificVersion()
         {
             AssemblyNameExtension fusionName = new AssemblyNameExtension("System, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL");
-            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, testServices, new Version("2.0.50727"), true, _getPathFromFusionName, null /* use the real gac enumerator*/, true);
+            string path = GlobalAssemblyCache.GetLocation(fusionName, SystemProcessorArchitecture.MSIL, TestRARServices.Default, new Version("2.0.50727"), true, _getPathFromFusionName, null /* use the real gac enumerator*/, true);
             Assert.Null(path);
         }
 
@@ -285,7 +285,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // build mode
             t.FindDependencies = true;
             Assert.True(
-                t.Execute(testServices));
+                t.Execute(TestRARServices.Default));
 
             Assert.Equal("false", t.DependsOnSystemRuntime, true); // "Expected no System.Runtime dependency found during build."
             Assert.Equal("false", t.DependsOnNETStandard, true); //                   "Expected no netstandard dependency found during build."
@@ -293,7 +293,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // intelli build mode
             t.FindDependencies = false;
             Assert.True(
-                t.Execute(testServices));
+                t.Execute(TestRARServices.Default));
 
             Assert.Equal("false", t.DependsOnSystemRuntime, true); // "Expected no System.Runtime dependency found during intellibuild."
             Assert.Equal("false", t.DependsOnNETStandard, true); //                   "Expected no netstandard dependency found during intellibuild."
@@ -321,14 +321,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.FindDependencies = true;
 
             Assert.True(
-                t.Execute(testServices));
+                t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during build."
 
             // intelli build mode
             t.FindDependencies = false;
             Assert.True(
-                t.Execute(testServices));
+                t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during intellibuild."
         }
@@ -354,14 +354,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.FindDependencies = true;
 
             Assert.True(
-                t.Execute(testServices));
+                t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during build."
 
             // intelli build mode
             t.FindDependencies = false;
             Assert.True(
-                t.Execute(testServices));
+                t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during intellibuild."
         }
@@ -386,13 +386,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // build mode
             t.FindDependencies = true;
 
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during build."
 
             // intelli build mode
             t.FindDependencies = false;
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during intellibuild."
         }
@@ -416,13 +416,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // build mode
             t.FindDependencies = true;
 
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnNETStandard, true); // "Expected System.Runtime dependency found during build."
 
             // intelli build mode
             t.FindDependencies = false;
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnNETStandard, true); // "Expected System.Runtime dependency found during intellibuild."
         }
@@ -446,13 +446,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // build mode
             t.FindDependencies = true;
 
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnNETStandard, true); // "Expected netstandard dependency found during build."
 
             // intelli build mode
             t.FindDependencies = false;
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnNETStandard, true); // "Expected netstandard dependency found during intellibuild."
         }
@@ -478,13 +478,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // build mode
             t.FindDependencies = true;
 
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnNETStandard, true); // "Expected netstandard dependency found during build."
 
             // intelli build mode
             t.FindDependencies = false;
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnNETStandard, true); // "Expected netstandard dependency found during intellibuild."
         }
@@ -510,14 +510,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // build mode
             t.FindDependencies = true;
 
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during build."
             Assert.Equal("true", t.DependsOnNETStandard, true); //                   "Expected netstandard dependency found during build."
 
             // intelli build mode
             t.FindDependencies = false;
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during intellibuild."
             Assert.Equal("true", t.DependsOnNETStandard, true); //                   "Expected netstandard dependency found during intellibuild."
@@ -546,14 +546,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // build mode
             t.FindDependencies = true;
 
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during build."
             Assert.Equal("true", t.DependsOnNETStandard, true); //                   "Expected netstandard dependency found during build."
 
             // intelli build mode
             t.FindDependencies = false;
-            Assert.True(t.Execute(testServices));
+            Assert.True(t.Execute(TestRARServices.Default));
 
             Assert.Equal("true", t.DependsOnSystemRuntime, true); // "Expected System.Runtime dependency found during intellibuild."
             Assert.Equal("true", t.DependsOnNETStandard, true); //                   "Expected netstandard dependency found during intellibuild."
