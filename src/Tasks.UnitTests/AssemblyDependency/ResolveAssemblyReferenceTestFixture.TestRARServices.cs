@@ -31,33 +31,51 @@ public partial class ResolveAssemblyReferenceTestFixture
         /// Default test services instance that calls the fixture's static methods.
         /// Most tests use this. Tests needing custom behavior create their own TestRARServices with overrides.
         /// </summary>
-        public static new readonly TestRARServices Default = new(fileExists: null, getAssemblyName: null, existentFiles: []);
+        public static new readonly TestRARServices Default = new(fileExists: null, getAssemblyName: null, existentFiles: [], getGacEnumerator: null, getPathFromFusionName: null, getAssemblyRuntimeVersion: null);
 
         private readonly Func<string, bool> _fileExists;
         private readonly Func<string, AssemblyNameExtension> _getAssemblyName;
         private readonly ImmutableArray<string> _existentFiles;
+        private readonly Func<string, IEnumerable<AssemblyNameExtension>> _getGacEnumerator;
+        private readonly Func<string, string> _getPathFromFusionName;
+        private readonly Func<string, string> _getAssemblyRuntimeVersion;
 
         private TestRARServices(
             Func<string, bool> fileExists,
             Func<string, AssemblyNameExtension> getAssemblyName,
-            ImmutableArray<string> existentFiles)
+            ImmutableArray<string> existentFiles,
+            Func<string, IEnumerable<AssemblyNameExtension>> getGacEnumerator,
+            Func<string, string> getPathFromFusionName,
+            Func<string, string> getAssemblyRuntimeVersion)
         {
             _fileExists = fileExists;
             _getAssemblyName = getAssemblyName;
             _existentFiles = existentFiles.IsDefault ? [] : existentFiles;
+            _getGacEnumerator = getGacEnumerator;
+            _getPathFromFusionName = getPathFromFusionName;
+            _getAssemblyRuntimeVersion = getAssemblyRuntimeVersion;
         }
 
         public static TestRARServices CreateDefault()
-            => new(fileExists: null, getAssemblyName: null, ExistentFiles);
+            => new(fileExists: null, getAssemblyName: null, ExistentFiles, getGacEnumerator: null, getPathFromFusionName: null, getAssemblyRuntimeVersion: null);
 
         public TestRARServices WithFileExists(Func<string, bool> fileExists)
-            => new(fileExists, _getAssemblyName, _existentFiles);
+            => new(fileExists, _getAssemblyName, _existentFiles, _getGacEnumerator, _getPathFromFusionName, _getAssemblyRuntimeVersion);
 
         public TestRARServices WithGetAssemblyName(Func<string, AssemblyNameExtension> getAssemblyName)
-            => new(_fileExists, getAssemblyName, _existentFiles);
+            => new(_fileExists, getAssemblyName, _existentFiles, _getGacEnumerator, _getPathFromFusionName, _getAssemblyRuntimeVersion);
 
         public TestRARServices AddExistentFiles(params ReadOnlySpan<string> paths)
-            => new(_fileExists, _getAssemblyName, _existentFiles.AddRange(paths));
+            => new(_fileExists, _getAssemblyName, _existentFiles.AddRange(paths), _getGacEnumerator, _getPathFromFusionName, _getAssemblyRuntimeVersion);
+
+        public TestRARServices WithGetGacEnumerator(Func<string, IEnumerable<AssemblyNameExtension>> getGacEnumerator)
+            => new(_fileExists, _getAssemblyName, _existentFiles, getGacEnumerator, _getPathFromFusionName, _getAssemblyRuntimeVersion);
+
+        public TestRARServices WithGetPathFromFusionName(Func<string, string> getPathFromFusionName)
+            => new(_fileExists, _getAssemblyName, _existentFiles, _getGacEnumerator, getPathFromFusionName, _getAssemblyRuntimeVersion);
+
+        public TestRARServices WithGetAssemblyRuntimeVersion(Func<string, string> getAssemblyRuntimeVersion)
+            => new(_fileExists, _getAssemblyName, _existentFiles, _getGacEnumerator, _getPathFromFusionName, getAssemblyRuntimeVersion);
 
         public override bool FileExists(string path)
         {
@@ -348,6 +366,12 @@ public partial class ResolveAssemblyReferenceTestFixture
 
         public override string GetAssemblyRuntimeVersion(string path)
         {
+            // Use override if provided
+            if (_getAssemblyRuntimeVersion is not null)
+            {
+                return _getAssemblyRuntimeVersion(path);
+            }
+
             // Check explicit path mappings first
             if (RuntimeVersions.TryGetValue(path, out string version))
             {
@@ -436,13 +460,22 @@ public partial class ResolveAssemblyReferenceTestFixture
                     services: this,
                     targetedRuntimeVersion,
                     fullFusionName,
-                    getPathFromFusionName: null,
-                    getGacEnumerator: null,
+                    gacService: this,
                     specificVersion);
             }
 #endif
             return null;
         }
+
+        public override IEnumerable<AssemblyNameExtension> GetGacEnumerator(string strongName)
+            => _getGacEnumerator is not null
+                ? _getGacEnumerator(strongName)
+                : base.GetGacEnumerator(strongName);
+
+        public override string GetPathFromFusionName(string strongName)
+            => _getPathFromFusionName is not null
+                ? _getPathFromFusionName(strongName)
+                : base.GetPathFromFusionName(strongName);
 
 #if FEATURE_WIN32_REGISTRY
 

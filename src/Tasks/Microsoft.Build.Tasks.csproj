@@ -120,6 +120,7 @@
     <Compile Include="AssemblyDependency\FrameworkPathResolver.cs" />
     <Compile Include="AssemblyDependency\GenerateBindingRedirects.cs" />
     <Compile Include="AssemblyDependency\HintPathResolver.cs" />
+    <Compile Include="AssemblyDependency\IGacService.cs" />
     <Compile Include="AssemblyDependency\InstalledAssemblies.cs" />
     <Compile Include="AssemblyDependency\InvalidReferenceAssemblyNameException.cs" />
     <Compile Include="AssemblyDependency\NoMatchReason.cs" />

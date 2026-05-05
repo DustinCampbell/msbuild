@@ -47,8 +47,7 @@ namespace Microsoft.Build.Tasks
                 RARServices.Default,
                 new Version("2.0.57027"),
                 false,
-                GlobalAssemblyCache.pathFromFusionName,
-                GlobalAssemblyCache.gacEnumerator,
+                RARServices.Default,
                 false,
                 runtimeVersionOverride: "v2.0.50727");
 

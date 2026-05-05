@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -33,20 +31,6 @@ namespace Microsoft.Build.Tasks
     /// File SetLastWriteTime delegate.
     /// </summary>
     internal delegate void SetLastWriteTime(string path, DateTime timestamp);
-
-    /// <summary>
-    /// GetGacEnumerator delegate to get the enumerator which will enumerate over the GAC
-    /// </summary>
-    /// <param name="strongName">StrongName to get an enumerator for</param>
-    /// <returns>The enumerator for the gac</returns>
-    internal delegate IEnumerable<AssemblyNameExtension> GetGacEnumerator(string strongName);
-
-    /// <summary>
-    /// GetPathFromFusionName delegate to get path to a file based on the fusion name
-    /// </summary>
-    /// <param name="strongName">StrongName to get a path for</param>
-    /// <returns>The path to the assembly</returns>
-    internal delegate string GetPathFromFusionName(string strongName);
 
     /// <summary>
     /// CreateFileString delegate. Creates a stream on top of a file.

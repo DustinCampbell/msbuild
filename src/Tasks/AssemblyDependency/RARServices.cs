@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Build.Framework;
@@ -9,7 +10,6 @@ using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Tasks.AssemblyDependency;
 #if FEATURE_WIN32_REGISTRY
-using System.Collections.Generic;
 using Microsoft.Build.Utilities;
 using Microsoft.Win32;
 #endif
@@ -23,9 +23,9 @@ namespace Microsoft.Build.Tasks;
 /// This class encapsulates all I/O operations and assembly metadata retrieval,
 /// enabling tests to override specific operations by inheriting from this class.
 /// </summary>
-internal class RARServices
+internal class RARServices : IGacService
 #if FEATURE_WIN32_REGISTRY
-    : IRegistryService
+    , IRegistryService
 #endif
 {
     // PE header constants for ReadMachineTypeFromPEHeader
@@ -231,13 +231,36 @@ internal class RARServices
             this,
             targetedRuntimeVersion,
             fullFusionName,
-            GlobalAssemblyCache.pathFromFusionName,
-            GlobalAssemblyCache.gacEnumerator,
+            this,
             specificVersion);
 #else
         return string.Empty;
 #endif
     }
+
+    /// <summary>
+    /// Enumerates assemblies in the GAC that match the specified strong name.
+    /// </summary>
+    /// <param name="strongName">The strong name to match.</param>
+    /// <returns>An enumeration of matching assembly names, or <see langword="null"/> if none found.</returns>
+    public virtual IEnumerable<AssemblyNameExtension> GetGacEnumerator(string strongName)
+#if FEATURE_GAC
+        => GlobalAssemblyCache.GetGacNativeEnumerator(strongName);
+#else
+        => null;
+#endif
+
+    /// <summary>
+    /// Gets the file system path for an assembly given its fusion name.
+    /// </summary>
+    /// <param name="strongName">The fusion name of the assembly.</param>
+    /// <returns>The path to the assembly, or <see langword="null"/> if not found.</returns>
+    public virtual string GetPathFromFusionName(string strongName)
+#if FEATURE_GAC
+        => GlobalAssemblyCache.RetrievePathFromFusionName(strongName);
+#else
+        => null;
+#endif
 
 #if FEATURE_WIN32_REGISTRY
     /// <summary>
