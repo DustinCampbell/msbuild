@@ -31,7 +31,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IsWinMDFileNullFilePath()
         {
-            Assert.False(TestRARServices.Default.IsWinMDFile(fullPath: null, out _, out bool isManagedWinMD));
+            Assert.False(DefaultServices.IsWinMDFile(fullPath: null, out _, out bool isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IsWinMDFileEmptyFilePath()
         {
-            Assert.False(TestRARServices.Default.IsWinMDFile(fullPath: string.Empty, out _, out bool isManagedWinMD));
+            Assert.False(DefaultServices.IsWinMDFile(fullPath: string.Empty, out _, out bool isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -51,7 +51,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IsWinMDFileFileDoesNotExistFilePath()
         {
-            Assert.False(TestRARServices.Default.IsWinMDFile(@"C:\WinMD\SampleDoesNotExist.Winmd", out _, out bool isManagedWinMD));
+            Assert.False(DefaultServices.IsWinMDFile(@"C:\WinMD\SampleDoesNotExist.Winmd", out _, out bool isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -61,7 +61,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IsWinMDFileGoodFile()
         {
-            Assert.True(TestRARServices.Default.IsWinMDFile(@"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", out _, out bool isManagedWinMD));
+            Assert.True(DefaultServices.IsWinMDFile(@"C:\WinMD\SampleWindowsRuntimeOnly.Winmd", out _, out bool isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -71,7 +71,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IsWinMDFileMixedFile()
         {
-            Assert.True(TestRARServices.Default.IsWinMDFile(@"C:\WinMD\SampleWindowsRuntimeAndCLR.Winmd", out _, out bool isManagedWinMD));
+            Assert.True(DefaultServices.IsWinMDFile(@"C:\WinMD\SampleWindowsRuntimeAndCLR.Winmd", out _, out bool isManagedWinMD));
             Assert.True(isManagedWinMD);
         }
 
@@ -81,7 +81,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IsWinMDFileCLROnlyFile()
         {
-            Assert.False(TestRARServices.Default.IsWinMDFile(@"C:\WinMD\SampleClrOnly.Winmd", out _, out bool isManagedWinMD));
+            Assert.False(DefaultServices.IsWinMDFile(@"C:\WinMD\SampleClrOnly.Winmd", out _, out bool isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -91,7 +91,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IsWinMDFileBadWindowsRuntimeFile()
         {
-            Assert.False(TestRARServices.Default.IsWinMDFile(@"C:\WinMD\SampleBadWindowsRuntime.Winmd", out _, out bool isManagedWinMD));
+            Assert.False(DefaultServices.IsWinMDFile(@"C:\WinMD\SampleBadWindowsRuntime.Winmd", out _, out bool isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 
@@ -101,7 +101,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IsWinMDFileRegularNetAssemblyFile()
         {
-            Assert.False(TestRARServices.Default.IsWinMDFile(@"C:\Framework\Whidbey\System.dll", out _, out bool isManagedWinMD));
+            Assert.False(DefaultServices.IsWinMDFile(@"C:\Framework\Whidbey\System.dll", out _, out bool isManagedWinMD));
             Assert.False(isManagedWinMD);
         }
 

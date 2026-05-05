@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -148,6 +149,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
         protected readonly ITestOutputHelper _output;
 
+        private protected TestRARServices DefaultServices
+            => field ??= ConfigureDefaultServices();
+
         public ResolveAssemblyReferenceTestFixture(ITestOutputHelper output)
         {
             Environment.SetEnvironmentVariable("MSBUILDDISABLEASSEMBLYFOLDERSEXCACHE", "1");
@@ -159,6 +163,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             Environment.SetEnvironmentVariable("MSBUILDDISABLEASSEMBLYFOLDERSEXCACHE", null);
         }
+
+        private protected virtual TestRARServices ConfigureDefaultServices()
+            => TestRARServices.CreateDefault();
 
         protected static readonly string s_rootPathPrefix = NativeMethodsShared.IsWindows ? "C:\\" : Path.VolumeSeparatorChar.ToString();
         protected static readonly string s_myProjectPath = Path.Combine(s_rootPathPrefix, "MyProject");
@@ -339,8 +346,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             uniqueGetAssemblyName = null;
         }
 
-        protected static List<string> s_existentFiles = new List<string>
-        {
+        private static readonly ImmutableArray<string> s_existentFiles =
+        [
             Path.Combine(s_frameworksPath, "DependsOnFoo4Framework.dll"),
             Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"),
             Path.Combine(s_frameworksPath, "DependsOnFoo35Framework.dll"),
@@ -585,7 +592,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             s_nugetCache_N_Lib_NDllPath,
             @"C:\DirectoryTest\A.dll",
             @"C:\DirectoryTest\B.dll",
-        };
+        ];
 
         /// <summary>
         /// Write out an appConfig file.
@@ -625,26 +632,6 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             return false;
         }
 
-        /// <summary>
-        /// Execute the task.
-        /// </summary>
-        /// <remarks>
-        /// NOTE! This test is not in fact completely isolated from its environment: it is reading the real redist lists.
-        /// </remarks>
-        protected static bool Execute(
-            ResolveAssemblyReference task,
-            RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
-            => Execute(task, TestRARServices.Default, buildConsistencyCheck: true, rarSimulationMode);
-
-        /// <summary>
-        /// Execute the task with custom services.
-        /// </summary>
-        internal static bool Execute(
-            ResolveAssemblyReference task,
-            RARServices services,
-            RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
-            => Execute(task, services, buildConsistencyCheck: true, rarSimulationMode);
-
         [Flags]
         public enum RARSimulationMode
         {
@@ -654,21 +641,41 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         /// <summary>
+        /// Execute the task.
+        /// </summary>
+        /// <remarks>
+        /// NOTE! This test is not in fact completely isolated from its environment: it is reading the real redist lists.
+        /// </remarks>
+        protected bool Execute(
+            ResolveAssemblyReference task,
+            RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
+            => Execute(task, DefaultServices, buildConsistencyCheck: true, rarSimulationMode);
+
+        /// <summary>
+        /// Execute the task with custom services.
+        /// </summary>
+        internal bool Execute(
+            ResolveAssemblyReference task,
+            TestRARServices services,
+            RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
+            => Execute(task, services, buildConsistencyCheck: true, rarSimulationMode);
+
+        /// <summary>
         /// Execute the task. Without confirming that the number of files resolved with and without find dependencies is identical.
         /// This is because profiles could cause the number of primary references to be different.
         /// </summary>
-        protected static bool Execute(
+        protected bool Execute(
             ResolveAssemblyReference task,
             bool buildConsistencyCheck,
             RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
-            => Execute(task, TestRARServices.Default, buildConsistencyCheck, rarSimulationMode);
+            => Execute(task, DefaultServices, buildConsistencyCheck, rarSimulationMode);
 
         /// <summary>
         /// Execute the task with custom services and optional consistency check.
         /// </summary>
         internal static bool Execute(
             ResolveAssemblyReference task,
-            RARServices services,
+            TestRARServices services,
             bool buildConsistencyCheck,
             RARSimulationMode rarSimulationMode = RARSimulationMode.LoadAndBuildProject)
         {
@@ -676,7 +683,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             string redistListPath = Path.Combine(tempPath, $"{Guid.NewGuid()}.xml");
             string rarCacheFile = Path.Combine(tempPath, $"{Guid.NewGuid()}.RarCache");
 
-            s_existentFiles.Add(rarCacheFile);
+            services = services.AddExistentFiles(rarCacheFile);
 
             bool succeeded = false;
 
@@ -686,7 +693,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 if (task.InstalledAssemblyTables.Length == 0)
                 {
                     File.WriteAllText(redistListPath, RedistList);
-                    task.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(redistListPath) };
+                    task.InstalledAssemblyTables = [new TaskItem(redistListPath)];
                 }
 
                 // First, run it in loading-a-project mode.
@@ -763,8 +770,6 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             }
             finally
             {
-                s_existentFiles.Remove(rarCacheFile);
-
                 if (File.Exists(redistListPath))
                 {
                     FileUtilities.DeleteNoThrow(redistListPath);

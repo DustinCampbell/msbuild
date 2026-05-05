@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Microsoft.Build.Shared;
@@ -25,21 +26,45 @@ public partial class ResolveAssemblyReferenceTestFixture
     ///  A test implementation of RARServices that calls the fixture's static methods.
     ///  For tests needing custom behavior, pass Func overrides to the constructor.
     /// </summary>
-    internal sealed class TestRARServices(
-        Func<string, bool> fileExists = null,
-        Func<string, AssemblyNameExtension> getAssemblyName = null) : RARServices
+    internal sealed class TestRARServices : RARServices
     {
         /// <summary>
         /// Default test services instance that calls the fixture's static methods.
         /// Most tests use this. Tests needing custom behavior create their own TestRARServices with overrides.
         /// </summary>
-        public static new readonly TestRARServices Default = new TestRARServices();
+        public static new readonly TestRARServices Default = new(fileExists: null, getAssemblyName: null, existentFiles: []);
+
+        private readonly Func<string, bool> _fileExists;
+        private readonly Func<string, AssemblyNameExtension> _getAssemblyName;
+        private readonly ImmutableArray<string> _existentFiles;
+
+        private TestRARServices(
+            Func<string, bool> fileExists,
+            Func<string, AssemblyNameExtension> getAssemblyName,
+            ImmutableArray<string> existentFiles)
+        {
+            _fileExists = fileExists;
+            _getAssemblyName = getAssemblyName;
+            _existentFiles = existentFiles.IsDefault ? [] : existentFiles;
+        }
+
+        public static TestRARServices CreateDefault()
+            => new(fileExists: null, getAssemblyName: null, s_existentFiles);
+
+        public TestRARServices WithFileExists(Func<string, bool> fileExists)
+            => new(fileExists, _getAssemblyName, _existentFiles);
+
+        public TestRARServices WithGetAssemblyName(Func<string, AssemblyNameExtension> getAssemblyName)
+            => new(_fileExists, getAssemblyName, _existentFiles);
+
+        public TestRARServices AddExistentFiles(params ReadOnlySpan<string> paths)
+            => new(_fileExists, _getAssemblyName, _existentFiles.AddRange(paths));
 
         public override bool FileExists(string path)
         {
-            if (fileExists is not null)
+            if (_fileExists is not null)
             {
-                return fileExists(path);
+                return _fileExists(path);
             }
 
             // For very long paths, File.Exists just returns false
@@ -77,7 +102,7 @@ public partial class ResolveAssemblyReferenceTestFixture
                 path = Path.GetFullPath(path);
             }
 
-            foreach (string file in s_existentFiles)
+            foreach (string file in _existentFiles)
             {
                 if (string.Equals(path, file, StringComparison.OrdinalIgnoreCase))
                 {
@@ -119,8 +144,8 @@ public partial class ResolveAssemblyReferenceTestFixture
         }
 
         public override AssemblyNameExtension GetAssemblyName(string path)
-            => getAssemblyName is not null
-                ? getAssemblyName(path)
+            => _getAssemblyName is not null
+                ? _getAssemblyName(path)
                 : GetAssemblyNameCore(path);
 
         /// <summary>

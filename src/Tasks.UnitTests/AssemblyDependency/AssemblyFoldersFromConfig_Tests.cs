@@ -3,235 +3,227 @@
 
 using System.IO;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
-using Microsoft.Build.UnitTests;
-using Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests;
+using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
 
 #nullable disable
 
-namespace Microsoft.Build.Tasks.UnitTests.AssemblyDependency
+namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests;
+
+public class AssemblyFoldersFromConfig_Tests(ITestOutputHelper output) : ResolveAssemblyReferenceTestFixture(output)
 {
-    public class AssemblyFoldersFromConfig_Tests : ResolveAssemblyReferenceTestFixture
+    private protected override TestRARServices ConfigureDefaultServices()
+        => base.ConfigureDefaultServices().AddExistentFiles(
+            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder1", "assemblyfromconfig1.dll"),
+            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2", "assemblyfromconfig2.dll"),
+            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder3_x86", "assemblyfromconfig3_x86.dll"),
+            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86", "assemblyfromconfig_common.dll"),
+            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x64", "assemblyfromconfig_common.dll"),
+            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64", "v5assembly.dll"),
+            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86", "v5assembly.dll"));
+
+    [Fact]
+    public void AssemblyFoldersFromConfigTest()
     {
-        public AssemblyFoldersFromConfig_Tests(ITestOutputHelper output) : base(output)
+        string assemblyConfig = Path.GetTempFileName();
+        File.WriteAllText(assemblyConfig, TestFile);
+
+        string moniker = $"{{AssemblyFoldersFromConfig:{assemblyConfig},v4.5}}";
+
+        try
         {
-            s_existentFiles.AddRange(new[]
+            ResolveAssemblyReference task = new()
             {
-                Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder1", "assemblyfromconfig1.dll"),
-                Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2", "assemblyfromconfig2.dll"),
-                Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder3_x86", "assemblyfromconfig3_x86.dll"),
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [new TaskItem("assemblyfromconfig2")],
+                SearchPaths = [moniker],
+            };
 
-                Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86", "assemblyfromconfig_common.dll"),
-                Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x64", "assemblyfromconfig_common.dll"),
-                Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64", "v5assembly.dll"),
-                Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86", "v5assembly.dll")
-            });
+            Execute(task);
+
+            ITaskItem resolvedFile = Assert.Single(task.ResolvedFiles);
+            Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2", "assemblyfromconfig2.dll"), resolvedFile.ItemSpec);
+            resolvedFile.GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
         }
-
-        [Fact]
-        public void AssemblyFoldersFromConfigTest()
+        finally
         {
-            var assemblyConfig = Path.GetTempFileName();
-            File.WriteAllText(assemblyConfig, TestFile);
-
-            var moniker = "{AssemblyFoldersFromConfig:" + assemblyConfig + ",v4.5}";
-
-            try
-            {
-                ResolveAssemblyReference t = new ResolveAssemblyReference
-                {
-                    BuildEngine = new MockEngine(_output),
-                    Assemblies = new ITaskItem[] { new TaskItem("assemblyfromconfig2") },
-                    SearchPaths = new[] { moniker }
-                };
-
-                Execute(t);
-
-                Assert.Single(t.ResolvedFiles);
-                Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2", "assemblyfromconfig2.dll"), t.ResolvedFiles[0].ItemSpec);
-                t.ResolvedFiles[0].GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
-            }
-            finally
-            {
-                FileUtilities.DeleteNoThrow(assemblyConfig);
-            }
+            FileUtilities.DeleteNoThrow(assemblyConfig);
         }
-
-        [Fact]
-        public void AssemblyFoldersFromConfigPlatformSpecificAssemblyFirstTest()
-        {
-            var assemblyConfig = Path.GetTempFileName();
-            File.WriteAllText(assemblyConfig, TestFile);
-
-            var moniker = "{AssemblyFoldersFromConfig:" + assemblyConfig + ",v4.5}";
-
-            try
-            {
-                ResolveAssemblyReference t = new ResolveAssemblyReference
-                {
-                    BuildEngine = new MockEngine(_output),
-                    Assemblies = new ITaskItem[] { new TaskItem("assemblyfromconfig_common.dll") },
-                    SearchPaths = new[] { moniker },
-                    TargetProcessorArchitecture = "x86"
-                };
-
-                Execute(t);
-
-                Assert.Single(t.ResolvedFiles);
-                Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86", "assemblyfromconfig_common.dll"), t.ResolvedFiles[0].ItemSpec);
-                t.ResolvedFiles[0].GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
-            }
-            finally
-            {
-                FileUtilities.DeleteNoThrow(assemblyConfig);
-            }
-        }
-
-        [Fact]
-        public void AssemblyFoldersFromConfigNormalizeNetFrameworkVersion()
-        {
-            var assemblyConfig = Path.GetTempFileName();
-            File.WriteAllText(assemblyConfig, TestFile);
-
-            var moniker = "{AssemblyFoldersFromConfig:" + assemblyConfig + ",v5.0}";
-
-            try
-            {
-                ResolveAssemblyReference t = new ResolveAssemblyReference
-                {
-                    BuildEngine = new MockEngine(_output),
-                    Assemblies = new ITaskItem[] { new TaskItem("v5assembly.dll") },
-                    SearchPaths = new[] { moniker },
-                    TargetProcessorArchitecture = "x86"
-                };
-
-                Execute(t);
-
-                Assert.Single(t.ResolvedFiles);
-                Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86", "v5assembly.dll"), t.ResolvedFiles[0].ItemSpec);
-                t.ResolvedFiles[0].GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
-
-                // Try again changing only the processor architecture
-                t = new ResolveAssemblyReference
-                {
-                    BuildEngine = new MockEngine(_output),
-                    Assemblies = new ITaskItem[] { new TaskItem("v5assembly.dll") },
-                    SearchPaths = new[] { moniker },
-                    TargetProcessorArchitecture = "AMD64"
-                };
-
-                Execute(t);
-
-                Assert.Single(t.ResolvedFiles);
-                Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64", "v5assembly.dll"), t.ResolvedFiles[0].ItemSpec);
-                t.ResolvedFiles[0].GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
-            }
-            finally
-            {
-                FileUtilities.DeleteNoThrow(assemblyConfig);
-            }
-        }
-
-        [Fact]
-        public void AssemblyFoldersFromConfigFileNotFoundTest()
-        {
-            var assemblyConfig = Path.GetTempFileName();
-            File.Delete(assemblyConfig);
-            var moniker = "{AssemblyFoldersFromConfig:" + assemblyConfig + ",v4.5}";
-
-            try
-            {
-                ResolveAssemblyReference t = new ResolveAssemblyReference
-                {
-                    BuildEngine = new MockEngine(_output),
-                    Assemblies = new ITaskItem[] { new TaskItem("assemblyfromconfig_common.dll") },
-                    SearchPaths = new[] { moniker },
-                    TargetProcessorArchitecture = "x86"
-                };
-
-
-                Assert.Throws<InternalErrorException>(() => Execute(t));
-            }
-            finally
-            {
-                FileUtilities.DeleteNoThrow(assemblyConfig);
-            }
-        }
-
-        [Fact]
-        public void AssemblyFoldersFromConfigFileMalformed()
-        {
-            var assemblyConfig = Path.GetTempFileName();
-            File.WriteAllText(assemblyConfig, "<<<>><>!" + TestFile);
-
-            var moniker = "{AssemblyFoldersFromConfig:" + assemblyConfig + ",v4.5}";
-
-            try
-            {
-                MockEngine engine = new MockEngine(_output);
-                ResolveAssemblyReference t = new ResolveAssemblyReference
-                {
-                    BuildEngine = engine,
-                    Assemblies = new ITaskItem[] { new TaskItem("assemblyfromconfig2") },
-                    SearchPaths = new[] { moniker }
-                };
-
-                var success = Execute(t);
-
-                Assert.False(success);
-                Assert.Empty(t.ResolvedFiles);
-                engine.AssertLogContains(") specified in Microsoft.Common.CurrentVersion.targets was invalid. The error was: ");
-            }
-            finally
-            {
-                FileUtilities.DeleteNoThrow(assemblyConfig);
-            }
-        }
-
-        private readonly string TestFile = @"
-<AssemblyFoldersConfig>
-  <AssemblyFolders>
-    <AssemblyFolder>
-      <Name>Test Assemblies</Name>
-      <FrameworkVersion>v5.0</FrameworkVersion>
-      <Path>" + Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder1") + @"</Path>
-    </AssemblyFolder>
-    <AssemblyFolder>
-      <Name>Test Assemblies2</Name>
-      <FrameworkVersion>v4.5.25000</FrameworkVersion>
-      <Path>" + Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2") + @"</Path>
-    </AssemblyFolder>
-    <AssemblyFolder>
-      <FrameworkVersion>v4.0</FrameworkVersion>
-      <Path>" + Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder3") + @"</Path>
-    </AssemblyFolder>
-    <AssemblyFolder>
-      <Name>Platform Specific</Name>
-      <FrameworkVersion>v4.5.25000</FrameworkVersion>
-      <Path>" + Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x64") + @"</Path>
-      <Platform>x64</Platform>
-    </AssemblyFolder>
-    <AssemblyFolder>
-      <FrameworkVersion>v4.5</FrameworkVersion>
-      <Path>" + Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86") + @"</Path>
-      <Platform>x86</Platform>
-    </AssemblyFolder>
-
-    <AssemblyFolder>
-      <FrameworkVersion>v5.0.1.0</FrameworkVersion>
-      <Path>" + Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64") + @"</Path>
-      <Platform>x64</Platform>
-    </AssemblyFolder>
-    <AssemblyFolder>
-      <FrameworkVersion>v5.0.100.0</FrameworkVersion>
-      <Path>" + Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86") + @"</Path>
-      <Platform>x86</Platform>
-    </AssemblyFolder>
-  </AssemblyFolders>
-</AssemblyFoldersConfig>
-";
     }
+
+    [Fact]
+    public void AssemblyFoldersFromConfigPlatformSpecificAssemblyFirstTest()
+    {
+        string assemblyConfig = Path.GetTempFileName();
+        File.WriteAllText(assemblyConfig, TestFile);
+
+        string moniker = $"{{AssemblyFoldersFromConfig:{assemblyConfig},v4.5}}";
+
+        try
+        {
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [new TaskItem("assemblyfromconfig_common.dll")],
+                SearchPaths = [moniker],
+                TargetProcessorArchitecture = "x86",
+            };
+
+            Execute(task);
+
+            ITaskItem resolvedFile = Assert.Single(task.ResolvedFiles);
+            Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86", "assemblyfromconfig_common.dll"), resolvedFile.ItemSpec);
+            resolvedFile.GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
+        }
+        finally
+        {
+            FileUtilities.DeleteNoThrow(assemblyConfig);
+        }
+    }
+
+    [Fact]
+    public void AssemblyFoldersFromConfigNormalizeNetFrameworkVersion()
+    {
+        string assemblyConfig = Path.GetTempFileName();
+        File.WriteAllText(assemblyConfig, TestFile);
+
+        string moniker = $"{{AssemblyFoldersFromConfig:{assemblyConfig},v5.0}}";
+
+        try
+        {
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [new TaskItem("v5assembly.dll")],
+                SearchPaths = [moniker],
+                TargetProcessorArchitecture = "x86",
+            };
+
+            Execute(task);
+
+            ITaskItem resolvedFile = Assert.Single(task.ResolvedFiles);
+            Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86", "v5assembly.dll"), resolvedFile.ItemSpec);
+            resolvedFile.GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
+
+            // Try again changing only the processor architecture
+            task = new ResolveAssemblyReference
+            {
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [new TaskItem("v5assembly.dll")],
+                SearchPaths = [moniker],
+                TargetProcessorArchitecture = "AMD64",
+            };
+
+            Execute(task);
+
+            resolvedFile = Assert.Single(task.ResolvedFiles);
+            Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64", "v5assembly.dll"), resolvedFile.ItemSpec);
+            resolvedFile.GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
+        }
+        finally
+        {
+            FileUtilities.DeleteNoThrow(assemblyConfig);
+        }
+    }
+
+    [Fact]
+    public void AssemblyFoldersFromConfigFileNotFoundTest()
+    {
+        string assemblyConfig = Path.GetTempFileName();
+        File.Delete(assemblyConfig);
+
+        string moniker = $"{{AssemblyFoldersFromConfig:{assemblyConfig},v4.5}}";
+
+        try
+        {
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [new TaskItem("assemblyfromconfig_common.dll")],
+                SearchPaths = [moniker],
+                TargetProcessorArchitecture = "x86",
+            };
+
+            Assert.Throws<InternalErrorException>(() => Execute(task));
+        }
+        finally
+        {
+            FileUtilities.DeleteNoThrow(assemblyConfig);
+        }
+    }
+
+    [Fact]
+    public void AssemblyFoldersFromConfigFileMalformed()
+    {
+        string assemblyConfig = Path.GetTempFileName();
+        File.WriteAllText(assemblyConfig, "<<<>><>!" + TestFile);
+
+        string moniker = $"{{AssemblyFoldersFromConfig:{assemblyConfig},v4.5}}";
+
+        try
+        {
+            MockEngine engine = new(_output);
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = engine,
+                Assemblies = [new TaskItem("assemblyfromconfig2")],
+                SearchPaths = [moniker],
+            };
+
+            bool success = Execute(task);
+
+            Assert.False(success);
+            Assert.Empty(task.ResolvedFiles);
+            engine.AssertLogContains(") specified in Microsoft.Common.CurrentVersion.targets was invalid. The error was: ");
+        }
+        finally
+        {
+            FileUtilities.DeleteNoThrow(assemblyConfig);
+        }
+    }
+
+    private readonly string TestFile = $"""
+        <AssemblyFoldersConfig>
+          <AssemblyFolders>
+            <AssemblyFolder>
+              <Name>Test Assemblies</Name>
+              <FrameworkVersion>v5.0</FrameworkVersion>
+              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder1")}</Path>
+            </AssemblyFolder>
+            <AssemblyFolder>
+              <Name>Test Assemblies2</Name>
+              <FrameworkVersion>v4.5.25000</FrameworkVersion>
+              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2")}</Path>
+            </AssemblyFolder>
+            <AssemblyFolder>
+              <FrameworkVersion>v4.0</FrameworkVersion>
+              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder3")}</Path>
+            </AssemblyFolder>
+            <AssemblyFolder>
+              <Name>Platform Specific</Name>
+              <FrameworkVersion>v4.5.25000</FrameworkVersion>
+              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x64")}</Path>
+              <Platform>x64</Platform>
+            </AssemblyFolder>
+            <AssemblyFolder>
+              <FrameworkVersion>v4.5</FrameworkVersion>
+              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86")}</Path>
+              <Platform>x86</Platform>
+            </AssemblyFolder>
+
+            <AssemblyFolder>
+              <FrameworkVersion>v5.0.1.0</FrameworkVersion>
+              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64")}</Path>
+              <Platform>x64</Platform>
+            </AssemblyFolder>
+            <AssemblyFolder>
+              <FrameworkVersion>v5.0.100.0</FrameworkVersion>
+              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86")}</Path>
+              <Platform>x86</Platform>
+            </AssemblyFolder>
+          </AssemblyFolders>
+        </AssemblyFoldersConfig>
+        """;
 }

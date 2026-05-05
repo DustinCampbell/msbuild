@@ -367,7 +367,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 SearchPaths = [@"c:\Frameworks\"]
             };
 
-            Assert.True(task.Execute(TestRARServices.Default));
+            Assert.True(task.Execute(DefaultServices));
 
             Assert.Equal(0, engine.Warnings); // "No warning expected in this scenario."
             Assert.Equal(0, engine.Errors); // "No errors expected in this scenario."

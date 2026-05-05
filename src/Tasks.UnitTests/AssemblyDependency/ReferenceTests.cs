@@ -26,7 +26,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void CheckForSpecificMetadataOnParent()
         {
-            Reference reference = new(TestRARServices.Default);
+            Reference reference = new(DefaultServices);
             ITaskItem taskItem = new TaskItem("TestReference");
             taskItem.SetMetadata("SpecificVersion", "true");
             reference.MakePrimaryAssemblyReference(taskItem, true, ".dll");
@@ -39,19 +39,19 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void CheckForSpecificMetadataOnParentAllParentsHaveMetadata()
         {
-            Reference primaryReference1 = new(TestRARServices.Default);
+            Reference primaryReference1 = new(DefaultServices);
             ITaskItem taskItem = new TaskItem("TestPrimary1");
             taskItem.SetMetadata("SpecificVersion", "true");
             primaryReference1.MakePrimaryAssemblyReference(taskItem, true, ".dll");
             primaryReference1.FullPath = "FullPath";
 
-            Reference primaryReference2 = new(TestRARServices.Default);
+            Reference primaryReference2 = new(DefaultServices);
             ITaskItem taskItem2 = new TaskItem("TestPrimary2");
             taskItem2.SetMetadata("SpecificVersion", "true");
             primaryReference2.MakePrimaryAssemblyReference(taskItem2, true, ".dll");
             primaryReference2.FullPath = "FullPath";
 
-            Reference dependentReference = new(TestRARServices.Default)
+            Reference dependentReference = new(DefaultServices)
             {
                 FullPath = "FullPath",
             };
@@ -68,19 +68,19 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void CheckForSpecificMetadataOnParentNotAllParentsHaveMetadata()
         {
-            Reference primaryReference1 = new(TestRARServices.Default);
+            Reference primaryReference1 = new(DefaultServices);
             ITaskItem taskItem = new TaskItem("TestPrimary1");
             taskItem.SetMetadata("SpecificVersion", "false");
             primaryReference1.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             primaryReference1.FullPath = "FullPath";
 
-            Reference primaryReference2 = new(TestRARServices.Default);
+            Reference primaryReference2 = new(DefaultServices);
             ITaskItem taskItem2 = new TaskItem("TestPrimary2");
             taskItem2.SetMetadata("SpecificVersion", "true");
             primaryReference2.MakePrimaryAssemblyReference(taskItem2, true, ".dll");
             primaryReference2.FullPath = "FullPath";
 
-            Reference dependentReference = new(TestRARServices.Default)
+            Reference dependentReference = new(DefaultServices)
             {
                 FullPath = "FullPath",
             };
@@ -97,18 +97,18 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void CheckForSpecificMetadataOnParentNotAllParentsHaveMetadata2()
         {
-            Reference primaryReference1 = new(TestRARServices.Default);
+            Reference primaryReference1 = new(DefaultServices);
             ITaskItem taskItem = new TaskItem("TestPrimary1");
             primaryReference1.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             primaryReference1.FullPath = "FullPath";
 
-            Reference primaryReference2 = new(TestRARServices.Default);
+            Reference primaryReference2 = new(DefaultServices);
             ITaskItem taskItem2 = new TaskItem("TestPrimary2");
             taskItem2.SetMetadata("SpecificVersion", "true");
             primaryReference2.MakePrimaryAssemblyReference(taskItem2, true, ".dll");
             primaryReference2.FullPath = "FullPath";
 
-            Reference dependentReference = new(TestRARServices.Default)
+            Reference dependentReference = new(DefaultServices)
             {
                 FullPath = "FullPath",
             };
@@ -125,19 +125,19 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void CheckForSpecificMetadataOnParentNotAllParentsHaveMetadata3()
         {
-            Reference primaryReference1 = new(TestRARServices.Default);
+            Reference primaryReference1 = new(DefaultServices);
             ITaskItem taskItem = new TaskItem("TestPrimary1");
             taskItem.SetMetadata("SpecificVersion", "false");
             primaryReference1.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             primaryReference1.FullPath = "FullPath";
 
-            Reference primaryReference2 = new(TestRARServices.Default);
+            Reference primaryReference2 = new(DefaultServices);
             ITaskItem taskItem2 = new TaskItem("TestPrimary2");
             taskItem2.SetMetadata("SpecificVersion", "true");
             primaryReference2.MakePrimaryAssemblyReference(taskItem2, true, ".dll");
             primaryReference2.FullPath = "FullPath";
 
-            Reference dependentReference = new(TestRARServices.Default)
+            Reference dependentReference = new(DefaultServices)
             {
                 FullPath = "FullPath",
             };

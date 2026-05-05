@@ -3239,17 +3239,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             var referenceList = new List<Reference>();
 
             var taskItem = new TaskItem("Microsoft.VisualStudio.Interopt, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
-            var reference = new Reference(TestRARServices.Default);
+            var reference = new Reference(DefaultServices);
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference.FullPath = "c:\\AssemblyFolders\\Microsoft.VisualStudio.Interopt.dll";
             reference.ResolvedSearchPath = "{AssemblyFolders}";
 
-            Reference reference2 = new(TestRARServices.Default);
+            Reference reference2 = new(DefaultServices);
             reference2.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference2.FullPath = "c:\\SomeOtherFolder\\Microsoft.VisualStudio.Interopt2.dll";
             reference2.ResolvedSearchPath = "c:\\SomeOtherFolder";
 
-            Reference reference3 = new(TestRARServices.Default);
+            Reference reference3 = new(DefaultServices);
             reference3.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             reference3.FullPath = "c:\\SomeOtherFolder\\Microsoft.VisualStudio.Interopt3.dll";
             reference3.ResolvedSearchPath = "{GAC}";
@@ -5337,36 +5337,32 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void Regress46599_BogusInGACValueForAssemblyInRedistList()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
-            t.BuildEngine = new MockEngine(_output);
-
-            t.Assemblies = new ITaskItem[]
+            ResolveAssemblyReference task = new()
             {
-                new TaskItem("Microsoft.Build.Engine"),
-                new TaskItem("System.Xml")
+                BuildEngine = new MockEngine(_output),
+                Assemblies =
+                [
+                    new TaskItem("Microsoft.Build.Engine"),
+                    new TaskItem("System.Xml")
+                ],
+                SearchPaths = ["{TargetFrameworkDirectory}"],
+                TargetFrameworkDirectories = [@"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx"],
             };
-
-            t.SearchPaths = new string[]
-            {
-                @"{TargetFrameworkDirectory}"
-            };
-            t.TargetFrameworkDirectories = new string[] { @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx" };
 
             string redistFile = CreateGenericRedistList();
 
             bool success = false;
             try
             {
-                var customServices = new TestRARServices(
-                    fileExists: path =>
-                        String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
-                        String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\System.Xml.dll", StringComparison.OrdinalIgnoreCase) ||
+                var customServices = DefaultServices
+                    .WithFileExists(path =>
+                        string.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\System.Xml.dll", StringComparison.OrdinalIgnoreCase) ||
                         path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase));
 
-                t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(redistFile) };
+                task.InstalledAssemblyTables = [new TaskItem(redistFile)];
 
-                success = Execute(t, customServices);
+                success = Execute(task, customServices);
             }
             finally
             {
@@ -5374,43 +5370,46 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             }
 
             Assert.True(success); // "Expected no errors."
-            Assert.Equal(2, t.ResolvedFiles.Length); // "Expected two resolved assemblies."
+            Assert.Equal(2, task.ResolvedFiles.Length); // "Expected two resolved assemblies."
         }
 
         [Fact]
         public void VerifyFrameworkFileMetadataFiles()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
-            t.BuildEngine = new MockEngine(_output);
-
-            t.Assemblies = new ITaskItem[]
+            ResolveAssemblyReference task = new ResolveAssemblyReference
             {
-                // In framework directory and redist, should have metadata
-                new TaskItem("Microsoft.Build.Engine"),
-                new TaskItem("System.Xml"),
-                // In framework directory, should have metadata
-                new TaskItem("B"),
-                // Not in framework directory but in redist, should have metadata
-                new TaskItem("C"),
-                // Not in framework directory and not in redist, should not have metadata
-                new TaskItem("D")
-            };
+                BuildEngine = new MockEngine(_output),
+                Assemblies =
+                [
+                    // In framework directory and redist, should have metadata
+                    new TaskItem("Microsoft.Build.Engine"),
+                    new TaskItem("System.Xml"),
 
-            t.SearchPaths = new string[]
-            {
-                @"{TargetFrameworkDirectory}",
-                @"c:\Somewhere\"
+                    // In framework directory, should have metadata
+                    new TaskItem("B"),
+
+                    // Not in framework directory but in redist, should have metadata
+                    new TaskItem("C"),
+
+                    // Not in framework directory and not in redist, should not have metadata
+                    new TaskItem("D")
+                ],
+                SearchPaths =
+                [
+                    "{TargetFrameworkDirectory}",
+                    @"c:\Somewhere\",
+                ],
+                TargetFrameworkDirectories = [@"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx"],
             };
-            t.TargetFrameworkDirectories = new string[] { @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx" };
 
             // Create a redist list which will contains both of the assemblies to search for
-            string redistListContents =
-                    "<FileList Redist='Microsoft-Windows-CLRCoreComp' >" +
-                        "<File AssemblyName='System.Xml' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />" +
-                         "<File AssemblyName='Microsoft.Build.Engine' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />" +
-                         "<File AssemblyName='C' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />" +
-                    "</FileList >";
+            string redistListContents = """
+                <FileList Redist='Microsoft-Windows-CLRCoreComp' >
+                    <File AssemblyName='System.Xml' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />
+                    <File AssemblyName='Microsoft.Build.Engine' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />
+                    <File AssemblyName='C' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />
+                </FileList >
+                """;
 
             string redistFile = FileUtilities.GetTemporaryFileName();
             File.WriteAllText(redistFile, redistListContents);
@@ -5418,22 +5417,22 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             bool success = false;
             try
             {
-                var customServices = new TestRARServices(
-                    fileExists: path =>
-                        String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
-                        String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\System.Xml.dll", StringComparison.OrdinalIgnoreCase) ||
-                        String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\B.dll", StringComparison.OrdinalIgnoreCase) ||
-                        String.Equals(path, @"c:\somewhere\c.dll", StringComparison.OrdinalIgnoreCase) ||
-                        String.Equals(path, @"c:\somewhere\d.dll", StringComparison.OrdinalIgnoreCase) ||
-                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),
-                    getAssemblyName: path =>
+                var customServices = DefaultServices
+                    .WithFileExists(path =>
+                        string.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\Microsoft.Build.Engine.dll", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\System.Xml.dll", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\B.dll", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(path, @"c:\somewhere\c.dll", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(path, @"c:\somewhere\d.dll", StringComparison.OrdinalIgnoreCase) ||
+                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
+                    .WithGetAssemblyName(path =>
                     {
-                        if (String.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\B.dll", StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(path, @"r:\WINDOWS\Microsoft.NET\Framework\v2.0.myfx\B.dll", StringComparison.OrdinalIgnoreCase))
                         {
                             return new AssemblyNameExtension("B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
                         }
 
-                        if (String.Equals(path, @"c:\somewhere\d.dll", StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(path, @"c:\somewhere\d.dll", StringComparison.OrdinalIgnoreCase))
                         {
                             return new AssemblyNameExtension("D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
                         }
@@ -5441,9 +5440,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                         return null;
                     });
 
-                t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(redistFile) };
+                task.InstalledAssemblyTables = [new TaskItem(redistFile)];
 
-                success = Execute(t, customServices);
+                success = Execute(task, customServices);
             }
             finally
             {
@@ -5451,12 +5450,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             }
 
             Assert.True(success); // "Expected no errors."
-            Assert.Equal(5, t.ResolvedFiles.Length); // "Expected two resolved assemblies."
-            Assert.Equal("True", t.ResolvedFiles.Where(Item => Item.GetMetadata("OriginalItemSpec").Equals("Microsoft.Build.Engine", StringComparison.OrdinalIgnoreCase)).First().GetMetadata("FrameworkFile"), true);
-            Assert.Equal("True", t.ResolvedFiles.Where(Item => Item.GetMetadata("OriginalItemSpec").Equals("System.Xml", StringComparison.OrdinalIgnoreCase)).First().GetMetadata("FrameworkFile"), true);
-            Assert.Equal("True", t.ResolvedFiles.Where(Item => Item.GetMetadata("OriginalItemSpec").Equals("B", StringComparison.OrdinalIgnoreCase)).First().GetMetadata("FrameworkFile"), true);
-            Assert.Equal("True", t.ResolvedFiles.Where(Item => Item.GetMetadata("OriginalItemSpec").Equals("C", StringComparison.OrdinalIgnoreCase)).First().GetMetadata("FrameworkFile"), true);
-            Assert.Empty(t.ResolvedFiles.Where(Item => Item.GetMetadata("OriginalItemSpec").Equals("D", StringComparison.OrdinalIgnoreCase)).First().GetMetadata("FrameworkFile"));
+            Assert.Equal(5, task.ResolvedFiles.Length); // "Expected two resolved assemblies."
+            Assert.Equal("True", task.ResolvedFiles.First(item => item.GetMetadata("OriginalItemSpec").Equals("Microsoft.Build.Engine", StringComparison.OrdinalIgnoreCase)).GetMetadata("FrameworkFile"), true);
+            Assert.Equal("True", task.ResolvedFiles.First(item => item.GetMetadata("OriginalItemSpec").Equals("System.Xml", StringComparison.OrdinalIgnoreCase)).GetMetadata("FrameworkFile"), true);
+            Assert.Equal("True", task.ResolvedFiles.First(item => item.GetMetadata("OriginalItemSpec").Equals("B", StringComparison.OrdinalIgnoreCase)).GetMetadata("FrameworkFile"), true);
+            Assert.Equal("True", task.ResolvedFiles.First(item => item.GetMetadata("OriginalItemSpec").Equals("C", StringComparison.OrdinalIgnoreCase)).GetMetadata("FrameworkFile"), true);
+            Assert.Empty(task.ResolvedFiles.First(item => item.GetMetadata("OriginalItemSpec").Equals("D", StringComparison.OrdinalIgnoreCase)).GetMetadata("FrameworkFile"));
         }
 
         /// <summary>
@@ -6163,53 +6162,54 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void IgnoreDefaultInstalledAssemblyTables()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
-            t.BuildEngine = new MockEngine(_output);
-
-            t.Assemblies = new ITaskItem[]
+            ResolveAssemblyReference task = new()
             {
-                new TaskItem("Microsoft.Build.Engine"),
-                new TaskItem("System.Xml")
+                BuildEngine = new MockEngine(_output),
+                Assemblies =
+                [
+                    new TaskItem("Microsoft.Build.Engine"),
+                    new TaskItem("System.Xml")
+                ],
+                SearchPaths = ["{TargetFrameworkDirectory}"],
+                TargetFrameworkDirectories = [Path.Combine(ObjectModelHelpers.TempProjectDir, "v3.5")],
             };
 
-            t.SearchPaths = new string[]
-            {
-                @"{TargetFrameworkDirectory}"
-            };
-            t.TargetFrameworkDirectories = new string[] { Path.Combine(ObjectModelHelpers.TempProjectDir, "v3.5") };
+            string implicitRedistListContents = """
+                <FileList Redist='Microsoft-Windows-CLRCoreComp' >
+                    <File AssemblyName='Microsoft.Build.Engine' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />
+                </FileList >
+                """;
 
-            string implicitRedistListContents =
-                    "<FileList Redist='Microsoft-Windows-CLRCoreComp' >" +
-                        "<File AssemblyName='Microsoft.Build.Engine' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />" +
-                    "</FileList >";
-            string implicitRedistListPath = ObjectModelHelpers.CreateFileInTempProjectDirectory("v3.5\\RedistList\\ImplicitList.xml", implicitRedistListContents);
-            string microsoftBuildEnginePath = Path.Combine(ObjectModelHelpers.TempProjectDir, "v3.5\\Microsoft.Build.Engine");
+            string implicitRedistListPath = ObjectModelHelpers.CreateFileInTempProjectDirectory(@"v3.5\RedistList\ImplicitList.xml", implicitRedistListContents);
+            string microsoftBuildEnginePath = Path.Combine(ObjectModelHelpers.TempProjectDir, @"v3.5\Microsoft.Build.Engine");
 
-            string explicitRedistListContents =
-                    "<FileList Redist='Microsoft-Windows-CLRCoreComp' >" +
-                        "<File AssemblyName='System.Xml' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />" +
-                    "</FileList >";
+            string explicitRedistListContents = """
+                <FileList Redist='Microsoft-Windows-CLRCoreComp' >
+                    <File AssemblyName='System.Xml' Version='2.0.0.0' PublicKeyToken='b03f5f7f11d50a3a' Culture='Neutral' FileVersion='2.0.50727.208' InGAC='true' />
+                </FileList >
+                """;
+
             string explicitRedistListPath = ObjectModelHelpers.CreateFileInTempProjectDirectory("v3.5\\RedistList\\ExplicitList.xml", explicitRedistListContents);
             string systemXmlPath = Path.Combine(ObjectModelHelpers.TempProjectDir, "v3.5\\System.Xml.dll");
 
-            t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(explicitRedistListPath) };
+            task.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(explicitRedistListPath) };
 
             // Only the explicitly specified redist list should be used
-            t.IgnoreDefaultInstalledAssemblyTables = true;
+            task.IgnoreDefaultInstalledAssemblyTables = true;
 
-            var customServices = new TestRARServices(
-                fileExists: path =>
-                    String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
-                    String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
-                    path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),
-                getAssemblyName: path =>
+            var customServices = DefaultServices
+                .WithFileExists(path =>
+                    string.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
+                    path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
+                .WithGetAssemblyName(path =>
                 {
-                    if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
                     {
                         return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
                     }
-                    else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
+
+                    if (string.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
                     {
                         return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
                     }
@@ -6217,11 +6217,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     return null;
                 });
 
-            bool success = Execute(t, customServices);
+            bool success = Execute(task, customServices);
 
             Assert.True(success); // "Expected no errors."
-            Assert.Single(t.ResolvedFiles); // "Expected one resolved assembly."
-            Assert.Contains("System.Xml", t.ResolvedFiles[0].ItemSpec); // "Expected System.Xml to resolve."
+            ITaskItem resolvedFile = Assert.Single(task.ResolvedFiles); // "Expected one resolved assembly."
+            Assert.Contains("System.Xml", resolvedFile.ItemSpec); // "Expected System.Xml to resolve."
         }
 
         /// <summary>
@@ -6237,8 +6237,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            table.Add(engineAssemblyName, new Reference(TestRARServices.Default));
-            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
+            table.Add(engineAssemblyName, new Reference(DefaultServices));
+            table.Add(xmlAssemblyName, new Reference(DefaultServices));
 
             referenceTable.MarkReferencesForExclusion(exclusionList: null);
             referenceTable.RemoveReferencesMarkedForExclusion(removeOnlyNoWarning: false, subsetName: string.Empty);
@@ -6262,8 +6262,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            table.Add(engineAssemblyName, new Reference(TestRARServices.Default));
-            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
+            table.Add(engineAssemblyName, new Reference(DefaultServices));
+            table.Add(xmlAssemblyName, new Reference(DefaultServices));
 
             referenceTable.MarkReferencesForExclusion(exclusionList: []);
             referenceTable.RemoveReferencesMarkedForExclusion(removeOnlyNoWarning: false, subsetName: string.Empty);
@@ -6290,11 +6290,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new(TestRARServices.Default);
+            Reference reference = new(DefaultServices);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
+            table.Add(xmlAssemblyName, new Reference(DefaultServices));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
@@ -6328,12 +6328,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new(TestRARServices.Default);
+            Reference reference = new(DefaultServices);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             taskItem.SetMetadata("SpecificVersion", "true");
             reference.MakePrimaryAssemblyReference(taskItem, true, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
+            table.Add(xmlAssemblyName, new Reference(DefaultServices));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
@@ -6404,11 +6404,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
 
-            Reference reference = new(TestRARServices.Default);
+            Reference reference = new(DefaultServices);
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             reference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
             table.Add(engineAssemblyName, reference);
-            table.Add(xmlAssemblyName, new Reference(TestRARServices.Default));
+            table.Add(xmlAssemblyName, new Reference(DefaultServices));
 
             var denyList = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             denyList[engineAssemblyName.FullName] = null;
@@ -6522,8 +6522,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Dictionary<string, string> denyList;
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-            Reference enginePrimaryReference = new Reference(TestRARServices.Default);
-            Reference xmlPrimaryReference = new Reference(TestRARServices.Default);
+            Reference enginePrimaryReference = new Reference(DefaultServices);
+            Reference xmlPrimaryReference = new Reference(DefaultServices);
 
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             enginePrimaryReference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
@@ -6564,9 +6564,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             AssemblyNameExtension engineAssemblyName = new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension xmlAssemblyName = new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
             AssemblyNameExtension dataAssemblyName = new AssemblyNameExtension("System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-            Reference enginePrimaryReference = new Reference(TestRARServices.Default);
-            Reference xmlPrimaryReference = new Reference(TestRARServices.Default);
-            Reference dataDependencyReference = new Reference(TestRARServices.Default);
+            Reference enginePrimaryReference = new Reference(DefaultServices);
+            Reference xmlPrimaryReference = new Reference(DefaultServices);
+            Reference dataDependencyReference = new Reference(DefaultServices);
 
             TaskItem taskItem = new TaskItem("Microsoft.Build.Engine");
             enginePrimaryReference.MakePrimaryAssemblyReference(taskItem, false, ".dll");
@@ -6668,7 +6668,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 frameworkPaths: null,
                 installedAssemblies: null,
                 targetProcessorArchitecture: SystemProcessorArchitecture.None,
-                services: TestRARServices.Default,
+                services: DefaultServices,
                 targetedRuntimeVersion: null,
                 projectTargetFramework: null,
                 targetFrameworkMoniker: null,
@@ -6853,7 +6853,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             table.Clear();
         }
 
-        private static ReferenceTable MakeEmptyReferenceTable(TaskLoggingHelper log)
+        private ReferenceTable MakeEmptyReferenceTable(TaskLoggingHelper log)
             => new(
                 buildEngine: null,
                 findDependencies: false,
@@ -6869,7 +6869,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 frameworkPaths: null,
                 installedAssemblies: null,
                 targetProcessorArchitecture: SystemProcessorArchitecture.None,
-                services: TestRARServices.Default,
+                services: DefaultServices,
                 targetedRuntimeVersion: null,
                 projectTargetFramework: null,
                 targetFrameworkMoniker: null,
@@ -7075,12 +7075,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// <param name="dataDependencyReference"></param>
         /// <param name="sqlDependencyReference"></param>
         /// <param name="xmlPrimaryReference"></param>
-        private static void GenerateNewReferences(out Reference enginePrimaryReference, out Reference dataDependencyReference, out Reference sqlDependencyReference, out Reference xmlPrimaryReference)
+        private void GenerateNewReferences(out Reference enginePrimaryReference, out Reference dataDependencyReference, out Reference sqlDependencyReference, out Reference xmlPrimaryReference)
         {
-            enginePrimaryReference = new Reference(TestRARServices.Default);
-            dataDependencyReference = new Reference(TestRARServices.Default);
-            sqlDependencyReference = new Reference(TestRARServices.Default);
-            xmlPrimaryReference = new Reference(TestRARServices.Default);
+            enginePrimaryReference = new Reference(DefaultServices);
+            dataDependencyReference = new Reference(DefaultServices);
+            sqlDependencyReference = new Reference(DefaultServices);
+            xmlPrimaryReference = new Reference(DefaultServices);
         }
 
         /// <summary>
@@ -7132,20 +7132,24 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// Generate helper services for returning the file existence and the assembly name.
         /// Also run the test and return the result.
         /// </summary>
-        private bool GenerateHelperDelegatesAndExecuteTask(ResolveAssemblyReference t, string microsoftBuildEnginePath, string systemXmlPath)
+        private bool GenerateHelperDelegatesAndExecuteTask(
+            ResolveAssemblyReference task,
+            string microsoftBuildEnginePath,
+            string systemXmlPath)
         {
-            var customServices = new TestRARServices(
-                fileExists: path =>
-                    String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
-                    String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
-                    path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),
-                getAssemblyName: path =>
+            var customServices = DefaultServices
+                .WithFileExists(path =>
+                    string.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
+                    path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
+                .WithGetAssemblyName(path =>
                 {
-                    if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
                     {
                         return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
                     }
-                    else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
+
+                    if (string.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
                     {
                         return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
                     }
@@ -7153,7 +7157,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     return null;
                 });
 
-            return Execute(t, customServices);
+            return Execute(task, customServices);
         }
 
         /// <summary>
@@ -7385,38 +7389,35 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             string redistListPath = CreateGenericRedistList();
             try
             {
-                ResolveAssemblyReference t = new ResolveAssemblyReference();
+                ResolveAssemblyReference task = new()
+                {
+                    BuildEngine = new MockEngine(_output),
+                    Assemblies =
+                    [
+                        new TaskItem("Microsoft.Build.Engine"),
+                        new TaskItem("System.Xml")
+                    ],
+                    SearchPaths = [@"{TargetFrameworkDirectory}"],
+                    TargetFrameworkDirectories = [Path.Combine(ObjectModelHelpers.TempProjectDir, "v3.5")],
+                    InstalledAssemblyTables = [new TaskItem(redistListPath)],
+                };
 
-                t.BuildEngine = new MockEngine(_output);
-
-                t.Assemblies = new ITaskItem[]
-            {
-                new TaskItem("Microsoft.Build.Engine"),
-                new TaskItem("System.Xml")
-            };
-
-                t.SearchPaths = new string[]
-            {
-                @"{TargetFrameworkDirectory}"
-            };
-                t.TargetFrameworkDirectories = new string[] { Path.Combine(ObjectModelHelpers.TempProjectDir, "v3.5") };
-                string microsoftBuildEnginePath = Path.Combine(ObjectModelHelpers.TempProjectDir, "v3.5\\Microsoft.Build.Engine");
-                string systemXmlPath = Path.Combine(ObjectModelHelpers.TempProjectDir, "v3.5\\System.Xml.dll");
-
-                t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(redistListPath) };
+                string microsoftBuildEnginePath = Path.Combine(ObjectModelHelpers.TempProjectDir, @"v3.5\Microsoft.Build.Engine");
+                string systemXmlPath = Path.Combine(ObjectModelHelpers.TempProjectDir, @"v3.5\System.Xml.dll");
 
                 // Note that Microsoft.Build.Engine.dll does not exist
-                var customServices = new TestRARServices(
-                    fileExists: path =>
-                        String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
-                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase),
-                    getAssemblyName: path =>
+                var customServices = DefaultServices
+                    .WithFileExists(path =>
+                        string.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase) ||
+                        path.EndsWith("RarCache", StringComparison.OrdinalIgnoreCase))
+                    .WithGetAssemblyName(path =>
                     {
-                        if (String.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(path, microsoftBuildEnginePath, StringComparison.OrdinalIgnoreCase))
                         {
                             return new AssemblyNameExtension("Microsoft.Build.Engine, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
                         }
-                        else if (String.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
+
+                        if (string.Equals(path, systemXmlPath, StringComparison.OrdinalIgnoreCase))
                         {
                             return new AssemblyNameExtension("System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
                         }
@@ -7424,11 +7425,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                         return null;
                     });
 
-                bool success = Execute(t, customServices);
+                bool success = Execute(task, customServices);
 
                 Assert.True(success); // "Expected no errors."
-                Assert.Single(t.ResolvedFiles); // "Expected one resolved assembly."
-                Assert.Contains("System.Xml", t.ResolvedFiles[0].ItemSpec); // "Expected System.Xml to resolve."
+                ITaskItem resolvedFile = Assert.Single(task.ResolvedFiles); // "Expected one resolved assembly."
+                Assert.Contains("System.Xml", resolvedFile.ItemSpec); // "Expected System.Xml to resolve."
             }
             finally
             {
@@ -8443,7 +8444,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             // Execute RAR and assert that we receive no I/O callbacks because the task gets what it needs from item metadata.
             // Use testServices - the test validates that externally resolved refs don't trigger callbacks
-            rar.Execute(TestRARServices.Default).ShouldBeTrue();
+            rar.Execute(DefaultServices).ShouldBeTrue();
 
             rar.ResolvedFiles.Length.ShouldBe(1);
             rar.ResolvedFiles[0].ItemSpec.ShouldBe(refPath);
