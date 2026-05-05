@@ -10,6 +10,7 @@ using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -26,9 +27,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
         /// </summary>
         /// <value></value>
         internal new string[] DefaultPaths
-        {
-            get { return new string[] { s_myApp_V10Path, @"C:\Framework\Whidbey", @"C:\Framework\Everett" }; }
-        }
+            => [MyApp_V10Path, @"C:\Framework\Whidbey", @"C:\Framework\Everett"];
 
         /// <summary>
         /// In this case,
@@ -75,10 +74,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
                 .ShouldBe("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=" + AssemblyRef.EcmaPublicKey, StringCompareShould.IgnoreCase);
 
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByFrameworkRetarget"), "1.0.5000.0", Path.Combine(s_myApp_V10Path, "DependsOnEverettSystem.dll")));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByFrameworkRetarget"), "1.0.5000.0", Path.Combine(MyApp_V10Path, "DependsOnEverettSystem.dll")));
 
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.NotCopyLocalBecausePrerequisite")));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.NotCopyLocalBecausePrerequisite")));
 
             t.ResolvedDependencyFiles[0].GetMetadata("CopyLocal").ShouldBe("false", StringCompareShould.IgnoreCase);
         }
@@ -113,14 +112,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
 
             t.BuildEngine = engine;
             t.Assemblies = assemblyNames;
-            t.SearchPaths = new string[] { s_myApp_V10Path, @"C:\Framework\Everett" };
+            t.SearchPaths = [MyApp_V10Path, @"C:\Framework\Everett"];
 
             bool succeeded = Execute(t);
 
             Assert.True(succeeded);
             Assert.Empty(t.ResolvedDependencyFiles);
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByFrameworkRetarget"), "1.0.5000.0", Path.Combine(s_myApp_V10Path, "DependsOnEverettSystem.dll")));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByFrameworkRetarget"), "1.0.5000.0", Path.Combine(MyApp_V10Path, "DependsOnEverettSystem.dll")));
         }
 
         [Fact]
@@ -128,10 +127,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
         {
             MockEngine e = new MockEngine(_output);
 
-            string actualFrameworkDirectory = s_myVersion20Path;
-            string alternativeFrameworkDirectory = s_myVersion40Path;
+            string actualFrameworkDirectory = MyVersion20Path;
+            string alternativeFrameworkDirectory = MyVersion40Path;
 
-            ITaskItem[] items = new TaskItem[] { new TaskItem(Path.Combine(actualFrameworkDirectory, "System.dll")) };
+            ITaskItem[] items = [new TaskItem(Path.Combine(actualFrameworkDirectory, "System.dll"))];
 
             // Version and directory match framework - it is a framework assembly
             string redistString1 = "<FileList Redist='Microsoft-Windows-CLRCoreComp-Random' >" +

@@ -6,6 +6,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -38,13 +39,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "BAR, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "BAR";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t);
 
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "DependsOnFoo4Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "DependsOnFoo4Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -65,13 +66,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=v4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t);
 
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "DependsOnFoo35Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "DependsOnFoo35Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -92,13 +93,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t);
 
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "DependsOnFoo4Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "DependsOnFoo4Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -122,13 +123,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t);
 
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -149,15 +150,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=v4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t);
 
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
             Assert.Single(t.ResolvedDependencyFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo35Framework.dll"))); // "Expected to find assembly, but didn't."
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, Path.Combine(s_frameworksPath, "DependsOnFoo35Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "IndirectDependsOnFoo35Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, Path.Combine(FrameworksPath, "DependsOnFoo35Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -178,15 +179,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t);
 
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
             Assert.Single(t.ResolvedDependencyFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo4Framework.dll"))); // "Expected to find assembly, but didn't."
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, Path.Combine(s_frameworksPath, "DependsOnFoo4Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "IndirectDependsOnFoo4Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, Path.Combine(FrameworksPath, "DependsOnFoo4Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -210,15 +211,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t);
 
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
             Assert.Single(t.ResolvedDependencyFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "IndirectDependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, Path.Combine(FrameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -241,7 +242,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t, false);
 
             Assert.Equal(1, e.Warnings); // "One warning expected in this scenario."
@@ -271,7 +272,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             t.IgnoreTargetFrameworkAttributeVersionMismatch = true;
             Execute(t);
 
@@ -279,8 +280,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
             Assert.Single(t.ResolvedDependencyFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "IndirectDependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "IndirectDependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, Path.Combine(FrameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -303,7 +304,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             t.IgnoreTargetFrameworkAttributeVersionMismatch = true;
 
             Execute(t);
@@ -311,7 +312,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(FrameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
         }
 
 
@@ -335,7 +336,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = items;
             t.TargetFrameworkMoniker = "Foo, Version=4.0";
             t.TargetFrameworkMonikerDisplayName = "Foo";
-            t.SearchPaths = new string[] { s_frameworksPath + Path.DirectorySeparatorChar };
+            t.SearchPaths = new string[] { FrameworksPath + Path.DirectorySeparatorChar };
             Execute(t, false);
 
             Assert.Equal(1, e.Warnings); // "One warning expected in this scenario."
@@ -373,7 +374,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, engine.Errors); // "No errors expected in this scenario."
             Assert.Single(task.ResolvedFiles);
             Assert.Empty(task.ResolvedDependencyFiles);
-            Assert.True(ContainsItem(task.ResolvedFiles, Path.Combine(s_frameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(task.ResolvedFiles, Path.Combine(FrameworksPath, "DependsOnFoo45Framework.dll"))); // "Expected to find assembly, but didn't."
         }
     }
 }

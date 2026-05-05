@@ -7,6 +7,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -45,7 +46,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOnOnlyv4Assemblies.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOnOnlyv4Assemblies.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -91,7 +92,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             Assert.Equal("AnotherOne", t.ResolvedFiles[0].GetMetadata("OriginalItemSpec"));
 
-            Assert.Equal(Path.Combine(s_myComponentsMiscPath, "ReferenceVersion9.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyComponentsMiscPath, "ReferenceVersion9.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -226,7 +227,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             e.AssertLogDoesntContain("MSB3257");
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "ReferenceVersion9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "ReferenceVersion9.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -339,7 +340,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             e.AssertLogDoesntContain("MSB3257");
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -372,8 +373,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             e.AssertLogContains(t.Log.FormatResourceString("ResolveAssemblyReference.DependencyReferenceOutsideOfFramework", "DependsOn9Also", "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "9.0.0.0", "4.0.0.0"));
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to not find assembly, but did."
-            Assert.False(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9Also.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"))); // "Expected to not find assembly, but did."
+            Assert.False(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9Also.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -406,8 +407,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             e.AssertLogDoesntContain("MSB3258");
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Equal(2, t.ResolvedFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9Also.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9Also.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -464,9 +465,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                                   "</FileList >";
 
             List<string> additionalPaths = new List<string>();
-            additionalPaths.Add(s_myComponents40ComponentPath);
-            additionalPaths.Add(s_myVersion40Path);
-            additionalPaths.Add(s_myVersion90Path + Path.DirectorySeparatorChar);
+            additionalPaths.Add(MyComponents40ComponentPath);
+            additionalPaths.Add(MyVersion40Path);
+            additionalPaths.Add(MyVersion90Path + Path.DirectorySeparatorChar);
 
 
             ResolveAssemblyReference t = new ResolveAssemblyReference();
@@ -476,8 +477,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Equal(2, t.ResolvedFiles.Length);
             Assert.Equal(2, t.ResolvedDependencyFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_40ComponentDependsOnOnlyv4AssembliesDllPath)); // "Expected to find assembly, but didn't."
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyComponents40ComponentDependsOnOnlyv4AssembliesDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -516,17 +517,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 consistencyCheck: false,
                 additionalSearchPaths:
                 [
-                    s_myComponents40ComponentPath,
-                    s_myVersion40Path,
-                    s_myVersion90Path + Path.DirectorySeparatorChar,
+                    MyComponents40ComponentPath,
+                    MyVersion40Path,
+                    MyVersion90Path + Path.DirectorySeparatorChar,
                 ]);
 
             Assert.Equal(1, engine.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, engine.Errors); // "No errors expected in this scenario."
             Assert.Single(task.ResolvedFiles);
             Assert.Single(task.ResolvedDependencyFiles);
-            Assert.True(ContainsItem(task.ResolvedFiles, s_40ComponentDependsOnOnlyv4AssembliesDllPath)); // "Expected to find assembly, but didn't."
-            Assert.False(ContainsItem(task.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(task.ResolvedFiles, MyComponents40ComponentDependsOnOnlyv4AssembliesDllPath)); // "Expected to find assembly, but didn't."
+            Assert.False(ContainsItem(task.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
         }
     }
 }

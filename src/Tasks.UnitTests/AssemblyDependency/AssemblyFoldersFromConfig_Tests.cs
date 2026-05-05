@@ -7,6 +7,7 @@ using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -16,13 +17,13 @@ public class AssemblyFoldersFromConfig_Tests(ITestOutputHelper output) : Resolve
 {
     private protected override TestRARServices ConfigureDefaultServices()
         => base.ConfigureDefaultServices().AddExistentFiles(
-            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder1", "assemblyfromconfig1.dll"),
-            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2", "assemblyfromconfig2.dll"),
-            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder3_x86", "assemblyfromconfig3_x86.dll"),
-            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86", "assemblyfromconfig_common.dll"),
-            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x64", "assemblyfromconfig_common.dll"),
-            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64", "v5assembly.dll"),
-            Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86", "v5assembly.dll"));
+            Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder1", "assemblyfromconfig1.dll"),
+            Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder2", "assemblyfromconfig2.dll"),
+            Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder3_x86", "assemblyfromconfig3_x86.dll"),
+            Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder_x86", "assemblyfromconfig_common.dll"),
+            Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder_x64", "assemblyfromconfig_common.dll"),
+            Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder5010x64", "v5assembly.dll"),
+            Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder501000x86", "v5assembly.dll"));
 
     [Fact]
     public void AssemblyFoldersFromConfigTest()
@@ -44,7 +45,7 @@ public class AssemblyFoldersFromConfig_Tests(ITestOutputHelper output) : Resolve
             Execute(task);
 
             ITaskItem resolvedFile = Assert.Single(task.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2", "assemblyfromconfig2.dll"), resolvedFile.ItemSpec);
+            Assert.Equal(Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder2", "assemblyfromconfig2.dll"), resolvedFile.ItemSpec);
             resolvedFile.GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
         }
         finally
@@ -74,7 +75,7 @@ public class AssemblyFoldersFromConfig_Tests(ITestOutputHelper output) : Resolve
             Execute(task);
 
             ITaskItem resolvedFile = Assert.Single(task.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86", "assemblyfromconfig_common.dll"), resolvedFile.ItemSpec);
+            Assert.Equal(Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder_x86", "assemblyfromconfig_common.dll"), resolvedFile.ItemSpec);
             resolvedFile.GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
         }
         finally
@@ -104,7 +105,7 @@ public class AssemblyFoldersFromConfig_Tests(ITestOutputHelper output) : Resolve
             Execute(task);
 
             ITaskItem resolvedFile = Assert.Single(task.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86", "v5assembly.dll"), resolvedFile.ItemSpec);
+            Assert.Equal(Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder501000x86", "v5assembly.dll"), resolvedFile.ItemSpec);
             resolvedFile.GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
 
             // Try again changing only the processor architecture
@@ -119,7 +120,7 @@ public class AssemblyFoldersFromConfig_Tests(ITestOutputHelper output) : Resolve
             Execute(task);
 
             resolvedFile = Assert.Single(task.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64", "v5assembly.dll"), resolvedFile.ItemSpec);
+            Assert.Equal(Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder5010x64", "v5assembly.dll"), resolvedFile.ItemSpec);
             resolvedFile.GetMetadata("ResolvedFrom").ShouldBe(moniker, StringCompareShould.IgnoreCase);
         }
         finally
@@ -190,37 +191,37 @@ public class AssemblyFoldersFromConfig_Tests(ITestOutputHelper output) : Resolve
             <AssemblyFolder>
               <Name>Test Assemblies</Name>
               <FrameworkVersion>v5.0</FrameworkVersion>
-              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder1")}</Path>
+              <Path>{Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder1")}</Path>
             </AssemblyFolder>
             <AssemblyFolder>
               <Name>Test Assemblies2</Name>
               <FrameworkVersion>v4.5.25000</FrameworkVersion>
-              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder2")}</Path>
+              <Path>{Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder2")}</Path>
             </AssemblyFolder>
             <AssemblyFolder>
               <FrameworkVersion>v4.0</FrameworkVersion>
-              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder3")}</Path>
+              <Path>{Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder3")}</Path>
             </AssemblyFolder>
             <AssemblyFolder>
               <Name>Platform Specific</Name>
               <FrameworkVersion>v4.5.25000</FrameworkVersion>
-              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x64")}</Path>
+              <Path>{Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder_x64")}</Path>
               <Platform>x64</Platform>
             </AssemblyFolder>
             <AssemblyFolder>
               <FrameworkVersion>v4.5</FrameworkVersion>
-              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder_x86")}</Path>
+              <Path>{Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder_x86")}</Path>
               <Platform>x86</Platform>
             </AssemblyFolder>
 
             <AssemblyFolder>
               <FrameworkVersion>v5.0.1.0</FrameworkVersion>
-              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder5010x64")}</Path>
+              <Path>{Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder5010x64")}</Path>
               <Platform>x64</Platform>
             </AssemblyFolder>
             <AssemblyFolder>
               <FrameworkVersion>v5.0.100.0</FrameworkVersion>
-              <Path>{Path.Combine(s_rootPathPrefix, "assemblyfromconfig", "folder501000x86")}</Path>
+              <Path>{Path.Combine(RootPathPrefix, "assemblyfromconfig", "folder501000x86")}</Path>
               <Platform>x86</Platform>
             </AssemblyFolder>
           </AssemblyFolders>

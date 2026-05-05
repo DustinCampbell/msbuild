@@ -7,6 +7,7 @@ using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -22,11 +23,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
         /// Return the default search paths.
         /// </summary>
         /// <value></value>
-        internal new string[] DefaultPaths
-        {
-            get { return new string[] { s_myComponentsV05Path, s_myComponentsV10Path, s_myComponentsV20Path, s_myComponentsV30Path }; }
-        }
-
+        internal new string[] DefaultPaths =>
+        [
+            MyComponentsV05Path,
+            MyComponentsV10Path,
+            MyComponentsV20Path,
+            MyComponentsV30Path
+        ];
 
         /// <summary>
         /// In this case,

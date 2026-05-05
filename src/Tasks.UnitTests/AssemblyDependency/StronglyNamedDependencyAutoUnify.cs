@@ -9,6 +9,7 @@ using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -24,11 +25,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
         /// Return the default search paths.
         /// </summary>
         /// <value></value>
-        internal new string[] DefaultPaths
-        {
-            get { return new string[] { s_myApp_V05Path, s_myApp_V10Path, s_myApp_V20Path, s_myApp_V30Path, s_myComponentsV05Path, s_myComponentsV10Path, s_myComponentsV20Path, s_myComponentsV30Path }; }
-        }
-
+        internal new string[] DefaultPaths =>
+        [
+            MyApp_V05Path,
+            MyApp_V10Path,
+            MyApp_V20Path,
+            MyApp_V30Path,
+            MyComponentsV05Path,
+            MyComponentsV10Path,
+            MyComponentsV20Path,
+            MyComponentsV30Path
+        ];
 
         /// <summary>
         /// In this case,
@@ -81,13 +88,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
             {
                 Assert.True(succeeded);
                 t.ResolvedDependencyFiles[0].GetMetadata("FusionName").ShouldBe("UnifyMe, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", StringCompareShould.IgnoreCase);
-                t.ResolvedDependencyFiles[0].ItemSpec.ShouldBe(s_unifyMeDll_V20Path, StringCompareShould.IgnoreCase);
+                t.ResolvedDependencyFiles[0].ItemSpec.ShouldBe(UnifyMeDll_V20Path, StringCompareShould.IgnoreCase);
 
                 engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnifiedDependency"), "UniFYme, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"));
+                    string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnifiedDependency"), "UniFYme, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"));
 
                 engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "1.0.0.0", Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll")));
+                    string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "1.0.0.0", Path.Combine(MyApp_V10Path, "DependsOnUnified.dll")));
             }
         }
 
@@ -150,16 +157,16 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
 
                 Assert.True(succeeded);
                 Assert.Single(t.ResolvedFiles); // "Expected there to only be one resolved file"
-                Assert.Contains(Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll"), t.ResolvedFiles[0].ItemSpec); // "Expected the ItemSpec of the resolved file to be the item spec of the 1.0.0.0 assembly");
+                Assert.Contains(Path.Combine(MyApp_V10Path, "DependsOnUnified.dll"), t.ResolvedFiles[0].ItemSpec); // "Expected the ItemSpec of the resolved file to be the item spec of the 1.0.0.0 assembly");
                 Assert.Single(t.ResolvedDependencyFiles); // "Expected there to be two resolved dependencies"
                 t.ResolvedDependencyFiles[0].GetMetadata("FusionName").ShouldBe("UnifyMe, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", StringCompareShould.IgnoreCase);
-                t.ResolvedDependencyFiles[0].ItemSpec.ShouldBe(s_unifyMeDll_V10Path, StringCompareShould.IgnoreCase);
+                t.ResolvedDependencyFiles[0].ItemSpec.ShouldBe(UnifyMeDll_V10Path, StringCompareShould.IgnoreCase);
 
                 engine.AssertLogDoesntContain(
-                        String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnifiedDependency"), "UnifyMe, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL"));
+                    string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnifiedDependency"), "UnifyMe, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, ProcessorArchitecture=MSIL"));
 
                 engine.AssertLogDoesntContain(
-                        String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "1.0.0.0", Path.Combine(s_myApp_V20Path, "DependsOnUnified.dll")));
+                    string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "1.0.0.0", Path.Combine(MyApp_V20Path, "DependsOnUnified.dll")));
             }
             finally
             {
@@ -237,7 +244,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
                 Assert.True(succeeded);
                 Assert.Empty(t.ResolvedDependencyFiles);
                 engine.AssertLogDoesntContain(
-                        String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAppConfig"), "1.0.0.0", appConfigFile, Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll")));
+                    string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAppConfig"), "1.0.0.0", appConfigFile, Path.Combine(MyApp_V10Path, "DependsOnUnified.dll")));
             }
             finally
             {
@@ -308,8 +315,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
                 Assert.True(succeeded);
                 Assert.Empty(t.ResolvedFiles); // "Expected there to be no resolved files"
 
-                Assert.False(ContainsItem(t.ResolvedFiles, Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll"))); // "Expected the ItemSpec of the resolved file to not be the item spec of the 1.0.0.0 assembly");
-                Assert.False(ContainsItem(t.ResolvedFiles, Path.Combine(s_myApp_V20Path, "DependsOnUnified.dll"))); // "Expected the ItemSpec of the resolved file to not be the item spec of the 2.0.0.0 assembly"
+                Assert.False(ContainsItem(t.ResolvedFiles, Path.Combine(MyApp_V10Path, "DependsOnUnified.dll"))); // "Expected the ItemSpec of the resolved file to not be the item spec of the 1.0.0.0 assembly");
+                Assert.False(ContainsItem(t.ResolvedFiles, Path.Combine(MyApp_V20Path, "DependsOnUnified.dll"))); // "Expected the ItemSpec of the resolved file to not be the item spec of the 2.0.0.0 assembly"
 
                 string stringList = ResolveAssemblyReference.GenerateSubSetName(null, new ITaskItem[] { new TaskItem(subsetListPath) });
                 engine.AssertLogContains(t.Log.FormatResourceString("ResolveAssemblyReference.FailBecauseDependentAssemblyInExclusionList", assemblyNames[0].ItemSpec, "UniFYme, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", stringList));
@@ -382,19 +389,19 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
 
             Assert.True(succeeded);
             Assert.Equal(2, t.ResolvedFiles.Length); // "Expected to find two resolved assemblies"
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll"))); // "Expected the ItemSpec of the resolved file to be the item spec of the 1.0.0.0 assembly");
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myApp_V20Path, "DependsOnUnified.dll"))); // "Expected the ItemSpec of the resolved file to be the item spec of the 2.0.0.0 assembly");
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyApp_V10Path, "DependsOnUnified.dll"))); // "Expected the ItemSpec of the resolved file to be the item spec of the 1.0.0.0 assembly");
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyApp_V20Path, "DependsOnUnified.dll"))); // "Expected the ItemSpec of the resolved file to be the item spec of the 2.0.0.0 assembly");
             t.ResolvedDependencyFiles[0].GetMetadata("FusionName").ShouldBe("UnifyMe, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", StringCompareShould.IgnoreCase);
-            t.ResolvedDependencyFiles[0].ItemSpec.ShouldBe(s_unifyMeDll_V20Path, StringCompareShould.IgnoreCase);
+            t.ResolvedDependencyFiles[0].ItemSpec.ShouldBe(UnifyMeDll_V20Path, StringCompareShould.IgnoreCase);
 
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnifiedDependency"), "UniFYme, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnifiedDependency"), "UniFYme, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"));
 
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "1.0.0.0", Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll")));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "1.0.0.0", Path.Combine(MyApp_V10Path, "DependsOnUnified.dll")));
 
             engine.AssertLogDoesntContain(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "2.0.0.0", Path.Combine(s_myApp_V20Path, "DependsOnUnified.dll")));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "2.0.0.0", Path.Combine(MyApp_V20Path, "DependsOnUnified.dll")));
         }
 
         /// <summary>
@@ -439,16 +446,16 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
 
             Assert.True(succeeded);
             t.ResolvedDependencyFiles[0].GetMetadata("FusionName").ShouldBe("UnifyMe, Version=3.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", StringCompareShould.IgnoreCase);
-            t.ResolvedDependencyFiles[0].ItemSpec.ShouldBe(s_unifyMeDll_V30Path, StringCompareShould.IgnoreCase);
+            t.ResolvedDependencyFiles[0].ItemSpec.ShouldBe(UnifyMeDll_V30Path, StringCompareShould.IgnoreCase);
 
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnifiedDependency"), "UniFYme, Version=3.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnifiedDependency"), "UniFYme, Version=3.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"));
 
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "1.0.0.0", Path.Combine(s_myApp_V10Path, "DependsOnUnified.dll")));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "1.0.0.0", Path.Combine(MyApp_V10Path, "DependsOnUnified.dll")));
 
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "2.0.0.0", Path.Combine(s_myApp_V20Path, "DependsOnUnified.dll")));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "2.0.0.0", Path.Combine(MyApp_V20Path, "DependsOnUnified.dll")));
         }
 
         /// <summary>
@@ -492,7 +499,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAnd
             Assert.Single(t.ResolvedDependencyFiles);
             t.ResolvedDependencyFiles[0].GetMetadata("FusionName").ShouldBe("UnifyMe, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", StringCompareShould.IgnoreCase);
             engine.AssertLogContains(
-                    String.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "0.5.0.0", Path.Combine(s_myApp_V05Path, "DependsOnUnified.dll")));
+                string.Format(AssemblyResources.GetString("ResolveAssemblyReference.UnificationByAutoUnify"), "0.5.0.0", Path.Combine(MyApp_V05Path, "DependsOnUnified.dll")));
         }
     }
 }

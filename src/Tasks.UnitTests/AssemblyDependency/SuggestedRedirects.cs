@@ -11,6 +11,7 @@ using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -54,17 +55,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath,
-                s_myLibraries_V1Path,
-                s_myLibraries_V2Path
+                MyLibrariesRootPath,
+                MyLibraries_V1Path,
+                MyLibraries_V2Path
             };
 
             Execute(t);
 
             Assert.Equal(3, t.ResolvedDependencyFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V2_DDllPath));
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V1_DDllPath));
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V2_GDllPath));
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, MyLibraries_V2_DDllPath));
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, MyLibraries_V1_DDllPath));
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, MyLibraries_V2_GDllPath));
 
             Assert.Single(t.SuggestedRedirects);
             Assert.True(ContainsItem(t.SuggestedRedirects, @"D, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa")); // "Expected to find suggested redirect, but didn't"
@@ -96,10 +97,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             };
 
             t.SearchPaths = new string[] {
-                s_myLibrariesRootPath, s_myLibraries_V1Path, s_myLibraries_V2Path
+                MyLibrariesRootPath, MyLibraries_V1Path, MyLibraries_V2Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
 
             bool result = Execute(t);
 
@@ -113,9 +114,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                             "ResolveAssemblyReference.ConflictRedirectSuggestion"),
                         "D, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa",
                         "1.0.0.0",
-                        s_myLibraries_V1_DDllPath,
+                        MyLibraries_V1_DDllPath,
                         "2.0.0.0",
-                        s_myLibraries_V2_DDllPath),
+                        MyLibraries_V2_DDllPath),
                 engine.Log);
         }
 
@@ -146,10 +147,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             };
 
             t.SearchPaths = new string[] {
-                s_myLibrariesRootPath, s_myLibraries_V1Path, s_myLibraries_V2Path
+                MyLibrariesRootPath, MyLibraries_V1Path, MyLibraries_V2Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
 
             bool result = Execute(t);
 
@@ -189,10 +190,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
+                MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
 
             bool result = Execute(t);
 
@@ -202,11 +203,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             string warningMessage = e.WarningEvents[0].Message;
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.FoundConflicts", "D", string.Empty));
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ConflictFound", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", "D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa"));
-            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(s_myLibraries_V1Path, "D.dll"))));
+            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(MyLibraries_V1Path, "D.dll"))));
 
             Assert.Empty(t.SuggestedRedirects);
             Assert.Equal(3, t.ResolvedFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
         }
 
 
@@ -234,10 +235,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
+                MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
 
             bool result = Execute(t);
 
@@ -247,11 +248,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             string warningMessage = e.WarningEvents[0].Message;
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.FoundConflicts", "D", string.Empty));
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ConflictFound", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", "D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa"));
-            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(s_myLibraries_V1Path, "D.dll"))));
+            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(MyLibraries_V1Path, "D.dll"))));
 
             Assert.Empty(t.SuggestedRedirects);
             Assert.Equal(3, t.ResolvedFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
         }
 
 
@@ -345,31 +346,30 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void RedirectsAreSuggestedInExternallyResolvedGraph()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            MockEngine engine = new(_output);
 
-            MockEngine e = new MockEngine(_output);
-            t.BuildEngine = e;
-
-            // NB: These are what common targets would set when AutoGenerateBindingRedirects is enabled.
-            t.AutoUnify = true;
-            t.FindDependenciesOfExternallyResolvedReferences = true;
-
-            t.Assemblies = new ITaskItem[]
+            ResolveAssemblyReference task = new()
             {
-                new TaskItem("A", new Dictionary<string, string> { ["ExternallyResolved"] = "true" }),
-                new TaskItem("B", new Dictionary<string, string> { ["ExternallyResolved"] = "true" }),
+                BuildEngine = engine,
+
+                // NB: These are what common targets would set when AutoGenerateBindingRedirects is enabled.
+                AutoUnify = true,
+                FindDependenciesOfExternallyResolvedReferences = true,
+
+                Assemblies =
+                [
+                    new TaskItem("A", new Dictionary<string, string> { ["ExternallyResolved"] = "true" }),
+                    new TaskItem("B", new Dictionary<string, string> { ["ExternallyResolved"] = "true" }),
+                ],
+
+                SearchPaths = [Regress442570_RootPath],
             };
 
-            t.SearchPaths = new string[]
-            {
-                s_regress442570_RootPath
-            };
-
-            Execute(t);
+            Execute(task);
 
             // Expect a suggested redirect with no warning.
-            Assert.Single(t.SuggestedRedirects);
-            Assert.Equal(0, e.Warnings);
+            Assert.Single(task.SuggestedRedirects);
+            Assert.Equal(0, engine.Warnings);
         }
 
         /// <summary>

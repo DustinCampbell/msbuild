@@ -6,6 +6,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Tasks;
 using Microsoft.Build.Utilities;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -48,7 +49,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
 
             // Do the resolution without the metadata, expect it to not work since we should not be able to find Dependson9 version 10.0.0.0
             e = new MockEngine(_output);
@@ -101,7 +102,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
 
             // Do the resolution without the metadata, expect it to not work since we should not be able to find Dependson9 version 10.0.0.0
             e = new MockEngine(_output);
@@ -154,7 +155,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"))); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -167,7 +168,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             TaskItem item = new TaskItem("DependsOn9, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b17a5c561934e089");
             item.SetMetadata("IgnoreVersionForFrameworkReference", "True");
-            item.SetMetadata("HintPath", Path.Combine(s_myComponentsMiscPath, "DependsOn9.dll"));
+            item.SetMetadata("HintPath", Path.Combine(MyComponentsMiscPath, "DependsOn9.dll"));
 
             ITaskItem[] items = new ITaskItem[]
             {

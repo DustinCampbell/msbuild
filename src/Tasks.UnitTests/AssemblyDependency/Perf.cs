@@ -9,6 +9,7 @@ using Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.VersioningAndUnif
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 
 #nullable disable
 
@@ -63,8 +64,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 ITaskItem[] assemblyNames =
                 {
-                    new TaskItem(s_dependsOnNuGet_ADllPath), // depends on N, version 1.0.0.0
-                    new TaskItem(s_nugetCache_N_Lib_NDllPath) // version 2.0.0.0
+                    new TaskItem(DependsOnNuGet_ADllPath), // depends on N, version 1.0.0.0
+                    new TaskItem(NugetCache_N_Lib_NDllPath) // version 2.0.0.0
                 };
 
                 ResolveAssemblyReference t = new ResolveAssemblyReference();
@@ -78,9 +79,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
                 Assert.True(succeeded);
 
-                uniqueFileExists[s_dependsOnNuGet_NWinMdPath].ShouldBe(1);
-                uniqueFileExists[s_dependsOnNuGet_NDllPath].ShouldBe(1);
-                uniqueFileExists[s_dependsOnNuGet_NExePath].ShouldBe(1);
+                uniqueFileExists[DependsOnNuGet_NWinMdPath].ShouldBe(1);
+                uniqueFileExists[DependsOnNuGet_NDllPath].ShouldBe(1);
+                uniqueFileExists[DependsOnNuGet_NExePath].ShouldBe(1);
             }
             finally
             {

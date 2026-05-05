@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,12 +11,11 @@ using System.Resources;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Tasks;
-using Microsoft.Build.Tasks.AssemblyDependency;
 using Microsoft.Build.Utilities;
 using Microsoft.Win32;
 using Shouldly;
 using Xunit;
-using FrameworkNameVersioning = System.Runtime.Versioning.FrameworkName;
+using static Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests.TestData;
 using SystemProcessorArchitecture = System.Reflection.ProcessorArchitecture;
 
 #nullable disable
@@ -102,15 +100,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void VerifyPrimaryReferenceToBadImageDoesNotThrow()
         {
-            ITaskItem x = new TaskItem(Path.Combine(s_myComponentsRootPath, "X.dll"));
-            ITaskItem xpdb = new TaskItem(Path.Combine(s_myComponentsRootPath, "X.pdb"));
+            ITaskItem x = new TaskItem(Path.Combine(MyComponentsRootPath, "X.dll"));
+            ITaskItem xpdb = new TaskItem(Path.Combine(MyComponentsRootPath, "X.pdb"));
             ResolveAssemblyReference t = new()
             {
                 BuildEngine = new MockEngine(),
-                AllowedRelatedFileExtensions = new string[] { ".pdb" },
-                Assemblies = new ITaskItem[] { xpdb },
-                AssemblyFiles = new ITaskItem[] { x },
-                SearchPaths = new string[] { "{RawFileName}" },
+                AllowedRelatedFileExtensions = [".pdb"],
+                Assemblies = [xpdb],
+                AssemblyFiles = [x],
+                SearchPaths = ["{RawFileName}"],
             };
 
             bool success = Execute(t);
@@ -130,64 +128,51 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         public void CopyLocalDependenciesWhenParentReferenceInGacFalseAllParentsInGac()
         {
             // Create the engine.
-            MockEngine engine = new MockEngine(_output);
-
-            ITaskItem[] assemblyNames = new TaskItem[]
-                    {
-                        new TaskItem("X, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")
-                    };
+            MockEngine engine = new(_output);
 
             // Now, pass feed resolved primary references into ResolveAssemblyReference.
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
-            t.BuildEngine = engine;
-            t.Assemblies = assemblyNames;
-
-            if (NativeMethodsShared.IsWindows)
+            ResolveAssemblyReference task = new()
             {
-                t.SearchPaths = new string[] { "{gac}", s_myComponentsRootPath };
-            }
-            else
-            {
-                t.SearchPaths = new string[] { s_myComponentsRootPath };
-            }
+                BuildEngine = engine,
+                Assemblies = [new TaskItem("X, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")],
+                SearchPaths = NativeMethodsShared.IsWindows
+                    ? ["{gac}", MyComponentsRootPath]
+                    : [MyComponentsRootPath],
+                CopyLocalDependenciesWhenParentReferenceInGac = false,
+            };
 
-            t.CopyLocalDependenciesWhenParentReferenceInGac = false;
-            bool succeeded = Execute(t);
+            bool succeeded = Execute(task);
 
             Assert.True(succeeded);
-            Assert.Single(t.ResolvedFiles);
-            Assert.Single(t.ResolvedDependencyFiles);
+            Assert.Single(task.ResolvedFiles);
+            Assert.Single(task.ResolvedDependencyFiles);
             Assert.Equal(0, engine.Errors);
             Assert.Equal(0, engine.Warnings);
-            t.ResolvedDependencyFiles[0].GetMetadata("CopyLocal").ShouldBe("false", StringCompareShould.IgnoreCase);
-            t.ResolvedFiles[0].GetMetadata("CopyLocal").ShouldBe("false", StringCompareShould.IgnoreCase);
+            task.ResolvedDependencyFiles[0].GetMetadata("CopyLocal").ShouldBe("false", StringCompareShould.IgnoreCase);
+            task.ResolvedFiles[0].GetMetadata("CopyLocal").ShouldBe("false", StringCompareShould.IgnoreCase);
         }
 
         [Fact]
         public void ValidateFrameworkNameError()
         {
             // Create the engine.
-            MockEngine engine = new MockEngine(_output);
-
-            ITaskItem[] assemblyNames = new TaskItem[]
-                    {
-                        new TaskItem("X, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")
-                    };
+            MockEngine engine = new(_output);
 
             // Now, pass feed resolved primary references into ResolveAssemblyReference.
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = engine,
+                Assemblies = [new TaskItem("X, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null")],
+                SearchPaths = [MyComponentsRootPath],
+                TargetFrameworkMoniker = "I am a random frameworkName",
+            };
 
-            t.BuildEngine = engine;
-            t.Assemblies = assemblyNames;
-            t.SearchPaths = new string[] { s_myComponentsRootPath };
-            t.TargetFrameworkMoniker = "I am a random frameworkName";
-            bool succeeded = Execute(t);
+            bool succeeded = Execute(task);
 
             Assert.False(succeeded);
             Assert.Equal(1, engine.Errors);
             Assert.Equal(0, engine.Warnings);
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.InvalidParameter", "TargetFrameworkMoniker", t.TargetFrameworkMoniker, String.Empty);
+            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.InvalidParameter", "TargetFrameworkMoniker", task.TargetFrameworkMoniker, String.Empty);
             engine.AssertLogContains(message);
         }
 
@@ -221,11 +206,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             if (NativeMethodsShared.IsWindows)
             {
-                t.SearchPaths = new string[] { "{gac}", s_myComponentsRootPath };
+                t.SearchPaths = new string[] { "{gac}", MyComponentsRootPath };
             }
             else
             {
-                t.SearchPaths = new string[] { s_myComponentsRootPath };
+                t.SearchPaths = new string[] { MyComponentsRootPath };
             }
 
             t.CopyLocalDependenciesWhenParentReferenceInGac = false;
@@ -282,11 +267,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             if (NativeMethodsShared.IsWindows)
             {
-                t.SearchPaths = new string[] { "{gac}", s_myComponentsRootPath };
+                t.SearchPaths = new string[] { "{gac}", MyComponentsRootPath };
             }
             else
             {
-                t.SearchPaths = new string[] { s_myComponentsRootPath };
+                t.SearchPaths = new string[] { MyComponentsRootPath };
             }
 
             t.CopyLocalDependenciesWhenParentReferenceInGac = true;
@@ -331,11 +316,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             if (NativeMethodsShared.IsWindows)
             {
-                t.SearchPaths = new string[] { "{gac}", s_myComponentsRootPath };
+                t.SearchPaths = new string[] { "{gac}", MyComponentsRootPath };
             }
             else
             {
-                t.SearchPaths = new string[] { s_myComponentsRootPath };
+                t.SearchPaths = new string[] { MyComponentsRootPath };
             }
 
             t.CopyLocalDependenciesWhenParentReferenceInGac = true;
@@ -438,7 +423,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Construct a list of assembly files.
             ITaskItem[] assemblyFiles = new TaskItem[]
             {
-                new TaskItem(s_myMissingAssemblyAbsPath)
+                new TaskItem(MyMissingAssemblyAbsPath)
             };
 
             // Also construct a set of assembly names to pass in.
@@ -468,7 +453,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.BuildEngine = engine;
             t.AssemblyFiles = assemblyFiles;
             t.Assemblies = assemblyNames;
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
             t.SearchPaths = DefaultPaths;
             Execute(t);
 
@@ -488,7 +473,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Process the primary items.
             foreach (ITaskItem item in t.ResolvedFiles)
             {
-                if (String.Equals(item.ItemSpec, Path.Combine(s_myVersion20Path, "System.XML.dll"), StringComparison.OrdinalIgnoreCase))
+                if (String.Equals(item.ItemSpec, Path.Combine(MyVersion20Path, "System.XML.dll"), StringComparison.OrdinalIgnoreCase))
                 {
                     systemXmlFound = true;
                     item.GetMetadata("DestinationSubDirectory").ShouldBe("", StringCompareShould.IgnoreCase);
@@ -514,7 +499,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     item.GetMetadata("RandomAttributeThatShouldBeForwarded").ShouldBe("", StringCompareShould.IgnoreCase);
                     item.GetMetadata("CopyLocal").ShouldBe("false", StringCompareShould.IgnoreCase);
                 }
-                else if (item.ItemSpec.EndsWith(s_myPrivateAssemblyRelPath, StringComparison.Ordinal))
+                else if (item.ItemSpec.EndsWith(MyPrivateAssemblyRelPath, StringComparison.Ordinal))
                 {
                     myPrivateAssemblyFound = true;
                     item.GetMetadata("DestinationSubDirectory").ShouldBe("", StringCompareShould.IgnoreCase);
@@ -535,7 +520,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     item.GetMetadata("RandomAttributeThatShouldBeForwarded").ShouldBe("", StringCompareShould.IgnoreCase);
                     item.GetMetadata("CopyLocal").ShouldBe("false", StringCompareShould.IgnoreCase);
                 }
-                else if (item.ItemSpec.EndsWith(s_myMissingAssemblyRelPath, StringComparison.Ordinal))
+                else if (item.ItemSpec.EndsWith(MyMissingAssemblyRelPath, StringComparison.Ordinal))
                 {
                     missingAssemblyFound = true;
                     item.GetMetadata("DestinationSubDirectory").ShouldBe("", StringCompareShould.IgnoreCase);
@@ -547,13 +532,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     item.GetMetadata("CopyLocal").ShouldBe("true", StringCompareShould.IgnoreCase);
                     item.GetMetadata("FusionName").ShouldBe("MyMissingAssembly", StringCompareShould.IgnoreCase);
                 }
-                else if (String.Equals(item.ItemSpec, Path.Combine(s_myProjectPath, "System.Xml.dll"), StringComparison.OrdinalIgnoreCase))
+                else if (String.Equals(item.ItemSpec, Path.Combine(MyProjectPath, "System.Xml.dll"), StringComparison.OrdinalIgnoreCase))
                 {
                     // The version of System.Xml.dll in C:\MyProject is an older version.
                     // This version is not a match. When want the current version which should have been in a different directory.
                     Assert.Fail("Wrong version of System.Xml.dll matched--version was wrong");
                 }
-                else if (String.Equals(item.ItemSpec, Path.Combine(s_myProjectPath, "System.Data.dll"), StringComparison.OrdinalIgnoreCase))
+                else if (String.Equals(item.ItemSpec, Path.Combine(MyProjectPath, "System.Data.dll"), StringComparison.OrdinalIgnoreCase))
                 {
                     // The version of System.Data.dll in C:\MyProject has an incorrect PKT
                     // This version is not a match.
@@ -604,14 +589,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Process the satellites.
             foreach (ITaskItem item in t.SatelliteFiles)
             {
-                if (String.Equals(item.ItemSpec, Path.Combine(s_myVersion20Path, "en", "System.XML.resources.pdb"), StringComparison.OrdinalIgnoreCase))
+                if (String.Equals(item.ItemSpec, Path.Combine(MyVersion20Path, "en", "System.XML.resources.pdb"), StringComparison.OrdinalIgnoreCase))
                 {
                     enSatellitePdbFound = true;
                     Assert.Empty(item.GetMetadata(ItemMetadataNames.imageRuntime));
                     Assert.Empty(item.GetMetadata(ItemMetadataNames.winMDFile));
                     Assert.Empty(item.GetMetadata(ItemMetadataNames.winmdImplmentationFile));
                 }
-                else if (String.Equals(item.ItemSpec, Path.Combine(s_myVersion20Path, "en-GB", "System.XML.resources.pdb"), StringComparison.OrdinalIgnoreCase))
+                else if (String.Equals(item.ItemSpec, Path.Combine(MyVersion20Path, "en-GB", "System.XML.resources.pdb"), StringComparison.OrdinalIgnoreCase))
                 {
                     engbSatellitePdbFound = true;
                     Assert.Empty(item.GetMetadata(ItemMetadataNames.imageRuntime));
@@ -696,7 +681,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Construct a list of assembly files.
             ITaskItem[] assemblyFiles = new TaskItem[]
             {
-                new TaskItem(s_myMissingAssemblyAbsPath)
+                new TaskItem(MyMissingAssemblyAbsPath)
             };
 
             assemblyFiles[0].SetMetadata("Private", "true");
@@ -726,7 +711,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // expected ItemSpecs for corresponding assemblies
             string[] expectedItemSpec =
             {
-                s_myMissingAssemblyRelPath,                 // MyMissingAssembly
+                MyMissingAssemblyRelPath,                 // MyMissingAssembly
                 Path.Combine("MyProject", "MyCopyLocalAssembly.dll"),       // MyCopyLocalAssembly
                 Path.Combine("MyProject", "MyDontCopyLocalAssembly.dll"),   // MyDontCopyLocalAssembly
             };
@@ -809,7 +794,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             ResolveAssemblyReference t = new ResolveAssemblyReference();
 
             t.BuildEngine = engine;
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
             t.SearchPaths = DefaultPaths;
 
             bool succeeded = Execute(t);
@@ -835,7 +820,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Construct a list of assembly files.
             ITaskItem[] assemblies = new TaskItem[]
             {
-                new TaskItem(s_assemblyFolder_SomeAssemblyDllPath)
+                new TaskItem(AssemblyFolder_SomeAssemblyDllPath)
             };
 
             // Now, pass feed resolved primary references into ResolveAssemblyReference.
@@ -843,7 +828,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.BuildEngine = engine;
             t.Assemblies = assemblies;
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
             t.SearchPaths = DefaultPaths;
             Execute(t);
 
@@ -897,7 +882,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Construct a list of assembly files.
             ITaskItem[] assemblies = new TaskItem[]
             {
-                new TaskItem(s_assemblyFolder_SomeAssemblyDllPath)
+                new TaskItem(AssemblyFolder_SomeAssemblyDllPath)
             };
 
             assemblies[0].SetMetadata("ExternallyResolved", "true");
@@ -907,7 +892,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.BuildEngine = engine;
             t.Assemblies = assemblies;
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
             t.SearchPaths = DefaultPaths;
             t.FindDependenciesOfExternallyResolvedReferences = findDependenciesOfExternallyResolvedReferences; // does not impact related file search
             Execute(t);
@@ -934,7 +919,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Construct a list of assembly files.
             ITaskItem[] assemblies = new TaskItem[]
             {
-                new TaskItem(s_assemblyFolder_SomeAssemblyDllPath)
+                new TaskItem(AssemblyFolder_SomeAssemblyDllPath)
             };
 
             // Now, pass feed resolved primary references into ResolveAssemblyReference.
@@ -942,7 +927,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.BuildEngine = engine;
             t.Assemblies = assemblies;
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
             t.SearchPaths = DefaultPaths;
             t.AllowedRelatedFileExtensions = new string[] { @".licenses", ".xml" }; // no .pdb or .config
             Execute(t);
@@ -1190,18 +1175,16 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void StrongWeakMismatchInDependency()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
-            t.BuildEngine = new MockEngine(_output);
-            t.Assemblies = new ITaskItem[]
+            ResolveAssemblyReference task = new()
             {
-                new TaskItem("DependsOnSimpleA")
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [new TaskItem("DependsOnSimpleA")],
+                SearchPaths = [MyAppRootPath, @"c:\MyStronglyNamed", @"c:\MyWeaklyNamed"],
             };
 
-            t.SearchPaths = new string[] { s_myAppRootPath, @"c:\MyStronglyNamed", @"c:\MyWeaklyNamed" };
-            Execute(t);
-            Assert.Single(t.ResolvedDependencyFiles);
-            Assert.Equal(@"c:\MyWeaklyNamed\A.dll", t.ResolvedDependencyFiles[0].ItemSpec);
+            Execute(task);
+            Assert.Single(task.ResolvedDependencyFiles);
+            Assert.Equal(@"c:\MyWeaklyNamed\A.dll", task.ResolvedDependencyFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -1214,19 +1197,18 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void DependenciesOfExternallyResolvedReferencesAreNotSearched()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            ITaskItem taskItem = new TaskItem("DependsOnSimpleA");
+            taskItem.SetMetadata("ExternallyResolved", "true");
 
-            t.BuildEngine = new MockEngine(_output);
-            t.Assemblies = new ITaskItem[]
+            ResolveAssemblyReference task = new()
             {
-                new TaskItem("DependsOnSimpleA")
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [taskItem],
+                SearchPaths = [MyAppRootPath, @"c:\MyStronglyNamed", @"c:\MyWeaklyNamed"],
             };
 
-            t.Assemblies[0].SetMetadata("ExternallyResolved", "true");
-
-            t.SearchPaths = new string[] { s_myAppRootPath, @"c:\MyStronglyNamed", @"c:\MyWeaklyNamed" };
-            Execute(t);
-            Assert.Empty(t.ResolvedDependencyFiles);
+            Execute(task);
+            Assert.Empty(task.ResolvedDependencyFiles);
         }
 
         /// <summary>
@@ -1276,14 +1258,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = new ITaskItem[] { new TaskItem("mscorlib") };
             t.SearchPaths = new string[]
             {
-                s_myVersionPocket20Path,
-                s_myVersion20Path
+                MyVersionPocket20Path,
+                MyVersion20Path
             };
 
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersionPocket20Path, "mscorlib.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersionPocket20Path, "mscorlib.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -1846,7 +1828,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myComponentsV20Path, "MyControlWithFutureTargetNDPVersion.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyComponentsV20Path, "MyControlWithFutureTargetNDPVersion.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -1865,7 +1847,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myComponentsV10Path, "MyNDP1Control.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyComponentsV10Path, "MyNDP1Control.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -1884,7 +1866,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myComponentsV20Path, "MyControlWithPastTargetNDPVersion.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyComponentsV20Path, "MyControlWithPastTargetNDPVersion.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -1927,8 +1909,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             {
                 "{RawFileName}",
                 "{CandidateAssemblyFiles}",
-                s_myProjectPath,
-                s_myVersion20Path,
+                MyProjectPath,
+                MyVersion20Path,
                 @"{Registry:Software\Microsoft\.NETCompactFramework,v2.0,PocketPC\AssemblyFoldersEx,OSVersion=4.0.0:Platform=3C41C503-53EF-4c2a-8DD4-A8217CAD115E}",
                 "{AssemblyFolders}",
                 "{HintPathFromItem}"
@@ -1965,8 +1947,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             {
                 "{RawFileName}",
                 "{CandidateAssemblyFiles}",
-                s_myProjectPath,
-                s_myVersion20Path,
+                MyProjectPath,
+                MyVersion20Path,
                 @"{Registry:Software\Microsoft\.NETCompactFramework,v2.0,PocketPC\AssemblyFoldersEx,OSVersion=5.1.0:Platform=3C41C503-53EF-4c2a-8DD4-A8217CAD115E}",
                 "{AssemblyFolders}",
                 "{HintPathFromItem}"
@@ -2278,8 +2260,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             {
                 "{RawFileName}",
                 "{CandidateAssemblyFiles}",
-                s_myProjectPath,
-                s_myVersion20Path,
+                MyProjectPath,
+                MyVersion20Path,
                 @"{Registry:Software\Microsoft\.NETCompactFramework,v2.0,PocketPC\AssemblyFoldersEx,Platform=3C41C503-X-4c2a-8DD4-A8217CAD115E}",
                 "{AssemblyFolders}",
                 "{HintPathFromItem}"
@@ -2350,12 +2332,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.Assemblies = new ITaskItem[] { new TaskItem("System.XML") };
             t.SearchPaths = new string[] { "{CandidateAssemblyFiles}" };
-            t.CandidateAssemblyFiles = new string[] { Path.Combine(s_myVersion20Path, "System.Xml.dll") };
+            t.CandidateAssemblyFiles = new string[] { Path.Combine(MyVersion20Path, "System.Xml.dll") };
 
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -2371,7 +2353,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             item.SetMetadata("RequiredTargetFramework", "v4.0.255");
             t.Assemblies = new ITaskItem[] { item };
             t.SearchPaths = new string[] { "{CandidateAssemblyFiles}" };
-            t.CandidateAssemblyFiles = new string[] { Path.Combine(s_myVersion20Path, "System.Xml.dll") };
+            t.CandidateAssemblyFiles = new string[] { Path.Combine(MyVersion20Path, "System.Xml.dll") };
             t.TargetFrameworkVersion = "v4.0";
             Execute(t);
 
@@ -2391,12 +2373,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             item.SetMetadata("RequiredTargetFramework", "v4.0.255");
             t.Assemblies = new ITaskItem[] { item };
             t.SearchPaths = new string[] { "{CandidateAssemblyFiles}" };
-            t.CandidateAssemblyFiles = new string[] { Path.Combine(s_myVersion20Path, "System.Xml.dll") };
+            t.CandidateAssemblyFiles = new string[] { Path.Combine(MyVersion20Path, "System.Xml.dll") };
             t.TargetFrameworkVersion = "v4.0.256";
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -2416,14 +2398,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             {
                 @"NonUI\testDirectoryRoot\.hiddenfile",
                 @"NonUI\testDirectoryRoot\.dll",
-                Path.Combine(s_myVersion20Path, "System.Xml.dll")
+                Path.Combine(MyVersion20Path, "System.Xml.dll")
             };
 
             bool succeeded = Execute(t);
 
             Assert.True(succeeded);
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
 
             // For {CandidateAssemblyFiles} we don't even want to see a comment logged for files with non-standard extensions.
             // This is because {CandidateAssemblyFiles} is very likely to contain non-assemblies and its best not to clutter
@@ -2452,12 +2434,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.BuildEngine = new MockEngine(_output);
 
-            t.Assemblies = new ITaskItem[] { new TaskItem(Path.Combine(s_myVersion20Path, "System.Xml.dll")) };
+            t.Assemblies = new ITaskItem[] { new TaskItem(Path.Combine(MyVersion20Path, "System.Xml.dll")) };
             t.SearchPaths = new string[]
             {
                 "{RawFileName}",
                 "{CandidateAssemblyFiles}",
-                s_myProjectPath,
+                MyProjectPath,
                 "{TargetFrameworkDirectory}",
                 @"{Registry:Software\Microsoft\.NetFramework,v2.0,AssemblyFoldersEx}",
                 "{AssemblyFolders}",
@@ -2468,7 +2450,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -3052,7 +3034,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.BuildEngine = new MockEngine(_output);
 
-            ITaskItem taskItem = new TaskItem(Path.Combine(s_myVersion20Path, "System.Xml.dll"));
+            ITaskItem taskItem = new TaskItem(Path.Combine(MyVersion20Path, "System.Xml.dll"));
             taskItem.SetMetadata("SpecificVersion", "false");
 
             t.Assemblies = new ITaskItem[] { taskItem };
@@ -3064,7 +3046,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -3077,7 +3059,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.BuildEngine = new MockEngine(_output);
 
-            ITaskItem taskItem = new TaskItem(Path.Combine(s_myVersion20Path, "System.Xml.dll"));
+            ITaskItem taskItem = new TaskItem(Path.Combine(MyVersion20Path, "System.Xml.dll"));
             taskItem.SetMetadata("SpecificVersion", "true");
 
             t.Assemblies = new ITaskItem[] { taskItem };
@@ -3089,7 +3071,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Xml.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -3104,19 +3086,19 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.Assemblies = new ITaskItem[]
             {
-                new TaskItem(Path.Combine(s_myVersion20Path, "System.Xml.dll")),
+                new TaskItem(Path.Combine(MyVersion20Path, "System.Xml.dll")),
                 new TaskItem(@"System.Data")
             };
 
             t.SearchPaths = new string[]
             {
-                s_myVersion20Path,
+                MyVersion20Path,
             };
 
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Data.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Data.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -3127,26 +3109,25 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void Regress444793()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
             MockEngine engine = new MockEngine(_output);
-            t.BuildEngine = engine;
 
-            TaskItem item = new TaskItem(@"c:\DoesntExist\System.Xml.dll");
-            item.SetMetadata("HintPath", Path.Combine(s_myVersion20Path, "System.Data.dll"));
-            item.SetMetadata("SpecificVersion", "true");
-            t.Assemblies = new ITaskItem[] { item };
-            t.SearchPaths = new string[]
+            TaskItem taskItem = new(@"c:\DoesntExist\System.Xml.dll");
+            taskItem.SetMetadata("HintPath", Path.Combine(MyVersion20Path, "System.Data.dll"));
+            taskItem.SetMetadata("SpecificVersion", "true");
+
+            ResolveAssemblyReference task = new()
             {
-                @"{HintPathFromItem}"
+                BuildEngine = engine,
+                Assemblies = [taskItem],
+                SearchPaths = [@"{HintPathFromItem}"],
             };
 
-            bool succeeded = Execute(t);
+            bool succeeded = Execute(task);
             Assert.True(succeeded);
             engine.AssertLogDoesntContain("MSB4018");
 
             engine.AssertLogContains(
-                String.Format(AssemblyResources.GetString("General.MalformedAssemblyName"), "c:\\DoesntExist\\System.Xml.dll"));
+                string.Format(AssemblyResources.GetString("General.MalformedAssemblyName"), "c:\\DoesntExist\\System.Xml.dll"));
         }
 
         /// <summary>
@@ -3156,18 +3137,18 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void RawFileNameDoesntExist()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            MockEngine engine = new(_output);
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = engine,
+                Assemblies = [new TaskItem(@"c:\DoesntExist\System.Xml.dll")],
+                SearchPaths = ["{RawFileName}"],
+            };
 
-            MockEngine engine = new MockEngine(_output);
-            t.BuildEngine = engine;
-
-            t.Assemblies = new ITaskItem[] { new TaskItem(@"c:\DoesntExist\System.Xml.dll") };
-            t.SearchPaths = new string[] { "{RawFileName}" };
-
-            bool succeeded = Execute(t);
+            bool succeeded = Execute(task);
             Assert.True(succeeded);
             engine.AssertLogContains(
-                String.Format(AssemblyResources.GetString("General.MalformedAssemblyName"), "c:\\DoesntExist\\System.Xml.dll"));
+                string.Format(AssemblyResources.GetString("General.MalformedAssemblyName"), "c:\\DoesntExist\\System.Xml.dll"));
         }
 
         /// <summary>
@@ -3176,17 +3157,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void CandidateAssemblyFilesDifferentBaseName()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [new TaskItem("VendorAssembly")],
+                SearchPaths = ["{CandidateAssemblyFiles}"],
+                CandidateAssemblyFiles = [@"Dlls\ProjectItemAssembly.dll"],
+            };
 
-            t.BuildEngine = new MockEngine(_output);
+            Execute(task);
 
-            t.Assemblies = new ITaskItem[] { new TaskItem("VendorAssembly") };
-            t.SearchPaths = new string[] { "{CandidateAssemblyFiles}" };
-            t.CandidateAssemblyFiles = new string[] { @"Dlls\ProjectItemAssembly.dll" };
-
-            Execute(t);
-
-            Assert.Empty(t.ResolvedFiles);
+            Assert.Empty(task.ResolvedFiles);
         }
 
         /// <summary>
@@ -3195,16 +3176,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ResolveToGAC()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-            MockEngine engine = new MockEngine(_output);
-            t.BuildEngine = engine;
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [new TaskItem("System")],
+                TargetedRuntimeVersion = typeof(object).Assembly.ImageRuntimeVersion,
+                SearchPaths = ["{GAC}"],
+            };
 
-            t.Assemblies = new ITaskItem[] { new TaskItem("System") };
-            t.TargetedRuntimeVersion = typeof(Object).Assembly.ImageRuntimeVersion;
-            t.SearchPaths = new string[] { "{GAC}" };
-            bool succeeded = t.Execute();
+            bool succeeded = task.Execute();
             Assert.True(succeeded);
-            Assert.Single(t.ResolvedFiles);
+            Assert.Single(task.ResolvedFiles);
         }
 
         /// <summary>
@@ -3213,18 +3195,20 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ResolveToGACSpecificVersion()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-            MockEngine engine = new MockEngine(_output);
-            t.BuildEngine = engine;
+            TaskItem taskItem = new("System");
+            taskItem.SetMetadata("SpecificVersion", "true");
 
-            TaskItem item = new TaskItem("System");
-            item.SetMetadata("SpecificVersion", "true");
-            t.Assemblies = new ITaskItem[] { item };
-            t.SearchPaths = new string[] { "{GAC}" };
-            t.TargetedRuntimeVersion = new Version("0.5.0.0").ToString();
-            bool succeeded = t.Execute();
+            ResolveAssemblyReference task = new()
+            {
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [taskItem],
+                SearchPaths = ["{GAC}"],
+                TargetedRuntimeVersion = new Version("0.5.0.0").ToString(),
+            };
+
+            bool succeeded = task.Execute();
             Assert.True(succeeded);
-            Assert.Single(t.ResolvedFiles);
+            Assert.Single(task.ResolvedFiles);
         }
 
         /// <summary>
@@ -3263,8 +3247,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 ReferenceTable.CalculateParentAssemblyDirectories(parentReferenceFolders, parentReference);
             }
 
-            Assert.Single(parentReferenceFolders);
-            Assert.Equal(reference2.ResolvedSearchPath, parentReferenceFolders[0].Directory);
+            DirectoryWithParentAssembly parentReferenceFolder = Assert.Single(parentReferenceFolders);
+            Assert.Equal(reference2.ResolvedSearchPath, parentReferenceFolder.Directory);
         }
 
         /// <summary>
@@ -3274,25 +3258,26 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ResolveBadImageInPrimary()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            TaskItem taskItem = new("BadImage");
+            taskItem.SetMetadata("Private", "true");
 
-            MockEngine engine = new MockEngine(_output);
-            t.BuildEngine = engine;
-            t.Assemblies = new ITaskItem[]
+            MockEngine engine = new(_output);
+
+            ResolveAssemblyReference task = new()
             {
-                new TaskItem("BadImage")
+                BuildEngine = engine,
+                Assemblies = [taskItem],
+                SearchPaths = [MyVersion20Path],
+                TargetFrameworkDirectories = [MyVersion20Path],
             };
-            t.Assemblies[0].SetMetadata("Private", "true");
-            t.SearchPaths = new string[] { s_myVersion20Path };
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
 
-            Execute(t);
+            Execute(task);
 
             // There should be no resolved file, because the image was bad.
-            Assert.Empty(t.ResolvedFiles);
+            Assert.Empty(task.ResolvedFiles);
 
             // There should be no related files either.
-            Assert.Empty(t.RelatedFiles);
+            Assert.Empty(task.RelatedFiles);
             engine.AssertLogDoesntContain("BadImage.pdb");
             engine.AssertLogDoesntContain("HRESULT");
 
@@ -3361,14 +3346,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = new ITaskItem[] { new TaskItem(AssemblyRef.SystemData) };
             t.SearchPaths = new string[]
             {
-                s_myProjectPath,
-                s_myVersion20Path
+                MyProjectPath,
+                MyVersion20Path
             };
 
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Data.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Data.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -3384,13 +3369,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.Assemblies = new ITaskItem[] { new TaskItem(AssemblyRef.SystemData) };
             t.SearchPaths = new string[]
             {
-                s_myVersion20Path
+                MyVersion20Path
             };
 
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.Data.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.Data.dll"), t.ResolvedFiles[0].ItemSpec);
             Assert.Equal("false", t.ResolvedFiles[0].GetMetadata("CopyLocal"));
         }
 
@@ -3417,7 +3402,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.BuildEngine = engine;
             t.Assemblies = assemblyNames;
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
             t.SearchPaths = DefaultPaths;
             Execute(t);
             Assert.Equal(@"true", t.ResolvedFiles[0].GetMetadata("CopyLocal"));
@@ -3435,7 +3420,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             // Also construct a set of assembly names to pass in.
             ITaskItem[] assemblyNames = new TaskItem[]
             {
-                new TaskItem(s_assemblyFolder_SomeAssemblyDllPath)
+                new TaskItem(AssemblyFolder_SomeAssemblyDllPath)
             };
 
             // Now, pass feed resolved primary references into ResolveAssemblyReference.
@@ -3471,7 +3456,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.BuildEngine = engine;
             t.Assemblies = assemblyNames;
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
             t.SearchPaths = DefaultPaths;
             Execute(t);
 
@@ -3500,30 +3485,28 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ConflictBetweenCopyLocalDependenciesRegress444809()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
-            MockEngine engine = new MockEngine(_output);
-            t.BuildEngine = engine;
-
-            t.Assemblies = new ITaskItem[] {
-                new TaskItem("A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null"), new TaskItem("C, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null")
+            MockEngine engine = new(_output);
+            ResolveAssemblyReference t = new()
+            {
+                BuildEngine = engine,
+                Assemblies =
+                [
+                    new TaskItem("A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null"),
+                    new TaskItem("C, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null"),
+                ],
+                SearchPaths = [Regress444809RootPath, Regress444809_V2RootPath],
+                TargetFrameworkDirectories = [MyVersion20Path]
             };
-
-            t.SearchPaths = new string[] {
-                s_regress444809RootPath, s_regress444809_V2RootPath
-            };
-
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
 
             bool result = Execute(t);
-            ResourceManager resources = new ResourceManager("Microsoft.Build.Tasks.Strings", Assembly.GetExecutingAssembly());
+            ResourceManager resources = new("Microsoft.Build.Tasks.Strings", Assembly.GetExecutingAssembly());
 
             // Unresolved primary reference with itemspec "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null".
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.UnifiedReferenceDependsOn", "A, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_ADllPath);
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.ReferenceDependsOn", "A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_V2_ADllPath);
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_CDllPath);
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_BDllPath);
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_V2_ADllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.UnifiedReferenceDependsOn", "A, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null", Regress444809_ADllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.ReferenceDependsOn", "A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null", Regress444809_V2_ADllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", Regress444809_CDllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", Regress444809_BDllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", Regress444809_V2_ADllPath);
         }
 
         /// <summary>
@@ -3545,30 +3528,27 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ConflictBetweenCopyLocalDependenciesRegress444809UnResolvedPrimaryReference()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
-            MockEngine engine = new MockEngine(_output);
-            t.BuildEngine = engine;
-
-            t.Assemblies = new ITaskItem[] {
-                new TaskItem("A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null"),
-                new TaskItem("B, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null"),
-                new TaskItem("D, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null")
+            MockEngine engine = new(_output);
+            ResolveAssemblyReference t = new()
+            {
+                BuildEngine = engine,
+                Assemblies =
+                [
+                    new TaskItem("A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null"),
+                    new TaskItem("B, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null"),
+                    new TaskItem("D, Version=1.0.0.0, Culture=Neutral, PublicKeyToken=null"),
+                ],
+                SearchPaths = [Regress444809RootPath, Regress444809_V2RootPath],
+                TargetFrameworkDirectories = [MyVersion20Path],
             };
-
-            t.SearchPaths = new string[] {
-                s_regress444809RootPath, s_regress444809_V2RootPath
-            };
-
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
 
             bool result = Execute(t);
 
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.ReferenceDependsOn", "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null", String.Empty);
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.UnifiedReferenceDependsOn", "A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null", s_regress444809_V2_ADllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.ReferenceDependsOn", "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null", string.Empty);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.UnifiedReferenceDependsOn", "A, Version=2.0.0.0, Culture=Neutral, PublicKeyToken=null", Regress444809_V2_ADllPath);
             engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.UnResolvedPrimaryItemSpec", "A, Version=20.0.0.0, Culture=Neutral, PublicKeyToken=null");
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_DDllPath);
-            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", s_regress444809_BDllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", Regress444809_DDllPath);
+            engine.AssertLogContainsMessageFromResource(ResourceDelegate, "ResolveAssemblyReference.PrimarySourceItemsForReference", Regress444809_BDllPath);
         }
 
         /// <summary>
@@ -3599,10 +3579,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
+                MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
 
             bool result = Execute(t);
 
@@ -3612,7 +3592,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             string warningMessage = e.WarningEvents[0].Message;
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.FoundConflicts", "D", string.Empty));
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ConflictFound", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", "D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa"));
-            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(s_myLibraries_V1Path, "D.dll"))));
+            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(MyLibraries_V1Path, "D.dll"))));
         }
 
         [Fact]
@@ -3631,10 +3611,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
+                MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
             t.OutputUnresolvedAssemblyConflicts = true;
 
             Execute(t);
@@ -3675,10 +3655,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
+                MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
 
             bool result = Execute(t);
 
@@ -3688,12 +3668,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             string warningMessage = e.WarningEvents[0].Message;
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.FoundConflicts", "D", string.Empty));
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ConflictFound", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", "D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa"));
-            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(s_myLibraries_V1Path, "D.dll"))));
+            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "D, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(MyLibraries_V1Path, "D.dll"))));
 
             warningMessage = e.WarningEvents[1].Message;
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.FoundConflicts", "G", string.Empty));
             warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ConflictFound", "G, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", "G, Version=2.0.0.0, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa"));
-            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "G, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(s_myLibraries_V1Path, "G.dll"))));
+            warningMessage.ShouldContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.FourSpaceIndent", ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ResolveAssemblyReference.ReferenceDependsOn", "G, Version=1.0.0.0, CulTUre=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa", Path.Combine(MyLibraries_V1Path, "G.dll"))));
         }
 
         /// <summary>
@@ -3713,32 +3693,28 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ConflictWithForeVersionPrimary()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
-
-            t.BuildEngine = new MockEngine(_output);
-
-            t.Assemblies = new ITaskItem[]
+            ResolveAssemblyReference task = new()
             {
-                new TaskItem("B"),
-                new TaskItem("A"),
-                new TaskItem("D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa")
+                BuildEngine = new MockEngine(_output),
+                Assemblies =
+                [
+                    new TaskItem("B"),
+                    new TaskItem("A"),
+                    new TaskItem("D, Version=2.0.0.0, Culture=neutral, PublicKeyToken=aaaaaaaaaaaaaaaa")
+                ],
+                SearchPaths = [MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path],
+                TargetFrameworkDirectories = [MyVersion20Path],
             };
 
-            t.SearchPaths = new string[] {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
-            };
-
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
-
-            bool result = Execute(t);
+            bool result = Execute(task);
 
             Assert.True(result); // @"Expected a success because this conflict is solvable."
-            Assert.Equal(3, t.ResolvedFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V2_DDllPath));
+            Assert.Equal(3, task.ResolvedFiles.Length);
+            Assert.True(ContainsItem(task.ResolvedFiles, MyLibraries_V2_DDllPath));
 
-            Assert.Equal(2, t.ResolvedDependencyFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V1_DDllPath));
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V2_GDllPath));
+            Assert.Equal(2, task.ResolvedDependencyFiles.Length);
+            Assert.True(ContainsItem(task.ResolvedDependencyFiles, MyLibraries_V1_DDllPath));
+            Assert.True(ContainsItem(task.ResolvedDependencyFiles, MyLibraries_V2_GDllPath));
         }
 
         /// <summary>
@@ -3767,17 +3743,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
+                MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
 
             bool result = Execute(t);
 
             Assert.Equal(2, e.Warnings); // @"Expected a warning because this is an unresolvable conflict."
             Assert.Equal(2, t.ResolvedFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V2_DDllPath)); // "Expected to find assembly, but didn't."
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_V2_DDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -3804,15 +3780,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             };
 
             t.SearchPaths = new string[] {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
+                MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path
             };
 
             bool result = Execute(t);
 
             Assert.True(result); // @"Expected success because this conflict is solvable."
             Assert.Equal(2, t.ResolvedFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V2_DDllPath)); // "Expected to find assembly, but didn't."
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_V2_DDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -3841,7 +3817,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V1Path, @"c:\RogueLibraries\v1"
+                MyLibrariesRootPath, MyLibraries_V1Path, @"c:\RogueLibraries\v1"
             };
 
             bool result = Execute(t);
@@ -3877,13 +3853,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V1Path, @"c:\RogueLibraries\v1"
+                MyLibrariesRootPath, MyLibraries_V1Path, @"c:\RogueLibraries\v1"
             };
 
             Execute(t);
 
             Assert.Equal(3, t.ResolvedFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -3908,7 +3884,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.Equal(Path.Combine(s_myVersion20Path, "System.XML.dll"), t.ResolvedFiles[0].ItemSpec);
+            Assert.Equal(Path.Combine(MyVersion20Path, "System.XML.dll"), t.ResolvedFiles[0].ItemSpec);
         }
 
         /// <summary>
@@ -4008,7 +3984,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath,
+                MyLibrariesRootPath,
                 @"c:\MyExecutableLibraries"
             };
 
@@ -4048,7 +4024,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.SearchPaths = new string[]
             {
                 @"c:\MyExecutableLibraries",
-                s_myLibrariesRootPath
+                MyLibrariesRootPath
             };
 
             Execute(t);
@@ -4056,7 +4032,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_ADllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_ADllPath)); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -4085,7 +4061,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath,
+                MyLibrariesRootPath,
                 @"c:\MyExecutableLibraries"
             };
 
@@ -4094,7 +4070,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_ADllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_ADllPath)); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -4124,7 +4100,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.SearchPaths = new string[]
             {
                 @"c:\MyExecutableLibraries",
-                s_myLibrariesRootPath
+                MyLibrariesRootPath
             };
 
             Execute(t);
@@ -4166,7 +4142,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.SearchPaths = new string[]
             {
                 @"c:\MyStronglyNamed",
-                s_myLibrariesRootPath
+                MyLibrariesRootPath
             };
 
             Execute(t);
@@ -4204,7 +4180,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.SearchPaths = new string[]
             {
                 @"c:\MyStronglyNamed",
-                s_myLibrariesRootPath
+                MyLibrariesRootPath
             };
 
             Execute(t);
@@ -4239,15 +4215,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V2Path, s_myLibraries_V1Path
+                MyLibrariesRootPath, MyLibraries_V2Path, MyLibraries_V1Path
             };
 
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
+            t.TargetFrameworkDirectories = new string[] { MyVersion20Path };
 
             bool result = Execute(t);
 
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_V1_DDllPath)); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -4291,7 +4267,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V1Path, s_myLibraries_V1_EPath
+                MyLibrariesRootPath, MyLibraries_V1Path, MyLibraries_V1_EPath
             };
             t.TargetFrameworkDirectories = new string[] { @"c:\myfx" };
 
@@ -4299,13 +4275,13 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             Assert.Equal(2, t.ResolvedFiles.Length);
             Assert.Single(t.ResolvedDependencyFiles); // Not 2 because D is treated as a primary reference.
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V1_E_EDllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, MyLibraries_V1_E_EDllPath)); // "Expected to find assembly, but didn't."
             Assert.Equal(0, engine.Warnings);
             Assert.Equal(0, engine.Errors);
 
             foreach (ITaskItem item in t.ResolvedDependencyFiles)
             {
-                if (String.Equals(item.ItemSpec, s_myLibraries_V1_E_EDllPath, StringComparison.OrdinalIgnoreCase))
+                if (String.Equals(item.ItemSpec, MyLibraries_V1_E_EDllPath, StringComparison.OrdinalIgnoreCase))
                 {
                     Assert.Equal("false", item.GetMetadata("CopyLocal"));
                 }
@@ -4352,7 +4328,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath, s_myLibraries_V1Path, s_myLibraries_V2Path, s_myLibraries_V1_EPath
+                MyLibrariesRootPath, MyLibraries_V1Path, MyLibraries_V2Path, MyLibraries_V1_EPath
             };
             t.TargetFrameworkDirectories = new string[] { @"c:\myfx" };
 
@@ -4361,19 +4337,19 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(2, t.ResolvedFiles.Length);
 
             Assert.Equal(4, t.ResolvedDependencyFiles.Length);
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V1_DDllPath));
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V2_DDllPath));
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V2_GDllPath));
-            Assert.True(ContainsItem(t.ResolvedDependencyFiles, s_myLibraries_V1_E_EDllPath));
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, MyLibraries_V1_DDllPath));
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, MyLibraries_V2_DDllPath));
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, MyLibraries_V2_GDllPath));
+            Assert.True(ContainsItem(t.ResolvedDependencyFiles, MyLibraries_V1_E_EDllPath));
 
             foreach (ITaskItem item in t.ResolvedDependencyFiles)
             {
-                if (String.Equals(item.ItemSpec, s_myLibraries_V1_DDllPath, StringComparison.OrdinalIgnoreCase))
+                if (String.Equals(item.ItemSpec, MyLibraries_V1_DDllPath, StringComparison.OrdinalIgnoreCase))
                 {
                     Assert.Equal("false", item.GetMetadata("CopyLocal"));
                 }
 
-                if (String.Equals(item.ItemSpec, s_myLibraries_V1_E_EDllPath, StringComparison.OrdinalIgnoreCase))
+                if (String.Equals(item.ItemSpec, MyLibraries_V1_E_EDllPath, StringComparison.OrdinalIgnoreCase))
                 {
                     Assert.Equal("true", item.GetMetadata("CopyLocal"));
                 }
@@ -4620,7 +4596,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             ITaskItem[] assemblyFiles = new TaskItem[]
                     {
-                        new TaskItem(s_unifyMeDll_V10Path),
+                        new TaskItem(UnifyMeDll_V10Path),
                         new TaskItem(Path.GetTempPath())
                     };
 
@@ -4926,8 +4902,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             {
                 "{RawFileName}",
                 "{CandidateAssemblyFiles}",
-                s_myProjectPath,
-                s_myVersion20Path,
+                MyProjectPath,
+                MyVersion20Path,
                 @"{Registry:Software\Microsoft\.NetFramework,v2.0,AssemblyFoldersEx}",
                 "{AssemblyFolders}",
                 "{HintPathFromItem}"
@@ -4958,7 +4934,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath
+                MyLibrariesRootPath
             };
 
             Execute(t);
@@ -4966,7 +4942,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_ADllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_ADllPath)); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -4985,7 +4961,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 new TaskItem("A")
             };
 
-            t.TargetFrameworkDirectories = new string[] { @"c:\boguslocation", s_myLibrariesRootPath };
+            t.TargetFrameworkDirectories = new string[] { @"c:\boguslocation", MyLibrariesRootPath };
             t.SearchPaths = new string[]
             {
                 @"{TargetFrameworkDirectory}",
@@ -4996,7 +4972,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Equal(0, e.Warnings); // "No warnings expected in this scenario."
             Assert.Equal(0, e.Errors); // "No errors expected in this scenario."
             Assert.Single(t.ResolvedFiles);
-            Assert.True(ContainsItem(t.ResolvedFiles, s_myLibraries_ADllPath)); // "Expected to find assembly, but didn't."
+            Assert.True(ContainsItem(t.ResolvedFiles, MyLibraries_ADllPath)); // "Expected to find assembly, but didn't."
         }
 
         /// <summary>
@@ -5011,7 +4987,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             ITaskItem[] assemblyFiles = new TaskItem[]
                     {
-                        new TaskItem(s_unifyMeDll_V10Path)
+                        new TaskItem(UnifyMeDll_V10Path)
                     };
 
             // Construct the app.config.
@@ -5060,8 +5036,8 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             {
                 "{RawFileName}",
                 "{CandidateAssemblyFiles}",
-                s_myProjectPath,
-                s_myVersion20Path,
+                MyProjectPath,
+                MyVersion20Path,
                 @"{Registry:Software\Microsoft\.NetFramework,v2.0,AssemblyFoldersEx}",
                 "{AssemblyFolders}",
                 "{HintPathFromItem}"
@@ -7525,27 +7501,22 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ByDesignRelatedTo454863_PrimaryReferencesDontResolveToParentFolders()
         {
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            ITaskItem taskItemA = new TaskItem("A");
+            taskItemA.SetMetadata("HintPath", Regress454863_ADllPath);
 
-            MockEngine e = new MockEngine(_output);
-            t.BuildEngine = e;
+            ITaskItem taskItemB = new TaskItem("B");
 
-            t.Assemblies = new ITaskItem[]
+            ResolveAssemblyReference t = new()
             {
-                new TaskItem("A"),
-                new TaskItem("B")
-            };
-            t.Assemblies[0].SetMetadata("HintPath", s_regress454863_ADllPath);
-
-            t.SearchPaths = new string[]
-            {
-                "{HintPathFromItem}"
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [taskItemA, taskItemB],
+                SearchPaths = ["{HintPathFromItem}"],
             };
 
             Execute(t);
 
-            Assert.True(ContainsItem(t.ResolvedFiles, s_regress454863_ADllPath), "Expected A.dll to be resolved.");
-            Assert.True(!ContainsItem(t.ResolvedFiles, s_regress454863_BDllPath), "Expected B.dll to be *not* be resolved.");
+            Assert.True(ContainsItem(t.ResolvedFiles, Regress454863_ADllPath), "Expected A.dll to be resolved.");
+            Assert.False(ContainsItem(t.ResolvedFiles, Regress454863_BDllPath), "Expected B.dll to be *not* be resolved.");
         }
 
         [Fact]
@@ -7756,7 +7727,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             t.SearchPaths = new string[]
             {
-                s_myLibrariesRootPath
+                MyLibrariesRootPath
             };
 
             t.Assemblies[1].SetMetadata("RequiredTargetFramework", "3.0");
@@ -8111,7 +8082,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 ResolveAssemblyReference t = new ResolveAssemblyReference();
                 MockEngine e = new MockEngine(_output);
                 t.BuildEngine = e;
-                t.AssemblyFiles = new ITaskItem[] { new TaskItem(Path.Combine(s_myComponentsMiscPath, "DependsOn9Also.dll")) };
+                t.AssemblyFiles = new ITaskItem[] { new TaskItem(Path.Combine(MyComponentsMiscPath, "DependsOn9Also.dll")) };
                 t.SearchPaths = new string[] { @"{TargetFrameworkDirectory}", fullFrameworkDirectory };
                 t.TargetFrameworkDirectories = new string[] { targetFrameworkDirectory };
                 t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(profileRedistList) };
@@ -8123,7 +8094,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 bool success = Execute(t, false);
                 Assert.True(success); // "Expected no errors."
                 Assert.Empty(t.ResolvedFiles); // "Expected no resolved assemblies."
-                string warningMessage = t.Log.FormatResourceString("ResolveAssemblyReference.FailBecauseDependentAssemblyInExclusionList", Path.Combine(s_myComponentsMiscPath, "DependsOn9Also.dll"), "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", t.TargetFrameworkMoniker);
+                string warningMessage = t.Log.FormatResourceString("ResolveAssemblyReference.FailBecauseDependentAssemblyInExclusionList", Path.Combine(MyComponentsMiscPath, "DependsOn9Also.dll"), "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", t.TargetFrameworkMoniker);
                 e.AssertLogContains(warningMessage);
             }
             finally
@@ -8159,7 +8130,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 ResolveAssemblyReference t = new ResolveAssemblyReference();
                 MockEngine e = new MockEngine(_output);
                 t.BuildEngine = e;
-                TaskItem item = new TaskItem(Path.Combine(s_myComponentsMiscPath, "DependsOn9Also.dll"));
+                TaskItem item = new TaskItem(Path.Combine(MyComponentsMiscPath, "DependsOn9Also.dll"));
                 item.SetMetadata("SpecificVersion", "true");
                 t.AssemblyFiles = new ITaskItem[] { item };
                 t.SearchPaths = new string[] { @"{TargetFrameworkDirectory}", fullFrameworkDirectory };
@@ -8172,7 +8143,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 bool success = Execute(t);
                 Assert.True(success); // "Expected no errors."
                 Assert.Single(t.ResolvedFiles); // "Expected no resolved assemblies."
-                string warningMessage = t.Log.FormatResourceString("ResolveAssemblyReference.FailBecauseDependentAssemblyInExclusionList", Path.Combine(s_myComponentsMiscPath, "DependsOn9Also.dll"), "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "Client");
+                string warningMessage = t.Log.FormatResourceString("ResolveAssemblyReference.FailBecauseDependentAssemblyInExclusionList", Path.Combine(MyComponentsMiscPath, "DependsOn9Also.dll"), "System, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "Client");
                 e.AssertLogDoesntContain(warningMessage);
             }
             finally
@@ -8306,7 +8277,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 t.BuildEngine = e;
                 TaskItem item = new TaskItem(@"DependsOnOnlyv4Assemblies, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b17a5c561934e089");
                 t.Assemblies = new ITaskItem[] { item };
-                t.SearchPaths = new string[] { s_myComponents40ComponentPath, "{GAC}" };
+                t.SearchPaths = new string[] { MyComponents40ComponentPath, "{GAC}" };
                 t.TargetFrameworkDirectories = new string[] { targetFrameworkDirectory };
                 t.InstalledAssemblyTables = new ITaskItem[] { new TaskItem(profileRedistList) };
                 t.IgnoreDefaultInstalledAssemblyTables = true;
