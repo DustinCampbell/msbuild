@@ -39,20 +39,20 @@ internal static class EventsCreatorHelper
             subcategory = AssemblyResources.GetString(subcategoryResourceName);
         }
 
-        BuildErrorEventArgs buildEvent =
-        new BuildErrorEventArgs(
+        BuildErrorEventArgs buildEvent = new BuildErrorEventArgs(
             subcategory,
             errorCode,
-            file!.File,
-            file.Line,
-            file.Column,
-            file.EndLine,
-            file.EndColumn,
+            file: file.File,
+            lineNumber: file.Line,
+            columnNumber: file.Column,
+            endLineNumber: 0,
+            endColumnNumber: 0,
             message,
             helpKeyword,
-            "MSBuild");
-
-        buildEvent.BuildEventContext = buildEventContext;
+            senderName: "MSBuild")
+        {
+            BuildEventContext = buildEventContext
+        };
 
         return buildEvent;
     }
@@ -70,20 +70,20 @@ internal static class EventsCreatorHelper
             subcategory = AssemblyResources.GetString(subcategoryResourceName);
         }
 
-        BuildWarningEventArgs buildEvent =
-        new BuildWarningEventArgs(
+        BuildWarningEventArgs buildEvent = new BuildWarningEventArgs(
             subcategory,
             errorCode,
-            file!.File,
-            file.Line,
-            file.Column,
-            file.EndLine,
-            file.EndColumn,
-            message,
-            helpKeyword,
-            "MSBuild");
-
-        buildEvent.BuildEventContext = buildEventContext;
+            file.File,
+            lineNumber: file.Line,
+            columnNumber: file.Column,
+            endLineNumber: 0,
+            endColumnNumber: 0,
+            message: message,
+            helpKeyword: helpKeyword,
+            senderName: "MSBuild")
+        {
+            BuildEventContext = buildEventContext
+        };
 
         return buildEvent;
     }

@@ -347,7 +347,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (PathTooLongException ex)
             {
-                evaluator._evaluationLoggingContext.LogErrorFromText(null, null, null, new BuildEventFileInfo(root.ProjectFileLocation.File),
+                evaluator._evaluationLoggingContext.LogErrorFromText(null, null, null, BuildEventFileInfo.Create(root.ProjectFileLocation.File),
                     ex.Message);
             }
             finally
@@ -1123,10 +1123,10 @@ namespace Microsoft.Build.Evaluation
             switch (ChangeWaves.ConversionState)
             {
                 case ChangeWaveConversionState.InvalidFormat:
-                    _evaluationLoggingContext.LogWarning("", new BuildEventFileInfo(""), "ChangeWave_InvalidFormat", Traits.Instance.MSBuildDisableFeaturesFromVersion, $"[{string.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
+                    _evaluationLoggingContext.LogWarning("", BuildEventFileInfo.Empty, "ChangeWave_InvalidFormat", Traits.Instance.MSBuildDisableFeaturesFromVersion, $"[{string.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
                     break;
                 case ChangeWaveConversionState.OutOfRotation:
-                    _evaluationLoggingContext.LogWarning("", new BuildEventFileInfo(""), "ChangeWave_OutOfRotation", ChangeWaves.DisabledWave, Traits.Instance.MSBuildDisableFeaturesFromVersion, $"[{string.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
+                    _evaluationLoggingContext.LogWarning("", BuildEventFileInfo.Empty, "ChangeWave_OutOfRotation", ChangeWaves.DisabledWave, Traits.Instance.MSBuildDisableFeaturesFromVersion, $"[{string.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
                     break;
             }
         }
@@ -2132,7 +2132,7 @@ namespace Microsoft.Build.Evaluation
                     // and issue a warning to that effect.
                     if (string.Equals(_projectRootElement.FullPath, importFileUnescaped, StringComparison.OrdinalIgnoreCase) /* We are trying to import ourselves */)
                     {
-                        _evaluationLoggingContext.LogWarning(null, new BuildEventFileInfo(importLocationInProject), "SelfImport", importFileUnescaped);
+                        _evaluationLoggingContext.LogWarning(null, BuildEventFileInfo.Create(importLocationInProject), "SelfImport", importFileUnescaped);
                         atleastOneImportIgnored = true;
 
                         continue;
@@ -2149,7 +2149,7 @@ namespace Microsoft.Build.Evaluation
                             // Get the full path of the MSBuild file that has this import.
                             string importedBy = importElement.ContainingProject.FullPath ?? string.Empty;
 
-                            _evaluationLoggingContext.LogWarning(null, new BuildEventFileInfo(importLocationInProject), "ImportIntroducesCircularity", importFileUnescaped, importedBy);
+                            _evaluationLoggingContext.LogWarning(null, BuildEventFileInfo.Create(importLocationInProject), "ImportIntroducesCircularity", importFileUnescaped, importedBy);
 
                             // Throw exception if the project load settings requires us to stop the evaluation of a project when circular imports are detected.
                             if ((_loadSettings & ProjectLoadSettings.RejectCircularImports) != 0)
@@ -2176,7 +2176,7 @@ namespace Microsoft.Build.Evaluation
                             parenthesizedProjectLocation = $"[{_projectRootElement.FullPath}]";
                         }
                         // TODO: Detect if the duplicate import came from an SDK attribute
-                        _evaluationLoggingContext.LogWarning(null, new BuildEventFileInfo(importLocationInProject), "DuplicateImport", importFileUnescaped, previouslyImportedAt.Location.LocationString, parenthesizedProjectLocation);
+                        _evaluationLoggingContext.LogWarning(null, BuildEventFileInfo.Create(importLocationInProject), "DuplicateImport", importFileUnescaped, previouslyImportedAt.Location.LocationString, parenthesizedProjectLocation);
                         duplicateImport = true;
                     }
 

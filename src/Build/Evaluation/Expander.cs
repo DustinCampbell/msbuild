@@ -1186,7 +1186,7 @@ namespace Microsoft.Build.Evaluation
                         evaluator._metadata is IItemTypeDefinition itemMetadata &&
                         (string.IsNullOrEmpty(itemType) || string.Equals(itemType, itemMetadata.ItemType, StringComparison.Ordinal)))
                     {
-                        evaluator._loggingContext.LogComment(MessageImportance.Low, new BuildEventFileInfo(evaluator._elementLocation),
+                        evaluator._loggingContext.LogComment(MessageImportance.Low, BuildEventFileInfo.Create(evaluator._elementLocation),
                             "ItemReferencingSelfInTarget", itemMetadata.ItemType, metadataName);
                     }
 

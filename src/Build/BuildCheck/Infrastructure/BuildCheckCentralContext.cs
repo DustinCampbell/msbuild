@@ -257,10 +257,10 @@ internal sealed class BuildCheckCentralContext
             catch (Exception e)
             {
                 checkContext.DispatchAsWarningFromText(
-                    null,
-                    null,
-                    null,
-                    new BuildEventFileInfo(projectFullPath),
+                    subcategoryResourceName: null,
+                    errorCode: null,
+                    helpKeyword: null,
+                    BuildEventFileInfo.Create(projectFullPath),
                     $"The check '{checkCallback.Item1.Check.FriendlyName}' threw an exception while executing a registered action with message: {e.Message}");
 
                 checksToRemove = checksToRemove ?? new List<CheckWrapper>();

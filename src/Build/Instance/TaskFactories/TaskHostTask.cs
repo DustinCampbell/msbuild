@@ -634,7 +634,7 @@ namespace Microsoft.Build.BackEnd
                         string.Empty];
                 }
 
-                _taskLoggingContext.LogFatalError(taskHostTaskComplete.TaskException, new BuildEventFileInfo(_taskLocation), taskHostTaskComplete.TaskExceptionMessage, taskHostTaskComplete.TaskExceptionMessageArgs);
+                _taskLoggingContext.LogFatalError(taskHostTaskComplete.TaskException, BuildEventFileInfo.Create(_taskLocation), taskHostTaskComplete.TaskExceptionMessage, taskHostTaskComplete.TaskExceptionMessageArgs);
             }
 
             // Set the output parameters for later
@@ -658,7 +658,7 @@ namespace Microsoft.Build.BackEnd
                 // nothing much else to say.
                 _taskExecutionSucceeded = false;
 
-                _taskLoggingContext.LogError(new BuildEventFileInfo(_taskLocation), "TaskHostExitedPrematurely", (nodeShutdown.Exception == null) ? String.Empty : nodeShutdown.Exception.ToString());
+                _taskLoggingContext.LogError(BuildEventFileInfo.Create(_taskLocation), "TaskHostExitedPrematurely", (nodeShutdown.Exception == null) ? String.Empty : nodeShutdown.Exception.ToString());
             }
         }
 
@@ -831,18 +831,18 @@ namespace Microsoft.Build.BackEnd
             string msbuildLocation = taskHostLocation ??
                 // We don't know the path -- probably we're trying to get a 64-bit assembly on a
                 // 32-bit machine.  At least give them the exe name to look for, though ...
-                ((requiredContext & HandshakeOptions.CLR2) == HandshakeOptions.CLR2 
-                ? "MSBuildTaskHost.exe" 
+                ((requiredContext & HandshakeOptions.CLR2) == HandshakeOptions.CLR2
+                ? "MSBuildTaskHost.exe"
                 : NodeProviderOutOfProcTaskHost.GetTaskHostNameFromHostContext(requiredContext));
 
             if (e == null)
             {
-                _taskLoggingContext.LogError(new BuildEventFileInfo(_taskLocation), "TaskHostAcquireFailed", _taskType.Type.Name, runtime, architecture, msbuildLocation);
+                _taskLoggingContext.LogError(BuildEventFileInfo.Create(_taskLocation), "TaskHostAcquireFailed", _taskType.Type.Name, runtime, architecture, msbuildLocation);
             }
             else
             {
                 _taskLoggingContext.LogError(
-                    new BuildEventFileInfo(_taskLocation),
+                    BuildEventFileInfo.Create(_taskLocation),
                     "TaskHostNodeFailedToLaunch",
                     _taskType.Type.Name,
                     runtime,

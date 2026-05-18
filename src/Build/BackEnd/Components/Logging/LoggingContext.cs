@@ -140,18 +140,18 @@ namespace Microsoft.Build.BackEnd.Logging
             CheckValidity();
 
             _loggingService.LogBuildEvent(new BuildMessageEventArgs(
-                null,
-                null,
-                file.File,
-                file.Line,
-                file.Column,
-                file.EndLine,
-                file.EndColumn,
-                ResourceUtilities.GetResourceString(messageResourceName),
+                subcategory: null,
+                code: null,
+                file: file.File,
+                lineNumber: file.Line,
+                columnNumber: file.Column,
+                endLineNumber: 0,
+                endColumnNumber: 0,
+                message: ResourceUtilities.GetResourceString(messageResourceName),
                 helpKeyword: null,
                 senderName: "MSBuild",
                 importance,
-                DateTime.UtcNow,
+                eventTimestamp: DateTime.UtcNow,
                 messageArgs)
             {
                 BuildEventContext = _eventContext

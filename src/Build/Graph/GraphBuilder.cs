@@ -356,7 +356,7 @@ namespace Microsoft.Build.Graph
                         {
                             ProjectFileErrorUtilities.ThrowInvalidProjectFile(
                                 "SubCategoryForSolutionParsingErrors",
-                                new BuildEventFileInfo(Solution.FullPath),
+                                BuildEventFileInfo.Create(Solution.FullPath),
                                 "SolutionParseProjectDepNotFoundError",
                                 project.ProjectGuid,
                                 dependencyProjectGuid);

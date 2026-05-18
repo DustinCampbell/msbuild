@@ -230,10 +230,10 @@ internal sealed class BuildCheckManagerProvider : IBuildCheckManagerProvider
                             catch (BuildCheckConfigurationException e)
                             {
                                 checkContext.DispatchAsWarningFromText(
-                                    null,
-                                    null,
-                                    null,
-                                    new BuildEventFileInfo(projectPath),
+                                    subcategoryResourceName: null,
+                                    errorCode: null,
+                                    helpKeyword: null,
+                                    BuildEventFileInfo.Create(projectPath),
                                     e.Message);
                                 invalidChecksToRemove.Add(checkFactoryContext);
                             }
@@ -341,10 +341,10 @@ internal sealed class BuildCheckManagerProvider : IBuildCheckManagerProvider
                 catch (BuildCheckConfigurationException e)
                 {
                     checkContext.DispatchAsWarningFromText(
-                        null,
-                        null,
-                        null,
-                        new BuildEventFileInfo(projectFullPath),
+                        subcategoryResourceName: null,
+                        errorCode: null,
+                        helpKeyword: null,
+                        BuildEventFileInfo.Create(projectFullPath),
                         e.Message);
                     invalidChecksToRemove.Add(checkFactoryContext);
                 }
@@ -393,7 +393,7 @@ internal sealed class BuildCheckManagerProvider : IBuildCheckManagerProvider
         private void RemoveCheck(CheckFactoryContext checkToRemove)
         {
             var tempColl = new ConcurrentBag<CheckFactoryContext>();
-            
+
             // Take items one by one and only keep those we don't want to remove
             while (_checkRegistry.TryTake(out var item))
             {
@@ -404,13 +404,13 @@ internal sealed class BuildCheckManagerProvider : IBuildCheckManagerProvider
                 else if (item.MaterializedCheck is not null)
                 {
                     _buildCheckCentralContext.DeregisterCheck(item.MaterializedCheck);
-                    
+
                     var telemetryData = item.MaterializedCheck.GetRuleTelemetryData();
                     foreach (var data in telemetryData)
                     {
                         _ruleTelemetryData.Add(data);
                     }
-                    
+
                     item.MaterializedCheck.Check.Dispose();
                 }
             }

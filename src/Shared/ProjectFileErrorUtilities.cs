@@ -150,7 +150,17 @@ namespace Microsoft.Build.Shared
                 string errorSubCategory = errorSubCategoryResourceName is null ? null : AssemblyResources.GetString(errorSubCategoryResourceName);
                 string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out string helpKeyword, resourceName, args);
 
-                throw new InvalidProjectFileException(projectFile.File, projectFile.Line, projectFile.Column, projectFile.EndLine, projectFile.EndColumn, message, errorSubCategory, errorCode, helpKeyword, innerException);
+                throw new InvalidProjectFileException(
+                    projectFile: projectFile.File,
+                    lineNumber: projectFile.Line,
+                    columnNumber: projectFile.Column,
+                    endLineNumber: 0,
+                    endColumnNumber: 0,
+                    message,
+                    errorSubCategory,
+                    errorCode,
+                    helpKeyword,
+                    innerException);
             }
         }
     }

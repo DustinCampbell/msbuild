@@ -427,7 +427,7 @@ namespace Microsoft.Build.Internal
                 loggingService.LogWarning(
                     buildEventContext,
                     string.Empty,
-                    new BuildEventFileInfo(buildEventFileInfoFullPath),
+                    BuildEventFileInfo.Create(buildEventFileInfoFullPath),
                     DriveEnumeratingWildcardMessageResourceName,
                     filespecUnescaped,
                     XMakeAttributes.include,

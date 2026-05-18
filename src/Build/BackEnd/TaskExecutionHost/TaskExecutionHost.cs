@@ -435,7 +435,7 @@ namespace Microsoft.Build.BackEnd
                 catch (Exception e) when (!ExceptionHandling.NotExpectedReflectionException(e))
                 {
                     // Reflection related exception
-                    _taskLoggingContext.LogError(new BuildEventFileInfo(_taskLocation), "TaskParametersError", _taskName, e.Message);
+                    _taskLoggingContext.LogError(BuildEventFileInfo.Create(_taskLocation), "TaskParametersError", _taskName, e.Message);
 
                     success = false;
                 }
@@ -542,7 +542,7 @@ namespace Microsoft.Build.BackEnd
             {
                 // handle invalid TaskItems in task outputs
                 _targetLoggingContext.LogError(
-                    new BuildEventFileInfo(parameterLocation),
+                    BuildEventFileInfo.Create(parameterLocation),
                     "InvalidTaskItemsInTaskOutputs",
                     _taskName,
                     parameterName,
@@ -559,7 +559,7 @@ namespace Microsoft.Build.BackEnd
                 // because this will be a hard error anyway.
                 _targetLoggingContext.LogFatalTaskError(
                     e.InnerException,
-                    new BuildEventFileInfo(parameterLocation),
+                    BuildEventFileInfo.Create(parameterLocation),
                     _taskName);
 
                 // We do not recover from a task exception while getting outputs,
@@ -719,7 +719,7 @@ namespace Microsoft.Build.BackEnd
                 {
                     try
                     {
-                        _taskLoggingContext.LogFatalTaskError(e, new BuildEventFileInfo(_taskLocation), ((ProjectTaskInstance)_taskLoggingContext.Task).Name);
+                        _taskLoggingContext.LogFatalTaskError(e, BuildEventFileInfo.Create(_taskLocation), ((ProjectTaskInstance)_taskLoggingContext.Task).Name);
                     }
 
                     // If this fails it could be due to the task logging context no longer being valid due to a race condition where the task completes while we
@@ -938,23 +938,23 @@ namespace Microsoft.Build.BackEnd
                             if (returnClass == null)
                             {
                                 _targetLoggingContext.LogError(
-                                        new BuildEventFileInfo(_taskLocation),
-                                        "MissingTaskError",
-                                        _taskName,
-                                        _projectInstance.TaskRegistry.Toolset.ToolsPath);
+                                    BuildEventFileInfo.Create(_taskLocation),
+                                    "MissingTaskError",
+                                    _taskName,
+                                    _projectInstance.TaskRegistry.Toolset.ToolsPath);
 
                                 return null;
                             }
                         }
 
                         _targetLoggingContext.LogError(
-                                new BuildEventFileInfo(_taskLocation),
-                                "TaskExistsButHasMismatchedIdentityError",
-                                _taskName,
-                                returnClass.FactoryIdentityParameters.Runtime ?? XMakeAttributes.MSBuildRuntimeValues.any,
-                                returnClass.FactoryIdentityParameters.Architecture ?? XMakeAttributes.MSBuildArchitectureValues.any,
-                                taskIdentityParameters.Runtime ?? XMakeAttributes.MSBuildRuntimeValues.any,
-                                taskIdentityParameters.Architecture ?? XMakeAttributes.MSBuildArchitectureValues.any);
+                            BuildEventFileInfo.Create(_taskLocation),
+                            "TaskExistsButHasMismatchedIdentityError",
+                            _taskName,
+                            returnClass.FactoryIdentityParameters.Runtime ?? XMakeAttributes.MSBuildRuntimeValues.any,
+                            returnClass.FactoryIdentityParameters.Architecture ?? XMakeAttributes.MSBuildArchitectureValues.any,
+                            taskIdentityParameters.Runtime ?? XMakeAttributes.MSBuildRuntimeValues.any,
+                            taskIdentityParameters.Architecture ?? XMakeAttributes.MSBuildArchitectureValues.any);
 
                         // if we've logged this error, even though we've found something, we want to act like we didn't.
                         return null;
@@ -1023,7 +1023,7 @@ namespace Microsoft.Build.BackEnd
                             if (_taskFactoryWrapper.TaskFactory is not IOutOfProcTaskFactory outOfProcTaskFactory)
                             {
                                 _taskLoggingContext.LogError(
-                                    new BuildEventFileInfo(_taskLocation),
+                                    BuildEventFileInfo.Create(_taskLocation),
                                     "CustomTaskFactoryOutOfProcNotSupported",
                                     _taskFactoryWrapper.TaskFactory.FactoryName,
                                     _taskName);
@@ -1064,7 +1064,7 @@ namespace Microsoft.Build.BackEnd
             catch (InvalidCastException e)
             {
                 _taskLoggingContext.LogError(
-                    new BuildEventFileInfo(_taskLocation),
+                    BuildEventFileInfo.Create(_taskLocation),
                     "TaskInstantiationFailureErrorInvalidCast",
                     _taskName,
                     _taskFactoryWrapper.TaskFactory.FactoryName,
@@ -1075,7 +1075,7 @@ namespace Microsoft.Build.BackEnd
                 // Exception thrown by the called code itself
                 // Log the stack, so the task vendor can fix their code
                 _taskLoggingContext.LogError(
-                    new BuildEventFileInfo(_taskLocation),
+                    BuildEventFileInfo.Create(_taskLocation),
                     "TaskInstantiationFailureError",
                     _taskName,
                     _taskFactoryWrapper.TaskFactory.FactoryName,
@@ -1085,7 +1085,7 @@ namespace Microsoft.Build.BackEnd
             {
                 // Reflection related exception
                 _taskLoggingContext.LogError(
-                    new BuildEventFileInfo(_taskLocation),
+                    BuildEventFileInfo.Create(_taskLocation),
                     "TaskInstantiationFailureError",
                     _taskName,
                     _taskFactoryWrapper.TaskFactory.FactoryName,
@@ -1173,7 +1173,7 @@ namespace Microsoft.Build.BackEnd
                     else
                     {
                         _taskLoggingContext.LogError(
-                            new BuildEventFileInfo(parameterLocation),
+                            BuildEventFileInfo.Create(parameterLocation),
                             "UnsupportedTaskParameterTypeError",
                             parameterType.FullName,
                             parameter.Name,
@@ -1184,7 +1184,7 @@ namespace Microsoft.Build.BackEnd
                     {
                         // flag an error if the parameter could not be set
                         _taskLoggingContext.LogError(
-                            new BuildEventFileInfo(parameterLocation),
+                            BuildEventFileInfo.Create(parameterLocation),
                             "InvalidTaskAttributeError",
                             parameterName,
                             parameterValue,
@@ -1195,7 +1195,7 @@ namespace Microsoft.Build.BackEnd
                 {
                     // flag an error if we find a parameter that has no .NET property equivalent
                     _taskLoggingContext.LogError(
-                        new BuildEventFileInfo(parameterLocation),
+                        BuildEventFileInfo.Create(parameterLocation),
                         "UnexpectedTaskAttribute",
                         parameterName,
                         _taskName,
@@ -1206,7 +1206,7 @@ namespace Microsoft.Build.BackEnd
             catch (AmbiguousMatchException)
             {
                 _taskLoggingContext.LogError(
-                    new BuildEventFileInfo(parameterLocation),
+                    BuildEventFileInfo.Create(parameterLocation),
                     "AmbiguousTaskParameterError",
                     _taskName,
                     parameterName);
@@ -1449,7 +1449,7 @@ namespace Microsoft.Build.BackEnd
                 // Log the stack, so the task vendor can fix their code
                 _taskLoggingContext.LogFatalTaskError(
                     e.InnerException,
-                    new BuildEventFileInfo(_taskLocation),
+                    BuildEventFileInfo.Create(_taskLocation),
                     _taskName);
             }
             // If a logger has failed, abort immediately. This is the polite LoggerException.
@@ -1458,7 +1458,7 @@ namespace Microsoft.Build.BackEnd
             {
                 _taskLoggingContext.LogFatalTaskError(
                     e,
-                    new BuildEventFileInfo(_taskLocation),
+                    BuildEventFileInfo.Create(_taskLocation),
                     _taskName);
             }
 
@@ -1743,7 +1743,7 @@ namespace Microsoft.Build.BackEnd
             catch (Exception e) when (!ExceptionHandling.NotExpectedReflectionException(e))
             {
                 // Reflection related exception
-                _targetLoggingContext.LogError(new BuildEventFileInfo(_taskLocation), "AttributeTypeLoadError", _taskName, e.Message);
+                _targetLoggingContext.LogError(BuildEventFileInfo.Create(_taskLocation), "AttributeTypeLoadError", _taskName, e.Message);
 
                 ProjectErrorUtilities.VerifyThrowInvalidProject(false, _taskLocation, "TaskDeclarationOrUsageError", _taskName);
             }
@@ -1759,7 +1759,7 @@ namespace Microsoft.Build.BackEnd
             string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string warningCode, out string helpKeyword, "UnableToCancelTask", _taskName);
             try
             {
-                _taskLoggingContext.LogWarningFromText(null, warningCode, helpKeyword, new BuildEventFileInfo(_taskLocation), message);
+                _taskLoggingContext.LogWarningFromText(null, warningCode, helpKeyword, BuildEventFileInfo.Create(_taskLocation), message);
             }
             catch (InternalErrorException) when (!_taskLoggingContext.IsValid)
             {

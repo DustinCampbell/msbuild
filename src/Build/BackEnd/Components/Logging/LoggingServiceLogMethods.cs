@@ -312,16 +312,16 @@ namespace Microsoft.Build.BackEnd.Logging
             }
 
             BuildWarningEventArgs buildEvent = new BuildWarningEventArgs(
-                    subcategory,
-                    warningCode,
-                    file.File,
-                    file.Line,
-                    file.Column,
-                    file.EndLine,
-                    file.EndColumn,
-                    message,
-                    helpKeyword,
-                    "MSBuild");
+                subcategory,
+                code: warningCode,
+                file: file.File,
+                lineNumber: file.Line,
+                columnNumber: file.Column,
+                endLineNumber: 0,
+                endColumnNumber: 0,
+                message,
+                helpKeyword,
+                senderName: "MSBuild");
 
             buildEvent.BuildEventContext = buildEventContext;
             if (buildEvent.ProjectFile == null && buildEventContext.ProjectContextId != BuildEventContext.InvalidProjectContextId)
