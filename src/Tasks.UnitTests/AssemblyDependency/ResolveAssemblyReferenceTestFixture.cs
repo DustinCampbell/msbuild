@@ -30,16 +30,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         internal static Microsoft.Build.Tasks.GetDirectories getDirectories = new Microsoft.Build.Tasks.GetDirectories(GetDirectories);
         internal static Microsoft.Build.Tasks.GetAssemblyName getAssemblyName = new Microsoft.Build.Tasks.GetAssemblyName(GetAssemblyName);
         internal static Microsoft.Build.Tasks.GetAssemblyMetadata getAssemblyMetadata = new Microsoft.Build.Tasks.GetAssemblyMetadata(GetAssemblyMetadata);
-#if FEATURE_WIN32_REGISTRY
-        internal static Microsoft.Build.Shared.GetRegistrySubKeyNames getRegistrySubKeyNames = new Microsoft.Build.Shared.GetRegistrySubKeyNames(GetRegistrySubKeyNames);
-        internal static Microsoft.Build.Shared.GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue = new Microsoft.Build.Shared.GetRegistrySubKeyDefaultValue(GetRegistrySubKeyDefaultValue);
-#endif
         internal static Microsoft.Build.Tasks.GetLastWriteTime getLastWriteTime = new Microsoft.Build.Tasks.GetLastWriteTime(GetLastWriteTime);
         internal static Microsoft.Build.Tasks.GetAssemblyRuntimeVersion getRuntimeVersion = new Microsoft.Build.Tasks.GetAssemblyRuntimeVersion(GetRuntimeVersion);
         internal static Microsoft.Build.Tasks.GetAssemblyPathInGac checkIfAssemblyIsInGac = new Microsoft.Build.Tasks.GetAssemblyPathInGac(GetPathForAssemblyInGac);
-#if FEATURE_WIN32_REGISTRY
-        internal static Microsoft.Build.Shared.OpenBaseKey openBaseKey = new Microsoft.Build.Shared.OpenBaseKey(GetBaseKey);
-#endif
         internal Microsoft.Build.UnitTests.MockEngine.GetStringDelegate resourceDelegate = new Microsoft.Build.UnitTests.MockEngine.GetStringDelegate(AssemblyResources.GetString);
         internal static Microsoft.Build.Tasks.IsWinMDFile isWinMDFile = new Microsoft.Build.Tasks.IsWinMDFile(IsWinMDFile);
         internal static Microsoft.Build.Tasks.ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader = new Microsoft.Build.Tasks.ReadMachineTypeFromPEHeader(ReadMachineTypeFromPEHeader);
@@ -2502,409 +2495,133 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
 #if FEATURE_WIN32_REGISTRY
-        /// <summary>
-        /// Registry access delegate. Given a hive and a view, return the registry base key.
-        /// </summary>
-        [SupportedOSPlatform("windows")]
-        private static RegistryKey GetBaseKey(RegistryHive hive, RegistryView view)
+        internal static IRegistryService RegistryService => field ??= new TestRegistryService();
+
+        private sealed class TestRegistryService : IRegistryService
         {
-            if (hive == RegistryHive.CurrentUser)
+            private readonly Dictionary<string, IEnumerable<string>> _currentUserSubKeyNames = new(StringComparer.OrdinalIgnoreCase)
             {
-                return Registry.CurrentUser;
-            }
-            else if (hive == RegistryHive.LocalMachine)
+                [@"Software\Regress714052"] = [],
+                [@"Software\Regress714052\v2.0.0\AssemblyFoldersEx"] = [],
+                [@"Software\Regress714052\v2.0.0\X86"] = [],
+                [@"Software\Regress714052\v2.0.0\MSIL"] = [],
+                [@"Software\Regress714052\v2.0.0\Mix"] = [],
+                [@"Software\Regress714052\v2.0.0\Mix\Mix"] = [],
+                [@"Software\Regress714052\v2.0.0\None"] = [],
+                [@"Software\Regress714052\v2.0.0\X86\X86"] = [],
+                [@"Software\Regress714052\v2.0.0\MSIL\MSIL"] = [],
+                [@"Software\Regress714052\v2.0.0\None\None"] = [],
+                [@"Software\Microsoft\.NetFramework"] = ["", "vBogusVersion", "v1.a.2.3", "v1.0", "v3.0", "v2.0.50727", "v2.0.x86chk", "RandomJunk"],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx"] = ["ZControlA", "ZControlB", "Infragistics.GridControl.1.0", "Infragistics.MyHKLMControl.1.0", "Infragistics.MyControlWithFutureTargetNDPVersion.1.0", "Infragistics.MyControlWithPastTargetNDPVersion.1.0", "Infragistics.MyControlWithServicePack.1.0"],
+                [@"Software\Microsoft\.NetFramework\v2.0.x86chk\AssemblyFoldersEx"] = ["RawDropControls"],
+                [@"Software\Microsoft\.NetFramework\v3.0\AssemblyFoldersEx"] = ["Infragistics.MyControlWithFutureTargetNDPVersion.1.0"],
+                [@"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx"] = ["Infragistics.MyNDP1Control.1.0", "Infragistics.MyControlWithPastTargetNDPVersion.1.0"],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.GridControl.1.0"] = [],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithFutureTargetNDPVersion.1.0"] = [],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyHKLMControl.1.0"] = [],
+                [@"Software\Microsoft\.NetFramework\v3.0\AssemblyFoldersEx\Infragistics.MyControlWithFutureTargetNDPVersion.1.0"] = [],
+                [@"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx\Infragistics.MyNDP1Control.1.0"] = [],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithPastTargetNDPVersion.1.0"] = [],
+                [@"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx\Infragistics.MyControlWithPastTargetNDPVersion.1.0"] = [],
+                [@"Software\Microsoft\.NetFramework\v2.0.x86chk\AssemblyFoldersEx\RawDropControls"] = [],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\ZControlA"] = [],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\ZControlB"] = [],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0"] = ["sp1", "sp2"], // This control has a service pack
+                [@"Software\Microsoft\.NETCompactFramework"] = ["v2.0.3600"],
+                [@"Software\Microsoft\.NETCompactFramework\v2.0.3600"] = ["PocketPC"],
+                [@"Software\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx"] = ["AFETestDeviceControl"],
+                [@"Software\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx\AFETestDeviceControl"] = ["1234"],
+                [@"Software\Microsoft\Microsoft SDKs"] = ["Windows"],
+                [@"Software\Microsoft\Microsoft SDKs\Windows"] = ["7.0", "8.0", "v8.0", "9.0"],
+            };
+
+            private readonly Dictionary<string, IEnumerable<string>> _localMachineSubKeyNames = new(StringComparer.OrdinalIgnoreCase)
             {
-                return Registry.LocalMachine;
-            }
+                [@"Software\Regress714052"] = ["v2.0.0"],
+                [@"Software\Regress714052\v2.0.0\AssemblyFoldersEx"] = ["A", "B"],
+                [@"Software\Regress714052\v2.0.0\AssemblyFoldersEx\A"] = [],
+                [@"Software\Regress714052\v2.0.0\AssemblyFoldersEx\B"] = [],
+                [@"Software\Regress714052\v2.0.0\X86"] = ["X86"],
+                [@"Software\Regress714052\v2.0.0\MSIL"] = ["MSIL"],
+                [@"Software\Regress714052\v2.0.0\None"] = ["None"],
+                [@"Software\Regress714052\v2.0.0\Mix"] = ["Mix"],
+                [@"Software\Regress714052\v2.0.0\Mix\Mix"] = [],
+                [@"Software\Regress714052\v2.0.0\X86\X86"] = [],
+                [@"Software\Regress714052\v2.0.0\MSIL\MSIL"] = [],
+                [@"Software\Regress714052\v2.0.0\None\None"] = [],
+                [@"Software\Microsoft\.NetFramework"] = ["vBogusVersion", "v2.0.50727"],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx"] = ["Infragistics.FancyControl.1.0", "Infragistics.MyHKLMControl.1.0"],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.FancyControl.1.0"] = [],
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyHKLMControl.1.0"] = [],
+                [@"Software\Microsoft\.NETCompactFramework"] = ["v2.0.3600"],
+                [@"Software\Microsoft\.NETCompactFramework\v2.0.3600"] = ["PocketPC"],
+                [@"Software\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx"] = [],
+                [@"Software\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx\AFETestDeviceControl"] = [],
+                [@"Software\Microsoft\Microsoft SDKs\Windows"] = ["8.0"],
+            };
 
-            return null;
-        }
-
-        /// <summary>
-        /// Simplified registry access delegate. Given a baseKey and a subKey, get all of the subkey
-        /// names.
-        /// </summary>
-        /// <param name="baseKey">The base registry key.</param>
-        /// <param name="subKey">The subkey</param>
-        /// <returns>An enumeration of strings.</returns>
-        [SupportedOSPlatform("windows")]
-        private static IEnumerable<string> GetRegistrySubKeyNames(RegistryKey baseKey, string subKey)
-        {
-            if (baseKey == Registry.CurrentUser)
+            private readonly Dictionary<string, string> _currentUserSubKeyDefaultValues = new(StringComparer.OrdinalIgnoreCase)
             {
-                if (String.Equals(subKey, @"Software\Regress714052", StringComparison.OrdinalIgnoreCase))
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\ZControlA"] = @"C:\MyComponentsA",
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\ZControlB"] = @"C:\MyComponentsB",
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.GridControl.1.0"] = @"C:\MyComponents",
+                [@"Software\Microsoft\.NetFramework\v2.0.x86chk\AssemblyFoldersEx\RawDropControls"] = @"C:\MyRawDropControls",
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyHKLMControl.1.0"] = @"C:\MyComponents\HKCU Components",
+                [@"Software\Microsoft\.NetFramework\v3.0\AssemblyFoldersEx\Infragistics.MyControlWithFutureTargetNDPVersion.1.0"] = s_myComponentsV30Path,
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithFutureTargetNDPVersion.1.0"] = s_myComponentsV20Path,
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithPastTargetNDPVersion.1.0"] = s_myComponentsV20Path,
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0"] = s_myComponentsV20Path,
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0\sp1"] = @"C:\MyComponentServicePack1",
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0\sp2"] = @"C:\MyComponentServicePack2",
+                [@"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx\Infragistics.MyNDP1Control.1.0"] = s_myComponentsV10Path,
+                [@"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx\Infragistics.MyControlWithPastTargetNDPVersion.1.0"] = s_myComponentsV10Path,
+                [@"SOFTWARE\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx\AFETestDeviceControl"] = @"C:\V1Control",
+                [@"SOFTWARE\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx\AFETestDeviceControl\1234"] = @"C:\V1ControlSP1",
+            };
+
+            private readonly Dictionary<string, string> _localMachineSubKeyDefaultValues = new(StringComparer.OrdinalIgnoreCase)
+            {
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.FancyControl.1.0"] = @"C:\MyComponents\HKLM Components",
+                [@"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyHKLMControl.1.0"] = @"C:\MyComponents\HKLM Components",
+                [@"Software\Regress714052\v2.0.0\AssemblyFoldersEx\B"] = @"C:\Regress714052\X86",
+                [@"Software\Regress714052\v2.0.0\AssemblyFoldersEx\A"] = @"C:\Regress714052\MSIL",
+                [@"Software\Regress714052\v2.0.0\X86\X86"] = @"C:\Regress714052\X86",
+                [@"Software\Regress714052\v2.0.0\Mix\Mix"] = @"C:\Regress714052\Mix",
+                [@"Software\Regress714052\v2.0.0\MSIL\MSIL"] = @"C:\Regress714052\MSIL",
+                [@"Software\Regress714052\v2.0.0\None\None"] = @"C:\Regress714052\None",
+            };
+
+            public RegistryKey OpenBaseKey(RegistryHive hive, RegistryView view)
+                => hive switch
                 {
-                    return Array.Empty<string>();
+                    RegistryHive.CurrentUser => Registry.CurrentUser,
+                    RegistryHive.LocalMachine => Registry.LocalMachine,
+                    _ => null,
+                };
+
+            public IEnumerable<string> GetSubKeyNames(RegistryKey baseKey, string subKey)
+            {
+                if ((baseKey == Registry.CurrentUser && _currentUserSubKeyNames.TryGetValue(subKey, out IEnumerable<string> result)) ||
+                    (baseKey == Registry.LocalMachine && _localMachineSubKeyNames.TryGetValue(subKey, out result)))
+                {
+                    return result;
                 }
 
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\X86", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\MSIL", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\Mix", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\Mix\Mix", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\None", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\X86\X86", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\MSIL\MSIL", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\None\None", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "", "vBogusVersion", "v1.a.2.3", "v1.0", "v3.0", "v2.0.50727", "v2.0.x86chk", "RandomJunk" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "ZControlA", "ZControlB", "Infragistics.GridControl.1.0", "Infragistics.MyHKLMControl.1.0", "Infragistics.MyControlWithFutureTargetNDPVersion.1.0", "Infragistics.MyControlWithPastTargetNDPVersion.1.0", "Infragistics.MyControlWithServicePack.1.0" };
-                }
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.x86chk\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "RawDropControls" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v3.0\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "Infragistics.MyControlWithFutureTargetNDPVersion.1.0" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "Infragistics.MyNDP1Control.1.0", "Infragistics.MyControlWithPastTargetNDPVersion.1.0" };
-                }
-
-                if
-                (
-                    String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.GridControl.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithFutureTargetNDPVersion.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyHKLMControl.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v3.0\AssemblyFoldersEx\Infragistics.MyControlWithFutureTargetNDPVersion.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx\Infragistics.MyNDP1Control.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithPastTargetNDPVersion.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx\Infragistics.MyControlWithPastTargetNDPVersion.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.x86chk\AssemblyFoldersEx\RawDropControls", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\ZControlA", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\ZControlB", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if
-                (
-                    String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    // This control has a service pack
-                    return new string[] { "sp1", "sp2" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NETCompactFramework", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "v2.0.3600" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NETCompactFramework\v2.0.3600", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "PocketPC" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "AFETestDeviceControl" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx\AFETestDeviceControl", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "1234" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\Microsoft SDKs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "Windows" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\Microsoft SDKs\Windows", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "7.0", "8.0", "v8.0", "9.0" };
-                }
+                Assert.Fail($"New GetSubKeyNames parameters encountered, need to add unittesting support for subKey={subKey}");
+                return [];
             }
 
-            if (baseKey == Registry.LocalMachine)
+            public string GetDefaultValue(RegistryKey baseKey, string subKey)
             {
-                if (String.Equals(subKey, @"Software\Regress714052", StringComparison.OrdinalIgnoreCase))
+                if ((baseKey == Registry.CurrentUser && _currentUserSubKeyDefaultValues.TryGetValue(subKey, out string result)) ||
+                    (baseKey == Registry.LocalMachine && _localMachineSubKeyDefaultValues.TryGetValue(subKey, out result)))
                 {
-                    return new string[] { "v2.0.0" };
+                    return result;
                 }
 
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "A", "B" };
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\AssemblyFoldersEx\A", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\AssemblyFoldersEx\B", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\X86", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "X86" };
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\MSIL", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "MSIL" };
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\None", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "None" };
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\Mix", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "Mix" };
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\Mix\Mix", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\X86\X86", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\MSIL\MSIL", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\None\None", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "vBogusVersion", "v2.0.50727" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "Infragistics.FancyControl.1.0", "Infragistics.MyHKLMControl.1.0" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.FancyControl.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyHKLMControl.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NETCompactFramework", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "v2.0.3600" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NETCompactFramework\v2.0.3600", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "PocketPC" };
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx\AFETestDeviceControl", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Array.Empty<string>();
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\Microsoft SDKs\Windows", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new string[] { "8.0" };
-                }
+                Assert.Fail($"New GetDefaultValue parameters encountered, need to add unittesting support for subKey={subKey}");
+                return null;
             }
-
-            Assert.Fail($"New GetRegistrySubKeyNames parameters encountered, need to add unittesting support for subKey={subKey}");
-            return null;
-        }
-
-        /// <summary>
-        /// Simplified registry access delegate. Given a baseKey and subKey, get the default value
-        /// of the subKey.
-        /// </summary>
-        /// <param name="baseKey">The base registry key.</param>
-        /// <param name="subKey">The subkey</param>
-        /// <returns>A string containing the default value.</returns>
-        [SupportedOSPlatform("windows")]
-        private static string GetRegistrySubKeyDefaultValue(RegistryKey baseKey, string subKey)
-        {
-            if (baseKey == Registry.CurrentUser)
-            {
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\ZControlA", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponentsA";
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\ZControlB", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponentsB";
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.GridControl.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponents";
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.x86chk\AssemblyFoldersEx\RawDropControls", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyRawDropControls";
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyHKLMControl.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponents\HKCU Components";
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v3.0\AssemblyFoldersEx\Infragistics.MyControlWithFutureTargetNDPVersion.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return s_myComponentsV30Path;
-                }
-
-                if
-                (
-                    String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithFutureTargetNDPVersion.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithPastTargetNDPVersion.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return s_myComponentsV20Path;
-                }
-
-                if
-                (
-                    String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponentBase";
-                }
-
-                if
-                (
-                    String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0\sp1", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponentServicePack1";
-                }
-
-                if
-                (
-                    String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyControlWithServicePack.1.0\sp2", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponentServicePack2";
-                }
-
-                if
-                (
-                    String.Equals(subKey, @"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx\Infragistics.MyNDP1Control.1.0", StringComparison.OrdinalIgnoreCase)
-                    || String.Equals(subKey, @"Software\Microsoft\.NetFramework\v1.0\AssemblyFoldersEx\Infragistics.MyControlWithPastTargetNDPVersion.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return s_myComponentsV10Path;
-                }
-
-                if (String.Equals(subKey, @"SOFTWARE\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx\AFETestDeviceControl", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\V1Control";
-                }
-                if (String.Equals(subKey, @"SOFTWARE\Microsoft\.NETCompactFramework\v2.0.3600\PocketPC\AssemblyFoldersEx\AFETestDeviceControl\1234", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\V1ControlSP1";
-                }
-            }
-
-            if (baseKey == Registry.LocalMachine)
-            {
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.FancyControl.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponents\HKLM Components";
-                }
-
-                if (String.Equals(subKey, @"Software\Microsoft\.NetFramework\v2.0.50727\AssemblyFoldersEx\Infragistics.MyHKLMControl.1.0", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\MyComponents\HKLM Components";
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\AssemblyFoldersEx\B", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\Regress714052\X86";
-                }
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\AssemblyFoldersEx\A", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\Regress714052\MSIL";
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\X86\X86", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\Regress714052\X86";
-                }
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\Mix\Mix", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\Regress714052\Mix";
-                }
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\MSIL\MSIL", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\Regress714052\MSIL";
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\MSIL\MSIL", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\Regress714052\MSIL";
-                }
-
-                if (String.Equals(subKey, @"Software\Regress714052\v2.0.0\None\None", StringComparison.OrdinalIgnoreCase))
-                {
-                    return @"C:\Regress714052\None";
-                }
-            }
-
-            Assert.Fail($"New GetRegistrySubKeyDefaultValue parameters encountered, need to add unittesting support for subKey={subKey}");
-            return null;
         }
 #endif
 
@@ -3014,14 +2731,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                         getAssemblyName,
                         getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                        getRegistrySubKeyNames,
-                        getRegistrySubKeyDefaultValue,
+                        RegistryService,
 #endif
                         getLastWriteTime,
                         getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                        openBaseKey,
-#endif
                         checkIfAssemblyIsInGac,
                         isWinMDFile,
                         readMachineTypeFromPEHeader);
@@ -3066,25 +2779,21 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     string cache = rarCacheFile;
                     t.StateFile = cache;
                     File.Delete(t.StateFile);
-                    succeeded =
-                        t.Execute(
-                            fileExists,
-                            directoryExists,
-                            getDirectories,
-                            getAssemblyName,
-                            getAssemblyMetadata,
+                    succeeded = t.Execute(
+                        fileExists,
+                        directoryExists,
+                        getDirectories,
+                        getAssemblyName,
+                        getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                            getRegistrySubKeyNames,
-                            getRegistrySubKeyDefaultValue,
+                        RegistryService,
 #endif
-                            getLastWriteTime,
-                            getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                            openBaseKey,
-#endif
-                            checkIfAssemblyIsInGac,
-                            isWinMDFile,
-                            readMachineTypeFromPEHeader);
+                        getLastWriteTime,
+                        getRuntimeVersion,
+                        checkIfAssemblyIsInGac,
+                        isWinMDFile,
+                        readMachineTypeFromPEHeader);
+
                     if (FileUtilities.FileExistsNoThrow(t.StateFile))
                     {
                         Assert.Single(t.FilesWritten);

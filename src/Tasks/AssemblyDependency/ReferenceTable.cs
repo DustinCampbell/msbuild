@@ -209,9 +209,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="getDirectories">Delegate used for getting directories.</param>
         /// <param name="getAssemblyName">Delegate used for getting assembly names.</param>
         /// <param name="getAssemblyMetadata">Delegate used for finding dependencies of a file.</param>
-        /// <param name="getRegistrySubKeyNames">Used to get registry subkey names.</param>
-        /// <param name="getRegistrySubKeyDefaultValue">Used to get registry default values.</param>
-        /// <param name="openBaseKey"></param>
+        /// <param name="registryService">Service to interact with the registry.</param>
         /// <param name="unresolveFrameworkAssembliesFromHigherFrameworks"></param>
         /// <param name="assemblyMetadataCache">Cache of metadata already read from paths.</param>
         /// <param name="allowedAssemblyExtensions"></param>
@@ -294,9 +292,7 @@ namespace Microsoft.Build.Tasks
             GetAssemblyName getAssemblyName,
             GetAssemblyMetadata getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-            GetRegistrySubKeyNames getRegistrySubKeyNames,
-            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
-            OpenBaseKey openBaseKey,
+            IRegistryService registryService,
 #endif
             GetAssemblyRuntimeVersion getRuntimeVersion,
             Version targetedRuntimeVersion,
@@ -371,24 +367,22 @@ namespace Microsoft.Build.Tasks
 
             // Compile searchpaths into fast resolver array.
             Resolvers = AssemblyResolution.CompileSearchPaths(
-                    buildEngine,
-                    searchPaths,
-                    candidateAssemblyFiles,
-                    targetProcessorArchitecture,
-                    frameworkPaths,
-                    fileExists,
-                    getAssemblyName,
+                buildEngine,
+                searchPaths,
+                candidateAssemblyFiles,
+                targetProcessorArchitecture,
+                frameworkPaths,
+                fileExists,
+                getAssemblyName,
 #if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
-                    openBaseKey,
+                registryService,
 #endif
-                    installedAssemblies,
-                    getRuntimeVersion,
-                    targetedRuntimeVersion,
-                    getAssemblyPathInGac,
-                    log,
-                    taskEnvironment);
+                installedAssemblies,
+                getRuntimeVersion,
+                targetedRuntimeVersion,
+                getAssemblyPathInGac,
+                log,
+                taskEnvironment);
         }
 
         /// <summary>

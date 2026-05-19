@@ -32,21 +32,6 @@ namespace Microsoft.Build.Tasks
                 RegexOptions.IgnoreCase | RegexOptions.Compiled));
 
         /// <summary>
-        /// Delegate.
-        /// </summary>
-        private readonly GetRegistrySubKeyNames _getRegistrySubKeyNames;
-
-        /// <summary>
-        /// Delegate
-        /// </summary>
-        private readonly GetRegistrySubKeyDefaultValue _getRegistrySubKeyDefaultValue;
-
-        /// <summary>
-        /// Open the base registry key given a hive and a view
-        /// </summary>
-        private readonly OpenBaseKey _openBaseKey;
-
-        /// <summary>
         /// Whether or not the search path could be cracked.
         /// </summary>
         private bool _wasMatch;
@@ -92,20 +77,38 @@ namespace Microsoft.Build.Tasks
         private readonly IBuildEngine4 _buildEngine;
 
         /// <summary>
+        /// Service to interact with the registry.
+        /// </summary>
+        private readonly IRegistryService _registryService;
+
+        /// <summary>
         /// If it is not initialized then just return the null object, that would mean the resolver was not called.
         /// </summary>
         internal AssemblyFoldersEx AssemblyFoldersExLocations => _assemblyFoldersCache?.AssemblyFoldersEx;
 
-        /// <summary>
-        /// Construct.
-        /// </summary>
-        public AssemblyFoldersExResolver(string searchPathElement, GetAssemblyName getAssemblyName, FileExists fileExists, GetRegistrySubKeyNames getRegistrySubKeyNames, GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue, GetAssemblyRuntimeVersion getRuntimeVersion, OpenBaseKey openBaseKey, Version targetedRuntimeVesion, ProcessorArchitecture targetProcessorArchitecture, bool compareProcessorArchitecture, IBuildEngine buildEngine, TaskEnvironment taskEnvironment)
-            : base(searchPathElement, getAssemblyName, fileExists, getRuntimeVersion, targetedRuntimeVesion, targetProcessorArchitecture, compareProcessorArchitecture, taskEnvironment)
+        public AssemblyFoldersExResolver(
+            string searchPathElement,
+            GetAssemblyName getAssemblyName,
+            FileExists fileExists,
+            IRegistryService registryService,
+            GetAssemblyRuntimeVersion getRuntimeVersion,
+            Version targetedRuntimeVesion,
+            ProcessorArchitecture targetProcessorArchitecture,
+            bool compareProcessorArchitecture,
+            IBuildEngine buildEngine,
+            TaskEnvironment taskEnvironment)
+            : base(
+                  searchPathElement,
+                  getAssemblyName,
+                  fileExists,
+                  getRuntimeVersion,
+                  targetedRuntimeVesion,
+                  targetProcessorArchitecture,
+                  compareProcessorArchitecture,
+                  taskEnvironment)
         {
             _buildEngine = buildEngine as IBuildEngine4;
-            _getRegistrySubKeyNames = getRegistrySubKeyNames;
-            _getRegistrySubKeyDefaultValue = getRegistrySubKeyDefaultValue;
-            _openBaseKey = openBaseKey;
+            _registryService = registryService;
         }
 
         /// <summary>
@@ -170,7 +173,7 @@ namespace Microsoft.Build.Tasks
 
                     if (_assemblyFoldersCache == null)
                     {
-                        AssemblyFoldersEx assemblyFolders = new AssemblyFoldersEx(_registryKeyRoot, _targetRuntimeVersion, _registryKeySuffix, _osVersion, _platform, _getRegistrySubKeyNames, _getRegistrySubKeyDefaultValue, this.targetProcessorArchitecture, _openBaseKey);
+                        AssemblyFoldersEx assemblyFolders = new AssemblyFoldersEx(_registryKeyRoot, _targetRuntimeVersion, _registryKeySuffix, _osVersion, _platform, this.targetProcessorArchitecture, _registryService);
                         _assemblyFoldersCache = new AssemblyFoldersExCache(assemblyFolders, fileExists, taskEnvironment);
                         if (useCache)
                         {

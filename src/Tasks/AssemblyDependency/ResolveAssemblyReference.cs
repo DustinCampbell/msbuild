@@ -2291,11 +2291,9 @@ namespace Microsoft.Build.Tasks
         /// <param name="getDirectories">Delegate used for finding directories.</param>
         /// <param name="getAssemblyName">Delegate used for finding fusion names of assemblyFiles.</param>
         /// <param name="getAssemblyMetadata">Delegate used for finding dependencies of a file.</param>
-        /// <param name="getRegistrySubKeyNames">Used to get registry subkey names.</param>
-        /// <param name="getRegistrySubKeyDefaultValue">Used to get registry default values.</param>
+        /// <param name="registryService">Service to interact with the registry.</param>
         /// <param name="getLastWriteTime">Delegate used to get the last write time.</param>
         /// <param name="getRuntimeVersion">Delegate used to get the runtime version.</param>
-        /// <param name="openBaseKey">Key object to open.</param>
         /// <param name="getAssemblyPathInGac">Delegate to get assembly path in the GAC.</param>
         /// <param name="isWinMDFile">Delegate used for checking whether it is a WinMD file.</param>
         /// <param name="readMachineTypeFromPEHeader">Delegate use to read machine type from PE Header</param>
@@ -2323,14 +2321,10 @@ namespace Microsoft.Build.Tasks
             GetAssemblyName getAssemblyName,
             GetAssemblyMetadata getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-            GetRegistrySubKeyNames getRegistrySubKeyNames,
-            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
+            IRegistryService registryService,
 #endif
             GetLastWriteTime getLastWriteTime,
             GetAssemblyRuntimeVersion getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-            OpenBaseKey openBaseKey,
-#endif
             GetAssemblyPathInGac getAssemblyPathInGac,
             IsWinMDFile isWinMDFile,
             ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader)
@@ -2592,9 +2586,7 @@ namespace Microsoft.Build.Tasks
                         getAssemblyName,
                         getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                        getRegistrySubKeyNames,
-                        getRegistrySubKeyDefaultValue,
-                        openBaseKey,
+                        registryService,
 #endif
                         getRuntimeVersion,
                         targetedRuntimeVersion,
@@ -3457,14 +3449,10 @@ namespace Microsoft.Build.Tasks
                 (string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkName)
                     => AssemblyInformation.GetAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkName),
 #if FEATURE_WIN32_REGISTRY
-                (baseKey, subkey) => RegistryHelper.GetSubKeyNames(baseKey, subkey),
-                (baseKey, subkey) => RegistryHelper.GetDefaultValue(baseKey, subkey),
+                RegistryService.Default,
 #endif
                 p => NativeMethodsShared.GetLastWriteFileUtcTime(p),
                 p => AssemblyInformation.GetRuntimeVersion(p),
-#if FEATURE_WIN32_REGISTRY
-                (hive, view) => RegistryHelper.OpenBaseKey(hive, view),
-#endif
                 (assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, fullFusionName, specificVersion)
                     => GetAssemblyPathInGac(assemblyName, targetProcessorArchitecture, getRuntimeVersion, targetedRuntimeVersion, fileExists, fullFusionName, specificVersion),
                 (string fullPath, GetAssemblyRuntimeVersion getAssemblyRuntimeVersion, FileExists fileExists, out string imageRuntimeVersion, out bool isManagedWinmd)

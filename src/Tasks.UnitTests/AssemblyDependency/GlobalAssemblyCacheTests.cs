@@ -291,14 +291,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     getAssemblyName,
                     getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
+                    RegistryService,
 #endif
                     getLastWriteTime,
                     getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                    openBaseKey,
-#endif
                     checkIfAssemblyIsInGac,
                     isWinMDFile,
                     readMachineTypeFromPEHeader));
@@ -316,14 +312,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     getAssemblyName,
                     getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
+                    RegistryService,
 #endif
                     getLastWriteTime,
                     getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                    openBaseKey,
-#endif
                     checkIfAssemblyIsInGac,
                     isWinMDFile,
                     readMachineTypeFromPEHeader));
@@ -361,14 +353,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     getAssemblyName,
                     getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
+                    RegistryService,
 #endif
                     getLastWriteTime,
                     getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                    openBaseKey,
-#endif
                     checkIfAssemblyIsInGac,
                     isWinMDFile,
                     readMachineTypeFromPEHeader));
@@ -385,14 +373,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     getAssemblyName,
                     getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
+                    RegistryService,
 #endif
                     getLastWriteTime,
                     getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                    openBaseKey,
-#endif
                     checkIfAssemblyIsInGac,
                     isWinMDFile,
                     readMachineTypeFromPEHeader));
@@ -428,14 +412,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     getAssemblyName,
                     getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
+                    RegistryService,
 #endif
                     getLastWriteTime,
                     getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                    openBaseKey,
-#endif
                     checkIfAssemblyIsInGac,
                     isWinMDFile,
                     readMachineTypeFromPEHeader));
@@ -452,14 +432,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                     getAssemblyName,
                     getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                    getRegistrySubKeyNames,
-                    getRegistrySubKeyDefaultValue,
+                    RegistryService,
 #endif
                     getLastWriteTime,
                     getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                    openBaseKey,
-#endif
                     checkIfAssemblyIsInGac,
                     isWinMDFile,
                     readMachineTypeFromPEHeader));
@@ -494,14 +470,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -517,14 +489,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac, isWinMDFile,
                 readMachineTypeFromPEHeader));
 
@@ -557,14 +525,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -580,14 +544,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -621,14 +581,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -644,14 +600,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -687,14 +639,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -710,14 +658,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -753,14 +697,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -777,14 +717,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -823,14 +759,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));
@@ -847,14 +779,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 getAssemblyName,
                 getAssemblyMetadata,
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 getLastWriteTime,
                 getRuntimeVersion,
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader));

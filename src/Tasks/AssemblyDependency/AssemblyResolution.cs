@@ -112,9 +112,7 @@ namespace Microsoft.Build.Tasks
         /// <param name="frameworkPaths">Paths to FX folders.</param>
         /// <param name="fileExists"></param>
         /// <param name="getAssemblyName"></param>
-        /// <param name="getRegistrySubKeyNames"></param>
-        /// <param name="getRegistrySubKeyDefaultValue"></param>
-        /// <param name="openBaseKey"></param>
+        /// <param name="registryService">Service to interact with the registry.</param>
         /// <param name="installedAssemblies"></param>
         /// <param name="getRuntimeVersion"></param>
         /// <param name="targetedRuntimeVersion"></param>
@@ -150,9 +148,7 @@ namespace Microsoft.Build.Tasks
             FileExists fileExists,
             GetAssemblyName getAssemblyName,
 #if FEATURE_WIN32_REGISTRY
-            GetRegistrySubKeyNames getRegistrySubKeyNames,
-            GetRegistrySubKeyDefaultValue getRegistrySubKeyDefaultValue,
-            OpenBaseKey openBaseKey,
+            IRegistryService registryService,
 #endif
             InstalledAssemblies installedAssemblies,
             GetAssemblyRuntimeVersion getRuntimeVersion,
@@ -199,7 +195,7 @@ namespace Microsoft.Build.Tasks
                 // Check for AssemblyFoldersEx sentinel.
                 else if (0 == String.Compare(basePath, 0, AssemblyResolutionConstants.assemblyFoldersExSentinel, 0, AssemblyResolutionConstants.assemblyFoldersExSentinel.Length, StringComparison.OrdinalIgnoreCase))
                 {
-                    resolvers[p] = new AssemblyFoldersExResolver(searchPaths[p], getAssemblyName, fileExists, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, getRuntimeVersion, openBaseKey, targetedRuntimeVersion, targetProcessorArchitecture, true, buildEngine, taskEnvironment);
+                    resolvers[p] = new AssemblyFoldersExResolver(searchPaths[p], getAssemblyName, fileExists, registryService, getRuntimeVersion, targetedRuntimeVersion, targetProcessorArchitecture, true, buildEngine, taskEnvironment);
                 }
 #endif
                 else if (0 == String.Compare(basePath, 0, AssemblyResolutionConstants.assemblyFoldersFromConfigSentinel, 0, AssemblyResolutionConstants.assemblyFoldersFromConfigSentinel.Length, StringComparison.OrdinalIgnoreCase))

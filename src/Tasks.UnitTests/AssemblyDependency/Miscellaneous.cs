@@ -1161,7 +1161,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         /// </summary>
         [Fact]
         public void EmptyAppConfigFile_Wave18_8_Disabled_Fails()
-        {            
+        {
             try
             {
                 using TestEnvironment env = TestEnvironment.Create(_output);
@@ -4889,7 +4889,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             ResolveAssemblyReference t = new ResolveAssemblyReference();
 
-            MockEngine e = new (_output);
+            MockEngine e = new(_output);
             t.BuildEngine = e;
 
             t.Assemblies = [new TaskItem("A")]; // Resolved by HintPath
@@ -6731,11 +6731,48 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void ReferenceTableDependentItemsInDenyList4()
         {
-            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, fileExists, null, null, null,
+            ReferenceTable referenceTable = new(
+                buildEngine: null,
+                findDependencies: false,
+                findSatellites: false,
+                findSerializationAssemblies: false,
+                findRelatedFiles: false,
+                enableCustomCulture: false,
+                searchPaths: [],
+                allowedAssemblyExtensions: null,
+                relatedFileExtensions: null,
+                candidateAssemblyFiles: null,
+                resolvedSDKItems: null,
+                frameworkPaths: null,
+                installedAssemblies: null,
+                targetProcessorArchitecture: SystemProcessorArchitecture.None,
+                fileExists: fileExists,
+                directoryExists: null,
+                getDirectories: null,
+                getAssemblyName: null,
+                getAssemblyMetadata: null,
 #if FEATURE_WIN32_REGISTRY
-                null, null, null,
+                registryService: null,
 #endif
-                null, null, null, new Version("4.0"), null, null, null, true, false, null, null, false, null, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, null, Array.Empty<string>(), TaskEnvironmentHelper.CreateForTest());
+                getRuntimeVersion: null,
+                targetedRuntimeVersion: null,
+                projectTargetFramework: new Version("4.0"),
+                targetFrameworkMoniker: null,
+                log: null,
+                latestTargetFrameworkDirectories: null,
+                copyLocalDependenciesWhenParentReferenceInGac: true,
+                doNotCopyLocalIfInGac: false,
+                getAssemblyPathInGac: null,
+                isWinMDFile: null,
+                ignoreVersionForFrameworkReferences: false,
+                readMachineTypeFromPEHeader: null,
+                warnOrErrorOnTargetArchitectureMismatch: WarnOrErrorOnTargetArchitectureMismatchBehavior.None,
+                ignoreFrameworkAttributeVersionMismatch: false,
+                unresolveFrameworkAssembliesFromHigherFrameworks: false,
+                assemblyMetadataCache: null,
+                nonCultureResourceDirectories: [],
+                taskEnvironment: TaskEnvironmentHelper.CreateForTest());
+
             MockEngine mockEngine;
             ResolveAssemblyReference rar;
             Dictionary<string, string> denyList;
@@ -6908,14 +6945,47 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         }
 
         private static ReferenceTable MakeEmptyReferenceTable(TaskLoggingHelper log)
-        {
-            ReferenceTable referenceTable = new ReferenceTable(null, false, false, false, false, false, Array.Empty<string>(), null, null, null, null, null, null, SystemProcessorArchitecture.None, fileExists, null, null, null, null,
+            => new(
+                buildEngine: null,
+                findDependencies: false,
+                findSatellites: false,
+                findSerializationAssemblies: false,
+                findRelatedFiles: false,
+                enableCustomCulture: false,
+                searchPaths: [],
+                allowedAssemblyExtensions: null,
+                relatedFileExtensions: null,
+                candidateAssemblyFiles: null,
+                resolvedSDKItems: null,
+                frameworkPaths: null,
+                installedAssemblies: null,
+                targetProcessorArchitecture: SystemProcessorArchitecture.None,
+                fileExists: fileExists,
+                directoryExists: null,
+                getDirectories: null,
+                getAssemblyName: null,
+                getAssemblyMetadata: null,
 #if FEATURE_WIN32_REGISTRY
-                null, null, null,
+                registryService: null,
 #endif
-                null, null, new Version("4.0"), null, log, null, true, false, null, null, false, null, WarnOrErrorOnTargetArchitectureMismatchBehavior.None, false, false, null, Array.Empty<string>(), TaskEnvironmentHelper.CreateForTest());
-            return referenceTable;
-        }
+                getRuntimeVersion: null,
+                targetedRuntimeVersion: null,
+                projectTargetFramework: new Version("4.0"),
+                targetFrameworkMoniker: null,
+                log: log,
+                latestTargetFrameworkDirectories: null,
+                copyLocalDependenciesWhenParentReferenceInGac: true,
+                doNotCopyLocalIfInGac: false,
+                getAssemblyPathInGac: null,
+                isWinMDFile: null,
+                ignoreVersionForFrameworkReferences: false,
+                readMachineTypeFromPEHeader: null,
+                warnOrErrorOnTargetArchitectureMismatch: WarnOrErrorOnTargetArchitectureMismatchBehavior.None,
+                ignoreFrameworkAttributeVersionMismatch: false,
+                unresolveFrameworkAssembliesFromHigherFrameworks: false,
+                assemblyMetadataCache: null,
+                nonCultureResourceDirectories: [],
+                taskEnvironment: TaskEnvironmentHelper.CreateForTest());
 
         /// <summary>
         /// Verify the correct references are still in the references table and that references which are in the deny list are not in the references table
@@ -8519,14 +8589,10 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 (string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkName)
                   => throw new ShouldAssertException("Unexpected GetAssemblyMetadata callback"),
 #if FEATURE_WIN32_REGISTRY
-                getRegistrySubKeyNames,
-                getRegistrySubKeyDefaultValue,
+                RegistryService,
 #endif
                 _ => throw new ShouldAssertException("Unexpected GetLastWriteTime callback"),
                 _ => throw new ShouldAssertException("Unexpected GetAssemblyRuntimeVersion callback"),
-#if FEATURE_WIN32_REGISTRY
-                openBaseKey,
-#endif
                 checkIfAssemblyIsInGac,
                 isWinMDFile,
                 readMachineTypeFromPEHeader).ShouldBeTrue();
