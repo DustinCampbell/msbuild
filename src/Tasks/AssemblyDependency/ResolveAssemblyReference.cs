@@ -2559,11 +2559,6 @@ namespace Microsoft.Build.Tasks
 
                     SystemProcessorArchitecture processorArchitecture = TargetProcessorArchitectureToEnumeration(_targetProcessorArchitecture);
 
-                    ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache =
-                        Traits.Instance.EscapeHatches.CacheAssemblyInformation
-                            ? new ConcurrentDictionary<string, AssemblyMetadata>()
-                            : null;
-
                     // Start the table of dependencies with all of the primary references.
                     dependencyTable = new ReferenceTable(
                         BuildEngine,
@@ -2603,7 +2598,6 @@ namespace Microsoft.Build.Tasks
                         _warnOrErrorOnTargetArchitectureMismatch,
                         _ignoreTargetFrameworkAttributeVersionMismatch,
                         _unresolveFrameworkAssembliesFromHigherFrameworks,
-                        assemblyMetadataCache,
                         _nonCultureResourceDirectories,
                         TaskEnvironment);
 
@@ -2740,7 +2734,7 @@ namespace Microsoft.Build.Tasks
                                 continue;
                             }
 
-                            var rawDependencies = GetDependencies(resolvedReference, fileExists, getAssemblyMetadata, assemblyMetadataCache);
+                            var rawDependencies = GetDependencies(resolvedReference, fileExists, getAssemblyMetadata);
                             if (rawDependencies != null)
                             {
                                 foreach (var dependentReference in rawDependencies)
@@ -2865,11 +2859,9 @@ namespace Microsoft.Build.Tasks
         /// <param name="resolvedReference">reference we are interested</param>
         /// <param name="fileExists">the delegate to check for the existence of a file.</param>
         /// <param name="getAssemblyMetadata">the delegate to access assembly metadata</param>
-        /// <param name="assemblyMetadataCache">Cache of pre-extracted assembly metadata.</param>
         /// <returns>list of dependencies</returns>
-        private AssemblyNameExtension[] GetDependencies(Reference resolvedReference, FileExists fileExists, GetAssemblyMetadata getAssemblyMetadata, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache)
+        private AssemblyNameExtension[] GetDependencies(Reference resolvedReference, FileExists fileExists, GetAssemblyMetadata getAssemblyMetadata)
         {
-            AssemblyNameExtension[] result = null;
             if (resolvedReference?.IsPrimary == true && !resolvedReference.IsBadImage)
             {
                 try
@@ -2877,9 +2869,7 @@ namespace Microsoft.Build.Tasks
                     // in case of P2P that have not build the reference can be resolved but file does not exist on disk.
                     if (fileExists(resolvedReference.FullPath))
                     {
-                        FrameworkNameVersioning frameworkName;
-                        string[] scatterFiles;
-                        getAssemblyMetadata(resolvedReference.FullPath, assemblyMetadataCache, out result, out scatterFiles, out frameworkName);
+                        return getAssemblyMetadata(resolvedReference.FullPath).Dependencies;
                     }
                 }
                 catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
@@ -2887,7 +2877,7 @@ namespace Microsoft.Build.Tasks
                 }
             }
 
-            return result;
+            return null;
         }
 
         /// <summary>
@@ -3446,8 +3436,7 @@ namespace Microsoft.Build.Tasks
                                         .OrderBy(path => path, StringComparer.Ordinal) // sort to ensure deterministic order
                                         .ToArray(),
                 p => AssemblyNameExtension.GetAssemblyNameEx(p),
-                (string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkName)
-                    => AssemblyInformation.GetAssemblyMetadata(path, assemblyMetadataCache, out dependencies, out scatterFiles, out frameworkName),
+                CreateDefaultGetAssemblyMetadata(),
 #if FEATURE_WIN32_REGISTRY
                 RegistryService.Default,
 #endif
@@ -3459,6 +3448,18 @@ namespace Microsoft.Build.Tasks
                     => AssemblyInformation.IsWinMDFile(fullPath, getAssemblyRuntimeVersion, fileExists, out imageRuntimeVersion, out isManagedWinmd),
                 p => ReferenceTable.ReadMachineTypeFromPEHeader(p));
         }
+
+        private static GetAssemblyMetadata CreateDefaultGetAssemblyMetadata()
+        {
+            if (Traits.Instance.EscapeHatches.CacheAssemblyInformation)
+            {
+                var cache = new ConcurrentDictionary<string, AssemblyMetadata>();
+                return path => cache.GetOrAdd(path, static p => new AssemblyMetadata(p));
+            }
+
+            return static path => new AssemblyMetadata(path);
+        }
+
         #endregion
     }
 }

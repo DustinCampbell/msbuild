@@ -25,17 +25,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
     public class ResolveAssemblyReferenceTestFixture : IDisposable
     {
         // Create the mocks.
-        internal static Microsoft.Build.Shared.FileExists fileExists = new Microsoft.Build.Shared.FileExists(FileExists);
-        internal static Microsoft.Build.Shared.DirectoryExists directoryExists = new Microsoft.Build.Shared.DirectoryExists(DirectoryExists);
-        internal static Microsoft.Build.Tasks.GetDirectories getDirectories = new Microsoft.Build.Tasks.GetDirectories(GetDirectories);
-        internal static Microsoft.Build.Tasks.GetAssemblyName getAssemblyName = new Microsoft.Build.Tasks.GetAssemblyName(GetAssemblyName);
-        internal static Microsoft.Build.Tasks.GetAssemblyMetadata getAssemblyMetadata = new Microsoft.Build.Tasks.GetAssemblyMetadata(GetAssemblyMetadata);
-        internal static Microsoft.Build.Tasks.GetLastWriteTime getLastWriteTime = new Microsoft.Build.Tasks.GetLastWriteTime(GetLastWriteTime);
-        internal static Microsoft.Build.Tasks.GetAssemblyRuntimeVersion getRuntimeVersion = new Microsoft.Build.Tasks.GetAssemblyRuntimeVersion(GetRuntimeVersion);
-        internal static Microsoft.Build.Tasks.GetAssemblyPathInGac checkIfAssemblyIsInGac = new Microsoft.Build.Tasks.GetAssemblyPathInGac(GetPathForAssemblyInGac);
-        internal Microsoft.Build.UnitTests.MockEngine.GetStringDelegate resourceDelegate = new Microsoft.Build.UnitTests.MockEngine.GetStringDelegate(AssemblyResources.GetString);
-        internal static Microsoft.Build.Tasks.IsWinMDFile isWinMDFile = new Microsoft.Build.Tasks.IsWinMDFile(IsWinMDFile);
-        internal static Microsoft.Build.Tasks.ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader = new Microsoft.Build.Tasks.ReadMachineTypeFromPEHeader(ReadMachineTypeFromPEHeader);
+        internal static FileExists fileExists = FileExists;
+        internal static DirectoryExists directoryExists = DirectoryExists;
+        internal static Tasks.GetDirectories getDirectories = GetDirectories;
+        internal static GetAssemblyName getAssemblyName = GetAssemblyName;
+        internal static GetAssemblyMetadata getAssemblyMetadata = GetAssemblyMetadataMock;
+        internal static GetLastWriteTime getLastWriteTime = GetLastWriteTime;
+        internal static GetAssemblyRuntimeVersion getRuntimeVersion = GetRuntimeVersion;
+        internal static GetAssemblyPathInGac checkIfAssemblyIsInGac = GetPathForAssemblyInGac;
+        internal MockEngine.GetStringDelegate resourceDelegate = AssemblyResources.GetString;
+        internal static IsWinMDFile isWinMDFile = IsWinMDFile;
+        internal static ReadMachineTypeFromPEHeader readMachineTypeFromPEHeader = ReadMachineTypeFromPEHeader;
 
         // Performance checks.
         internal static Dictionary<string, int> uniqueFileExists = null;
@@ -1770,34 +1770,17 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             return new AssemblyNameExtension(defaultName);
         }
 
-        /// <summary>
-        /// Cached implementation. Given an assembly name, crack it open and retrieve the list of dependent
-        /// assemblies and  the list of scatter files.
-        /// </summary>
-        /// <param name="path">Path to the assembly.</param>
-        /// <param name="assemblyMetadataCache">Ignored.</param>
-        /// <param name="dependencies">Receives the list of dependencies.</param>
-        /// <param name="scatterFiles">Receives the list of associated scatter files.</param>
-        /// <param name="frameworkName">Receives the assembly framework name.</param>
-        internal static void GetAssemblyMetadata(
-            string path,
-            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-            out AssemblyNameExtension[] dependencies,
-            out string[] scatterFiles,
-            out FrameworkNameVersioning frameworkName)
+        /// <inheritdoc cref="GetAssemblyMetadata"/>
+        internal static AssemblyMetadata GetAssemblyMetadataMock(string path)
         {
-            dependencies = GetDependencies(path);
-            scatterFiles = null;
-            frameworkName = GetTargetFrameworkAttribute(path);
+            string[] scatterFiles = @"C:\Regress275161\a.dll" == path
+                ? [@"m1.netmodule", @"m2.netmodule"]
+                : null;
 
-            if (@"C:\Regress275161\a.dll" == path)
-            {
-                scatterFiles = new string[]
-                {
-                    @"m1.netmodule",
-                    @"m2.netmodule"
-                };
-            }
+            return new AssemblyMetadata(
+                dependencies: GetDependencies(path),
+                scatterFiles: scatterFiles,
+                frameworkName: GetTargetFrameworkAttribute(path));
         }
 
         /// <summary>

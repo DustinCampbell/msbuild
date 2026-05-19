@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
@@ -95,7 +94,7 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Cached delegate.
         /// </summary>
-        private GetAssemblyMetadata getAssemblyMetadata;
+        private GetAssemblyMetadata _getAssemblyMetadata;
 
         /// <summary>
         /// Cached delegate.
@@ -128,19 +127,9 @@ namespace Microsoft.Build.Tasks
             private AssemblyNameExtension assemblyName;
 
             /// <summary>
-            /// The assemblies that this file depends on.
+            /// Assembly metadata for this file.
             /// </summary>
-            internal AssemblyNameExtension[] dependencies;
-
-            /// <summary>
-            /// The scatter files associated with this assembly.
-            /// </summary>
-            internal string[] scatterFiles;
-
-            /// <summary>
-            /// FrameworkName the file was built against
-            /// </summary>
-            internal FrameworkName frameworkName;
+            internal AssemblyMetadata assemblyMetadata;
 
             /// <summary>
             /// The CLR runtime version for the assembly.
@@ -175,12 +164,36 @@ namespace Microsoft.Build.Tasks
             {
                 ErrorUtilities.VerifyThrowArgumentNull(translator);
 
+                AssemblyNameExtension[] dependencies;
+                string[] scatterFiles;
+                FrameworkName frameworkName;
+
+                if (translator.Mode == TranslationDirection.WriteToStream && assemblyMetadata is { } metadata)
+                {
+                    dependencies = metadata.Dependencies;
+                    scatterFiles = metadata.ScatterFiles;
+                    frameworkName = metadata.FrameworkName;
+                }
+                else
+                {
+                    dependencies = null;
+                    scatterFiles = null;
+                    frameworkName = null;
+                }
+
                 translator.Translate(ref lastModified);
-                translator.Translate(ref assemblyName, (t) => new AssemblyNameExtension(t));
-                translator.TranslateArray(ref dependencies, (t) => new AssemblyNameExtension(t));
+                translator.Translate(ref assemblyName, static t => new AssemblyNameExtension(t));
+                translator.TranslateArray(ref dependencies, static t => new AssemblyNameExtension(t));
                 translator.Translate(ref scatterFiles);
                 translator.Translate(ref runtimeVersion);
                 translator.Translate(ref frameworkName);
+
+                if (translator.Mode == TranslationDirection.ReadFromStream)
+                {
+                    assemblyMetadata = dependencies != null || scatterFiles != null || frameworkName != null
+                        ? new(dependencies, scatterFiles, frameworkName)
+                        : null;
+                }
             }
 
             /// <summary>
@@ -196,7 +209,7 @@ namespace Microsoft.Build.Tasks
             /// Get or set the assemblyName.
             /// </summary>
             /// <value></value>
-            internal AssemblyNameExtension Assembly
+            internal AssemblyNameExtension AssemblyName
             {
                 get { return assemblyName; }
                 set { assemblyName = value; }
@@ -215,12 +228,9 @@ namespace Microsoft.Build.Tasks
             /// <summary>
             /// Get or set the framework name the file was built against
             /// </summary>
-            [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode", Justification = "Could be used in other assemblies")]
-            internal FrameworkName FrameworkNameAttribute
-            {
-                get { return frameworkName; }
-                set { frameworkName = value; }
-            }
+            internal FrameworkName FrameworkNameAttribute => assemblyMetadata?.FrameworkName;
+
+            internal string[] ScatterFiles => assemblyMetadata?.ScatterFiles;
 
             /// <summary>
             /// The last-modified value to use for immutable framework files which we don't do I/O on.
@@ -312,14 +322,16 @@ namespace Microsoft.Build.Tasks
         }
 
         /// <summary>
-        /// Cache the results of a GetAssemblyMetadata delegate.
+        ///  Cache the results of a <see cref="GetAssemblyMetadata"/> delegate.
         /// </summary>
-        /// <param name="getAssemblyMetadataValue">The delegate.</param>
-        /// <returns>Cached version of the delegate.</returns>
-        internal GetAssemblyMetadata CacheDelegate(GetAssemblyMetadata getAssemblyMetadataValue)
+        /// <param name="value">The delegate.</param>
+        /// <returns>
+        ///  <see cref="GetAssemblyMetadata"/> delegate that caches results.
+        /// </returns>
+        internal GetAssemblyMetadata CacheDelegate(GetAssemblyMetadata value)
         {
-            getAssemblyMetadata = getAssemblyMetadataValue;
-            return GetAssemblyMetadata;
+            _getAssemblyMetadata = value;
+            return GetCachedAssemblyMetadata;
         }
 
         /// <summary>
@@ -482,16 +494,16 @@ namespace Microsoft.Build.Tasks
             // Lock to safely publish writes to the shared FileState.Assembly field. 
             lock (fileState._lock)
             {
-                if (fileState.Assembly == null)
+                if (fileState.AssemblyName == null)
                 {
-                    fileState.Assembly = getAssemblyName(path);
+                    fileState.AssemblyName = getAssemblyName(path);
 
                     // Certain assemblies, like mscorlib may not have metadata.
                     // Avoid continuously calling getAssemblyName on these files by
                     // recording these as having an empty name.
-                    if (fileState.Assembly == null)
+                    if (fileState.AssemblyName == null)
                     {
-                        fileState.Assembly = AssemblyNameExtension.UnnamedAssembly;
+                        fileState.AssemblyName = AssemblyNameExtension.UnnamedAssembly;
                     }
                     if (fileState.IsWorthPersisting)
                     {
@@ -499,12 +511,12 @@ namespace Microsoft.Build.Tasks
                     }
                 }
 
-                if (fileState.Assembly.IsUnnamedAssembly)
+                if (fileState.AssemblyName.IsUnnamedAssembly)
                 {
                     return null;
                 }
 
-                return fileState.Assembly;
+                return fileState.AssemblyName;
             }
         }
 
@@ -531,34 +543,17 @@ namespace Microsoft.Build.Tasks
             }
         }
 
-        /// <summary>
-        /// Cached implementation. Given an assembly name, crack it open and retrieve the list of dependent
-        /// assemblies and  the list of scatter files.
-        /// </summary>
-        /// <param name="path">Path to the assembly.</param>
-        /// <param name="assemblyMetadataCache">Cache for pre-extracted assembly metadata.</param>
-        /// <param name="dependencies">Receives the list of dependencies.</param>
-        /// <param name="scatterFiles">Receives the list of associated scatter files.</param>
-        /// <param name="frameworkName"></param>
-        private void GetAssemblyMetadata(
-            string path,
-            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-            out AssemblyNameExtension[] dependencies,
-            out string[] scatterFiles,
-            out FrameworkName frameworkName)
+        /// <inheritdoc cref="GetAssemblyMetadata"/>
+        private AssemblyMetadata GetCachedAssemblyMetadata(string path)
         {
             FileState fileState = GetFileState(path);
+
             // Lock to atomically populate-and-read the three metadata fields. 
             lock (fileState._lock)
             {
-                if (fileState.dependencies == null)
+                if (fileState.assemblyMetadata is null)
                 {
-                    getAssemblyMetadata(
-                        path,
-                        assemblyMetadataCache,
-                        out fileState.dependencies,
-                        out fileState.scatterFiles,
-                        out fileState.frameworkName);
+                    fileState.assemblyMetadata = _getAssemblyMetadata(path);
 
                     if (fileState.IsWorthPersisting)
                     {
@@ -566,9 +561,7 @@ namespace Microsoft.Build.Tasks
                     }
                 }
 
-                dependencies = fileState.dependencies;
-                scatterFiles = fileState.scatterFiles;
-                frameworkName = fileState.frameworkName;
+                return fileState.assemblyMetadata;
             }
         }
 

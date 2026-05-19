@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Versioning;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Tasks.AssemblyDependency;
@@ -81,20 +79,14 @@ namespace Microsoft.Build.Tasks
     internal delegate string GetPathFromFusionName(string strongName);
 
     /// <summary>
-    /// Delegate. Given an assembly name, crack it open and retrieve the list of dependent
-    /// assemblies and  the list of scatter files.
+    ///  Given an assembly path, crack it open and retrieve the list of dependent
+    ///  assemblies and  the list of scatter files.
     /// </summary>
     /// <param name="path">Path to the assembly.</param>
-    /// <param name="assemblyMetadataCache">Assembly metadata cache.</param>
-    /// <param name="dependencies">Receives the list of dependencies.</param>
-    /// <param name="scatterFiles">Receives the list of associated scatter files.</param>
-    /// <param name="frameworkNameAttribute">The framework name</param>
-    internal delegate void GetAssemblyMetadata(
-        string path,
-        ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
-        out AssemblyNameExtension[] dependencies,
-        out string[] scatterFiles,
-        out FrameworkName frameworkNameAttribute);
+    /// <returns>
+    ///  An instance of <see cref="AssemblyMetadata"/>.
+    /// </returns>
+    internal delegate AssemblyMetadata GetAssemblyMetadata(string path);
 
     /// <summary>
     /// Delegate to take in a dll path and read the machine type from the PEHeader

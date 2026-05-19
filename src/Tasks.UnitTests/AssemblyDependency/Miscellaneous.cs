@@ -3434,32 +3434,20 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         [Fact]
         public void PrivateItemInFrameworksGetsCopyLocalTrue()
         {
-            // Create the engine.
-            MockEngine engine = new MockEngine(_output);
-
-            // Create the mocks.
-            Microsoft.Build.Shared.FileExists fileExists = new Microsoft.Build.Shared.FileExists(FileExists);
-            Microsoft.Build.Shared.DirectoryExists directoryExists = new Microsoft.Build.Shared.DirectoryExists(DirectoryExists);
-            Microsoft.Build.Tasks.GetDirectories getDirectories = new Microsoft.Build.Tasks.GetDirectories(GetDirectories);
-            Microsoft.Build.Tasks.GetAssemblyName getAssemblyName = new Microsoft.Build.Tasks.GetAssemblyName(GetAssemblyName);
-            Microsoft.Build.Tasks.GetAssemblyMetadata getAssemblyMetadata = new Microsoft.Build.Tasks.GetAssemblyMetadata(GetAssemblyMetadata);
-
-            // Also construct a set of assembly names to pass in.
-            ITaskItem[] assemblyNames = new TaskItem[]
-            {
-                new TaskItem("System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"),
-            };
-
-            assemblyNames[0].SetMetadata("Private", "true"); // Fx file, but user chose private=true.
+            var item = new TaskItem("System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
+            item.SetMetadata("Private", "true"); // Fx file, but user chose private=true.
 
             // Now, pass feed resolved primary references into ResolveAssemblyReference.
-            ResolveAssemblyReference t = new ResolveAssemblyReference();
+            ResolveAssemblyReference t = new()
+            {
+                BuildEngine = new MockEngine(_output),
+                Assemblies = [item],
+                TargetFrameworkDirectories = [s_myVersion20Path],
+                SearchPaths = DefaultPaths,
+            };
 
-            t.BuildEngine = engine;
-            t.Assemblies = assemblyNames;
-            t.TargetFrameworkDirectories = new string[] { s_myVersion20Path };
-            t.SearchPaths = DefaultPaths;
-            Execute(t);
+            _ = Execute(t);
+
             Assert.Equal(@"true", t.ResolvedFiles[0].GetMetadata("CopyLocal"));
         }
 
@@ -6769,7 +6757,6 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 warnOrErrorOnTargetArchitectureMismatch: WarnOrErrorOnTargetArchitectureMismatchBehavior.None,
                 ignoreFrameworkAttributeVersionMismatch: false,
                 unresolveFrameworkAssembliesFromHigherFrameworks: false,
-                assemblyMetadataCache: null,
                 nonCultureResourceDirectories: [],
                 taskEnvironment: TaskEnvironmentHelper.CreateForTest());
 
@@ -6983,7 +6970,6 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 warnOrErrorOnTargetArchitectureMismatch: WarnOrErrorOnTargetArchitectureMismatchBehavior.None,
                 ignoreFrameworkAttributeVersionMismatch: false,
                 unresolveFrameworkAssembliesFromHigherFrameworks: false,
-                assemblyMetadataCache: null,
                 nonCultureResourceDirectories: [],
                 taskEnvironment: TaskEnvironmentHelper.CreateForTest());
 
@@ -8586,8 +8572,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 directoryExists,
                 getDirectories,
                 _ => throw new ShouldAssertException("Unexpected GetAssemblyName callback"),
-                (string path, ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache, out AssemblyNameExtension[] dependencies, out string[] scatterFiles, out FrameworkNameVersioning frameworkName)
-                  => throw new ShouldAssertException("Unexpected GetAssemblyMetadata callback"),
+                _ => throw new ShouldAssertException("Unexpected GetAssemblyMetadata callback"),
 #if FEATURE_WIN32_REGISTRY
                 RegistryService,
 #endif

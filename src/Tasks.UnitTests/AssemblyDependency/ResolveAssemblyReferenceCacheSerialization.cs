@@ -102,12 +102,14 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
         {
             Dictionary<string, SystemState.FileState> cache = new() {
                     { "path1", new SystemState.FileState(GetLastWriteTime("path1")) },
-                    { "path2", new SystemState.FileState(GetLastWriteTime("path2")) { Assembly = new AssemblyNameExtension("hi") } },
+                    { "path2", new SystemState.FileState(GetLastWriteTime("path2")) { AssemblyName = new AssemblyNameExtension("hi") } },
                     { "dllName", new SystemState.FileState(GetLastWriteTime("dllName")) {
-                        Assembly = null,
+                        AssemblyName = null,
                         RuntimeVersion = "v4.0.30319",
-                        FrameworkNameAttribute = new FrameworkName(".NETFramework", Version.Parse("4.7.2"), "Profile"),
-                        scatterFiles = new string[] { "first", "second" } } } };
+                        assemblyMetadata = new(
+                            dependencies: null,
+                            scatterFiles: ["first", "second"],
+                            frameworkName: new FrameworkName(".NETFramework", Version.Parse("4.7.2"), "Profile")) } } };
             SystemState sysState = new();
             sysState.SetGetLastWriteTime(GetLastWriteTime);
             sysState.instanceLocalFileStateCache = cache;
@@ -129,15 +131,15 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
 
             Dictionary<string, SystemState.FileState> cache2 = sysState2.instanceLocalFileStateCache;
             cache2.Count.ShouldBe(cache.Count);
-            cache2["path2"].Assembly.Name.ShouldBe(cache["path2"].Assembly.Name);
+            cache2["path2"].AssemblyName.Name.ShouldBe(cache["path2"].AssemblyName.Name);
             SystemState.FileState dll = cache["dllName"];
             SystemState.FileState dll2 = cache2["dllName"];
-            dll2.Assembly.ShouldBe(dll.Assembly);
+            dll2.AssemblyName.ShouldBe(dll.AssemblyName);
             dll2.FrameworkNameAttribute.FullName.ShouldBe(dll.FrameworkNameAttribute.FullName);
             dll2.LastModified.ShouldBe(dll.LastModified);
             dll2.RuntimeVersion.ShouldBe(dll.RuntimeVersion);
-            dll2.scatterFiles.Length.ShouldBe(dll.scatterFiles.Length);
-            dll2.scatterFiles[1].ShouldBe(dll.scatterFiles[1]);
+            dll2.ScatterFiles.Length.ShouldBe(dll.ScatterFiles.Length);
+            dll2.ScatterFiles[1].ShouldBe(dll.ScatterFiles[1]);
         }
 
         [Fact]

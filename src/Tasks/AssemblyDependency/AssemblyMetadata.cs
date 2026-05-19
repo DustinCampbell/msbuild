@@ -15,20 +15,27 @@ namespace Microsoft.Build.Tasks.AssemblyDependency
     /// After initial construction, this object is readonly and data-only,
     /// allowing it to be safely cached.
     /// </remarks>
-    internal class AssemblyMetadata
+    internal sealed class AssemblyMetadata
     {
         public readonly AssemblyNameExtension[] Dependencies;
-        public readonly FrameworkName FrameworkName;
         public readonly string[] ScatterFiles;
+        public readonly FrameworkName FrameworkName;
 
         public AssemblyMetadata(string path)
         {
             using (var import = new AssemblyInformation(path))
             {
                 Dependencies = import.Dependencies;
-                FrameworkName = import.FrameworkNameAttribute;
                 ScatterFiles = NativeMethodsShared.IsWindows ? import.Files : null;
+                FrameworkName = import.FrameworkNameAttribute;
             }
+        }
+
+        public AssemblyMetadata(AssemblyNameExtension[] dependencies, string[] scatterFiles, FrameworkName frameworkName)
+        {
+            Dependencies = dependencies;
+            ScatterFiles = scatterFiles;
+            FrameworkName = frameworkName;
         }
     }
 }

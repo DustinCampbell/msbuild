@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Tasks.AssemblyDependency;
 using Microsoft.Build.UnitTests;
 using Microsoft.Build.Utilities;
 using Shouldly;
@@ -29,7 +30,7 @@ namespace Microsoft.Build.Tasks.UnitTests
                 };
                 t._cache.instanceLocalFileStateCache = new Dictionary<string, SystemState.FileState>() {
                     { Path.Combine(standardCache.Path, "assembly1"), new SystemState.FileState(now) },
-                    { Path.Combine(standardCache.Path, "assembly2"), new SystemState.FileState(now) { Assembly = new Shared.AssemblyNameExtension("hi") } } };
+                    { Path.Combine(standardCache.Path, "assembly2"), new SystemState.FileState(now) { AssemblyName = new Shared.AssemblyNameExtension("hi") } } };
                 t._cache.SetGetLastWriteTime(_ => now);
                 _ = t._cache.GetFileState("assembly1");
                 _ = t._cache.GetFileState("assembly2");
@@ -76,10 +77,12 @@ namespace Microsoft.Build.Tasks.UnitTests
                 rarWriterTask._cache.instanceLocalFileStateCache.Add(dllName,
                     new SystemState.FileState(DateTime.Now)
                     {
-                        Assembly = null,
+                        AssemblyName = null,
                         RuntimeVersion = "v4.0.30319",
-                        FrameworkNameAttribute = new System.Runtime.Versioning.FrameworkName(".NETFramework", Version.Parse("4.7.2"), "Profile"),
-                        scatterFiles = new string[] { "first", "second" }
+                        assemblyMetadata = new AssemblyMetadata(
+                            dependencies: null,
+                            scatterFiles: ["first", "second"],
+                            frameworkName: new(".NETFramework", Version.Parse("4.7.2"), "Profile")),
                     });
                 string precomputedCachePath = standardCache.Path + ".cache";
                 rarWriterTask.AssemblyInformationCacheOutputPath = precomputedCachePath;
@@ -116,14 +119,23 @@ namespace Microsoft.Build.Tasks.UnitTests
                     _cache = new SystemState()
                 };
                 string dllName = Path.Combine(Path.GetDirectoryName(precomputedCache.Path), "randomFolder", "dll.dll");
-                rarWriterTask._cache.instanceLocalFileStateCache = new Dictionary<string, SystemState.FileState>() {
+                rarWriterTask._cache.instanceLocalFileStateCache = new Dictionary<string, SystemState.FileState>()
+                {
                     { Path.Combine(precomputedCache.Path, "..", "assembly1", "assembly1"), new SystemState.FileState(DateTime.Now) },
-                    { Path.Combine(precomputedCache.Path, "assembly2"), new SystemState.FileState(DateTime.Now) { Assembly = new Shared.AssemblyNameExtension("hi") } },
-                    { dllName, new SystemState.FileState(DateTime.Now) {
-                        Assembly = null,
-                        RuntimeVersion = "v4.0.30319",
-                        FrameworkNameAttribute = new System.Runtime.Versioning.FrameworkName(".NETFramework", Version.Parse("4.7.2"), "Profile"),
-                        scatterFiles = new string[] { "first", "second" } } } };
+                    { Path.Combine(precomputedCache.Path, "assembly2"), new SystemState.FileState(DateTime.Now) { AssemblyName = new Shared.AssemblyNameExtension("hi") } },
+                    {
+                        dllName,
+                        new SystemState.FileState(DateTime.Now)
+                        {
+                            AssemblyName = null,
+                            RuntimeVersion = "v4.0.30319",
+                            assemblyMetadata = new AssemblyMetadata(
+                                dependencies: null,
+                                scatterFiles: ["first", "second"],
+                                frameworkName: new(".NETFramework", Version.Parse("4.7.2"), "Profile")),
+                        }
+                    },
+                };
 
                 rarWriterTask.AssemblyInformationCacheOutputPath = precomputedCache.Path;
                 rarWriterTask._cache.IsDirty = true;
@@ -147,11 +159,11 @@ namespace Microsoft.Build.Tasks.UnitTests
                 rarReaderTask.ReadStateFile(p => true);
                 rarReaderTask._cache.instanceLocalFileStateCache.ShouldContainKey(dllName);
                 SystemState.FileState assembly3 = rarReaderTask._cache.instanceLocalFileStateCache[dllName];
-                assembly3.Assembly.ShouldBeNull();
+                assembly3.AssemblyName.ShouldBeNull();
                 assembly3.RuntimeVersion.ShouldBe("v4.0.30319");
                 assembly3.FrameworkNameAttribute.Version.ShouldBe(Version.Parse("4.7.2"));
-                assembly3.scatterFiles.Length.ShouldBe(2);
-                assembly3.scatterFiles[1].ShouldBe("second");
+                assembly3.ScatterFiles.Length.ShouldBe(2);
+                assembly3.ScatterFiles[1].ShouldBe("second");
             }
         }
     }

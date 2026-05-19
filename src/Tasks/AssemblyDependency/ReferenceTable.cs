@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -12,7 +11,6 @@ using System.Runtime.Versioning;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Tasks.AssemblyDependency;
 using Microsoft.Build.Utilities;
 using FrameworkNameVersioning = System.Runtime.Versioning.FrameworkName;
 using SystemProcessorArchitecture = System.Reflection.ProcessorArchitecture;
@@ -171,8 +169,6 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         private readonly WarnOrErrorOnTargetArchitectureMismatchBehavior _warnOrErrorOnTargetArchitectureMismatch = WarnOrErrorOnTargetArchitectureMismatchBehavior.Warning;
 
-        private readonly ConcurrentDictionary<string, AssemblyMetadata> _assemblyMetadataCache;
-
         /// <summary>
         /// When we exclude an assembly from resolution because it is part of out exclusion list we need to let the user know why this is.
         /// There can be a number of reasons each for un-resolving a reference, these reasons are encapsulated by a different deny list. We need to log a specific message
@@ -211,7 +207,6 @@ namespace Microsoft.Build.Tasks
         /// <param name="getAssemblyMetadata">Delegate used for finding dependencies of a file.</param>
         /// <param name="registryService">Service to interact with the registry.</param>
         /// <param name="unresolveFrameworkAssembliesFromHigherFrameworks"></param>
-        /// <param name="assemblyMetadataCache">Cache of metadata already read from paths.</param>
         /// <param name="allowedAssemblyExtensions"></param>
         /// <param name="getRuntimeVersion"></param>
         /// <param name="targetedRuntimeVersion">Version of the runtime to target.</param>
@@ -252,7 +247,6 @@ namespace Microsoft.Build.Tasks
         /// <param name="getAssemblyName">Delegate used for getting assembly names.</param>
         /// <param name="getAssemblyMetadata">Delegate used for finding dependencies of a file.</param>
         /// <param name="unresolveFrameworkAssembliesFromHigherFrameworks"></param>
-        /// <param name="assemblyMetadataCache">Cache of metadata already read from paths.</param>
         /// <param name="allowedAssemblyExtensions"></param>
         /// <param name="getRuntimeVersion"></param>
         /// <param name="targetedRuntimeVersion">Version of the runtime to target.</param>
@@ -309,7 +303,6 @@ namespace Microsoft.Build.Tasks
             WarnOrErrorOnTargetArchitectureMismatchBehavior warnOrErrorOnTargetArchitectureMismatch,
             bool ignoreFrameworkAttributeVersionMismatch,
             bool unresolveFrameworkAssembliesFromHigherFrameworks,
-            ConcurrentDictionary<string, AssemblyMetadata> assemblyMetadataCache,
             string[] nonCultureResourceDirectories,
             TaskEnvironment taskEnvironment)
         {
@@ -340,7 +333,6 @@ namespace Microsoft.Build.Tasks
             _readMachineTypeFromPEHeader = readMachineTypeFromPEHeader;
             _warnOrErrorOnTargetArchitectureMismatch = warnOrErrorOnTargetArchitectureMismatch;
             _ignoreFrameworkAttributeVersionMismatch = ignoreFrameworkAttributeVersionMismatch;
-            _assemblyMetadataCache = assemblyMetadataCache;
             _nonCultureResourceDirectories = nonCultureResourceDirectories;
             _enableCustomCulture = enableCustomCulture;
             _taskEnvironment = taskEnvironment;
@@ -1035,9 +1027,9 @@ namespace Microsoft.Build.Tasks
         /// Get unified dependencies and scatter files for a reference.
         /// </summary>
         private void GetUnifiedAssemblyMetadata(
-                Reference reference,
-                out IEnumerable<UnifiedAssemblyName> unifiedDependencies,
-                out string[] scatterFiles)
+            Reference reference,
+            out IEnumerable<UnifiedAssemblyName> unifiedDependencies,
+            out string[] scatterFiles)
         {
             // Shortcut if this is a prereq file--don't find dependencies.
             // We also don't want to look for dependencies if we already know
@@ -1049,52 +1041,54 @@ namespace Microsoft.Build.Tasks
                 return;
             }
 
-            _getAssemblyMetadata(
-                reference.FullPath,
-                _assemblyMetadataCache,
-                out AssemblyNameExtension[] dependentAssemblies,
-                out scatterFiles,
-                out FrameworkName frameworkName);
+            var metadata = _getAssemblyMetadata(reference.FullPath);
 
-            reference.FrameworkNameAttribute = frameworkName;
+            reference.FrameworkNameAttribute = metadata.FrameworkName;
+            scatterFiles = metadata.ScatterFiles;
 
-            var dependencies = new List<AssemblyNameExtension>(dependentAssemblies?.Length ?? 0);
+            var dependentAssemblies = metadata.Dependencies ?? [];
 
-            if (dependentAssemblies?.Length > 0)
+            // If there aren't any dependent assemblies, we can exit early.
+            if (dependentAssemblies.Length == 0)
             {
-                // Re-map immediately so that to the sytem we actually got the remapped version when reading the manifest.
-                for (int i = 0; i < dependentAssemblies.Length; i++)
+                unifiedDependencies = [];
+                return;
+            }
+
+            var dependencies = new List<AssemblyNameExtension>(dependentAssemblies.Length);
+
+            // Re-map immediately so that to the sytem we actually got the remapped version when reading the manifest.
+            for (int i = 0; i < dependentAssemblies.Length; i++)
+            {
+                // This will return a clone of the remapped assemblyNameExtension so its ok to party on it.
+                AssemblyNameExtension remappedExtension = _installedAssemblies?.RemapAssemblyExtension(dependentAssemblies[i]);
+                if (remappedExtension != null)
                 {
-                    // This will return a clone of the remapped assemblyNameExtension so its ok to party on it.
-                    AssemblyNameExtension remappedExtension = _installedAssemblies?.RemapAssemblyExtension(dependentAssemblies[i]);
-                    if (remappedExtension != null)
+                    AssemblyNameExtension originalExtension = dependentAssemblies[i];
+                    AssemblyNameExtension existingExtension = dependencies.Find(x => x.Equals(remappedExtension));
+                    if (existingExtension != null)
                     {
-                        AssemblyNameExtension originalExtension = dependentAssemblies[i];
-                        AssemblyNameExtension existingExtension = dependencies.Find(x => x.Equals(remappedExtension));
-                        if (existingExtension != null)
-                        {
-                            existingExtension.AddRemappedAssemblyName(originalExtension.CloneImmutable());
-                            continue;
-                        }
-                        else
-                        {
-                            dependentAssemblies[i] = remappedExtension;
-                            dependentAssemblies[i].AddRemappedAssemblyName(originalExtension.CloneImmutable());
-                        }
+                        existingExtension.AddRemappedAssemblyName(originalExtension.CloneImmutable());
+                        continue;
                     }
-
-                    // Assemblies which reference WinMD files sometimes will have references to mscorlib version 255.255.255 which is invalid. For this reason
-                    // We will remove the dependency to mscorlib from the list of dependencies so it is not used for resolution or unification.
-                    bool isMscorlib = IsPseudoAssembly(dependentAssemblies[i].Name);
-
-                    if (!isMscorlib || dependentAssemblies[i].Version.Major != 255)
+                    else
                     {
-                        dependencies.Add(dependentAssemblies[i]);
+                        dependentAssemblies[i] = remappedExtension;
+                        dependentAssemblies[i].AddRemappedAssemblyName(originalExtension.CloneImmutable());
                     }
                 }
 
-                dependentAssemblies = dependencies.ToArray();
+                // Assemblies which reference WinMD files sometimes will have references to mscorlib version 255.255.255 which is invalid. For this reason
+                // We will remove the dependency to mscorlib from the list of dependencies so it is not used for resolution or unification.
+                bool isMscorlib = IsPseudoAssembly(dependentAssemblies[i].Name);
+
+                if (!isMscorlib || dependentAssemblies[i].Version.Major != 255)
+                {
+                    dependencies.Add(dependentAssemblies[i]);
+                }
             }
+
+            dependentAssemblies = dependencies.ToArray();
 
             unifiedDependencies = GetUnifiedAssemblyNames(dependentAssemblies);
         }
