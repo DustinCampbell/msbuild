@@ -10,85 +10,104 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.Construction;
 
 /// <summary>
-///  The location of an XML node in a file.
-///  Any editing of the project XML through the MSBuild API's will invalidate locations in that XML until the XML is reloaded.
+///  Represents the location of an XML node in a project file.
 /// </summary>
 /// <remarks>
-///  This object is IMMUTABLE, so that it can be passed around arbitrarily.
-///  DO NOT make these objects any larger. There are huge numbers of them and they are transmitted between nodes.
+///  <para>
+///   Instances of this type are immutable and may be freely shared across threads.
+///  </para>
+///  <para>
+///   Editing the project XML through the MSBuild API will invalidate existing locations
+///   until the XML is reloaded.
+///  </para>
 /// </remarks>
 [Serializable]
-public abstract class ElementLocation : IElementLocation, ITranslatable, IImmutable
+public abstract class ElementLocation : IElementLocation, IEquatable<ElementLocation>, ITranslatable, IImmutable
 {
     /// <summary>
-    ///  Gets the empty element location.
-    ///  This is not to be used when something is "missing": that should have a null location.
-    ///  It is to be used for the project location when the project has not been given a name.
-    ///  In that case, it exists, but can't have a specific location.
+    ///  Gets a shared instance representing an unknown or unnamed location.
     /// </summary>
-    public static ElementLocation EmptyLocation { get; } = new SmallElementLocation(file: null, line: 0, column: 0);
+    /// <value>
+    ///  An <see cref="ElementLocation"/> with an empty file path and zero line/column.
+    /// </value>
+    /// <remarks>
+    ///  Use this for projects that have not been given a name. When an element's location
+    ///  is truly absent, use <see langword="null"/> instead.
+    /// </remarks>
+    public static ElementLocation EmptyLocation => EmptyElementLocation.Instance;
 
     /// <summary>
-    ///  The file from which this particular element originated.  It may
-    ///  differ from the ProjectFile if, for instance, it was part of
-    ///  an import or originated in a targets file.
-    ///  If not known, returns empty string.
+    ///  Gets the file from which this element originated.
     /// </summary>
+    /// <value>
+    ///  The file path, or an empty string if not known. This may differ from the project file
+    ///  if the element was part of an import or originated in a targets file.
+    /// </value>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public abstract string File { get; }
 
     /// <summary>
-    ///  The line number where this element exists in its file.
-    ///  The first line is numbered 1.
-    ///  Zero indicates "unknown location".
+    ///  Gets the line number where this element exists in its file.
     /// </summary>
+    /// <value>
+    ///  The 1-based line number, or zero if unknown.
+    /// </value>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public abstract int Line { get; }
 
     /// <summary>
-    ///  The column number where this element exists in its file.
-    ///  The first column is numbered 1.
-    ///  Zero indicates "unknown location".
+    ///  Gets the column number where this element exists in its file.
     /// </summary>
+    /// <value>
+    ///  The 1-based column number, or zero if unknown.
+    /// </value>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public abstract int Column { get; }
 
     /// <summary>
-    ///  The location in a form suitable for replacement
-    ///  into a message.
-    ///  Example: "c:\foo\bar.csproj (12,34)"
-    ///  Calling this creates and formats a new string.
-    ///  PREFER TO PUT THE LOCATION INFORMATION AT THE START OF THE MESSAGE INSTEAD.
-    ///  Only in rare cases should the location go within the message itself.
+    ///  Gets the location formatted for display in a diagnostic message.
     /// </summary>
-    public string LocationString => GetLocationString(File, Line, Column);
+    /// <value>
+    ///  A string such as <c>c:\foo\bar.csproj (12,34)</c>. A new string is allocated on each access.
+    /// </value>
+    public string LocationString
+    {
+        get
+        {
+            return GetLocationString(File, Line, Column);
 
-    /// <summary>
-    ///  Get reasonable hash code.
-    /// </summary>
+            static string GetLocationString(string file, int line, int column)
+                => line != 0
+                    ? column != 0
+                        ? ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("FileLocation", file, line, column)
+                        : $"{file} ({line})"
+                    : file;
+        }
+    }
+
     public override int GetHashCode()
         => Line.GetHashCode() ^ Column.GetHashCode(); // Line and column are good enough
 
-    /// <summary>
-    ///  Override Equals so that identical fields imply equal objects.
-    /// </summary>
     public override bool Equals(object? obj)
-        => obj is IElementLocation other &&
-            Line == other.Line &&
-            Column == other.Column &&
-            string.Equals(File, other.File, StringComparison.OrdinalIgnoreCase);
+        => obj is IElementLocation other && Equals(other);
 
-    /// <summary>
-    ///  Location of element.
-    /// </summary>
+    public bool Equals(ElementLocation? other)
+        => other is not null &&
+           Line == other.Line &&
+           Column == other.Column &&
+           string.Equals(File, other.File, StringComparison.OrdinalIgnoreCase);
+
     public override string ToString()
         => LocationString;
 
     /// <summary>
-    ///  Writes the packet to the serializer.
-    ///  Always send as ints, even if ushorts are being used: otherwise it'd
-    ///  need a byte to discriminate and the savings would be microscopic.
+    ///  Serializes this location to the given translator.
     /// </summary>
+    /// <param name="translator">The translator to write to.</param>
+    /// <remarks>
+    ///  Values are always serialized as <see cref="int"/>, even when stored internally as
+    ///  <see cref="ushort"/>, to avoid needing a discriminator byte for negligible savings.
+    /// </remarks>
     void ITranslatable.Translate(ITranslator translator)
     {
         Assumed.Equal(translator.Mode, TranslationDirection.WriteToStream, "write only");
@@ -103,9 +122,12 @@ public abstract class ElementLocation : IElementLocation, ITranslatable, IImmuta
     }
 
     /// <summary>
-    ///  Factory for serialization.
-    ///  Custom factory is needed because this class is abstract and uses a factory pattern.
+    ///  Deserializes an <see cref="ElementLocation"/> from the given translator.
     /// </summary>
+    /// <param name="translator">The translator to read from.</param>
+    /// <returns>
+    ///  An <see cref="ElementLocation"/> reconstructed from the serialized data.
+    /// </returns>
     internal static ElementLocation FactoryForDeserialization(ITranslator translator)
     {
         string? file = null;
@@ -120,118 +142,88 @@ public abstract class ElementLocation : IElementLocation, ITranslatable, IImmuta
     }
 
     /// <summary>
-    ///  Constructor for when we only know the file and nothing else.
-    ///  This is the case when we are creating a new item, for example, and it has
-    ///  not been evaluated from some XML.
+    ///  Creates an <see cref="ElementLocation"/> with only a file path and no line or column information.
     /// </summary>
-    internal static ElementLocation Create(string file)
-        => Create(file, line: 0, column: 0);
+    /// <param name="file">The file path, or <see langword="null"/> if not known.</param>
+    /// <returns>
+    ///  An <see cref="ElementLocation"/> for the specified file.
+    /// </returns>
+    internal static ElementLocation Create(string? file)
+        => file.IsNullOrEmpty()
+            ? EmptyLocation
+            : new FileOnlyElementLocation(file);
 
     /// <summary>
-    ///  Constructor for the case where we have most or all information.
-    ///  Numerical values must be 1-based, non-negative; 0 indicates unknown
-    ///  File may be null, indicating the file was not loaded from disk.
+    ///  Creates an <see cref="ElementLocation"/> with the specified file, line, and column.
     /// </summary>
-    /// <remarks>
-    ///  In AG there are 600 locations that have a file but zero line and column.
-    ///  In theory yet another derived class could be made for these to save 4 bytes each.
-    /// </remarks>
+    /// <param name="file">
+    ///  The file path, or <see langword="null"/> if the file was not loaded from disk.
+    /// </param>
+    /// <param name="line">The 1-based line number, or 0 if unknown.</param>
+    /// <param name="column">The 1-based column number, or 0 if unknown.</param>
+    /// <returns>
+    ///  An <see cref="ElementLocation"/> representing the specified location.
+    /// </returns>
     public static ElementLocation Create(string? file, int line, int column)
     {
-        if (file.IsNullOrEmpty() && line == 0 && column == 0)
+        ArgumentOutOfRangeException.ThrowIfNegative(line);
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
+
+        if (line == 0 && column == 0)
         {
-            return EmptyLocation;
+            return Create(file);
         }
 
-        return line <= 65535 && column <= 65535
-            ? new SmallElementLocation(file, line, column)
-            : new RegularElementLocation(file, line, column);
+        return line <= ushort.MaxValue && column <= ushort.MaxValue
+            ? new SmallElementLocation(file ?? string.Empty, (ushort)line, (ushort)column)
+            : new RegularElementLocation(file ?? string.Empty, line, column);
     }
 
-    /// <summary>
-    ///  The location in a form suitable for replacement into a message.
-    ///  Example: "c:\foo\bar.csproj (12,34)"
-    ///  Calling this creates and formats a new string.
-    ///  PREFER TO PUT THE LOCATION INFORMATION AT THE START OF THE MESSAGE INSTEAD.
-    ///  Only in rare cases should the location go within the message itself.
-    /// </summary>
-    private static string GetLocationString(string file, int line, int column)
-        => line != 0
-            ? column != 0
-                ? ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("FileLocation", file, line, column)
-                : $"{file} ({line})"
-            : file;
-
-    /// <summary>
-    ///  Rarer variation for when the line and column won't each fit in a ushort.
-    /// </summary>
-    private sealed class RegularElementLocation : ElementLocation
+    private sealed class EmptyElementLocation : ElementLocation
     {
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public override string File { get; }
+        public static readonly ElementLocation Instance = new EmptyElementLocation();
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public override int Line { get; }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public override int Column { get; }
-
-        /// <summary>
-        ///  Constructor for the case where we have most or all information.
-        ///  Numerical values must be 1-based, non-negative; 0 indicates unknown
-        ///  File may be null, indicating the file was not loaded from disk.
-        /// </summary>
-        internal RegularElementLocation(string? file, int line, int column)
+        private EmptyElementLocation()
         {
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(file, nameof(file));
-            Assumed.PositiveOrZero(line, "Use zero for unknown");
-            Assumed.PositiveOrZero(column, "Use zero for unknown");
-
-            File = file ?? string.Empty;
-            Line = line;
-            Column = column;
         }
+
+        public override string File => string.Empty;
+
+        public override int Line => 0;
+
+        public override int Column => 0;
     }
 
-    /// <summary>
-    ///  For when the line and column each fit in a short - under 65536
-    ///  (almost always will: microsoft.common.targets is less than 5000 lines long)
-    ///  When loading Australian Government, for example, there are over 31,000 ElementLocation
-    ///  objects so this saves 4 bytes each = 123KB
-    ///  
-    ///  A "very small" variation that used two bytes (or halves of a short) would fit about half of them
-    ///  and save 4 more bytes each, but the CLR packs each field to 4 bytes, so it isn't actually any smaller.
-    /// </summary>
-    private sealed class SmallElementLocation : ElementLocation
+    private sealed class FileOnlyElementLocation(string file) : ElementLocation
     {
-        private readonly string _file;
-        private readonly ushort _line;
-        private readonly ushort _column;
+        public override string File => file;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public override string File => _file;
+        public override int Line => 0;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public override int Column => 0;
+    }
+
+    // Stores line and column as ushort to save 4 bytes per instance.
+    // The vast majority of locations fit in this range (files rarely exceed 65535 lines).
+    private sealed class SmallElementLocation(string file, ushort line, ushort column) : ElementLocation
+    {
+        private readonly ushort _line = line;
+        private readonly ushort _column = column;
+
+        public override string File { get; } = file;
+
         public override int Line => _line;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public override int Column => _column;
+    }
 
-        /// <summary>
-        ///  Constructor for the case where we have most or all information.
-        ///  Numerical values must be 1-based, non-negative; 0 indicates unknown
-        ///  File may be null or empty, indicating the file was not loaded from disk.
-        /// </summary>
-        internal SmallElementLocation(string? file, int line, int column)
-        {
-            Assumed.PositiveOrZero(line, "Use zero for unknown");
-            Assumed.PositiveOrZero(column, "Use zero for unknown");
-            Assumed.LessThanOrEqual(line, 65535, "Use ElementLocation instead");
-            Assumed.LessThanOrEqual(column, 65535, "Use ElementLocation instead");
+    // Stores line and column as int when values exceed ushort.MaxValue.
+    private sealed class RegularElementLocation(string file, int line, int column) : ElementLocation
+    {
+        public override string File { get; } = file;
 
-            _file = file ?? string.Empty;
-            _line = (ushort)line;
-            _column = (ushort)column;
-        }
+        public override int Line { get; } = line;
+
+        public override int Column { get; } = column;
     }
 }
