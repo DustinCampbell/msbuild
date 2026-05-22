@@ -42,7 +42,6 @@ namespace Microsoft.Build.Construction
         internal ProjectMetadataElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -90,7 +89,20 @@ namespace Microsoft.Build.Construction
         /// </summary>
         public string Value
         {
-            get => Link != null ? MetadataLink.Value : Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
+            get
+            {
+                if (Link != null)
+                {
+                    return MetadataLink.Value;
+                }
+
+                if (DataSource is ElementData data)
+                {
+                    return data.TextContent ?? string.Empty;
+                }
+
+                return Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
+            }
 
             set
             {
@@ -101,6 +113,15 @@ namespace Microsoft.Build.Construction
                 }
 
                 ArgumentNullException.ThrowIfNull(value);
+
+                if (DataSource is ElementData data)
+                {
+                    data.TextContent = value;
+                    Parent?.UpdateElementValue(this);
+                    MarkDirty("Set metadata Value {0}", value);
+                    return;
+                }
+
                 Internal.Utilities.SetXmlNodeInnerContents(XmlElement, value);
                 Parent?.UpdateElementValue(this);
                 MarkDirty("Set metadata Value {0}", value);

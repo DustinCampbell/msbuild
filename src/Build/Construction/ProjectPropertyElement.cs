@@ -75,7 +75,20 @@ namespace Microsoft.Build.Construction
         /// </summary>
         public string Value
         {
-            get => Link != null ? PropertyLink.Value : Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
+            get
+            {
+                if (Link != null)
+                {
+                    return PropertyLink.Value;
+                }
+
+                if (DataSource is ElementData data)
+                {
+                    return data.TextContent ?? string.Empty;
+                }
+
+                return Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
+            }
 
             set
             {
@@ -83,6 +96,17 @@ namespace Microsoft.Build.Construction
                 if (Link != null)
                 {
                     PropertyLink.Value = value;
+                    return;
+                }
+
+                if (DataSource is ElementData data)
+                {
+                    if (data.TextContent != value)
+                    {
+                        data.TextContent = value;
+                        MarkDirty("Set property Value {0}", value);
+                    }
+
                     return;
                 }
 

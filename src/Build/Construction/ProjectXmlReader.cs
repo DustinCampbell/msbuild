@@ -331,7 +331,8 @@ namespace Microsoft.Build.Construction
                 {
                     var metaData = new ElementData(attr.Name, string.Empty, attr.Location);
                     metaData.TextContent = attr.Value;
-                    ProjectMetadataElement metadatum = new ProjectMetadataElement(metaData, item, _project);
+                    // Create without parent first so ExpressedAsAttribute setter doesn't trigger DOM operations
+                    ProjectMetadataElement metadatum = new ProjectMetadataElement(metaData, null!, _project);
                     metadatum.ExpressedAsAttribute = true;
                     metadatum.Parent = item;
                     item.AppendParentedChildNoChecks(metadatum);
@@ -833,7 +834,7 @@ namespace Microsoft.Build.Construction
                 {
                     var metaData = new ElementData(attr.Name, string.Empty, attr.Location);
                     metaData.TextContent = attr.Value;
-                    ProjectMetadataElement metadatum = new ProjectMetadataElement(metaData, itemDefinition, _project);
+                    ProjectMetadataElement metadatum = new ProjectMetadataElement(metaData, null!, _project);
                     metadatum.ExpressedAsAttribute = true;
                     metadatum.Parent = itemDefinition;
                     itemDefinition.AppendParentedChildNoChecks(metadatum);
