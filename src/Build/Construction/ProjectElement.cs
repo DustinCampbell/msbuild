@@ -454,7 +454,10 @@ namespace Microsoft.Build.Construction
             {
                 foreach (var attr in elementData.Attributes)
                 {
-                    XmlElement.SetAttribute(attr.Name, string.Empty, attr.Value);
+                    if (ShouldCloneAttribute(attr.Name))
+                    {
+                        XmlElement.SetAttribute(attr.Name, string.Empty, attr.Value);
+                    }
                 }
 
                 if (elementData.TextContent is { Length: > 0 } text)
@@ -512,6 +515,12 @@ namespace Microsoft.Build.Construction
         protected virtual bool ShouldCloneXmlAttribute(XmlAttribute attribute) => true;
 
         internal virtual bool ShouldCloneXmlAttribute(XmlAttributeLink attributeLink) => true;
+
+        /// <summary>
+        /// Hook for subclasses to specify whether an attribute with the given name should be cloned.
+        /// Used when the source is ElementData-backed and no XmlAttribute object is available.
+        /// </summary>
+        internal virtual bool ShouldCloneAttribute(string attributeName) => true;
 
         /// <summary>
         /// Called only by the parser to tell the ProjectRootElement its backing XmlElement and its own parent project (itself)

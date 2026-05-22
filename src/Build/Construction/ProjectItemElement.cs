@@ -520,5 +520,7 @@ namespace Microsoft.Build.Construction
         protected override bool ShouldCloneXmlAttribute(XmlAttribute attribute) => !ProjectMetadataElement.AttributeNameIsValidMetadataName(attribute.LocalName);
 
         internal override bool ShouldCloneXmlAttribute(XmlAttributeLink attributeLink) => !ProjectMetadataElement.AttributeNameIsValidMetadataName(attributeLink.LocalName);
+
+        internal override bool ShouldCloneAttribute(string attributeName) => !ProjectMetadataElement.AttributeNameIsValidMetadataName(attributeName);
     }
 }

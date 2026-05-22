@@ -616,6 +616,19 @@ namespace Microsoft.Build.Construction
         {
             Assumed.Null(Link, "Attempt to edit a document that is not backed by a local xml is disallowed.");
 
+            // Ensure DOM is materialized for mutation operations on ElementData-backed projects.
+            if (XmlElement is null)
+            {
+                ContainingProject.EnsureXmlDom();
+            }
+
+            // Orphan elements (e.g. implicit SDK imports) that were never part of the DOM tree
+            // don't need DOM removal — the construction model removal is sufficient.
+            if (child.XmlElement is null)
+            {
+                return;
+            }
+
             if (child.ExpressedAsAttribute)
             {
                 XmlElement.RemoveAttribute(child.XmlElement.Name);

@@ -62,12 +62,28 @@ namespace Microsoft.Build.Evaluation
         {
             _project = project;
 
+            // Ensure the DOM is materialized for all imported projects since the Preprocessor
+            // relies on XmlElement/XmlDocument for cloning and output.
+            _project.Xml.EnsureXmlDom();
+
             IList<ResolvedImport> imports = project.Imports;
 
             _importTable = new Dictionary<XmlElement, IList<ProjectRootElement>>(imports.Count);
 
             foreach (ResolvedImport entry in imports)
             {
+                entry.ImportingElement.ContainingProject.EnsureXmlDom();
+                entry.ImportedProject.EnsureXmlDom();
+
+                // Implicit SDK imports are not part of the PRE child tree, so MaterializeDom
+                // won't swap them. Materialize them individually if needed.
+                if (entry.ImportingElement.XmlElement is null && entry.ImportingElement.DataSource is not null)
+                {
+                    var doc = entry.ImportingElement.ContainingProject.XmlDocument;
+                    var xmlElement = (XmlElementWithLocation)ProjectRootElement.ReconstructXmlElementFromData(doc, entry.ImportingElement.DataSource);
+                    entry.ImportingElement.SwapToXmlElement(xmlElement);
+                }
+
                 AddToImportTable(entry.ImportingElement.XmlElement, entry.ImportedProject);
             }
         }

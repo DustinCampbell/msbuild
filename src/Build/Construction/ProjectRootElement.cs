@@ -1868,6 +1868,18 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Ensures the XmlDocument DOM is materialized. Safe to call regardless of backing state.
+        /// Call this when code needs to access XmlElement/XmlDocument on tree elements.
+        /// </summary>
+        internal void EnsureXmlDom()
+        {
+            if (XmlDocument is null && DataSource is not null)
+            {
+                MaterializeDom();
+            }
+        }
+
+        /// <summary>
         /// Materializes the XML DOM from the ElementData tree when an ElementData-backed project
         /// needs mutation support. After this call, all elements in the tree are backed by XmlElementWithLocation
         /// nodes owned by a real XmlDocument.
@@ -1893,6 +1905,14 @@ namespace Microsoft.Build.Construction
             // Walk the construction model tree, reconstruct DOM children, and swap each element.
             ReconstructAndSwapChildren(document, this, rootXml);
         }
+
+        /// <summary>
+        /// Creates an XmlElement from an ElementData, adding it to the given document.
+        /// Exposed internally for code paths that need to materialize orphan elements
+        /// (e.g., implicit SDK imports that are not part of the PRE child tree).
+        /// </summary>
+        internal static XmlElement ReconstructXmlElementFromData(XmlDocumentWithLocation document, ElementData data)
+            => ReconstructXmlElement(document, data);
 
         /// <summary>
         /// Creates an XmlElement from an ElementData, adding it to the given document.
