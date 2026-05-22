@@ -1042,7 +1042,10 @@ namespace Microsoft.Build.Construction
         {
             if (_lineInfo != null && _lineInfo.HasLineInfo())
             {
-                return ElementLocation.Create(_filePath, _lineInfo.LineNumber, _lineInfo.LinePosition);
+                // XmlReader.LinePosition on an Element node reports the position of the first
+                // character of the element name (after '<'). Subtract 1 to point at the '<'
+                // character, matching XmlDocument/XmlDocumentWithLocation behavior.
+                return ElementLocation.Create(_filePath, _lineInfo.LineNumber, _lineInfo.LinePosition - 1);
             }
 
             return ElementLocation.Create(_filePath);
@@ -1061,7 +1064,10 @@ namespace Microsoft.Build.Construction
             if (_lineInfo != null && _lineInfo.HasLineInfo())
             {
                 line = _lineInfo.LineNumber;
-                column = _lineInfo.LinePosition;
+                // XmlReader.LinePosition on an Element node reports the position of the first
+                // character of the element name (after '<'). XmlDocument reports the '<' position.
+                // Subtract 1 to match XmlDocument behavior for compatibility.
+                column = _lineInfo.LinePosition - 1;
             }
 
             bool isEmpty = _reader.IsEmptyElement;
