@@ -310,7 +310,7 @@ namespace Microsoft.Build.Evaluation
                     DebugTraceCache("Not found in cache: ", projectFile);
                 }
 
-                if (preserveFormatting != null && projectRootElement != null && projectRootElement.XmlDocument.PreserveWhitespace != preserveFormatting)
+                if (preserveFormatting != null && projectRootElement != null && projectRootElement.PreserveFormatting != preserveFormatting)
                 {
                     // Cached project doesn't match preserveFormatting setting, so reload it
                     projectRootElement.Reload(true, preserveFormatting);
