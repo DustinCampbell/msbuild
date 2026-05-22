@@ -328,7 +328,7 @@ namespace Microsoft.Build.Construction
 
                 if (!isKnownAttribute && !isValidMetadataNameInAttribute)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(itemAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", itemAttrs[i].Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(itemAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", itemAttrs[i].Name, data.Name);
                 }
                 else if (isValidMetadataNameInAttribute)
                 {
@@ -564,7 +564,7 @@ namespace Microsoft.Build.Construction
             // Verify no attributes
             if (data.AttributeCount > 0)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(data.Location, "UnrecognizedAttribute", data.Attributes[0].Name);
+                ProjectErrorUtilities.ThrowInvalidProject(data.Location, "UnrecognizedAttribute", data.Attributes[0].Name, data.Name);
             }
 
             UsingTaskParameterGroupElement parameterGroup = new UsingTaskParameterGroupElement(data, parent, _project);
@@ -834,7 +834,7 @@ namespace Microsoft.Build.Construction
 
                 if (!isKnownAttribute && !isValidMetadataNameInAttribute)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(defAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", defAttrs[i].Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(defAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", defAttrs[i].Name, data.Name);
                 }
                 else if (isValidMetadataNameInAttribute)
                 {
@@ -847,7 +847,7 @@ namespace Microsoft.Build.Construction
                 }
                 else if (!ValidAttributesOnlyConditionAndLabel.Contains(defAttrs[i].Name))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(defAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", defAttrs[i].Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(defAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", defAttrs[i].Name, data.Name);
                 }
             }
 
@@ -880,7 +880,7 @@ namespace Microsoft.Build.Construction
             // Verify no attributes
             if (data.AttributeCount > 0)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(location, "UnrecognizedAttribute", data.Attributes[0].Name);
+                ProjectErrorUtilities.ThrowInvalidProject(location, "UnrecognizedAttribute", data.Attributes[0].Name, data.Name);
             }
 
             nestingDepth++;
@@ -953,7 +953,7 @@ namespace Microsoft.Build.Construction
             // Verify no attributes
             if (data.AttributeCount > 0)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(data.Location, "UnrecognizedAttribute", data.Attributes[0].Name);
+                ProjectErrorUtilities.ThrowInvalidProject(data.Location, "UnrecognizedAttribute", data.Attributes[0].Name, data.Name);
             }
 
             ProjectOtherwiseElement otherwise = new ProjectOtherwiseElement(data, parent, _project);
@@ -1010,7 +1010,7 @@ namespace Microsoft.Build.Construction
             // Verify no attributes
             if (data.AttributeCount > 0)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(location, "UnrecognizedAttribute", data.Attributes[0].Name);
+                ProjectErrorUtilities.ThrowInvalidProject(location, "UnrecognizedAttribute", data.Attributes[0].Name, data.Name);
             }
 
             ProjectErrorUtilities.VerifyThrowInvalidProject(!_seenProjectExtensions, location, "DuplicateProjectExtensions");
