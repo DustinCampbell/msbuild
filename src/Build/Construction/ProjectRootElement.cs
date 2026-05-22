@@ -600,7 +600,10 @@ namespace Microsoft.Build.Construction
                     return RootLink.RawXml;
                 }
 
-                ErrorUtilities.VerifyThrowInvalidOperation(XmlDocument != null, "OM_ElementDataSerializationNotSupported");
+                if (XmlDocument is null)
+                {
+                    MaterializeDom();
+                }
 
                 using (var stringWriter = new EncodingStringWriter(Encoding))
                 {
@@ -1566,9 +1569,12 @@ namespace Microsoft.Build.Construction
                 return;
             }
 
-            ErrorUtilities.VerifyThrowInvalidOperation(XmlDocument != null, "OM_ElementDataSerializationNotSupported");
-
             ErrorUtilities.VerifyThrowInvalidOperation(_projectFileLocation != null, "OM_MustSetFileNameBeforeSave");
+
+            if (XmlDocument is null)
+            {
+                MaterializeDom();
+            }
 
             Directory.CreateDirectory(DirectoryPath);
 
@@ -1649,7 +1655,10 @@ namespace Microsoft.Build.Construction
                 return;
             }
 
-            ErrorUtilities.VerifyThrowInvalidOperation(XmlDocument != null, "OM_ElementDataSerializationNotSupported");
+            if (XmlDocument is null)
+            {
+                MaterializeDom();
+            }
 
             using (var projectWriter = new ProjectWriter(writer))
             {
