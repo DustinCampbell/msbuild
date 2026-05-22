@@ -657,6 +657,11 @@
       LOCALIZATION:  Do not localize the following words: ProjectInstanceFactoryFunc.
     </note>
       </trans-unit>
+      <trans-unit id="OM_ElementDataSerializationNotSupported">
+        <source>Serialization is not yet supported for projects loaded with the new XmlReader-based parser. Disable ChangeWave 18.8 to use the DOM-based load path which supports save.</source>
+        <target state="new">Serialization is not yet supported for projects loaded with the new XmlReader-based parser. Disable ChangeWave 18.8 to use the DOM-based load path which supports save.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OM_MatchOnMetadataIsRestrictedToReferencedItems">
         <source>Only item types may be referenced when removing with MatchOnMetadata.</source>
         <target state="translated">Solo se puede hacer referencia a los tipos de elemento al quitar con MatchOnMetadata.</target>

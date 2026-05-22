@@ -988,7 +988,7 @@ namespace Microsoft.Build.Evaluation
                             ProjectErrorUtilities.ThrowInvalidProject(
                                 elementXml.Location,
                                 "UnrecognizedElement",
-                                elementXml.XmlElement.Name);
+                                elementXml.ElementName);
                         }
 
                         yield return (usingTask, Path.GetDirectoryName(defaultTasksFile));

@@ -319,7 +319,16 @@ namespace Microsoft.Build.Execution
 
             if (String.IsNullOrEmpty(taskFactory) || taskFactory.Equals(RegisteredTaskRecord.AssemblyTaskFactory, StringComparison.OrdinalIgnoreCase) || taskFactory.Equals(RegisteredTaskRecord.TaskHostFactory, StringComparison.OrdinalIgnoreCase))
             {
-                ProjectXmlUtilities.VerifyThrowProjectNoChildElements(projectUsingTaskXml.XmlElement);
+                if (projectUsingTaskXml.XmlElement is not null)
+                {
+                    ProjectXmlUtilities.VerifyThrowProjectNoChildElements(projectUsingTaskXml.XmlElement);
+                }
+                else if (projectUsingTaskXml.Count > 0)
+                {
+                    // ElementData-backed: check via construction model
+                    ProjectElement firstChild = projectUsingTaskXml.FirstChild;
+                    ProjectXmlUtilities.ThrowProjectInvalidChildElement(firstChild.ElementName, projectUsingTaskXml.ElementName, firstChild.Location);
+                }
             }
 
             if (projectUsingTaskXml.AssemblyFile.Length > 0)

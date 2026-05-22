@@ -1634,6 +1634,9 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
   <data name="OM_MustSetFileNameBeforeSave" xml:space="preserve">
     <value>Project has not been given a path to save to.</value>
   </data>
+  <data name="OM_ElementDataSerializationNotSupported" xml:space="preserve">
+    <value>Serialization is not yet supported for projects loaded with the new XmlReader-based parser. Disable ChangeWave 18.8 to use the DOM-based load path which supports save.</value>
+  </data>
   <data name="OM_MustSetRecordDuplicateInputs" xml:space="preserve">
     <value>Project was not loaded with the ProjectLoadSettings.RecordDuplicateButNotCircularImports flag.</value>
   </data>

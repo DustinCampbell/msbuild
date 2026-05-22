@@ -77,6 +77,14 @@ namespace Microsoft.Build.Construction
         private static readonly Encoding s_defaultEncoding = Encoding.UTF8;
 
         /// <summary>
+        /// Whether to use the new XmlReader-based parser (ProjectXmlReader) instead of
+        /// the DOM-based parser (ProjectParser). Opt-in via MSBUILD_ENABLE_XMLREADER_PARSER=1.
+        /// This will be replaced with a ChangeWave gate once evaluation compatibility is complete.
+        /// </summary>
+        internal static bool UseProjectXmlReader =>
+            Environment.GetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER") == "1";
+
+        /// <summary>
         /// A global counter used to ensure each project version is distinct from every other.
         /// </summary>
         /// <remarks>
@@ -103,6 +111,12 @@ namespace Microsoft.Build.Construction
         /// </summary>
         /// <value>Defaults to UTF8 for new projects.</value>
         private Encoding _encoding;
+
+        /// <summary>
+        /// Whether to preserve formatting when the project is backed by ElementData (no DOM).
+        /// When backed by XmlDocument, formatting is stored as XmlDocument.PreserveWhitespace.
+        /// </summary>
+        private bool _preserveFormatting;
 
         /// <summary>
         /// XML namespace specified and used by this project file. If a namespace was not specified in the project file, this
@@ -177,11 +191,18 @@ namespace Microsoft.Build.Construction
             IsExplicitlyLoaded = isExplicitlyLoaded;
             ProjectRootElementCache = projectRootElementCache;
             _directory = NativeMethodsShared.GetCurrentDirectory();
+            _preserveFormatting = preserveFormatting;
             IncrementVersion();
 
-            XmlDocumentWithLocation document = LoadDocument(xmlReader, preserveFormatting);
-
-            ProjectParser.Parse(document, this);
+            if (UseProjectXmlReader)
+            {
+                ProjectXmlReader.Parse(xmlReader, this, filePath: null);
+            }
+            else
+            {
+                XmlDocumentWithLocation document = LoadDocument(xmlReader, preserveFormatting);
+                ProjectParser.Parse(document, this);
+            }
         }
 
         private readonly bool _isEphemeral = false;
@@ -239,9 +260,15 @@ namespace Microsoft.Build.Construction
             _versionOnDisk = Version;
             _timeLastChangedUtc = DateTime.UtcNow;
 
-            XmlDocumentWithLocation document = LoadDocument(path, preserveFormatting, projectRootElementCache.LoadProjectsReadOnly);
-
-            ProjectParser.Parse(document, this);
+            if (UseProjectXmlReader)
+            {
+                LoadWithProjectXmlReader(path, preserveFormatting, projectRootElementCache.LoadProjectsReadOnly);
+            }
+            else
+            {
+                XmlDocumentWithLocation document = LoadDocument(path, preserveFormatting, projectRootElementCache.LoadProjectsReadOnly);
+                ProjectParser.Parse(document, this);
+            }
         }
 
         /// <summary>
@@ -476,7 +503,7 @@ namespace Microsoft.Build.Construction
                 // No thread-safety lock required here because many reader threads would set the same value to the field.
                 if (_encoding == null)
                 {
-                    var declaration = XmlDocument.FirstChild as XmlDeclaration;
+                    var declaration = XmlDocument?.FirstChild as XmlDeclaration;
 
                     if (declaration?.Encoding.Length > 0)
                     {
@@ -573,6 +600,8 @@ namespace Microsoft.Build.Construction
                     return RootLink.RawXml;
                 }
 
+                ErrorUtilities.VerifyThrowInvalidOperation(XmlDocument != null, "OM_ElementDataSerializationNotSupported");
+
                 using (var stringWriter = new EncodingStringWriter(Encoding))
                 {
                     using (var projectWriter = new ProjectWriter(stringWriter))
@@ -594,7 +623,7 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// Whether the XML is preserving formatting or not.
         /// </summary>
-        public bool PreserveFormatting => Link != null ? RootLink.PreserveFormatting : XmlDocument?.PreserveWhitespace ?? false;
+        public bool PreserveFormatting => Link != null ? RootLink.PreserveFormatting : XmlDocument?.PreserveWhitespace ?? _preserveFormatting;
 
         /// <summary>
         /// Version number of this object.
@@ -1537,6 +1566,8 @@ namespace Microsoft.Build.Construction
                 return;
             }
 
+            ErrorUtilities.VerifyThrowInvalidOperation(XmlDocument != null, "OM_ElementDataSerializationNotSupported");
+
             ErrorUtilities.VerifyThrowInvalidOperation(_projectFileLocation != null, "OM_MustSetFileNameBeforeSave");
 
             Directory.CreateDirectory(DirectoryPath);
@@ -1617,6 +1648,8 @@ namespace Microsoft.Build.Construction
                 RootLink.Save(writer);
                 return;
             }
+
+            ErrorUtilities.VerifyThrowInvalidOperation(XmlDocument != null, "OM_ElementDataSerializationNotSupported");
 
             using (var projectWriter = new ProjectWriter(writer))
             {
@@ -2147,6 +2180,46 @@ namespace Microsoft.Build.Construction
             }
 
             return document;
+        }
+
+        /// <summary>
+        /// Loads a project file using the new XmlReader-based parser (ProjectXmlReader),
+        /// bypassing the intermediate XmlDocument DOM entirely.
+        /// </summary>
+        private void LoadWithProjectXmlReader(string fullPath, bool preserveFormatting, bool loadAsReadOnly)
+        {
+            ErrorUtilities.VerifyThrowInternalRooted(fullPath);
+
+            _preserveFormatting = preserveFormatting;
+
+            try
+            {
+                MSBuildEventSource.Log.LoadDocumentStart(fullPath);
+                using (XmlReaderExtension xtr = XmlReaderExtension.Create(fullPath, loadAsReadOnly))
+                {
+                    _encoding = xtr.Encoding;
+                    ProjectXmlReader.Parse(xtr.Reader, this, fullPath);
+                }
+
+                _projectFileLocation = ElementLocation.Create(fullPath);
+                _escapedFullPath = null;
+                _directory = Path.GetDirectoryName(fullPath);
+
+                _lastWriteTimeWhenReadUtc = FileUtilities.GetFileInfoNoThrow(fullPath).LastWriteTimeUtc;
+                if (StreamTimeUtc < _lastWriteTimeWhenReadUtc)
+                {
+                    StreamTimeUtc = null;
+                }
+            }
+            catch (Exception ex) when (!ExceptionHandling.NotExpectedIoOrXmlException(ex))
+            {
+                BuildEventFileInfo fileInfo = ex is XmlException xmlException
+                    ? new BuildEventFileInfo(fullPath, xmlException)
+                    : new BuildEventFileInfo(fullPath);
+
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, ex, "InvalidProjectFile", ex.Message);
+            }
+            MSBuildEventSource.Log.LoadDocumentStop(fullPath);
         }
 
         /// <summary>
