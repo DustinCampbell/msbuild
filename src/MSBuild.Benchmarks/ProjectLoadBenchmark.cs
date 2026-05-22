@@ -3,6 +3,7 @@
 
 using System.IO;
 using System.Text;
+using System.Xml;
 using BenchmarkDotNet.Attributes;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
@@ -50,10 +51,25 @@ public class ProjectLoadBenchmark
     /// <summary>
     /// Measures the time to parse a project XML string into a ProjectRootElement.
     /// </summary>
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     public ProjectRootElement LoadProjectFromString()
     {
-        return ProjectRootElement.Create(new StringReader(_projectXml));
+        using var reader = XmlReader.Create(new StringReader(_projectXml));
+        return ProjectRootElement.Create(reader);
+    }
+
+    /// <summary>
+    /// Measures the time to parse a project XML string using the new XmlReader-based parser
+    /// that populates ElementData instead of creating an XmlDocument DOM.
+    /// </summary>
+    [Benchmark]
+    public ProjectRootElement LoadProjectFromString_NewParser()
+    {
+        var pre = ProjectRootElement.Create();
+        using var stringReader = new StringReader(_projectXml);
+        using var xmlReader = XmlReader.Create(stringReader);
+        ProjectXmlReader.Parse(xmlReader, pre, "benchmark.proj");
+        return pre;
     }
 
     /// <summary>
@@ -91,9 +107,10 @@ public class ProjectLoadBenchmark
     [Benchmark]
     public void LoadAndSaveRoundTrip()
     {
-        var pre = ProjectRootElement.Create(new StringReader(_projectXml));
+        using var reader = XmlReader.Create(new StringReader(_projectXml));
+        var pre = ProjectRootElement.Create(reader);
         using var ms = new MemoryStream();
-        using var writer = new StreamWriter(ms, Encoding.UTF8, leaveOpen: true);
+        using var writer = new StreamWriter(ms, Encoding.UTF8, 1024, leaveOpen: true);
         pre.Save(writer);
     }
 
