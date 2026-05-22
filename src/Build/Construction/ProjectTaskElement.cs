@@ -454,11 +454,12 @@ namespace Microsoft.Build.Construction
 
                 if (DataSource is ElementData data)
                 {
-                    foreach (var attr in data.AttributeList)
+                    var attrs = data.Attributes;
+                    for (int i = 0; i < attrs.Length; i++)
                     {
-                        if (!XMakeAttributes.IsSpecialTaskAttribute(attr.Name))
+                        if (!XMakeAttributes.IsSpecialTaskAttribute(attrs[i].Name))
                         {
-                            _parameters[attr.Name] = (attr.Value, attr.Location);
+                            _parameters[attrs[i].Name] = (attrs[i].Value, attrs[i].GetLocation(data.FilePath));
                         }
                     }
                 }

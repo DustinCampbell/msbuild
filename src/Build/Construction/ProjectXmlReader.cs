@@ -319,18 +319,19 @@ namespace Microsoft.Build.Construction
             ProjectItemElement item = new ProjectItemElement(data, parent, _project);
 
             // Check for metadata-as-attributes
-            foreach (var attr in data.AttributeList)
+            var itemAttrs = data.Attributes;
+            for (int i = 0; i < itemAttrs.Length; i++)
             {
-                ProjectParser.CheckMetadataAsAttributeName(attr.Name, out bool isKnownAttribute, out bool isValidMetadataNameInAttribute);
+                ProjectParser.CheckMetadataAsAttributeName(itemAttrs[i].Name, out bool isKnownAttribute, out bool isValidMetadataNameInAttribute);
 
                 if (!isKnownAttribute && !isValidMetadataNameInAttribute)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(attr.Location, "UnrecognizedAttribute", attr.Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(itemAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", itemAttrs[i].Name);
                 }
                 else if (isValidMetadataNameInAttribute)
                 {
-                    var metaData = new ElementData(attr.Name, string.Empty, attr.Location);
-                    metaData.TextContent = attr.Value;
+                    var metaData = new ElementData(itemAttrs[i].Name, string.Empty, data.FilePath, itemAttrs[i].Line, itemAttrs[i].Column);
+                    metaData.TextContent = itemAttrs[i].Value;
                     // Create without parent first so ExpressedAsAttribute setter doesn't trigger DOM operations
                     ProjectMetadataElement metadatum = new ProjectMetadataElement(metaData, null!, _project);
                     metadatum.ExpressedAsAttribute = true;
@@ -560,7 +561,7 @@ namespace Microsoft.Build.Construction
             // Verify no attributes
             if (data.AttributeCount > 0)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(data.Location, "UnrecognizedAttribute", data.AttributeList[0].Name);
+                ProjectErrorUtilities.ThrowInvalidProject(data.Location, "UnrecognizedAttribute", data.Attributes[0].Name);
             }
 
             UsingTaskParameterGroupElement parameterGroup = new UsingTaskParameterGroupElement(data, parent, _project);
@@ -708,13 +709,14 @@ namespace Microsoft.Build.Construction
             ElementLocation location = data.Location;
 
             // Verify no badly-cased special attributes
-            foreach (var attr in data.AttributeList)
+            var taskAttrs = data.Attributes;
+            for (int i = 0; i < taskAttrs.Length; i++)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(
-                    !XMakeAttributes.IsBadlyCasedSpecialTaskAttribute(attr.Name),
-                    attr.Location,
+                    !XMakeAttributes.IsBadlyCasedSpecialTaskAttribute(taskAttrs[i].Name),
+                    taskAttrs[i].GetLocation(data.FilePath),
                     "BadlyCasedSpecialTaskAttribute",
-                    attr.Name,
+                    taskAttrs[i].Name,
                     data.Name,
                     data.Name);
             }
@@ -822,26 +824,27 @@ namespace Microsoft.Build.Construction
             ProjectItemDefinitionElement itemDefinition = new ProjectItemDefinitionElement(data, parent, _project);
 
             // Check for metadata-as-attributes
-            foreach (var attr in data.AttributeList)
+            var defAttrs = data.Attributes;
+            for (int i = 0; i < defAttrs.Length; i++)
             {
-                ProjectParser.CheckMetadataAsAttributeName(attr.Name, out bool isKnownAttribute, out bool isValidMetadataNameInAttribute);
+                ProjectParser.CheckMetadataAsAttributeName(defAttrs[i].Name, out bool isKnownAttribute, out bool isValidMetadataNameInAttribute);
 
                 if (!isKnownAttribute && !isValidMetadataNameInAttribute)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(attr.Location, "UnrecognizedAttribute", attr.Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(defAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", defAttrs[i].Name);
                 }
                 else if (isValidMetadataNameInAttribute)
                 {
-                    var metaData = new ElementData(attr.Name, string.Empty, attr.Location);
-                    metaData.TextContent = attr.Value;
+                    var metaData = new ElementData(defAttrs[i].Name, string.Empty, data.FilePath, defAttrs[i].Line, defAttrs[i].Column);
+                    metaData.TextContent = defAttrs[i].Value;
                     ProjectMetadataElement metadatum = new ProjectMetadataElement(metaData, null!, _project);
                     metadatum.ExpressedAsAttribute = true;
                     metadatum.Parent = itemDefinition;
                     itemDefinition.AppendParentedChildNoChecks(metadatum);
                 }
-                else if (!ValidAttributesOnlyConditionAndLabel.Contains(attr.Name))
+                else if (!ValidAttributesOnlyConditionAndLabel.Contains(defAttrs[i].Name))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(attr.Location, "UnrecognizedAttribute", attr.Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(defAttrs[i].GetLocation(data.FilePath), "UnrecognizedAttribute", defAttrs[i].Name);
                 }
             }
 
@@ -874,7 +877,7 @@ namespace Microsoft.Build.Construction
             // Verify no attributes
             if (data.AttributeCount > 0)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(location, "UnrecognizedAttribute", data.AttributeList[0].Name);
+                ProjectErrorUtilities.ThrowInvalidProject(location, "UnrecognizedAttribute", data.Attributes[0].Name);
             }
 
             nestingDepth++;
@@ -947,7 +950,7 @@ namespace Microsoft.Build.Construction
             // Verify no attributes
             if (data.AttributeCount > 0)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(data.Location, "UnrecognizedAttribute", data.AttributeList[0].Name);
+                ProjectErrorUtilities.ThrowInvalidProject(data.Location, "UnrecognizedAttribute", data.Attributes[0].Name);
             }
 
             ProjectOtherwiseElement otherwise = new ProjectOtherwiseElement(data, parent, _project);
@@ -1004,7 +1007,7 @@ namespace Microsoft.Build.Construction
             // Verify no attributes
             if (data.AttributeCount > 0)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(location, "UnrecognizedAttribute", data.AttributeList[0].Name);
+                ProjectErrorUtilities.ThrowInvalidProject(location, "UnrecognizedAttribute", data.Attributes[0].Name);
             }
 
             ProjectErrorUtilities.VerifyThrowInvalidProject(!_seenProjectExtensions, location, "DuplicateProjectExtensions");
@@ -1053,14 +1056,25 @@ namespace Microsoft.Build.Construction
         {
             string name = _reader.LocalName;
             string namespaceURI = _reader.NamespaceURI;
-            ElementLocation location = CreateLocation();
+            int line = 0;
+            int column = 0;
+            if (_lineInfo != null && _lineInfo.HasLineInfo())
+            {
+                line = _lineInfo.LineNumber;
+                column = _lineInfo.LinePosition;
+            }
+
             bool isEmpty = _reader.IsEmptyElement;
 
-            ElementData data = new ElementData(name, namespaceURI, location);
+            ElementData data = new ElementData(name, namespaceURI, _filePath, line, column);
             data.IsSelfClosing = isEmpty;
 
             if (_reader.HasAttributes)
             {
+                int attrCount = _reader.AttributeCount;
+                AttributeData[]? attrs = null;
+                int actualCount = 0;
+
                 _reader.MoveToFirstAttribute();
                 do
                 {
@@ -1072,11 +1086,30 @@ namespace Microsoft.Build.Construction
 
                     string attrName = _reader.LocalName;
                     string attrValue = _reader.Value;
-                    ElementLocation attrLocation = CreateLocation();
-                    data.AddAttribute(new AttributeData(attrName, attrValue, attrLocation));
+                    int attrLine = 0;
+                    int attrColumn = 0;
+                    if (_lineInfo != null && _lineInfo.HasLineInfo())
+                    {
+                        attrLine = _lineInfo.LineNumber;
+                        attrColumn = _lineInfo.LinePosition;
+                    }
+
+                    attrs ??= new AttributeData[attrCount];
+                    attrs[actualCount++] = new AttributeData(attrName, attrValue, attrLine, attrColumn);
                 } while (_reader.MoveToNextAttribute());
 
                 _reader.MoveToElement(); // Move back to element
+
+                // Trim array if xmlns declarations reduced the count
+                if (attrs is not null)
+                {
+                    if (actualCount < attrs.Length)
+                    {
+                        Array.Resize(ref attrs, actualCount);
+                    }
+
+                    data.SetAttributeArray(attrs);
+                }
             }
 
             return data;
@@ -1089,11 +1122,12 @@ namespace Microsoft.Build.Construction
         {
             ElementData data = ReadCurrentElementData();
 
-            foreach (var attr in data.AttributeList)
+            var attributes = data.Attributes;
+            for (int i = 0; i < attributes.Length; i++)
             {
-                if (!validAttributes.Contains(attr.Name))
+                if (!validAttributes.Contains(attributes[i].Name))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(attr.Location, "UnrecognizedAttribute", attr.Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(attributes[i].GetLocation(data.FilePath), "UnrecognizedAttribute", attributes[i].Name);
                 }
             }
 

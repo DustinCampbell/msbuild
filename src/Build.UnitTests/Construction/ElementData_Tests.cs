@@ -12,12 +12,13 @@ public class ElementData_Tests
     [Fact]
     public void Constructor_SetsNameAndLocation()
     {
-        var location = ElementLocation.Create("test.proj", 10, 5);
-        var data = new ElementData("PropertyGroup", "http://schemas.microsoft.com/developer/msbuild/2003", location);
+        var data = new ElementData("PropertyGroup", "http://schemas.microsoft.com/developer/msbuild/2003", "test.proj", 10, 5);
 
         data.Name.ShouldBe("PropertyGroup");
         data.NamespaceURI.ShouldBe("http://schemas.microsoft.com/developer/msbuild/2003");
-        data.Location.ShouldBe(location);
+        data.Location.File.ShouldBe("test.proj");
+        data.Location.Line.ShouldBe(10);
+        data.Location.Column.ShouldBe(5);
         data.AttributeCount.ShouldBe(0);
         data.TextContent.ShouldBeNull();
     }
@@ -25,18 +26,16 @@ public class ElementData_Tests
     [Fact]
     public void Constructor_NullNamespace_BecomesEmptyString()
     {
-        var data = new ElementData("Project", null!, ElementLocation.EmptyLocation);
+        var data = new ElementData("Project", null!, "", 0, 0);
 
         data.NamespaceURI.ShouldBe(string.Empty);
     }
 
     [Fact]
-    public void AddAttribute_IncreasesCount()
+    public void SetAttributeArray_SetsAttributes()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        var attrLocation = ElementLocation.Create("test.proj", 5, 20);
-
-        data.AddAttribute(new AttributeData("Include", "*.cs", attrLocation));
+        var data = new ElementData("Item", "", "test.proj", 1, 1);
+        data.SetAttributeArray([new AttributeData("Include", "*.cs", 5, 20)]);
 
         data.AttributeCount.ShouldBe(1);
     }
@@ -44,9 +43,12 @@ public class ElementData_Tests
     [Fact]
     public void GetAttributeValue_ReturnsCorrectValue()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Include", "*.cs", ElementLocation.EmptyLocation));
-        data.AddAttribute(new AttributeData("Exclude", "obj/**", ElementLocation.EmptyLocation));
+        var data = new ElementData("Item", "", "", 0, 0);
+        data.SetAttributeArray(
+        [
+            new AttributeData("Include", "*.cs", 0, 0),
+            new AttributeData("Exclude", "obj/**", 0, 0),
+        ]);
 
         data.GetAttributeValue("Include").ShouldBe("*.cs");
         data.GetAttributeValue("Exclude").ShouldBe("obj/**");
@@ -55,8 +57,8 @@ public class ElementData_Tests
     [Fact]
     public void GetAttributeValue_CaseInsensitive()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Condition", "'$(X)'==''", ElementLocation.EmptyLocation));
+        var data = new ElementData("Item", "", "", 0, 0);
+        data.SetAttributeArray([new AttributeData("Condition", "'$(X)'==''", 0, 0)]);
 
         data.GetAttributeValue("condition").ShouldBe("'$(X)'==''");
         data.GetAttributeValue("CONDITION").ShouldBe("'$(X)'==''");
@@ -65,7 +67,7 @@ public class ElementData_Tests
     [Fact]
     public void GetAttributeValue_NotFound_ReturnsNull()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("Item", "", "", 0, 0);
 
         data.GetAttributeValue("Include").ShouldBeNull();
     }
@@ -73,17 +75,20 @@ public class ElementData_Tests
     [Fact]
     public void GetAttributeLocation_ReturnsCorrectLocation()
     {
-        var location = ElementLocation.Create("test.proj", 7, 15);
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Include", "*.cs", location));
+        var data = new ElementData("Item", "", "test.proj", 1, 1);
+        data.SetAttributeArray([new AttributeData("Include", "*.cs", 7, 15)]);
 
-        data.GetAttributeLocation("Include").ShouldBe(location);
+        var loc = data.GetAttributeLocation("Include");
+        loc.ShouldNotBeNull();
+        loc!.File.ShouldBe("test.proj");
+        loc.Line.ShouldBe(7);
+        loc.Column.ShouldBe(15);
     }
 
     [Fact]
     public void GetAttributeLocation_NotFound_ReturnsNull()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("Item", "", "", 0, 0);
 
         data.GetAttributeLocation("Include").ShouldBeNull();
     }
@@ -91,8 +96,8 @@ public class ElementData_Tests
     [Fact]
     public void SetAttribute_UpdatesExistingValue()
     {
-        var data = new ElementData("Property", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Condition", "old", ElementLocation.EmptyLocation));
+        var data = new ElementData("Property", "", "", 0, 0);
+        data.SetAttributeArray([new AttributeData("Condition", "old", 0, 0)]);
 
         data.SetAttribute("Condition", "new");
 
@@ -103,7 +108,7 @@ public class ElementData_Tests
     [Fact]
     public void SetAttribute_AddsNewAttribute()
     {
-        var data = new ElementData("Property", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("Property", "", "", 0, 0);
 
         data.SetAttribute("Condition", "'$(X)'==''");
 
@@ -114,8 +119,8 @@ public class ElementData_Tests
     [Fact]
     public void SetAttribute_CaseInsensitiveMatch()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Include", "old.cs", ElementLocation.EmptyLocation));
+        var data = new ElementData("Item", "", "", 0, 0);
+        data.SetAttributeArray([new AttributeData("Include", "old.cs", 0, 0)]);
 
         data.SetAttribute("include", "new.cs");
 
@@ -126,9 +131,12 @@ public class ElementData_Tests
     [Fact]
     public void RemoveAttribute_RemovesExisting()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Include", "*.cs", ElementLocation.EmptyLocation));
-        data.AddAttribute(new AttributeData("Exclude", "obj/**", ElementLocation.EmptyLocation));
+        var data = new ElementData("Item", "", "", 0, 0);
+        data.SetAttributeArray(
+        [
+            new AttributeData("Include", "*.cs", 0, 0),
+            new AttributeData("Exclude", "obj/**", 0, 0),
+        ]);
 
         data.RemoveAttribute("Include").ShouldBeTrue();
 
@@ -140,7 +148,7 @@ public class ElementData_Tests
     [Fact]
     public void RemoveAttribute_NotFound_ReturnsFalse()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("Item", "", "", 0, 0);
 
         data.RemoveAttribute("Include").ShouldBeFalse();
     }
@@ -148,8 +156,8 @@ public class ElementData_Tests
     [Fact]
     public void HasAttribute_ReturnsTrueWhenExists()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Include", "*.cs", ElementLocation.EmptyLocation));
+        var data = new ElementData("Item", "", "", 0, 0);
+        data.SetAttributeArray([new AttributeData("Include", "*.cs", 0, 0)]);
 
         data.HasAttribute("Include").ShouldBeTrue();
         data.HasAttribute("include").ShouldBeTrue();
@@ -158,7 +166,7 @@ public class ElementData_Tests
     [Fact]
     public void HasAttribute_ReturnsFalseWhenMissing()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("Item", "", "", 0, 0);
 
         data.HasAttribute("Include").ShouldBeFalse();
     }
@@ -166,9 +174,12 @@ public class ElementData_Tests
     [Fact]
     public void ClearAttributes_RemovesAll()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Include", "*.cs", ElementLocation.EmptyLocation));
-        data.AddAttribute(new AttributeData("Exclude", "obj/**", ElementLocation.EmptyLocation));
+        var data = new ElementData("Item", "", "", 0, 0);
+        data.SetAttributeArray(
+        [
+            new AttributeData("Include", "*.cs", 0, 0),
+            new AttributeData("Exclude", "obj/**", 0, 0),
+        ]);
 
         data.ClearAttributes();
 
@@ -178,7 +189,7 @@ public class ElementData_Tests
     [Fact]
     public void TextContent_CanBeSetAndRead()
     {
-        var data = new ElementData("OutputType", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("OutputType", "", "", 0, 0);
 
         data.TextContent = "Library";
 
@@ -188,7 +199,7 @@ public class ElementData_Tests
     [Fact]
     public void Name_CanBeChanged()
     {
-        var data = new ElementData("OldName", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("OldName", "", "", 0, 0);
 
         data.Name = "NewName";
 
@@ -198,7 +209,7 @@ public class ElementData_Tests
     [Fact]
     public void IsSelfClosing_DefaultsFalse()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("Item", "", "", 0, 0);
 
         data.IsSelfClosing.ShouldBeFalse();
     }
@@ -206,7 +217,7 @@ public class ElementData_Tests
     [Fact]
     public void LeadingWhitespace_CanBeSet()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("Item", "", "", 0, 0);
 
         data.LeadingWhitespace = "    ";
 
@@ -216,39 +227,41 @@ public class ElementData_Tests
     [Fact]
     public void Attributes_ReturnsAllInOrder()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Include", "a.cs", ElementLocation.EmptyLocation));
-        data.AddAttribute(new AttributeData("Exclude", "b.cs", ElementLocation.EmptyLocation));
-        data.AddAttribute(new AttributeData("Condition", "'$(X)'==''", ElementLocation.EmptyLocation));
+        var data = new ElementData("Item", "", "", 0, 0);
+        data.SetAttributeArray(
+        [
+            new AttributeData("Include", "a.cs", 0, 0),
+            new AttributeData("Exclude", "b.cs", 0, 0),
+            new AttributeData("Condition", "'$(X)'==''", 0, 0),
+        ]);
 
-        var attrs = data.AttributeList;
+        var attrs = data.Attributes;
 
-        attrs.Count.ShouldBe(3);
+        attrs.Length.ShouldBe(3);
         attrs[0].Name.ShouldBe("Include");
         attrs[1].Name.ShouldBe("Exclude");
         attrs[2].Name.ShouldBe("Condition");
     }
 
     [Fact]
-    public void GetAttribute_ReturnsAttributeData()
+    public void GetAttributeLocation_UsesFilePath()
     {
-        var location = ElementLocation.Create("test.proj", 3, 10);
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
-        data.AddAttribute(new AttributeData("Include", "*.cs", location));
+        var data = new ElementData("Item", "", "myfile.proj", 1, 1);
+        data.SetAttributeArray([new AttributeData("Include", "*.cs", 3, 10)]);
 
-        var attr = data.GetAttribute("Include");
+        var loc = data.GetAttributeLocation("Include");
 
-        attr.ShouldNotBeNull();
-        attr.Name.ShouldBe("Include");
-        attr.Value.ShouldBe("*.cs");
-        attr.Location.ShouldBe(location);
+        loc.ShouldNotBeNull();
+        loc!.File.ShouldBe("myfile.proj");
+        loc.Line.ShouldBe(3);
+        loc.Column.ShouldBe(10);
     }
 
     [Fact]
-    public void GetAttribute_NotFound_ReturnsNull()
+    public void GetAttributeLocation_NotFound_ReturnsNull2()
     {
-        var data = new ElementData("Item", "", ElementLocation.EmptyLocation);
+        var data = new ElementData("Item", "", "", 0, 0);
 
-        data.GetAttribute("Include").ShouldBeNull();
+        data.GetAttributeLocation("Include").ShouldBeNull();
     }
 }

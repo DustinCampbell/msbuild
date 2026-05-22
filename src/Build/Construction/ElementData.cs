@@ -2,20 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-#if NET
-using System.Runtime.InteropServices;
-#endif
 using Microsoft.Build.ObjectModelRemoting;
 
 namespace Microsoft.Build.Construction
 {
     /// <summary>
     /// Stores the data for a single attribute on an XML element: its name, value, and source location.
+    /// This is a value type to avoid per-attribute heap allocations. Location is stored inline
+    /// as line/column and the <see cref="ElementLocation"/> is created lazily on demand.
     /// </summary>
-    [DebuggerDisplay("{Name}={Value} @{Location}")]
-    internal sealed class AttributeData
+    [DebuggerDisplay("{Name}={Value} @({Line},{Column})")]
+    internal struct AttributeData
     {
         /// <summary>
         /// The local name of the attribute.
@@ -28,21 +26,35 @@ namespace Microsoft.Build.Construction
         internal string Value { get; set; }
 
         /// <summary>
-        /// The source location of the attribute in the original file.
+        /// The line number of the attribute in the source file (1-based, 0 = unknown).
         /// </summary>
-        internal ElementLocation Location { get; }
+        internal int Line { get; }
 
-        internal AttributeData(string name, string value, ElementLocation location)
+        /// <summary>
+        /// The column number of the attribute in the source file (1-based, 0 = unknown).
+        /// </summary>
+        internal int Column { get; }
+
+        internal AttributeData(string name, string value, int line, int column)
         {
             Name = name;
             Value = value;
-            Location = location;
+            Line = line;
+            Column = column;
         }
+
+        /// <summary>
+        /// Creates an <see cref="ElementLocation"/> for this attribute using the given file path.
+        /// This allocates — call only when the location is actually needed.
+        /// </summary>
+        internal ElementLocation GetLocation(string filePath) => ElementLocation.Create(filePath, Line, Column);
     }
 
     /// <summary>
     /// Self-contained data storage for an MSBuild XML element, replacing the need for a backing <see cref="System.Xml.XmlElement"/>.
     /// Stores the element name, namespace, attributes (with locations), text content, and element location.
+    /// Location data is stored inline to avoid per-element <see cref="ElementLocation"/> allocations;
+    /// the <see cref="Location"/> property creates one lazily on demand.
     /// </summary>
     /// <remarks>
     /// This is the core data structure for the "Eliminate XML DOM" refactoring.
@@ -52,10 +64,10 @@ namespace Microsoft.Build.Construction
     /// of <see cref="ProjectElement"/>, alongside <see cref="XmlElementWithLocation"/> and
     /// <see cref="ProjectElementLink"/> as the three possible backing sources.
     /// </remarks>
-    [DebuggerDisplay("{Name} Attributes={_attributes.Count}")]
+    [DebuggerDisplay("{Name} Attributes={AttributeCount}")]
     internal sealed class ElementData : ILinkedXml
     {
-        private readonly List<AttributeData> _attributes;
+        private AttributeData[]? _attributes;
 
         // ILinkedXml implementation — ElementData is a third variant alongside XmlElementWithLocation and ProjectElementLink.
         ProjectElementLink ILinkedXml.Link => null!;
@@ -72,9 +84,26 @@ namespace Microsoft.Build.Construction
         internal string NamespaceURI { get; }
 
         /// <summary>
-        /// The source location of the element's opening tag.
+        /// The file path for this element's source file.
+        /// Shared with all attribute locations within this element to avoid redundant string references.
         /// </summary>
-        internal ElementLocation Location { get; }
+        internal string FilePath { get; }
+
+        /// <summary>
+        /// The line number of the element's opening tag (1-based, 0 = unknown).
+        /// </summary>
+        internal int Line { get; }
+
+        /// <summary>
+        /// The column number of the element's opening tag (1-based, 0 = unknown).
+        /// </summary>
+        internal int Column { get; }
+
+        /// <summary>
+        /// Gets the source location of the element's opening tag.
+        /// Creates an <see cref="ElementLocation"/> on demand — avoid calling in tight loops.
+        /// </summary>
+        internal ElementLocation Location => ElementLocation.Create(FilePath, Line, Column);
 
         /// <summary>
         /// The text content of this element (inner text), or null if the element has child elements instead.
@@ -94,27 +123,33 @@ namespace Microsoft.Build.Construction
         internal bool IsSelfClosing { get; set; }
 
         /// <summary>
-        /// Creates a new <see cref="ElementData"/> with the specified element name, namespace, and location.
+        /// Creates a new <see cref="ElementData"/> with the specified element name, namespace, file path, and line/column.
         /// </summary>
-        internal ElementData(string name, string namespaceURI, ElementLocation location)
+        internal ElementData(string name, string namespaceURI, string filePath, int line, int column)
         {
             Name = name;
             NamespaceURI = namespaceURI ?? string.Empty;
-            Location = location;
-            _attributes = [];
+            FilePath = filePath ?? string.Empty;
+            Line = line;
+            Column = column;
         }
 
         /// <summary>
         /// Gets the number of attributes on this element.
         /// </summary>
-        internal int AttributeCount => _attributes.Count;
+        internal int AttributeCount => _attributes?.Length ?? 0;
 
         /// <summary>
         /// Gets the value of the attribute with the specified name, or null if not found.
         /// </summary>
         internal string? GetAttributeValue(string attributeName)
         {
-            for (int i = 0; i < _attributes.Count; i++)
+            if (_attributes is null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < _attributes.Length; i++)
             {
                 if (string.Equals(_attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
                 {
@@ -130,27 +165,16 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal ElementLocation? GetAttributeLocation(string attributeName)
         {
-            for (int i = 0; i < _attributes.Count; i++)
+            if (_attributes is null)
             {
-                if (string.Equals(_attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return _attributes[i].Location;
-                }
+                return null;
             }
 
-            return null;
-        }
-
-        /// <summary>
-        /// Gets the <see cref="AttributeData"/> for the attribute with the specified name, or null if not found.
-        /// </summary>
-        internal AttributeData? GetAttribute(string attributeName)
-        {
-            for (int i = 0; i < _attributes.Count; i++)
+            for (int i = 0; i < _attributes.Length; i++)
             {
                 if (string.Equals(_attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
                 {
-                    return _attributes[i];
+                    return _attributes[i].GetLocation(FilePath);
                 }
             }
 
@@ -159,20 +183,27 @@ namespace Microsoft.Build.Construction
 
         /// <summary>
         /// Sets or adds an attribute. If an attribute with the same name already exists, its value is updated.
-        /// If it doesn't exist, a new attribute is added with the specified location (or a default empty location).
+        /// If it doesn't exist, a new attribute is appended.
         /// </summary>
-        internal void SetAttribute(string attributeName, string value, ElementLocation? location = null)
+        internal void SetAttribute(string attributeName, string value)
         {
-            for (int i = 0; i < _attributes.Count; i++)
+            if (_attributes is not null)
             {
-                if (string.Equals(_attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
+                for (int i = 0; i < _attributes.Length; i++)
                 {
-                    _attributes[i].Value = value;
-                    return;
+                    if (string.Equals(_attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _attributes[i].Value = value;
+                        return;
+                    }
                 }
             }
 
-            _attributes.Add(new AttributeData(attributeName, value, location ?? ElementLocation.EmptyLocation));
+            // Grow array by one
+            var newArray = new AttributeData[(_attributes?.Length ?? 0) + 1];
+            _attributes?.CopyTo(newArray, 0);
+            newArray[newArray.Length - 1] = new AttributeData(attributeName, value, 0, 0);
+            _attributes = newArray;
         }
 
         /// <summary>
@@ -180,11 +211,27 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal bool RemoveAttribute(string attributeName)
         {
-            for (int i = 0; i < _attributes.Count; i++)
+            if (_attributes is null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _attributes.Length; i++)
             {
                 if (string.Equals(_attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
                 {
-                    _attributes.RemoveAt(i);
+                    if (_attributes.Length == 1)
+                    {
+                        _attributes = null;
+                    }
+                    else
+                    {
+                        var newArray = new AttributeData[_attributes.Length - 1];
+                        Array.Copy(_attributes, 0, newArray, 0, i);
+                        Array.Copy(_attributes, i + 1, newArray, i, _attributes.Length - i - 1);
+                        _attributes = newArray;
+                    }
+
                     return true;
                 }
             }
@@ -193,33 +240,35 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
-        /// Adds an attribute. Does not check for duplicates — use during parsing when attributes are known to be unique.
+        /// Sets the attribute array directly. Used during parsing when all attributes are known at once.
+        /// The array is stored by reference — the caller must not modify it afterward.
         /// </summary>
-        internal void AddAttribute(AttributeData attribute)
+        internal void SetAttributeArray(AttributeData[]? attributes)
         {
-            _attributes.Add(attribute);
+            _attributes = attributes;
         }
 
         /// <summary>
-        /// Gets all attributes as a read-only span for enumeration (available on .NET Core only).
+        /// Gets all attributes as a span for enumeration.
         /// </summary>
-#if NET
-        internal ReadOnlySpan<AttributeData> Attributes => CollectionsMarshal.AsSpan(_attributes);
-#else
-        internal IReadOnlyList<AttributeData> Attributes => _attributes;
-#endif
+        internal ReadOnlySpan<AttributeData> Attributes => _attributes.AsSpan();
 
         /// <summary>
-        /// Gets all attributes as an enumerable list.
+        /// Gets all attributes as an array (may be null if no attributes).
         /// </summary>
-        internal IReadOnlyList<AttributeData> AttributeList => _attributes;
+        internal AttributeData[]? AttributeArray => _attributes;
 
         /// <summary>
         /// Returns true if this element has an attribute with the specified name.
         /// </summary>
         internal bool HasAttribute(string attributeName)
         {
-            for (int i = 0; i < _attributes.Count; i++)
+            if (_attributes is null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _attributes.Length; i++)
             {
                 if (string.Equals(_attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
                 {
@@ -235,7 +284,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal void ClearAttributes()
         {
-            _attributes.Clear();
+            _attributes = null;
         }
 
         /// <summary>
@@ -246,10 +295,15 @@ namespace Microsoft.Build.Construction
         {
             Name = source.Name;
             TextContent = source.TextContent;
-            _attributes.Clear();
-            foreach (var attr in source.AttributeList)
+
+            if (source._attributes is null)
             {
-                _attributes.Add(new AttributeData(attr.Name, attr.Value, attr.Location));
+                _attributes = null;
+            }
+            else
+            {
+                _attributes = new AttributeData[source._attributes.Length];
+                Array.Copy(source._attributes, _attributes, source._attributes.Length);
             }
         }
 
@@ -259,23 +313,35 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ElementData FromProjectElement(ProjectElement element)
         {
-            var data = new ElementData(element.ElementName, string.Empty, element.Location);
+            var location = element.Location;
+            var data = new ElementData(element.ElementName, string.Empty, location.File, location.Line, location.Column);
 
             if (element.Link != null)
             {
-                foreach (var remoteAttribute in element.Link.Attributes)
+                var remoteAttributes = element.Link.Attributes;
+                var attrs = new AttributeData[remoteAttributes.Count];
+                int index = 0;
+                foreach (var remoteAttribute in remoteAttributes)
                 {
-                    data.AddAttribute(new AttributeData(remoteAttribute.LocalName, remoteAttribute.Value, ElementLocation.EmptyLocation));
+                    attrs[index++] = new AttributeData(remoteAttribute.LocalName, remoteAttribute.Value, 0, 0);
                 }
 
+                data._attributes = attrs;
                 data.TextContent = element.Link.PureText;
             }
             else
             {
                 var xmlElement = element.XmlElement;
-                foreach (System.Xml.XmlAttribute attribute in xmlElement.Attributes)
+                if (xmlElement.Attributes.Count > 0)
                 {
-                    data.AddAttribute(new AttributeData(attribute.LocalName, attribute.Value, ElementLocation.EmptyLocation));
+                    var attrs = new AttributeData[xmlElement.Attributes.Count];
+                    for (int i = 0; i < xmlElement.Attributes.Count; i++)
+                    {
+                        var attribute = xmlElement.Attributes[i]!;
+                        attrs[i] = new AttributeData(attribute.LocalName, attribute.Value, 0, 0);
+                    }
+
+                    data._attributes = attrs;
                 }
 
                 if (xmlElement.ChildNodes.Count == 1 && xmlElement.FirstChild!.NodeType == System.Xml.XmlNodeType.Text)
