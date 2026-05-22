@@ -72,7 +72,20 @@ namespace Microsoft.Build.Construction
         /// </summary>
         public string TaskBody
         {
-            get => Link != null ? UsingTaskBodyLink.TaskBody : Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
+            get
+            {
+                if (Link != null)
+                {
+                    return UsingTaskBodyLink.TaskBody;
+                }
+
+                if (DataSource is not null)
+                {
+                    return DataSource.TextContent ?? string.Empty;
+                }
+
+                return Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
+            }
 
             set
             {
