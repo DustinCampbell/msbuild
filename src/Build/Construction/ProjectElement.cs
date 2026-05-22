@@ -568,6 +568,15 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Swaps the backing source from ElementData to an XmlElementWithLocation without marking dirty.
+        /// Used during lazy DOM materialization when an ElementData-backed project needs mutation support.
+        /// </summary>
+        internal void SwapToXmlElement(XmlElementWithLocation xmlElement)
+        {
+            _xmlSource = xmlElement;
+        }
+
+        /// <summary>
         /// Overridden to verify that the potential parent and siblings
         /// are acceptable. Throws InvalidOperationException if they are not.
         /// </summary>

@@ -1849,7 +1849,90 @@ namespace Microsoft.Build.Construction
         internal XmlElementWithLocation CreateElement(string name, ElementLocation location = null)
         {
             Assumed.Null(Link, "Attempt to edit a document that is not backed by a local xml is disallowed.");
+
+            if (XmlDocument is null)
+            {
+                MaterializeDom();
+            }
+
             return (XmlElementWithLocation)XmlDocument.CreateElement(name, XmlNamespace, location);
+        }
+
+        /// <summary>
+        /// Materializes the XML DOM from the ElementData tree when an ElementData-backed project
+        /// needs mutation support. After this call, all elements in the tree are backed by XmlElementWithLocation
+        /// nodes owned by a real XmlDocument.
+        /// </summary>
+        private void MaterializeDom()
+        {
+            Debug.Assert(DataSource is not null, "MaterializeDom called but project is not ElementData-backed.");
+
+            // Build a DOM by reconstructing it from the ElementData tree.
+            var document = new XmlDocumentWithLocation()
+            {
+                FullPath = FullPath ?? string.Empty,
+                PreserveWhitespace = _preserveFormatting
+            };
+
+            // Create the root element from this PRE's ElementData.
+            var rootXml = ReconstructXmlElement(document, DataSource);
+            document.AppendChild(rootXml);
+
+            // Swap the PRE's backing to the document root element.
+            SwapToXmlElement((XmlElementWithLocation)rootXml);
+
+            // Walk the construction model tree, reconstruct DOM children, and swap each element.
+            ReconstructAndSwapChildren(document, this, rootXml);
+        }
+
+        /// <summary>
+        /// Creates an XmlElement from an ElementData, adding it to the given document.
+        /// </summary>
+        private static XmlElement ReconstructXmlElement(XmlDocumentWithLocation document, ElementData data)
+        {
+            var element = document.CreateElement(data.Name, data.NamespaceURI, data.Location);
+
+            // Copy attributes.
+            foreach (var attr in data.Attributes)
+            {
+                element.SetAttribute(attr.Name, attr.Value);
+            }
+
+            // Copy text content if present.
+            if (data.TextContent is not null)
+            {
+                element.AppendChild(document.CreateTextNode(data.TextContent));
+            }
+
+            return element;
+        }
+
+        /// <summary>
+        /// Recursively walks construction model children, reconstructs DOM elements from ElementData,
+        /// and swaps each element's backing from ElementData to XmlElementWithLocation.
+        /// </summary>
+        private static void ReconstructAndSwapChildren(XmlDocumentWithLocation document, ProjectElementContainer container, XmlElement domParent)
+        {
+            var modelChild = container.FirstChild;
+
+            while (modelChild is not null)
+            {
+                var childData = modelChild.DataSource;
+                if (childData is not null)
+                {
+                    var childXml = ReconstructXmlElement(document, childData);
+                    domParent.AppendChild(childXml);
+                    modelChild.SwapToXmlElement((XmlElementWithLocation)childXml);
+
+                    // Recurse into containers.
+                    if (modelChild is ProjectElementContainer childContainer)
+                    {
+                        ReconstructAndSwapChildren(document, childContainer, childXml);
+                    }
+                }
+
+                modelChild = modelChild.NextSibling;
+            }
         }
 
         /// <summary>
@@ -1954,9 +2037,9 @@ namespace Microsoft.Build.Construction
                 if (child is ProjectSdkElement sdkNode)
                 {
                     var referencedSdk = new SdkReference(
-                        sdkNode.XmlElement.GetAttribute("Name"),
-                        sdkNode.XmlElement.GetAttribute("Version"),
-                        sdkNode.XmlElement.GetAttribute("MinimumVersion"));
+                        sdkNode.Name,
+                        sdkNode.Version,
+                        sdkNode.MinimumVersion);
 
                     nodes.Add(ProjectImportElement.CreateImplicit("Sdk.props", currentProjectOrImport, ImplicitImportLocation.Top, referencedSdk, sdkNode));
                     nodes.Add(ProjectImportElement.CreateImplicit("Sdk.targets", currentProjectOrImport, ImplicitImportLocation.Bottom, referencedSdk, sdkNode));

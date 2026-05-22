@@ -169,15 +169,34 @@ namespace Microsoft.Build.Construction
             SdkReference sdkReference,
             ProjectElement originalElement)
         {
-            XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.import);
-            return new ProjectImportElement(element, containingProject)
+            ProjectImportElement importElement;
+
+            if (containingProject.XmlDocument is null)
             {
-                Project = project,
-                Sdk = sdkReference.ToString(),
-                ImplicitImportLocation = implicitImportLocation,
-                SdkReference = sdkReference,
-                OriginalElement = originalElement
-            };
+                // ElementData-backed PRE: create a synthetic ElementData for the implicit import.
+                var elementData = new ElementData(XMakeElements.import, containingProject.XmlNamespace, containingProject.FullPath ?? string.Empty, 0, 0);
+                elementData.SetAttribute(XMakeAttributes.project, project);
+                elementData.SetAttribute(XMakeAttributes.sdk, sdkReference.ToString());
+                importElement = new ProjectImportElement(elementData, containingProject, containingProject, sdkReference)
+                {
+                    ImplicitImportLocation = implicitImportLocation,
+                    OriginalElement = originalElement
+                };
+            }
+            else
+            {
+                XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.import);
+                importElement = new ProjectImportElement(element, containingProject)
+                {
+                    Project = project,
+                    Sdk = sdkReference.ToString(),
+                    ImplicitImportLocation = implicitImportLocation,
+                    SdkReference = sdkReference,
+                    OriginalElement = originalElement
+                };
+            }
+
+            return importElement;
         }
 
         /// <summary>

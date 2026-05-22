@@ -137,7 +137,14 @@ namespace Microsoft.Build.Construction
             if (parentUsingTask.TaskFactory.Length == 0)
             {
                 Assumed.Null(parentUsingTask.Link, "TaskFactory");
-                ProjectXmlUtilities.VerifyThrowProjectRequiredAttribute(parent.XmlElement, "TaskFactory");
+                if (parent.XmlElement is not null)
+                {
+                    ProjectXmlUtilities.VerifyThrowProjectRequiredAttribute(parent.XmlElement, "TaskFactory");
+                }
+                else
+                {
+                    ProjectErrorUtilities.ThrowInvalidProject(parent.Location, "MissingRequiredAttribute", "TaskFactory", parent.ElementName);
+                }
             }
 
             // UNDONE: Do check to make sure the parameter group is the first child
