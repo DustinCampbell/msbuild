@@ -591,6 +591,25 @@ namespace Microsoft.Build.Construction
         /// Useful for debugging.
         /// Note that we do not expose an XmlDocument or any other specific XML API.
         /// </remarks>
+        /// <summary>
+        /// Gets the XmlDocument associated with this project root element.
+        /// If the project is backed by ElementData (new XmlReader parser), materializes the DOM lazily.
+        /// </summary>
+        internal new XmlDocumentWithLocation XmlDocument
+        {
+            get
+            {
+                var doc = base.XmlDocument;
+                if (doc is null && DataSource is not null)
+                {
+                    MaterializeDom();
+                    doc = base.XmlDocument;
+                }
+
+                return doc;
+            }
+        }
+
         public string RawXml
         {
             get
@@ -598,11 +617,6 @@ namespace Microsoft.Build.Construction
                 if (Link != null)
                 {
                     return RootLink.RawXml;
-                }
-
-                if (XmlDocument is null)
-                {
-                    MaterializeDom();
                 }
 
                 using (var stringWriter = new EncodingStringWriter(Encoding))
@@ -1571,11 +1585,6 @@ namespace Microsoft.Build.Construction
 
             ErrorUtilities.VerifyThrowInvalidOperation(_projectFileLocation != null, "OM_MustSetFileNameBeforeSave");
 
-            if (XmlDocument is null)
-            {
-                MaterializeDom();
-            }
-
             Directory.CreateDirectory(DirectoryPath);
 
             // LocationString is normally cheap to calculate, but it can occasionally go down a rabbit hole of method calls. This makes it more consistent if this event is not enabled.
@@ -1653,11 +1662,6 @@ namespace Microsoft.Build.Construction
             {
                 RootLink.Save(writer);
                 return;
-            }
-
-            if (XmlDocument is null)
-            {
-                MaterializeDom();
             }
 
             using (var projectWriter = new ProjectWriter(writer))
@@ -1859,11 +1863,6 @@ namespace Microsoft.Build.Construction
         {
             Assumed.Null(Link, "Attempt to edit a document that is not backed by a local xml is disallowed.");
 
-            if (XmlDocument is null)
-            {
-                MaterializeDom();
-            }
-
             return (XmlElementWithLocation)XmlDocument.CreateElement(name, XmlNamespace, location);
         }
 
@@ -1873,10 +1872,8 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal void EnsureXmlDom()
         {
-            if (XmlDocument is null && DataSource is not null)
-            {
-                MaterializeDom();
-            }
+            // Accessing the XmlDocument property triggers lazy materialization if needed.
+            _ = XmlDocument;
         }
 
         /// <summary>
