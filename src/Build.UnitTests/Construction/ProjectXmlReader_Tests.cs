@@ -299,12 +299,10 @@ public class ProjectXmlReader_Tests
 /// </summary>
 public class ProjectXmlReader_IntegrationTests : IDisposable
 {
-    private readonly ITestOutputHelper _output;
     private readonly TestEnvironment _env;
 
     public ProjectXmlReader_IntegrationTests(ITestOutputHelper output)
     {
-        _output = output;
         _env = TestEnvironment.Create(output);
         // Opt-in to the new parser for all tests in this class
         _env.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", "1");
