@@ -180,7 +180,20 @@ namespace Microsoft.Build.Construction
         }
 
         /// <inheritdoc/>
-        public string OuterElement => Link != null ? Link.OuterElement : XmlElement.OuterXml;
+        /// <inheritdoc/>
+        public string OuterElement
+        {
+            get
+            {
+                if (_xmlSource is ElementData)
+                {
+                    // TODO: Phase 5 — implement serialization from ElementData
+                    return string.Empty;
+                }
+
+                return Link != null ? Link.OuterElement : XmlElement.OuterXml;
+            }
+        }
 
         /// <summary>
         /// All parent elements of this element, going up to the ProjectRootElement.
@@ -291,26 +304,53 @@ namespace Microsoft.Build.Construction
         /// In the case of an unsaved edit, the location only
         /// contains the path to the file that the element originates from.
         /// </summary>
-        public ElementLocation Location => Link != null ? Link.Location : XmlElement.Location;
+        public ElementLocation Location
+        {
+            get
+            {
+                if (_xmlSource is ElementData data)
+                {
+                    return data.Location;
+                }
+
+                return Link != null ? Link.Location : XmlElement.Location;
+            }
+        }
 
         /// <inheritdoc/>
-        public string ElementName => Link != null ? Link.ElementName : XmlElement.Name;
+        public string ElementName
+        {
+            get
+            {
+                if (_xmlSource is ElementData data)
+                {
+                    return data.Name;
+                }
+
+                return Link != null ? Link.ElementName : XmlElement.Name;
+            }
+        }
 
         // Using ILinkedXml to share single field for either Linked (external) and local (XML backed) nodes.
         private ILinkedXml _xmlSource;
 
-        internal ProjectElementLink Link => _xmlSource?.Link;
+        internal ProjectElementLink Link => _xmlSource is ElementData ? null : _xmlSource?.Link;
 
         /// <summary>
         /// <see cref="ILinkableObject.Link"/>
         /// </summary>
         object ILinkableObject.Link => Link;
 
+        /// <summary>
+        /// Gets the ElementData backing this element, if it was parsed without DOM.
+        /// Returns null for DOM-backed or Link-backed elements.
+        /// </summary>
+        internal ElementData DataSource => _xmlSource as ElementData;
 
         /// <summary>
         /// Gets the XmlElement associated with this project element.
         /// The setter is used when adding new elements.
-        /// Never null except during load or creation.
+        /// Never null except during load or creation, or when backed by ElementData.
         /// </summary>
         /// <remarks>
         /// This should be protected, but "protected internal" means "OR" not "AND",
@@ -364,6 +404,27 @@ namespace Microsoft.Build.Construction
                 return;
             }
 
+            if (_xmlSource is ElementData thisData)
+            {
+                // Target is ElementData-backed: copy directly into our ElementData.
+                ElementData sourceData;
+                if (element._xmlSource is ElementData sd)
+                {
+                    sourceData = sd;
+                }
+                else
+                {
+                    // Source is DOM-backed or Link-backed: build ElementData from it.
+                    sourceData = ElementData.FromProjectElement(element);
+                }
+
+                thisData.CopyFrom(sourceData);
+                _expressedAsAttribute = element.ExpressedAsAttribute;
+                MarkDirty("CopyFrom", null);
+                ClearAttributeCache();
+                return;
+            }
+
             // Remove all the current attributes and textual content.
             XmlElement.RemoveAllAttributes();
             if (XmlElement.ChildNodes.Count == 1 && XmlElement.FirstChild.NodeType == XmlNodeType.Text)
@@ -374,8 +435,23 @@ namespace Microsoft.Build.Construction
             // Ensure the element name itself matches.
             ReplaceElement(XmlUtilities.RenameXmlElement(XmlElement, element.ElementName, XmlElement.NamespaceURI));
 
+            // Source is ElementData-backed: read from its data.
+            if (element._xmlSource is ElementData elementData)
+            {
+                foreach (var attr in elementData.Attributes)
+                {
+                    XmlElement.SetAttribute(attr.Name, string.Empty, attr.Value);
+                }
+
+                if (elementData.TextContent is { Length: > 0 } text)
+                {
+                    XmlElement.AppendChild(XmlElement.OwnerDocument.CreateTextNode(text));
+                }
+
+                _expressedAsAttribute = element.ExpressedAsAttribute;
+            }
             // hard case when argument is a linked object (slight duplication).
-            if (element.Link != null)
+            else if (element.Link != null)
             {
                 foreach (var remoteAttribute in element.Link.Attributes)
                 {
@@ -430,6 +506,16 @@ namespace Microsoft.Build.Construction
         internal void SetProjectRootElementFromParser(XmlElementWithLocation xmlElement, ProjectRootElement projectRootElement)
         {
             _xmlSource = xmlElement;
+            ContainingProject = projectRootElement;
+        }
+
+        /// <summary>
+        /// Sets the ElementData as the backing source for this element.
+        /// Used by the new XmlReader-based parser that bypasses the XML DOM.
+        /// </summary>
+        internal void SetElementDataFromParser(ElementData elementData, ProjectRootElement projectRootElement)
+        {
+            _xmlSource = elementData;
             ContainingProject = projectRootElement;
         }
 
@@ -533,11 +619,27 @@ namespace Microsoft.Build.Construction
 
         internal ElementLocation GetAttributeLocation(string attributeName)
         {
+            if (_xmlSource is ElementData data)
+            {
+                return data.GetAttributeLocation(attributeName);
+            }
+
             return Link != null ? Link.GetAttributeLocation(attributeName) : XmlElement.GetAttributeLocation(attributeName);
         }
 
         internal string GetAttributeValue(string attributeName, bool nullIfNotExists = false)
         {
+            if (_xmlSource is ElementData data)
+            {
+                string value = data.GetAttributeValue(attributeName);
+                if (value == null)
+                {
+                    return nullIfNotExists ? null : string.Empty;
+                }
+
+                return value;
+            }
+
             return Link != null ? Link.GetAttributeValue(attributeName, nullIfNotExists) :
                 ProjectXmlUtilities.GetAttributeValue(XmlElement, attributeName, nullIfNotExists);
         }
@@ -578,6 +680,22 @@ namespace Microsoft.Build.Construction
             {
                 Link.SetOrRemoveAttribute(name, value, false, reason, param);
             }
+            else if (_xmlSource is ElementData data)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    data.RemoveAttribute(name);
+                }
+                else
+                {
+                    data.SetAttribute(name, value);
+                }
+
+                if (reason != null)
+                {
+                    MarkDirty(reason, param);
+                }
+            }
             else
             {
                 ProjectXmlUtilities.SetOrRemoveAttribute(XmlElement, name, value);
@@ -593,6 +711,23 @@ namespace Microsoft.Build.Construction
             if (Link != null)
             {
                 Link.SetOrRemoveAttribute(name, value, true, reason, param);
+            }
+            else if (_xmlSource is ElementData data)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    data.RemoveAttribute(name);
+                }
+                else
+                {
+                    data.SetAttribute(name, value);
+                }
+
+                cache = value;
+                if (reason != null)
+                {
+                    MarkDirty(reason, param);
+                }
             }
             else
             {

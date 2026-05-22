@@ -7,6 +7,7 @@ using System.Diagnostics;
 #if NET
 using System.Runtime.InteropServices;
 #endif
+using Microsoft.Build.ObjectModelRemoting;
 
 namespace Microsoft.Build.Construction
 {
@@ -44,14 +45,21 @@ namespace Microsoft.Build.Construction
     /// Stores the element name, namespace, attributes (with locations), text content, and element location.
     /// </summary>
     /// <remarks>
-    /// This is the core data structure for Phase 1 of the "Eliminate XML DOM" refactoring.
+    /// This is the core data structure for the "Eliminate XML DOM" refactoring.
     /// It is designed to hold all information needed by <see cref="ProjectElement"/> without
     /// requiring an <see cref="System.Xml.XmlDocument"/> backing store.
+    /// Implements <see cref="ILinkedXml"/> so it can be stored in the single <c>_xmlSource</c> field
+    /// of <see cref="ProjectElement"/>, alongside <see cref="XmlElementWithLocation"/> and
+    /// <see cref="ProjectElementLink"/> as the three possible backing sources.
     /// </remarks>
     [DebuggerDisplay("{Name} Attributes={_attributes.Count}")]
-    internal sealed class ElementData
+    internal sealed class ElementData : ILinkedXml
     {
         private readonly List<AttributeData> _attributes;
+
+        // ILinkedXml implementation — ElementData is a third variant alongside XmlElementWithLocation and ProjectElementLink.
+        ProjectElementLink ILinkedXml.Link => null!;
+        XmlElementWithLocation ILinkedXml.Xml => null!;
 
         /// <summary>
         /// The local name of this XML element (e.g., "PropertyGroup", "Compile", "Project").
@@ -228,6 +236,55 @@ namespace Microsoft.Build.Construction
         internal void ClearAttributes()
         {
             _attributes.Clear();
+        }
+
+        /// <summary>
+        /// Copies all data from the source <see cref="ElementData"/> into this instance,
+        /// replacing existing attributes and text content.
+        /// </summary>
+        internal void CopyFrom(ElementData source)
+        {
+            Name = source.Name;
+            TextContent = source.TextContent;
+            _attributes.Clear();
+            foreach (var attr in source.AttributeList)
+            {
+                _attributes.Add(new AttributeData(attr.Name, attr.Value, attr.Location));
+            }
+        }
+
+        /// <summary>
+        /// Creates an <see cref="ElementData"/> from an existing <see cref="ProjectElement"/>,
+        /// reading its attributes and text content from whatever backing source it uses (DOM or Link).
+        /// </summary>
+        internal static ElementData FromProjectElement(ProjectElement element)
+        {
+            var data = new ElementData(element.ElementName, string.Empty, element.Location);
+
+            if (element.Link != null)
+            {
+                foreach (var remoteAttribute in element.Link.Attributes)
+                {
+                    data.AddAttribute(new AttributeData(remoteAttribute.LocalName, remoteAttribute.Value, ElementLocation.EmptyLocation));
+                }
+
+                data.TextContent = element.Link.PureText;
+            }
+            else
+            {
+                var xmlElement = element.XmlElement;
+                foreach (System.Xml.XmlAttribute attribute in xmlElement.Attributes)
+                {
+                    data.AddAttribute(new AttributeData(attribute.LocalName, attribute.Value, ElementLocation.EmptyLocation));
+                }
+
+                if (xmlElement.ChildNodes.Count == 1 && xmlElement.FirstChild!.NodeType == System.Xml.XmlNodeType.Text)
+                {
+                    data.TextContent = xmlElement.FirstChild.Value;
+                }
+            }
+
+            return data;
         }
     }
 }
