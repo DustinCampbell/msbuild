@@ -37,6 +37,15 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Initialize from ElementData (no XML DOM).
+        /// </summary>
+        internal ProjectChooseElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
+            : base(elementData, parent, containingProject)
+        {
+            ArgumentNullException.ThrowIfNull(parent);
+        }
+
+        /// <summary>
         /// Initialize an unparented ProjectChooseElement
         /// </summary>
         private ProjectChooseElement(XmlElement xmlElement, ProjectRootElement containingProject)

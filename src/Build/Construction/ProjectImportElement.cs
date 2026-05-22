@@ -41,6 +41,16 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Initialize from ElementData (no XML DOM).
+        /// </summary>
+        internal ProjectImportElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject, SdkReference sdkReference = null)
+            : base(elementData, parent, containingProject)
+        {
+            ArgumentNullException.ThrowIfNull(parent);
+            SdkReference = sdkReference;
+        }
+
+        /// <summary>
         /// Initialize an unparented ProjectImportElement
         /// </summary>
         internal ProjectImportElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)

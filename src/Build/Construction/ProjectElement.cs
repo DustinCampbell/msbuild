@@ -69,6 +69,20 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Constructor for elements backed by ElementData (no XML DOM).
+        /// Used by the new XmlReader-based parser.
+        /// </summary>
+        internal ProjectElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
+        {
+            ArgumentNullException.ThrowIfNull(elementData);
+            ArgumentNullException.ThrowIfNull(containingProject);
+
+            _xmlSource = elementData;
+            _parent = parent;
+            ContainingProject = containingProject;
+        }
+
+        /// <summary>
         /// Allows data (for example, item metadata) to be represented as an attribute on the parent element instead of as a child element.
         /// </summary>
         /// <remarks>

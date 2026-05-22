@@ -36,6 +36,15 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Initialize from ElementData (no XML DOM).
+        /// </summary>
+        internal ProjectItemDefinitionGroupElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
+            : base(elementData, parent, containingProject)
+        {
+            ArgumentNullException.ThrowIfNull(parent);
+        }
+
+        /// <summary>
         /// Initialize an unparented ProjectItemDefinitionGroupElement
         /// </summary>
         private ProjectItemDefinitionGroupElement(XmlElement xmlElement, ProjectRootElement containingProject)

@@ -69,6 +69,15 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Initialize from ElementData (no XML DOM).
+        /// </summary>
+        internal ProjectItemElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
+            : base(elementData, parent, containingProject)
+        {
+            ArgumentNullException.ThrowIfNull(parent);
+        }
+
+        /// <summary>
         /// Initialize an unparented ProjectItemElement instance
         /// </summary>
         private ProjectItemElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)

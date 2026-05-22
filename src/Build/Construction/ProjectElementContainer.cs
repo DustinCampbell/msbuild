@@ -60,6 +60,14 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Constructor for elements backed by ElementData (no XML DOM).
+        /// </summary>
+        internal ProjectElementContainer(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
+            : base(elementData, parent, containingProject)
+        {
+        }
+
+        /// <summary>
         /// Get an enumerator over all descendants in a depth-first manner.
         /// </summary>
         public IEnumerable<ProjectElement> AllChildren => GetDescendants();

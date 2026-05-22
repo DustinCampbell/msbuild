@@ -39,6 +39,16 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Initialize from ElementData (no XML DOM).
+        /// </summary>
+        internal ProjectUsingTaskBodyElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
+            : base(elementData, parent, containingProject)
+        {
+            ArgumentNullException.ThrowIfNull(parent);
+            VerifyCorrectParent(parent);
+        }
+
+        /// <summary>
         /// Initialize an unparented ProjectUsingTaskBodyElement
         /// </summary>
         private ProjectUsingTaskBodyElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)

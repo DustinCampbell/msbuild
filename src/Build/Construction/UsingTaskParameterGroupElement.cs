@@ -37,6 +37,16 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Initialize from ElementData (no XML DOM).
+        /// </summary>
+        internal UsingTaskParameterGroupElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
+            : base(elementData, parent, containingProject)
+        {
+            ArgumentNullException.ThrowIfNull(parent);
+            VerifyCorrectParent(parent);
+        }
+
+        /// <summary>
         /// Initialize an unparented UsingTaskParameterGroupElement
         /// </summary>
         private UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
