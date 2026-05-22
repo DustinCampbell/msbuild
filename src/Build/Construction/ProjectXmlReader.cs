@@ -526,7 +526,7 @@ namespace Microsoft.Build.Construction
                             case XMakeElements.usingTaskParameterGroup:
                                 if (foundParameterGroup)
                                 {
-                                    ProjectErrorUtilities.ThrowInvalidProject(childLocation, "DuplicateChildElement", childName);
+                                    ProjectErrorUtilities.ThrowInvalidProject(childLocation, "InvalidChildElementDueToDuplication", childName, XMakeElements.usingTask);
                                 }
                                 usingTask.AppendParentedChildNoChecks(ParseUsingTaskParameterGroup(usingTask));
                                 foundParameterGroup = true;
@@ -534,7 +534,7 @@ namespace Microsoft.Build.Construction
                             case XMakeElements.usingTaskBody:
                                 if (foundTaskElement)
                                 {
-                                    ProjectErrorUtilities.ThrowInvalidProject(childLocation, "DuplicateChildElement", childName);
+                                    ProjectErrorUtilities.ThrowInvalidProject(childLocation, "InvalidChildElementDueToDuplication", childName, XMakeElements.usingTask);
                                 }
                                 usingTask.AppendParentedChildNoChecks(ParseUsingTaskBody(usingTask));
                                 foundTaskElement = true;
@@ -579,7 +579,7 @@ namespace Microsoft.Build.Construction
 
                         if (seenNames.Contains(paramName))
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(paramLocation, "DuplicateChildElement", paramName);
+                            ProjectErrorUtilities.ThrowInvalidProject(paramLocation, "InvalidChildElementDueToDuplication", paramName, XMakeElements.usingTaskParameterGroup);
                         }
 
                         ElementData paramData = ReadCurrentElementDataAndValidateAttributes(ValidAttributesOnUsingTaskParameter);
