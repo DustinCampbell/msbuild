@@ -430,6 +430,7 @@
     <Compile Include="Construction\UsingTaskParameterGroupElement.cs" />
     <Compile Include="Construction\ProjectUsingTaskParameterElement.cs" />
     <Compile Include="Construction\ProjectUsingTaskBodyElement.cs" />
+    <Compile Include="Construction\ElementData.cs" />
     <Compile Include="Construction\Solution\SolutionConfigurationInSolution.cs" />
     <Compile Include="Construction\Solution\ProjectConfigurationInSolution.cs" />
     <Compile Include="Construction\Solution\ProjectInSolution.cs" />
