@@ -194,6 +194,7 @@ namespace Microsoft.Build.Construction
                     }
                     else
                     {
+                        ThrowIfNonWhitespaceText(data);
                         _reader.Read();
                     }
                 }
@@ -239,6 +240,7 @@ namespace Microsoft.Build.Construction
                     }
                     else
                     {
+                        ThrowIfNonWhitespaceText(data);
                         _reader.Read();
                     }
                 }
@@ -352,6 +354,7 @@ namespace Microsoft.Build.Construction
                     }
                     else
                     {
+                        ThrowIfNonWhitespaceText(data);
                         _reader.Read();
                     }
                 }
@@ -1133,7 +1136,7 @@ namespace Microsoft.Build.Construction
             {
                 if (!validAttributes.Contains(attributes[i].Name))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(attributes[i].GetLocation(data.FilePath), "UnrecognizedAttribute", attributes[i].Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(attributes[i].GetLocation(data.FilePath), "UnrecognizedAttribute", attributes[i].Name, data.Name);
                 }
             }
 
@@ -1247,6 +1250,19 @@ namespace Microsoft.Build.Construction
             if (!XmlUtilities.IsValidElementName(name))
             {
                 ProjectErrorUtilities.ThrowInvalidProject(location, "NameInvalid", name, string.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Throws an InvalidProjectFileException if the reader is positioned on a non-whitespace text node.
+        /// This matches the DOM-based XmlElementChildIterator behavior which rejects text content
+        /// in container elements like PropertyGroup and ItemGroup.
+        /// </summary>
+        private void ThrowIfNonWhitespaceText(ElementData parentData)
+        {
+            if (_reader.NodeType == XmlNodeType.Text && !string.IsNullOrWhiteSpace(_reader.Value))
+            {
+                ProjectXmlUtilities.ThrowProjectInvalidChildElement("#text", parentData.Name, parentData.Location);
             }
         }
 
