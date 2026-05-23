@@ -8,6 +8,46 @@ using Microsoft.Build.ObjectModelRemoting;
 namespace Microsoft.Build.Construction
 {
     /// <summary>
+    /// The kind of XML trivia (non-element content preserved for round-tripping).
+    /// </summary>
+    internal enum XmlTriviaKind : byte
+    {
+        /// <summary>An XML comment (&lt;!-- text --&gt;).</summary>
+        Comment,
+
+        /// <summary>Whitespace between elements.</summary>
+        Whitespace,
+    }
+
+    /// <summary>
+    /// A piece of XML trivia (comment or whitespace) that appears between elements.
+    /// Stored as leading trivia on the next sibling or trailing trivia on the parent container.
+    /// Modeled after Roslyn's SyntaxTrivia for minimal-allocation round-trip fidelity.
+    /// </summary>
+    [DebuggerDisplay("{Kind}: {Text}")]
+    internal readonly struct XmlTrivia
+    {
+        /// <summary>The kind of trivia.</summary>
+        internal XmlTriviaKind Kind { get; }
+
+        /// <summary>The text content (comment body or whitespace characters).</summary>
+        internal string Text { get; }
+
+        /// <summary>Line number in the source file (1-based, 0 = unknown).</summary>
+        internal int Line { get; }
+
+        /// <summary>Column number in the source file (1-based, 0 = unknown).</summary>
+        internal int Column { get; }
+
+        internal XmlTrivia(XmlTriviaKind kind, string text, int line, int column)
+        {
+            Kind = kind;
+            Text = text;
+            Line = line;
+            Column = column;
+        }
+    }
+    /// <summary>
     /// Stores the data for a single attribute on an XML element: its name, value, and source location.
     /// This is a value type to avoid per-attribute heap allocations. Location is stored inline
     /// as line/column and the <see cref="ElementLocation"/> is created lazily on demand.
@@ -121,6 +161,21 @@ namespace Microsoft.Build.Construction
         /// Whether this element was self-closing in the original file (e.g., &lt;Compile Include="foo.cs" /&gt;).
         /// </summary>
         internal bool IsSelfClosing { get; set; }
+
+        /// <summary>
+        /// Leading trivia (comments, whitespace) that appears before this element in document order.
+        /// For the first child of a container, this is trivia between the container's open tag and the first child.
+        /// For subsequent children, this is trivia between the previous sibling's end and this element's start.
+        /// Null if no leading trivia exists.
+        /// </summary>
+        internal XmlTrivia[]? LeadingTrivia { get; set; }
+
+        /// <summary>
+        /// Trailing trivia (comments, whitespace) that appears after the last child element
+        /// and before the container's closing tag. Only meaningful for container elements.
+        /// Null if no trailing trivia exists.
+        /// </summary>
+        internal XmlTrivia[]? TrailingTrivia { get; set; }
 
         /// <summary>
         /// Creates a new <see cref="ElementData"/> with the specified element name, namespace, file path, and line/column.

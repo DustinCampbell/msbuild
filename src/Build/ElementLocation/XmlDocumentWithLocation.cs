@@ -337,6 +337,15 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Triggers read-only determination based on environment variables and file path.
+        /// Used by lazy DOM materialization (ProjectXmlReader path).
+        /// </summary>
+        internal void DetermineReadOnlyFromEnvironment(string fullPath)
+        {
+            DetermineWhetherToLoadReadOnly(fullPath);
+        }
+
+        /// <summary>
         /// Determine whether we should load this file read only.
         /// We decide yes if it is in program files or the OS directory, and the file name starts with "microsoft", else no.
         /// We are very selective because we don't want to load files read only that the host might want to save, nor

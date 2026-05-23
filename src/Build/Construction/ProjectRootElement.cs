@@ -119,6 +119,11 @@ namespace Microsoft.Build.Construction
         private bool _preserveFormatting;
 
         /// <summary>
+        /// Whether the document was loaded in read-only mode. Used when materializing the DOM lazily.
+        /// </summary>
+        private bool _loadedAsReadOnly;
+
+        /// <summary>
         /// XML namespace specified and used by this project file. If a namespace was not specified in the project file, this
         /// value will be string.Empty.
         /// </summary>
@@ -1885,22 +1890,31 @@ namespace Microsoft.Build.Construction
         {
             Debug.Assert(DataSource is not null, "MaterializeDom called but project is not ElementData-backed.");
 
+            // Save root data before swap (SwapToXmlElement nulls DataSource)
+            var rootDataSource = DataSource;
+
             // Build a DOM by reconstructing it from the ElementData tree.
-            var document = new XmlDocumentWithLocation()
+            var document = new XmlDocumentWithLocation(_loadedAsReadOnly ? true : (bool?)null)
             {
                 FullPath = FullPath ?? string.Empty,
                 PreserveWhitespace = _preserveFormatting
             };
 
+            // If not explicitly loaded as read-only, check environment variables.
+            if (!_loadedAsReadOnly)
+            {
+                document.DetermineReadOnlyFromEnvironment(FullPath ?? string.Empty);
+            }
+
             // Create the root element from this PRE's ElementData.
-            var rootXml = ReconstructXmlElement(document, DataSource);
+            var rootXml = ReconstructXmlElement(document, rootDataSource);
             document.AppendChild(rootXml);
 
             // Swap the PRE's backing to the document root element.
             SwapToXmlElement((XmlElementWithLocation)rootXml);
 
             // Walk the construction model tree, reconstruct DOM children, and swap each element.
-            ReconstructAndSwapChildren(document, this, rootXml);
+            ReconstructAndSwapChildren(document, this, rootXml, rootDataSource);
         }
 
         /// <summary>
@@ -1937,7 +1951,7 @@ namespace Microsoft.Build.Construction
         /// Recursively walks construction model children, reconstructs DOM elements from ElementData,
         /// and swaps each element's backing from ElementData to XmlElementWithLocation.
         /// </summary>
-        private static void ReconstructAndSwapChildren(XmlDocumentWithLocation document, ProjectElementContainer container, XmlElement domParent)
+        private static void ReconstructAndSwapChildren(XmlDocumentWithLocation document, ProjectElementContainer container, XmlElement domParent, ElementData containerData = null)
         {
             var modelChild = container.FirstChild;
 
@@ -1946,6 +1960,18 @@ namespace Microsoft.Build.Construction
                 var childData = modelChild.DataSource;
                 if (childData is not null)
                 {
+                    // Emit leading trivia (comments before this element)
+                    if (childData.LeadingTrivia is { } leadingTrivia)
+                    {
+                        foreach (var trivia in leadingTrivia)
+                        {
+                            if (trivia.Kind == XmlTriviaKind.Comment)
+                            {
+                                domParent.AppendChild(document.CreateComment(trivia.Text));
+                            }
+                        }
+                    }
+
                     var childXml = ReconstructXmlElement(document, childData);
                     domParent.AppendChild(childXml);
                     modelChild.SwapToXmlElement((XmlElementWithLocation)childXml);
@@ -1953,11 +1979,23 @@ namespace Microsoft.Build.Construction
                     // Recurse into containers.
                     if (modelChild is ProjectElementContainer childContainer)
                     {
-                        ReconstructAndSwapChildren(document, childContainer, childXml);
+                        ReconstructAndSwapChildren(document, childContainer, childXml, childData);
                     }
                 }
 
                 modelChild = modelChild.NextSibling;
+            }
+
+            // Emit trailing trivia on the container
+            if (containerData is { TrailingTrivia: { } trailingTrivia })
+            {
+                foreach (var trivia in trailingTrivia)
+                {
+                    if (trivia.Kind == XmlTriviaKind.Comment)
+                    {
+                        domParent.AppendChild(document.CreateComment(trivia.Text));
+                    }
+                }
             }
         }
 
@@ -2300,6 +2338,7 @@ namespace Microsoft.Build.Construction
             ErrorUtilities.VerifyThrowInternalRooted(fullPath);
 
             _preserveFormatting = preserveFormatting;
+            _loadedAsReadOnly = loadAsReadOnly;
 
             try
             {

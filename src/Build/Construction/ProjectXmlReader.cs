@@ -117,55 +117,62 @@ namespace Microsoft.Build.Construction
 
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
-                        ParseProjectChild();
+                        ParseProjectChild(trivia);
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        // Trivia after last child becomes trailing trivia on root
+                        rootData.TrailingTrivia = trivia;
                     }
                     else
                     {
-                        // Skip whitespace, comments, etc.
+                        ThrowIfNonWhitespaceText(rootData);
                         _reader.Read();
                     }
                 }
             }
         }
 
-        private void ParseProjectChild()
+        private void ParseProjectChild(XmlTrivia[]? leadingTrivia)
         {
             string childName = _reader.LocalName;
             ElementLocation childLocation = CreateLocation();
 
+            ProjectElement? child = null;
             switch (childName)
             {
                 case XMakeElements.propertyGroup:
-                    _project.AppendParentedChildNoChecks(ParsePropertyGroup(_project));
+                    child = ParsePropertyGroup(_project);
                     break;
                 case XMakeElements.itemGroup:
-                    _project.AppendParentedChildNoChecks(ParseItemGroup(_project));
+                    child = ParseItemGroup(_project);
                     break;
                 case XMakeElements.importGroup:
-                    _project.AppendParentedChildNoChecks(ParseImportGroup());
+                    child = ParseImportGroup();
                     break;
                 case XMakeElements.import:
-                    _project.AppendParentedChildNoChecks(ParseImport(_project));
+                    child = ParseImport(_project);
                     break;
                 case XMakeElements.usingTask:
-                    _project.AppendParentedChildNoChecks(ParseUsingTask());
+                    child = ParseUsingTask();
                     break;
                 case XMakeElements.target:
-                    _project.AppendParentedChildNoChecks(ParseTarget());
+                    child = ParseTarget();
                     break;
                 case XMakeElements.itemDefinitionGroup:
-                    _project.AppendParentedChildNoChecks(ParseItemDefinitionGroup(_project));
+                    child = ParseItemDefinitionGroup(_project);
                     break;
                 case XMakeElements.choose:
-                    _project.AppendParentedChildNoChecks(ParseChoose(_project, 0));
+                    child = ParseChoose(_project, 0);
                     break;
                 case XMakeElements.projectExtensions:
-                    _project.AppendParentedChildNoChecks(ParseProjectExtensions());
+                    child = ParseProjectExtensions();
                     break;
                 case XMakeElements.sdk:
-                    _project.AppendParentedChildNoChecks(ParseSdk());
+                    child = ParseSdk();
                     break;
                 case XMakeElements.error:
                 case XMakeElements.warning:
@@ -175,6 +182,16 @@ namespace Microsoft.Build.Construction
                 default:
                     ProjectXmlUtilities.ThrowProjectInvalidChildElement(childName, XMakeElements.project, childLocation);
                     break;
+            }
+
+            if (child is not null)
+            {
+                if (leadingTrivia is not null)
+                {
+                    child.DataSource!.LeadingTrivia = leadingTrivia;
+                }
+
+                _project.AppendParentedChildNoChecks(child);
             }
         }
 
@@ -188,9 +205,15 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
-                        ParseProperty(group);
+                        ThrowIfNonWhitespaceText(data);
+                        ParseProperty(group, trivia);
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -204,7 +227,7 @@ namespace Microsoft.Build.Construction
             return group;
         }
 
-        private void ParseProperty(ProjectPropertyGroupElement parent)
+        private void ParseProperty(ProjectPropertyGroupElement parent, XmlTrivia[]? leadingTrivia = null)
         {
             string name = _reader.LocalName;
             ElementLocation location = CreateLocation();
@@ -217,6 +240,7 @@ namespace Microsoft.Build.Construction
                 name);
 
             ElementData data = ReadCurrentElementDataAndValidateAttributes(ValidAttributesOnlyConditionAndLabel);
+            data.LeadingTrivia = leadingTrivia;
             // Read text content for properties
             ReadTextContent(data);
 
@@ -234,9 +258,15 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
-                        ParseItem(group);
+                        ThrowIfNonWhitespaceText(data);
+                        ParseItem(group, trivia);
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -250,7 +280,7 @@ namespace Microsoft.Build.Construction
             return group;
         }
 
-        private void ParseItem(ProjectItemGroupElement parent)
+        private void ParseItem(ProjectItemGroupElement parent, XmlTrivia[]? leadingTrivia = null)
         {
             bool belowTarget = parent.Parent is ProjectTargetElement;
             string itemType = _reader.LocalName;
@@ -264,6 +294,7 @@ namespace Microsoft.Build.Construction
                 itemType);
 
             ElementData data = ReadCurrentElementData();
+            data.LeadingTrivia = leadingTrivia;
 
             // Validate item operations
             string include = data.GetAttributeValue(XMakeAttributes.include) ?? string.Empty;
@@ -351,9 +382,14 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
                         ParseMetadata(item);
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -423,6 +459,7 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
                         string childName = _reader.LocalName;
@@ -435,6 +472,10 @@ namespace Microsoft.Build.Construction
                             XMakeElements.importGroup);
 
                         importGroup.AppendParentedChildNoChecks(ParseImport(importGroup));
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -649,6 +690,7 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
                         string childName = _reader.LocalName;
@@ -673,6 +715,7 @@ namespace Microsoft.Build.Construction
                             case XMakeElements.onError:
                                 {
                                     ElementData onErrorData = ReadCurrentElementDataAndValidateAttributes(ValidAttributesOnOnError);
+                                    onErrorData.LeadingTrivia = trivia;
                                     string executeTargets = onErrorData.GetAttributeValue(XMakeAttributes.executeTargets) ?? string.Empty;
                                     ProjectErrorUtilities.VerifyThrowInvalidProject(
                                         executeTargets.Length > 0,
@@ -697,6 +740,10 @@ namespace Microsoft.Build.Construction
                                 target.AppendParentedChildNoChecks(ParseTask(target));
                                 break;
                         }
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -734,6 +781,7 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
                         string childName = _reader.LocalName;
@@ -747,6 +795,10 @@ namespace Microsoft.Build.Construction
                             task.Name);
 
                         task.AppendParentedChildNoChecks(ParseOutput(task));
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -806,9 +858,14 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
-                        ParseItemDefinition(group);
+                        ParseItemDefinition(group, trivia);
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -821,12 +878,13 @@ namespace Microsoft.Build.Construction
             return group;
         }
 
-        private void ParseItemDefinition(ProjectItemDefinitionGroupElement parent)
+        private void ParseItemDefinition(ProjectItemDefinitionGroupElement parent, XmlTrivia[]? leadingTrivia = null)
         {
             string name = _reader.LocalName;
             ElementLocation location = CreateLocation();
 
             ElementData data = ReadCurrentElementData();
+            data.LeadingTrivia = leadingTrivia;
             ProjectItemDefinitionElement itemDefinition = new ProjectItemDefinitionElement(data, parent, _project);
 
             // Check for metadata-as-attributes
@@ -863,9 +921,14 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
                         ParseMetadata(itemDefinition);
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -901,6 +964,7 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
                         string childName = _reader.LocalName;
@@ -922,6 +986,10 @@ namespace Microsoft.Build.Construction
                                 ProjectXmlUtilities.ThrowProjectInvalidChildElement(childName, XMakeElements.choose, childLocation);
                                 break;
                         }
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        data.TrailingTrivia = trivia;
                     }
                     else
                     {
@@ -974,6 +1042,7 @@ namespace Microsoft.Build.Construction
                 _reader.Read();
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
+                    var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
                         string childName = _reader.LocalName;
@@ -996,6 +1065,13 @@ namespace Microsoft.Build.Construction
                             default:
                                 ProjectXmlUtilities.ThrowProjectInvalidChildElement(childName, parent.ElementName, childLocation);
                                 break;
+                        }
+                    }
+                    else if (_reader.NodeType == XmlNodeType.EndElement)
+                    {
+                        if (parent.DataSource is { } parentData)
+                        {
+                            parentData.TrailingTrivia = trivia;
                         }
                     }
                     else
@@ -1043,6 +1119,34 @@ namespace Microsoft.Build.Construction
         }
 
         #region Helper Methods
+
+        /// <summary>
+        /// Collects trivia (comments and whitespace) from the current reader position,
+        /// advancing through any non-element, non-end-element nodes.
+        /// Returns null if no comments are encountered (whitespace alone is not captured).
+        /// After this call, the reader is positioned on an Element, EndElement, or EOF node.
+        /// </summary>
+        private XmlTrivia[]? CollectTrivia()
+        {
+            List<XmlTrivia>? trivia = null;
+
+            while (_reader.NodeType == XmlNodeType.Comment ||
+                   _reader.NodeType == XmlNodeType.Whitespace ||
+                   _reader.NodeType == XmlNodeType.SignificantWhitespace)
+            {
+                if (_reader.NodeType == XmlNodeType.Comment)
+                {
+                    trivia ??= new List<XmlTrivia>();
+                    int line = _lineInfo?.LineNumber ?? 0;
+                    int col = _lineInfo?.LinePosition ?? 0;
+                    trivia.Add(new XmlTrivia(XmlTriviaKind.Comment, _reader.Value, line, col));
+                }
+
+                _reader.Read();
+            }
+
+            return trivia?.ToArray();
+        }
 
         /// <summary>
         /// Creates an ElementLocation from the current reader position.
