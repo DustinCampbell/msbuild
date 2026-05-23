@@ -332,7 +332,10 @@ namespace Microsoft.Build.Construction
                 }
                 else if (isValidMetadataNameInAttribute)
                 {
-                    var metaData = new ElementData(itemAttrs[i].Name, string.Empty, data.FilePath, itemAttrs[i].Line, itemAttrs[i].Column);
+                    // Subtract 1 from column: in the DOM path, metadata-as-attribute location
+                    // flows through XmlElementWithLocation constructor which always subtracts 1.
+                    int metaCol = itemAttrs[i].Column > 0 ? itemAttrs[i].Column - 1 : 0;
+                    var metaData = new ElementData(itemAttrs[i].Name, string.Empty, data.FilePath, itemAttrs[i].Line, metaCol);
                     metaData.TextContent = itemAttrs[i].Value;
                     // Create without parent first so ExpressedAsAttribute setter doesn't trigger DOM operations
                     ProjectMetadataElement metadatum = new ProjectMetadataElement(metaData, null!, _project);
@@ -838,7 +841,10 @@ namespace Microsoft.Build.Construction
                 }
                 else if (isValidMetadataNameInAttribute)
                 {
-                    var metaData = new ElementData(defAttrs[i].Name, string.Empty, data.FilePath, defAttrs[i].Line, defAttrs[i].Column);
+                    // Subtract 1 from column: in the DOM path, metadata-as-attribute location
+                    // flows through XmlElementWithLocation constructor which always subtracts 1.
+                    int metaCol = defAttrs[i].Column > 0 ? defAttrs[i].Column - 1 : 0;
+                    var metaData = new ElementData(defAttrs[i].Name, string.Empty, data.FilePath, defAttrs[i].Line, metaCol);
                     metaData.TextContent = defAttrs[i].Value;
                     ProjectMetadataElement metadatum = new ProjectMetadataElement(metaData, null!, _project);
                     metadatum.ExpressedAsAttribute = true;
@@ -1067,9 +1073,9 @@ namespace Microsoft.Build.Construction
             if (_lineInfo != null && _lineInfo.HasLineInfo())
             {
                 line = _lineInfo.LineNumber;
-                // XmlReader.LinePosition on an Element node reports the position of the first
-                // character of the element name (after '<'). XmlDocument reports the '<' position.
-                // Subtract 1 to match XmlDocument behavior for compatibility.
+                // XmlReader.LinePosition on an Element reports the first character of the element
+                // name (after '<'). XmlElementWithLocation always subtracts 1 to point at the '<'.
+                // We replicate that adjustment here for compatibility.
                 column = _lineInfo.LinePosition - 1;
             }
 
