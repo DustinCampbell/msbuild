@@ -159,9 +159,39 @@ namespace Microsoft.Build.Construction
         private Encoding _encoding;
 
         /// <summary>
-        /// Sets the encoding parsed from the XML declaration by ProjectXmlReader.
+        /// Whether the source file contained an XML declaration (&lt;?xml ...?&gt;).
+        /// Only relevant for ElementData-backed projects; used to decide whether to emit
+        /// an XmlDeclaration node during DOM materialization.
         /// </summary>
-        internal Encoding XmlDeclaredEncoding { set => _encoding = value; }
+        private bool _hasXmlDeclaration;
+
+        /// <summary>
+        /// Trivia (whitespace/comments) that appears after the root element's closing tag.
+        /// Only relevant for ElementData-backed projects with PreserveFormatting = true.
+        /// </summary>
+        private XmlTrivia[] _afterRootTrivia;
+
+        /// <summary>
+        /// Records that the source file had an XML declaration.
+        /// If _encoding has not already been set (e.g., from XmlReaderExtension), also sets it.
+        /// </summary>
+        internal Encoding XmlDeclaredEncoding
+        {
+            set
+            {
+                _encoding ??= value;
+                _hasXmlDeclaration = true;
+            }
+        }
+
+        /// <summary>
+        /// Sets trivia that appears after the root element's closing tag.
+        /// Called by the parser when preserving formatting.
+        /// </summary>
+        internal XmlTrivia[] AfterRootTrivia
+        {
+            set => _afterRootTrivia = value;
+        }
 
         /// <summary>
         /// Whether to preserve formatting when the project is backed by ElementData (no DOM).
@@ -259,6 +289,12 @@ namespace Microsoft.Build.Construction
                 catch (XmlException ex)
                 {
                     BuildEventFileInfo fileInfo = new BuildEventFileInfo(ex);
+                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, ex, "InvalidProjectFile", ex.Message);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Thrown when attempting to read from a closed/disposed XmlReader.
+                    BuildEventFileInfo fileInfo = new BuildEventFileInfo(string.Empty);
                     ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, ex, "InvalidProjectFile", ex.Message);
                 }
             }
@@ -666,11 +702,13 @@ namespace Microsoft.Build.Construction
         {
             get
             {
-                var doc = base.XmlDocument;
+                // Use XmlElementRaw to avoid triggering the XmlElement getter's
+                // MaterializeDom call, which would recursively call back into this property.
+                var doc = (XmlDocumentWithLocation)XmlElementRaw?.OwnerDocument;
                 if (doc is null && DataSource is not null)
                 {
                     MaterializeDom();
-                    doc = base.XmlDocument;
+                    doc = (XmlDocumentWithLocation)XmlElementRaw?.OwnerDocument;
                 }
 
                 return doc;
@@ -1968,6 +2006,30 @@ namespace Microsoft.Build.Construction
                 document.DetermineReadOnlyFromEnvironment(FullPath ?? string.Empty);
             }
 
+            // Add XmlDeclaration if the source file had one.
+            if (_hasXmlDeclaration)
+            {
+                var declaration = document.CreateXmlDeclaration("1.0", _encoding?.WebName ?? "utf-8", null);
+                document.AppendChild(declaration);
+            }
+
+            // Emit leading trivia on the root element (whitespace/comments before <Project>)
+            if (rootDataSource.LeadingTrivia is { } rootLeadingTrivia)
+            {
+                foreach (var trivia in rootLeadingTrivia)
+                {
+                    switch (trivia.Kind)
+                    {
+                        case XmlTriviaKind.Comment:
+                            document.AppendChild(document.CreateComment(trivia.Text));
+                            break;
+                        case XmlTriviaKind.Whitespace:
+                            document.AppendChild(document.CreateWhitespace(trivia.Text));
+                            break;
+                    }
+                }
+            }
+
             // Create the root element from this PRE's ElementData.
             var rootXml = ReconstructXmlElement(document, rootDataSource);
             document.AppendChild(rootXml);
@@ -1977,6 +2039,23 @@ namespace Microsoft.Build.Construction
 
             // Walk the construction model tree, reconstruct DOM children, and swap each element.
             ReconstructAndSwapChildren(document, this, rootXml, rootDataSource);
+
+            // Append any trivia that appeared after the root element's closing tag (e.g., trailing newline).
+            if (_afterRootTrivia is not null)
+            {
+                foreach (var trivia in _afterRootTrivia)
+                {
+                    switch (trivia.Kind)
+                    {
+                        case XmlTriviaKind.Comment:
+                            document.AppendChild(document.CreateComment(trivia.Text));
+                            break;
+                        case XmlTriviaKind.Whitespace:
+                            document.AppendChild(document.CreateWhitespace(trivia.Text));
+                            break;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1994,16 +2073,27 @@ namespace Microsoft.Build.Construction
         {
             var element = document.CreateElement(data.Name, data.NamespaceURI, data.Location);
 
-            // Copy attributes.
+            // Copy attributes with location information.
             foreach (var attr in data.Attributes)
             {
-                element.SetAttribute(attr.Name, attr.Value);
+                var xmlAttr = new XmlAttributeWithLocation(string.Empty, attr.Name, string.Empty, document, attr.Line, attr.Column);
+                xmlAttr.Value = attr.Value;
+                element.Attributes.Append(xmlAttr);
             }
 
             // Copy text content if present.
             if (data.TextContent is not null)
             {
-                element.AppendChild(document.CreateTextNode(data.TextContent));
+                if (data.IsInnerXml)
+                {
+                    // Raw XML markup (UsingTaskBody, ProjectExtensions) — set as InnerXml
+                    // so the XML parser creates proper child nodes.
+                    element.InnerXml = data.TextContent;
+                }
+                else
+                {
+                    element.AppendChild(document.CreateTextNode(data.TextContent));
+                }
             }
 
             return element;
@@ -2022,16 +2112,36 @@ namespace Microsoft.Build.Construction
                 var childData = modelChild.DataSource;
                 if (childData is not null)
                 {
-                    // Emit leading trivia (comments before this element)
+                    // Skip metadata expressed as attributes — they're already on the parent element.
+                    if (modelChild is ProjectMetadataElement { ExpressedAsAttribute: true } metaAttr)
+                    {
+                        // Just swap to a placeholder XmlElement so the element has a DOM backing.
+                        var metaXml = ReconstructXmlElement(document, childData);
+                        metaAttr.SwapToXmlElement((XmlElementWithLocation)metaXml);
+                        modelChild = modelChild.NextSibling;
+                        continue;
+                    }
+
+                    // Emit leading trivia (comments and whitespace before this element)
                     if (childData.LeadingTrivia is { } leadingTrivia)
                     {
                         foreach (var trivia in leadingTrivia)
                         {
-                            if (trivia.Kind == XmlTriviaKind.Comment)
+                            switch (trivia.Kind)
                             {
-                                domParent.AppendChild(document.CreateComment(trivia.Text));
+                                case XmlTriviaKind.Comment:
+                                    domParent.AppendChild(document.CreateComment(trivia.Text));
+                                    break;
+                                case XmlTriviaKind.Whitespace:
+                                    domParent.AppendChild(document.CreateWhitespace(trivia.Text));
+                                    break;
                             }
                         }
+                    }
+                    else if (childData.LeadingWhitespace is { } leadingWs)
+                    {
+                        // No trivia array but we have leading whitespace (indentation).
+                        domParent.AppendChild(document.CreateWhitespace(leadingWs));
                     }
 
                     var childXml = ReconstructXmlElement(document, childData);
@@ -2053,9 +2163,14 @@ namespace Microsoft.Build.Construction
             {
                 foreach (var trivia in trailingTrivia)
                 {
-                    if (trivia.Kind == XmlTriviaKind.Comment)
+                    switch (trivia.Kind)
                     {
-                        domParent.AppendChild(document.CreateComment(trivia.Text));
+                        case XmlTriviaKind.Comment:
+                            domParent.AppendChild(document.CreateComment(trivia.Text));
+                            break;
+                        case XmlTriviaKind.Whitespace:
+                            domParent.AppendChild(document.CreateWhitespace(trivia.Text));
+                            break;
                     }
                 }
             }

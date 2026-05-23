@@ -68,6 +68,10 @@ namespace Microsoft.Build.Construction
         private void Parse()
         {
             // Move to the root element, capturing the XML declaration encoding if present.
+            // Also collect any whitespace/comments between the start of the document (or declaration)
+            // and the root element, to preserve formatting when the DOM is materialized later.
+            List<XmlTrivia>? rootLeadingTrivia = null;
+
             while (_reader.NodeType != XmlNodeType.Element)
             {
                 if (_reader.NodeType == XmlNodeType.XmlDeclaration)
@@ -77,6 +81,21 @@ namespace Microsoft.Build.Construction
                     {
                         _project.XmlDeclaredEncoding = Encoding.GetEncoding(encoding);
                     }
+                }
+                else if (_reader.NodeType == XmlNodeType.Whitespace || _reader.NodeType == XmlNodeType.SignificantWhitespace)
+                {
+                    if (_project.PreserveFormatting)
+                    {
+                        rootLeadingTrivia ??= new List<XmlTrivia>();
+                        rootLeadingTrivia.Add(new XmlTrivia(XmlTriviaKind.Whitespace, _reader.Value, 0, 0));
+                    }
+                }
+                else if (_reader.NodeType == XmlNodeType.Comment)
+                {
+                    rootLeadingTrivia ??= new List<XmlTrivia>();
+                    int line = _lineInfo?.LineNumber ?? 0;
+                    int col = _lineInfo?.LinePosition ?? 0;
+                    rootLeadingTrivia.Add(new XmlTrivia(XmlTriviaKind.Comment, _reader.Value, line, col));
                 }
 
                 if (!_reader.Read())
@@ -120,6 +139,11 @@ namespace Microsoft.Build.Construction
 
             // Read root element data
             ElementData rootData = ReadCurrentElementData();
+            if (rootLeadingTrivia is not null)
+            {
+                rootData.LeadingTrivia = rootLeadingTrivia.ToArray();
+            }
+
             _project.SetElementDataFromParser(rootData, _project);
 
             // Parse children
@@ -144,6 +168,32 @@ namespace Microsoft.Build.Construction
                         ThrowIfNonWhitespaceText(rootData);
                         _reader.Read();
                     }
+                }
+            }
+
+            // Capture any content after the root element's closing tag (e.g., trailing newline).
+            // The DOM preserves these as child nodes of the XmlDocument after the root element.
+            if (_project.PreserveFormatting && _reader.Read())
+            {
+                List<XmlTrivia>? afterRoot = null;
+                do
+                {
+                    if (_reader.NodeType == XmlNodeType.Whitespace || _reader.NodeType == XmlNodeType.SignificantWhitespace)
+                    {
+                        afterRoot ??= new List<XmlTrivia>();
+                        afterRoot.Add(new XmlTrivia(XmlTriviaKind.Whitespace, _reader.Value, 0, 0));
+                    }
+                    else if (_reader.NodeType == XmlNodeType.Comment)
+                    {
+                        afterRoot ??= new List<XmlTrivia>();
+                        afterRoot.Add(new XmlTrivia(XmlTriviaKind.Comment, _reader.Value, 0, 0));
+                    }
+                }
+                while (_reader.Read());
+
+                if (afterRoot is not null)
+                {
+                    _project.AfterRootTrivia = afterRoot.ToArray();
                 }
             }
         }
@@ -253,8 +303,15 @@ namespace Microsoft.Build.Construction
 
             ElementData data = ReadCurrentElementDataAndValidateAttributes(ValidAttributesOnlyConditionAndLabel);
             data.LeadingTrivia = leadingTrivia;
-            // Read text content for properties
-            ReadTextContent(data);
+            // Use ReadInnerXmlContent which handles both pure text and mixed content
+            // with GetXmlNodeInnerContents semantics (CDATA unwrap, comment strip, InnerXml for elements).
+            ReadInnerXmlContent(data);
+
+            // Normalize self-closing elements: DOM serializes <X/> as <X /> (with space before />).
+            if (data.IsInnerXml && data.TextContent is not null)
+            {
+                data.TextContent = NormalizeSelfClosingTags(data.TextContent);
+            }
 
             ProjectPropertyElement property = new ProjectPropertyElement(data, parent, _project);
             parent.AppendParentedChildNoChecks(property);
@@ -336,7 +393,7 @@ namespace Microsoft.Build.Construction
             ProjectErrorUtilities.VerifyThrowInvalidProject(
                 exclude.Length == 0 || include.Length > 0,
                 data.GetAttributeLocation(XMakeAttributes.exclude) ?? location,
-                "MissingRequiredAttribute",
+                "UnrecognizedAttribute",
                 XMakeAttributes.exclude,
                 itemType);
 
@@ -397,7 +454,7 @@ namespace Microsoft.Build.Construction
                     var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
-                        ParseMetadata(item);
+                        ParseMetadata(item, trivia);
                     }
                     else if (_reader.NodeType == XmlNodeType.EndElement)
                     {
@@ -415,7 +472,7 @@ namespace Microsoft.Build.Construction
             parent.AppendParentedChildNoChecks(item);
         }
 
-        private void ParseMetadata(ProjectElementContainer parent)
+        private void ParseMetadata(ProjectElementContainer parent, XmlTrivia[]? leadingTrivia = null)
         {
             string name = _reader.LocalName;
             ElementLocation location = CreateLocation();
@@ -442,6 +499,7 @@ namespace Microsoft.Build.Construction
             }
 
             ElementData data = ReadCurrentElementDataAndValidateAttributes(ValidAttributesOnlyConditionAndLabel);
+            data.LeadingTrivia = leadingTrivia;
             ReadTextContent(data);
 
             ProjectMetadataElement metadatum = new ProjectMetadataElement(data, parent, _project);
@@ -565,6 +623,23 @@ namespace Microsoft.Build.Construction
                 XMakeElements.usingTask,
                 XMakeAttributes.assemblyName,
                 XMakeAttributes.assemblyFile);
+
+            // If the attribute is present, it must be non-empty.
+            ProjectErrorUtilities.VerifyThrowInvalidProject(
+                !data.HasAttribute(XMakeAttributes.assemblyName) || assemblyName.Length > 0,
+                data.GetAttributeLocation(XMakeAttributes.assemblyName) ?? location,
+                "InvalidAttributeValue",
+                string.Empty,
+                XMakeAttributes.assemblyName,
+                data.Name);
+
+            ProjectErrorUtilities.VerifyThrowInvalidProject(
+                !data.HasAttribute(XMakeAttributes.assemblyFile) || assemblyFile.Length > 0,
+                data.GetAttributeLocation(XMakeAttributes.assemblyFile) ?? location,
+                "InvalidAttributeValue",
+                string.Empty,
+                XMakeAttributes.assemblyFile,
+                data.Name);
 
             ProjectUsingTaskElement usingTask = new ProjectUsingTaskElement(data, _project, _project);
             bool foundTaskElement = false;
@@ -715,14 +790,18 @@ namespace Microsoft.Build.Construction
                                 {
                                     ProjectErrorUtilities.ThrowInvalidProject(onError.Location, "NodeMustBeLastUnderElement", XMakeElements.onError, XMakeElements.target, childName);
                                 }
-                                target.AppendParentedChildNoChecks(ParsePropertyGroup(target));
+                                var pg = ParsePropertyGroup(target);
+                                pg.DataSource!.LeadingTrivia = trivia;
+                                target.AppendParentedChildNoChecks(pg);
                                 break;
                             case XMakeElements.itemGroup:
                                 if (onError != null)
                                 {
                                     ProjectErrorUtilities.ThrowInvalidProject(onError.Location, "NodeMustBeLastUnderElement", XMakeElements.onError, XMakeElements.target, childName);
                                 }
-                                target.AppendParentedChildNoChecks(ParseItemGroup(target));
+                                var ig = ParseItemGroup(target);
+                                ig.DataSource!.LeadingTrivia = trivia;
+                                target.AppendParentedChildNoChecks(ig);
                                 break;
                             case XMakeElements.onError:
                                 {
@@ -749,7 +828,9 @@ namespace Microsoft.Build.Construction
                                 {
                                     ProjectErrorUtilities.ThrowInvalidProject(onError.Location, "NodeMustBeLastUnderElement", XMakeElements.onError, XMakeElements.target, childName);
                                 }
-                                target.AppendParentedChildNoChecks(ParseTask(target));
+                                var taskElement = ParseTask(target);
+                                taskElement.DataSource!.LeadingTrivia = trivia;
+                                target.AppendParentedChildNoChecks(taskElement);
                                 break;
                         }
                     }
@@ -791,11 +872,15 @@ namespace Microsoft.Build.Construction
             if (!_reader.IsEmptyElement)
             {
                 _reader.Read();
+                bool hasChildElements = false;
+                bool hasTextContent = false;
+
                 while (_reader.NodeType != XmlNodeType.EndElement)
                 {
                     var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
+                        hasChildElements = true;
                         string childName = _reader.LocalName;
                         ElementLocation childLocation = CreateLocation();
 
@@ -806,7 +891,7 @@ namespace Microsoft.Build.Construction
                             childName,
                             task.Name);
 
-                        task.AppendParentedChildNoChecks(ParseOutput(task));
+                        task.AppendParentedChildNoChecks(ParseOutput(task, trivia));
                     }
                     else if (_reader.NodeType == XmlNodeType.EndElement)
                     {
@@ -814,8 +899,20 @@ namespace Microsoft.Build.Construction
                     }
                     else
                     {
+                        if (_reader.NodeType == XmlNodeType.Text && !string.IsNullOrWhiteSpace(_reader.Value))
+                        {
+                            hasTextContent = true;
+                        }
+
                         _reader.Read();
                     }
+                }
+
+                // If the element has only text content and no child elements, it's likely
+                // a property that should be inside <PropertyGroup>.
+                if (hasTextContent && !hasChildElements)
+                {
+                    ProjectErrorUtilities.ThrowInvalidProject(location, "PropertyOutsidePropertyGroupInTarget", data.Name, parent.Name);
                 }
             }
 
@@ -823,9 +920,10 @@ namespace Microsoft.Build.Construction
             return task;
         }
 
-        private ProjectOutputElement ParseOutput(ProjectTaskElement parent)
+        private ProjectOutputElement ParseOutput(ProjectTaskElement parent, XmlTrivia[]? leadingTrivia = null)
         {
             ElementData data = ReadCurrentElementDataAndValidateAttributes(ValidAttributesOnOutput);
+            data.LeadingTrivia = leadingTrivia;
             ElementLocation location = data.Location;
 
             string taskParameter = data.GetAttributeValue(XMakeAttributes.taskParameter) ?? string.Empty;
@@ -839,8 +937,10 @@ namespace Microsoft.Build.Construction
             string? itemName = data.GetAttributeValue(XMakeAttributes.itemName);
             string? propertyName = data.GetAttributeValue(XMakeAttributes.propertyName);
 
+            // Exactly one of ItemName/PropertyName must be present and non-empty.
+            // Having both attributes present (even if one is empty) is invalid.
             ProjectErrorUtilities.VerifyThrowInvalidProject(
-                (string.IsNullOrWhiteSpace(itemName) && !string.IsNullOrWhiteSpace(propertyName)) || (!string.IsNullOrWhiteSpace(itemName) && string.IsNullOrWhiteSpace(propertyName)),
+                (itemName is null && !string.IsNullOrWhiteSpace(propertyName)) || (propertyName is null && !string.IsNullOrWhiteSpace(itemName)),
                 location,
                 "InvalidTaskOutputSpecification",
                 parent.Name);
@@ -936,7 +1036,7 @@ namespace Microsoft.Build.Construction
                     var trivia = CollectTrivia();
                     if (_reader.NodeType == XmlNodeType.Element)
                     {
-                        ParseMetadata(itemDefinition);
+                        ParseMetadata(itemDefinition, trivia);
                     }
                     else if (_reader.NodeType == XmlNodeType.EndElement)
                     {
@@ -1153,6 +1253,13 @@ namespace Microsoft.Build.Construction
                     int col = _lineInfo?.LinePosition ?? 0;
                     trivia.Add(new XmlTrivia(XmlTriviaKind.Comment, _reader.Value, line, col));
                 }
+                else if (_project.PreserveFormatting)
+                {
+                    trivia ??= new List<XmlTrivia>();
+                    int line = _lineInfo?.LineNumber ?? 0;
+                    int col = _lineInfo?.LinePosition ?? 0;
+                    trivia.Add(new XmlTrivia(XmlTriviaKind.Whitespace, _reader.Value, line, col));
+                }
 
                 _reader.Read();
             }
@@ -1167,10 +1274,10 @@ namespace Microsoft.Build.Construction
         {
             if (_lineInfo != null && _lineInfo.HasLineInfo())
             {
-                // XmlReader.LinePosition on an Element node reports the position of the first
-                // character of the element name (after '<'). Subtract 1 to point at the '<'
-                // character, matching XmlDocument/XmlDocumentWithLocation behavior.
-                return ElementLocation.Create(_filePath, _lineInfo.LineNumber, _lineInfo.LinePosition - 1);
+                // XmlReader.Create produces a reader where LinePosition already points to the '<'
+                // character for elements (unlike legacy XmlTextReader which points to the name).
+                int column = _lineInfo.LinePosition;
+                return ElementLocation.Create(_filePath, _lineInfo.LineNumber, column);
             }
 
             return ElementLocation.Create(_filePath);
@@ -1189,10 +1296,11 @@ namespace Microsoft.Build.Construction
             if (_lineInfo != null && _lineInfo.HasLineInfo())
             {
                 line = _lineInfo.LineNumber;
-                // XmlReader.LinePosition on an Element reports the first character of the element
-                // name (after '<'). XmlElementWithLocation always subtracts 1 to point at the '<'.
-                // We replicate that adjustment here for compatibility.
-                column = _lineInfo.LinePosition - 1;
+                // XmlReader.Create produces a reader where LinePosition on an Element already reports
+                // the column of the '<' character (unlike the legacy XmlTextReader used by XmlDocument.Load,
+                // which reported the position of the first character of the element name).
+                // Do NOT subtract 1 here.
+                column = _lineInfo.LinePosition;
             }
 
             // Validate namespace on child elements (root is validated separately in Parse()).
@@ -1324,6 +1432,9 @@ namespace Microsoft.Build.Construction
 
         /// <summary>
         /// Reads the inner XML of the current element as raw text (used for UsingTaskBody and ProjectExtensions).
+        /// Applies the same normalization as GetXmlNodeInnerContents: if the content is pure CDATA or
+        /// text with only XML comments, returns the text value (CDATA unwrapped, comments stripped).
+        /// Otherwise, returns the raw InnerXml to preserve embedded XML elements.
         /// </summary>
         private void ReadInnerXmlContent(ElementData data)
         {
@@ -1333,7 +1444,110 @@ namespace Microsoft.Build.Construction
                 return;
             }
 
-            data.TextContent = _reader.ReadInnerXml();
+            string innerXml = _reader.ReadInnerXml();
+
+            // Apply GetXmlNodeInnerContents semantics:
+            // 1. If it starts with CDATA, treat as text (unwrap CDATA)
+            // 2. If it contains no '<' (no markup), treat as text (unescape)
+            // 3. If the only markup is comments, treat as text (strip comments)
+            // 4. Otherwise, it's genuine XML — keep InnerXml as-is
+            int firstLessThan = innerXml.IndexOf('<');
+            if (firstLessThan == -1)
+            {
+                // No markup — just text. Unescape XML entities.
+                data.TextContent = System.Net.WebUtility.HtmlDecode(innerXml);
+                return;
+            }
+
+            ReadOnlySpan<char> trimmed = innerXml.AsSpan().TrimStart();
+            if (trimmed.StartsWith("<![CDATA[".AsSpan(), StringComparison.Ordinal))
+            {
+                // CDATA — extract the text content.
+                // Find the matching ]]> and extract content between <![CDATA[ and ]]>
+                int cdataStart = innerXml.IndexOf("<![CDATA[", StringComparison.Ordinal) + 9;
+                int cdataEnd = innerXml.LastIndexOf("]]>", StringComparison.Ordinal);
+                if (cdataEnd > cdataStart)
+                {
+                    data.TextContent = innerXml.Substring(cdataStart, cdataEnd - cdataStart);
+                }
+                else
+                {
+                    data.TextContent = innerXml;
+                    data.IsInnerXml = true;
+                }
+
+                return;
+            }
+
+            if (Internal.Utilities.ContainsNoTagsOtherThanComments(innerXml, firstLessThan))
+            {
+                // Only comments — strip them and return text.
+                // Replicate InnerText behavior: remove comment nodes, keep text.
+                data.TextContent = StripXmlComments(innerXml);
+                return;
+            }
+
+            // Genuine XML markup — keep as InnerXml.
+            data.TextContent = innerXml;
+            data.IsInnerXml = true;
+        }
+
+        /// <summary>
+        /// Strips XML comment nodes from a string, returning only non-comment text content.
+        /// </summary>
+        private static string StripXmlComments(string xml)
+        {
+            var sb = new System.Text.StringBuilder(xml.Length);
+            int i = 0;
+            while (i < xml.Length)
+            {
+                if (i + 3 < xml.Length && xml[i] == '<' && xml[i + 1] == '!' && xml[i + 2] == '-' && xml[i + 3] == '-')
+                {
+                    // Skip comment
+                    int end = xml.IndexOf("-->", i + 4, StringComparison.Ordinal);
+                    if (end >= 0)
+                    {
+                        i = end + 3;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    sb.Append(xml[i]);
+                    i++;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Normalizes self-closing tags by adding a space before "/>", matching DOM XmlWriter behavior.
+        /// e.g., &lt;D/&gt; becomes &lt;D /&gt;
+        /// </summary>
+        private static string NormalizeSelfClosingTags(string xml)
+        {
+            // Fast path: no self-closing tags
+            if (!xml.Contains("/>"))
+            {
+                return xml;
+            }
+
+            var sb = new System.Text.StringBuilder(xml.Length + 8);
+            for (int i = 0; i < xml.Length; i++)
+            {
+                if (xml[i] == '/' && i + 1 < xml.Length && xml[i + 1] == '>' && i > 0 && xml[i - 1] != ' ')
+                {
+                    sb.Append(' ');
+                }
+
+                sb.Append(xml[i]);
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>
@@ -1370,9 +1584,28 @@ namespace Microsoft.Build.Construction
         /// </summary>
         private void VerifyNoChildElements(ElementData data)
         {
-            // This is checked during content reading — if the element had children
-            // they'd be encountered while reading. For forward-only parsing,
-            // we rely on the parsing loop to detect unexpected children.
+            if (_reader.IsEmptyElement)
+            {
+                return;
+            }
+
+            // Read into the element content and verify no child elements or non-whitespace text.
+            _reader.Read();
+            while (_reader.NodeType != XmlNodeType.EndElement)
+            {
+                if (_reader.NodeType == XmlNodeType.Element)
+                {
+                    ProjectXmlUtilities.ThrowProjectInvalidChildElement(_reader.LocalName, data.Name, data.Location);
+                }
+                else if (_reader.NodeType == XmlNodeType.Text && !string.IsNullOrWhiteSpace(_reader.Value))
+                {
+                    ProjectXmlUtilities.ThrowProjectInvalidChildElement("#text", data.Name, data.Location);
+                }
+                else
+                {
+                    _reader.Read();
+                }
+            }
         }
 
         /// <summary>

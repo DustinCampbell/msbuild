@@ -148,8 +148,15 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// The text content of this element (inner text), or null if the element has child elements instead.
         /// For elements like &lt;MyProp&gt;value&lt;/MyProp&gt;, this is "value".
+        /// When <see cref="IsInnerXml"/> is true, this contains raw XML markup (e.g., for UsingTaskBody, ProjectExtensions).
         /// </summary>
         internal string? TextContent { get; set; }
+
+        /// <summary>
+        /// When true, <see cref="TextContent"/> contains raw XML markup that should be set via
+        /// <c>XmlElement.InnerXml</c> rather than added as a text node during DOM materialization.
+        /// </summary>
+        internal bool IsInnerXml { get; set; }
 
         /// <summary>
         /// Leading whitespace/indentation before this element in the original file.
@@ -220,6 +227,15 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal ElementLocation? GetAttributeLocation(string attributeName)
         {
+            return GetAttributeLocationWithPath(attributeName, FilePath);
+        }
+
+        /// <summary>
+        /// Gets the location of the attribute with the specified name using an overridden file path.
+        /// Used when ContainingProject.FullPath differs from the parse-time FilePath.
+        /// </summary>
+        internal ElementLocation? GetAttributeLocationWithPath(string attributeName, string filePath)
+        {
             if (_attributes is null)
             {
                 return null;
@@ -229,7 +245,7 @@ namespace Microsoft.Build.Construction
             {
                 if (string.Equals(_attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
                 {
-                    return _attributes[i].GetLocation(FilePath);
+                    return _attributes[i].GetLocation(filePath);
                 }
             }
 

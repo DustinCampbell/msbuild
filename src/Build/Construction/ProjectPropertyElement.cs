@@ -84,7 +84,16 @@ namespace Microsoft.Build.Construction
 
                 if (DataSource is ElementData data)
                 {
-                    return data.TextContent ?? string.Empty;
+                    // Match GetXmlNodeInnerContents semantics: whitespace-only text content
+                    // in a property evaluates to empty string (the DOM treats a single
+                    // whitespace node as empty content when PreserveWhitespace is true).
+                    string text = data.TextContent;
+                    if (text is null || (text.Length > 0 && text.AsSpan().IsWhiteSpace()))
+                    {
+                        return string.Empty;
+                    }
+
+                    return text;
                 }
 
                 return Internal.Utilities.GetXmlNodeInnerContents(XmlElement);

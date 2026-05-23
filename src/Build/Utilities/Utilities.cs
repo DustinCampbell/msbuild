@@ -256,7 +256,7 @@ namespace Microsoft.Build.Internal
         /// We know the string coming in is a valid XML fragment. (The project loaded after all.)
         /// So for example we can ignore an open comment tag without a matching closing comment tag.
         /// </remarks>
-        private static bool ContainsNoTagsOtherThanComments(string innerXml, int firstLessThan)
+        internal static bool ContainsNoTagsOtherThanComments(string innerXml, int firstLessThan)
         {
             bool insideComment = false;
             for (int i = firstLessThan; i < innerXml.Length; i++)

@@ -73,7 +73,31 @@ namespace Microsoft.Build.Construction
             [DebuggerStepThrough]
             get
             {
-                return Link != null ? ExtensionLink.Content : XmlElement.InnerXml;
+                if (Link != null)
+                {
+                    return ExtensionLink.Content;
+                }
+
+                if (DataSource is ElementData data)
+                {
+                    string text = data.TextContent;
+                    if (text is null)
+                    {
+                        return string.Empty;
+                    }
+
+                    // When not preserving formatting, strip leading/trailing whitespace-only lines
+                    // to match DOM InnerXml behavior (whitespace-only text nodes are discarded on Load
+                    // when PreserveWhitespace = false).
+                    if (ContainingProject is not null && !ContainingProject.PreserveFormatting)
+                    {
+                        text = text.Trim();
+                    }
+
+                    return text;
+                }
+
+                return XmlElement.InnerXml;
             }
 
             set

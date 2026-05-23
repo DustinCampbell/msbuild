@@ -324,6 +324,14 @@ namespace Microsoft.Build.Construction
             {
                 if (_xmlSource is ElementData data)
                 {
+                    // Use ContainingProject.FullPath if available, matching XmlElementWithLocation
+                    // behavior where the Location lazily updates when the document path changes.
+                    string effectivePath = ContainingProject?.FullPath ?? data.FilePath;
+                    if (!string.Equals(effectivePath, data.FilePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ElementLocation.Create(effectivePath, data.Line, data.Column);
+                    }
+
                     return data.Location;
                 }
 
@@ -370,7 +378,26 @@ namespace Microsoft.Build.Construction
         /// This should be protected, but "protected internal" means "OR" not "AND",
         /// so this is not possible.
         /// </remarks>
-        internal XmlElementWithLocation XmlElement => _xmlSource?.Xml;
+        internal XmlElementWithLocation XmlElement
+        {
+            get
+            {
+                if (_xmlSource is ElementData && ContainingProject is not null)
+                {
+                    // Trigger lazy DOM materialization so that XmlElement becomes available.
+                    _ = ContainingProject.XmlDocument;
+                }
+
+                return _xmlSource?.Xml;
+            }
+        }
+
+        /// <summary>
+        /// Gets the raw XmlElement without triggering DOM materialization.
+        /// Returns null for ElementData-backed elements. Used by ProjectRootElement.XmlDocument
+        /// to avoid infinite recursion.
+        /// </summary>
+        internal XmlElementWithLocation XmlElementRaw => _xmlSource?.Xml;
 
         /// <summary>
         /// Gets the XmlDocument associated with this project element.
@@ -653,6 +680,13 @@ namespace Microsoft.Build.Construction
         {
             if (_xmlSource is ElementData data)
             {
+                // Use ContainingProject.FullPath to match XmlElementWithLocation behavior.
+                string effectivePath = ContainingProject?.FullPath ?? data.FilePath;
+                if (!string.Equals(effectivePath, data.FilePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return data.GetAttributeLocationWithPath(attributeName, effectivePath);
+                }
+
                 return data.GetAttributeLocation(attributeName);
             }
 
