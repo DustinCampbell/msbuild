@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Xml;
 using Microsoft.Build.Framework;
 using Microsoft.Build.ObjectModelRemoting;
@@ -201,8 +202,10 @@ namespace Microsoft.Build.Construction
             {
                 if (_xmlSource is ElementData)
                 {
-                    // TODO: Phase 5 — implement serialization from ElementData
-                    return string.Empty;
+                    using var stringWriter = new StringWriter();
+                    var writer = new ElementDataWriter(stringWriter, encoding: null, preserveFormatting: false);
+                    writer.WriteElement(this);
+                    return stringWriter.ToString();
                 }
 
                 return Link != null ? Link.OuterElement : XmlElement.OuterXml;

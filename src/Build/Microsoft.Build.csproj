@@ -431,6 +431,7 @@
     <Compile Include="Construction\ProjectUsingTaskParameterElement.cs" />
     <Compile Include="Construction\ProjectUsingTaskBodyElement.cs" />
     <Compile Include="Construction\ElementData.cs" />
+    <Compile Include="Construction\ElementDataWriter.cs" />
     <Compile Include="Construction\ProjectXmlReader.cs" />
     <Compile Include="Construction\Solution\SolutionConfigurationInSolution.cs" />
     <Compile Include="Construction\Solution\ProjectConfigurationInSolution.cs" />

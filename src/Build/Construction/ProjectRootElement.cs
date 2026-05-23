@@ -166,6 +166,12 @@ namespace Microsoft.Build.Construction
         private bool _hasXmlDeclaration;
 
         /// <summary>
+        /// Whether the source file had an XML declaration node.
+        /// Used by <see cref="ElementDataWriter"/> to decide whether to emit a declaration.
+        /// </summary>
+        internal bool HasXmlDeclarationNode => _hasXmlDeclaration;
+
+        /// <summary>
         /// Trivia (whitespace/comments) that appears after the root element's closing tag.
         /// Only relevant for ElementData-backed projects with PreserveFormatting = true.
         /// </summary>
@@ -722,6 +728,14 @@ namespace Microsoft.Build.Construction
                 if (Link != null)
                 {
                     return RootLink.RawXml;
+                }
+
+                if (DataSource is not null)
+                {
+                    using var stringWriter = new EncodingStringWriter(Encoding);
+                    var writer = new ElementDataWriter(stringWriter, _encoding, PreserveFormatting);
+                    writer.Write(this);
+                    return stringWriter.ToString();
                 }
 
                 using (var stringWriter = new EncodingStringWriter(Encoding))
@@ -1701,8 +1715,15 @@ namespace Microsoft.Build.Construction
             // to force a save if the Encoding changed from UTF8 with BOM to UTF8 w/o BOM (for example).
             if (HasUnsavedChanges || !Equals(saveEncoding, Encoding))
             {
-                using (var projectWriter = new ProjectWriter(_projectFileLocation.File, saveEncoding))
+                if (DataSource is not null)
                 {
+                    using var streamWriter = new StreamWriter(_projectFileLocation.File, append: false, saveEncoding);
+                    var writer = new ElementDataWriter(streamWriter, saveEncoding, PreserveFormatting);
+                    writer.Write(this);
+                }
+                else
+                {
+                    using var projectWriter = new ProjectWriter(_projectFileLocation.File, saveEncoding);
                     projectWriter.Initialize(XmlDocument);
                     XmlDocument.Save(projectWriter);
                 }
@@ -1769,8 +1790,16 @@ namespace Microsoft.Build.Construction
                 return;
             }
 
-            using (var projectWriter = new ProjectWriter(writer))
+            if (DataSource is not null)
             {
+                // The DOM path (ProjectWriter.Initialize) uses the TextWriter's encoding to decide
+                // whether to write an XML declaration. Match that behavior: always pass writer.Encoding.
+                var elementDataWriter = new ElementDataWriter(writer, writer.Encoding, PreserveFormatting);
+                elementDataWriter.Write(this);
+            }
+            else
+            {
+                using var projectWriter = new ProjectWriter(writer);
                 projectWriter.Initialize(XmlDocument);
                 XmlDocument.Save(projectWriter);
             }
