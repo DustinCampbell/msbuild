@@ -78,11 +78,29 @@ namespace Microsoft.Build.Construction
 
         /// <summary>
         /// Whether to use the new XmlReader-based parser (ProjectXmlReader) instead of
-        /// the DOM-based parser (ProjectParser). Opt-in via MSBUILD_ENABLE_XMLREADER_PARSER=1.
-        /// This will be replaced with a ChangeWave gate once evaluation compatibility is complete.
+        /// the DOM-based parser (ProjectParser). Enabled by default in ChangeWave 18.8+.
+        /// Can be forced on with MSBUILD_ENABLE_XMLREADER_PARSER=1 or forced off with
+        /// MSBUILD_ENABLE_XMLREADER_PARSER=0.
         /// </summary>
-        internal static bool UseProjectXmlReader =>
-            Environment.GetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER") == "1";
+        internal static bool UseProjectXmlReader
+        {
+            get
+            {
+                string envVar = Environment.GetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER");
+
+                if (envVar == "1")
+                {
+                    return true;
+                }
+
+                if (envVar == "0")
+                {
+                    return false;
+                }
+
+                return ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave18_8);
+            }
+        }
 
         /// <summary>
         /// A global counter used to ensure each project version is distinct from every other.
