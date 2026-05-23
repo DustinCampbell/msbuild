@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Xml;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
@@ -66,9 +67,18 @@ namespace Microsoft.Build.Construction
         /// </summary>
         private void Parse()
         {
-            // Move to the root element
+            // Move to the root element, capturing the XML declaration encoding if present.
             while (_reader.NodeType != XmlNodeType.Element)
             {
+                if (_reader.NodeType == XmlNodeType.XmlDeclaration)
+                {
+                    string? encoding = _reader.GetAttribute("encoding");
+                    if (!string.IsNullOrEmpty(encoding))
+                    {
+                        _project.XmlDeclaredEncoding = Encoding.GetEncoding(encoding);
+                    }
+                }
+
                 if (!_reader.Read())
                 {
                     ProjectErrorUtilities.ThrowInvalidProject(
@@ -94,9 +104,11 @@ namespace Microsoft.Build.Construction
                 "UnrecognizedElement",
                 _reader.Name);
 
-            // Validate namespace
+            // Validate namespace — prefixed elements (e.g. msb:Project) are invalid even if
+            // namespace URI is correct, matching ProjectXmlUtilities.VerifyValidProjectNamespace.
             string namespaceURI = _reader.NamespaceURI;
-            if (!string.IsNullOrEmpty(namespaceURI) && !string.Equals(namespaceURI, XMakeAttributes.defaultXmlNamespace, StringComparison.OrdinalIgnoreCase))
+            if (_reader.Prefix.Length != 0 ||
+                (!string.IsNullOrEmpty(namespaceURI) && !string.Equals(namespaceURI, XMakeAttributes.defaultXmlNamespace, StringComparison.OrdinalIgnoreCase)))
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     rootLocation,
@@ -1181,6 +1193,17 @@ namespace Microsoft.Build.Construction
                 // name (after '<'). XmlElementWithLocation always subtracts 1 to point at the '<'.
                 // We replicate that adjustment here for compatibility.
                 column = _lineInfo.LinePosition - 1;
+            }
+
+            // Validate namespace on child elements (root is validated separately in Parse()).
+            if (_reader.Prefix.Length != 0 ||
+                (!string.IsNullOrEmpty(namespaceURI) && !string.Equals(namespaceURI, XMakeAttributes.defaultXmlNamespace, StringComparison.OrdinalIgnoreCase)))
+            {
+                ElementLocation location = ElementLocation.Create(_filePath, line, column);
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    location,
+                    "ProjectMustBeInMSBuildXmlNamespace",
+                    XMakeAttributes.defaultXmlNamespace);
             }
 
             bool isEmpty = _reader.IsEmptyElement;

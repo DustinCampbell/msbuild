@@ -159,6 +159,11 @@ namespace Microsoft.Build.Construction
         private Encoding _encoding;
 
         /// <summary>
+        /// Sets the encoding parsed from the XML declaration by ProjectXmlReader.
+        /// </summary>
+        internal Encoding XmlDeclaredEncoding { set => _encoding = value; }
+
+        /// <summary>
         /// Whether to preserve formatting when the project is backed by ElementData (no DOM).
         /// When backed by XmlDocument, formatting is stored as XmlDocument.PreserveWhitespace.
         /// </summary>
@@ -247,7 +252,15 @@ namespace Microsoft.Build.Construction
 
             if (UseProjectXmlReader)
             {
-                ProjectXmlReader.Parse(xmlReader, this, filePath: null);
+                try
+                {
+                    ProjectXmlReader.Parse(xmlReader, this, filePath: null);
+                }
+                catch (XmlException ex)
+                {
+                    BuildEventFileInfo fileInfo = new BuildEventFileInfo(ex);
+                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, ex, "InvalidProjectFile", ex.Message);
+                }
             }
             else
             {
@@ -552,9 +565,12 @@ namespace Microsoft.Build.Construction
                 }
 
                 // No thread-safety lock required here because many reader threads would set the same value to the field.
-                if (_encoding == null && DataSource is null)
+                if (_encoding == null)
                 {
-                    var declaration = base.XmlDocument?.FirstChild as XmlDeclaration;
+                    // For ElementData-backed projects, we need to check the XmlDeclaration.
+                    // Use base.XmlDocument to avoid triggering full materialization if DOM doesn't exist yet.
+                    var doc = DataSource is not null ? null : base.XmlDocument;
+                    var declaration = doc?.FirstChild as XmlDeclaration;
 
                     if (declaration?.Encoding.Length > 0)
                     {
