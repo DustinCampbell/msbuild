@@ -39,6 +39,7 @@ namespace Microsoft.Build.Construction
         private readonly IXmlLineInfo? _lineInfo;
         private readonly ProjectRootElement _project;
         private readonly string _filePath;
+        private readonly bool _readerReportsNamePosition;
         private bool _seenProjectExtensions;
 
         private ProjectXmlReader(XmlReader reader, ProjectRootElement project, string filePath)
@@ -47,6 +48,10 @@ namespace Microsoft.Build.Construction
             _lineInfo = reader as IXmlLineInfo;
             _project = project;
             _filePath = filePath ?? string.Empty;
+            // XmlTextReader reports LinePosition at the first char of the element NAME (after '<'),
+            // while XmlReader.Create reports LinePosition at the '<' character itself.
+            // We need to subtract 1 for XmlTextReader to get the '<' position.
+            _readerReportsNamePosition = reader is XmlTextReader;
         }
 
         /// <summary>
@@ -1274,9 +1279,13 @@ namespace Microsoft.Build.Construction
         {
             if (_lineInfo != null && _lineInfo.HasLineInfo())
             {
-                // XmlReader.Create produces a reader where LinePosition already points to the '<'
-                // character for elements (unlike legacy XmlTextReader which points to the name).
                 int column = _lineInfo.LinePosition;
+                // XmlTextReader reports LinePosition at element name; subtract 1 to get '<' position.
+                if (_readerReportsNamePosition && column > 0)
+                {
+                    column--;
+                }
+
                 return ElementLocation.Create(_filePath, _lineInfo.LineNumber, column);
             }
 
@@ -1296,11 +1305,12 @@ namespace Microsoft.Build.Construction
             if (_lineInfo != null && _lineInfo.HasLineInfo())
             {
                 line = _lineInfo.LineNumber;
-                // XmlReader.Create produces a reader where LinePosition on an Element already reports
-                // the column of the '<' character (unlike the legacy XmlTextReader used by XmlDocument.Load,
-                // which reported the position of the first character of the element name).
-                // Do NOT subtract 1 here.
                 column = _lineInfo.LinePosition;
+                // XmlTextReader reports LinePosition at element name; subtract 1 to get '<' position.
+                if (_readerReportsNamePosition && column > 0)
+                {
+                    column--;
+                }
             }
 
             // Validate namespace on child elements (root is validated separately in Parse()).
