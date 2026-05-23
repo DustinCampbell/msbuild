@@ -77,6 +77,12 @@ namespace Microsoft.Build.Construction
         private static readonly Encoding s_defaultEncoding = Encoding.UTF8;
 
         /// <summary>
+        /// Cached value for <see cref="UseProjectXmlReader"/>. Uses int for Interlocked:
+        /// 0 = not computed, 1 = true, 2 = false.
+        /// </summary>
+        private static int s_useProjectXmlReader;
+
+        /// <summary>
         /// Whether to use the new XmlReader-based parser (ProjectXmlReader) instead of
         /// the DOM-based parser (ProjectParser). Enabled by default in ChangeWave 18.8+.
         /// Can be forced on with MSBUILD_ENABLE_XMLREADER_PARSER=1 or forced off with
@@ -86,20 +92,42 @@ namespace Microsoft.Build.Construction
         {
             get
             {
-                string envVar = Environment.GetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER");
-
-                if (envVar == "1")
+                int cached = s_useProjectXmlReader;
+                if (cached != 0)
                 {
-                    return true;
+                    return cached == 1;
                 }
 
-                if (envVar == "0")
-                {
-                    return false;
-                }
-
-                return ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave18_8);
+                bool result = ComputeUseProjectXmlReader();
+                Interlocked.CompareExchange(ref s_useProjectXmlReader, result ? 1 : 2, 0);
+                return result;
             }
+        }
+
+        private static bool ComputeUseProjectXmlReader()
+        {
+            string envVar = Environment.GetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER");
+
+            if (envVar == "1")
+            {
+                return true;
+            }
+
+            if (envVar == "0")
+            {
+                return false;
+            }
+
+            return ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave18_8);
+        }
+
+        /// <summary>
+        /// Resets the cached value of <see cref="UseProjectXmlReader"/> so it will be recomputed
+        /// on next access. Used by tests that toggle the environment variable.
+        /// </summary>
+        internal static void ResetUseProjectXmlReaderCache()
+        {
+            s_useProjectXmlReader = 0;
         }
 
         /// <summary>
@@ -487,9 +515,9 @@ namespace Microsoft.Build.Construction
                 _escapedFullPath = null;
                 _directory = Path.GetDirectoryName(newFullPath);
 
-                if (XmlDocument != null)
+                if (DataSource is null && base.XmlDocument is XmlDocumentWithLocation doc)
                 {
-                    XmlDocument.FullPath = newFullPath;
+                    doc.FullPath = newFullPath;
                 }
 
                 if (oldFullPath == null)
@@ -524,9 +552,9 @@ namespace Microsoft.Build.Construction
                 }
 
                 // No thread-safety lock required here because many reader threads would set the same value to the field.
-                if (_encoding == null)
+                if (_encoding == null && DataSource is null)
                 {
-                    var declaration = XmlDocument?.FirstChild as XmlDeclaration;
+                    var declaration = base.XmlDocument?.FirstChild as XmlDeclaration;
 
                     if (declaration?.Encoding.Length > 0)
                     {
@@ -663,7 +691,7 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// Whether the XML is preserving formatting or not.
         /// </summary>
-        public bool PreserveFormatting => Link != null ? RootLink.PreserveFormatting : XmlDocument?.PreserveWhitespace ?? _preserveFormatting;
+        public bool PreserveFormatting => Link != null ? RootLink.PreserveFormatting : DataSource is not null ? _preserveFormatting : XmlDocument?.PreserveWhitespace ?? _preserveFormatting;
 
         /// <summary>
         /// Version number of this object.

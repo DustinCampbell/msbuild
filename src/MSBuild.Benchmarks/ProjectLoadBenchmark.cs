@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.IO;
 using System.Text;
 using System.Xml;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 
@@ -12,9 +14,7 @@ namespace MSBuild.Benchmarks;
 
 /// <summary>
 /// Benchmarks for project XML loading, traversal, and save operations.
-/// Establishes a performance baseline for the construction model's XML DOM dependency.
-/// These benchmarks will be used to verify that the DOM elimination refactoring
-/// does not regress performance and ideally improves it.
+/// Compares the DOM-based parser (ProjectParser) against the XmlReader-based parser (ProjectXmlReader).
 /// </summary>
 [MemoryDiagnoser]
 public class ProjectLoadBenchmark
@@ -49,13 +49,24 @@ public class ProjectLoadBenchmark
     }
 
     /// <summary>
-    /// Measures the time to parse a project XML string into a ProjectRootElement.
+    /// Measures the time to parse a project XML string using the DOM-based parser (XmlDocument).
+    /// Forces the legacy path via environment variable.
     /// </summary>
     [Benchmark(Baseline = true)]
-    public ProjectRootElement LoadProjectFromString()
+    public ProjectRootElement LoadProjectFromString_DomParser()
     {
-        using var reader = XmlReader.Create(new StringReader(_projectXml));
-        return ProjectRootElement.Create(reader);
+        Environment.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", "0");
+        ProjectRootElement.ResetUseProjectXmlReaderCache();
+        try
+        {
+            using var reader = XmlReader.Create(new StringReader(_projectXml));
+            return ProjectRootElement.Create(reader);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", null);
+            ProjectRootElement.ResetUseProjectXmlReaderCache();
+        }
     }
 
     /// <summary>
@@ -63,13 +74,20 @@ public class ProjectLoadBenchmark
     /// that populates ElementData instead of creating an XmlDocument DOM.
     /// </summary>
     [Benchmark]
-    public ProjectRootElement LoadProjectFromString_NewParser()
+    public ProjectRootElement LoadProjectFromString_XmlReaderParser()
     {
-        var pre = ProjectRootElement.Create();
-        using var stringReader = new StringReader(_projectXml);
-        using var xmlReader = XmlReader.Create(stringReader);
-        ProjectXmlReader.Parse(xmlReader, pre, "benchmark.proj");
-        return pre;
+        Environment.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", "1");
+        ProjectRootElement.ResetUseProjectXmlReaderCache();
+        try
+        {
+            using var reader = XmlReader.Create(new StringReader(_projectXml));
+            return ProjectRootElement.Create(reader);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", null);
+            ProjectRootElement.ResetUseProjectXmlReaderCache();
+        }
     }
 
     /// <summary>
@@ -102,16 +120,50 @@ public class ProjectLoadBenchmark
     }
 
     /// <summary>
-    /// Measures a load-then-save round trip using a MemoryStream.
+    /// Measures a load-then-save round trip with the DOM parser.
     /// </summary>
     [Benchmark]
-    public void LoadAndSaveRoundTrip()
+    public void LoadAndSaveRoundTrip_DomParser()
     {
-        using var reader = XmlReader.Create(new StringReader(_projectXml));
-        var pre = ProjectRootElement.Create(reader);
-        using var ms = new MemoryStream();
-        using var writer = new StreamWriter(ms, Encoding.UTF8, 1024, leaveOpen: true);
-        pre.Save(writer);
+        Environment.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", "0");
+        ProjectRootElement.ResetUseProjectXmlReaderCache();
+        try
+        {
+            using var reader = XmlReader.Create(new StringReader(_projectXml));
+            var pre = ProjectRootElement.Create(reader);
+            using var ms = new MemoryStream();
+            using var writer = new StreamWriter(ms, Encoding.UTF8, 1024, leaveOpen: true);
+            pre.Save(writer);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", null);
+            ProjectRootElement.ResetUseProjectXmlReaderCache();
+        }
+    }
+
+    /// <summary>
+    /// Measures a load-then-save round trip with the XmlReader parser.
+    /// This includes DOM materialization cost on first Save.
+    /// </summary>
+    [Benchmark]
+    public void LoadAndSaveRoundTrip_XmlReaderParser()
+    {
+        Environment.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", "1");
+        ProjectRootElement.ResetUseProjectXmlReaderCache();
+        try
+        {
+            using var reader = XmlReader.Create(new StringReader(_projectXml));
+            var pre = ProjectRootElement.Create(reader);
+            using var ms = new MemoryStream();
+            using var writer = new StreamWriter(ms, Encoding.UTF8, 1024, leaveOpen: true);
+            pre.Save(writer);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", null);
+            ProjectRootElement.ResetUseProjectXmlReaderCache();
+        }
     }
 
     /// <summary>

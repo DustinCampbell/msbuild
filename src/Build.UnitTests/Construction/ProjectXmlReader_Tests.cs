@@ -306,9 +306,14 @@ public class ProjectXmlReader_IntegrationTests : IDisposable
         _env = TestEnvironment.Create(output);
         // Opt-in to the new parser for all tests in this class
         _env.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", "1");
+        ProjectRootElement.ResetUseProjectXmlReaderCache();
     }
 
-    public void Dispose() => _env.Dispose();
+    public void Dispose()
+    {
+        _env.Dispose();
+        ProjectRootElement.ResetUseProjectXmlReaderCache();
+    }
 
     private const string SimpleProject = """
         <Project>
@@ -389,6 +394,7 @@ public class ProjectXmlReader_IntegrationTests : IDisposable
     {
         // Override the class-level opt-in: disable the new parser
         _env.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", null);
+        ProjectRootElement.ResetUseProjectXmlReaderCache();
 
         var folder = _env.CreateFolder();
         var projFile = Path.Combine(folder.Path, "test.proj");
@@ -437,6 +443,7 @@ public class ProjectXmlReader_IntegrationTests : IDisposable
 
         // Load with old parser (env var disabled)
         _env.SetEnvironmentVariable("MSBUILD_ENABLE_XMLREADER_PARSER", null);
+        ProjectRootElement.ResetUseProjectXmlReaderCache();
         using var collection2 = new ProjectCollection();
         var oldPre = ProjectRootElement.Open(projFile, collection2);
 

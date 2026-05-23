@@ -16,8 +16,14 @@ using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 namespace Microsoft.Build.Construction
 {
     /// <summary>
-    /// Parses a project from raw XML into strongly typed objects
+    /// Parses a project from raw XML into strongly typed objects.
     /// </summary>
+    /// <remarks>
+    /// DEPRECATED: This parser uses <see cref="System.Xml.XmlDocument"/> to build the DOM and
+    /// is being replaced by <see cref="ProjectXmlReader"/> which uses <see cref="System.Xml.XmlReader"/>
+    /// and populates <see cref="ElementData"/> without creating a DOM.
+    /// New code should not add dependencies on this class.
+    /// </remarks>
     internal class ProjectParser
     {
         /// <summary>
