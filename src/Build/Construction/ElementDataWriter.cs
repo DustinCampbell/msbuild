@@ -65,6 +65,25 @@ namespace Microsoft.Build.Construction
 
             WriteElement(project);
 
+            // Write any content after the root element's closing tag (e.g., trailing newline)
+            if (_preserveFormatting && project.AfterRootTrivia is { } afterRoot)
+            {
+                foreach (var trivia in afterRoot)
+                {
+                    switch (trivia.Kind)
+                    {
+                        case XmlTriviaKind.Comment:
+                            _writer.WriteRaw("<!--");
+                            _writer.WriteRaw(trivia.Text);
+                            _writer.WriteRaw("-->");
+                            break;
+                        case XmlTriviaKind.Whitespace:
+                            _writer.WriteRaw(trivia.Text);
+                            break;
+                    }
+                }
+            }
+
             _writer.Flush();
         }
 

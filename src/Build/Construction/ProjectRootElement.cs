@@ -196,6 +196,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal XmlTrivia[] AfterRootTrivia
         {
+            get => _afterRootTrivia;
             set => _afterRootTrivia = value;
         }
 
@@ -2006,7 +2007,11 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal ElementData CreateElementData(string name)
         {
-            return new ElementData(name, XmlNamespace, FullPath ?? string.Empty, 0, 0);
+            var data = new ElementData(name, XmlNamespace, FullPath ?? string.Empty, 0, 0);
+            // New elements default to self-closing; they will be marked non-self-closing
+            // when children are added via AddToElementData.
+            data.IsSelfClosing = true;
+            return data;
         }
 
         /// <summary>

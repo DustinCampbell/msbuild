@@ -42,7 +42,10 @@ namespace Microsoft.Build.Construction
         internal UsingTaskParameterGroupElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            VerifyCorrectParent(parent);
+            if (parent is not null)
+            {
+                VerifyCorrectParent(parent);
+            }
         }
 
         /// <summary>

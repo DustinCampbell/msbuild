@@ -452,8 +452,16 @@ namespace Microsoft.Build.Construction
             Debug.Assert(child.ExpressedAsAttribute, nameof(SetElementAsAttributeValue) + " method requires that " +
                 nameof(child.ExpressedAsAttribute) + " property of child is true");
 
-            string value = Internal.Utilities.GetXmlNodeInnerContents(child.XmlElement);
-            ProjectXmlUtilities.SetOrRemoveAttribute(XmlElement, child.XmlElement.Name, value);
+            // ElementData path: update attribute directly without DOM
+            if (DataSource is not null)
+            {
+                string value = child.DataSource?.TextContent ?? string.Empty;
+                DataSource.SetAttribute(child.ElementName, value);
+                return;
+            }
+
+            string xmlValue = Internal.Utilities.GetXmlNodeInnerContents(child.XmlElement);
+            ProjectXmlUtilities.SetOrRemoveAttribute(XmlElement, child.XmlElement.Name, xmlValue);
         }
 
         /// <summary>
@@ -467,6 +475,15 @@ namespace Microsoft.Build.Construction
 
             if (child.ExpressedAsAttribute)
             {
+                // ElementData path: rename attribute without DOM
+                if (DataSource is not null)
+                {
+                    DataSource.RemoveAttribute(oldName);
+                    string value = child.DataSource?.TextContent ?? string.Empty;
+                    DataSource.SetAttribute(child.ElementName, value);
+                    return;
+                }
+
                 // To rename an attribute, we have to fully remove the old one and add a new one.
                 XmlElement.RemoveAttribute(oldName);
                 SetElementAsAttributeValue(child);
@@ -501,21 +518,26 @@ namespace Microsoft.Build.Construction
         {
             Assumed.Null(Link, "Attempt to edit a document that is not backed by a local xml is disallowed.");
 
-            // If the parent is ElementData-backed, materialize the DOM.
-            // The linked list is already updated. MaterializeDom creates DOM nodes for
-            // all elements, but the newly-added child won't have correct whitespace.
-            // We remove it from the DOM so the normal AddToXml path can re-insert it
-            // with proper whitespace formatting.
+            // If the parent is ElementData-backed, handle whitespace formatting directly
+            // in the ElementData model without materializing the DOM.
             if (DataSource is not null)
             {
-                ContainingProject.EnsureXmlDom();
-
-                // MaterializeDom may have placed the child in the DOM. Remove it so
-                // the code below can re-insert it with proper whitespace handling.
-                if (!child.ExpressedAsAttribute && child.XmlElement?.ParentNode is not null)
+                if (child.ExpressedAsAttribute)
                 {
-                    XmlElement.RemoveChild(child.XmlElement);
+                    // Validate no duplicate attribute
+                    ProjectErrorUtilities.VerifyThrowInvalidProject(!DataSource.HasAttribute(child.ElementName),
+                        Location, "InvalidChildElementDueToDuplication", child.ElementName, ElementName);
+
+                    // Store as attribute on this element's data
+                    string value = child.DataSource?.TextContent ?? string.Empty;
+                    DataSource.SetAttribute(child.ElementName, value);
                 }
+                else
+                {
+                    AddToElementData(child);
+                }
+
+                return;
             }
 
             if (child.ExpressedAsAttribute)
@@ -609,6 +631,328 @@ namespace Microsoft.Build.Construction
             }
         }
 
+        /// <summary>
+        /// Handles whitespace formatting when adding a child element to an ElementData-backed parent.
+        /// Replicates the DOM-path whitespace behavior: matching sibling indentation or computing
+        /// indentation for the first child of an empty container.
+        /// </summary>
+        private void AddToElementData(ProjectElement child)
+        {
+            if (!ContainingProject.PreserveFormatting)
+            {
+                // When not preserving formatting, the writer handles indentation automatically.
+                // Just ensure the parent is not self-closing if it now has children.
+                if (DataSource.IsSelfClosing)
+                {
+                    DataSource.IsSelfClosing = false;
+                }
+
+                return;
+            }
+
+            // Ensure child has an ElementData to set whitespace on.
+            // Newly-created elements will already have one; elements moved from DOM-backed trees may not.
+            var childData = child.DataSource;
+            if (childData is null)
+            {
+                return;
+            }
+
+            bool SiblingIsExplicitElement(ProjectElement s) => !s.ExpressedAsAttribute;
+
+            if (TrySearchLeftSiblings(child.PreviousSibling, SiblingIsExplicitElement, out ProjectElement leftSibling))
+            {
+                // Insert after a left sibling.
+                // The DOM path skips inline comments/whitespace (no newlines) after the reference sibling
+                // and inserts the new element after them. In ElementData, those inline items are stored
+                // at the beginning of the NEXT sibling's LeadingTrivia. We need to move them to the
+                // new element's LeadingTrivia so they appear between the reference and the new element.
+                var nextSibling = child.NextSibling;
+                while (nextSibling is not null && nextSibling.ExpressedAsAttribute)
+                {
+                    nextSibling = nextSibling.NextSibling;
+                }
+
+                // Determine the new element's indentation from the LEFT sibling (DOM copies referenceSibling's
+                // preceding whitespace). The next sibling's trivia stays intact from splitIndex onward.
+                string newIndent = GetIndentationFromSibling(leftSibling.DataSource);
+
+                if (nextSibling?.DataSource?.LeadingTrivia is { } nextTrivia && nextTrivia.Length > 0)
+                {
+                    // Split: everything before the first newline-containing whitespace is "inline"
+                    int splitIndex = FindNewlineWhitespaceIndex(nextTrivia);
+                    if (splitIndex > 0)
+                    {
+                        // Move inline portion to the new child's LeadingTrivia
+                        childData.LeadingTrivia = SliceTrivia(nextTrivia, 0, splitIndex);
+                        SetLeadingWhitespace(childData, newIndent);
+
+                        // Keep trivia from splitIndex onward on the next sibling (inclusive)
+                        nextSibling.DataSource.LeadingTrivia = SliceTrivia(nextTrivia, splitIndex, nextTrivia.Length - splitIndex);
+                    }
+                    else
+                    {
+                        // No inline content — just set indentation from left sibling
+                        SetLeadingWhitespace(childData, newIndent);
+                    }
+                }
+                else if (DataSource.TrailingTrivia is { } parentTrailing && parentTrailing.Length > 0)
+                {
+                    // No next sibling — the new element is appended after the last child.
+                    // Inline content (comments, non-newline whitespace) after the last child is stored
+                    // in the parent's TrailingTrivia. Move it to the new element's LeadingTrivia.
+                    int splitIndex = FindNewlineWhitespaceIndex(parentTrailing);
+                    if (splitIndex > 0)
+                    {
+                        childData.LeadingTrivia = SliceTrivia(parentTrailing, 0, splitIndex);
+                        SetLeadingWhitespace(childData, newIndent);
+
+                        // Parent keeps trivia from splitIndex onward for closing tag indent
+                        DataSource.TrailingTrivia = SliceTrivia(parentTrailing, splitIndex, parentTrailing.Length - splitIndex);
+                    }
+                    else
+                    {
+                        // No inline content in parent's trailing — just set indentation
+                        SetLeadingWhitespace(childData, newIndent);
+                    }
+                }
+                else
+                {
+                    // No trivia anywhere — use left sibling's indentation
+                    SetLeadingWhitespace(childData, newIndent);
+                }
+            }
+            else if (TrySearchRightSiblings(child.NextSibling, SiblingIsExplicitElement, out ProjectElement rightSibling))
+            {
+                // Insert before a right sibling: match its leading whitespace.
+                // The DOM inserts the new element before the right sibling, then copies the
+                // preceding whitespace to re-add before the right sibling. In ElementData terms:
+                // both elements end up with the same indentation.
+                var siblingData = rightSibling.DataSource;
+                if (siblingData?.LeadingTrivia is { } rightTrivia && rightTrivia.Length > 0)
+                {
+                    int splitIndex = FindNewlineWhitespaceIndex(rightTrivia);
+                    if (splitIndex > 0)
+                    {
+                        // Move inline portion (before splitIndex) to new child's LeadingTrivia.
+                        // Use the whitespace at splitIndex as the new element's indentation (copy).
+                        // Right sibling keeps trivia from splitIndex onward unchanged.
+                        childData.LeadingTrivia = SliceTrivia(rightTrivia, 0, splitIndex);
+                        SetLeadingWhitespace(childData, rightTrivia[splitIndex].Text);
+                        siblingData.LeadingTrivia = SliceTrivia(rightTrivia, splitIndex, rightTrivia.Length - splitIndex);
+                    }
+                    else
+                    {
+                        // No inline content — copy the right sibling's indentation for the new element.
+                        // Right sibling's trivia stays unchanged.
+                        SetLeadingWhitespace(childData, rightTrivia[0].Text);
+                    }
+                }
+                else if (siblingData?.LeadingWhitespace is not null)
+                {
+                    SetLeadingWhitespace(childData, siblingData.LeadingWhitespace);
+                }
+            }
+            else
+            {
+                // Only child: compute indentation from parent
+                string parentIndent = GetElementDataIndentation(DataSource);
+                string childIndent = Environment.NewLine + parentIndent + DEFAULT_INDENT;
+
+                childData.LeadingWhitespace = childIndent;
+
+                // Parent is no longer self-closing since it has a child
+                DataSource.IsSelfClosing = false;
+
+                // For closing tag indentation: the writer uses LeadingWhitespace if set (for new elements),
+                // or TrailingTrivia (for parsed elements that only have LeadingTrivia).
+                if (DataSource.LeadingWhitespace is not null)
+                {
+                    // Writer will use LeadingWhitespace for closing tag indent; clear trailing trivia.
+                    DataSource.TrailingTrivia = null;
+                }
+                else
+                {
+                    // Parsed element: set trailing trivia to provide closing tag indentation.
+                    DataSource.TrailingTrivia = [new XmlTrivia(XmlTriviaKind.Whitespace, Environment.NewLine + parentIndent, 0, 0)];
+                }
+            }
+        }
+
+        /// <summary>
+        /// Extracts the indentation portion (spaces/tabs after the last newline) from an ElementData's
+        /// leading whitespace or leading trivia. Returns empty string if not determinable.
+        /// </summary>
+        private static string GetElementDataIndentation(ElementData data)
+        {
+            // First check LeadingWhitespace (set on programmatically-created elements)
+            var ws = data?.LeadingWhitespace;
+            if (ws is not null)
+            {
+                var lastNewline = ws.LastIndexOf('\n');
+                if (lastNewline != -1)
+                {
+                    return ws.Substring(lastNewline + 1);
+                }
+            }
+
+            // For parsed elements, indentation is in LeadingTrivia
+            if (data?.LeadingTrivia is { } trivia)
+            {
+                for (int i = trivia.Length - 1; i >= 0; i--)
+                {
+                    if (trivia[i].Kind == XmlTriviaKind.Whitespace)
+                    {
+                        var text = trivia[i].Text;
+                        var lastNewline = text.LastIndexOf('\n');
+                        if (lastNewline != -1)
+                        {
+                            return text.Substring(lastNewline + 1);
+                        }
+                    }
+                }
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Gets the full leading whitespace string from a sibling's ElementData, suitable for copying
+        /// as the new element's indentation. The DOM copies the entire whitespace node preceding the
+        /// reference sibling. This method returns equivalent text from either LeadingWhitespace or
+        /// the last newline-containing whitespace trivia entry.
+        /// </summary>
+        private static string GetIndentationFromSibling(ElementData siblingData)
+        {
+            if (siblingData is null)
+            {
+                return Environment.NewLine;
+            }
+
+            // Programmatically-created elements use LeadingWhitespace
+            if (siblingData.LeadingWhitespace is not null)
+            {
+                return siblingData.LeadingWhitespace;
+            }
+
+            // Parsed elements have indentation in LeadingTrivia
+            if (siblingData.LeadingTrivia is not null)
+            {
+                return GetFullLeadingWhitespace(siblingData.LeadingTrivia) ?? Environment.NewLine;
+            }
+
+            return Environment.NewLine;
+        }
+
+        /// <summary>
+        /// Extracts indentation from a trivia array by finding the last whitespace entry
+        /// that contains a newline, then returning that text from the newline onward (including \r\n if present).
+        /// </summary>
+        /// <summary>
+        /// Gets the full text of the last whitespace trivia entry that contains a newline.
+        /// Unlike ExtractIndentationFromTrivia which returns only the last line's indentation,
+        /// this returns the entire whitespace text including blank lines, matching DOM behavior
+        /// which copies the entire preceding whitespace node.
+        /// </summary>
+        private static string GetFullLeadingWhitespace(XmlTrivia[] trivia)
+        {
+            for (int i = trivia.Length - 1; i >= 0; i--)
+            {
+                if (trivia[i].Kind == XmlTriviaKind.Whitespace &&
+                    (trivia[i].Text.Contains('\n') || trivia[i].Text.Contains('\r')))
+                {
+                    return trivia[i].Text;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Sets the leading whitespace on a child element, splitting multi-line whitespace
+        /// so that only the last newline+indent goes into <see cref="ElementData.LeadingWhitespace"/>
+        /// (which the writer uses for both opening and closing tag indentation) and any
+        /// preceding blank lines go into <see cref="ElementData.LeadingTrivia"/> (used only before opening tag).
+        /// </summary>
+        private static void SetLeadingWhitespace(ElementData childData, string fullWhitespace)
+        {
+            if (fullWhitespace is null)
+            {
+                return;
+            }
+
+            // Find the last newline — everything from there is the "indent" portion
+            int lastNewline = fullWhitespace.LastIndexOf('\n');
+            if (lastNewline == -1)
+            {
+                // No newline at all — just spaces/tabs
+                childData.LeadingWhitespace = fullWhitespace;
+                return;
+            }
+
+            // Check for \r\n
+            int splitPos = (lastNewline > 0 && fullWhitespace[lastNewline - 1] == '\r') ? lastNewline - 1 : lastNewline;
+
+            if (splitPos == 0)
+            {
+                // Only one newline — entire string is the indentation
+                childData.LeadingWhitespace = fullWhitespace;
+                return;
+            }
+
+            // Multiple newlines: split into prefix (blank lines → LeadingTrivia) and suffix (indent → LeadingWhitespace)
+            string prefix = fullWhitespace.Substring(0, splitPos);
+            string suffix = fullWhitespace.Substring(splitPos);
+
+            // Append to existing LeadingTrivia rather than overwriting (inline content may already be there)
+            var prefixTrivia = new XmlTrivia(XmlTriviaKind.Whitespace, prefix, 0, 0);
+            if (childData.LeadingTrivia is { } existing)
+            {
+                var combined = new XmlTrivia[existing.Length + 1];
+                Array.Copy(existing, combined, existing.Length);
+                combined[existing.Length] = prefixTrivia;
+                childData.LeadingTrivia = combined;
+            }
+            else
+            {
+                childData.LeadingTrivia = [prefixTrivia];
+            }
+
+            childData.LeadingWhitespace = suffix;
+        }
+
+        /// <summary>
+        /// Finds the index of the first whitespace trivia entry that contains a newline.
+        /// Returns 0 if the first entry already contains a newline (no inline content).
+        /// Returns trivia.Length if no newline-containing whitespace is found.
+        /// The DOM path considers all comments and same-line whitespace (without newlines) as
+        /// "inline trailing content" that belongs to the preceding sibling.
+        /// </summary>
+        private static int FindNewlineWhitespaceIndex(XmlTrivia[] trivia)
+        {
+            for (int i = 0; i < trivia.Length; i++)
+            {
+                if (trivia[i].Kind == XmlTriviaKind.Whitespace &&
+                    (trivia[i].Text.Contains('\n') || trivia[i].Text.Contains('\r')))
+                {
+                    return i;
+                }
+            }
+
+            return trivia.Length;
+        }
+
+        /// <summary>
+        /// Creates a new array containing a subset of the given trivia array.
+        /// Used instead of range operators for .NET Framework compatibility.
+        /// </summary>
+        private static XmlTrivia[] SliceTrivia(XmlTrivia[] source, int start, int length)
+        {
+            var result = new XmlTrivia[length];
+            Array.Copy(source, start, result, 0, length);
+            return result;
+        }
+
         private static string GetElementIndentation(XmlElementWithLocation xmlElement)
         {
             if (xmlElement.PreviousSibling?.NodeType != XmlNodeType.Whitespace)
@@ -633,10 +977,31 @@ namespace Microsoft.Build.Construction
         {
             Assumed.Null(Link, "Attempt to edit a document that is not backed by a local xml is disallowed.");
 
-            // Ensure DOM is materialized for mutation operations on ElementData-backed projects.
+            // For ElementData-backed projects, handle removal without DOM.
+            // The child is already removed from the linked list, so the serializer
+            // will no longer see it. We only need to handle attribute removal and
+            // mark the parent self-closing if it's now empty.
             if (DataSource is not null)
             {
-                ContainingProject.EnsureXmlDom();
+                if (child.ExpressedAsAttribute)
+                {
+                    DataSource.RemoveAttribute(child.ElementName);
+                }
+
+                // If we removed the last non-attribute child, mark parent self-closing.
+                // Exclude the child being removed since it may still be in the linked list
+                // (e.g., when transitioning from element to attribute via ExpressedAsAttribute setter).
+                if (!HasNonAttributeChildren(excluding: child))
+                {
+                    DataSource.IsSelfClosing = true;
+
+                    if (ContainingProject.PreserveFormatting)
+                    {
+                        DataSource.TrailingTrivia = null;
+                    }
+                }
+
+                return;
             }
 
             // Orphan elements (e.g. implicit SDK imports) that were never part of the DOM tree
@@ -679,6 +1044,23 @@ namespace Microsoft.Build.Construction
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns true if this container has any non-attribute children in the linked list.
+        /// Used after a removal to determine if the container should become self-closing.
+        /// </summary>
+        private bool HasNonAttributeChildren(ProjectElement excluding = null)
+        {
+            for (var c = FirstChild; c is not null; c = c.NextSibling)
+            {
+                if (!c.ExpressedAsAttribute && !ReferenceEquals(c, excluding))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

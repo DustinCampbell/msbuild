@@ -44,8 +44,11 @@ namespace Microsoft.Build.Construction
         internal ProjectUsingTaskBodyElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            VerifyCorrectParent(parent);
-        }
+                if (parent is not null)
+                {
+                    VerifyCorrectParent(parent);
+                }
+            }
 
         /// <summary>
         /// Initialize an unparented ProjectUsingTaskBodyElement
@@ -95,7 +98,16 @@ namespace Microsoft.Build.Construction
                 }
 
                 ArgumentNullException.ThrowIfNull(value, nameof(TaskBody));
-                Internal.Utilities.SetXmlNodeInnerContents(XmlElement, value);
+
+                if (DataSource is not null)
+                {
+                    DataSource.TextContent = value;
+                }
+                else
+                {
+                    Internal.Utilities.SetXmlNodeInnerContents(XmlElement, value);
+                }
+
                 MarkDirty("Set usingtask body {0}", value);
             }
         }
