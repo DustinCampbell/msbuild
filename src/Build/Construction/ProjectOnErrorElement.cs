@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -39,7 +39,6 @@ namespace Microsoft.Build.Construction
         internal ProjectOnErrorElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -83,11 +82,19 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectOnErrorElement CreateDisconnected(string executeTargets, ProjectRootElement containingProject)
         {
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.onError);
+                var onError = new ProjectOnErrorElement(data, null, containingProject);
+                onError.ExecuteTargetsAttribute = executeTargets;
+                return onError;
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.onError);
 
-            var onError = new ProjectOnErrorElement(element, containingProject) { ExecuteTargetsAttribute = executeTargets };
+            var onErrorElement = new ProjectOnErrorElement(element, containingProject) { ExecuteTargetsAttribute = executeTargets };
 
-            return onError;
+            return onErrorElement;
         }
 
         /// <summary>

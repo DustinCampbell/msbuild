@@ -616,6 +616,15 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Swaps the backing source to an ElementData instance without marking dirty.
+        /// Used when an XmlElement-backed child is added to an ElementData-backed parent.
+        /// </summary>
+        internal void SwapToElementData(ElementData elementData)
+        {
+            _xmlSource = elementData;
+        }
+
+        /// <summary>
         /// Overridden to verify that the potential parent and siblings
         /// are acceptable. Throws InvalidOperationException if they are not.
         /// </summary>

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -74,7 +74,6 @@ namespace Microsoft.Build.Construction
         internal ProjectItemElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -437,6 +436,12 @@ namespace Microsoft.Build.Construction
         {
             XmlUtilities.VerifyThrowArgumentValidElementName(itemType);
             ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(itemType), "CannotModifyReservedItem", itemType);
+
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(itemType);
+                return new ProjectItemElement(data, null, containingProject);
+            }
 
             XmlElementWithLocation element = containingProject.CreateElement(itemType);
 

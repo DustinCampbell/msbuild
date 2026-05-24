@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -41,7 +41,6 @@ namespace Microsoft.Build.Construction
         internal ProjectImportGroupElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -85,6 +84,12 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectImportGroupElement CreateDisconnected(ProjectRootElement containingProject)
         {
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.importGroup);
+                return new ProjectImportGroupElement(data, null, containingProject);
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.importGroup);
 
             return new ProjectImportGroupElement(element, containingProject);

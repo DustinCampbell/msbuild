@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -38,7 +38,6 @@ namespace Microsoft.Build.Construction
         internal ProjectSdkElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -105,15 +104,24 @@ namespace Microsoft.Build.Construction
         internal static ProjectSdkElement CreateDisconnected(string sdkName, string sdkVersion,
             ProjectRootElement containingProject)
         {
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.sdk);
+                var sdkElement = new ProjectSdkElement(data, null, containingProject);
+                sdkElement.Name = sdkName;
+                sdkElement.Version = sdkVersion;
+                return sdkElement;
+            }
+
             var element = containingProject.CreateElement(XMakeElements.sdk);
 
-            var sdkElement = new ProjectSdkElement(element, containingProject)
+            var sdkEl = new ProjectSdkElement(element, containingProject)
             {
                 Name = sdkName,
                 Version = sdkVersion
             };
 
-            return sdkElement;
+            return sdkEl;
         }
     }
 }

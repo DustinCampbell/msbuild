@@ -2001,6 +2001,15 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
+        /// Creates an <see cref="ElementData"/> for a new element with the specified name.
+        /// Used when the project is ElementData-backed to avoid materializing the DOM.
+        /// </summary>
+        internal ElementData CreateElementData(string name)
+        {
+            return new ElementData(name, XmlNamespace, FullPath ?? string.Empty, 0, 0);
+        }
+
+        /// <summary>
         /// Ensures the XmlDocument DOM is materialized. Safe to call regardless of backing state.
         /// Call this when code needs to access XmlElement/XmlDocument on tree elements.
         /// </summary>

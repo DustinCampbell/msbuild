@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -42,7 +42,6 @@ namespace Microsoft.Build.Construction
         internal UsingTaskParameterGroupElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
             VerifyCorrectParent(parent);
         }
 
@@ -104,6 +103,12 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static UsingTaskParameterGroupElement CreateDisconnected(ProjectRootElement containingProject)
         {
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.usingTaskParameterGroup);
+                return new UsingTaskParameterGroupElement(data, null, containingProject);
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.usingTaskParameterGroup);
 
             return new UsingTaskParameterGroupElement(element, containingProject);

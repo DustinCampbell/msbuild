@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -42,7 +42,6 @@ namespace Microsoft.Build.Construction
         internal ProjectChooseElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -97,6 +96,12 @@ namespace Microsoft.Build.Construction
         internal static ProjectChooseElement CreateDisconnected(ProjectRootElement containingProject)
         {
             Assumed.Null(containingProject.Link, "Attempt to edit a document that is not backed by a local xml is disallowed.");
+
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.choose);
+                return new ProjectChooseElement(data, null, containingProject);
+            }
 
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.choose);
             return new ProjectChooseElement(element, containingProject);

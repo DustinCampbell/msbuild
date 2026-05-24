@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -46,7 +46,6 @@ namespace Microsoft.Build.Construction
         internal ProjectImportElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject, SdkReference sdkReference = null)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
             SdkReference = sdkReference;
         }
 
@@ -154,6 +153,14 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectImportElement CreateDisconnected(string project, ProjectRootElement containingProject)
         {
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.import);
+                var import = new ProjectImportElement(data, null, containingProject);
+                import.Project = project;
+                return import;
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.import);
             return new ProjectImportElement(element, containingProject) { Project = project };
         }

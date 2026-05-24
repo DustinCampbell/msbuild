@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -41,7 +41,6 @@ namespace Microsoft.Build.Construction
         internal ProjectWhenElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -76,11 +75,19 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectWhenElement CreateDisconnected(string condition, ProjectRootElement containingProject)
         {
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.when);
+                var when = new ProjectWhenElement(data, null, containingProject);
+                when.Condition = condition;
+                return when;
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.when);
 
-            var when = new ProjectWhenElement(element, containingProject) { Condition = condition };
+            var whenElement = new ProjectWhenElement(element, containingProject) { Condition = condition };
 
-            return when;
+            return whenElement;
         }
 
         /// <summary>

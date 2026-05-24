@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -44,7 +44,6 @@ namespace Microsoft.Build.Construction
         internal ProjectExtensionsElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -218,6 +217,12 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectExtensionsElement CreateDisconnected(ProjectRootElement containingProject)
         {
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.projectExtensions);
+                return new ProjectExtensionsElement(data, null, containingProject);
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.projectExtensions);
 
             return new ProjectExtensionsElement(element, containingProject);

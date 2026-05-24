@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -41,7 +41,6 @@ namespace Microsoft.Build.Construction
         internal ProjectItemDefinitionElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -111,6 +110,13 @@ namespace Microsoft.Build.Construction
             // as we do for item types in item groups. So we do not have a check here.
             // Although we could perhaps add one, as such item definitions couldn't be used
             // since no items can have the reserved itemType.
+
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(itemType);
+                return new ProjectItemDefinitionElement(data, null, containingProject);
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(itemType);
 
             return new ProjectItemDefinitionElement(element, containingProject);

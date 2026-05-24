@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -137,6 +137,12 @@ namespace Microsoft.Build.Construction
             XmlUtilities.VerifyThrowArgumentValidElementName(name);
             ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsItemSpecModifier(name), "ItemSpecModifierCannotBeCustomMetadata", name);
             ErrorUtilities.VerifyThrowInvalidOperation(!XMakeElements.ReservedItemNames.Contains(name), "CannotModifyReservedItemMetadata", name);
+
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(name);
+                return new ProjectMetadataElement(data, null, containingProject);
+            }
 
             XmlElementWithLocation element = containingProject.CreateElement(name, location);
 

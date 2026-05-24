@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -40,7 +40,6 @@ namespace Microsoft.Build.Construction
         internal ProjectUsingTaskElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -247,9 +246,27 @@ namespace Microsoft.Build.Construction
                 XMakeAttributes.assemblyFile,
                 XMakeAttributes.assemblyName);
 
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(XMakeElements.usingTask);
+                var usingTask = new ProjectUsingTaskElement(data, null, containingProject);
+                usingTask.TaskName = taskName;
+                usingTask.Runtime = runtime;
+                usingTask.Architecture = architecture;
+                if (!String.IsNullOrEmpty(assemblyFile))
+                {
+                    usingTask.AssemblyFile = FileUtilities.FixFilePath(assemblyFile);
+                }
+                else
+                {
+                    usingTask.AssemblyName = assemblyName;
+                }
+                return usingTask;
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.usingTask);
 
-            var usingTask = new ProjectUsingTaskElement(element, containingProject)
+            var usingTaskElement = new ProjectUsingTaskElement(element, containingProject)
             {
                 TaskName = taskName,
                 Runtime = runtime,
@@ -258,14 +275,14 @@ namespace Microsoft.Build.Construction
 
             if (!String.IsNullOrEmpty(assemblyFile))
             {
-                usingTask.AssemblyFile = FileUtilities.FixFilePath(assemblyFile);
+                usingTaskElement.AssemblyFile = FileUtilities.FixFilePath(assemblyFile);
             }
             else
             {
-                usingTask.AssemblyName = assemblyName;
+                usingTaskElement.AssemblyName = assemblyName;
             }
 
-            return usingTask;
+            return usingTaskElement;
         }
 
         /// <summary>

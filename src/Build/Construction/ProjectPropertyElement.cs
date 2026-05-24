@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -49,7 +49,6 @@ namespace Microsoft.Build.Construction
         internal ProjectPropertyElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -138,6 +137,12 @@ namespace Microsoft.Build.Construction
             XmlUtilities.VerifyThrowArgumentValidElementName(name);
 
             ErrorUtilities.VerifyThrowInvalidOperation(!XMakeElements.ReservedItemNames.Contains(name) && !ReservedPropertyNames.IsReservedProperty(name), "OM_CannotCreateReservedProperty", name);
+
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(name);
+                return new ProjectPropertyElement(data, null, containingProject);
+            }
 
             XmlElementWithLocation element = containingProject.CreateElement(name);
 

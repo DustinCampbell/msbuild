@@ -501,6 +501,23 @@ namespace Microsoft.Build.Construction
         {
             Assumed.Null(Link, "Attempt to edit a document that is not backed by a local xml is disallowed.");
 
+            // If the parent is ElementData-backed, materialize the DOM.
+            // The linked list is already updated. MaterializeDom creates DOM nodes for
+            // all elements, but the newly-added child won't have correct whitespace.
+            // We remove it from the DOM so the normal AddToXml path can re-insert it
+            // with proper whitespace formatting.
+            if (DataSource is not null)
+            {
+                ContainingProject.EnsureXmlDom();
+
+                // MaterializeDom may have placed the child in the DOM. Remove it so
+                // the code below can re-insert it with proper whitespace handling.
+                if (!child.ExpressedAsAttribute && child.XmlElement?.ParentNode is not null)
+                {
+                    XmlElement.RemoveChild(child.XmlElement);
+                }
+            }
+
             if (child.ExpressedAsAttribute)
             {
                 // todo children represented as attributes need to be placed in order too
@@ -617,7 +634,7 @@ namespace Microsoft.Build.Construction
             Assumed.Null(Link, "Attempt to edit a document that is not backed by a local xml is disallowed.");
 
             // Ensure DOM is materialized for mutation operations on ElementData-backed projects.
-            if (XmlElement is null)
+            if (DataSource is not null)
             {
                 ContainingProject.EnsureXmlDom();
             }

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -40,7 +40,6 @@ namespace Microsoft.Build.Construction
         internal ProjectUsingTaskParameterElement(ElementData elementData, ProjectElementContainer parent, ProjectRootElement containingProject)
             : base(elementData, parent, containingProject)
         {
-            ArgumentNullException.ThrowIfNull(parent);
         }
 
         /// <summary>
@@ -175,8 +174,19 @@ namespace Microsoft.Build.Construction
         internal static ProjectUsingTaskParameterElement CreateDisconnected(string parameterName, string output, string required, string parameterType, ProjectRootElement containingProject)
         {
             XmlUtilities.VerifyThrowArgumentValidElementName(parameterName);
+
+            if (containingProject.DataSource is not null)
+            {
+                var data = containingProject.CreateElementData(parameterName);
+                var parameter = new ProjectUsingTaskParameterElement(data, null, containingProject);
+                parameter.Output = output;
+                parameter.Required = required;
+                parameter.ParameterType = parameterType;
+                return parameter;
+            }
+
             XmlElementWithLocation element = containingProject.CreateElement(parameterName);
-            var parameter =
+            var param =
                 new ProjectUsingTaskParameterElement(element, containingProject)
                 {
                     Output = output,
@@ -184,7 +194,7 @@ namespace Microsoft.Build.Construction
                     ParameterType = parameterType
                 };
 
-            return parameter;
+            return param;
         }
 
         /// <summary>
