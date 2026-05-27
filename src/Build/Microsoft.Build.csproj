@@ -419,6 +419,8 @@
     <Compile Include="Construction\ProjectExtensionsElement.cs" />
     <Compile Include="Construction\ProjectPropertyGroupElement.cs" />
     <Compile Include="Construction\ProjectPropertyElement.cs" />
+    <Compile Include="Construction\XmlProjectPropertyElement.cs" />
+    <Compile Include="Construction\LinkedProjectPropertyElement.cs" />
     <Compile Include="Construction\ProjectTargetElement.cs" />
     <Compile Include="Construction\ProjectTaskElement.cs" />
     <Compile Include="Construction\ProjectUsingTaskElement.cs" />

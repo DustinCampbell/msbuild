@@ -157,7 +157,7 @@ namespace Microsoft.Build.ObjectModelRemoting
             => new(link);
 
         public ProjectPropertyElement Create(ProjectPropertyElementLink link)
-            => new(link);
+            => new LinkedProjectPropertyElement(link);
 
         public ProjectPropertyGroupElement Create(ProjectPropertyGroupElementLink link)
             => new(link);

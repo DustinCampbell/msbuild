@@ -28,18 +28,18 @@ public class ProjectPropertyElement : ProjectElement, IPropertyElementWithLocati
     [MemberNotNullWhen(true, nameof(PropertyLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectPropertyElement(ProjectPropertyElementLink link)
+    private protected ProjectPropertyElement(ProjectPropertyElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectPropertyElement(XmlElementWithLocation xmlElement, ProjectPropertyGroupElement parent, ProjectRootElement containingProject)
+    private protected ProjectPropertyElement(XmlElementWithLocation xmlElement, ProjectPropertyGroupElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectPropertyElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectPropertyElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -57,7 +57,7 @@ public class ProjectPropertyElement : ProjectElement, IPropertyElementWithLocati
     /// Gets or sets the unevaluated value.
     /// Returns empty string if it is not present.
     /// </summary>
-    public string Value
+    public virtual string Value
     {
         get => IsLink ? PropertyLink.Value : Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
 
@@ -96,7 +96,7 @@ public class ProjectPropertyElement : ProjectElement, IPropertyElementWithLocati
 
         XmlElementWithLocation element = containingProject.CreateElement(name);
 
-        return new(element, containingProject);
+        return new XmlProjectPropertyElement(element, containingProject);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public class ProjectPropertyElement : ProjectElement, IPropertyElementWithLocati
     /// <remarks>
     /// The implementation has to actually replace the element to do this.
     /// </remarks>
-    internal void ChangeName(string newName)
+    internal virtual void ChangeName(string newName)
     {
         ArgumentException.ThrowIfNullOrEmpty(newName);
         XmlUtilities.VerifyThrowArgumentValidElementName(newName);

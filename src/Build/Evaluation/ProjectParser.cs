@@ -229,7 +229,7 @@ namespace Microsoft.Build.Construction
                 ProjectErrorUtilities.VerifyThrowInvalidProject(!XMakeElements.ReservedItemNames.Contains(childElement.Name) && !ReservedPropertyNames.IsReservedProperty(childElement.Name), childElement.Location, "CannotModifyReservedProperty", childElement.Name);
 
                 // All children inside a property are ignored, since they are only part of its value
-                ProjectPropertyElement property = new ProjectPropertyElement(childElement, propertyGroup, _project);
+                ProjectPropertyElement property = new XmlProjectPropertyElement(childElement, propertyGroup, _project);
 
                 propertyGroup.AppendParentedChildNoChecks(property);
             }
