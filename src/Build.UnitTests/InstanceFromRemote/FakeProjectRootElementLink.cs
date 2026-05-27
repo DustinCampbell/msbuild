@@ -99,7 +99,7 @@ namespace Microsoft.Build.Engine.UnitTests.InstanceFromRemote
 
         public override ProjectOtherwiseElement CreateOtherwiseElement() => throw new NotImplementedException();
 
-        public override ProjectOutputElement CreateOutputElement(string taskParameter, string itemType, string propertyName) => throw new NotImplementedException();
+        public override ProjectOutputElement CreateOutputElement(string taskParameter, string? itemType, string? propertyName) => throw new NotImplementedException();
 
         public override ProjectExtensionsElement CreateProjectExtensionsElement() => throw new NotImplementedException();
 
@@ -115,7 +115,7 @@ namespace Microsoft.Build.Engine.UnitTests.InstanceFromRemote
 
         public override ProjectUsingTaskBodyElement CreateUsingTaskBodyElement(string evaluate, string body) => throw new NotImplementedException();
 
-        public override ProjectUsingTaskElement CreateUsingTaskElement(string taskName, string assemblyFile, string assemblyName, string runtime, string architecture) => throw new NotImplementedException();
+        public override ProjectUsingTaskElement CreateUsingTaskElement(string taskName, string assemblyFile, string assemblyName, string? runtime, string? architecture) => throw new NotImplementedException();
 
         public override ProjectUsingTaskParameterElement CreateUsingTaskParameterElement(string name, string output, string required, string parameterType) => throw new NotImplementedException();
 
@@ -129,11 +129,11 @@ namespace Microsoft.Build.Engine.UnitTests.InstanceFromRemote
 
         public override string GetAttributeValue(string attributeName, bool nullIfNotExists) => throw new NotImplementedException();
 
-        public override void InsertAfterChild(ProjectElement child, ProjectElement reference) => throw new NotImplementedException();
+        public override void InsertAfterChild(ProjectElement child, ProjectElement? reference) => throw new NotImplementedException();
 
-        public override void InsertBeforeChild(ProjectElement child, ProjectElement reference) => throw new NotImplementedException();
+        public override void InsertBeforeChild(ProjectElement child, ProjectElement? reference) => throw new NotImplementedException();
 
-        public override void MarkDirty(string reason, string param) => throw new NotImplementedException();
+        public override void MarkDirty(string reason, string? param) => throw new NotImplementedException();
 
         public override void ReloadFrom(string path, bool throwIfUnsavedChanges, bool preserveFormatting) => throw new NotImplementedException();
 

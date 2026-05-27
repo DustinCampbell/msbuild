@@ -29,12 +29,12 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// <summary>
         /// Facilitate remoting the <see cref="ProjectElementContainer.InsertAfterChild"/>.
         /// </summary>
-        public abstract void InsertAfterChild(ProjectElement child, ProjectElement reference);
+        public abstract void InsertAfterChild(ProjectElement child, ProjectElement? reference);
 
         /// <summary>
         /// Facilitate remoting the <see cref="ProjectElementContainer.InsertBeforeChild"/>.
         /// </summary>
-        public abstract void InsertBeforeChild(ProjectElement child, ProjectElement reference);
+        public abstract void InsertBeforeChild(ProjectElement child, ProjectElement? reference);
 
         /// <summary>
         /// Helps implementation of the <see cref="ProjectElementContainer.AppendChild"/>.
@@ -54,8 +54,11 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// <summary>
         /// ExternalProjectsProvider helpers
         /// </summary>
-        public static void AddInitialChild(ProjectElementContainer xml, ProjectElement child) => xml.AddInitialChild(child);
-        public static ProjectElementContainer DeepClone(ProjectElementContainer xml, ProjectRootElement factory, ProjectElementContainer parent) => ProjectElementContainer.DeepClone(xml, factory, parent);
+        public static void AddInitialChild(ProjectElementContainer xml, ProjectElement child)
+            => xml.AddInitialChild(child);
+
+        public static ProjectElementContainer DeepClone(ProjectElementContainer xml, ProjectRootElement factory, ProjectElementContainer parent)
+            => ProjectElementContainer.DeepClone(xml, factory, parent);
     }
 
     // the "equivalence" classes in cases when we don't need additional functionality,

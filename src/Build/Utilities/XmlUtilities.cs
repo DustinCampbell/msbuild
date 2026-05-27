@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Xml;
 using Microsoft.Build.Construction;
 
@@ -180,6 +181,20 @@ namespace Microsoft.Build.Shared
                    (c >= '0' && c <= '9') ||
                    (c == '_') ||
                    (c == '-');
+        }
+
+#nullable enable
+
+        public static bool TryGetSingleTextNode(this XmlElement element, [NotNullWhen(true)] out XmlText? result)
+        {
+            if (element.FirstChild is XmlText textNode && ReferenceEquals(textNode, element.LastChild))
+            {
+                result = textNode;
+                return true;
+            }
+
+            result = null;
+            return false;
         }
     }
 }

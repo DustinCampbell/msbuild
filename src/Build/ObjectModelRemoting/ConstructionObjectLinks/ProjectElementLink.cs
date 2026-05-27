@@ -124,13 +124,26 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// <summary>
         /// Utility function for ExternalProjects provider
         /// </summary>
-        public static bool GetExpressedAsAttribute(ProjectElement xml) => xml.ExpressedAsAttribute;
-        public static void SetExpressedAsAttribute(ProjectElement xml, bool value) => xml.ExpressedAsAttribute = value;
-        public static ElementLocation GetAttributeLocation(ProjectElement xml, string attributeName) => xml.GetAttributeLocation(attributeName);
-        public static string GetAttributeValue(ProjectElement xml, string attributeName, bool nullIfNotExists) => xml.GetAttributeValue(attributeName, nullIfNotExists);
-        public static void SetOrRemoveAttribute(ProjectElement xml, string name, string value, bool clearAttributeCache, string reason, string param) => xml.SetOrRemoveAttributeForLink(name, value, clearAttributeCache, reason, param);
-        public static void MarkDirty(ProjectElement xml, string reason, string param) => xml.MarkDirty(reason, param);
-        public static ProjectElement CreateNewInstance(ProjectElement xml, ProjectRootElement owner) => ProjectElement.CreateNewInstance(xml, owner);
+        public static bool GetExpressedAsAttribute(ProjectElement xml)
+
+            => xml.ExpressedAsAttribute;
+        public static void SetExpressedAsAttribute(ProjectElement xml, bool value)
+            => xml.ExpressedAsAttribute = value;
+
+        public static ElementLocation GetAttributeLocation(ProjectElement xml, string attributeName)
+            => xml.GetAttributeLocation(attributeName);
+
+        public static string GetAttributeValue(ProjectElement xml, string attributeName, bool nullIfNotExists)
+            => xml.GetAttributeValue(attributeName, nullIfNotExists);
+
+        public static void SetOrRemoveAttribute(ProjectElement xml, string name, string value, bool clearAttributeCache, string reason, string param)
+            => xml.SetOrRemoveAttributeForLink(name, value, clearAttributeCache, reason, param);
+
+        public static void MarkDirty(ProjectElement xml, string reason, string param)
+            => xml.MarkDirty(reason, param);
+
+        public static ProjectElement CreateNewInstance(ProjectElement xml, ProjectRootElement owner)
+            => ProjectElement.CreateNewInstance(xml, owner);
 
         public static string GetPureText(ProjectElement xml)
         {
@@ -142,6 +155,7 @@ namespace Microsoft.Build.ObjectModelRemoting
 
             return result;
         }
+
         public static IReadOnlyCollection<XmlAttributeLink> GetAttributes(ProjectElement xml)
         {
             List<XmlAttributeLink> result = new List<XmlAttributeLink>();

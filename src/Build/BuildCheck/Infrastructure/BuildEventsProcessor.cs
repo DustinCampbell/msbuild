@@ -83,8 +83,11 @@ internal class BuildEventsProcessor(BuildCheckCentralContext buildCheckCentralCo
         if (_buildCheckCentralContext.HasParsedItemsActions)
         {
             ProjectRootElement xml = ProjectRootElement.OpenProjectOrSolution(
-                evaluationFinishedEventArgs.ProjectFile!, /*unused*/
-                null, /*unused*/null, _cache, false /*Not explicitly loaded - unused*/);
+                evaluationFinishedEventArgs.ProjectFile!,
+                globalProperties: null,
+                toolsVersion: null,
+                _cache,
+                isExplicitlyLoaded: false);
 
 #pragma warning disable CS0618 // Type or member is obsolete
             ParsedItemsCheckData itemsCheckData = new(

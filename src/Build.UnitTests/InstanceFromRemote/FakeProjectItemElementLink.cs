@@ -65,9 +65,9 @@ namespace Microsoft.Build.Engine.UnitTests.InstanceFromRemote
 
         public override string GetAttributeValue(string attributeName, bool nullIfNotExists) => throw new NotImplementedException();
 
-        public override void InsertAfterChild(ProjectElement child, ProjectElement reference) => throw new NotImplementedException();
+        public override void InsertAfterChild(ProjectElement child, ProjectElement? reference) => throw new NotImplementedException();
 
-        public override void InsertBeforeChild(ProjectElement child, ProjectElement reference) => throw new NotImplementedException();
+        public override void InsertBeforeChild(ProjectElement child, ProjectElement? reference) => throw new NotImplementedException();
 
         public override void RemoveChild(ProjectElement child) => throw new NotImplementedException();
 

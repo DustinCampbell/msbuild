@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Build.BackEnd.Components.Logging;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -496,19 +497,19 @@ namespace Microsoft.Build.Internal
             else if (((!excludeFileSpecIsEmpty) || (includeLocation == null)) && (excludeLocation != null))
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
-                        excludeLocation,
-                        DriveEnumeratingWildcardMessageResourceName,
-                        fileSpec,
-                        XMakeAttributes.exclude,
-                        XMakeElements.itemGroup,
-                        excludeLocation.LocationString);
+                    excludeLocation,
+                    DriveEnumeratingWildcardMessageResourceName,
+                    fileSpec,
+                    XMakeAttributes.exclude,
+                    XMakeElements.itemGroup,
+                    excludeLocation.LocationString);
             }
         }
 
         private static void ThrowDriveEnumerationExceptionWithLoggingService(IElementLocation? includeLocation, string filespecUnescaped)
         {
             ProjectErrorUtilities.ThrowInvalidProject(
-                includeLocation,
+                includeLocation ?? ElementLocation.EmptyLocation,
                 DriveEnumeratingWildcardMessageResourceName,
                 filespecUnescaped,
                 XMakeAttributes.include,

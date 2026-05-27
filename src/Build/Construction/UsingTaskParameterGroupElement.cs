@@ -4,133 +4,108 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.Build.Internal;
 using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.Build.Shared;
-using ProjectXmlUtilities = Microsoft.Build.Internal.ProjectXmlUtilities;
 
-#nullable disable
+namespace Microsoft.Build.Construction;
 
-namespace Microsoft.Build.Construction
+/// <summary>
+/// UsingTaskParameterGroupElement represents a ParameterGroup under the using task.
+/// </summary>
+[DebuggerDisplay("#Parameters={Count}")]
+public class UsingTaskParameterGroupElement : ProjectElementContainer
 {
-    /// <summary>
-    /// UsingTaskParameterGroupElement represents a ParameterGroup under the using task.
-    /// </summary>
-    [DebuggerDisplay("#Parameters={Count}")]
-    public class UsingTaskParameterGroupElement : ProjectElementContainer
+    internal UsingTaskParameterGroupElement(UsingTaskParameterGroupElementLink link)
+        : base(link)
     {
-        /// <summary>
-        /// External projects support
-        /// </summary>
-        internal UsingTaskParameterGroupElement(UsingTaskParameterGroupElementLink link)
-            : base(link)
-        {
-        }
-
-        /// <summary>
-        /// Initialize a parented UsingTaskParameterGroupElement
-        /// </summary>
-        internal UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
-            : base(xmlElement, parent, containingProject)
-        {
-            ArgumentNullException.ThrowIfNull(parent);
-            VerifyCorrectParent(parent);
-        }
-
-        /// <summary>
-        /// Initialize an unparented UsingTaskParameterGroupElement
-        /// </summary>
-        private UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
-            : base(xmlElement, null, containingProject)
-        {
-        }
-
-        /// <summary>
-        /// Condition should never be set, but the getter returns null instead of throwing
-        /// because a nonexistent condition is implicitly true
-        /// </summary>
-        public override string Condition
-        {
-            get => null;
-            set => ErrorUtilities.ThrowInvalidOperation("OM_CannotGetSetCondition");
-        }
-
-        /// <summary>
-        /// Get any contained parameters.
-        /// </summary>
-        public ICollection<ProjectUsingTaskParameterElement> Parameters => GetChildrenOfType<ProjectUsingTaskParameterElement>();
-
-        /// <summary>
-        /// This does not allow conditions, so it should not be called.
-        /// </summary>
-        public override ElementLocation ConditionLocation
-            => InternalError.Throw<ElementLocation>("Should not evaluate this");
-
-        #region Add parameters
-        /// <summary>
-        /// Convenience method that picks a location based on a heuristic:
-        /// </summary>
-        public ProjectUsingTaskParameterElement AddParameter(string name, string output, string required, string parameterType)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(name);
-
-            ProjectUsingTaskParameterElement newParameter = ContainingProject.CreateUsingTaskParameterElement(name, output, required, parameterType);
-            AppendChild(newParameter);
-
-            return newParameter;
-        }
-
-        /// <summary>
-        /// Convenience method that picks a location based on a heuristic:
-        /// </summary>
-        public ProjectUsingTaskParameterElement AddParameter(string name)
-        {
-            return AddParameter(name, String.Empty, String.Empty, String.Empty);
-        }
-        #endregion
-
-        /// <summary>
-        /// Creates an unparented UsingTaskParameterGroupElement, wrapping an unparented XmlElement.
-        /// Caller should then ensure the element is added to a parent
-        /// </summary>
-        internal static UsingTaskParameterGroupElement CreateDisconnected(ProjectRootElement containingProject)
-        {
-            XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.usingTaskParameterGroup);
-
-            return new UsingTaskParameterGroupElement(element, containingProject);
-        }
-
-        /// <summary>
-        /// Overridden to verify that the potential parent and siblings
-        /// are acceptable. Throws InvalidOperationException if they are not.
-        /// </summary>
-        internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
-        {
-            VerifyCorrectParent(parent);
-        }
-
-        /// <inheritdoc />
-        protected override ProjectElement CreateNewInstance(ProjectRootElement owner)
-        {
-            return owner.CreateUsingTaskParameterGroupElement();
-        }
-
-        /// <summary>
-        /// Verify the parent is a usingTaskElement and that the taskFactory attribute is set
-        /// </summary>
-        private static void VerifyCorrectParent(ProjectElementContainer parent)
-        {
-            ProjectUsingTaskElement parentUsingTask = parent as ProjectUsingTaskElement;
-            ErrorUtilities.VerifyThrowInvalidOperation(parentUsingTask != null, "OM_CannotAcceptParent");
-
-            // Now since there is not goign to be a TaskElement on the using task we need to validate and make sure there is a TaskFactory attribute on the parent element and
-            // that it is not empty
-            if (parentUsingTask.TaskFactory.Length == 0)
-            {
-                Assumed.Null(parentUsingTask.Link, "TaskFactory");
-                ProjectXmlUtilities.VerifyThrowProjectRequiredAttribute(parent.XmlElement, "TaskFactory");
-            }
-
-            // UNDONE: Do check to make sure the parameter group is the first child
-        }
     }
+
+    internal UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
+        : base(xmlElement, parent, containingProject)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+        VerifyParent(parent);
+    }
+
+    private UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+        : base(xmlElement, null, containingProject)
+    {
+    }
+
+    /// <summary>
+    /// Condition should never be set, but the getter returns null instead of throwing
+    /// because a nonexistent condition is implicitly true.
+    /// </summary>
+    public override string? Condition
+    {
+        get => null;
+        set => ErrorUtilities.ThrowInvalidOperation("OM_CannotGetSetCondition");
+    }
+
+    /// <summary>
+    /// Get any contained parameters.
+    /// </summary>
+    public ICollection<ProjectUsingTaskParameterElement> Parameters
+        => GetChildrenOfType<ProjectUsingTaskParameterElement>();
+
+    /// <summary>
+    /// This does not allow conditions, so it should not be called.
+    /// </summary>
+    public override ElementLocation ConditionLocation
+        => Assumed.Unreachable<ElementLocation>("Should not evaluate this");
+
+    /// <summary>
+    /// Convenience method that picks a location based on a heuristic.
+    /// </summary>
+    public ProjectUsingTaskParameterElement AddParameter(string name, string output, string required, string parameterType)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        ProjectUsingTaskParameterElement newParameter = ContainingProject.CreateUsingTaskParameterElement(name, output, required, parameterType);
+        AppendChild(newParameter);
+
+        return newParameter;
+    }
+
+    /// <summary>
+    /// Convenience method that picks a location based on a heuristic.
+    /// </summary>
+    public ProjectUsingTaskParameterElement AddParameter(string name)
+        => AddParameter(name, string.Empty, string.Empty, string.Empty);
+
+    /// <summary>
+    /// Creates an unparented UsingTaskParameterGroupElement, wrapping an unparented XmlElement.
+    /// Caller should then ensure the element is added to a parent.
+    /// </summary>
+    internal static UsingTaskParameterGroupElement CreateDisconnected(ProjectRootElement containingProject)
+    {
+        XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.usingTaskParameterGroup);
+
+        return new(element, containingProject);
+    }
+
+    private protected override bool CanAcceptParent(ProjectElementContainer newParent)
+    {
+        // Verify the parent is a usingTaskElement and that the taskFactory attribute is set.
+        if (newParent is not ProjectUsingTaskElement parentUsingTask)
+        {
+            return false;
+        }
+
+        // Since there is not going to be a TaskElement on the using task we need to validate
+        // and make sure there is a TaskFactory attribute on the parent element and it is not empty
+        if (parentUsingTask.TaskFactory.Length == 0)
+        {
+            Assumed.False(newParent.IsLink, nameof(parentUsingTask.TaskFactory));
+            ProjectXmlUtilities.VerifyThrowProjectRequiredAttribute(newParent.XmlElement, nameof(parentUsingTask.TaskFactory));
+        }
+
+        // UNDONE: Do check to make sure the task body is the last child
+        return true;
+    }
+
+    /// <inheritdoc />
+    protected override ProjectElement CreateNewInstance(ProjectRootElement owner)
+        => owner.CreateUsingTaskParameterGroupElement();
 }

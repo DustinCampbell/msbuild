@@ -122,7 +122,7 @@ namespace Microsoft.Build.Construction
         }
 
         /// <summary>
-        /// Parses the project into the ProjectRootElement
+        /// Parses the project into the ProjectRootElement.
         /// </summary>
         private void Parse()
         {
@@ -133,13 +133,16 @@ namespace Microsoft.Build.Construction
             {
                 ProjectErrorUtilities.ThrowInvalidProject(ElementLocation.Create(_document.FullPath), "NoRootProjectElement", XMakeElements.project);
             }
+
             ProjectErrorUtilities.VerifyThrowInvalidProject(element.Name != XMakeElements.visualStudioProject, element.Location, "ProjectUpgradeNeeded", _project.FullPath);
             ProjectErrorUtilities.VerifyThrowInvalidProject(element.LocalName == XMakeElements.project, element.Location, "UnrecognizedElement", element.Name);
 
             // If a namespace was specified it must be the default MSBuild namespace.
             if (!ProjectXmlUtilities.VerifyValidProjectNamespace(element))
             {
-                ProjectErrorUtilities.ThrowInvalidProject(element.Location, "ProjectMustBeInMSBuildXmlNamespace",
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    element.Location,
+                    "ProjectMustBeInMSBuildXmlNamespace",
                     XMakeAttributes.defaultXmlNamespace);
             }
             else
@@ -185,7 +188,7 @@ namespace Microsoft.Build.Construction
                         break;
 
                     case XMakeElements.choose:
-                        _project.AppendParentedChildNoChecks(ParseProjectChooseElement(childElement, _project, 0 /* nesting depth */));
+                        _project.AppendParentedChildNoChecks(ParseProjectChooseElement(childElement, _project, nestingDepth: 0));
                         break;
 
                     case XMakeElements.projectExtensions:
@@ -458,12 +461,13 @@ namespace Microsoft.Build.Construction
             ProjectXmlUtilities.VerifyThrowProjectNoChildElements(element);
 
             SdkReference sdk = null;
+
             if (element.HasAttribute(XMakeAttributes.sdk))
             {
                 sdk = new SdkReference(
-                    ProjectXmlUtilities.GetAttributeValue(element, XMakeAttributes.sdk, nullIfNotExists: true),
-                    ProjectXmlUtilities.GetAttributeValue(element, XMakeAttributes.sdkVersion, nullIfNotExists: true),
-                    ProjectXmlUtilities.GetAttributeValue(element, XMakeAttributes.sdkMinimumVersion, nullIfNotExists: true));
+                    ProjectXmlUtilities.GetAttributeValueOrNull(element, XMakeAttributes.sdk),
+                    ProjectXmlUtilities.GetAttributeValueOrNull(element, XMakeAttributes.sdkVersion),
+                    ProjectXmlUtilities.GetAttributeValueOrNull(element, XMakeAttributes.sdkMinimumVersion));
             }
 
             return new ProjectImportElement(element, parent, _project, sdk);
@@ -575,7 +579,7 @@ namespace Microsoft.Build.Construction
             ProjectXmlUtilities.VerifyThrowProjectRequiredAttribute(element, XMakeAttributes.name);
 
             // Orcas compat: all target names are automatically unescaped
-            string targetName = EscapingUtilities.UnescapeAll(ProjectXmlUtilities.GetAttributeValue(element, XMakeAttributes.name));
+            string targetName = EscapingUtilities.UnescapeAll(ProjectXmlUtilities.GetAttributeValueOrEmpty(element, XMakeAttributes.name));
 
             int indexOfSpecialCharacter = targetName.AsSpan().IndexOfAny(XMakeElements.InvalidTargetNameCharacters);
             if (indexOfSpecialCharacter >= 0)

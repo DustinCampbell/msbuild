@@ -1442,7 +1442,7 @@ namespace Microsoft.Build.Evaluation
         public void UnloadProject(ProjectRootElement projectRootElement)
         {
             ArgumentNullException.ThrowIfNull(projectRootElement);
-            if (projectRootElement.Link != null)
+            if (projectRootElement.IsLink)
             {
                 return;
             }
@@ -1592,7 +1592,7 @@ namespace Microsoft.Build.Evaluation
         public bool TryUnloadProject(ProjectRootElement projectRootElement)
         {
             ArgumentNullException.ThrowIfNull(projectRootElement);
-            if (projectRootElement.Link != null)
+            if (projectRootElement.IsLink)
             {
                 return false;
             }

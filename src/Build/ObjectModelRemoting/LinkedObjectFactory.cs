@@ -8,8 +8,6 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 
-#nullable disable
-
 namespace Microsoft.Build.ObjectModelRemoting
 {
     /// <summary>
@@ -20,8 +18,10 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// <summary>
         /// Gets the current link, if any. For local objects returns null;
         /// </summary>
-        object Link { get; }
+        object? Link { get; }
     }
+
+#nullable disable
 
     /// <summary>
     /// Provide facility to ExternalProjectsProvider implementation
@@ -40,9 +40,7 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// Allows creating a local MSBuild OM objects representing externally hosted Projects.
         /// </summary>
         public static LinkedObjectsFactory Get(ProjectCollection collection)
-        {
-            return new LinkedObjectsFactory(collection);
-        }
+            => new LinkedObjectsFactory(collection);
 
         /// <summary>
         /// Get the underlying "link" proxy for a given MSBuild object model object (null if it is not linked).
@@ -58,9 +56,7 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// Check if an msbuild object is local (aka not from External Project)
         /// </summary>
         public static bool IsLocal(object obj)
-        {
-            return GetLink(obj) == null;
-        }
+            => GetLink(obj) == null;
 
         /// <summary>
         /// Local collection.
@@ -71,9 +67,7 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// Gets only locally load projects, excluding external
         /// </summary>
         public static IReadOnlyCollection<Project> GetLocalProjects(ProjectCollection collection, string projectFile = null)
-        {
-            return (IReadOnlyCollection<Project>)collection.GetLoadedProjects(false, projectFile);
-        }
+            => (IReadOnlyCollection<Project>)collection.GetLoadedProjects(false, projectFile);
 
         #region Evaluation
 
@@ -94,7 +88,7 @@ namespace Microsoft.Build.ObjectModelRemoting
 
         public Project Create(ProjectLink link)
         {
-            // note we do not use wrapper LikedProjects class in this case.
+            // note we do not use wrapper LinkedProjects class in this case.
             // Project element storage is in fact increased to support linked (with few bytes)
             // but since the Projects objects number are relatively low, this is not a big concern
             // as with other items that can be typically  1000s of times the number of projects.
@@ -117,120 +111,81 @@ namespace Microsoft.Build.ObjectModelRemoting
         }
 
         public ResolvedImport Create(ProjectImportElement importingElement, ProjectRootElement importedProject, int versionEvaluated, SdkResult sdkResult, bool isImported)
-        {
-            return new ResolvedImport(importingElement, importedProject, versionEvaluated, sdkResult, isImported);
-        }
+            => new ResolvedImport(importingElement, importedProject, versionEvaluated, sdkResult, isImported);
 
         #endregion
 
         #region Construction
 
         public ProjectRootElement Create(ProjectRootElementLink link)
-        {
-            return new ProjectRootElement(link);
-        }
+            => new(link);
 
         public ProjectChooseElement Create(ProjectChooseElementLink link)
-        {
-            return new ProjectChooseElement(link);
-        }
+            => new(link);
 
         public ProjectExtensionsElement Create(ProjectExtensionsElementLink link)
-        {
-            return new ProjectExtensionsElement(link);
-        }
+            => new(link);
 
         public ProjectImportElement Create(ProjectImportElementLink link)
-        {
-            return new ProjectImportElement(link);
-        }
+            => new(link);
 
         public ProjectImportGroupElement Create(ProjectImportGroupElementLink link)
-        {
-            return new ProjectImportGroupElement(link);
-        }
+            => new(link);
 
         public ProjectItemDefinitionElement Create(ProjectItemDefinitionElementLink link)
-        {
-            return new ProjectItemDefinitionElement(link);
-        }
+            => new(link);
 
         public ProjectItemDefinitionGroupElement Create(ProjectItemDefinitionGroupElementLink link)
-        {
-            return new ProjectItemDefinitionGroupElement(link);
-        }
+            => new(link);
 
         public ProjectItemElement Create(ProjectItemElementLink link)
-        {
-            return new ProjectItemElement(link);
-        }
+            => new(link);
 
         public ProjectItemGroupElement Create(ProjectItemGroupElementLink link)
-        {
-            return new ProjectItemGroupElement(link);
-        }
+            => new(link);
 
         public ProjectMetadataElement Create(ProjectMetadataElementLink link)
-        {
-            return new ProjectMetadataElement(link);
-        }
+            => new(link);
 
         public ProjectOnErrorElement Create(ProjectOnErrorElementLink link)
-        {
-            return new ProjectOnErrorElement(link);
-        }
+            => new(link);
 
         public ProjectOtherwiseElement Create(ProjectOtherwiseElementLink link)
-        {
-            return new ProjectOtherwiseElement(link);
-        }
+            => new(link);
 
         public ProjectOutputElement Create(ProjectOutputElementLink link)
-        {
-            return new ProjectOutputElement(link);
-        }
+            => new(link);
 
         public ProjectPropertyElement Create(ProjectPropertyElementLink link)
-        {
-            return new ProjectPropertyElement(link);
-        }
+            => new(link);
 
         public ProjectPropertyGroupElement Create(ProjectPropertyGroupElementLink link)
-        {
-            return new ProjectPropertyGroupElement(link);
-        }
+            => new(link);
+
         public ProjectSdkElement Create(ProjectSdkElementLink link)
-        {
-            return new ProjectSdkElement(link);
-        }
+            => new(link);
+
         public ProjectTargetElement Create(ProjectTargetElementLink link)
-        {
-            return new ProjectTargetElement(link);
-        }
+            => new(link);
+
         public ProjectTaskElement Create(ProjectTaskElementLink link)
-        {
-            return new ProjectTaskElement(link);
-        }
+            => new(link);
+
         public ProjectUsingTaskBodyElement Create(ProjectUsingTaskBodyElementLink link)
-        {
-            return new ProjectUsingTaskBodyElement(link);
-        }
+            => new(link);
+
         public ProjectUsingTaskElement Create(ProjectUsingTaskElementLink link)
-        {
-            return new ProjectUsingTaskElement(link);
-        }
+            => new(link);
+
         public ProjectUsingTaskParameterElement Create(ProjectUsingTaskParameterElementLink link)
-        {
-            return new ProjectUsingTaskParameterElement(link);
-        }
+            => new(link);
+
         public ProjectWhenElement Create(ProjectWhenElementLink link)
-        {
-            return new ProjectWhenElement(link);
-        }
+            => new(link);
+
         public UsingTaskParameterGroupElement Create(UsingTaskParameterGroupElementLink link)
-        {
-            return new UsingTaskParameterGroupElement(link);
-        }
+            => new(link);
+
         #endregion
 
         #region Linked classes helpers

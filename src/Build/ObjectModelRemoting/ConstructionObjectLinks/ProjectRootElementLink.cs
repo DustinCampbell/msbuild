@@ -101,7 +101,7 @@ namespace Microsoft.Build.ObjectModelRemoting
         public abstract ProjectItemGroupElement CreateItemGroupElement();
 
         /// <summary>
-        /// Facilitate remoting the <see cref="ProjectRootElement.CreateImportGroupElement"/>.
+        /// Facilitate remoting the <see cref="ProjectRootElement.CreateImportGroupElement()"/>.
         /// </summary>
         public abstract ProjectImportGroupElement CreateImportGroupElement();
 
@@ -128,7 +128,7 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// <summary>
         /// Facilitate remoting the <see cref="ProjectRootElement.CreateOutputElement"/>.
         /// </summary>
-        public abstract ProjectOutputElement CreateOutputElement(string taskParameter, string itemType, string propertyName);
+        public abstract ProjectOutputElement CreateOutputElement(string taskParameter, string? itemType, string? propertyName);
 
         /// <summary>
         /// Facilitate remoting the <see cref="ProjectRootElement.CreateProjectExtensionsElement"/>.
@@ -156,9 +156,9 @@ namespace Microsoft.Build.ObjectModelRemoting
         public abstract ProjectTaskElement CreateTaskElement(string name);
 
         /// <summary>
-        /// Facilitate remoting the <see cref="ProjectRootElement.CreateUsingTaskElement(string, string, string, string, string)"/>.
+        /// Facilitate remoting the <see cref="ProjectRootElement.CreateUsingTaskElement(string, string, string, string?, string?)"/>.
         /// </summary>
-        public abstract ProjectUsingTaskElement CreateUsingTaskElement(string taskName, string assemblyFile, string assemblyName, string runtime, string architecture);
+        public abstract ProjectUsingTaskElement CreateUsingTaskElement(string taskName, string assemblyFile, string assemblyName, string? runtime, string? architecture);
 
         /// <summary>
         /// Facilitate remoting the <see cref="ProjectRootElement.CreateUsingTaskParameterGroupElement"/>.
@@ -208,6 +208,6 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// <summary>
         /// Facilitate remoting the <see cref="ProjectRootElement.MarkDirty"/>.
         /// </summary>
-        public abstract void MarkDirty(string reason, string param);
+        public abstract void MarkDirty(string reason, string? param);
     }
 }

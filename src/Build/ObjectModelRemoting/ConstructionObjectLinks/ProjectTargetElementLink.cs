@@ -19,6 +19,6 @@ namespace Microsoft.Build.ObjectModelRemoting
         /// <summary>
         /// Access to remote <see cref="ProjectTargetElement.Returns"/>.
         /// </summary>
-        public abstract string Returns { set; }
+        public abstract string? Returns { set; }
     }
 }
