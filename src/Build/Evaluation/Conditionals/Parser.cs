@@ -301,8 +301,12 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                var arglist = new List<GenericExpressionNode>();
-                TryParseArglist(arglist);
+                if (!TryParseArglist(out List<GenericExpressionNode> arglist))
+                {
+                    result = null;
+                    return false;
+                }
+
                 if (!Same(Token.TokenType.RightParenthesis))
                 {
                     errorPosition = _lexer.GetErrorPosition();
@@ -355,23 +359,28 @@ namespace Microsoft.Build.Evaluation
             return false;
         }
 
-        private void TryParseArglist(List<GenericExpressionNode> arglist)
+        private bool TryParseArglist(out List<GenericExpressionNode> arglist)
         {
-            if (!_lexer.IsNext(Token.TokenType.RightParenthesis))
+            arglist = new List<GenericExpressionNode>();
+
+            if (_lexer.IsNext(Token.TokenType.RightParenthesis))
             {
-                TryParseArgs(arglist);
+                return true;
             }
-        }
 
-        private void TryParseArgs(List<GenericExpressionNode> arglist)
-        {
-            TryParseArg(out GenericExpressionNode arg);
-
-            arglist.Add(arg);
-
-            if (Same(Token.TokenType.Comma))
+            while (true)
             {
-                TryParseArgs(arglist);
+                if (!TryParseArg(out GenericExpressionNode arg))
+                {
+                    return false;
+                }
+
+                arglist.Add(arg);
+
+                if (!Same(Token.TokenType.Comma))
+                {
+                    return true;
+                }
             }
         }
 
@@ -428,6 +437,8 @@ namespace Microsoft.Build.Evaluation
                     {
                         ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, _lexer.GetErrorResource(), _expression, errorPosition);
                     }
+
+                    return false;
                 }
 
                 return true;
