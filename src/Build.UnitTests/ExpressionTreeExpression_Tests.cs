@@ -431,8 +431,7 @@ namespace Microsoft.Build.UnitTests
         [MemberData(nameof(TrueTests))]
         public void EvaluateAVarietyOfTrueExpressions(string expression)
         {
-            Parser p = new Parser();
-            GenericExpressionNode tree = p.Parse(expression, ParserOptions.AllowAll, ElementLocation.EmptyLocation);
+            GenericExpressionNode tree = Parser.Parse(expression, ParserOptions.AllowAll, ElementLocation.EmptyLocation).Node;
             ConditionEvaluator.IConditionEvaluationState state =
                 new ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance>(
                     expression,
@@ -455,8 +454,7 @@ namespace Microsoft.Build.UnitTests
         [MemberData(nameof(FalseTests))]
         public void EvaluateAVarietyOfFalseExpressions(string expression)
         {
-            Parser p = new Parser();
-            GenericExpressionNode tree = p.Parse(expression, ParserOptions.AllowAll, ElementLocation.EmptyLocation);
+            GenericExpressionNode tree = Parser.Parse(expression, ParserOptions.AllowAll, ElementLocation.EmptyLocation).Node;
             ConditionEvaluator.IConditionEvaluationState state =
                 new ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance>(
                     expression,
@@ -486,8 +484,8 @@ namespace Microsoft.Build.UnitTests
             bool caughtException = false;
             try
             {
-                Parser p = new Parser();
-                var tree = p.Parse(expression, ParserOptions.AllowAll, ElementLocation.EmptyLocation);
+                var result = Parser.Parse(expression, ParserOptions.AllowAll, ElementLocation.EmptyLocation);
+                result.ThrowIfError();
 
                 ConditionEvaluator.IConditionEvaluationState state =
                     new ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance>(
@@ -499,7 +497,7 @@ namespace Microsoft.Build.UnitTests
                         ElementLocation.EmptyLocation,
                         FileSystems.Default);
 
-                tree.Evaluate(state);
+                result.Node.Evaluate(state);
             }
             catch (InvalidProjectFileException ex)
             {

@@ -253,8 +253,9 @@ namespace Microsoft.Build.Evaluation
                 GenericExpressionNode parsedExpression;
                 if (expressionPool.Count == 0)
                 {
-                    var conditionParser = new Parser(loggingContext);
-                    parsedExpression = conditionParser.Parse(condition, options, elementLocation);
+                    ParseResult parseResult = Parser.Parse(condition, options, elementLocation, loggingContext);
+                    parseResult.ThrowIfError();
+                    parsedExpression = parseResult.Node;
                 }
                 else
                 {

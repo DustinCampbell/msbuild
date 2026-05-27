@@ -141,8 +141,5 @@ public class ConditionParsingBenchmark
         => Parse(RealisticMultiTargeting);
 
     private object Parse(string condition)
-    {
-        var parser = new Parser();
-        return parser.Parse(condition, ParserOptions.AllowAll, _elementLocation);
-    }
+        => Parser.Parse(condition, ParserOptions.AllowAll, _elementLocation);
 }

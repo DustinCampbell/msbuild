@@ -1,8 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -29,11 +30,55 @@ namespace Microsoft.Build.Evaluation
     };
 
     /// <summary>
+    ///  Represents the result of parsing a condition expression.
+    ///  Contains either a successfully parsed expression node or error information.
+    /// </summary>
+    internal readonly struct ParseResult
+    {
+        public GenericExpressionNode Node { get; }
+        public string ErrorResource { get; }
+        public object[] ErrorArgs { get; }
+        internal int ErrorPosition { get; }
+
+        private readonly ElementLocation _elementLocation;
+
+        [MemberNotNullWhen(false, nameof(Node))]
+        [MemberNotNullWhen(true, nameof(ErrorResource))]
+        [MemberNotNullWhen(true, nameof(ErrorArgs))]
+        public bool IsError => ErrorResource is not null;
+
+        private ParseResult(GenericExpressionNode node, string errorResource, object[] errorArgs, int errorPosition, ElementLocation elementLocation)
+        {
+            Node = node;
+            ErrorResource = errorResource;
+            ErrorArgs = errorArgs;
+            ErrorPosition = errorPosition;
+            _elementLocation = elementLocation;
+        }
+
+        public static ParseResult Success(GenericExpressionNode node)
+            => new(node, errorResource: null, errorArgs: null, errorPosition: 0, elementLocation: null);
+
+        public static ParseResult Error(string resource, object[] args, int position, ElementLocation elementLocation)
+            => new(node: null, resource, args, position, elementLocation);
+
+        /// <summary>
+        ///  Throws an <see cref="Exceptions.InvalidProjectFileException"/> if this result represents a parse error.
+        /// </summary>
+        public void ThrowIfError()
+        {
+            if (IsError)
+            {
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, ErrorResource, ErrorArgs);
+            }
+        }
+    }
+
+    /// <summary>
     /// This class implements the grammar for complex conditionals.
     ///
     /// The usage is:
-    ///    Parser p = new Parser(CultureInfo);
-    ///    ExpressionTree t = p.Parse(expression, XmlNode);
+    ///    ParseResult result = Parser.Parse(expression, options, elementLocation);
     ///
     /// The expression tree can then be evaluated and re-evaluated as needed.
     /// </summary>
@@ -42,12 +87,11 @@ namespace Microsoft.Build.Evaluation
     /// </remarks>
     internal sealed class Parser
     {
-        private Scanner _lexer;
-        private string _expression;
-        private ParserOptions _options;
-        private ElementLocation _elementLocation;
-        internal int errorPosition = 0; // useful for unit tests
+        private readonly Scanner _lexer;
+        private readonly string _expression;
+        private readonly ElementLocation _elementLocation;
 
+        private int _errorPosition;
         private string _errorResource;
         private object[] _errorArgs;
 
@@ -60,73 +104,117 @@ namespace Microsoft.Build.Evaluation
         private readonly BuildEventContext _logBuildEventContext;
         private bool _warnedForExpression;
 
-        internal Parser(LoggingContext loggingContext = null)
+        private Parser(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext loggingContext)
         {
+            // We currently have no support (and no scenarios) for disallowing property references in Conditions.
+            Assumed.True((options & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
+
+            _expression = expression;
+            _elementLocation = elementLocation;
             _loggingServices = loggingContext?.LoggingService;
             _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
+
+            _lexer = new Scanner(expression, options);
         }
 
         //
         // Main entry point for parser.
-        // You pass in the expression you want to parse, and you get an
-        // ExpressionTree out the back end.
+        // You pass in the expression you want to parse, and you get a
+        // ParseResult containing either the parsed expression tree or error information.
         //
-        internal GenericExpressionNode Parse(string expression, ParserOptions optionSettings, ElementLocation elementLocation)
+        internal static ParseResult Parse(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext loggingContext = null)
         {
-            // We currently have no support (and no scenarios) for disallowing property references
-            // in Conditions.
-            Assumed.True((optionSettings & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
-
-            _options = optionSettings;
-            _elementLocation = elementLocation;
-            _expression = expression;
-            _errorResource = null;
-            _errorArgs = null;
-
-            _lexer = new Scanner(expression, _options);
-            if (!_lexer.Advance())
-            {
-                SetError(_lexer.GetErrorResource(), [expression, _lexer.GetErrorPosition(), _lexer.UnexpectedlyFound]);
-            }
-            else if (!TryParseExpr(out GenericExpressionNode node))
-            {
-                // Error already set by TryParseExpr or a descendant.
-            }
-            else if (!_lexer.IsNext(Token.TokenType.EndOfInput))
-            {
-                SetError("UnexpectedTokenInCondition", [expression, _lexer.IsNextString(), _lexer.GetErrorPosition()]);
-            }
-            else
-            {
-                return node;
-            }
-
-            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, _errorResource, _errorArgs);
-            return null; // Unreachable
+            var parser = new Parser(expression, options, elementLocation, loggingContext);
+            return parser.ParseCore();
         }
 
-        private bool SetErrorAndReturn<T>(string resource, object[] args, out T result)
+        private ParseResult ParseCore()
+        {
+            if (!_lexer.Advance())
+            {
+                SetScannerError();
+                return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
+            }
+
+            if (!TryParseExpr(out GenericExpressionNode node))
+            {
+                Assumed.NotNull(_errorResource);
+                return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
+            }
+
+            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+            {
+                UnexpectedTokenInCondition();
+                return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
+            }
+
+            return ParseResult.Success(node);
+        }
+
+        private bool UnexpectedTokenInConditionAndReturn<T>(out T result)
             where T : class
         {
             result = null;
-            return SetErrorAndReturn(resource, args);
+            return UnexpectedTokenInConditionAndReturn();
         }
 
-        private bool SetErrorAndReturn(string resource, object[] args)
+        private bool UnexpectedTokenInConditionAndReturn()
         {
-            SetError(resource, args);
+            UnexpectedTokenInCondition();
             return false;
+        }
+
+        private void UnexpectedTokenInCondition()
+        {
+            if (HasError)
+            {
+                return;
+            }
+
+            _errorPosition = _lexer.GetErrorPosition();
+            SetError("UnexpectedTokenInCondition", [_expression, _lexer.IsNextString(), _errorPosition]);
+        }
+
+        private bool SetScannerErrorAndReturn()
+        {
+            SetScannerError();
+            return false;
+        }
+
+        private void SetScannerError()
+        {
+            if (HasError)
+            {
+                return;
+            }
+
+            _errorPosition = _lexer.GetErrorPosition();
+
+            if (_lexer.UnexpectedlyFound != null)
+            {
+                SetError(_lexer.GetErrorResource(), [_expression, _errorPosition, _lexer.UnexpectedlyFound]);
+            }
+            else
+            {
+                SetError(_lexer.GetErrorResource(), [_expression, _errorPosition]);
+            }
         }
 
         private void SetError(string resource, object[] args)
         {
-            if (_errorResource is null)
+            if (HasError)
             {
-                errorPosition = _lexer.GetErrorPosition();
-                _errorResource = resource;
-                _errorArgs = args;
+                return;
             }
+
+            _errorPosition = _lexer.GetErrorPosition();
+            _errorResource = resource;
+            _errorArgs = args;
         }
+
+        [MemberNotNullWhen(true, nameof(_errorResource))]
+        [MemberNotNullWhen(true, nameof(_errorArgs))]
+        private bool HasError => _errorResource is not null;
 
         private bool TryParseExpr(out GenericExpressionNode result)
         {
@@ -315,7 +403,7 @@ namespace Microsoft.Build.Evaluation
             {
                 if (!Same(Token.TokenType.LeftParenthesis))
                 {
-                    return SetErrorAndReturn("UnexpectedTokenInCondition", [_expression, _lexer.IsNextString(), _lexer.GetErrorPosition()], out result);
+                    return UnexpectedTokenInConditionAndReturn(out result);
                 }
 
                 if (!TryParseArglist(out List<GenericExpressionNode> arglist))
@@ -326,7 +414,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (!Same(Token.TokenType.RightParenthesis))
                 {
-                    return SetErrorAndReturn("UnexpectedTokenInCondition", [_expression, _lexer.IsNextString(), _lexer.GetErrorPosition()], out result);
+                    return UnexpectedTokenInConditionAndReturn(out result);
                 }
 
                 result = new FunctionCallExpressionNode(current.String, arglist);
@@ -347,7 +435,7 @@ namespace Microsoft.Build.Evaluation
                     return true;
                 }
 
-                return SetErrorAndReturn("UnexpectedTokenInCondition", [_expression, _lexer.IsNextString(), _lexer.GetErrorPosition()], out result);
+                return UnexpectedTokenInConditionAndReturn(out result);
             }
 
             if (Same(Token.TokenType.Not))
@@ -364,7 +452,7 @@ namespace Microsoft.Build.Evaluation
                 return true;
             }
 
-            return SetErrorAndReturn("UnexpectedTokenInCondition", [_expression, _lexer.IsNextString(), _lexer.GetErrorPosition()], out result);
+            return UnexpectedTokenInConditionAndReturn(out result);
         }
 
         private bool TryParseArglist(out List<GenericExpressionNode> result)
@@ -380,7 +468,7 @@ namespace Microsoft.Build.Evaluation
             {
                 if (!TryParseArg(out GenericExpressionNode arg))
                 {
-                    return SetErrorAndReturn("UnexpectedTokenInCondition", [_expression, _lexer.IsNextString(), _lexer.GetErrorPosition()], out result);
+                    return UnexpectedTokenInConditionAndReturn(out result);
                 }
 
                 result.Add(arg);
@@ -431,20 +519,6 @@ namespace Microsoft.Build.Evaluation
         }
 
         private bool Same(Token.TokenType token)
-        {
-            if (_lexer.IsNext(token))
-            {
-                if (!_lexer.Advance())
-                {
-                    return _lexer.UnexpectedlyFound != null
-                        ? SetErrorAndReturn(_lexer.GetErrorResource(), [_expression, _lexer.GetErrorPosition(), _lexer.UnexpectedlyFound])
-                        : SetErrorAndReturn(_lexer.GetErrorResource(), [_expression, _lexer.GetErrorPosition()]);
-                }
-
-                return true;
-            }
-
-            return false;
-        }
+            => _lexer.IsNext(token) && (_lexer.Advance() || SetScannerErrorAndReturn());
     }
 }
