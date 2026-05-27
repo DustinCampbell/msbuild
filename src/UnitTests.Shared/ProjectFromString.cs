@@ -72,7 +72,7 @@ namespace Microsoft.Build.UnitTests
         {
             _reader = XmlReader.Create(new StringReader(s));
 
-            Project = new ProjectRootElement(_reader, projectCollection.ProjectRootElementCache, isExplicitlyLoaded, preserveFormatting);
+            Project = new XmlProjectRootElement(_reader, projectCollection.ProjectRootElementCache, isExplicitlyLoaded, preserveFormatting);
         }
 
         public void Dispose()

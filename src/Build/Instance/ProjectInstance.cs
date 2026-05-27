@@ -3094,7 +3094,7 @@ namespace Microsoft.Build.Execution
             StringReader sr = new StringReader(wrapperProjectXml);
             using (XmlReader xmlReader = XmlReader.Create(sr, xrs))
             {
-                ProjectRootElement projectRootElement = new(
+                ProjectRootElement projectRootElement = new XmlProjectRootElement(
                     xmlReader,
                     projectRootElementCache,
                     isExplicitlyLoaded,

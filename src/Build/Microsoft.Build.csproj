@@ -468,6 +468,10 @@
     <Compile Include="Construction\ProjectUsingTaskBodyElement.cs" />
     <Compile Include="Construction\XmlProjectUsingTaskBodyElement.cs" />
     <Compile Include="Construction\LinkedProjectUsingTaskBodyElement.cs" />
+    <Compile Include="Construction\XmlProjectUsingTaskElement.cs" />
+    <Compile Include="Construction\LinkedProjectUsingTaskElement.cs" />
+    <Compile Include="Construction\XmlProjectRootElement.cs" />
+    <Compile Include="Construction\LinkedProjectRootElement.cs" />
     <Compile Include="Construction\Solution\SolutionConfigurationInSolution.cs" />
     <Compile Include="Construction\Solution\ProjectConfigurationInSolution.cs" />
     <Compile Include="Construction\Solution\ProjectInSolution.cs" />

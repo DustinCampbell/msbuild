@@ -118,7 +118,7 @@ namespace Microsoft.Build.ObjectModelRemoting
         #region Construction
 
         public ProjectRootElement Create(ProjectRootElementLink link)
-            => new(link);
+            => new LinkedProjectRootElement(link);
 
         public ProjectChooseElement Create(ProjectChooseElementLink link)
             => new LinkedProjectChooseElement(link);
@@ -175,7 +175,7 @@ namespace Microsoft.Build.ObjectModelRemoting
             => new LinkedProjectUsingTaskBodyElement(link);
 
         public ProjectUsingTaskElement Create(ProjectUsingTaskElementLink link)
-            => new(link);
+            => new LinkedProjectUsingTaskElement(link);
 
         public ProjectUsingTaskParameterElement Create(ProjectUsingTaskParameterElementLink link)
             => new LinkedProjectUsingTaskParameterElement(link);

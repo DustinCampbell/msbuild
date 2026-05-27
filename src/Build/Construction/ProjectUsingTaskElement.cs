@@ -15,18 +15,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("TaskName={TaskName} AssemblyName={AssemblyName} AssemblyFile={AssemblyFile} Condition={Condition} Runtime={Runtime} Architecture={Architecture}")]
 public class ProjectUsingTaskElement : ProjectElementContainer
 {
-    internal ProjectUsingTaskElement(ProjectUsingTaskElementLink link)
+    private protected ProjectUsingTaskElement(ProjectUsingTaskElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectUsingTaskElement(XmlElementWithLocation xmlElement, ProjectRootElement parent, ProjectRootElement containingProject)
+    private protected ProjectUsingTaskElement(XmlElementWithLocation xmlElement, ProjectRootElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectUsingTaskElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectUsingTaskElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -229,7 +229,7 @@ public class ProjectUsingTaskElement : ProjectElementContainer
 
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.usingTask);
 
-        var usingTask = new ProjectUsingTaskElement(element, containingProject)
+        var usingTask = new XmlProjectUsingTaskElement(element, containingProject)
         {
             TaskName = taskName,
             Runtime = runtime ?? string.Empty,

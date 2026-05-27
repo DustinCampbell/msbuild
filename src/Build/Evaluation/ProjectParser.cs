@@ -528,7 +528,7 @@ namespace Microsoft.Build.Construction
             ProjectXmlUtilities.VerifyThrowProjectAttributeEitherMissingOrNotEmpty(element, XMakeAttributes.assemblyName);
             ProjectXmlUtilities.VerifyThrowProjectAttributeEitherMissingOrNotEmpty(element, XMakeAttributes.assemblyFile);
 
-            ProjectUsingTaskElement usingTask = new ProjectUsingTaskElement(element, _project, _project);
+            ProjectUsingTaskElement usingTask = new XmlProjectUsingTaskElement(element, _project, _project);
 
             bool foundTaskElement = false;
             bool foundParameterGroup = false;

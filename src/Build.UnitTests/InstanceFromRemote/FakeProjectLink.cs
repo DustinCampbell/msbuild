@@ -28,7 +28,7 @@ namespace Microsoft.Build.Engine.UnitTests.InstanceFromRemote
             IDictionary<string, ProjectItemDefinition>? itemDefinitions = null,
             ICollection<ProjectItem>? items = null)
         {
-            Xml = new ProjectRootElement(new FakeProjectRootElementLink(path));
+            Xml = new LinkedProjectRootElement(new FakeProjectRootElementLink(path));
             Properties = properties ?? new FakeCachedEntityDictionary<ProjectProperty>();
             ItemDefinitions = itemDefinitions ?? new FakeCachedEntityDictionary<ProjectItemDefinition>();
             Items = items ?? new FakeProjectItemDictionary();

@@ -168,7 +168,7 @@ public partial class ProjectRootElement : ProjectElementContainer
     [MemberNotNullWhen(false, nameof(ProjectRootElementCache))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectRootElement(ProjectRootElementLink link)
+    private protected ProjectRootElement(ProjectRootElementLink link)
         : base(link)
     {
     }
@@ -179,7 +179,7 @@ public partial class ProjectRootElement : ProjectElementContainer
     /// Leaves the project dirty, indicating there are unsaved changes.
     /// Used to create a root element for solutions loaded by the 3.5 version of the solution wrapper.
     /// </summary>
-    internal ProjectRootElement(XmlReader xmlReader, ProjectRootElementCacheBase projectRootElementCache, bool isExplicitlyLoaded, bool preserveFormatting)
+    private protected ProjectRootElement(XmlReader xmlReader, ProjectRootElementCacheBase projectRootElementCache, bool isExplicitlyLoaded, bool preserveFormatting)
     {
         ArgumentNullException.ThrowIfNull(xmlReader);
         ArgumentNullException.ThrowIfNull(projectRootElementCache);
@@ -194,7 +194,7 @@ public partial class ProjectRootElement : ProjectElementContainer
         ProjectParser.Parse(document, this);
     }
 
-    private ProjectRootElement(ProjectRootElementCacheBase projectRootElementCache, NewProjectFileOptions projectFileOptions, bool isEphemeral)
+    private protected ProjectRootElement(ProjectRootElementCacheBase projectRootElementCache, NewProjectFileOptions projectFileOptions, bool isEphemeral)
         : this(projectRootElementCache, projectFileOptions)
     {
         IsEphemeral = isEphemeral;
@@ -204,7 +204,7 @@ public partial class ProjectRootElement : ProjectElementContainer
     /// Initialize an in-memory, empty ProjectRootElement instance that can be saved later.
     /// Leaves the project dirty, indicating there are unsaved changes.
     /// </summary>
-    private ProjectRootElement(ProjectRootElementCacheBase projectRootElementCache, NewProjectFileOptions projectFileOptions)
+    private protected ProjectRootElement(ProjectRootElementCacheBase projectRootElementCache, NewProjectFileOptions projectFileOptions)
     {
         ArgumentNullException.ThrowIfNull(projectRootElementCache);
 
@@ -233,7 +233,7 @@ public partial class ProjectRootElement : ProjectElementContainer
     /// Assumes path is already normalized.
     /// May throw InvalidProjectFileException.
     /// </summary>
-    private ProjectRootElement(string path, ProjectRootElementCacheBase projectRootElementCache, bool preserveFormatting)
+    private protected ProjectRootElement(string path, ProjectRootElementCacheBase projectRootElementCache, bool preserveFormatting)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
         ErrorUtilities.VerifyThrowInternalRooted(path);
@@ -258,7 +258,7 @@ public partial class ProjectRootElement : ProjectElementContainer
     /// <remarks>
     /// Do not make public: we do not wish to expose particular XML API's.
     /// </remarks>
-    private ProjectRootElement(XmlDocumentWithLocation document, ProjectRootElementCacheBase projectRootElementCache)
+    private protected ProjectRootElement(XmlDocumentWithLocation document, ProjectRootElementCacheBase projectRootElementCache)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(projectRootElementCache);
@@ -272,12 +272,12 @@ public partial class ProjectRootElement : ProjectElementContainer
 
     /// <summary>
     /// Initialize a ProjectRootElement instance from an existing document.
-    /// Helper constructor for the <see cref="ReloadFrom(string,bool,bool?)"/>> mehtod which needs to check if the document parses
+    /// Helper constructor for the <see cref="ReloadFrom(string,bool,bool?)"/> method which needs to check if the document parses
     /// </summary>
     /// <remarks>
     /// Do not make public: we do not wish to expose particular XML API's.
     /// </remarks>
-    private ProjectRootElement(XmlDocumentWithLocation document)
+    private protected ProjectRootElement(XmlDocumentWithLocation document)
     {
         ProjectParser.Parse(document, projectRootElement: this);
     }
@@ -765,7 +765,7 @@ public partial class ProjectRootElement : ProjectElementContainer
     {
         ArgumentNullException.ThrowIfNull(projectRootElementCache);
 
-        return new(projectRootElementCache, Project.DefaultNewProjectTemplateOptions, isEphemeral: true);
+        return new XmlProjectRootElement(projectRootElementCache, Project.DefaultNewProjectTemplateOptions, isEphemeral: true);
     }
 
     /// <summary>
@@ -829,7 +829,7 @@ public partial class ProjectRootElement : ProjectElementContainer
         ArgumentException.ThrowIfNullOrEmpty(path);
         ArgumentNullException.ThrowIfNull(projectCollection);
 
-        return new(projectCollection.ProjectRootElementCache, newProjectFileOptions)
+        return new XmlProjectRootElement(projectCollection.ProjectRootElementCache, newProjectFileOptions)
         {
             FullPath = path
         };
@@ -860,7 +860,7 @@ public partial class ProjectRootElement : ProjectElementContainer
     {
         ArgumentNullException.ThrowIfNull(projectCollection);
 
-        return new ProjectRootElement(xmlReader, projectCollection.ProjectRootElementCache, isExplicitlyLoaded: true, preserveFormatting);
+        return new XmlProjectRootElement(xmlReader, projectCollection.ProjectRootElementCache, isExplicitlyLoaded: true, preserveFormatting);
     }
 
     /// <summary>
@@ -1726,7 +1726,7 @@ public partial class ProjectRootElement : ProjectElementContainer
     private static void ThrowIfDocumentHasParsingErrors(XmlDocumentWithLocation document)
     {
         // todo: rather than throw away, copy over the parse results
-        _ = new ProjectRootElement(document);
+        _ = new XmlProjectRootElement(document);
     }
 
     /// <summary>
@@ -1734,10 +1734,10 @@ public partial class ProjectRootElement : ProjectElementContainer
     /// Uses the specified project root element cache.
     /// </summary>
     internal static ProjectRootElement Create(ProjectRootElementCacheBase projectRootElementCache)
-        => new(projectRootElementCache, Project.DefaultNewProjectTemplateOptions);
+        => new XmlProjectRootElement(projectRootElementCache, Project.DefaultNewProjectTemplateOptions);
 
     internal static ProjectRootElement Create(ProjectRootElementCacheBase projectRootElementCache, NewProjectFileOptions projectFileOptions)
-        => new(projectRootElementCache, projectFileOptions);
+        => new XmlProjectRootElement(projectRootElementCache, projectFileOptions);
 
     /// <summary>
     /// Initialize a ProjectRootElement instance by loading from the specified file path.
@@ -2007,7 +2007,7 @@ public partial class ProjectRootElement : ProjectElementContainer
         => OpenLoader(path, projectRootElementCache, preserveFormatting: true);
 
     private static ProjectRootElement OpenLoader(string path, ProjectRootElementCacheBase projectRootElementCache, bool preserveFormatting)
-        => new(path, projectRootElementCache, preserveFormatting);
+        => new XmlProjectRootElement(path, projectRootElementCache, preserveFormatting);
 
     /// <summary>
     /// Creates a ProjectRootElement representing a file, where the file may be a .sln instead of
@@ -2028,7 +2028,7 @@ public partial class ProjectRootElement : ProjectElementContainer
             }
 
             // OK it's a regular project file, load it normally.
-            return new ProjectRootElement(projectFile, projectRootElementCache, preserveFormatting);
+            return new XmlProjectRootElement(projectFile, projectRootElementCache, preserveFormatting);
         }
         catch (InvalidProjectFileException)
         {

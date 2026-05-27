@@ -33,7 +33,7 @@ namespace Microsoft.Build.Engine.UnitTests.InstanceFromRemote
 
         public override ProjectElementContainer Parent => throw new NotImplementedException();
 
-        public override ProjectRootElement ContainingProject => new ProjectRootElement(new FakeProjectRootElementLink(_filePath));
+        public override ProjectRootElement ContainingProject => new LinkedProjectRootElement(new FakeProjectRootElementLink(_filePath));
 
         public override string ElementName { get; }
 
