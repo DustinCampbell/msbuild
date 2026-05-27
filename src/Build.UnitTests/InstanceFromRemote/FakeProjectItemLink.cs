@@ -32,7 +32,7 @@ namespace Microsoft.Build.Engine.UnitTests.InstanceFromRemote
         public override Project Project { get; }
 
         // Note: this is still a thrown away overhead in current implementation.
-        public override ProjectItemElement Xml => new ProjectItemElement(_xmlLink);
+        public override ProjectItemElement Xml => new LinkedProjectItemElement(_xmlLink);
 
         public override string EvaluatedInclude { get; }
 

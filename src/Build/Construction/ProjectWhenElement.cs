@@ -15,18 +15,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("#Children={Count} Condition={Condition}")]
 public class ProjectWhenElement : ProjectElementContainer
 {
-    internal ProjectWhenElement(ProjectWhenElementLink link)
+    private protected ProjectWhenElement(ProjectWhenElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectWhenElement(XmlElementWithLocation xmlElement, ProjectChooseElement parent, ProjectRootElement containingProject)
+    private protected ProjectWhenElement(XmlElementWithLocation xmlElement, ProjectChooseElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectWhenElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectWhenElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -57,7 +57,7 @@ public class ProjectWhenElement : ProjectElementContainer
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.when);
 
-        return new(element, containingProject)
+        return new XmlProjectWhenElement(element, containingProject)
         {
             Condition = condition,
         };

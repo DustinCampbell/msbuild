@@ -14,18 +14,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("ExecuteTargetsAttribute={ExecuteTargetsAttribute}")]
 public class ProjectOnErrorElement : ProjectElement
 {
-    internal ProjectOnErrorElement(ProjectOnErrorElementLink link)
+    private protected ProjectOnErrorElement(ProjectOnErrorElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectOnErrorElement(XmlElementWithLocation xmlElement, ProjectTargetElement parent, ProjectRootElement containingProject)
+    private protected ProjectOnErrorElement(XmlElementWithLocation xmlElement, ProjectTargetElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectOnErrorElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectOnErrorElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -63,7 +63,7 @@ public class ProjectOnErrorElement : ProjectElement
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.onError);
 
-        return new(element, containingProject)
+        return new XmlProjectOnErrorElement(element, containingProject)
         {
             ExecuteTargetsAttribute = executeTargets
         };

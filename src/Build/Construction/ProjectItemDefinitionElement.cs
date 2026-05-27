@@ -16,18 +16,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("{ItemType} #Metadata={Count} Condition={Condition}")]
 public class ProjectItemDefinitionElement : ProjectElementContainer
 {
-    internal ProjectItemDefinitionElement(ProjectItemDefinitionElementLink link)
+    private protected ProjectItemDefinitionElement(ProjectItemDefinitionElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectItemDefinitionElement(XmlElementWithLocation xmlElement, ProjectItemDefinitionGroupElement parent, ProjectRootElement containingProject)
+    private protected ProjectItemDefinitionElement(XmlElementWithLocation xmlElement, ProjectItemDefinitionGroupElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectItemDefinitionElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectItemDefinitionElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -92,7 +92,7 @@ public class ProjectItemDefinitionElement : ProjectElementContainer
         // since no items can have the reserved itemType.
         XmlElementWithLocation element = containingProject.CreateElement(itemType);
 
-        return new(element, containingProject);
+        return new XmlProjectItemDefinitionElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

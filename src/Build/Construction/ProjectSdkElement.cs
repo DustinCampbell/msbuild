@@ -12,19 +12,19 @@ namespace Microsoft.Build.Construction;
 /// </summary>
 public class ProjectSdkElement : ProjectElementContainer
 {
-    internal ProjectSdkElement(ProjectElementContainerLink link)
+    private protected ProjectSdkElement(ProjectElementContainerLink link)
         : base(link)
     {
     }
 
-    internal ProjectSdkElement(XmlElementWithLocation xmlElement, ProjectRootElement parent,
+    private protected ProjectSdkElement(XmlElementWithLocation xmlElement, ProjectRootElement parent,
         ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectSdkElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectSdkElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -74,7 +74,7 @@ public class ProjectSdkElement : ProjectElementContainer
     {
         var element = containingProject.CreateElement(XMakeElements.sdk);
 
-        return new ProjectSdkElement(element, containingProject)
+        return new XmlProjectSdkElement(element, containingProject)
         {
             Name = sdkName,
             Version = sdkVersion,

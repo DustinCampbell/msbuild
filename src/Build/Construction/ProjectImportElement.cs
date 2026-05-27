@@ -21,19 +21,22 @@ public class ProjectImportElement : ProjectElement
     [MemberNotNullWhen(true, nameof(ImportLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectImportElement(ProjectImportElementLink link)
+    private protected ImplicitImportLocation _implicitImportLocation;
+    private protected ProjectElement? _originalElement;
+
+    private protected ProjectImportElement(ProjectImportElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectImportElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject, SdkReference? sdkReference)
+    private protected ProjectImportElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject, SdkReference? sdkReference)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
         SdkReference = sdkReference;
     }
 
-    private ProjectImportElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectImportElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -121,8 +124,8 @@ public class ProjectImportElement : ProjectElement
     /// </summary>
     public ImplicitImportLocation ImplicitImportLocation
     {
-        get => IsLink ? ImportLink.ImplicitImportLocation : field;
-        private set;
+        get => GetImplicitImportLocation();
+        private protected set => _implicitImportLocation = value;
     }
 
     /// <summary>
@@ -131,8 +134,8 @@ public class ProjectImportElement : ProjectElement
     /// </summary>
     public ProjectElement? OriginalElement
     {
-        get => IsLink ? ImportLink.OriginalElement : field;
-        private set;
+        get => GetOriginalElement();
+        private protected set => _originalElement = value;
     }
 
     /// <summary>
@@ -149,7 +152,7 @@ public class ProjectImportElement : ProjectElement
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.import);
 
-        return new(element, containingProject)
+        return new XmlProjectImportElement(element, containingProject)
         {
             Project = project,
         };
@@ -168,7 +171,7 @@ public class ProjectImportElement : ProjectElement
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.import);
 
-        return new(element, containingProject)
+        return new XmlProjectImportElement(element, containingProject)
         {
             Project = project,
             Sdk = sdkReference.ToString(),
@@ -183,6 +186,12 @@ public class ProjectImportElement : ProjectElement
 
     protected override ProjectElement CreateNewInstance(ProjectRootElement owner)
         => owner.CreateImportElement(Project);
+
+    internal virtual ImplicitImportLocation GetImplicitImportLocation()
+        => IsLink ? ImportLink!.ImplicitImportLocation : _implicitImportLocation;
+
+    internal virtual ProjectElement? GetOriginalElement()
+        => IsLink ? ImportLink!.OriginalElement : _originalElement;
 
     /// <summary>
     /// Helper method to update the <see cref="SdkReference" /> property if necessary (update only when changed).

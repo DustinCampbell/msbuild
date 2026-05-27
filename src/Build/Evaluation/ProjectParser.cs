@@ -220,7 +220,7 @@ namespace Microsoft.Build.Construction
         {
             ProjectXmlUtilities.VerifyThrowProjectAttributes(element, ValidAttributesOnlyConditionAndLabel);
 
-            ProjectPropertyGroupElement propertyGroup = new ProjectPropertyGroupElement(element, parent, _project);
+            ProjectPropertyGroupElement propertyGroup = new XmlProjectPropertyGroupElement(element, parent, _project);
 
             foreach (XmlElementWithLocation childElement in ProjectXmlUtilities.GetVerifyThrowProjectChildElements(element))
             {
@@ -244,7 +244,7 @@ namespace Microsoft.Build.Construction
         {
             ProjectXmlUtilities.VerifyThrowProjectAttributes(element, ValidAttributesOnlyConditionAndLabel);
 
-            ProjectItemGroupElement itemGroup = new ProjectItemGroupElement(element, parent, _project);
+            ProjectItemGroupElement itemGroup = new XmlProjectItemGroupElement(element, parent, _project);
 
             foreach (XmlElementWithLocation childElement in ProjectXmlUtilities.GetVerifyThrowProjectChildElements(element))
             {
@@ -425,7 +425,7 @@ namespace Microsoft.Build.Construction
         {
             ProjectXmlUtilities.VerifyThrowProjectAttributes(element, ValidAttributesOnlyConditionAndLabel);
 
-            ProjectImportGroupElement importGroup = new ProjectImportGroupElement(element, parent, _project);
+            ProjectImportGroupElement importGroup = new XmlProjectImportGroupElement(element, parent, _project);
 
             foreach (XmlElementWithLocation childElement in ProjectXmlUtilities.GetVerifyThrowProjectChildElements(element))
             {
@@ -470,7 +470,7 @@ namespace Microsoft.Build.Construction
                     ProjectXmlUtilities.GetAttributeValueOrNull(element, XMakeAttributes.sdkMinimumVersion));
             }
 
-            return new ProjectImportElement(element, parent, _project, sdk);
+            return new XmlProjectImportElement(element, parent, _project, sdk);
         }
 
         /// <summary>
@@ -481,7 +481,7 @@ namespace Microsoft.Build.Construction
             // There should be no attributes
             ProjectXmlUtilities.VerifyThrowProjectNoAttributes(element);
 
-            UsingTaskParameterGroupElement parameterGroup = new UsingTaskParameterGroupElement(element, parent, _project);
+            UsingTaskParameterGroupElement parameterGroup = new XmlUsingTaskParameterGroupElement(element, parent, _project);
 
             HashSet<String> listOfChildElementNames = new HashSet<string>();
             foreach (XmlElementWithLocation childElement in ProjectXmlUtilities.GetVerifyThrowProjectChildElements(element))
@@ -495,7 +495,7 @@ namespace Microsoft.Build.Construction
                 {
                     ProjectXmlUtilities.VerifyThrowProjectAttributes(childElement, ValidAttributesOnUsingTaskParameter);
                     XmlUtilities.VerifyThrowProjectValidElementName(childElement);
-                    ProjectUsingTaskParameterElement parameter = new ProjectUsingTaskParameterElement(childElement, parameterGroup, _project);
+                    ProjectUsingTaskParameterElement parameter = new XmlProjectUsingTaskParameterElement(childElement, parameterGroup, _project);
                     parameterGroup.AppendParentedChildNoChecks(parameter);
 
                     // Add the name of the child element to the hashset so we can check for a duplicate child element
@@ -556,7 +556,7 @@ namespace Microsoft.Build.Construction
 
                         ProjectXmlUtilities.VerifyThrowProjectAttributes(childElement, ValidAttributesOnUsingTaskBody);
 
-                        child = new ProjectUsingTaskBodyElement(childElement, usingTask, _project);
+                        child = new XmlProjectUsingTaskBodyElement(childElement, usingTask, _project);
                         foundTaskElement = true;
                         break;
                     default:
@@ -587,7 +587,7 @@ namespace Microsoft.Build.Construction
                 ProjectErrorUtilities.ThrowInvalidProject(element.GetAttributeLocation(XMakeAttributes.name), "NameInvalid", targetName, targetName[indexOfSpecialCharacter]);
             }
 
-            ProjectTargetElement target = new ProjectTargetElement(element, _project, _project);
+            ProjectTargetElement target = new XmlProjectTargetElement(element, _project, _project);
             ProjectOnErrorElement onError = null;
 
             foreach (XmlElementWithLocation childElement in ProjectXmlUtilities.GetVerifyThrowProjectChildElements(element))
@@ -621,7 +621,7 @@ namespace Microsoft.Build.Construction
                         ProjectXmlUtilities.VerifyThrowProjectRequiredAttribute(childElement, XMakeAttributes.executeTargets);
                         ProjectXmlUtilities.VerifyThrowProjectNoChildElements(childElement);
 
-                        child = onError = new ProjectOnErrorElement(childElement, target, _project);
+                        child = onError = new XmlProjectOnErrorElement(childElement, target, _project);
                         break;
 
                     case XMakeElements.itemDefinitionGroup:
@@ -665,7 +665,7 @@ namespace Microsoft.Build.Construction
                     element.Name);
             }
 
-            ProjectTaskElement task = new ProjectTaskElement(element, parent, _project);
+            ProjectTaskElement task = new XmlProjectTaskElement(element, parent, _project);
 
             foreach (XmlElementWithLocation childElement in ProjectXmlUtilities.GetVerifyThrowProjectChildElements(element))
             {
@@ -712,7 +712,7 @@ namespace Microsoft.Build.Construction
         {
             ProjectXmlUtilities.VerifyThrowProjectAttributes(element, ValidAttributesOnlyConditionAndLabel);
 
-            ProjectItemDefinitionGroupElement itemDefinitionGroup = new ProjectItemDefinitionGroupElement(element, parent, _project);
+            ProjectItemDefinitionGroupElement itemDefinitionGroup = new XmlProjectItemDefinitionGroupElement(element, parent, _project);
 
             foreach (XmlElementWithLocation childElement in ProjectXmlUtilities.GetVerifyThrowProjectChildElements(element))
             {
@@ -733,7 +733,7 @@ namespace Microsoft.Build.Construction
             // as we do for item types in item groups. So we do not have a check here.
             // Although we could perhaps add one, as such item definitions couldn't be used
             // since no items can have the reserved itemType.
-            ProjectItemDefinitionElement itemDefinition = new ProjectItemDefinitionElement(element, parent, _project);
+            ProjectItemDefinitionElement itemDefinition = new XmlProjectItemDefinitionElement(element, parent, _project);
 
             foreach (XmlAttributeWithLocation attribute in element.Attributes)
             {
@@ -774,7 +774,7 @@ namespace Microsoft.Build.Construction
         {
             ProjectXmlUtilities.VerifyThrowProjectNoAttributes(element);
 
-            ProjectChooseElement choose = new ProjectChooseElement(element, parent, _project);
+            ProjectChooseElement choose = new XmlProjectChooseElement(element, parent, _project);
 
             nestingDepth++;
             ProjectErrorUtilities.VerifyThrowInvalidProject(nestingDepth <= MaximumChooseNesting, element.Location, "ChooseOverflow", MaximumChooseNesting);
@@ -820,7 +820,7 @@ namespace Microsoft.Build.Construction
         {
             ProjectXmlUtilities.VerifyThrowProjectRequiredAttribute(element, XMakeAttributes.condition);
 
-            ProjectWhenElement when = new ProjectWhenElement(element, parent, _project);
+            ProjectWhenElement when = new XmlProjectWhenElement(element, parent, _project);
 
             ParseWhenOtherwiseChildren(element, when, nestingDepth);
 
@@ -834,7 +834,7 @@ namespace Microsoft.Build.Construction
         {
             ProjectXmlUtilities.VerifyThrowProjectNoAttributes(element);
 
-            ProjectOtherwiseElement otherwise = new ProjectOtherwiseElement(element, parent, _project);
+            ProjectOtherwiseElement otherwise = new XmlProjectOtherwiseElement(element, parent, _project);
 
             ParseWhenOtherwiseChildren(element, otherwise, nestingDepth);
 
@@ -890,7 +890,7 @@ namespace Microsoft.Build.Construction
             _seenProjectExtensions = true;
 
             // All children inside ProjectExtensions are ignored, since they are only part of its value
-            return new ProjectExtensionsElement(element, _project, _project);
+            return new XmlProjectExtensionsElement(element, _project, _project);
         }
 
         /// <summary>
@@ -903,7 +903,7 @@ namespace Microsoft.Build.Construction
                 ProjectErrorUtilities.ThrowInvalidProject(element.Location, "InvalidSdkElementName", element.Name);
             }
 
-            return new ProjectSdkElement(element, _project, _project);
+            return new XmlProjectSdkElement(element, _project, _project);
         }
     }
 }

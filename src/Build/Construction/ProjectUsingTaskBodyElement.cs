@@ -21,19 +21,19 @@ public class ProjectUsingTaskBodyElement : ProjectElement
     [MemberNotNullWhen(true, nameof(UsingTaskBodyLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectUsingTaskBodyElement(ProjectUsingTaskBodyElementLink link)
+    private protected ProjectUsingTaskBodyElement(ProjectUsingTaskBodyElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectUsingTaskBodyElement(XmlElementWithLocation xmlElement, ProjectUsingTaskElement parent, ProjectRootElement containingProject)
+    private protected ProjectUsingTaskBodyElement(XmlElementWithLocation xmlElement, ProjectUsingTaskElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
         VerifyParent(parent);
     }
 
-    private ProjectUsingTaskBodyElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectUsingTaskBodyElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -52,7 +52,7 @@ public class ProjectUsingTaskBodyElement : ProjectElement
     /// Gets or sets the unevaluated value of the contents of the task xml
     /// Returns empty string if it is not present.
     /// </summary>
-    public string TaskBody
+    public virtual string TaskBody
     {
         get => IsLink ? UsingTaskBodyLink.TaskBody : Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
 
@@ -111,7 +111,7 @@ public class ProjectUsingTaskBodyElement : ProjectElement
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.usingTaskBody);
 
-        return new(element, containingProject)
+        return new XmlProjectUsingTaskBodyElement(element, containingProject)
         {
             Evaluate = evaluate,
             TaskBody = body

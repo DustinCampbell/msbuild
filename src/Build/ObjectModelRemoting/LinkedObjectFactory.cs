@@ -121,37 +121,37 @@ namespace Microsoft.Build.ObjectModelRemoting
             => new(link);
 
         public ProjectChooseElement Create(ProjectChooseElementLink link)
-            => new(link);
+            => new LinkedProjectChooseElement(link);
 
         public ProjectExtensionsElement Create(ProjectExtensionsElementLink link)
-            => new(link);
+            => new LinkedProjectExtensionsElement(link);
 
         public ProjectImportElement Create(ProjectImportElementLink link)
-            => new(link);
+            => new LinkedProjectImportElement(link);
 
         public ProjectImportGroupElement Create(ProjectImportGroupElementLink link)
-            => new(link);
+            => new LinkedProjectImportGroupElement(link);
 
         public ProjectItemDefinitionElement Create(ProjectItemDefinitionElementLink link)
-            => new(link);
+            => new LinkedProjectItemDefinitionElement(link);
 
         public ProjectItemDefinitionGroupElement Create(ProjectItemDefinitionGroupElementLink link)
-            => new(link);
+            => new LinkedProjectItemDefinitionGroupElement(link);
 
         public ProjectItemElement Create(ProjectItemElementLink link)
             => new LinkedProjectItemElement(link);
 
         public ProjectItemGroupElement Create(ProjectItemGroupElementLink link)
-            => new(link);
+            => new LinkedProjectItemGroupElement(link);
 
         public ProjectMetadataElement Create(ProjectMetadataElementLink link)
             => new LinkedProjectMetadataElement(link);
 
         public ProjectOnErrorElement Create(ProjectOnErrorElementLink link)
-            => new(link);
+            => new LinkedProjectOnErrorElement(link);
 
         public ProjectOtherwiseElement Create(ProjectOtherwiseElementLink link)
-            => new(link);
+            => new LinkedProjectOtherwiseElement(link);
 
         public ProjectOutputElement Create(ProjectOutputElementLink link)
             => new(link);
@@ -160,31 +160,31 @@ namespace Microsoft.Build.ObjectModelRemoting
             => new LinkedProjectPropertyElement(link);
 
         public ProjectPropertyGroupElement Create(ProjectPropertyGroupElementLink link)
-            => new(link);
+            => new LinkedProjectPropertyGroupElement(link);
 
         public ProjectSdkElement Create(ProjectSdkElementLink link)
-            => new(link);
+            => new LinkedProjectSdkElement(link);
 
         public ProjectTargetElement Create(ProjectTargetElementLink link)
-            => new(link);
+            => new LinkedProjectTargetElement(link);
 
         public ProjectTaskElement Create(ProjectTaskElementLink link)
-            => new(link);
+            => new LinkedProjectTaskElement(link);
 
         public ProjectUsingTaskBodyElement Create(ProjectUsingTaskBodyElementLink link)
-            => new(link);
+            => new LinkedProjectUsingTaskBodyElement(link);
 
         public ProjectUsingTaskElement Create(ProjectUsingTaskElementLink link)
             => new(link);
 
         public ProjectUsingTaskParameterElement Create(ProjectUsingTaskParameterElementLink link)
-            => new(link);
+            => new LinkedProjectUsingTaskParameterElement(link);
 
         public ProjectWhenElement Create(ProjectWhenElementLink link)
-            => new(link);
+            => new LinkedProjectWhenElement(link);
 
         public UsingTaskParameterGroupElement Create(UsingTaskParameterGroupElementLink link)
-            => new(link);
+            => new LinkedUsingTaskParameterGroupElement(link);
 
         #endregion
 

@@ -22,30 +22,30 @@ public class ProjectTaskElement : ProjectElementContainer
     /// <summary>
     /// The parameters (excepting condition and continue-on-error).
     /// </summary>
-    private CopyOnWriteDictionary<(string, ElementLocation)>? _parameters;
+    private protected CopyOnWriteDictionary<(string, ElementLocation)>? _parameters;
 
     /// <summary>
     /// Protection for the parameters cache
     /// </summary>
-    private readonly LockType _locker = new();
+    private protected readonly LockType _locker = new();
 
     internal ProjectTaskElementLink? TaskLink => (ProjectTaskElementLink?)Link;
 
     [MemberNotNullWhen(true, nameof(TaskLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectTaskElement(ProjectTaskElementLink link)
+    private protected ProjectTaskElement(ProjectTaskElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectTaskElement(XmlElementWithLocation xmlElement, ProjectTargetElement parent, ProjectRootElement containingProject)
+    private protected ProjectTaskElement(XmlElementWithLocation xmlElement, ProjectTargetElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectTaskElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectTaskElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -108,7 +108,7 @@ public class ProjectTaskElement : ProjectElementContainer
     /// If parameters differ only by case only the last one will be returned. MSBuild uses only this one.
     /// Hosts can still remove the other parameters by using RemoveAllParameters().
     /// </summary>
-    public IDictionary<string, string> Parameters
+    public virtual IDictionary<string, string> Parameters
     {
         get
         {
@@ -139,7 +139,7 @@ public class ProjectTaskElement : ProjectElementContainer
     /// If parameters differ only by case only the last one will be returned. MSBuild uses only this one.
     /// Hosts can still remove the other parameters by using RemoveAllParameters().
     /// </summary>
-    public IEnumerable<KeyValuePair<string, ElementLocation>> ParameterLocations
+    public virtual IEnumerable<KeyValuePair<string, ElementLocation>> ParameterLocations
     {
         get
         {
@@ -266,7 +266,7 @@ public class ProjectTaskElement : ProjectElementContainer
     /// Gets the value of the parameter with the specified name,
     /// or empty string if it is not present.
     /// </summary>
-    public string GetParameter(string name)
+    public virtual string GetParameter(string name)
     {
         if (IsLink)
         {
@@ -288,7 +288,7 @@ public class ProjectTaskElement : ProjectElementContainer
     /// <summary>
     /// Adds (or modifies the value of) a parameter on this task
     /// </summary>
-    public void SetParameter(string name, string unevaluatedValue)
+    public virtual void SetParameter(string name, string unevaluatedValue)
     {
         if (IsLink)
         {
@@ -312,7 +312,7 @@ public class ProjectTaskElement : ProjectElementContainer
     /// Removes any parameter on this task with the specified name.
     /// If there is no such parameter, does nothing.
     /// </summary>
-    public void RemoveParameter(string name)
+    public virtual void RemoveParameter(string name)
     {
         if (IsLink)
         {
@@ -332,7 +332,7 @@ public class ProjectTaskElement : ProjectElementContainer
     /// Removes all parameters from the task.
     /// Does not remove any "special" parameters: ContinueOnError, Condition, etc.
     /// </summary>
-    public void RemoveAllParameters()
+    public virtual void RemoveAllParameters()
     {
         if (IsLink)
         {
@@ -390,7 +390,7 @@ public class ProjectTaskElement : ProjectElementContainer
 
         XmlElementWithLocation element = containingProject.CreateElement(name);
 
-        return new(element, containingProject);
+        return new XmlProjectTaskElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)
@@ -404,7 +404,7 @@ public class ProjectTaskElement : ProjectElementContainer
     /// Must be called within the lock.
     /// </summary>
     [MemberNotNull(nameof(_parameters))]
-    private void EnsureParametersInitialized()
+    private protected void EnsureParametersInitialized()
     {
         Assumed.False(IsLink);
 

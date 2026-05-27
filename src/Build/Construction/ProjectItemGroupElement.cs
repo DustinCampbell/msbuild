@@ -23,18 +23,18 @@ public class ProjectItemGroupElement : ProjectElementContainer
     /// </summary>
     private bool _definitelyAreNoChildrenWithWildcards;
 
-    internal ProjectItemGroupElement(ProjectItemGroupElementLink link)
+    private protected ProjectItemGroupElement(ProjectItemGroupElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectItemGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
+    private protected ProjectItemGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectItemGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectItemGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -153,7 +153,7 @@ public class ProjectItemGroupElement : ProjectElementContainer
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.itemGroup);
 
-        return new(element, containingProject);
+        return new XmlProjectItemGroupElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

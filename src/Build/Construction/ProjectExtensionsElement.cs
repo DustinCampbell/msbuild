@@ -23,18 +23,18 @@ public class ProjectExtensionsElement : ProjectElement
     [MemberNotNullWhen(true, nameof(ExtensionLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectExtensionsElement(ProjectExtensionsElementLink link)
+    private protected ProjectExtensionsElement(ProjectExtensionsElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectExtensionsElement(XmlElementWithLocation xmlElement, ProjectRootElement parent, ProjectRootElement containingProject)
+    private protected ProjectExtensionsElement(XmlElementWithLocation xmlElement, ProjectRootElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectExtensionsElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectExtensionsElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -52,7 +52,7 @@ public class ProjectExtensionsElement : ProjectElement
     /// <summary>
     /// Gets and sets the raw XML content
     /// </summary>
-    public string Content
+    public virtual string Content
     {
         [DebuggerStepThrough]
         get => IsLink ? ExtensionLink.Content : XmlElement.InnerXml;
@@ -82,7 +82,7 @@ public class ProjectExtensionsElement : ProjectElement
     /// Get or set the content of the first sub-element
     /// with the provided name.
     /// </summary>
-    public string this[string name]
+    public virtual string this[string name]
     {
         get
         {
@@ -171,7 +171,7 @@ public class ProjectExtensionsElement : ProjectElement
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.projectExtensions);
 
-        return new(element, containingProject);
+        return new XmlProjectExtensionsElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

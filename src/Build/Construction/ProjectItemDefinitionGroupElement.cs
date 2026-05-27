@@ -15,18 +15,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("#ItemDefinitions={Count} Condition={Condition} Label={Label}")]
 public class ProjectItemDefinitionGroupElement : ProjectElementContainer
 {
-    internal ProjectItemDefinitionGroupElement(ProjectItemDefinitionGroupElementLink link)
+    private protected ProjectItemDefinitionGroupElement(ProjectItemDefinitionGroupElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectItemDefinitionGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
+    private protected ProjectItemDefinitionGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectItemDefinitionGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectItemDefinitionGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -58,7 +58,7 @@ public class ProjectItemDefinitionGroupElement : ProjectElementContainer
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.itemDefinitionGroup);
 
-        return new(element, containingProject);
+        return new XmlProjectItemDefinitionGroupElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

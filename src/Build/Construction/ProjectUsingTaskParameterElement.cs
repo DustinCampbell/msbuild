@@ -15,24 +15,24 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("Name={Name} ParameterType={ParameterType} Output={Output} Required={Required}")]
 public class ProjectUsingTaskParameterElement : ProjectElement
 {
-    private ProjectUsingTaskParameterElementLink? TaskParameterLink
+    private protected ProjectUsingTaskParameterElementLink? TaskParameterLink
         => (ProjectUsingTaskParameterElementLink?)Link;
 
     [MemberNotNullWhen(true, nameof(TaskParameterLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectUsingTaskParameterElement(ProjectUsingTaskParameterElementLink link)
+    private protected ProjectUsingTaskParameterElement(ProjectUsingTaskParameterElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectUsingTaskParameterElement(XmlElementWithLocation xmlElement, UsingTaskParameterGroupElement parent, ProjectRootElement containingProject)
+    private protected ProjectUsingTaskParameterElement(XmlElementWithLocation xmlElement, UsingTaskParameterGroupElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectUsingTaskParameterElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectUsingTaskParameterElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -50,7 +50,7 @@ public class ProjectUsingTaskParameterElement : ProjectElement
     /// <summary>
     /// Gets and sets the name of the parameter's name
     /// </summary>
-    public string Name
+    public virtual string Name
     {
         get => ElementName;
 
@@ -175,7 +175,7 @@ public class ProjectUsingTaskParameterElement : ProjectElement
         XmlUtilities.VerifyThrowArgumentValidElementName(parameterName);
         XmlElementWithLocation element = containingProject.CreateElement(parameterName);
 
-        return new(element, containingProject)
+        return new XmlProjectUsingTaskParameterElement(element, containingProject)
         {
             Output = output,
             Required = required,

@@ -15,18 +15,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("#Children={Count}")]
 public class ProjectOtherwiseElement : ProjectElementContainer
 {
-    internal ProjectOtherwiseElement(ProjectOtherwiseElementLink link)
+    private protected ProjectOtherwiseElement(ProjectOtherwiseElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectOtherwiseElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement project)
+    private protected ProjectOtherwiseElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement project)
         : base(xmlElement, parent, project)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectOtherwiseElement(XmlElementWithLocation xmlElement, ProjectRootElement project)
+    private protected ProjectOtherwiseElement(XmlElementWithLocation xmlElement, ProjectRootElement project)
         : base(xmlElement, parent: null, project)
     {
     }
@@ -73,7 +73,7 @@ public class ProjectOtherwiseElement : ProjectElementContainer
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.otherwise);
 
-        return new(element, containingProject);
+        return new XmlProjectOtherwiseElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

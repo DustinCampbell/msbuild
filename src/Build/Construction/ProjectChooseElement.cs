@@ -16,18 +16,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("ProjectChooseElement (#Children={Count} HasOtherwise={OtherwiseElement != null})")]
 public class ProjectChooseElement : ProjectElementContainer
 {
-    internal ProjectChooseElement(ProjectChooseElementLink link)
+    private protected ProjectChooseElement(ProjectChooseElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectChooseElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
+    private protected ProjectChooseElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectChooseElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectChooseElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -69,7 +69,7 @@ public class ProjectChooseElement : ProjectElementContainer
         Assumed.False(containingProject.IsLink, "Attempt to edit a document that is not backed by a local xml is disallowed.");
 
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.choose);
-        return new(element, containingProject);
+        return new XmlProjectChooseElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

@@ -21,25 +21,25 @@ public class ProjectTargetElement : ProjectElementContainer
     /// <summary>
     /// Target name cached for performance.
     /// </summary>
-    private string? _name;
+    private protected string? _name;
 
-    private ProjectTargetElementLink? TargetLink => (ProjectTargetElementLink?)Link;
+    private protected ProjectTargetElementLink? TargetLink => (ProjectTargetElementLink?)Link;
 
     [MemberNotNullWhen(true, nameof(TargetLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectTargetElement(ProjectTargetElementLink link)
+    private protected ProjectTargetElement(ProjectTargetElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectTargetElement(XmlElementWithLocation xmlElement, ProjectRootElement parent, ProjectRootElement containingProject)
+    private protected ProjectTargetElement(XmlElementWithLocation xmlElement, ProjectRootElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectTargetElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectTargetElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -71,7 +71,7 @@ public class ProjectTargetElement : ProjectElementContainer
     /// <summary>
     /// Gets and sets the name of the target element.
     /// </summary>
-    public string Name
+    public virtual string Name
     {
         [DebuggerStepThrough]
         get
@@ -233,7 +233,7 @@ public class ProjectTargetElement : ProjectElementContainer
     /// value for both getting and setting.
     /// Removes the attribute only if the value is set to null.
     /// </summary>
-    public string? Returns
+    public virtual string? Returns
     {
         [DebuggerStepThrough]
         get => GetAttributeValueOrNull(XMakeAttributes.returns);
@@ -392,7 +392,7 @@ public class ProjectTargetElement : ProjectElementContainer
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.target);
 
-        return new(element, containingProject)
+        return new XmlProjectTargetElement(element, containingProject)
         {
             Name = name
         };

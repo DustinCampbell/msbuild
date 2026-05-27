@@ -15,18 +15,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("#Properties={Count} Condition={Condition} Label={Label}")]
 public class ProjectPropertyGroupElement : ProjectElementContainer
 {
-    internal ProjectPropertyGroupElement(ProjectPropertyGroupElementLink link)
+    private protected ProjectPropertyGroupElement(ProjectPropertyGroupElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectPropertyGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
+    private protected ProjectPropertyGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectPropertyGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectPropertyGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -89,7 +89,7 @@ public class ProjectPropertyGroupElement : ProjectElementContainer
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.propertyGroup);
 
-        return new(element, containingProject);
+        return new XmlProjectPropertyGroupElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

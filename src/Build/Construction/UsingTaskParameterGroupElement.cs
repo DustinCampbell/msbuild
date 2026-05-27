@@ -16,19 +16,19 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("#Parameters={Count}")]
 public class UsingTaskParameterGroupElement : ProjectElementContainer
 {
-    internal UsingTaskParameterGroupElement(UsingTaskParameterGroupElementLink link)
+    private protected UsingTaskParameterGroupElement(UsingTaskParameterGroupElementLink link)
         : base(link)
     {
     }
 
-    internal UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
+    private protected UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
         VerifyParent(parent);
     }
 
-    private UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected UsingTaskParameterGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, null, containingProject)
     {
     }
@@ -82,7 +82,7 @@ public class UsingTaskParameterGroupElement : ProjectElementContainer
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.usingTaskParameterGroup);
 
-        return new(element, containingProject);
+        return new XmlUsingTaskParameterGroupElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

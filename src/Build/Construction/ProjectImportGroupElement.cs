@@ -15,18 +15,18 @@ namespace Microsoft.Build.Construction;
 [DebuggerDisplay("#Imports={Count} Condition={Condition} Label={Label}")]
 public class ProjectImportGroupElement : ProjectElementContainer
 {
-    internal ProjectImportGroupElement(ProjectImportGroupElementLink link)
+    private protected ProjectImportGroupElement(ProjectImportGroupElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectImportGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
+    private protected ProjectImportGroupElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectImportGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectImportGroupElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -59,7 +59,7 @@ public class ProjectImportGroupElement : ProjectElementContainer
     {
         XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.importGroup);
 
-        return new(element, containingProject);
+        return new XmlProjectImportGroupElement(element, containingProject);
     }
 
     private protected override bool CanAcceptParent(ProjectElementContainer newParent)

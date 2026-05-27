@@ -531,7 +531,7 @@ namespace Microsoft.Build.UnitTests.OM.Construction
                 importingElement.SdkReference.Version.ShouldBe(expectedVersion);
                 importingElement.SdkReference.MinimumVersion.ShouldBe(expectedMinimumVersion);
                 importingElement.SdkLocation.ShouldBe(ElementLocation.EmptyLocation);
-                importingElement.OriginalElement.ShouldBeOfType(expectedOriginalElementType);
+                importingElement.OriginalElement.ShouldBeAssignableTo(expectedOriginalElementType);
 
                 var implicitLocation = i == 0
                     ? ImplicitImportLocation.Top
