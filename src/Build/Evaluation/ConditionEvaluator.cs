@@ -8,7 +8,6 @@ using System.Threading;
 
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Shared.FileSystem;
-using BuildEventContext = Microsoft.Build.Framework.BuildEventContext;
 using ElementLocation = Microsoft.Build.Construction.ElementLocation;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 
@@ -254,13 +253,7 @@ namespace Microsoft.Build.Evaluation
                 GenericExpressionNode parsedExpression;
                 if (expressionPool.Count == 0)
                 {
-                    var conditionParser = new Parser();
-
-                    #region REMOVE_COMPAT_WARNING
-                    conditionParser.LoggingServices = loggingContext?.LoggingService;
-                    conditionParser.LogBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
-                    #endregion
-
+                    var conditionParser = new Parser(loggingContext);
                     parsedExpression = conditionParser.Parse(condition, options, elementLocation);
                 }
                 else

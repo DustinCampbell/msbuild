@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using ElementLocation = Microsoft.Build.Construction.ElementLocation;
@@ -11,7 +12,6 @@ using ElementLocation = Microsoft.Build.Construction.ElementLocation;
 
 namespace Microsoft.Build.Evaluation
 {
-    using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
 
     [Flags]
     internal enum ParserOptions
@@ -47,47 +47,19 @@ namespace Microsoft.Build.Evaluation
         private ElementLocation _elementLocation;
         internal int errorPosition = 0; // useful for unit tests
 
-        #region REMOVE_COMPAT_WARNING
+        // Older versions of MSBuild evaluated mixed 'and'/'or' conditions left-to-right
+        // instead of giving 'and' higher precedence. When this was fixed, a compatibility
+        // warning (MSB4130) was added to flag expressions that might now evaluate differently.
+        // The warning fires for expressions with both 'and' and 'or' at the same level
+        // without explicit parentheses.
+        private readonly ILoggingService _loggingServices;
+        private readonly BuildEventContext _logBuildEventContext;
+        private bool _warnedForExpression;
 
-        private bool _warnedForExpression = false;
-
-        private BuildEventContext _logBuildEventContext;
-        /// <summary>
-        ///  Location contextual information which are attached to logging events to
-        ///  say where they are in relation to the process, engine, project, target,task which is executing
-        /// </summary>
-        internal BuildEventContext LogBuildEventContext
+        internal Parser(LoggingContext loggingContext = null)
         {
-            get
-            {
-                return _logBuildEventContext;
-            }
-            set
-            {
-                _logBuildEventContext = value;
-            }
-        }
-        private ILoggingService _loggingServices;
-        /// <summary>
-        /// Engine Logging Service reference where events will be logged to
-        /// </summary>
-        internal ILoggingService LoggingServices
-        {
-            set
-            {
-                _loggingServices = value;
-            }
-
-            get
-            {
-                return _loggingServices;
-            }
-        }
-        #endregion
-
-        internal Parser()
-        {
-            // nothing to see here, move along.
+            _loggingServices = loggingContext?.LoggingService;
+            _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
         }
 
         //
@@ -132,19 +104,16 @@ namespace Microsoft.Build.Evaluation
                 node = ExprPrime(expression, node);
             }
 
-            #region REMOVE_COMPAT_WARNING
             // Check for potential change in behavior
-            if (LoggingServices != null && !_warnedForExpression &&
-                node.PotentialAndOrConflict())
+            if (_loggingServices != null && !_warnedForExpression && node.PotentialAndOrConflict())
             {
                 // We only want to warn once even if there multiple () sub expressions
                 _warnedForExpression = true;
 
                 // Log a warning regarding the fact the expression may have been evaluated
                 // incorrectly in earlier version of MSBuild
-                LoggingServices.LogWarning(_logBuildEventContext, null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", expression);
+                _loggingServices.LogWarning(_logBuildEventContext, subcategoryResourceName: null, new BuildEventFileInfo(_elementLocation), "ConditionMaybeEvaluatedIncorrectly", expression);
             }
-            #endregion
 
             return node;
         }
