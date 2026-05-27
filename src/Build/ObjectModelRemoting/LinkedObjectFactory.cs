@@ -139,13 +139,13 @@ namespace Microsoft.Build.ObjectModelRemoting
             => new(link);
 
         public ProjectItemElement Create(ProjectItemElementLink link)
-            => new(link);
+            => new LinkedProjectItemElement(link);
 
         public ProjectItemGroupElement Create(ProjectItemGroupElementLink link)
             => new(link);
 
         public ProjectMetadataElement Create(ProjectMetadataElementLink link)
-            => new(link);
+            => new LinkedProjectMetadataElement(link);
 
         public ProjectOnErrorElement Create(ProjectOnErrorElementLink link)
             => new(link);

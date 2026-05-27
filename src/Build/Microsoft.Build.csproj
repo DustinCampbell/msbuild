@@ -412,7 +412,11 @@
     <Compile Include="Construction\ProjectItemDefinitionElement.cs" />
     <Compile Include="Construction\ProjectItemGroupElement.cs" />
     <Compile Include="Construction\ProjectItemElement.cs" />
+    <Compile Include="Construction\XmlProjectItemElement.cs" />
+    <Compile Include="Construction\LinkedProjectItemElement.cs" />
     <Compile Include="Construction\ProjectMetadataElement.cs" />
+    <Compile Include="Construction\XmlProjectMetadataElement.cs" />
+    <Compile Include="Construction\LinkedProjectMetadataElement.cs" />
     <Compile Include="Construction\ProjectOnErrorElement.cs" />
     <Compile Include="Construction\ProjectOtherwiseElement.cs" />
     <Compile Include="Construction\ProjectOutputElement.cs" />

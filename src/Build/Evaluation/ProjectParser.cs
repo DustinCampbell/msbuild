@@ -312,7 +312,7 @@ namespace Microsoft.Build.Construction
             XmlUtilities.VerifyThrowProjectValidElementName(element);
             ProjectErrorUtilities.VerifyThrowInvalidProject(!XMakeElements.ReservedItemNames.Contains(itemType), element.Location, "CannotModifyReservedItem", itemType);
 
-            ProjectItemElement item = new ProjectItemElement(element, parent, _project);
+            ProjectItemElement item = new XmlProjectItemElement(element, parent, _project);
 
             foreach (XmlAttributeWithLocation attribute in element.Attributes)
             {
@@ -403,7 +403,7 @@ namespace Microsoft.Build.Construction
             ProjectErrorUtilities.VerifyThrowInvalidProject(!ItemSpecModifiers.IsItemSpecModifier(element.Name), element.Location, "ItemSpecModifierCannotBeCustomMetadata", element.Name);
             ProjectErrorUtilities.VerifyThrowInvalidProject(!XMakeElements.ReservedItemNames.Contains(element.Name), element.Location, "CannotModifyReservedItemMetadata", element.Name);
 
-            ProjectMetadataElement metadatum = new ProjectMetadataElement(element, parent, _project);
+            ProjectMetadataElement metadatum = new XmlProjectMetadataElement(element, parent, _project);
 
             // If the parent is an item definition, we don't allow expressions like @(foo) in the value, as no items exist at that point
             if (parent is ProjectItemDefinitionElement)

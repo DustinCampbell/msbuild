@@ -21,18 +21,18 @@ public class ProjectMetadataElement : ProjectElement
     [MemberNotNullWhen(true, nameof(MetadataLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectMetadataElement(ProjectMetadataElementLink link)
+    private protected ProjectMetadataElement(ProjectMetadataElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectMetadataElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
+    private protected ProjectMetadataElement(XmlElementWithLocation xmlElement, ProjectElementContainer parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectMetadataElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectMetadataElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -73,7 +73,7 @@ public class ProjectMetadataElement : ProjectElement
     /// Gets or sets the unevaluated value.
     /// Returns empty string if it is not present.
     /// </summary>
-    public string Value
+    public virtual string Value
     {
         get => IsLink ? MetadataLink.Value : Internal.Utilities.GetXmlNodeInnerContents(XmlElement);
 
@@ -104,7 +104,7 @@ public class ProjectMetadataElement : ProjectElement
 
         XmlElementWithLocation element = containingProject.CreateElement(name, location);
 
-        return new(element, containingProject);
+        return new XmlProjectMetadataElement(element, containingProject);
     }
 
     /// <summary>
@@ -113,7 +113,7 @@ public class ProjectMetadataElement : ProjectElement
     /// <remarks>
     /// The implementation has to actually replace the element to do this.
     /// </remarks>
-    internal void ChangeName(string newName)
+    internal virtual void ChangeName(string newName)
     {
         ArgumentException.ThrowIfNullOrEmpty(newName);
         XmlUtilities.VerifyThrowArgumentValidElementName(newName);

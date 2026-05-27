@@ -33,18 +33,18 @@ public class ProjectItemElement : ProjectElementContainer
     [MemberNotNullWhen(true, nameof(ItemLink))]
     internal override bool IsLink => base.IsLink;
 
-    internal ProjectItemElement(ProjectItemElementLink link)
+    private protected ProjectItemElement(ProjectItemElementLink link)
         : base(link)
     {
     }
 
-    internal ProjectItemElement(XmlElementWithLocation xmlElement, ProjectItemGroupElement parent, ProjectRootElement containingProject)
+    private protected ProjectItemElement(XmlElementWithLocation xmlElement, ProjectItemGroupElement parent, ProjectRootElement containingProject)
         : base(xmlElement, parent, containingProject)
     {
         ArgumentNullException.ThrowIfNull(parent);
     }
 
-    private ProjectItemElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
+    private protected ProjectItemElement(XmlElementWithLocation xmlElement, ProjectRootElement containingProject)
         : base(xmlElement, parent: null, containingProject)
     {
     }
@@ -443,7 +443,7 @@ public class ProjectItemElement : ProjectElementContainer
 
         XmlElementWithLocation element = containingProject.CreateElement(itemType);
 
-        return new(element, containingProject);
+        return new XmlProjectItemElement(element, containingProject);
     }
 
     /// <summary>
@@ -452,7 +452,7 @@ public class ProjectItemElement : ProjectElementContainer
     /// <remarks>
     /// The implementation has to actually replace the element to do this.
     /// </remarks>
-    internal void ChangeItemType(string newItemType)
+    internal virtual void ChangeItemType(string newItemType)
     {
         ArgumentException.ThrowIfNullOrEmpty(newItemType);
         XmlUtilities.VerifyThrowArgumentValidElementName(newItemType);
