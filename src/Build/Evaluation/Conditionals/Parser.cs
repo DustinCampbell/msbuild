@@ -82,18 +82,20 @@ namespace Microsoft.Build.Evaluation
     ///
     /// The expression tree can then be evaluated and re-evaluated as needed.
     /// </summary>
-    /// <remarks>
-    /// UNDONE: When we copied over the conditionals code, we didn't copy over the unit tests for scanner, parser, and expression tree.
-    /// </remarks>
     internal sealed class Parser
     {
-        private readonly Scanner _lexer;
         private readonly string _expression;
+        private readonly ParserOptions _options;
         private readonly ElementLocation _elementLocation;
+
+        private Token _current;
+        private int _position;
 
         private int _errorPosition;
         private string _errorResource;
         private object[] _errorArgs;
+
+        private static string s_endOfInput;
 
         // Older versions of MSBuild evaluated mixed 'and'/'or' conditions left-to-right
         // instead of giving 'and' higher precedence. When this was fixed, a compatibility
@@ -104,17 +106,31 @@ namespace Microsoft.Build.Evaluation
         private readonly BuildEventContext _logBuildEventContext;
         private bool _warnedForExpression;
 
+        private string EndOfInput
+        {
+            get
+            {
+                if (s_endOfInput is null)
+                {
+                    s_endOfInput = ResourceUtilities.GetResourceString("EndOfInputTokenName");
+                }
+
+                return s_endOfInput;
+            }
+        }
+
         private Parser(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext loggingContext)
         {
             // We currently have no support (and no scenarios) for disallowing property references in Conditions.
             Assumed.True((options & ParserOptions.AllowProperties) != 0, "Properties should always be allowed.");
 
             _expression = expression;
+            _options = options;
             _elementLocation = elementLocation;
+            _position = 0;
+            _errorPosition = -1;
             _loggingServices = loggingContext?.LoggingService;
             _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
-
-            _lexer = new Scanner(expression, options);
         }
 
         //
@@ -130,9 +146,8 @@ namespace Microsoft.Build.Evaluation
 
         private ParseResult ParseCore()
         {
-            if (!_lexer.Advance())
+            if (!Advance())
             {
-                SetScannerError();
                 return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
             }
 
@@ -142,7 +157,7 @@ namespace Microsoft.Build.Evaluation
                 return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
             }
 
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+            if (!IsNext(Token.TokenType.EndOfInput))
             {
                 UnexpectedTokenInCondition();
                 return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
@@ -171,45 +186,19 @@ namespace Microsoft.Build.Evaluation
                 return;
             }
 
-            _errorPosition = _lexer.GetErrorPosition();
-            SetError("UnexpectedTokenInCondition", [_expression, _lexer.IsNextString(), _errorPosition]);
+            _errorResource = "UnexpectedTokenInCondition";
+            _errorArgs = [_expression, _current.String, _errorPosition];
         }
 
-        private bool SetScannerErrorAndReturn()
+        private bool SetScanError(int position, string resource, string extraArg = null)
         {
-            SetScannerError();
-            return false;
-        }
-
-        private void SetScannerError()
-        {
-            if (HasError)
-            {
-                return;
-            }
-
-            _errorPosition = _lexer.GetErrorPosition();
-
-            if (_lexer.UnexpectedlyFound != null)
-            {
-                SetError(_lexer.GetErrorResource(), [_expression, _errorPosition, _lexer.UnexpectedlyFound]);
-            }
-            else
-            {
-                SetError(_lexer.GetErrorResource(), [_expression, _errorPosition]);
-            }
-        }
-
-        private void SetError(string resource, object[] args)
-        {
-            if (HasError)
-            {
-                return;
-            }
-
-            _errorPosition = _lexer.GetErrorPosition();
+            _errorPosition = position;
             _errorResource = resource;
-            _errorArgs = args;
+            _errorArgs = extraArg is not null
+                ? [_expression, position, extraArg]
+                : [_expression, position];
+
+            return false;
         }
 
         [MemberNotNullWhen(true, nameof(_errorResource))]
@@ -224,7 +213,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput))
+            if (!IsNext(Token.TokenType.EndOfInput))
             {
                 if (!TryParseExprPrime(node, out node))
                 {
@@ -284,7 +273,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            if (!_lexer.IsNext(Token.TokenType.EndOfInput) && !TryParseBooleanTermPrime(node, out node))
+            if (!IsNext(Token.TokenType.EndOfInput) && !TryParseBooleanTermPrime(node, out node))
             {
                 result = null;
                 return false;
@@ -296,7 +285,7 @@ namespace Microsoft.Build.Evaluation
 
         private bool TryParseBooleanTermPrime(GenericExpressionNode lhs, out GenericExpressionNode result)
         {
-            if (_lexer.IsNext(Token.TokenType.EndOfInput))
+            if (IsNext(Token.TokenType.EndOfInput))
             {
                 result = lhs;
                 return true;
@@ -398,7 +387,7 @@ namespace Microsoft.Build.Evaluation
             }
 
             // If it's not one of those, check for other TokenTypes.
-            Token current = _lexer.CurrentToken;
+            Token current = _current;
             if (Same(Token.TokenType.Function))
             {
                 if (!Same(Token.TokenType.LeftParenthesis))
@@ -459,7 +448,7 @@ namespace Microsoft.Build.Evaluation
         {
             result = new List<GenericExpressionNode>();
 
-            if (_lexer.IsNext(Token.TokenType.RightParenthesis))
+            if (IsNext(Token.TokenType.RightParenthesis))
             {
                 return true;
             }
@@ -482,7 +471,7 @@ namespace Microsoft.Build.Evaluation
 
         private bool TryParseArg(out GenericExpressionNode result)
         {
-            Token current = _lexer.CurrentToken;
+            Token current = _current;
 
             if (Same(Token.TokenType.String))
             {
@@ -518,7 +507,614 @@ namespace Microsoft.Build.Evaluation
             return false;
         }
 
+        private bool IsNext(Token.TokenType type)
+            => _current.IsToken(type);
+
+        private bool NextIs(char c)
+            => _position + 1 < _expression.Length && _expression[_position + 1] == c;
+
+        /// <summary>
+        /// Advance
+        /// returns true on successful advance
+        ///     and false on an erroneous token
+        ///
+        /// Doesn't return error until the bogus input is encountered.
+        /// Advance() returns true even after EndOfInput is encountered.
+        /// </summary>
+        private bool Advance()
+        {
+            if (HasError)
+            {
+                return false;
+            }
+
+            if (_current?.IsToken(Token.TokenType.EndOfInput) == true)
+            {
+                return true;
+            }
+
+            SkipWhiteSpace();
+
+            // Update error position after skipping whitespace
+            _errorPosition = _position + 1;
+
+            if (_position >= _expression.Length)
+            {
+                _current = Token.EndOfInput;
+                return true;
+            }
+
+            switch (_expression[_position])
+            {
+                case ',':
+                    _current = Token.Comma;
+                    _position++;
+                    break;
+
+                case '(':
+                    _current = Token.LeftParenthesis;
+                    _position++;
+                    break;
+
+                case ')':
+                    _current = Token.RightParenthesis;
+                    _position++;
+                    break;
+
+                case '$':
+                    if (!ParseProperty())
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                case '%':
+                    if (!ParseItemMetadata())
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                case '@':
+                    int start = _position;
+                    if ((_options & ParserOptions.AllowItemLists) == 0 && NextIs('('))
+                    {
+                        return SetScanError(start + 1, "ItemListNotAllowedInThisConditional");
+                    }
+
+                    if (!ParseItemList())
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                case '!':
+                    if (NextIs('='))
+                    {
+                        _current = Token.NotEqualTo;
+                        _position += 2;
+                    }
+                    else
+                    {
+                        _current = Token.Not;
+                        _position++;
+                    }
+
+                    break;
+
+                case '>':
+                    if (NextIs('='))
+                    {
+                        _current = Token.GreaterThanOrEqualTo;
+                        _position += 2;
+                    }
+                    else
+                    {
+                        _current = Token.GreaterThan;
+                        _position++;
+                    }
+
+                    break;
+
+                case '<':
+                    if (NextIs('='))
+                    {
+                        _current = Token.LessThanOrEqualTo;
+                        _position += 2;
+                    }
+                    else
+                    {
+                        _current = Token.LessThan;
+                        _position++;
+                    }
+
+                    break;
+
+                case '=':
+                    if (NextIs('='))
+                    {
+                        _current = Token.EqualTo;
+                        _position += 2;
+                    }
+                    else
+                    {
+                        string unexpectedlyFound = (_position + 1) < _expression.Length
+                            ? _expression[_position + 1].ToString()
+                            : EndOfInput;
+
+                        _position++;
+                        return SetScanError(_position + 1, "IllFormedEqualsInCondition", unexpectedlyFound);
+                    }
+
+                    break;
+
+                case '\'':
+                    if (!ParseQuotedString())
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                default:
+                    if (!ParseRemaining())
+                    {
+                        return false;
+                    }
+
+                    break;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Parses either the $(propertyname) syntax or the %(metadataname) syntax,
+        /// and returns the parsed string beginning with the '$' or '%', and ending with the
+        /// closing parenthesis.
+        /// </summary>
+        private string ParsePropertyOrItemMetadata()
+        {
+            int start = _position;
+            _position++;
+
+            if (_position < _expression.Length && _expression[_position] != '(')
+            {
+                SetScanError(start + 1, "IllFormedPropertyOpenParenthesisInCondition", _expression[_position].ToString());
+                return null;
+            }
+
+            var result = ScanForPropertyExpressionEnd(_expression, _position++, out int indexResult);
+            if (!result)
+            {
+                SetScanError(indexResult, "IllFormedPropertySpaceInCondition", _expression[indexResult].ToString());
+                return null;
+            }
+
+            _position = indexResult;
+            if (_position >= _expression.Length)
+            {
+                SetScanError(start + 1, "IllFormedPropertyCloseParenthesisInCondition", EndOfInput);
+                return null;
+            }
+
+            _position++;
+            return _expression.Substring(start, _position - start);
+        }
+
+        /// <summary>
+        /// Scan for the end of the property expression
+        /// </summary>
+        /// <param name="expression">property expression to parse</param>
+        /// <param name="index">current index to start from</param>
+        /// <param name="indexResult">If successful, the index corresponds to the end of the property expression.
+        /// In case of scan failure, it is the error position index.</param>
+        /// <returns>result indicating whether or not the scan was successful.</returns>
+        private static bool ScanForPropertyExpressionEnd(string expression, int index, out int indexResult)
+        {
+            int nestLevel = 0;
+            bool whitespaceFound = false;
+            bool nonIdentifierCharacterFound = false;
+            indexResult = -1;
+            unsafe
+            {
+                fixed (char* pchar = expression)
+                {
+                    while (index < expression.Length)
+                    {
+                        char character = pchar[index];
+                        if (character == '(')
+                        {
+                            nestLevel++;
+                        }
+                        else if (character == ')')
+                        {
+                            nestLevel--;
+                        }
+                        else if (char.IsWhiteSpace(character))
+                        {
+                            whitespaceFound = true;
+                            indexResult = index;
+                        }
+                        else if (!XmlUtilities.IsValidSubsequentElementNameCharacter(character))
+                        {
+                            nonIdentifierCharacterFound = true;
+                        }
+
+                        if (character == '$' && index < expression.Length - 1 && pchar[index + 1] == '(')
+                        {
+                            if (!ScanForPropertyExpressionEnd(expression, index + 1, out index))
+                            {
+                                indexResult = index;
+                                return false;
+                            }
+                        }
+
+                        if (nestLevel == 0)
+                        {
+                            if (whitespaceFound && !nonIdentifierCharacterFound)
+                            {
+                                return false;
+                            }
+
+                            indexResult = index;
+                            return true;
+                        }
+
+                        index++;
+                    }
+                }
+            }
+
+            indexResult = index;
+            return true;
+        }
+
+        /// <summary>
+        /// Parses a string of the form $(propertyname).
+        /// </summary>
+        private bool ParseProperty()
+        {
+            string propertyExpression = ParsePropertyOrItemMetadata();
+
+            if (propertyExpression is null)
+            {
+                return false;
+            }
+
+            _current = new Token(Token.TokenType.Property, propertyExpression);
+            return true;
+        }
+
+        /// <summary>
+        /// Parses a string of the form %(itemmetadataname).
+        /// </summary>
+        private bool ParseItemMetadata()
+        {
+            string itemMetadataExpression = ParsePropertyOrItemMetadata();
+
+            if (itemMetadataExpression is null)
+            {
+                // Override the error resource set by ParsePropertyOrItemMetadata
+                // to the generic "UnexpectedCharacter" message for metadata.
+                _errorResource = "UnexpectedCharacterInCondition";
+                return false;
+            }
+
+            _current = new Token(Token.TokenType.ItemMetadata, itemMetadataExpression);
+
+            if (!CheckForUnexpectedMetadata(itemMetadataExpression))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Helper to verify that any AllowBuiltInMetadata or AllowCustomMetadata
+        /// specifications are not respected.
+        /// Returns true if it is ok, otherwise false.
+        /// </summary>
+        private bool CheckForUnexpectedMetadata(string expression)
+        {
+            if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
+            {
+                return true;
+            }
+
+            if (expression.Length > 3 && expression[0] == '%' && expression[1] == '(' && expression[^1] == ')')
+            {
+                expression = expression.Substring(2, expression.Length - 1 - 2);
+            }
+
+            int period = expression.IndexOf('.');
+            if (period > 0 && period < expression.Length - 1)
+            {
+                expression = expression.Substring(period + 1);
+            }
+
+            bool isItemSpecModifier = ItemSpecModifiers.IsItemSpecModifier(expression);
+
+            if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
+            {
+                return SetScanError(_position, "BuiltInMetadataNotAllowedInThisConditional", expression);
+            }
+
+            if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
+            {
+                return SetScanError(_position, "CustomMetadataNotAllowedInThisConditional", expression);
+            }
+
+            return true;
+        }
+
+        private bool ParseInternalItemList()
+        {
+            int start = _position;
+            _position++;
+
+            if (_position < _expression.Length && _expression[_position] != '(')
+            {
+                return SetScanError(start + 1, "IllFormedItemListOpenParenthesisInCondition");
+            }
+
+            _position++;
+            bool fInReplacement = false;
+            int parenToClose = 0;
+            while (_position < _expression.Length)
+            {
+                if (_expression[_position] == '\'')
+                {
+                    fInReplacement = !fInReplacement;
+                }
+                else if (_expression[_position] == '(' && !fInReplacement)
+                {
+                    parenToClose++;
+                }
+                else if (_expression[_position] == ')' && !fInReplacement)
+                {
+                    if (parenToClose == 0)
+                    {
+                        break;
+                    }
+
+                    parenToClose--;
+                }
+
+                _position++;
+            }
+
+            if (_position >= _expression.Length)
+            {
+                return SetScanError(
+                    start + 1,
+                    fInReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
+            }
+
+            _position++;
+            return true;
+        }
+
+        private bool ParseItemList()
+        {
+            int start = _position;
+            if (!ParseInternalItemList())
+            {
+                return false;
+            }
+
+            _current = new Token(Token.TokenType.ItemList, _expression.Substring(start, _position - start));
+            return true;
+        }
+
+        /// <summary>
+        /// Parse any part of the conditional expression that is quoted. It may contain a property, item, or
+        /// metadata element that needs expansion during evaluation.
+        /// </summary>
+        private bool ParseQuotedString()
+        {
+            _position++;
+            int start = _position;
+            bool expandable = false;
+            while (_position < _expression.Length && _expression[_position] != '\'')
+            {
+                if (_expression[_position] == '%' && NextIs('('))
+                {
+                    expandable = true;
+                    string name = string.Empty;
+
+                    int endOfName = _expression.IndexOf(')', _position) - 1;
+                    if (endOfName < 0)
+                    {
+                        endOfName = _expression.Length - 1;
+                    }
+
+                    if (_position + 3 < _expression.Length)
+                    {
+                        name = _expression.Substring(_position + 2, endOfName - _position - 2 + 1);
+                    }
+
+                    if (!CheckForUnexpectedMetadata(name))
+                    {
+                        return false;
+                    }
+                }
+                else if (_expression[_position] == '@' && NextIs('('))
+                {
+                    expandable = true;
+
+                    if ((_options & ParserOptions.AllowItemLists) == 0)
+                    {
+                        return SetScanError(start + 1, "ItemListNotAllowedInThisConditional");
+                    }
+
+                    ParseInternalItemList();
+                    continue;
+                }
+                else if (_expression[_position] == '$' && NextIs('('))
+                {
+                    expandable = true;
+                }
+                else if (_expression[_position] == '%')
+                {
+                    expandable = true;
+                }
+
+                _position++;
+            }
+
+            if (_position >= _expression.Length)
+            {
+                return SetScanError(start, "IllFormedQuotedStringInCondition");
+            }
+
+            string originalTokenString = _expression.Substring(start, _position - start);
+            _current = new Token(Token.TokenType.String, originalTokenString, expandable);
+            _position++;
+            return true;
+        }
+
+        private bool ParseRemaining()
+        {
+            int start = _position;
+            if (CharacterUtilities.IsNumberStart(_expression[_position]))
+            {
+                if (!ParseNumeric(start))
+                {
+                    return false;
+                }
+            }
+            else if (CharacterUtilities.IsSimpleStringStart(_expression[_position]))
+            {
+                if (!ParseSimpleStringOrFunction(start))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return SetScanError(
+                    start + 1,
+                    "UnexpectedCharacterInCondition",
+                    _expression[_position].ToString());
+            }
+
+            return true;
+        }
+
+        // There is a bug here that spaces are not required around 'and' and 'or'. For example,
+        // this works perfectly well:
+        // Condition="%(a.Identity)!=''and%(a.m)=='1'"
+        // Since people now depend on this behavior, we must not change it.
+        private bool ParseSimpleStringOrFunction(int start)
+        {
+            SkipSimpleStringChars();
+
+            if (_expression.AsSpan(start, _position - start).Equals("and", StringComparison.OrdinalIgnoreCase))
+            {
+                _current = Token.And;
+            }
+            else if (_expression.AsSpan(start, _position - start).Equals("or", StringComparison.OrdinalIgnoreCase))
+            {
+                _current = Token.Or;
+            }
+            else
+            {
+                int end = _position;
+
+                SkipWhiteSpace();
+
+                if (_position < _expression.Length && _expression[_position] == '(')
+                {
+                    _current = new Token(Token.TokenType.Function, _expression.Substring(start, end - start));
+                }
+                else
+                {
+                    string tokenValue = _expression.Substring(start, end - start);
+                    _current = new Token(Token.TokenType.String, tokenValue);
+                }
+            }
+
+            return true;
+        }
+
+        private bool ParseNumeric(int start)
+        {
+            if ((_expression.Length - _position) > 2 && _expression[_position] == '0' && (_expression[_position + 1] == 'x' || _expression[_position + 1] == 'X'))
+            {
+                _position += 2;
+                SkipHexDigits();
+                _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
+                return true;
+            }
+
+            if (CharacterUtilities.IsNumberStart(_expression[_position]))
+            {
+                if (_expression[_position] is '+' or '-')
+                {
+                    _position++;
+                }
+
+                do
+                {
+                    SkipDigits();
+
+                    if (_position < _expression.Length && _expression[_position] == '.')
+                    {
+                        _position++;
+                    }
+
+                    if (_position < _expression.Length)
+                    {
+                        SkipDigits();
+                    }
+                }
+                while (_position < _expression.Length && _expression[_position] == '.');
+
+                _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
+                return true;
+            }
+
+            return SetScanError(start + 1, "UnexpectedCharacterInCondition");
+        }
+
+        private void SkipWhiteSpace()
+        {
+            while (_position < _expression.Length && char.IsWhiteSpace(_expression[_position]))
+            {
+                _position++;
+            }
+        }
+
+        private void SkipDigits()
+        {
+            while (_position < _expression.Length && char.IsDigit(_expression[_position]))
+            {
+                _position++;
+            }
+        }
+
+        private void SkipHexDigits()
+        {
+            while (_position < _expression.Length && CharacterUtilities.IsHexDigit(_expression[_position]))
+            {
+                _position++;
+            }
+        }
+
+        private void SkipSimpleStringChars()
+        {
+            while (_position < _expression.Length && CharacterUtilities.IsSimpleStringChar(_expression[_position]))
+            {
+                _position++;
+            }
+        }
+
         private bool Same(Token.TokenType token)
-            => _lexer.IsNext(token) && (_lexer.Advance() || SetScannerErrorAndReturn());
+            => IsNext(token) && Advance();
     }
 }
