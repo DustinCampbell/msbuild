@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using Microsoft.Build.Evaluation;
+using Shouldly;
 using Xunit;
 
 
@@ -163,6 +164,227 @@ namespace Microsoft.Build.UnitTests
             Assert.True(Parser.Parse("'otherstuff%(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
             Assert.True(Parser.Parse("'%(foo)otherstuff' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
             Assert.True(Parser.Parse("somefunction(%(foo), 'otherstuff')", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
+        }
+
+        /// <summary>
+        /// Tests the special error for "=" (should be "==").
+        /// </summary>
+        [Fact]
+        public void SingleEqualsProducesError()
+        {
+            ParseResult result = Parser.Parse("a=b", ParserOptions.AllowProperties, _elementLocation);
+            result.IsError.ShouldBeTrue();
+            result.ErrorResource.ShouldBe("IllFormedEqualsInCondition");
+        }
+
+        /// <summary>
+        /// Tests the special errors for "$(" and "$x" patterns.
+        /// </summary>
+        [Theory]
+        [InlineData("$(", "IllFormedPropertyCloseParenthesisInCondition")]
+        [InlineData("$x", "IllFormedPropertyOpenParenthesisInCondition")]
+        internal void IllFormedProperty(string expression, string expectedResource)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowProperties, _elementLocation);
+            result.IsError.ShouldBeTrue();
+            result.ErrorResource.ShouldBe(expectedResource);
+        }
+
+        /// <summary>
+        /// Tests that spaces adjacent to property name boundaries produce errors.
+        /// </summary>
+        [Theory]
+        [InlineData("$(x )")]
+        [InlineData("$( x)")]
+        [InlineData("$([MSBuild]::DoSomething($(space ))")]
+        [InlineData("$([MSBuild]::DoSomething($(_space ))")]
+        internal void SpaceInPropertyProducesError(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowProperties, _elementLocation);
+            result.IsError.ShouldBeTrue();
+            result.ErrorResource.ShouldBe("IllFormedPropertySpaceInCondition");
+        }
+
+        /// <summary>
+        /// Tests that spaces in the middle of property expressions (not adjacent to name boundaries) are OK.
+        /// </summary>
+        [Theory]
+        [InlineData("$(x.StartsWith( 'y' ))")]
+        [InlineData("$(x.StartsWith ('y'))")]
+        [InlineData("$( x.StartsWith( $(SpacelessProperty) ) )")]
+        [InlineData("$( x.StartsWith( $(_SpacelessProperty) ) )")]
+        [InlineData("$(x.StartsWith('Foo', StringComparison.InvariantCultureIgnoreCase))")]
+        internal void SpaceInMiddleOfPropertyIsValid(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowProperties, _elementLocation);
+            result.IsError.ShouldBeFalse();
+        }
+
+        /// <summary>
+        /// Tests the special errors for "@(" and "@x" and similar malformed item list patterns.
+        /// </summary>
+        [Theory]
+        [InlineData("@(", "IllFormedItemListCloseParenthesisInCondition")]
+        [InlineData("@x", "IllFormedItemListOpenParenthesisInCondition")]
+        [InlineData("@(x", "IllFormedItemListCloseParenthesisInCondition")]
+        [InlineData("@(x->'%(y)", "IllFormedItemListQuoteInCondition")]
+        [InlineData("@(x->'%(y)', 'x", "IllFormedItemListQuoteInCondition")]
+        [InlineData("@(x->'%(y)', 'x'", "IllFormedItemListCloseParenthesisInCondition")]
+        internal void IllFormedItemList(string expression, string expectedResource)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeTrue();
+            result.ErrorResource.ShouldBe(expectedResource);
+        }
+
+        /// <summary>
+        /// Tests the special error for unterminated quotes.
+        /// </summary>
+        [Theory]
+        [InlineData("false or 'abc")]
+        [InlineData("'")]
+        internal void IllFormedQuotedString(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeTrue();
+            result.ErrorResource.ShouldBe("IllFormedQuotedStringInCondition");
+        }
+
+        /// <summary>
+        /// Tests that item lists are rejected when only properties are allowed.
+        /// </summary>
+        [Theory]
+        [InlineData("@(foo)")]
+        [InlineData("1234 == '@(foo)'")]
+        [InlineData("'1234 @(foo)' == ''")]
+        internal void ItemListNotAllowedWhenDisabled(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowProperties, _elementLocation);
+            result.IsError.ShouldBeTrue();
+            result.ErrorResource.ShouldBe("ItemListNotAllowedInThisConditional");
+        }
+
+        /// <summary>
+        /// Tests that unterminated quoted strings fail.
+        /// </summary>
+        [Fact]
+        public void UnterminatedQuotedString()
+        {
+            ParseResult result = Parser.Parse("'$(DEBUG) == true", ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeTrue();
+        }
+
+        /// <summary>
+        /// Tests that numeric literals parse successfully.
+        /// </summary>
+        [Theory]
+        [InlineData("1234 == 1234")]
+        [InlineData("-1234 == -1234")]
+        [InlineData("+1234 == +1234")]
+        [InlineData("1234.1234 == 1234.1234")]
+        [InlineData(".1234 == .1234")]
+        [InlineData("1234. == 1234.")]
+        [InlineData("0x1234 == 0x1234")]
+        [InlineData("0X1234abcd == 0X1234abcd")]
+        [InlineData("0x1234ABCD == 0x1234ABCD")]
+        internal void NumericLiterals(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeFalse();
+        }
+
+        /// <summary>
+        /// Tests that various single-token expressions parse successfully.
+        /// </summary>
+        [Theory]
+        [InlineData("$(foo) == ''")]
+        [InlineData("@(foo) == ''")]
+        [InlineData("abcde == ''")]
+        [InlineData("'abc-efg' == ''")]
+        [InlineData("true and true")]
+        [InlineData("true or true")]
+        [InlineData("true and false")]
+        [InlineData("true or false")]
+        internal void BasicTokenTypes(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeFalse();
+        }
+
+        /// <summary>
+        /// Tests that string edge cases with embedded item lists and escaped characters parse correctly.
+        /// </summary>
+        [Theory]
+        [InlineData("'String with a $(Property) inside' == ''")]
+        [InlineData("@(Foo, ' ') == ''")]
+        [InlineData("'@(Foo, '' '')' == ''")]
+        [InlineData("'%40(( ' == ''")]
+        [InlineData("'@(Complex_ItemType-123, '';'')' == ''")]
+        [InlineData("@(list, ' ') == ''")]
+        [InlineData("@(files->'%(Filename)') == ''")]
+        internal void StringEdgeCases(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeFalse();
+        }
+
+        /// <summary>
+        /// Tests that function call expressions with various argument types parse correctly.
+        /// </summary>
+        [Theory]
+        [InlineData("Foo()")]
+        [InlineData("Foo( 1 )")]
+        [InlineData("Foo( $(Property) )")]
+        [InlineData("Foo( @(ItemList) )")]
+        [InlineData("Foo( simplestring )")]
+        [InlineData("Foo( 'Not a Simple String' )")]
+        [InlineData("Foo( 'Not a Simple String', 1234 )")]
+        [InlineData("Foo( $(Property), 'Not a Simple String', 1234 )")]
+        [InlineData("Foo( @(ItemList), $(Property), simplestring, 'Not a Simple String', 1234 )")]
+        internal void FunctionCallExpressions(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeFalse();
+        }
+
+        /// <summary>
+        /// Tests that expressions with no whitespace between tokens parse correctly.
+        /// </summary>
+        [Theory]
+        [InlineData("'abc-efg'==$(foo)")]
+        [InlineData("$(debug)!=true")]
+        [InlineData("$(VERSION)<5")]
+        [InlineData("$(DEBUG) and $(FOO)")]
+        internal void NoWhitespaceBetweenTokens(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeFalse();
+        }
+
+        /// <summary>
+        /// Tests error position reporting.
+        /// </summary>
+        [Theory]
+        [InlineData("1==0xFG", 7, ParserOptions.AllowAll)]                   // Position of G
+        [InlineData("1==-0xF", 6, ParserOptions.AllowAll)]                   // Position of x
+        [InlineData("1234=5678", 6, ParserOptions.AllowAll)]                 // Position of '5'
+        [InlineData(" ", 2, ParserOptions.AllowAll)]                         // Position of End of Input
+        [InlineData(" (", 3, ParserOptions.AllowAll)]                        // Position of End of Input
+        [InlineData(" false or  ", 12, ParserOptions.AllowAll)]              // Position of End of Input
+        [InlineData(" \"foo", 2, ParserOptions.AllowAll)]                    // Position of open quote
+        [InlineData(" @(foo", 2, ParserOptions.AllowAll)]                    // Position of @
+        [InlineData(" @(", 2, ParserOptions.AllowAll)]                       // Position of @
+        [InlineData(" $", 2, ParserOptions.AllowAll)]                        // Position of $
+        [InlineData(" $(foo", 2, ParserOptions.AllowAll)]                    // Position of $
+        [InlineData(" $(", 2, ParserOptions.AllowAll)]                       // Position of $
+        [InlineData(" @(foo)", 2, ParserOptions.AllowProperties)]            // Position of @
+        [InlineData(" '@(foo)'", 3, ParserOptions.AllowProperties)]          // Position of @
+        [InlineData("'%24%28x' == '%24(x''", 21, ParserOptions.AllowAll)]    // Position of extra quote
+        internal void ErrorPosition(string expression, int expectedPosition, ParserOptions options)
+        {
+            ParseResult result = Parser.Parse(expression, options, _elementLocation);
+            result.IsError.ShouldBeTrue();
+            result.ErrorPosition.ShouldBe(expectedPosition);
         }
 
         /// <summary>
