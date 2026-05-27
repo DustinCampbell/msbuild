@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using Microsoft.Build.Evaluation;
-using Microsoft.Build.Exceptions;
 using Shouldly;
 using Xunit;
 
@@ -16,50 +14,31 @@ namespace Microsoft.Build.UnitTests
     public class ScannerTest
     {
         private MockElementLocation _elementLocation = MockElementLocation.Instance;
+
         /// <summary>
         /// Tests that we give a useful error position (not 0 for example)
         /// </summary>
-        [Fact]
-        public void ErrorPosition()
+        [Theory]
+        [InlineData("1==0xFG", 7, ParserOptions.AllowAll)]                   // Position of G
+        [InlineData("1==-0xF", 6, ParserOptions.AllowAll)]                   // Position of x
+        [InlineData("1234=5678", 6, ParserOptions.AllowAll)]                 // Position of '5'
+        [InlineData(" ", 2, ParserOptions.AllowAll)]                         // Position of End of Input
+        [InlineData(" (", 3, ParserOptions.AllowAll)]                        // Position of End of Input
+        [InlineData(" false or  ", 12, ParserOptions.AllowAll)]              // Position of End of Input
+        [InlineData(" \"foo", 2, ParserOptions.AllowAll)]                    // Position of open quote
+        [InlineData(" @(foo", 2, ParserOptions.AllowAll)]                    // Position of @
+        [InlineData(" @(", 2, ParserOptions.AllowAll)]                       // Position of @
+        [InlineData(" $", 2, ParserOptions.AllowAll)]                        // Position of $
+        [InlineData(" $(foo", 2, ParserOptions.AllowAll)]                    // Position of $
+        [InlineData(" $(", 2, ParserOptions.AllowAll)]                       // Position of $
+        [InlineData(" @(foo)", 2, ParserOptions.AllowProperties)]            // Position of @
+        [InlineData(" '@(foo)'", 3, ParserOptions.AllowProperties)]          // Position of @
+        [InlineData("'%24%28x' == '%24(x''", 21, ParserOptions.AllowAll)]    // Position of extra quote
+        internal void ErrorPosition(string expression, int expectedPosition, ParserOptions options)
         {
-            string[,] tests = {
-                { "1==1.1.",                "7",    "AllowAll"},              // Position of second '.'
-                { "1==0xFG",                "7",    "AllowAll"},              // Position of G
-                { "1==-0xF",                "6",    "AllowAll"},              // Position of x
-                { "1234=5678",              "6",    "AllowAll"},              // Position of '5'
-                { " ",                      "2",    "AllowAll"},              // Position of End of Input
-                { " (",                     "3",    "AllowAll"},              // Position of End of Input
-                { " false or  ",            "12",   "AllowAll"},              // Position of End of Input
-                { " \"foo",                 "2",    "AllowAll"},              // Position of open quote
-                { " @(foo",                 "2",    "AllowAll"},              // Position of @
-                { " @(",                    "2",    "AllowAll"},              // Position of @
-                { " $",                     "2",    "AllowAll"},              // Position of $
-                { " $(foo",                 "2",    "AllowAll"},              // Position of $
-                { " $(",                    "2",    "AllowAll"},              // Position of $
-                { " $",                     "2",    "AllowAll"},              // Position of $
-                { " @(foo)",                "2",    "AllowProperties"},       // Position of @
-                { " '@(foo)'",              "3",    "AllowProperties"},       // Position of @
-                /* test escaped chars: message shows them escaped so count should include them */
-                { "'%24%28x' == '%24(x''",   "21",  "AllowAll"}               // Position of extra quote
-            };
-
-            // Some errors are caught by the Parser, not merely by the Lexer/Scanner. So we have to do a full Parse,
-            // rather than just calling AdvanceToScannerError(). (The error location is still supplied by the Scanner.)
-            for (int i = 0; i < tests.GetLength(0); i++)
-            {
-                Parser parser = null;
-                try
-                {
-                    parser = new Parser();
-                    ParserOptions options = (ParserOptions)Enum.Parse(typeof(ParserOptions), tests[i, 2], true /* case-insensitive */);
-                    parser.Parse(tests[i, 0], options, _elementLocation);
-                }
-                catch (InvalidProjectFileException ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    Assert.Equal(Convert.ToInt32(tests[i, 1]), parser.errorPosition);
-                }
-            }
+            ParseResult result = Parser.Parse(expression, options, _elementLocation);
+            result.IsError.ShouldBeTrue();
+            result.ErrorPosition.ShouldBe(expectedPosition);
         }
 
         /// <summary>
@@ -490,7 +469,6 @@ namespace Microsoft.Build.UnitTests
         public void WhitespaceTests()
         {
             Scanner lexer;
-            Console.WriteLine("here");
             lexer = new Scanner("$(DEBUG) and $(FOO)", ParserOptions.AllowAll);
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.Property));
             Assert.True(lexer.Advance() && lexer.IsNext(Token.TokenType.And));

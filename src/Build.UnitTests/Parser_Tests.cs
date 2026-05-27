@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using Microsoft.Build.Evaluation;
-using Microsoft.Build.Exceptions;
 using Xunit;
 
 
@@ -26,47 +25,46 @@ namespace Microsoft.Build.UnitTests
         public void SimpleParseTest()
         {
             Console.WriteLine("SimpleParseTest()");
-            Parser p = new Parser();
-            GenericExpressionNode tree = p.Parse("$(foo)", ParserOptions.AllowAll, _elementLocation);
+            ParseResult tree = Parser.Parse("$(foo)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("$(foo)=='hello'", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("$(foo)=='hello'", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("$(foo)==''", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("$(foo)==''", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("$(debug) and $(buildlab) and $(full)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("$(debug) and $(buildlab) and $(full)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("$(debug) or $(buildlab) or $(full)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("$(debug) or $(buildlab) or $(full)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("$(debug) and $(buildlab) or $(full)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("$(debug) and $(buildlab) or $(full)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("$(full) or $(debug) and $(buildlab)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("$(full) or $(debug) and $(buildlab)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("%(culture)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("%(culture)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("%(culture)=='french'", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("%(culture)=='french'", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("'foo_%(culture)'=='foo_french'", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("'foo_%(culture)'=='foo_french'", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("true", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("true", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("false", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("false", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("0", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("0", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("0.0 == 0", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("0.0 == 0", ParserOptions.AllowAll, _elementLocation);
         }
 
         /// <summary>
@@ -75,26 +73,25 @@ namespace Microsoft.Build.UnitTests
         public void ComplexParseTest()
         {
             Console.WriteLine("ComplexParseTest()");
-            Parser p = new Parser();
-            GenericExpressionNode tree = p.Parse("$(foo)", ParserOptions.AllowAll, _elementLocation);
+            ParseResult tree = Parser.Parse("$(foo)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("($(foo) or $(bar)) and $(baz)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("($(foo) or $(bar)) and $(baz)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("$(foo) <= 5 and $(bar) >= 15", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("$(foo) <= 5 and $(bar) >= 15", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == simplestring) and 'a more complex string' != $(quux)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == simplestring) and 'a more complex string' != $(quux)", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("(($(foo) or $(bar) == false) and !($(baz) == simplestring))", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("(($(foo) or $(bar) == false) and !($(baz) == simplestring))", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("(($(foo) or Exists('c:\\foo.txt')) and !(($(baz) == simplestring)))", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("(($(foo) or Exists('c:\\foo.txt')) and !(($(baz) == simplestring)))", ParserOptions.AllowAll, _elementLocation);
 
 
-            tree = p.Parse("'CONTAINS%27QUOTE%27' == '$(TestQuote)'", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("'CONTAINS%27QUOTE%27' == '$(TestQuote)'", ParserOptions.AllowAll, _elementLocation);
         }
 
         /// <summary>
@@ -103,16 +100,15 @@ namespace Microsoft.Build.UnitTests
         public void NotParseTest()
         {
             Console.WriteLine("NegationParseTest()");
-            Parser p = new Parser();
-            GenericExpressionNode tree = p.Parse("!true", ParserOptions.AllowAll, _elementLocation);
+            ParseResult tree = Parser.Parse("!true", ParserOptions.AllowAll, _elementLocation);
 
-            tree = p.Parse("!(true)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("!(true)", ParserOptions.AllowAll, _elementLocation);
 
-            tree = p.Parse("!($(foo) <= 5)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("!($(foo) <= 5)", ParserOptions.AllowAll, _elementLocation);
 
-            tree = p.Parse("!(%(foo) <= 5)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("!(%(foo) <= 5)", ParserOptions.AllowAll, _elementLocation);
 
-            tree = p.Parse("!($(foo) <= 5 and $(bar) >= 15)", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("!($(foo) <= 5 and $(bar) >= 15)", ParserOptions.AllowAll, _elementLocation);
         }
         /// <summary>
         /// </summary>
@@ -120,93 +116,25 @@ namespace Microsoft.Build.UnitTests
         public void FunctionCallParseTest()
         {
             Console.WriteLine("FunctionCallParseTest()");
-            Parser p = new Parser();
-            GenericExpressionNode tree = p.Parse("SimpleFunctionCall()", ParserOptions.AllowAll, _elementLocation);
+            ParseResult tree = Parser.Parse("SimpleFunctionCall()", ParserOptions.AllowAll, _elementLocation);
 
-            tree = p.Parse("SimpleFunctionCall( 1234 )", ParserOptions.AllowAll, _elementLocation);
-            tree = p.Parse("SimpleFunctionCall( true )", ParserOptions.AllowAll, _elementLocation);
-            tree = p.Parse("SimpleFunctionCall( $(property) )", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("SimpleFunctionCall( 1234 )", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("SimpleFunctionCall( true )", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("SimpleFunctionCall( $(property) )", ParserOptions.AllowAll, _elementLocation);
 
-            tree = p.Parse("SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )", ParserOptions.AllowAll, _elementLocation);
+            tree = Parser.Parse("SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )", ParserOptions.AllowAll, _elementLocation);
         }
 
         [Fact]
         public void ItemListParseTest()
         {
             Console.WriteLine("FunctionCallParseTest()");
-            Parser p = new Parser();
-            GenericExpressionNode tree;
-            bool fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("@(foo) == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("'a.cs;b.cs' == @(foo)", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("'@(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("'otherstuff@(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("'@(foo)otherstuff' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("somefunction(@(foo), 'otherstuff')", ParserOptions.AllowProperties, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
+            Assert.True(Parser.Parse("@(foo) == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation).IsError);
+            Assert.True(Parser.Parse("'a.cs;b.cs' == @(foo)", ParserOptions.AllowProperties, _elementLocation).IsError);
+            Assert.True(Parser.Parse("'@(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation).IsError);
+            Assert.True(Parser.Parse("'otherstuff@(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation).IsError);
+            Assert.True(Parser.Parse("'@(foo)otherstuff' == 'a.cs;b.cs'", ParserOptions.AllowProperties, _elementLocation).IsError);
+            Assert.True(Parser.Parse("somefunction(@(foo), 'otherstuff')", ParserOptions.AllowProperties, _elementLocation).IsError);
         }
 
         [Fact]
@@ -214,98 +142,27 @@ namespace Microsoft.Build.UnitTests
         {
             Console.WriteLine("ItemFuncParseTest()");
 
-            Parser p = new Parser();
-            GenericExpressionNode tree = p.Parse("@(item->foo('ab'))",
-                ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<StringExpressionNode>(tree);
-            Assert.Equal("@(item->foo('ab'))", tree.GetUnexpandedValue(null));
+            ParseResult tree = Parser.Parse("@(item->foo('ab'))", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
+            Assert.IsType<StringExpressionNode>(tree.Node);
+            Assert.Equal("@(item->foo('ab'))", tree.Node.GetUnexpandedValue(null));
 
-            tree = p.Parse("!@(item->foo())",
-                ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<NotExpressionNode>(tree);
+            tree = Parser.Parse("!@(item->foo())", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
+            Assert.IsType<NotExpressionNode>(tree.Node);
 
-            tree = p.Parse("(@(item->foo('ab')) and @(item->foo('bc')))",
-                ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<AndExpressionNode>(tree);
+            tree = Parser.Parse("(@(item->foo('ab')) and @(item->foo('bc')))", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
+            Assert.IsType<AndExpressionNode>(tree.Node);
         }
 
         [Fact]
         public void MetadataParseTest()
         {
             Console.WriteLine("FunctionCallParseTest()");
-            Parser p = new Parser();
-            GenericExpressionNode tree;
-            bool fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("%(foo) == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("'a.cs;b.cs' == %(foo)", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("'%(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("'otherstuff%(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("'%(foo)otherstuff' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-
-            fExceptionCaught = false;
-            try
-            {
-                tree = p.Parse("somefunction(%(foo), 'otherstuff')", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
+            Assert.True(Parser.Parse("%(foo) == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
+            Assert.True(Parser.Parse("'a.cs;b.cs' == %(foo)", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
+            Assert.True(Parser.Parse("'%(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
+            Assert.True(Parser.Parse("'otherstuff%(foo)' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
+            Assert.True(Parser.Parse("'%(foo)otherstuff' == 'a.cs;b.cs'", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
+            Assert.True(Parser.Parse("somefunction(%(foo), 'otherstuff')", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation).IsError);
         }
 
         /// <summary>
@@ -313,124 +170,32 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void NegativeTests()
         {
-            Console.WriteLine("NegativeTests()");
-            Parser p = new Parser();
-            GenericExpressionNode tree;
-            bool fExceptionCaught;
+            // Note no close quote ----------------------------------------------------V
+            Assert.True(Parser.Parse("'a more complex' == 'asdf", ParserOptions.AllowAll, _elementLocation).IsError);
 
-            try
-            {
-                fExceptionCaught = false;
-                // Note no close quote ----------------------------------------------------V
-                tree = p.Parse("'a more complex' == 'asdf", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
+            // Note no close quote ----------------------------------------------------V
+            Assert.True(Parser.Parse("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == 'simple string) and 'a more complex string' != $(quux)", ParserOptions.AllowAll, _elementLocation).IsError);
 
-            try
-            {
-                fExceptionCaught = false;
-                // Note no close quote ----------------------------------------------------V
-                tree = p.Parse("(($(foo) <= 5 and $(bar) >= 15) and $(baz) == 'simple string) and 'a more complex string' != $(quux)", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = p.Parse("($(foo) == 'simple string') $(bar)", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
+            // Correct tokens, but bad parse -----------V
+            Assert.True(Parser.Parse("($(foo) == 'simple string') $(bar)", ParserOptions.AllowAll, _elementLocation).IsError);
 
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = p.Parse("=='x'", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
+            // Correct tokens, but bad parse -----------V
+            Assert.True(Parser.Parse("=='x'", ParserOptions.AllowAll, _elementLocation).IsError);
 
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = p.Parse("==", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
+            // Correct tokens, but bad parse -----------V
+            Assert.True(Parser.Parse("==", ParserOptions.AllowAll, _elementLocation).IsError);
 
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = p.Parse(">", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = p.Parse("true!=false==", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
+            // Correct tokens, but bad parse -----------V
+            Assert.True(Parser.Parse(">", ParserOptions.AllowAll, _elementLocation).IsError);
 
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = p.Parse("true!=false==true", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
-            try
-            {
-                fExceptionCaught = false;
-                // Correct tokens, but bad parse -----------V
-                tree = p.Parse("1==(2", ParserOptions.AllowAll, _elementLocation);
-            }
-            catch (InvalidProjectFileException e)
-            {
-                Console.WriteLine(e.BaseMessage);
-                fExceptionCaught = true;
-            }
-            Assert.True(fExceptionCaught);
+            // Correct tokens, but bad parse -----------V
+            Assert.True(Parser.Parse("true!=false==", ParserOptions.AllowAll, _elementLocation).IsError);
+
+            // Correct tokens, but bad parse -----------V
+            Assert.True(Parser.Parse("true!=false==true", ParserOptions.AllowAll, _elementLocation).IsError);
+
+            // Correct tokens, but bad parse -----------V
+            Assert.True(Parser.Parse("1==(2", ParserOptions.AllowAll, _elementLocation).IsError);
         }
 
         /// <summary>
