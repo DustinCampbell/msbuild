@@ -194,7 +194,7 @@ namespace Microsoft.Build.Evaluation
             }
 
             _errorResource = "UnexpectedTokenInCondition";
-            _errorArgs = [_expression, _current.Text, _errorPosition];
+            _errorArgs = [_expression, _current.ToString(), _errorPosition];
         }
 
         private bool SetErrorInfo(int position, string resource, string extraArg = null)
@@ -415,7 +415,7 @@ namespace Microsoft.Build.Evaluation
                     return UnexpectedTokenInConditionAndReturn(out result);
                 }
 
-                result = new FunctionCallExpressionNode(current.Text, arglist);
+                result = new FunctionCallExpressionNode(current.Text.ToString(), arglist);
                 return true;
             }
 
@@ -484,31 +484,31 @@ namespace Microsoft.Build.Evaluation
 
             if (Same(TokenKind.String))
             {
-                result = new StringExpressionNode(current.Text, current.Expandable);
+                result = new StringExpressionNode(current.Text.ToString(), current.Expandable);
                 return true;
             }
 
             if (Same(TokenKind.Number))
             {
-                result = new NumericExpressionNode(current.Text);
+                result = new NumericExpressionNode(current.Text.ToString());
                 return true;
             }
 
             if (Same(TokenKind.Property))
             {
-                result = new StringExpressionNode(current.Text, expandable: true);
+                result = new StringExpressionNode(current.Text.ToString(), expandable: true);
                 return true;
             }
 
             if (Same(TokenKind.ItemMetadata))
             {
-                result = new StringExpressionNode(current.Text, expandable: true);
+                result = new StringExpressionNode(current.Text.ToString(), expandable: true);
                 return true;
             }
 
             if (Same(TokenKind.ItemList))
             {
-                result = new StringExpressionNode(current.Text, expandable: true);
+                result = new StringExpressionNode(current.Text.ToString(), expandable: true);
                 return true;
             }
 
@@ -638,7 +638,7 @@ namespace Microsoft.Build.Evaluation
                             return false;
                         }
 
-                        _current = Token.Property(_expression.Substring(start, _position - start));
+                        _current = Token.Property(_expression.AsMemory(start, _position - start));
                     }
 
                     break;
@@ -651,7 +651,7 @@ namespace Microsoft.Build.Evaluation
                             return false;
                         }
 
-                        _current = Token.ItemMetadata(_expression.Substring(start, _position - start));
+                        _current = Token.ItemMetadata(_expression.AsMemory(start, _position - start));
                     }
 
                     break;
@@ -669,7 +669,7 @@ namespace Microsoft.Build.Evaluation
                             return false;
                         }
 
-                        _current = Token.ItemList(_expression.Substring(start, _position - start));
+                        _current = Token.ItemList(_expression.AsMemory(start, _position - start));
                     }
 
                     break;
@@ -742,7 +742,7 @@ namespace Microsoft.Build.Evaluation
                             return false;
                         }
 
-                        _current = Token.String(_expression.Substring(start, _position - start - 1), expandable);
+                        _current = Token.String(_expression.AsMemory(start, _position - start - 1), expandable);
                     }
 
                     break;
@@ -753,7 +753,7 @@ namespace Microsoft.Build.Evaluation
 
                         if (TryScanNumber())
                         {
-                            _current = Token.Number(_expression.Substring(start, _position - start));
+                            _current = Token.Number(_expression.AsMemory(start, _position - start));
                             return true;
                         }
 
@@ -1111,15 +1111,9 @@ namespace Microsoft.Build.Evaluation
 
                 SkipWhiteSpace();
 
-                if (At('('))
-                {
-                    _current = Token.FunctionName(_expression.Substring(start, end - start));
-                }
-                else
-                {
-                    string tokenValue = _expression.Substring(start, end - start);
-                    _current = Token.String(tokenValue);
-                }
+                _current = At('(')
+                    ? Token.FunctionName(_expression.AsMemory(start, end - start))
+                    : Token.String(_expression.AsMemory(start, end - start));
             }
 
             return true;

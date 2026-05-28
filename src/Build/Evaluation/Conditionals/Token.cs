@@ -1,6 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+
 #nullable disable
 
 namespace Microsoft.Build.Evaluation
@@ -41,21 +43,19 @@ namespace Microsoft.Build.Evaluation
     /// </summary>
     internal readonly struct Token
     {
-        public static readonly Token Comma = new(TokenKind.Comma);
-        public static readonly Token LeftParenthesis = new(TokenKind.LeftParenthesis);
-        public static readonly Token RightParenthesis = new(TokenKind.RightParenthesis);
-        public static readonly Token LessThan = new(TokenKind.LessThan);
-        public static readonly Token GreaterThan = new(TokenKind.GreaterThan);
-        public static readonly Token LessThanOrEqualTo = new(TokenKind.LessThanOrEqualTo);
-        public static readonly Token GreaterThanOrEqualTo = new(TokenKind.GreaterThanOrEqualTo);
-        public static readonly Token And = new(TokenKind.And);
-        public static readonly Token Or = new(TokenKind.Or);
-        public static readonly Token EqualTo = new(TokenKind.EqualTo);
-        public static readonly Token NotEqualTo = new(TokenKind.NotEqualTo);
-        public static readonly Token Not = new(TokenKind.Not);
-        public static readonly Token EndOfInput = new(TokenKind.EndOfInput);
-
-        private readonly string _text;
+        public static readonly Token Comma = new(TokenKind.Comma, ",");
+        public static readonly Token LeftParenthesis = new(TokenKind.LeftParenthesis, "(");
+        public static readonly Token RightParenthesis = new(TokenKind.RightParenthesis, ")");
+        public static readonly Token LessThan = new(TokenKind.LessThan, "<");
+        public static readonly Token GreaterThan = new(TokenKind.GreaterThan, ">");
+        public static readonly Token LessThanOrEqualTo = new(TokenKind.LessThanOrEqualTo, "<=");
+        public static readonly Token GreaterThanOrEqualTo = new(TokenKind.GreaterThanOrEqualTo, ">=");
+        public static readonly Token And = new(TokenKind.And, "and");
+        public static readonly Token Or = new(TokenKind.Or, "or");
+        public static readonly Token EqualTo = new(TokenKind.EqualTo, "==");
+        public static readonly Token NotEqualTo = new(TokenKind.NotEqualTo, "!=");
+        public static readonly Token Not = new(TokenKind.Not, "!");
+        public static readonly Token EndOfInput = new(TokenKind.EndOfInput, ReadOnlyMemory<char>.Empty);
 
         public TokenKind Kind { get; }
 
@@ -65,62 +65,42 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         public bool Expandable { get; }
 
-        private Token(TokenKind kind)
-        {
-            Kind = kind;
-            _text = null;
-        }
+        public ReadOnlyMemory<char> Text { get; }
 
         private Token(TokenKind kind, string text, bool expandable = false)
+            : this(kind, text.AsMemory(), expandable)
         {
-            Assumed.NotNull(text);
+        }
 
+        private Token(TokenKind kind, ReadOnlyMemory<char> text, bool expandable = false)
+        {
             Kind = kind;
-            _text = text;
+            Text = text;
             Expandable = expandable;
         }
 
-        public static Token Number(string text)
+        public static Token Number(ReadOnlyMemory<char> text)
             => new(TokenKind.Number, text);
 
-        public static Token FunctionName(string text)
+        public static Token FunctionName(ReadOnlyMemory<char> text)
             => new(TokenKind.FunctionName, text);
 
-        public static Token Property(string text)
+        public static Token Property(ReadOnlyMemory<char> text)
             => new(TokenKind.Property, text);
 
-        public static Token ItemMetadata(string text)
+        public static Token ItemMetadata(ReadOnlyMemory<char> text)
             => new(TokenKind.ItemMetadata, text);
 
-        public static Token ItemList(string text)
+        public static Token ItemList(ReadOnlyMemory<char> text)
             => new(TokenKind.ItemList, text);
 
-        public static Token String(string text, bool expandable = false)
+        public static Token String(ReadOnlyMemory<char> text, bool expandable = false)
             => new(TokenKind.String, text, expandable);
 
         public bool IsKind(TokenKind kind)
             => Kind == kind;
 
         public override string ToString()
-            => Text;
-
-        internal string Text
-            => _text ?? Kind switch
-            {
-                TokenKind.Comma => ",",
-                TokenKind.LeftParenthesis => "(",
-                TokenKind.RightParenthesis => ")",
-                TokenKind.LessThan => "<",
-                TokenKind.GreaterThan => ">",
-                TokenKind.LessThanOrEqualTo => "<=",
-                TokenKind.GreaterThanOrEqualTo => ">=",
-                TokenKind.And => "and",
-                TokenKind.Or => "or",
-                TokenKind.EqualTo => "==",
-                TokenKind.NotEqualTo => "!=",
-                TokenKind.Not => "!",
-                TokenKind.EndOfInput => null,
-                _ => Assumed.Unreachable<string>(),
-            };
+            => Text.ToString();
     }
 }
