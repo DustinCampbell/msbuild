@@ -847,7 +847,7 @@ namespace Microsoft.Build.Evaluation
             {
                 if (TryConsume(')'))
                 {
-                    string itemMetadataExpression = _expression.Substring(start, _position - start);
+                    ReadOnlySpan<char> itemMetadataExpression = _expression.AsSpan(start, _position - start);
                     return CheckForUnexpectedMetadata(start, itemMetadataExpression);
                 }
 
@@ -867,45 +867,38 @@ namespace Microsoft.Build.Evaluation
         /// specifications are not respected.
         /// Returns true if it is ok, otherwise false.
         /// </summary>
-        private bool CheckForUnexpectedMetadata(int start, string expression)
+        private bool CheckForUnexpectedMetadata(int start, ReadOnlySpan<char> expression)
         {
             if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
             {
                 return true;
             }
 
-            // start and end delimit the metadata name within expression (end is exclusive).
-            int nameStart = 0;
-            int nameEnd = expression.Length;
+            ReadOnlySpan<char> name = expression;
 
-            if (expression is ['%', '(', .., ')'])
+            if (name is ['%', '(', .. var span, ')'])
             {
-                nameStart = 2;
-                nameEnd -= 1;
+                name = span;
             }
 
-            int dotIndex = expression.IndexOf('.', nameStart);
+            int dotIndex = name.IndexOf('.');
 
             // Note: The '.' can't be the first or last character.
-            if (dotIndex > nameStart && dotIndex < nameEnd - 1)
+            if (dotIndex > 0 && dotIndex < name.Length - 1)
             {
-                nameStart = dotIndex + 1;
+                name = name[(dotIndex + 1)..];
             }
-
-            string name = nameStart > 0
-                ? expression.Substring(nameStart, nameEnd - nameStart)
-                : expression;
 
             bool isItemSpecModifier = ItemSpecModifiers.IsItemSpecModifier(name);
 
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
             {
-                return SetErrorInfo(start, "BuiltInMetadataNotAllowedInThisConditional", name);
+                return SetErrorInfo(start, "BuiltInMetadataNotAllowedInThisConditional", name.ToString());
             }
 
             if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
             {
-                return SetErrorInfo(start, "CustomMetadataNotAllowedInThisConditional", name);
+                return SetErrorInfo(start, "CustomMetadataNotAllowedInThisConditional", name.ToString());
             }
 
             return true;
