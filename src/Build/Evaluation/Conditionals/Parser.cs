@@ -510,6 +510,60 @@ namespace Microsoft.Build.Evaluation
         private bool IsNext(Token.TokenType type)
             => _current.IsToken(type);
 
+        private bool AtEnd
+            => _position >= _expression.Length;
+
+        private bool At(char c)
+            => !AtEnd && _expression[_position] == c;
+
+        private bool At(string s)
+        {
+            if (_position + s.Length > _expression.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (_expression[_position + i] != s[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool TryConsume(char c)
+        {
+            if (!AtEnd && _expression[_position] == c)
+            {
+                _position++;
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryConsume(string s)
+        {
+            if (_position + s.Length > _expression.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (_expression[_position + i] != s[i])
+                {
+                    return false;
+                }
+            }
+
+            _position += s.Length;
+            return true;
+        }
+
         private bool NextIs(char c)
             => _position + 1 < _expression.Length && _expression[_position + 1] == c;
 
@@ -538,7 +592,7 @@ namespace Microsoft.Build.Evaluation
             // Update error position after skipping whitespace
             _errorPosition = _position + 1;
 
-            if (_position >= _expression.Length)
+            if (AtEnd)
             {
                 _current = Token.EndOfInput;
                 return true;
@@ -681,7 +735,7 @@ namespace Microsoft.Build.Evaluation
             int start = _position;
             _position++;
 
-            if (_position < _expression.Length && _expression[_position] != '(')
+            if (!AtEnd && !At('('))
             {
                 SetScanError(start + 1, "IllFormedPropertyOpenParenthesisInCondition", _expression[_position].ToString());
                 return null;
@@ -695,7 +749,7 @@ namespace Microsoft.Build.Evaluation
             }
 
             _position = indexResult;
-            if (_position >= _expression.Length)
+            if (AtEnd)
             {
                 SetScanError(start + 1, "IllFormedPropertyCloseParenthesisInCondition", EndOfInput);
                 return null;
@@ -863,57 +917,68 @@ namespace Microsoft.Build.Evaluation
             return true;
         }
 
-        private bool ParseInternalItemList()
+        /// <summary>
+        /// Scans past an item list expression starting at the current position.
+        /// Expects At('@') on entry.
+        /// On success, _position is advanced past the closing ')'.
+        /// </summary>
+        private bool TryScanItemList()
         {
-            int start = _position;
-            _position++;
+            Assumed.True(At('@'));
 
-            if (_position < _expression.Length && _expression[_position] != '(')
+            int errorPosition = _position + 1;
+
+            if (!TryConsume("@("))
             {
-                return SetScanError(start + 1, "IllFormedItemListOpenParenthesisInCondition");
+                return SetScanError(errorPosition, "IllFormedItemListOpenParenthesisInCondition");
             }
 
-            _position++;
-            bool fInReplacement = false;
-            int parenToClose = 0;
-            while (_position < _expression.Length)
+            bool inReplacement = false;
+            int parenCount = 0;
+
+            while (!AtEnd)
             {
-                if (_expression[_position] == '\'')
+                if (TryConsume('\''))
                 {
-                    fInReplacement = !fInReplacement;
+                    inReplacement = !inReplacement;
+                    continue;
                 }
-                else if (_expression[_position] == '(' && !fInReplacement)
+
+                if (inReplacement)
                 {
-                    parenToClose++;
+                    _position++;
+                    continue;
                 }
-                else if (_expression[_position] == ')' && !fInReplacement)
+
+                if (TryConsume('('))
                 {
-                    if (parenToClose == 0)
+                    parenCount++;
+                    continue;
+                }
+
+                if (TryConsume(')'))
+                {
+                    if (parenCount == 0)
                     {
-                        break;
+                        return true;
                     }
 
-                    parenToClose--;
+                    parenCount--;
+                    continue;
                 }
 
                 _position++;
             }
 
-            if (_position >= _expression.Length)
-            {
-                return SetScanError(
-                    start + 1,
-                    fInReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
-            }
-
-            _position++;
-            return true;
+            return SetScanError(
+                errorPosition,
+                inReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
         }
 
         private bool ParseItemList()
         {
             int start = _position;
-            if (!ParseInternalItemList())
+            if (!TryScanItemList())
             {
                 return false;
             }
@@ -931,9 +996,9 @@ namespace Microsoft.Build.Evaluation
             _position++;
             int start = _position;
             bool expandable = false;
-            while (_position < _expression.Length && _expression[_position] != '\'')
+            while (!AtEnd && !At('\''))
             {
-                if (_expression[_position] == '%' && NextIs('('))
+                if (At("%("))
                 {
                     expandable = true;
                     string name = string.Empty;
@@ -954,7 +1019,7 @@ namespace Microsoft.Build.Evaluation
                         return false;
                     }
                 }
-                else if (_expression[_position] == '@' && NextIs('('))
+                else if (At("@("))
                 {
                     expandable = true;
 
@@ -963,14 +1028,14 @@ namespace Microsoft.Build.Evaluation
                         return SetScanError(start + 1, "ItemListNotAllowedInThisConditional");
                     }
 
-                    ParseInternalItemList();
+                    TryScanItemList();
                     continue;
                 }
-                else if (_expression[_position] == '$' && NextIs('('))
+                else if (At("$("))
                 {
                     expandable = true;
                 }
-                else if (_expression[_position] == '%')
+                else if (At('%'))
                 {
                     expandable = true;
                 }
@@ -978,7 +1043,7 @@ namespace Microsoft.Build.Evaluation
                 _position++;
             }
 
-            if (_position >= _expression.Length)
+            if (AtEnd)
             {
                 return SetScanError(start, "IllFormedQuotedStringInCondition");
             }
@@ -1039,7 +1104,7 @@ namespace Microsoft.Build.Evaluation
 
                 SkipWhiteSpace();
 
-                if (_position < _expression.Length && _expression[_position] == '(')
+                if (At('('))
                 {
                     _current = new Token(Token.TokenType.Function, _expression.Substring(start, end - start));
                 }
@@ -1055,7 +1120,7 @@ namespace Microsoft.Build.Evaluation
 
         private bool ParseNumeric(int start)
         {
-            if ((_expression.Length - _position) > 2 && _expression[_position] == '0' && (_expression[_position + 1] == 'x' || _expression[_position + 1] == 'X'))
+            if ((_expression.Length - _position) > 2 && At('0') && (_expression[_position + 1] == 'x' || _expression[_position + 1] == 'X'))
             {
                 _position += 2;
                 SkipHexDigits();
@@ -1073,18 +1138,14 @@ namespace Microsoft.Build.Evaluation
                 do
                 {
                     SkipDigits();
+                    TryConsume('.');
 
-                    if (_position < _expression.Length && _expression[_position] == '.')
-                    {
-                        _position++;
-                    }
-
-                    if (_position < _expression.Length)
+                    if (!AtEnd)
                     {
                         SkipDigits();
                     }
                 }
-                while (_position < _expression.Length && _expression[_position] == '.');
+                while (At('.'));
 
                 _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
                 return true;
@@ -1095,7 +1156,7 @@ namespace Microsoft.Build.Evaluation
 
         private void SkipWhiteSpace()
         {
-            while (_position < _expression.Length && char.IsWhiteSpace(_expression[_position]))
+            while (!AtEnd && char.IsWhiteSpace(_expression[_position]))
             {
                 _position++;
             }
@@ -1103,7 +1164,7 @@ namespace Microsoft.Build.Evaluation
 
         private void SkipDigits()
         {
-            while (_position < _expression.Length && char.IsDigit(_expression[_position]))
+            while (!AtEnd && char.IsDigit(_expression[_position]))
             {
                 _position++;
             }
@@ -1111,7 +1172,7 @@ namespace Microsoft.Build.Evaluation
 
         private void SkipHexDigits()
         {
-            while (_position < _expression.Length && CharacterUtilities.IsHexDigit(_expression[_position]))
+            while (!AtEnd && CharacterUtilities.IsHexDigit(_expression[_position]))
             {
                 _position++;
             }
@@ -1119,7 +1180,7 @@ namespace Microsoft.Build.Evaluation
 
         private void SkipSimpleStringChars()
         {
-            while (_position < _expression.Length && CharacterUtilities.IsSimpleStringChar(_expression[_position]))
+            while (!AtEnd && CharacterUtilities.IsSimpleStringChar(_expression[_position]))
             {
                 _position++;
             }
