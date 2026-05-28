@@ -613,44 +613,30 @@ namespace Microsoft.Build.Evaluation
 
                 case '$':
                     {
-                        int start = _position;
-                        if (!TryScanProperty())
+                        if (!TryScanProperty(out _current))
                         {
                             return false;
                         }
-
-                        _current = Token.Property(_expression.AsMemory(start, _position - start));
                     }
 
                     break;
 
                 case '%':
                     {
-                        int start = _position;
-                        if (!TryScanItemMetadata())
+                        if (!TryScanItemMetadata(out _current))
                         {
                             return false;
                         }
-
-                        _current = Token.ItemMetadata(_expression.AsMemory(start, _position - start));
                     }
 
                     break;
 
                 case '@':
                     {
-                        int start = _position;
-                        if ((_options & ParserOptions.AllowItemLists) == 0 && NextIs('('))
-                        {
-                            return SetErrorInfo(start, "ItemListNotAllowedInThisConditional");
-                        }
-
-                        if (!TryScanItemList())
+                        if (!TryScanItemList(out _current))
                         {
                             return false;
                         }
-
-                        _current = Token.ItemList(_expression.AsMemory(start, _position - start));
                     }
 
                     break;
@@ -717,13 +703,10 @@ namespace Microsoft.Build.Evaluation
 
                 case '\'':
                     {
-                        int start = _position + 1;
-                        if (!TryScanQuotedString(out bool expandable))
+                        if (!TryScanQuotedString(out _current))
                         {
                             return false;
                         }
-
-                        _current = Token.String(_expression.AsMemory(start, _position - start - 1), expandable);
                     }
 
                     break;
@@ -732,13 +715,8 @@ namespace Microsoft.Build.Evaluation
                     {
                         int start = _position;
 
-                        if (TryScanNumber())
-                        {
-                            _current = Token.Number(_expression.AsMemory(start, _position - start));
-                            return true;
-                        }
-
-                        if (ParseSimpleStringOrFunction())
+                        if (TryScanNumber(out _current) ||
+                            TryScanIdentifier(out _current))
                         {
                             return true;
                         }
@@ -757,7 +735,7 @@ namespace Microsoft.Build.Evaluation
         /// Scans a property expression of the form $(propertyname).
         /// Expects _position at '$' on entry.
         /// </summary>
-        private bool TryScanProperty()
+        private bool TryScanProperty(out Token token)
         {
             int start = _position;
 
@@ -765,6 +743,7 @@ namespace Microsoft.Build.Evaluation
 
             if (!TryConsume('('))
             {
+                token = default;
                 return SetErrorInfo(start, "IllFormedPropertyOpenParenthesisInCondition");
             }
 
@@ -782,8 +761,9 @@ namespace Microsoft.Build.Evaluation
                 {
                     nonIdentifierCharacterFound = true;
 
-                    if (!TryScanProperty())
+                    if (!TryScanProperty(out _))
                     {
+                        token = default;
                         return false;
                     }
 
@@ -805,10 +785,12 @@ namespace Microsoft.Build.Evaluation
                     {
                         if (whitespacePosition is int pos && !nonIdentifierCharacterFound)
                         {
+                            token = default;
                             return SetErrorInfo(pos, "IllFormedPropertySpaceInCondition");
                         }
 
                         _position++;
+                        token = Token.Property(_expression.AsMemory(start, _position - start));
                         return true;
                     }
                 }
@@ -824,6 +806,7 @@ namespace Microsoft.Build.Evaluation
                 _position++;
             }
 
+            token = default;
             return SetErrorInfo(start, "IllFormedPropertyCloseParenthesisInCondition");
         }
 
@@ -831,7 +814,7 @@ namespace Microsoft.Build.Evaluation
         /// Scans an item metadata expression of the form %(metadataname).
         /// Expects _position at '%' on entry.
         /// </summary>
-        private bool TryScanItemMetadata()
+        private bool TryScanItemMetadata(out Token token)
         {
             int start = _position;
 
@@ -839,6 +822,7 @@ namespace Microsoft.Build.Evaluation
 
             if (!TryConsume('('))
             {
+                token = default;
                 return SetErrorInfo(start, "IllFormedMetadataOpenParenthesisInCondition");
             }
 
@@ -847,18 +831,28 @@ namespace Microsoft.Build.Evaluation
             {
                 if (TryConsume(')'))
                 {
-                    ReadOnlySpan<char> itemMetadataExpression = _expression.AsSpan(start, _position - start);
-                    return CheckForUnexpectedMetadata(start, itemMetadataExpression);
+                    ReadOnlyMemory<char> memory = _expression.AsMemory(start, _position - start);
+
+                    if (!CheckForUnexpectedMetadata(start, memory))
+                    {
+                        token = default;
+                        return false;
+                    }
+
+                    token = Token.ItemMetadata(memory);
+                    return true;
                 }
 
                 if (At(' '))
                 {
+                    token = default;
                     return SetErrorInfo(_position, "IllFormedMetadataSpaceInCondition");
                 }
 
                 _position++;
             }
 
+            token = default;
             return SetErrorInfo(start, "IllFormedMetadataCloseParenthesisInCondition");
         }
 
@@ -867,14 +861,14 @@ namespace Microsoft.Build.Evaluation
         /// specifications are not respected.
         /// Returns true if it is ok, otherwise false.
         /// </summary>
-        private bool CheckForUnexpectedMetadata(int start, ReadOnlySpan<char> expression)
+        private bool CheckForUnexpectedMetadata(int start, ReadOnlyMemory<char> expression)
         {
             if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
             {
                 return true;
             }
 
-            ReadOnlySpan<char> name = expression;
+            ReadOnlySpan<char> name = expression.Span;
 
             if (name is ['%', '(', .. var span, ')'])
             {
@@ -909,7 +903,7 @@ namespace Microsoft.Build.Evaluation
         /// Expects At('@') on entry.
         /// On success, _position is advanced past the closing ')'.
         /// </summary>
-        private bool TryScanItemList()
+        private bool TryScanItemList(out Token token)
         {
             int start = _position;
 
@@ -917,7 +911,14 @@ namespace Microsoft.Build.Evaluation
 
             if (!TryConsume('('))
             {
+                token = default;
                 return SetErrorInfo(start, "IllFormedItemListOpenParenthesisInCondition");
+            }
+
+            if ((_options & ParserOptions.AllowItemLists) == 0)
+            {
+                token = default;
+                return SetErrorInfo(start, "ItemListNotAllowedInThisConditional");
             }
 
             bool inReplacement = false;
@@ -947,6 +948,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (parenCount == 0)
                     {
+                        token = Token.ItemList(_expression.AsMemory(start, _position - start));
                         return true;
                     }
 
@@ -957,6 +959,7 @@ namespace Microsoft.Build.Evaluation
                 _position++;
             }
 
+            token = default;
             return SetErrorInfo(
                 start,
                 inReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
@@ -967,9 +970,9 @@ namespace Microsoft.Build.Evaluation
         /// Expects _position at opening quote on entry.
         /// On success, _position is advanced past the closing quote.
         /// </summary>
-        private bool TryScanQuotedString(out bool expandable)
+        private bool TryScanQuotedString(out Token token)
         {
-            expandable = false;
+            bool expandable = false;
             int start = _position;
 
             Assume('\'');
@@ -978,13 +981,15 @@ namespace Microsoft.Build.Evaluation
             {
                 if (TryConsume('\''))
                 {
+                    token = Token.String(_expression.AsMemory(start + 1, _position - start - 2), expandable);
                     return true;
                 }
 
                 if (At("%("))
                 {
-                    if (!TryScanItemMetadata())
+                    if (!TryScanItemMetadata(out _))
                     {
+                        token = default;
                         return false;
                     }
 
@@ -994,13 +999,9 @@ namespace Microsoft.Build.Evaluation
 
                 if (At("@("))
                 {
-                    if ((_options & ParserOptions.AllowItemLists) == 0)
+                    if (!TryScanItemList(out _))
                     {
-                        return SetErrorInfo(_position, "ItemListNotAllowedInThisConditional");
-                    }
-
-                    if (!TryScanItemList())
-                    {
+                        token = default;
                         return false;
                     }
 
@@ -1010,8 +1011,9 @@ namespace Microsoft.Build.Evaluation
 
                 if (At("$("))
                 {
-                    if (!TryScanProperty())
+                    if (!TryScanProperty(out _))
                     {
+                        token = default;
                         return false;
                     }
 
@@ -1028,6 +1030,7 @@ namespace Microsoft.Build.Evaluation
                 _position++;
             }
 
+            token = default;
             return SetErrorInfo(start, "IllFormedQuotedStringInCondition");
         }
 
@@ -1035,54 +1038,64 @@ namespace Microsoft.Build.Evaluation
         // this works perfectly well:
         // Condition="%(a.Identity)!=''and%(a.m)=='1'"
         // Since people now depend on this behavior, we must not change it.
-        private bool ParseSimpleStringOrFunction()
+        private bool TryScanIdentifier(out Token token)
         {
-            if (!CharacterUtilities.IsSimpleStringStart(_expression[_position]))
+            int start = _position;
+            ReadOnlySpan<char> span = _expression.AsSpan(start);
+
+            if (!CharacterUtilities.IsIdentifierStart(span[0]))
             {
+                token = default;
                 return false;
             }
 
-            int start = _position;
+            SkipIdentifierChars();
 
-            SkipSimpleStringChars();
+            span = span[..(_position - start)];
 
-            if (_expression.AsSpan(start, _position - start).Equals("and", StringComparison.OrdinalIgnoreCase))
+            if (span.Equals("and", StringComparison.OrdinalIgnoreCase))
             {
-                _current = Token.And;
+                token = Token.And;
+                return true;
             }
-            else if (_expression.AsSpan(start, _position - start).Equals("or", StringComparison.OrdinalIgnoreCase))
-            {
-                _current = Token.Or;
-            }
-            else
-            {
-                int end = _position;
 
-                SkipWhiteSpace();
-
-                _current = At('(')
-                    ? Token.FunctionName(_expression.AsMemory(start, end - start))
-                    : Token.String(_expression.AsMemory(start, end - start));
+            if (span.Equals("or", StringComparison.OrdinalIgnoreCase))
+            {
+                token = Token.Or;
+                return true;
             }
+
+            int end = _position;
+
+            SkipWhiteSpace();
+
+            token = At('(')
+                ? Token.FunctionName(_expression.AsMemory(start, end - start))
+                : Token.String(_expression.AsMemory(start, end - start));
 
             return true;
         }
 
-        private bool TryScanNumber()
+        private bool TryScanNumber(out Token token)
         {
-            if (!CharacterUtilities.IsNumberStart(_expression[_position]))
+            int start = _position;
+            ReadOnlySpan<char> span = _expression.AsSpan(start);
+
+            if (!CharacterUtilities.IsNumberStart(span[0]))
             {
+                token = default;
                 return false;
             }
 
-            if ((_expression.Length - _position) > 2 && At('0') && (_expression[_position + 1] is 'x' or 'X'))
+            if (span is ['0', ('x' or 'X'), ..])
             {
                 _position += 2;
                 SkipHexDigits();
+                token = Token.Number(_expression.AsMemory(start, _position - start));
                 return true;
             }
 
-            if (_expression[_position] is '+' or '-')
+            if (span[0] is '+' or '-')
             {
                 _position++;
             }
@@ -1090,7 +1103,8 @@ namespace Microsoft.Build.Evaluation
             do
             {
                 SkipDigits();
-                TryConsume('.');
+
+                _ = TryConsume('.');
 
                 if (!AtEnd)
                 {
@@ -1099,6 +1113,7 @@ namespace Microsoft.Build.Evaluation
             }
             while (At('.'));
 
+            token = Token.Number(_expression.AsMemory(start, _position - start));
             return true;
         }
 
@@ -1126,9 +1141,9 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private void SkipSimpleStringChars()
+        private void SkipIdentifierChars()
         {
-            while (!AtEnd && CharacterUtilities.IsSimpleStringChar(_expression[_position]))
+            while (!AtEnd && CharacterUtilities.IsIdentifier(_expression[_position]))
             {
                 _position++;
             }
