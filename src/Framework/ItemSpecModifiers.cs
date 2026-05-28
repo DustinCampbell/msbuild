@@ -313,6 +313,201 @@ internal static class ItemSpecModifiers
         return false;
     }
 
+    public static bool TryGetModifierKind(ReadOnlySpan<char> name, out ItemSpecModifierKind kind)
+    {
+        switch (name.Length)
+        {
+            case 7:
+                // RootDir
+                if (name.Equals(RootDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    kind = ItemSpecModifierKind.RootDir;
+                    return true;
+                }
+
+                break;
+
+            case 8:
+                // FullPath, Filename, Identity
+                switch (name[0])
+                {
+                    case 'F' or 'f':
+                        switch (name[1])
+                        {
+                            case 'U' or 'u':
+                                if (name.Equals(FullPath, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    kind = ItemSpecModifierKind.FullPath;
+                                    return true;
+                                }
+
+                                break;
+
+                            case 'I' or 'i':
+                                if (name.Equals(Filename, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    kind = ItemSpecModifierKind.Filename;
+                                    return true;
+                                }
+
+                                break;
+                        }
+
+                        break;
+
+                    case 'I' or 'i':
+                        if (name.Equals(Identity, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.Identity;
+                            return true;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            case 9:
+                // Extension, Directory
+                switch (name[0])
+                {
+                    case 'E' or 'e':
+                        if (name.Equals(Extension, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.Extension;
+                            return true;
+                        }
+
+                        break;
+
+                    case 'D' or 'd':
+                        if (name.Equals(Directory, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.Directory;
+                            return true;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            case 11:
+                // RelativeDir, CreatedTime
+                switch (name[0])
+                {
+                    case 'R' or 'r':
+                        if (name.Equals(RelativeDir, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.RelativeDir;
+                            return true;
+                        }
+
+                        break;
+
+                    case 'C' or 'c':
+                        if (name.Equals(CreatedTime, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.CreatedTime;
+                            return true;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            case 12:
+                // RecursiveDir, ModifiedTime, AccessedTime
+                switch (name[0])
+                {
+                    case 'R' or 'r':
+                        if (name.Equals(RecursiveDir, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.RecursiveDir;
+                            return true;
+                        }
+
+                        break;
+
+                    case 'M' or 'm':
+                        if (name.Equals(ModifiedTime, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.ModifiedTime;
+                            return true;
+                        }
+
+                        break;
+
+                    case 'A' or 'a':
+                        if (name.Equals(AccessedTime, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.AccessedTime;
+                            return true;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            case 19:
+                // DefiningProjectName
+                if (name.Equals(DefiningProjectName, StringComparison.OrdinalIgnoreCase))
+                {
+                    kind = ItemSpecModifierKind.DefiningProjectName;
+                    return true;
+                }
+
+                break;
+
+            case 23:
+                // DefiningProjectFullPath
+                if (name.Equals(DefiningProjectFullPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    kind = ItemSpecModifierKind.DefiningProjectFullPath;
+                    return true;
+                }
+
+                break;
+
+            case 24:
+                // DefiningProjectDirectory, DefiningProjectExtension
+                switch (name[15])
+                {
+                    case 'D' or 'd':
+                        if (name.Equals(DefiningProjectDirectory, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.DefiningProjectDirectory;
+                            return true;
+                        }
+
+                        break;
+
+                    case 'E' or 'e':
+                        if (name.Equals(DefiningProjectExtension, StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = ItemSpecModifierKind.DefiningProjectExtension;
+                            return true;
+                        }
+
+                        break;
+                }
+
+                break;
+        }
+
+        kind = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Indicates if the given name is reserved for an item-spec modifier.
+    /// </summary>
+    public static bool IsItemSpecModifier(ReadOnlySpan<char> name)
+        => name.Length > 0
+        && TryGetModifierKind(name, out _);
+
     /// <summary>
     /// Indicates if the given name is reserved for an item-spec modifier.
     /// </summary>
