@@ -826,27 +826,38 @@ namespace Microsoft.Build.Evaluation
                 return true;
             }
 
-            if (expression.Length > 3 && expression[0] == '%' && expression[1] == '(' && expression[^1] == ')')
+            // start and end delimit the metadata name within expression (end is exclusive).
+            int start = 0;
+            int end = expression.Length;
+
+            if (expression is ['%', '(', .., ')'])
             {
-                expression = expression.Substring(2, expression.Length - 1 - 2);
+                start = 2;
+                end -= 1;
             }
 
-            int period = expression.IndexOf('.');
-            if (period > 0 && period < expression.Length - 1)
+            int dotIndex = expression.IndexOf('.', start);
+
+            // Note: The '.' can't be the first or last character.
+            if (dotIndex > start && dotIndex < end - 1)
             {
-                expression = expression.Substring(period + 1);
+                start = dotIndex + 1;
             }
 
-            bool isItemSpecModifier = ItemSpecModifiers.IsItemSpecModifier(expression);
+            string name = start > 0
+                ? expression.Substring(start, end - start)
+                : expression;
+
+            bool isItemSpecModifier = ItemSpecModifiers.IsItemSpecModifier(name);
 
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
             {
-                return SetScanError(_position, "BuiltInMetadataNotAllowedInThisConditional", expression);
+                return SetScanError(_position, "BuiltInMetadataNotAllowedInThisConditional", name);
             }
 
             if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
             {
-                return SetScanError(_position, "CustomMetadataNotAllowedInThisConditional", expression);
+                return SetScanError(_position, "CustomMetadataNotAllowedInThisConditional", name);
             }
 
             return true;
