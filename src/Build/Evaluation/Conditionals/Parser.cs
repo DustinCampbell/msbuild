@@ -60,7 +60,13 @@ namespace Microsoft.Build.Evaluation
             => new(node, errorResource: null, errorArgs: null, errorPosition: 0, elementLocation: null);
 
         public static ParseResult Error(string resource, object[] args, int position, ElementLocation elementLocation)
-            => new(node: null, resource, args, position, elementLocation);
+        {
+            Assumed.NotNull(resource);
+            Assumed.NotNull(args);
+            Assumed.Positive(position);
+
+            return new(node: null, resource, args, position, elementLocation);
+        }
 
         /// <summary>
         ///  Throws an <see cref="Exceptions.InvalidProjectFileException"/> if this result represents a parse error.
@@ -128,7 +134,6 @@ namespace Microsoft.Build.Evaluation
             _options = options;
             _elementLocation = elementLocation;
             _position = 0;
-            _errorPosition = -1;
             _loggingServices = loggingContext?.LoggingService;
             _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
         }
@@ -148,23 +153,26 @@ namespace Microsoft.Build.Evaluation
         {
             if (!Advance())
             {
-                return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
+                return ErrorResult();
             }
 
             if (!TryParseExpr(out GenericExpressionNode node))
             {
                 Assumed.NotNull(_errorResource);
-                return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
+                return ErrorResult();
             }
 
             if (!IsNext(Token.TokenType.EndOfInput))
             {
                 UnexpectedTokenInCondition();
-                return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
+                return ErrorResult();
             }
 
             return ParseResult.Success(node);
         }
+
+        private ParseResult ErrorResult()
+            => ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
 
         private bool UnexpectedTokenInConditionAndReturn<T>(out T result)
             where T : class
@@ -190,13 +198,15 @@ namespace Microsoft.Build.Evaluation
             _errorArgs = [_expression, _current.String, _errorPosition];
         }
 
-        private bool SetScanError(int position, string resource, string extraArg = null)
+        private bool SetErrorInfo(int position, string resource, string extraArg = null)
         {
-            _errorPosition = position;
+            // Error positions are 1-based for user-facing display.
+            int errorPosition = position + 1;
+            _errorPosition = errorPosition;
             _errorResource = resource;
             _errorArgs = extraArg is not null
-                ? [_expression, position, extraArg]
-                : [_expression, position];
+                ? [_expression, errorPosition, extraArg]
+                : [_expression, errorPosition];
 
             return false;
         }
@@ -652,7 +662,7 @@ namespace Microsoft.Build.Evaluation
                         int start = _position;
                         if ((_options & ParserOptions.AllowItemLists) == 0 && NextIs('('))
                         {
-                            return SetScanError(start + 1, "ItemListNotAllowedInThisConditional");
+                            return SetErrorInfo(start, "ItemListNotAllowedInThisConditional");
                         }
 
                         if (!TryScanItemList())
@@ -720,7 +730,7 @@ namespace Microsoft.Build.Evaluation
                             : EndOfInput;
 
                         _position++;
-                        return SetScanError(_position + 1, "IllFormedEqualsInCondition", unexpectedlyFound);
+                        return SetErrorInfo(_position, "IllFormedEqualsInCondition", unexpectedlyFound);
                     }
 
                     break;
@@ -762,19 +772,19 @@ namespace Microsoft.Build.Evaluation
 
             if (!TryConsume('('))
             {
-                return SetScanError(start + 1, "IllFormedPropertyOpenParenthesisInCondition");
+                return SetErrorInfo(start, "IllFormedPropertyOpenParenthesisInCondition");
             }
 
             var result = ScanForPropertyExpressionEnd(_expression, _position - 1, out int indexResult);
             if (!result)
             {
-                return SetScanError(indexResult + 1, "IllFormedPropertySpaceInCondition");
+                return SetErrorInfo(indexResult, "IllFormedPropertySpaceInCondition");
             }
 
             _position = indexResult;
             if (AtEnd)
             {
-                return SetScanError(start + 1, "IllFormedPropertyCloseParenthesisInCondition");
+                return SetErrorInfo(start, "IllFormedPropertyCloseParenthesisInCondition");
             }
 
             _position++;
@@ -793,7 +803,7 @@ namespace Microsoft.Build.Evaluation
 
             if (!TryConsume('('))
             {
-                return SetScanError(start + 1, "IllFormedMetadataOpenParenthesisInCondition");
+                return SetErrorInfo(start, "IllFormedMetadataOpenParenthesisInCondition");
             }
 
             // Scan for the closing ')'. Metadata references are simply %(Name) or %(ItemType.Name).
@@ -807,13 +817,13 @@ namespace Microsoft.Build.Evaluation
 
                 if (At(' '))
                 {
-                    return SetScanError(_position + 1, "IllFormedMetadataSpaceInCondition");
+                    return SetErrorInfo(_position, "IllFormedMetadataSpaceInCondition");
                 }
 
                 _position++;
             }
 
-            return SetScanError(start + 1, "IllFormedMetadataCloseParenthesisInCondition");
+            return SetErrorInfo(start, "IllFormedMetadataCloseParenthesisInCondition");
         }
 
         /// <summary>
@@ -922,12 +932,12 @@ namespace Microsoft.Build.Evaluation
 
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
             {
-                return SetScanError(start + 1, "BuiltInMetadataNotAllowedInThisConditional", name);
+                return SetErrorInfo(start, "BuiltInMetadataNotAllowedInThisConditional", name);
             }
 
             if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
             {
-                return SetScanError(start + 1, "CustomMetadataNotAllowedInThisConditional", name);
+                return SetErrorInfo(start, "CustomMetadataNotAllowedInThisConditional", name);
             }
 
             return true;
@@ -946,7 +956,7 @@ namespace Microsoft.Build.Evaluation
 
             if (!TryConsume('('))
             {
-                return SetScanError(start + 1, "IllFormedItemListOpenParenthesisInCondition");
+                return SetErrorInfo(start, "IllFormedItemListOpenParenthesisInCondition");
             }
 
             bool inReplacement = false;
@@ -986,8 +996,8 @@ namespace Microsoft.Build.Evaluation
                 _position++;
             }
 
-            return SetScanError(
-                start + 1,
+            return SetErrorInfo(
+                start,
                 inReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
         }
 
@@ -1025,7 +1035,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if ((_options & ParserOptions.AllowItemLists) == 0)
                     {
-                        return SetScanError(_position + 1, "ItemListNotAllowedInThisConditional");
+                        return SetErrorInfo(_position, "ItemListNotAllowedInThisConditional");
                     }
 
                     if (!TryScanItemList())
@@ -1057,7 +1067,7 @@ namespace Microsoft.Build.Evaluation
                 _position++;
             }
 
-            return SetScanError(start + 1, "IllFormedQuotedStringInCondition");
+            return SetErrorInfo(start, "IllFormedQuotedStringInCondition");
         }
 
         private bool ParseRemaining()
@@ -1079,8 +1089,8 @@ namespace Microsoft.Build.Evaluation
             }
             else
             {
-                return SetScanError(
-                    start + 1,
+                return SetErrorInfo(
+                    start,
                     "UnexpectedCharacterInCondition",
                     _expression[_position].ToString());
             }
@@ -1157,7 +1167,7 @@ namespace Microsoft.Build.Evaluation
                 return true;
             }
 
-            return SetScanError(start + 1, "UnexpectedCharacterInCondition");
+            return SetErrorInfo(start, "UnexpectedCharacterInCondition");
         }
 
         private void SkipWhiteSpace()
