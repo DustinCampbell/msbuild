@@ -749,12 +749,20 @@ namespace Microsoft.Build.Evaluation
                     break;
 
                 default:
-                    if (!ParseRemaining())
                     {
-                        return false;
-                    }
+                        int start = _position;
 
-                    break;
+                        if (ParseNumeric() ||
+                            ParseSimpleStringOrFunction())
+                        {
+                            return true;
+                        }
+
+                        return SetErrorInfo(
+                            start,
+                            "UnexpectedCharacterInCondition",
+                            _expression[start].ToString());
+                    }
             }
 
             return true;
@@ -1070,40 +1078,19 @@ namespace Microsoft.Build.Evaluation
             return SetErrorInfo(start, "IllFormedQuotedStringInCondition");
         }
 
-        private bool ParseRemaining()
-        {
-            int start = _position;
-            if (CharacterUtilities.IsNumberStart(_expression[_position]))
-            {
-                if (!ParseNumeric(start))
-                {
-                    return false;
-                }
-            }
-            else if (CharacterUtilities.IsSimpleStringStart(_expression[_position]))
-            {
-                if (!ParseSimpleStringOrFunction(start))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return SetErrorInfo(
-                    start,
-                    "UnexpectedCharacterInCondition",
-                    _expression[_position].ToString());
-            }
-
-            return true;
-        }
-
         // There is a bug here that spaces are not required around 'and' and 'or'. For example,
         // this works perfectly well:
         // Condition="%(a.Identity)!=''and%(a.m)=='1'"
         // Since people now depend on this behavior, we must not change it.
-        private bool ParseSimpleStringOrFunction(int start)
+        private bool ParseSimpleStringOrFunction()
         {
+            if (!CharacterUtilities.IsSimpleStringStart(_expression[_position]))
+            {
+                return false;
+            }
+
+            int start = _position;
+
             SkipSimpleStringChars();
 
             if (_expression.AsSpan(start, _position - start).Equals("and", StringComparison.OrdinalIgnoreCase))
@@ -1134,8 +1121,15 @@ namespace Microsoft.Build.Evaluation
             return true;
         }
 
-        private bool ParseNumeric(int start)
+        private bool ParseNumeric()
         {
+            if (!CharacterUtilities.IsNumberStart(_expression[_position]))
+            {
+                return false;
+            }
+
+            int start = _position;
+
             if ((_expression.Length - _position) > 2 && At('0') && (_expression[_position + 1] == 'x' || _expression[_position + 1] == 'X'))
             {
                 _position += 2;
@@ -1144,30 +1138,25 @@ namespace Microsoft.Build.Evaluation
                 return true;
             }
 
-            if (CharacterUtilities.IsNumberStart(_expression[_position]))
+            if (_expression[_position] is '+' or '-')
             {
-                if (_expression[_position] is '+' or '-')
-                {
-                    _position++;
-                }
-
-                do
-                {
-                    SkipDigits();
-                    TryConsume('.');
-
-                    if (!AtEnd)
-                    {
-                        SkipDigits();
-                    }
-                }
-                while (At('.'));
-
-                _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
-                return true;
+                _position++;
             }
 
-            return SetErrorInfo(start, "UnexpectedCharacterInCondition");
+            do
+            {
+                SkipDigits();
+                TryConsume('.');
+
+                if (!AtEnd)
+                {
+                    SkipDigits();
+                }
+            }
+            while (At('.'));
+
+            _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
+            return true;
         }
 
         private void SkipWhiteSpace()
