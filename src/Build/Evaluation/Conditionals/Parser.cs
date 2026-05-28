@@ -560,25 +560,6 @@ namespace Microsoft.Build.Evaluation
             return false;
         }
 
-        private bool TryConsume(string s)
-        {
-            if (_position + s.Length > _expression.Length)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < s.Length; i++)
-            {
-                if (_expression[_position + i] != s[i])
-                {
-                    return false;
-                }
-            }
-
-            _position += s.Length;
-            return true;
-        }
-
         private bool NextIs(char c)
             => _position + 1 < _expression.Length && _expression[_position + 1] == c;
 
@@ -787,20 +768,63 @@ namespace Microsoft.Build.Evaluation
                 return SetErrorInfo(start, "IllFormedPropertyOpenParenthesisInCondition");
             }
 
-            var result = ScanForPropertyExpressionEnd(_expression, _position - 1, out int indexResult);
-            if (!result)
+            // Scan for the matching ')'. Property expressions can contain nested
+            // parentheses from function calls, e.g. $([System.String]::Format('...')),
+            // as well as nested property expressions like $(Foo$(Bar)).
+            int nestLevel = 1;
+            bool nonIdentifierCharacterFound = false;
+            int? whitespacePosition = null;
+
+            while (!AtEnd)
             {
-                return SetErrorInfo(indexResult, "IllFormedPropertySpaceInCondition");
+                // Handle nested property expressions by recursing into TryScanProperty.
+                if (At("$("))
+                {
+                    nonIdentifierCharacterFound = true;
+
+                    if (!TryScanProperty())
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                char c = _expression[_position];
+
+                if (c == '(')
+                {
+                    nestLevel++;
+                    nonIdentifierCharacterFound = true;
+                }
+                else if (c == ')')
+                {
+                    nestLevel--;
+
+                    if (nestLevel == 0)
+                    {
+                        if (whitespacePosition is int pos && !nonIdentifierCharacterFound)
+                        {
+                            return SetErrorInfo(pos, "IllFormedPropertySpaceInCondition");
+                        }
+
+                        _position++;
+                        return true;
+                    }
+                }
+                else if (char.IsWhiteSpace(c))
+                {
+                    whitespacePosition ??= _position;
+                }
+                else if (!XmlUtilities.IsValidSubsequentElementNameCharacter(c))
+                {
+                    nonIdentifierCharacterFound = true;
+                }
+
+                _position++;
             }
 
-            _position = indexResult;
-            if (AtEnd)
-            {
-                return SetErrorInfo(start, "IllFormedPropertyCloseParenthesisInCondition");
-            }
-
-            _position++;
-            return true;
+            return SetErrorInfo(start, "IllFormedPropertyCloseParenthesisInCondition");
         }
 
         /// <summary>
@@ -836,74 +860,6 @@ namespace Microsoft.Build.Evaluation
             }
 
             return SetErrorInfo(start, "IllFormedMetadataCloseParenthesisInCondition");
-        }
-
-        /// <summary>
-        /// Scan for the end of the property expression
-        /// </summary>
-        /// <param name="expression">property expression to parse</param>
-        /// <param name="index">current index to start from</param>
-        /// <param name="indexResult">If successful, the index corresponds to the end of the property expression.
-        /// In case of scan failure, it is the error position index.</param>
-        /// <returns>result indicating whether or not the scan was successful.</returns>
-        private static bool ScanForPropertyExpressionEnd(string expression, int index, out int indexResult)
-        {
-            int nestLevel = 0;
-            bool whitespaceFound = false;
-            bool nonIdentifierCharacterFound = false;
-            indexResult = -1;
-            unsafe
-            {
-                fixed (char* pchar = expression)
-                {
-                    while (index < expression.Length)
-                    {
-                        char character = pchar[index];
-                        if (character == '(')
-                        {
-                            nestLevel++;
-                        }
-                        else if (character == ')')
-                        {
-                            nestLevel--;
-                        }
-                        else if (char.IsWhiteSpace(character))
-                        {
-                            whitespaceFound = true;
-                            indexResult = index;
-                        }
-                        else if (!XmlUtilities.IsValidSubsequentElementNameCharacter(character))
-                        {
-                            nonIdentifierCharacterFound = true;
-                        }
-
-                        if (character == '$' && index < expression.Length - 1 && pchar[index + 1] == '(')
-                        {
-                            if (!ScanForPropertyExpressionEnd(expression, index + 1, out index))
-                            {
-                                indexResult = index;
-                                return false;
-                            }
-                        }
-
-                        if (nestLevel == 0)
-                        {
-                            if (whitespaceFound && !nonIdentifierCharacterFound)
-                            {
-                                return false;
-                            }
-
-                            indexResult = index;
-                            return true;
-                        }
-
-                        index++;
-                    }
-                }
-            }
-
-            indexResult = index;
-            return true;
         }
 
         /// <summary>
