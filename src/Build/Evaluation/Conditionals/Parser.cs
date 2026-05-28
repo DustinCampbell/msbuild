@@ -13,7 +13,6 @@ using ElementLocation = Microsoft.Build.Construction.ElementLocation;
 
 namespace Microsoft.Build.Evaluation
 {
-
     [Flags]
     internal enum ParserOptions
     {
@@ -162,7 +161,7 @@ namespace Microsoft.Build.Evaluation
                 return ErrorResult();
             }
 
-            if (!IsNext(Token.TokenType.EndOfInput))
+            if (!IsNext(TokenKind.EndOfInput))
             {
                 UnexpectedTokenInCondition();
                 return ErrorResult();
@@ -195,7 +194,7 @@ namespace Microsoft.Build.Evaluation
             }
 
             _errorResource = "UnexpectedTokenInCondition";
-            _errorArgs = [_expression, _current.String, _errorPosition];
+            _errorArgs = [_expression, _current.Text, _errorPosition];
         }
 
         private bool SetErrorInfo(int position, string resource, string extraArg = null)
@@ -223,7 +222,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            if (!IsNext(Token.TokenType.EndOfInput))
+            if (!IsNext(TokenKind.EndOfInput))
             {
                 if (!TryParseExprPrime(node, out node))
                 {
@@ -249,13 +248,13 @@ namespace Microsoft.Build.Evaluation
 
         private bool TryParseExprPrime(GenericExpressionNode lhs, out GenericExpressionNode result)
         {
-            if (Same(Token.TokenType.EndOfInput))
+            if (Same(TokenKind.EndOfInput))
             {
                 result = lhs;
                 return true;
             }
 
-            if (Same(Token.TokenType.Or))
+            if (Same(TokenKind.Or))
             {
                 if (!TryParseBooleanTerm(out GenericExpressionNode rhs))
                 {
@@ -283,7 +282,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            if (!IsNext(Token.TokenType.EndOfInput) && !TryParseBooleanTermPrime(node, out node))
+            if (!IsNext(TokenKind.EndOfInput) && !TryParseBooleanTermPrime(node, out node))
             {
                 result = null;
                 return false;
@@ -295,13 +294,13 @@ namespace Microsoft.Build.Evaluation
 
         private bool TryParseBooleanTermPrime(GenericExpressionNode lhs, out GenericExpressionNode result)
         {
-            if (IsNext(Token.TokenType.EndOfInput))
+            if (IsNext(TokenKind.EndOfInput))
             {
                 result = lhs;
                 return true;
             }
 
-            if (Same(Token.TokenType.And))
+            if (Same(TokenKind.And))
             {
                 if (!TryParseRelationalExpr(out GenericExpressionNode rhs))
                 {
@@ -348,37 +347,37 @@ namespace Microsoft.Build.Evaluation
 
         private bool TryParseRelationalOperation(out OperatorExpressionNode result)
         {
-            if (Same(Token.TokenType.LessThan))
+            if (Same(TokenKind.LessThan))
             {
                 result = new LessThanExpressionNode();
                 return true;
             }
 
-            if (Same(Token.TokenType.GreaterThan))
+            if (Same(TokenKind.GreaterThan))
             {
                 result = new GreaterThanExpressionNode();
                 return true;
             }
 
-            if (Same(Token.TokenType.LessThanOrEqualTo))
+            if (Same(TokenKind.LessThanOrEqualTo))
             {
                 result = new LessThanOrEqualExpressionNode();
                 return true;
             }
 
-            if (Same(Token.TokenType.GreaterThanOrEqualTo))
+            if (Same(TokenKind.GreaterThanOrEqualTo))
             {
                 result = new GreaterThanOrEqualExpressionNode();
                 return true;
             }
 
-            if (Same(Token.TokenType.EqualTo))
+            if (Same(TokenKind.EqualTo))
             {
                 result = new EqualExpressionNode();
                 return true;
             }
 
-            if (Same(Token.TokenType.NotEqualTo))
+            if (Same(TokenKind.NotEqualTo))
             {
                 result = new NotEqualExpressionNode();
                 return true;
@@ -398,9 +397,9 @@ namespace Microsoft.Build.Evaluation
 
             // If it's not one of those, check for other TokenTypes.
             Token current = _current;
-            if (Same(Token.TokenType.Function))
+            if (Same(TokenKind.FunctionName))
             {
-                if (!Same(Token.TokenType.LeftParenthesis))
+                if (!Same(TokenKind.LeftParenthesis))
                 {
                     return UnexpectedTokenInConditionAndReturn(out result);
                 }
@@ -411,16 +410,16 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                if (!Same(Token.TokenType.RightParenthesis))
+                if (!Same(TokenKind.RightParenthesis))
                 {
                     return UnexpectedTokenInConditionAndReturn(out result);
                 }
 
-                result = new FunctionCallExpressionNode(current.String, arglist);
+                result = new FunctionCallExpressionNode(current.Text, arglist);
                 return true;
             }
 
-            if (Same(Token.TokenType.LeftParenthesis))
+            if (Same(TokenKind.LeftParenthesis))
             {
                 if (!TryParseExpr(out GenericExpressionNode child))
                 {
@@ -428,7 +427,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                if (Same(Token.TokenType.RightParenthesis))
+                if (Same(TokenKind.RightParenthesis))
                 {
                     result = child;
                     return true;
@@ -437,7 +436,7 @@ namespace Microsoft.Build.Evaluation
                 return UnexpectedTokenInConditionAndReturn(out result);
             }
 
-            if (Same(Token.TokenType.Not))
+            if (Same(TokenKind.Not))
             {
                 if (!TryParseFactor(out GenericExpressionNode expr))
                 {
@@ -458,7 +457,7 @@ namespace Microsoft.Build.Evaluation
         {
             result = new List<GenericExpressionNode>();
 
-            if (IsNext(Token.TokenType.RightParenthesis))
+            if (IsNext(TokenKind.RightParenthesis))
             {
                 return true;
             }
@@ -472,7 +471,7 @@ namespace Microsoft.Build.Evaluation
 
                 result.Add(arg);
 
-                if (!Same(Token.TokenType.Comma))
+                if (!Same(TokenKind.Comma))
                 {
                     return true;
                 }
@@ -483,33 +482,33 @@ namespace Microsoft.Build.Evaluation
         {
             Token current = _current;
 
-            if (Same(Token.TokenType.String))
+            if (Same(TokenKind.String))
             {
-                result = new StringExpressionNode(current.String, current.Expandable);
+                result = new StringExpressionNode(current.Text, current.Expandable);
                 return true;
             }
 
-            if (Same(Token.TokenType.Numeric))
+            if (Same(TokenKind.Number))
             {
-                result = new NumericExpressionNode(current.String);
+                result = new NumericExpressionNode(current.Text);
                 return true;
             }
 
-            if (Same(Token.TokenType.Property))
+            if (Same(TokenKind.Property))
             {
-                result = new StringExpressionNode(current.String, expandable: true);
+                result = new StringExpressionNode(current.Text, expandable: true);
                 return true;
             }
 
-            if (Same(Token.TokenType.ItemMetadata))
+            if (Same(TokenKind.ItemMetadata))
             {
-                result = new StringExpressionNode(current.String, expandable: true);
+                result = new StringExpressionNode(current.Text, expandable: true);
                 return true;
             }
 
-            if (Same(Token.TokenType.ItemList))
+            if (Same(TokenKind.ItemList))
             {
-                result = new StringExpressionNode(current.String, expandable: true);
+                result = new StringExpressionNode(current.Text, expandable: true);
                 return true;
             }
 
@@ -517,8 +516,8 @@ namespace Microsoft.Build.Evaluation
             return false;
         }
 
-        private bool IsNext(Token.TokenType type)
-            => _current.IsToken(type);
+        private bool IsNext(TokenKind kind)
+            => _current.IsKind(kind);
 
         private bool AtEnd
             => _position >= _expression.Length;
@@ -598,7 +597,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            if (_current?.IsToken(Token.TokenType.EndOfInput) == true)
+            if (_current.IsKind(TokenKind.EndOfInput))
             {
                 return true;
             }
@@ -639,7 +638,7 @@ namespace Microsoft.Build.Evaluation
                             return false;
                         }
 
-                        _current = new Token(Token.TokenType.Property, _expression.Substring(start, _position - start));
+                        _current = Token.Property(_expression.Substring(start, _position - start));
                     }
 
                     break;
@@ -652,7 +651,7 @@ namespace Microsoft.Build.Evaluation
                             return false;
                         }
 
-                        _current = new Token(Token.TokenType.ItemMetadata, _expression.Substring(start, _position - start));
+                        _current = Token.ItemMetadata(_expression.Substring(start, _position - start));
                     }
 
                     break;
@@ -670,7 +669,7 @@ namespace Microsoft.Build.Evaluation
                             return false;
                         }
 
-                        _current = new Token(Token.TokenType.ItemList, _expression.Substring(start, _position - start));
+                        _current = Token.ItemList(_expression.Substring(start, _position - start));
                     }
 
                     break;
@@ -743,7 +742,7 @@ namespace Microsoft.Build.Evaluation
                             return false;
                         }
 
-                        _current = new Token(Token.TokenType.String, _expression.Substring(start, _position - start - 1), expandable);
+                        _current = Token.String(_expression.Substring(start, _position - start - 1), expandable);
                     }
 
                     break;
@@ -754,7 +753,7 @@ namespace Microsoft.Build.Evaluation
 
                         if (TryScanNumber())
                         {
-                            _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
+                            _current = Token.Number(_expression.Substring(start, _position - start));
                             return true;
                         }
 
@@ -1114,12 +1113,12 @@ namespace Microsoft.Build.Evaluation
 
                 if (At('('))
                 {
-                    _current = new Token(Token.TokenType.Function, _expression.Substring(start, end - start));
+                    _current = Token.FunctionName(_expression.Substring(start, end - start));
                 }
                 else
                 {
                     string tokenValue = _expression.Substring(start, end - start);
-                    _current = new Token(Token.TokenType.String, tokenValue);
+                    _current = Token.String(tokenValue);
                 }
             }
 
@@ -1192,7 +1191,7 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private bool Same(Token.TokenType token)
+        private bool Same(TokenKind token)
             => IsNext(token) && Advance();
     }
 }
