@@ -534,6 +534,12 @@ namespace Microsoft.Build.Evaluation
             return true;
         }
 
+        private void Assume(char c)
+        {
+            Assumed.True(At(c));
+            _position++;
+        }
+
         private bool TryConsume(char c)
         {
             if (!AtEnd && _expression[_position] == c)
@@ -616,7 +622,7 @@ namespace Microsoft.Build.Evaluation
                     break;
 
                 case '$':
-                    if (!ParseProperty())
+                    if (!TryScanProperty())
                     {
                         return false;
                     }
@@ -624,7 +630,7 @@ namespace Microsoft.Build.Evaluation
                     break;
 
                 case '%':
-                    if (!ParseItemMetadata())
+                    if (!TryScanItemMetadata())
                     {
                         return false;
                     }
@@ -726,37 +732,73 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// Parses either the $(propertyname) syntax or the %(metadataname) syntax,
-        /// and returns the parsed string beginning with the '$' or '%', and ending with the
-        /// closing parenthesis.
+        /// Scans a property expression of the form $(propertyname).
+        /// Expects _position at '$' on entry.
         /// </summary>
-        private string ParsePropertyOrItemMetadata()
+        private bool TryScanProperty()
         {
             int start = _position;
-            _position++;
 
-            if (!AtEnd && !At('('))
+            Assume('$');
+
+            if (!TryConsume('('))
             {
-                SetScanError(start + 1, "IllFormedPropertyOpenParenthesisInCondition", _expression[_position].ToString());
-                return null;
+                return SetScanError(start + 1, "IllFormedPropertyOpenParenthesisInCondition");
             }
 
-            var result = ScanForPropertyExpressionEnd(_expression, _position++, out int indexResult);
+            var result = ScanForPropertyExpressionEnd(_expression, _position - 1, out int indexResult);
             if (!result)
             {
-                SetScanError(indexResult, "IllFormedPropertySpaceInCondition", _expression[indexResult].ToString());
-                return null;
+                return SetScanError(indexResult, "IllFormedPropertySpaceInCondition");
             }
 
             _position = indexResult;
             if (AtEnd)
             {
-                SetScanError(start + 1, "IllFormedPropertyCloseParenthesisInCondition", EndOfInput);
-                return null;
+                return SetScanError(start + 1, "IllFormedPropertyCloseParenthesisInCondition");
             }
 
             _position++;
-            return _expression.Substring(start, _position - start);
+            _current = new Token(Token.TokenType.Property, _expression.Substring(start, _position - start));
+            return true;
+        }
+
+        /// <summary>
+        /// Scans an item metadata expression of the form %(metadataname).
+        /// Expects _position at '%' on entry.
+        /// </summary>
+        private bool TryScanItemMetadata()
+        {
+            int start = _position;
+            int errorPosition = _position + 1;
+
+            Assume('%');
+
+            if (!TryConsume('('))
+            {
+                return SetScanError(errorPosition, "IllFormedMetadataOpenParenthesisInCondition");
+            }
+
+            // Scan for the closing ')'. Metadata references are simply %(Name) or %(ItemType.Name).
+            while (!AtEnd)
+            {
+                if (TryConsume(')'))
+                {
+                    string itemMetadataExpression = _expression.Substring(start, _position - start);
+                    _current = new Token(Token.TokenType.ItemMetadata, itemMetadataExpression);
+
+                    return CheckForUnexpectedMetadata(itemMetadataExpression);
+                }
+
+                if (At(' '))
+                {
+                    return SetScanError(errorPosition, "IllFormedMetadataSpaceInCondition");
+                }
+
+                _position++;
+            }
+
+            return SetScanError(errorPosition, "IllFormedMetadataCloseParenthesisInCondition");
         }
 
         /// <summary>
@@ -824,47 +866,6 @@ namespace Microsoft.Build.Evaluation
             }
 
             indexResult = index;
-            return true;
-        }
-
-        /// <summary>
-        /// Parses a string of the form $(propertyname).
-        /// </summary>
-        private bool ParseProperty()
-        {
-            string propertyExpression = ParsePropertyOrItemMetadata();
-
-            if (propertyExpression is null)
-            {
-                return false;
-            }
-
-            _current = new Token(Token.TokenType.Property, propertyExpression);
-            return true;
-        }
-
-        /// <summary>
-        /// Parses a string of the form %(itemmetadataname).
-        /// </summary>
-        private bool ParseItemMetadata()
-        {
-            string itemMetadataExpression = ParsePropertyOrItemMetadata();
-
-            if (itemMetadataExpression is null)
-            {
-                // Override the error resource set by ParsePropertyOrItemMetadata
-                // to the generic "UnexpectedCharacter" message for metadata.
-                _errorResource = "UnexpectedCharacterInCondition";
-                return false;
-            }
-
-            _current = new Token(Token.TokenType.ItemMetadata, itemMetadataExpression);
-
-            if (!CheckForUnexpectedMetadata(itemMetadataExpression))
-            {
-                return false;
-            }
-
             return true;
         }
 

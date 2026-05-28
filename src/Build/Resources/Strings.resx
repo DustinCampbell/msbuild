@@ -533,6 +533,18 @@
     <value>MSB4259: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</value>
     <comment>{StrBegin="MSB4259: "}</comment>
   </data>
+  <data name="IllFormedMetadataOpenParenthesisInCondition" xml:space="preserve">
+    <value>MSB4282: Expected item metadata at position {1} in condition "{0}". Did you forget the opening parenthesis after the '%'? To use a literal '%', use '%25' instead.</value>
+    <comment>{StrBegin="MSB4282: "}</comment>
+  </data>
+  <data name="IllFormedMetadataCloseParenthesisInCondition" xml:space="preserve">
+    <value>MSB4283: Expected item metadata at position {1} in condition "{0}". Did you forget the closing parenthesis?</value>
+    <comment>{StrBegin="MSB4283: "}</comment>
+  </data>
+  <data name="IllFormedMetadataSpaceInCondition" xml:space="preserve">
+    <value>MSB4284: Unexpected space at position "{1}" of condition "{0}". Did you forget to remove a space?</value>
+    <comment>{StrBegin="MSB4284: "}</comment>
+  </data>
   <data name="IllFormedQuotedStringInCondition" xml:space="preserve">
     <value>MSB4101: Expected a closing quote after position {1} in condition "{0}".</value>
     <comment>{StrBegin="MSB4101: "}</comment>
@@ -2511,4 +2523,11 @@ Utilization:          {0} Average Utilization: {1:###.0}</value>
     <value>MSB4280: The environment variable DOTNET_HOST_PATH is set to a directory ("{0}") instead of a path to the dotnet executable. This can lead to build errors in tasks that use this variable such as the Roslyn compiler. Either unset the variable or update it to point to the dotnet executable directly (e.g. "C:\Program Files\dotnet\dotnet.exe").</value>
     <comment>{StrBegin="MSB4280: "}UE: This warning is shown when the DOTNET_HOST_PATH environment variable is set to a directory path rather than a file path. The variable should point to the dotnet executable, not a directory containing it.</comment>
   </data>
+  <!--
+        The Build message bucket is: MSB4000 - MSB4999
+
+        Next message code should be MSB4285
+
+        Don't forget to update this comment after using a new code.
+  -->
 </root>
