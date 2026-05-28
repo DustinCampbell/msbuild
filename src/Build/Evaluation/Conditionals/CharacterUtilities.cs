@@ -5,24 +5,16 @@ namespace Microsoft.Build.Evaluation
 {
     internal static class CharacterUtilities
     {
-        internal static bool IsNumberStart(char candidate)
-        {
-            return candidate == '+' || candidate == '-' || candidate == '.' || char.IsDigit(candidate);
-        }
+        public static bool IsNumberStart(char candidate)
+            => candidate is '+' or '-' or '.' || char.IsDigit(candidate);
 
-        internal static bool IsSimpleStringStart(char candidate)
-        {
-            return candidate == '_' || char.IsLetter(candidate);
-        }
+        public static bool IsIdentifierStart(char candidate)
+            => candidate == '_' || char.IsLetter(candidate);
 
-        internal static bool IsSimpleStringChar(char candidate)
-        {
-            return IsSimpleStringStart(candidate) || char.IsDigit(candidate);
-        }
+        public static bool IsIdentifier(char candidate)
+            => IsIdentifierStart(candidate) || char.IsDigit(candidate);
 
-        internal static bool IsHexDigit(char candidate)
-        {
-            return char.IsDigit(candidate) || ((uint)((candidate | 0x20) - 'a') <= 'f' - 'a');
-        }
+        public static bool IsHexDigit(char candidate)
+            => char.IsDigit(candidate) || ((uint)((candidate | 0x20) - 'a') <= 'f' - 'a');
     }
 }
