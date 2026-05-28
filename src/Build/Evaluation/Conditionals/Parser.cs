@@ -768,7 +768,7 @@ namespace Microsoft.Build.Evaluation
             var result = ScanForPropertyExpressionEnd(_expression, _position - 1, out int indexResult);
             if (!result)
             {
-                return SetScanError(indexResult, "IllFormedPropertySpaceInCondition");
+                return SetScanError(indexResult + 1, "IllFormedPropertySpaceInCondition");
             }
 
             _position = indexResult;
@@ -802,7 +802,7 @@ namespace Microsoft.Build.Evaluation
                 if (TryConsume(')'))
                 {
                     string itemMetadataExpression = _expression.Substring(start, _position - start);
-                    return CheckForUnexpectedMetadata(itemMetadataExpression);
+                    return CheckForUnexpectedMetadata(start, itemMetadataExpression);
                 }
 
                 if (At(' '))
@@ -889,7 +889,7 @@ namespace Microsoft.Build.Evaluation
         /// specifications are not respected.
         /// Returns true if it is ok, otherwise false.
         /// </summary>
-        private bool CheckForUnexpectedMetadata(string expression)
+        private bool CheckForUnexpectedMetadata(int start, string expression)
         {
             if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
             {
@@ -897,37 +897,37 @@ namespace Microsoft.Build.Evaluation
             }
 
             // start and end delimit the metadata name within expression (end is exclusive).
-            int start = 0;
-            int end = expression.Length;
+            int nameStart = 0;
+            int nameEnd = expression.Length;
 
             if (expression is ['%', '(', .., ')'])
             {
-                start = 2;
-                end -= 1;
+                nameStart = 2;
+                nameEnd -= 1;
             }
 
-            int dotIndex = expression.IndexOf('.', start);
+            int dotIndex = expression.IndexOf('.', nameStart);
 
             // Note: The '.' can't be the first or last character.
-            if (dotIndex > start && dotIndex < end - 1)
+            if (dotIndex > nameStart && dotIndex < nameEnd - 1)
             {
-                start = dotIndex + 1;
+                nameStart = dotIndex + 1;
             }
 
-            string name = start > 0
-                ? expression.Substring(start, end - start)
+            string name = nameStart > 0
+                ? expression.Substring(nameStart, nameEnd - nameStart)
                 : expression;
 
             bool isItemSpecModifier = ItemSpecModifiers.IsItemSpecModifier(name);
 
             if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
             {
-                return SetScanError(_position, "BuiltInMetadataNotAllowedInThisConditional", name);
+                return SetScanError(start + 1, "BuiltInMetadataNotAllowedInThisConditional", name);
             }
 
             if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
             {
-                return SetScanError(_position, "CustomMetadataNotAllowedInThisConditional", name);
+                return SetScanError(start + 1, "CustomMetadataNotAllowedInThisConditional", name);
             }
 
             return true;
