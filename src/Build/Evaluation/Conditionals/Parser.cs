@@ -752,8 +752,13 @@ namespace Microsoft.Build.Evaluation
                     {
                         int start = _position;
 
-                        if (ParseNumeric() ||
-                            ParseSimpleStringOrFunction())
+                        if (TryScanNumber())
+                        {
+                            _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
+                            return true;
+                        }
+
+                        if (ParseSimpleStringOrFunction())
                         {
                             return true;
                         }
@@ -1121,20 +1126,17 @@ namespace Microsoft.Build.Evaluation
             return true;
         }
 
-        private bool ParseNumeric()
+        private bool TryScanNumber()
         {
             if (!CharacterUtilities.IsNumberStart(_expression[_position]))
             {
                 return false;
             }
 
-            int start = _position;
-
-            if ((_expression.Length - _position) > 2 && At('0') && (_expression[_position + 1] == 'x' || _expression[_position + 1] == 'X'))
+            if ((_expression.Length - _position) > 2 && At('0') && (_expression[_position + 1] is 'x' or 'X'))
             {
                 _position += 2;
                 SkipHexDigits();
-                _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
                 return true;
             }
 
@@ -1155,7 +1157,6 @@ namespace Microsoft.Build.Evaluation
             }
             while (At('.'));
 
-            _current = new Token(Token.TokenType.Numeric, _expression.Substring(start, _position - start));
             return true;
         }
 
