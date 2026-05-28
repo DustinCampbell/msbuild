@@ -622,31 +622,45 @@ namespace Microsoft.Build.Evaluation
                     break;
 
                 case '$':
-                    if (!TryScanProperty())
                     {
-                        return false;
+                        int start = _position;
+                        if (!TryScanProperty())
+                        {
+                            return false;
+                        }
+
+                        _current = new Token(Token.TokenType.Property, _expression.Substring(start, _position - start));
                     }
 
                     break;
 
                 case '%':
-                    if (!TryScanItemMetadata())
                     {
-                        return false;
+                        int start = _position;
+                        if (!TryScanItemMetadata())
+                        {
+                            return false;
+                        }
+
+                        _current = new Token(Token.TokenType.ItemMetadata, _expression.Substring(start, _position - start));
                     }
 
                     break;
 
                 case '@':
-                    int start = _position;
-                    if ((_options & ParserOptions.AllowItemLists) == 0 && NextIs('('))
                     {
-                        return SetScanError(start + 1, "ItemListNotAllowedInThisConditional");
-                    }
+                        int start = _position;
+                        if ((_options & ParserOptions.AllowItemLists) == 0 && NextIs('('))
+                        {
+                            return SetScanError(start + 1, "ItemListNotAllowedInThisConditional");
+                        }
 
-                    if (!ParseItemList())
-                    {
-                        return false;
+                        if (!TryScanItemList())
+                        {
+                            return false;
+                        }
+
+                        _current = new Token(Token.TokenType.ItemList, _expression.Substring(start, _position - start));
                     }
 
                     break;
@@ -712,9 +726,14 @@ namespace Microsoft.Build.Evaluation
                     break;
 
                 case '\'':
-                    if (!ParseQuotedString())
                     {
-                        return false;
+                        int start = _position + 1;
+                        if (!TryScanQuotedString(out bool expandable))
+                        {
+                            return false;
+                        }
+
+                        _current = new Token(Token.TokenType.String, _expression.Substring(start, _position - start - 1), expandable);
                     }
 
                     break;
@@ -759,7 +778,6 @@ namespace Microsoft.Build.Evaluation
             }
 
             _position++;
-            _current = new Token(Token.TokenType.Property, _expression.Substring(start, _position - start));
             return true;
         }
 
@@ -770,13 +788,12 @@ namespace Microsoft.Build.Evaluation
         private bool TryScanItemMetadata()
         {
             int start = _position;
-            int errorPosition = _position + 1;
 
             Assume('%');
 
             if (!TryConsume('('))
             {
-                return SetScanError(errorPosition, "IllFormedMetadataOpenParenthesisInCondition");
+                return SetScanError(start + 1, "IllFormedMetadataOpenParenthesisInCondition");
             }
 
             // Scan for the closing ')'. Metadata references are simply %(Name) or %(ItemType.Name).
@@ -785,20 +802,18 @@ namespace Microsoft.Build.Evaluation
                 if (TryConsume(')'))
                 {
                     string itemMetadataExpression = _expression.Substring(start, _position - start);
-                    _current = new Token(Token.TokenType.ItemMetadata, itemMetadataExpression);
-
                     return CheckForUnexpectedMetadata(itemMetadataExpression);
                 }
 
                 if (At(' '))
                 {
-                    return SetScanError(errorPosition, "IllFormedMetadataSpaceInCondition");
+                    return SetScanError(_position + 1, "IllFormedMetadataSpaceInCondition");
                 }
 
                 _position++;
             }
 
-            return SetScanError(errorPosition, "IllFormedMetadataCloseParenthesisInCondition");
+            return SetScanError(start + 1, "IllFormedMetadataCloseParenthesisInCondition");
         }
 
         /// <summary>
@@ -925,13 +940,13 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         private bool TryScanItemList()
         {
-            Assumed.True(At('@'));
+            int start = _position;
 
-            int errorPosition = _position + 1;
+            Assume('@');
 
-            if (!TryConsume("@("))
+            if (!TryConsume('('))
             {
-                return SetScanError(errorPosition, "IllFormedItemListOpenParenthesisInCondition");
+                return SetScanError(start + 1, "IllFormedItemListOpenParenthesisInCondition");
             }
 
             bool inReplacement = false;
@@ -972,87 +987,77 @@ namespace Microsoft.Build.Evaluation
             }
 
             return SetScanError(
-                errorPosition,
+                start + 1,
                 inReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
         }
 
-        private bool ParseItemList()
-        {
-            int start = _position;
-            if (!TryScanItemList())
-            {
-                return false;
-            }
-
-            _current = new Token(Token.TokenType.ItemList, _expression.Substring(start, _position - start));
-            return true;
-        }
-
         /// <summary>
-        /// Parse any part of the conditional expression that is quoted. It may contain a property, item, or
-        /// metadata element that needs expansion during evaluation.
+        /// Scans a quoted string that may contain property, item, or metadata expressions.
+        /// Expects _position at opening quote on entry.
+        /// On success, _position is advanced past the closing quote.
         /// </summary>
-        private bool ParseQuotedString()
+        private bool TryScanQuotedString(out bool expandable)
         {
-            _position++;
+            expandable = false;
             int start = _position;
-            bool expandable = false;
-            while (!AtEnd && !At('\''))
+
+            Assume('\'');
+
+            while (!AtEnd)
             {
+                if (TryConsume('\''))
+                {
+                    return true;
+                }
+
                 if (At("%("))
                 {
-                    expandable = true;
-                    string name = string.Empty;
-
-                    int endOfName = _expression.IndexOf(')', _position) - 1;
-                    if (endOfName < 0)
-                    {
-                        endOfName = _expression.Length - 1;
-                    }
-
-                    if (_position + 3 < _expression.Length)
-                    {
-                        name = _expression.Substring(_position + 2, endOfName - _position - 2 + 1);
-                    }
-
-                    if (!CheckForUnexpectedMetadata(name))
+                    if (!TryScanItemMetadata())
                     {
                         return false;
                     }
-                }
-                else if (At("@("))
-                {
+
                     expandable = true;
-
-                    if ((_options & ParserOptions.AllowItemLists) == 0)
-                    {
-                        return SetScanError(start + 1, "ItemListNotAllowedInThisConditional");
-                    }
-
-                    TryScanItemList();
                     continue;
                 }
-                else if (At("$("))
+
+                if (At("@("))
                 {
+                    if ((_options & ParserOptions.AllowItemLists) == 0)
+                    {
+                        return SetScanError(_position + 1, "ItemListNotAllowedInThisConditional");
+                    }
+
+                    if (!TryScanItemList())
+                    {
+                        return false;
+                    }
+
                     expandable = true;
+                    continue;
                 }
-                else if (At('%'))
+
+                if (At("$("))
                 {
+                    if (!TryScanProperty())
+                    {
+                        return false;
+                    }
+
+                    expandable = true;
+                    continue;
+                }
+
+                if (At('%'))
+                {
+                    // TODO: Verify that the next two characters are hex digits.
                     expandable = true;
                 }
 
                 _position++;
             }
 
-            if (AtEnd)
-            {
-                return SetScanError(start, "IllFormedQuotedStringInCondition");
-            }
-
-            string originalTokenString = _expression.Substring(start, _position - start);
-            _current = new Token(Token.TokenType.String, originalTokenString, expandable);
-            _position++;
-            return true;
+            return SetScanError(start + 1, "IllFormedQuotedStringInCondition");
         }
 
         private bool ParseRemaining()
