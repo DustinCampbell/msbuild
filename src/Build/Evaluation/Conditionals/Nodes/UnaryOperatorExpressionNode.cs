@@ -3,51 +3,36 @@
 
 using System;
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+/// <summary>
+/// Base class for nodes that are unary operators (have a single child in the parse tree)
+/// </summary>
+internal abstract class UnaryOperatorExpressionNode(ExpressionNode expression) : ExpressionNode
 {
-    /// <summary>
-    /// Base class for nodes that are unary operators (have a single child in the parse tree)
-    /// </summary>
-    internal abstract class UnaryOperatorExpressionNode : ExpressionNode
+    internal ExpressionNode Expression { get; } = expression;
+
+    public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
     {
-        internal ExpressionNode Child { get; }
-
-        protected UnaryOperatorExpressionNode(ExpressionNode child)
-        {
-            Child = child;
-        }
-
-        public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
-        {
-            result = default;
-            return false;
-        }
-
-        public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version result)
-        {
-            result = default;
-            return false;
-        }
-
-        internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            return null;
-        }
-
-        internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            return null;
-        }
-
-        /// <inheritdoc cref="ExpressionNode"/>
-        internal override bool IsUnexpandedValueEmpty()
-            => Child?.IsUnexpandedValueEmpty() ?? true;
-
-        internal override void ResetState()
-        {
-            Child?.ResetState();
-        }
+        result = default;
+        return false;
     }
+
+    public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version? result)
+    {
+        result = null;
+        return false;
+    }
+
+    internal override string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+        => null;
+
+    internal override string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+        => null;
+
+    internal override bool IsUnexpandedValueEmpty()
+        => Expression.IsUnexpandedValueEmpty();
+
+    internal override void ResetState()
+        => Expression.ResetState();
 }

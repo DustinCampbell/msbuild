@@ -11,17 +11,17 @@ namespace Microsoft.Build.Evaluation;
 /// Does not update conditioned properties table
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class AndExpressionNode(ExpressionNode leftChild, ExpressionNode rightChild) : BinaryOperatorExpressionNode(leftChild, rightChild)
+internal sealed class AndExpressionNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorExpressionNode(left, right)
 {
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
     {
-        if (!LeftChild.TryEvaluateAsBoolean(state, out bool leftResult))
+        if (!Left.TryEvaluateAsBoolean(state, out bool leftResult))
         {
             ProjectErrorUtilities.ThrowInvalidProject(
                  state.ElementLocation,
                  "ExpressionDoesNotEvaluateToBoolean",
-                 LeftChild.GetUnexpandedValue(state),
-                 LeftChild.GetExpandedValue(state),
+                 Left.GetUnexpandedValue(state),
+                 Left.GetExpandedValue(state),
                  state.Condition);
         }
 
@@ -32,13 +32,13 @@ internal sealed class AndExpressionNode(ExpressionNode leftChild, ExpressionNode
             return true;
         }
 
-        if (!RightChild.TryEvaluateAsBoolean(state, out bool rightResult))
+        if (!Right.TryEvaluateAsBoolean(state, out bool rightResult))
         {
             ProjectErrorUtilities.ThrowInvalidProject(
                  state.ElementLocation,
                  "ExpressionDoesNotEvaluateToBoolean",
-                 RightChild.GetUnexpandedValue(state),
-                 RightChild.GetExpandedValue(state),
+                 Right.GetUnexpandedValue(state),
+                 Right.GetExpandedValue(state),
                  state.Condition);
         }
 
@@ -47,5 +47,5 @@ internal sealed class AndExpressionNode(ExpressionNode leftChild, ExpressionNode
     }
 
     internal override string DebuggerDisplay
-        => $"(and {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
+        => $"(and {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }

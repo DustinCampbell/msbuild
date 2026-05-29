@@ -4,42 +4,23 @@
 using System;
 using System.Diagnostics;
 
-namespace Microsoft.Build.Evaluation
+namespace Microsoft.Build.Evaluation;
+
+/// <summary>
+/// Compares for equality
+/// </summary>
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
+internal sealed class EqualExpressionNode(ExpressionNode left, ExpressionNode right) : MultipleComparisonNode(left, right)
 {
-    /// <summary>
-    /// Compares for equality
-    /// </summary>
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class EqualExpressionNode : MultipleComparisonNode
-    {
-        internal EqualExpressionNode(ExpressionNode leftChild, ExpressionNode rightChild)
-            : base(leftChild, rightChild)
-        {
-        }
-        /// <summary>
-        /// Compare numbers
-        /// </summary>
-        protected override bool Compare(double left, double right)
-        {
-            return left == right;
-        }
+    protected override bool Compare(double left, double right)
+        => left == right;
 
-        /// <summary>
-        /// Compare booleans
-        /// </summary>
-        protected override bool Compare(bool left, bool right)
-        {
-            return left == right;
-        }
+    protected override bool Compare(bool left, bool right)
+        => left == right;
 
-        /// <summary>
-        /// Compare strings
-        /// </summary>
-        protected override bool Compare(string left, string right)
-        {
-            return String.Equals(left, right, StringComparison.OrdinalIgnoreCase);
-        }
+    protected override bool Compare(string left, string right)
+        => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
-        internal override string DebuggerDisplay => $"(== {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
-    }
+    internal override string DebuggerDisplay
+        => $"(== {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }
