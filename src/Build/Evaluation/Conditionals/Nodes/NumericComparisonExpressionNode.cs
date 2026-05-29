@@ -52,23 +52,30 @@ namespace Microsoft.Build.Evaluation
                 return true;
             }
 
-            bool isLeftVersion = LeftChild.TryEvaluateAsVersion(state, out Version leftVersion);
-            bool isRightVersion = RightChild.TryEvaluateAsVersion(state, out Version rightVersion);
+            bool isLeftVersion = LeftChild.TryEvaluateAsVersion(state, out Version? leftVersion);
+            bool isRightVersion = RightChild.TryEvaluateAsVersion(state, out Version? rightVersion);
 
             if (isLeftVersion && isRightVersion)
             {
+                Assumed.NotNull(leftVersion);
+                Assumed.NotNull(rightVersion);
+
                 result = Compare(leftVersion, rightVersion);
                 return true;
             }
 
             if (isLeftNum && isRightVersion)
             {
+                Assumed.NotNull(rightVersion);
+
                 result = Compare(leftNum, rightVersion);
                 return true;
             }
 
             if (isLeftVersion && isRightNum)
             {
+                Assumed.NotNull(leftVersion);
+
                 result = Compare(leftVersion, rightNum);
                 return true;
             }
