@@ -255,7 +255,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     ParseResult parseResult = Parser.Parse(condition, options, elementLocation, loggingContext);
                     parseResult.ThrowIfError();
-                    parsedExpression = parseResult.Node;
+                    parsedExpression = parseResult.Node!;
                 }
                 else
                 {
