@@ -8,7 +8,7 @@ using System.IO;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using static Microsoft.Build.Execution.ProjectItemInstance;
+using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -30,66 +30,13 @@ internal sealed class FunctionCallExpressionNode : OperandExpressionNode
     {
         if (_functionName.Span.Equals("Exists", StringComparison.OrdinalIgnoreCase))
         {
-            // Check we only have one argument
-            VerifyArgumentCount(1, state);
-
-            try
-            {
-                // Expand the items and use DefaultIfEmpty in case there is nothing returned
-                // Then check if everything is not null (because the list was empty), not
-                // already loaded into the cache, and exists
-                ImmutableArray<string> fileList = ExpandArgumentAsFileList(_arguments[0], state);
-
-                if (fileList.IsEmpty)
-                {
-                    result = false;
-                    return true;
-                }
-
-                foreach (string file in fileList)
-                {
-                    if (file == null || !(state.LoadedProjectsCache?.TryGet(file) != null || FileUtilities.FileOrDirectoryExistsNoThrow(file, state.FileSystem)))
-                    {
-                        result = false;
-                        return true;
-                    }
-                }
-
-                result = true;
-                return true;
-            }
-            catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
-            {
-                // Ignore invalid characters or path related exceptions
-
-                // We will ignore the PathTooLong exception caused by GetFullPath because in single proc this code
-                // is not executed and the condition is just evaluated to false as File.Exists and Directory.Exists does not throw in this situation.
-                // To be consistant with that we will return a false in this case also.
-                // DevDiv Bugs: 46035
-                result = false;
-                return true;
-            }
+            result = EvaluateExists(_arguments, state);
+            return true;
         }
 
         if (_functionName.Span.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
         {
-            // Check we only have one argument
-            VerifyArgumentCount(1, state);
-
-            // Expand properties and items, and verify the result is an appropriate scalar
-            string expandedValue = ExpandArgumentForScalarParameter("HasTrailingSlash", _arguments[0], state);
-
-            // Is the last character a backslash?
-            if (expandedValue.Length != 0)
-            {
-                char lastCharacter = expandedValue[^1];
-
-                // Either back or forward slashes satisfy the function: this is useful for URL's
-                result = lastCharacter == Path.DirectorySeparatorChar || lastCharacter == Path.AltDirectorySeparatorChar || lastCharacter == '\\';
-                return true;
-            }
-
-            result = false;
+            result = EvaluateHasTrailingSlash(_functionName, _arguments, state);
             return true;
         }
 
@@ -133,17 +80,79 @@ internal sealed class FunctionCallExpressionNode : OperandExpressionNode
         }
     }
 
+    private static bool EvaluateExists(ImmutableArray<ExpressionNode> arguments, ConditionEvaluator.IConditionEvaluationState state)
+    {
+        // Check we only have one argument
+        ExpressionNode argument = GetSingleArgument(arguments, state);
+
+        try
+        {
+            // Expand the items and use DefaultIfEmpty in case there is nothing returned
+            // Then check if everything is not null (because the list was empty), not
+            // already loaded into the cache, and exists
+            ImmutableArray<string> fileList = ExpandArgumentAsFileList(argument, state);
+
+            if (fileList.IsEmpty)
+            {
+                return false;
+            }
+
+            foreach (string file in fileList)
+            {
+                if (file == null || !(state.LoadedProjectsCache?.TryGet(file) != null || FileUtilities.FileOrDirectoryExistsNoThrow(file, state.FileSystem)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
+        {
+            // Ignore invalid characters or path related exceptions
+
+            // We will ignore the PathTooLong exception caused by GetFullPath because in single proc this code
+            // is not executed and the condition is just evaluated to false as File.Exists and Directory.Exists does not throw in this situation.
+            // To be consistant with that we will return a false in this case also.
+            // DevDiv Bugs: 46035
+            return false;
+        }
+    }
+
+    private static bool EvaluateHasTrailingSlash(
+        ReadOnlyMemory<char> functionName,
+        ImmutableArray<ExpressionNode> arguments,
+        ConditionEvaluator.IConditionEvaluationState state)
+    {
+        // Check we only have one argument
+        ExpressionNode argument = GetSingleArgument(arguments, state);
+
+        // Expand properties and items, and verify the result is an appropriate scalar
+        string expandedValue = ExpandArgumentForScalarParameter(functionName, argument, state);
+
+        // Is the last character a backslash?
+        if (expandedValue.Length != 0)
+        {
+            char lastCharacter = expandedValue[^1];
+
+            // Either back or forward slashes satisfy the function: this is useful for URL's
+            return lastCharacter == Path.DirectorySeparatorChar || lastCharacter == Path.AltDirectorySeparatorChar || lastCharacter == '\\';
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Expands properties and items in the argument, and verifies that the result is consistent
     /// with a scalar parameter type.
     /// </summary>
-    /// <param name="function">Function name for errors</param>
+    /// <param name="functionName">Function name for errors</param>
     /// <param name="argumentNode">Argument to be expanded</param>
     /// <param name="state"></param>
     /// <param name="isFilePath">True if this is afile name and the path should be normalized</param>
     /// <returns>Scalar result</returns>
     private static string ExpandArgumentForScalarParameter(
-        string function,
+        ReadOnlyMemory<char> functionName,
         ExpressionNode argumentNode,
         ConditionEvaluator.IConditionEvaluationState state,
         bool isFilePath = true)
@@ -171,13 +180,15 @@ internal sealed class FunctionCallExpressionNode : OperandExpressionNode
         // We only allow a single item to be passed into a scalar parameter.
         ProjectErrorUtilities.ThrowInvalidProject(
             state.ElementLocation,
-            "CannotPassMultipleItemsIntoScalarFunction", function, argument,
+            "CannotPassMultipleItemsIntoScalarFunction",
+            functionName.ToString(),
+            argument,
             state.ExpandIntoString(argument));
 
         return string.Empty;
     }
 
-    private ImmutableArray<string> ExpandArgumentAsFileList(ExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state, bool isFilePath = true)
+    private static ImmutableArray<string> ExpandArgumentAsFileList(ExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state, bool isFilePath = true)
     {
         string? argument = argumentNode.GetUnexpandedValue(state);
         Assumed.NotNull(argument, "Arguments should only be literals, i.e. strings or numbers.");
@@ -215,15 +226,20 @@ internal sealed class FunctionCallExpressionNode : OperandExpressionNode
         return list.ToImmutable();
     }
 
-    /// <summary>
-    /// Check that the number of function arguments is correct.
-    /// </summary>
-    private void VerifyArgumentCount(int expected, ConditionEvaluator.IConditionEvaluationState state)
-        => ProjectErrorUtilities.VerifyThrowInvalidProject(
-            _arguments.Length == expected,
+    private static ExpressionNode GetSingleArgument(ImmutableArray<ExpressionNode> arguments, ConditionEvaluator.IConditionEvaluationState state)
+    {
+        if (arguments.Length == 1)
+        {
+            return arguments[0];
+        }
+
+        ProjectErrorUtilities.ThrowInvalidProject(
             state.ElementLocation,
             "IncorrectNumberOfFunctionArguments",
             state.Condition,
-            _arguments.Length,
-            expected);
+            arguments.Length,
+            1);
+
+        return null!;
+    }
 }
