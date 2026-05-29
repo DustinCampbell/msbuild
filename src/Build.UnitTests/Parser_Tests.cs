@@ -582,5 +582,69 @@ namespace Microsoft.Build.UnitTests
             Assert.Equal("n1", metadatan.EvaluatedValue);
             Assert.Equal("n2", metadatan.Predecessor.EvaluatedValue);
         }
+
+        [Theory]
+        [InlineData("true", true)]
+        [InlineData("True", true)]
+        [InlineData("TRUE", true)]
+        [InlineData("on", true)]
+        [InlineData("ON", true)]
+        [InlineData("yes", true)]
+        [InlineData("YES", true)]
+        [InlineData("false", false)]
+        [InlineData("False", false)]
+        [InlineData("FALSE", false)]
+        [InlineData("off", false)]
+        [InlineData("OFF", false)]
+        [InlineData("no", false)]
+        [InlineData("NO", false)]
+        [InlineData("!true", false)]
+        [InlineData("!True", false)]
+        [InlineData("!false", true)]
+        [InlineData("!False", true)]
+        [InlineData("!on", false)]
+        [InlineData("!off", true)]
+        [InlineData("!yes", false)]
+        [InlineData("!no", true)]
+        public void BooleanKeyword_ProducesBooleanExpressionNode(string keyword, bool expected)
+        {
+            ParseResult result = Parser.Parse(keyword, ParserOptions.AllowAll, _elementLocation);
+            result.Node.ShouldBeOfType<BooleanExpressionNode>();
+            result.Node.TryEvaluateAsBoolean(null, out bool actual).ShouldBeTrue();
+            actual.ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData("'true'", true)]
+        [InlineData("'True'", true)]
+        [InlineData("'on'", true)]
+        [InlineData("'yes'", true)]
+        [InlineData("'false'", false)]
+        [InlineData("'off'", false)]
+        [InlineData("'no'", false)]
+        [InlineData("'!true'", false)]
+        [InlineData("'!false'", true)]
+        [InlineData("'!on'", false)]
+        [InlineData("'!off'", true)]
+        [InlineData("'!yes'", false)]
+        [InlineData("'!no'", true)]
+        public void QuotedBooleanKeyword_ProducesBooleanExpressionNode(string expression, bool expected)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.Node.ShouldBeOfType<BooleanExpressionNode>();
+            result.Node.TryEvaluateAsBoolean(null, out bool actual).ShouldBeTrue();
+            actual.ShouldBe(expected);
+        }
+
+        [Theory]
+        [InlineData("'$(foo)'")]
+        [InlineData("'hello'")]
+        [InlineData("'truthy'")]
+        [InlineData("'falsehood'")]
+        public void NonBooleanString_ProducesStringExpressionNode(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.Node.ShouldBeOfType<StringExpressionNode>();
+        }
     }
 }

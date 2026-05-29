@@ -385,14 +385,26 @@ internal ref struct Parser
 
         if (Same(TokenKind.Not))
         {
+            // Fold !true/!false into a BooleanExpressionNode at parse time.
+            if (Same(TokenKind.True))
+            {
+                result = new BooleanExpressionNode(false);
+                return true;
+            }
+
+            if (Same(TokenKind.False))
+            {
+                result = new BooleanExpressionNode(true);
+                return true;
+            }
+
             if (!TryParseFactor(out ExpressionNode? expr))
             {
                 result = null;
                 return false;
             }
 
-            var notNode = new NotExpressionNode(expr);
-            result = notNode;
+            result = new NotExpressionNode(expr);
             return true;
         }
 
@@ -430,6 +442,18 @@ internal ref struct Parser
     {
         Token current = _current;
 
+        if (Same(TokenKind.True))
+        {
+            result = new BooleanExpressionNode(true);
+            return true;
+        }
+
+        if (Same(TokenKind.False))
+        {
+            result = new BooleanExpressionNode(false);
+            return true;
+        }
+
         if (Same(TokenKind.String))
         {
             result = new StringExpressionNode(current.Text, current.Expandable);
@@ -461,6 +485,52 @@ internal ref struct Parser
         }
 
         result = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if the given span is a boolean keyword (true/false/on/off/yes/no)
+    /// or a negated boolean keyword (!true/!false/!on/!off/!yes/!no).
+    /// </summary>
+    private static bool TryGetBooleanKeywordValue(ReadOnlySpan<char> text, out bool value)
+    {
+        if (text.Length >= 2 && text.Length <= 6)
+        {
+            if (text.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                text.Equals("on", StringComparison.OrdinalIgnoreCase) ||
+                text.Equals("yes", StringComparison.OrdinalIgnoreCase))
+            {
+                value = true;
+                return true;
+            }
+
+            if (text.Equals("false", StringComparison.OrdinalIgnoreCase) ||
+                text.Equals("off", StringComparison.OrdinalIgnoreCase) ||
+                text.Equals("no", StringComparison.OrdinalIgnoreCase))
+            {
+                value = false;
+                return true;
+            }
+
+            // Negated forms
+            if (text.Equals("!true", StringComparison.OrdinalIgnoreCase) ||
+                text.Equals("!on", StringComparison.OrdinalIgnoreCase) ||
+                text.Equals("!yes", StringComparison.OrdinalIgnoreCase))
+            {
+                value = false;
+                return true;
+            }
+
+            if (text.Equals("!false", StringComparison.OrdinalIgnoreCase) ||
+                text.Equals("!off", StringComparison.OrdinalIgnoreCase) ||
+                text.Equals("!no", StringComparison.OrdinalIgnoreCase))
+            {
+                value = true;
+                return true;
+            }
+        }
+
+        value = default;
         return false;
     }
 
@@ -929,7 +999,17 @@ internal ref struct Parser
         {
             if (TryConsume('\''))
             {
-                token = Token.String(_expression.AsMemory(start + 1, _position - start - 2), expandable);
+                var text = _expression.AsMemory(start + 1, _position - start - 2);
+
+                if (!expandable && TryGetBooleanKeywordValue(text.Span, out bool booleanValue))
+                {
+                    token = booleanValue ? Token.True : Token.False;
+                }
+                else
+                {
+                    token = Token.String(text, expandable);
+                }
+
                 return true;
             }
 
@@ -1010,6 +1090,22 @@ internal ref struct Parser
         if (span.Equals("or", StringComparison.OrdinalIgnoreCase))
         {
             token = Token.Or;
+            return true;
+        }
+
+        if (span.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("on", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("yes", StringComparison.OrdinalIgnoreCase))
+        {
+            token = Token.True;
+            return true;
+        }
+
+        if (span.Equals("false", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("off", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("no", StringComparison.OrdinalIgnoreCase))
+        {
+            token = Token.False;
             return true;
         }
 

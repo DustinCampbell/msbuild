@@ -21,6 +21,8 @@ internal enum TokenKind
 
     And,
     Or,
+    True,
+    False,
 
     EqualTo,
     NotEqualTo,
