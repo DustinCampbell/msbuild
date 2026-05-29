@@ -481,6 +481,7 @@
     <!-- #### EVALUATION ### -->
     <Compile Include="Evaluation\ConditionEvaluator.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\AndExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\Nodes\BooleanExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\CharacterUtilities.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\EqualExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\FunctionCallExpressionNode.cs" />

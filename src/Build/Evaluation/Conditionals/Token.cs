@@ -19,6 +19,8 @@ internal readonly struct Token
     public static readonly Token GreaterThanOrEqualTo = new(TokenKind.GreaterThanOrEqualTo, ">=");
     public static readonly Token And = new(TokenKind.And, "and");
     public static readonly Token Or = new(TokenKind.Or, "or");
+    public static readonly Token True = new(TokenKind.True, "true");
+    public static readonly Token False = new(TokenKind.False, "false");
     public static readonly Token EqualTo = new(TokenKind.EqualTo, "==");
     public static readonly Token NotEqualTo = new(TokenKind.NotEqualTo, "!=");
     public static readonly Token Not = new(TokenKind.Not, "!");
