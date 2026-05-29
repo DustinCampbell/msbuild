@@ -493,8 +493,7 @@
     <Compile Include="Evaluation\Conditionals\Nodes\NotEqualExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\NotExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\NumericComparisonExpressionNode.cs" />
-    <Compile Include="Evaluation\Conditionals\Nodes\NumericExpressionNode.cs" />
-    <Compile Include="Evaluation\Conditionals\Nodes\OperandExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\Nodes\NumberExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\BinaryOperatorExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\UnaryOperatorExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\OrExpressionNode.cs" />

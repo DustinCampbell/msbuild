@@ -15,7 +15,7 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 /// Evaluates a function expression, such as "Exists('foo')"
 /// </summary>
-internal sealed class FunctionCallExpressionNode : OperandExpressionNode
+internal sealed class FunctionCallExpressionNode : ExpressionNode
 {
     private readonly ReadOnlyMemory<char> _functionName;
     private readonly ImmutableArray<ExpressionNode> _arguments;

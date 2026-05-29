@@ -11,7 +11,7 @@ namespace Microsoft.Build.Evaluation;
 /// Node representing a string
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class StringExpressionNode : OperandExpressionNode
+internal sealed class StringExpressionNode : ExpressionNode
 {
     private readonly ReadOnlyMemory<char> _value;
     private readonly bool _expandable;
