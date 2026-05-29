@@ -13,7 +13,7 @@ namespace Microsoft.Build.Evaluation;
 /// </summary>
 internal readonly struct ParseResult
 {
-    public GenericExpressionNode? Node { get; }
+    public ExpressionNode? Node { get; }
     public string? ErrorResource { get; }
     public object?[]? ErrorArgs { get; }
     internal int ErrorPosition { get; }
@@ -27,7 +27,7 @@ internal readonly struct ParseResult
     public bool IsError => ErrorResource is not null;
 
     private ParseResult(
-        GenericExpressionNode? node,
+        ExpressionNode? node,
         string? errorResource,
         object?[]? errorArgs,
         int errorPosition,
@@ -40,7 +40,7 @@ internal readonly struct ParseResult
         _elementLocation = elementLocation;
     }
 
-    public static ParseResult Success(GenericExpressionNode node)
+    public static ParseResult Success(ExpressionNode node)
     {
         Assumed.NotNull(node);
 

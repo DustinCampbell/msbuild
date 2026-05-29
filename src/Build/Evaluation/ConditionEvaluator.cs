@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -137,20 +137,20 @@ namespace Microsoft.Build.Evaluation
         private struct ExpressionTreeForCurrentOptionsWithSize
         {
             // condition string -> pool of expression trees
-            private readonly ConcurrentDictionary<string, Stack<GenericExpressionNode>> _conditionPools;
+            private readonly ConcurrentDictionary<string, Stack<ExpressionNode>> _conditionPools;
             private int _mOptimisticSize;
 
             public readonly int OptimisticSize => _mOptimisticSize;
 
-            public ExpressionTreeForCurrentOptionsWithSize(ConcurrentDictionary<string, Stack<GenericExpressionNode>> conditionPools)
+            public ExpressionTreeForCurrentOptionsWithSize(ConcurrentDictionary<string, Stack<ExpressionNode>> conditionPools)
             {
                 _conditionPools = conditionPools;
                 _mOptimisticSize = conditionPools.Count;
             }
 
-            public Stack<GenericExpressionNode> GetOrAdd(string condition, Func<string, Stack<GenericExpressionNode>> addFunc)
+            public Stack<ExpressionNode> GetOrAdd(string condition, Func<string, Stack<ExpressionNode>> addFunc)
             {
-                if (!_conditionPools.TryGetValue(condition, out Stack<GenericExpressionNode>? stack))
+                if (!_conditionPools.TryGetValue(condition, out Stack<ExpressionNode>? stack))
                 {
                     // Count how many conditions there are in the cache.
                     // The condition evaluator will flush the cache when some threshold is exceeded.
@@ -239,18 +239,18 @@ namespace Microsoft.Build.Evaluation
             // Get the expression tree cache for the current parsing options.
             var cachedExpressionTreesForCurrentOptions = s_cachedExpressionTrees.GetOrAdd(
                 (int)options,
-                _ => new ExpressionTreeForCurrentOptionsWithSize(new ConcurrentDictionary<string, Stack<GenericExpressionNode>>(StringComparer.Ordinal)));
+                _ => new ExpressionTreeForCurrentOptionsWithSize(new ConcurrentDictionary<string, Stack<ExpressionNode>>(StringComparer.Ordinal)));
 
             cachedExpressionTreesForCurrentOptions = FlushCacheIfLargerThanThreshold(options, cachedExpressionTreesForCurrentOptions);
 
             // Get the pool of expressions for this condition.
-            Stack<GenericExpressionNode> expressionPool = cachedExpressionTreesForCurrentOptions.GetOrAdd(condition, _ => new Stack<GenericExpressionNode>());
+            Stack<ExpressionNode> expressionPool = cachedExpressionTreesForCurrentOptions.GetOrAdd(condition, _ => new Stack<ExpressionNode>());
 
             lock (expressionPool)
             {
                 // Try and see if there's an available expression tree in the pool.
                 // If not, parse a new expression tree and add it back to the pool.
-                GenericExpressionNode parsedExpression;
+                ExpressionNode parsedExpression;
                 if (expressionPool.Count == 0)
                 {
                     ParseResult parseResult = Parser.Parse(condition, options, elementLocation, loggingContext);
@@ -318,14 +318,14 @@ namespace Microsoft.Build.Evaluation
                     (int)options,
                     _ =>
                         new ExpressionTreeForCurrentOptionsWithSize(
-                            new ConcurrentDictionary<string, Stack<GenericExpressionNode>>(StringComparer.Ordinal)),
+                            new ConcurrentDictionary<string, Stack<ExpressionNode>>(StringComparer.Ordinal)),
                     (key, existing) =>
                     {
                         if (existing.OptimisticSize > 3000)
                         {
                             return
                                 new ExpressionTreeForCurrentOptionsWithSize(
-                                    new ConcurrentDictionary<string, Stack<GenericExpressionNode>>(StringComparer.Ordinal));
+                                    new ConcurrentDictionary<string, Stack<ExpressionNode>>(StringComparer.Ordinal));
                         }
                         else
                         {

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -11,11 +11,11 @@ namespace Microsoft.Build.Evaluation
     /// <summary>
     /// Base class for all expression nodes.
     /// </summary>
-    internal abstract class GenericExpressionNode
+    internal abstract class ExpressionNode
     {
-        internal abstract bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result);
-        internal abstract bool TryNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state, out double result);
-        internal abstract bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, out Version result);
+        public abstract bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result);
+        public abstract bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result);
+        public abstract bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version result);
 
         /// <summary>
         /// Returns true if this node evaluates to an empty string,
@@ -60,7 +60,7 @@ namespace Microsoft.Build.Evaluation
         /// <returns></returns>
         internal bool Evaluate(ConditionEvaluator.IConditionEvaluationState state)
         {
-            if (!TryBoolEvaluate(state, out bool boolValue))
+            if (!TryEvaluateAsBoolean(state, out bool boolValue))
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     state.ElementLocation,

@@ -484,7 +484,7 @@
     <Compile Include="Evaluation\Conditionals\CharacterUtilities.cs" />
     <Compile Include="Evaluation\Conditionals\EqualExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\FunctionCallExpressionNode.cs" />
-    <Compile Include="Evaluation\Conditionals\GenericExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\ExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\GreaterThanExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\GreaterThanOrEqualExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\LessThanExpressionNode.cs" />
@@ -495,7 +495,8 @@
     <Compile Include="Evaluation\Conditionals\NumericComparisonExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\NumericExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\OperandExpressionNode.cs" />
-    <Compile Include="Evaluation\Conditionals\OperatorExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\BinaryOperatorExpressionNode.cs" />
+    <Compile Include="Evaluation\Conditionals\UnaryOperatorExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\OrExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.cs" />
     <Compile Include="Evaluation\Conditionals\StringExpressionNode.cs" />

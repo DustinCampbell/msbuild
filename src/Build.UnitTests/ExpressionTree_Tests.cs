@@ -92,7 +92,7 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void FunctionTests()
         {
-            GenericExpressionNode tree;
+            ExpressionNode tree;
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(new PropertyDictionary<ProjectPropertyInstance>(), new ItemDictionary<ProjectItemInstance>(), FileSystems.Default, null);
             expander.Metadata = new StringMetadataTable(null);
             bool value;
@@ -418,7 +418,7 @@ namespace Microsoft.Build.UnitTests
                 expander.Metadata = new StringMetadataTable(null);
             }
 
-            GenericExpressionNode tree = Parser.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance).Node;
+            ExpressionNode tree = Parser.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance).Node;
 
             if (state == null)
             {

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -10,23 +10,24 @@ namespace Microsoft.Build.Evaluation
     /// <summary>
     /// Base class for nodes that are operators (have children in the parse tree)
     /// </summary>
-    internal abstract class OperatorExpressionNode : GenericExpressionNode
+    internal abstract class BinaryOperatorExpressionNode : ExpressionNode
     {
-        internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
+        internal ExpressionNode LeftChild { get; }
+        internal ExpressionNode RightChild { get; }
+
+        protected BinaryOperatorExpressionNode(ExpressionNode leftChild, ExpressionNode rightChild)
         {
-            result = BoolEvaluate(state);
-            return true;
+            LeftChild = leftChild;
+            RightChild = rightChild;
         }
 
-        internal abstract bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state);
-
-        internal override bool TryNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state, out double result)
+        public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
         {
             result = default;
             return false;
         }
 
-        internal override bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, out Version result)
+        public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version result)
         {
             result = default;
             return false;
@@ -41,7 +42,7 @@ namespace Microsoft.Build.Evaluation
             return null;
         }
 
-        /// <inheritdoc cref="GenericExpressionNode"/>
+        /// <inheritdoc cref="ExpressionNode"/>
         internal override bool IsUnexpandedValueEmpty()
             => (LeftChild?.IsUnexpandedValueEmpty() ?? true) && (RightChild?.IsUnexpandedValueEmpty() ?? true);
 
@@ -64,16 +65,6 @@ namespace Microsoft.Build.Evaluation
 
             RightChild?.ResetState();
         }
-
-        /// <summary>
-        /// Storage for the left child
-        /// </summary>
-        internal GenericExpressionNode LeftChild { set; get; }
-
-        /// <summary>
-        /// Storage for the right child
-        /// </summary>
-        internal GenericExpressionNode RightChild { set; get; }
 
         #region REMOVE_COMPAT_WARNING
         internal override bool DetectAnd()

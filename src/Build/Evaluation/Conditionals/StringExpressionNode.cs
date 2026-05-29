@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -30,12 +30,12 @@ namespace Microsoft.Build.Evaluation
             _expandable = expandable;
         }
 
-        internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
+        public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
             return ConversionUtilities.TryConvertStringToBool(GetExpandedValue(state), out result);
         }
 
-        internal override bool TryNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state, out double result)
+        public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
         {
             if (ShouldBeTreatedAsVisualStudioVersion(state))
             {
@@ -48,7 +48,7 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        internal override bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, out Version result)
+        public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version result)
         {
             if (ShouldBeTreatedAsVisualStudioVersion(state))
             {
@@ -116,7 +116,7 @@ namespace Microsoft.Build.Evaluation
         }
 
 
-        /// <inheritdoc cref="GenericExpressionNode"/>
+        /// <inheritdoc cref="ExpressionNode"/>
         internal override bool IsUnexpandedValueEmpty()
             => string.IsNullOrEmpty(_value);
 

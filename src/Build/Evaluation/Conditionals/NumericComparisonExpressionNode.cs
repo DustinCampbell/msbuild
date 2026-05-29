@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -10,8 +10,13 @@ namespace Microsoft.Build.Evaluation
     /// Evaluates a numeric comparison, such as less-than, or greater-or-equal-than
     /// Does not update conditioned properties table.
     /// </summary>
-    internal abstract class NumericComparisonExpressionNode : OperatorExpressionNode
+    internal abstract class NumericComparisonExpressionNode : BinaryOperatorExpressionNode
     {
+        protected NumericComparisonExpressionNode(ExpressionNode leftChild, ExpressionNode rightChild)
+            : base(leftChild, rightChild)
+        {
+        }
+
         /// <summary>
         /// Compare numbers
         /// </summary>
@@ -35,12 +40,12 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Evaluate as boolean
         /// </summary>
-        internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
-            bool isLeftNum = LeftChild.TryNumericEvaluate(state, out double leftNum);
-            bool isLeftVersion = LeftChild.TryVersionEvaluate(state, out Version leftVersion);
-            bool isRightNum = RightChild.TryNumericEvaluate(state, out double rightNum);
-            bool isRightVersion = RightChild.TryVersionEvaluate(state, out Version rightVersion);
+            bool isLeftNum = LeftChild.TryEvaluateAsNumber(state, out double leftNum);
+            bool isLeftVersion = LeftChild.TryEvaluateAsVersion(state, out Version leftVersion);
+            bool isRightNum = RightChild.TryEvaluateAsNumber(state, out double rightNum);
+            bool isRightVersion = RightChild.TryEvaluateAsVersion(state, out Version rightVersion);
 
             if ((!isLeftNum && !isLeftVersion) || (!isRightNum && !isRightVersion))
             {
@@ -53,7 +58,7 @@ namespace Microsoft.Build.Evaluation
                     isLeftNum ? RightChild.GetExpandedValue(state) : LeftChild.GetExpandedValue(state));
             }
 
-            return (isLeftNum, isLeftVersion, isRightNum, isRightVersion) switch
+            result = (isLeftNum, isLeftVersion, isRightNum, isRightVersion) switch
             {
                 (true, _, true, _) => Compare(leftNum, rightNum),
                 (_, true, _, true) => Compare(leftVersion, rightVersion),
@@ -62,6 +67,7 @@ namespace Microsoft.Build.Evaluation
 
                 _ => false
             };
+            return true;
         }
     }
 }
