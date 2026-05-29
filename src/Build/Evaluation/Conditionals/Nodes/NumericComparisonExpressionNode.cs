@@ -42,8 +42,8 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
-            bool isLeftNum = LeftChild.TryEvaluateAsNumber(state, out double leftNum);
-            bool isRightNum = RightChild.TryEvaluateAsNumber(state, out double rightNum);
+            bool isLeftNum = Left.TryEvaluateAsNumber(state, out double leftNum);
+            bool isRightNum = Right.TryEvaluateAsNumber(state, out double rightNum);
 
             // Both sides are numeric — most common case, no need to check versions.
             if (isLeftNum && isRightNum)
@@ -52,8 +52,8 @@ namespace Microsoft.Build.Evaluation
                 return true;
             }
 
-            bool isLeftVersion = LeftChild.TryEvaluateAsVersion(state, out Version? leftVersion);
-            bool isRightVersion = RightChild.TryEvaluateAsVersion(state, out Version? rightVersion);
+            bool isLeftVersion = Left.TryEvaluateAsVersion(state, out Version? leftVersion);
+            bool isRightVersion = Right.TryEvaluateAsVersion(state, out Version? rightVersion);
 
             if (isLeftVersion && isRightVersion)
             {
@@ -85,8 +85,8 @@ namespace Microsoft.Build.Evaluation
                 "ComparisonOnNonNumericExpression",
                 state.Condition,
                 /* helpfully display unexpanded token and expanded result in error message */
-                isLeftNum || isLeftVersion ? RightChild.GetUnexpandedValue(state) : LeftChild.GetUnexpandedValue(state),
-                isLeftNum || isLeftVersion ? RightChild.GetExpandedValue(state) : LeftChild.GetExpandedValue(state));
+                isLeftNum || isLeftVersion ? Right.GetUnexpandedValue(state) : Left.GetUnexpandedValue(state),
+                isLeftNum || isLeftVersion ? Right.GetExpandedValue(state) : Left.GetExpandedValue(state));
 
             result = false;
             return true;

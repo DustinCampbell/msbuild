@@ -3,67 +3,54 @@
 
 using System;
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+/// <summary>
+/// Base class for nodes that are operators (have children in the parse tree)
+/// </summary>
+internal abstract class BinaryOperatorExpressionNode(ExpressionNode left, ExpressionNode right) : ExpressionNode
 {
-    /// <summary>
-    /// Base class for nodes that are operators (have children in the parse tree)
-    /// </summary>
-    internal abstract class BinaryOperatorExpressionNode : ExpressionNode
+    public ExpressionNode Left { get; } = left;
+
+    public ExpressionNode Right { get; } = right;
+
+    public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
     {
-        internal ExpressionNode LeftChild { get; }
-        internal ExpressionNode RightChild { get; }
+        result = default;
+        return false;
+    }
 
-        protected BinaryOperatorExpressionNode(ExpressionNode leftChild, ExpressionNode rightChild)
-        {
-            LeftChild = leftChild;
-            RightChild = rightChild;
-        }
+    public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version? result)
+    {
+        result = null;
+        return false;
+    }
 
-        public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
-        {
-            result = default;
-            return false;
-        }
+    /// <summary>
+    /// Value after any item and property expressions are expanded
+    /// </summary>
+    /// <returns></returns>
+    internal override string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+        => null;
 
-        public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version result)
-        {
-            result = default;
-            return false;
-        }
+    /// <inheritdoc cref="ExpressionNode"/>
+    internal override bool IsUnexpandedValueEmpty()
+        => Left.IsUnexpandedValueEmpty() && Right.IsUnexpandedValueEmpty();
 
-        /// <summary>
-        /// Value after any item and property expressions are expanded
-        /// </summary>
-        /// <returns></returns>
-        internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            return null;
-        }
+    /// <summary>
+    /// Value before any item and property expressions are expanded
+    /// </summary>
+    /// <returns></returns>
+    internal override string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+        => null;
 
-        /// <inheritdoc cref="ExpressionNode"/>
-        internal override bool IsUnexpandedValueEmpty()
-            => (LeftChild?.IsUnexpandedValueEmpty() ?? true) && (RightChild?.IsUnexpandedValueEmpty() ?? true);
-
-        /// <summary>
-        /// Value before any item and property expressions are expanded
-        /// </summary>
-        /// <returns></returns>
-        internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// If any expression nodes cache any state for the duration of evaluation,
-        /// now's the time to clean it up
-        /// </summary>
-        internal override void ResetState()
-        {
-            LeftChild?.ResetState();
-
-            RightChild?.ResetState();
-        }
+    /// <summary>
+    /// If any expression nodes cache any state for the duration of evaluation,
+    /// now's the time to clean it up
+    /// </summary>
+    internal override void ResetState()
+    {
+        Left.ResetState();
+        Right.ResetState();
     }
 }

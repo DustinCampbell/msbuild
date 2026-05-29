@@ -11,21 +11,17 @@ namespace Microsoft.Build.Evaluation;
 /// Does not update conditioned properties table
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class OrExpressionNode(ExpressionNode leftChild, ExpressionNode rightChild) : BinaryOperatorExpressionNode(leftChild, rightChild)
+internal sealed class OrExpressionNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorExpressionNode(left, right)
 {
-
-    /// <summary>
-    /// Evaluate as boolean
-    /// </summary>
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
     {
-        if (!LeftChild.TryEvaluateAsBoolean(state, out bool leftResult))
+        if (!Left.TryEvaluateAsBoolean(state, out bool leftResult))
         {
             ProjectErrorUtilities.ThrowInvalidProject(
                 state.ElementLocation,
                 "ExpressionDoesNotEvaluateToBoolean",
-                LeftChild.GetUnexpandedValue(state),
-                LeftChild.GetExpandedValue(state),
+                Left.GetUnexpandedValue(state),
+                Left.GetExpandedValue(state),
                 state.Condition);
         }
 
@@ -35,13 +31,14 @@ internal sealed class OrExpressionNode(ExpressionNode leftChild, ExpressionNode 
             result = true;
             return true;
         }
-        if (!RightChild.TryEvaluateAsBoolean(state, out bool rightBool))
+
+        if (!Right.TryEvaluateAsBoolean(state, out bool rightBool))
         {
             ProjectErrorUtilities.ThrowInvalidProject(
                 state.ElementLocation,
                 "ExpressionDoesNotEvaluateToBoolean",
-                RightChild.GetUnexpandedValue(state),
-                RightChild.GetExpandedValue(state),
+                Right.GetUnexpandedValue(state),
+                Right.GetExpandedValue(state),
                 state.Condition);
         }
 
@@ -50,5 +47,5 @@ internal sealed class OrExpressionNode(ExpressionNode leftChild, ExpressionNode 
     }
 
     internal override string DebuggerDisplay
-        => $"(or {LeftChild.DebuggerDisplay} {RightChild.DebuggerDisplay})";
+        => $"(or {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }

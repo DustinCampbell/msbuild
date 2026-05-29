@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
 
 #nullable disable
@@ -48,7 +49,7 @@ namespace Microsoft.Build.Shared
         /// <param name="elementLocation">The <see cref="IElementLocation"/> of the element.</param>
         /// <param name="resourceName">The resource string for the error message.</param>
         /// <param name="arg0"></param>
-        internal static void VerifyThrowInvalidProject<T1>(bool condition, IElementLocation elementLocation, string resourceName, T1 arg0)
+        internal static void VerifyThrowInvalidProject<T1>([DoesNotReturnIf(false)] bool condition, IElementLocation elementLocation, string resourceName, T1 arg0)
         {
             VerifyThrowInvalidProject(condition, null, elementLocation, resourceName, arg0);
         }
