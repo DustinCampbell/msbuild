@@ -506,7 +506,7 @@
     <Compile Include="Evaluation\IItem.cs" />
     <Compile Include="Evaluation\IItemDefinition.cs" />
     <Compile Include="Evaluation\IItemFactory.cs" />
-    <Compile Include="Evaluation\Conditionals\IItem.cs" />
+    <Compile Include="Evaluation\IItem`1.cs" />
     <Compile Include="Evaluation\IItemProvider.cs" />
     <Compile Include="Evaluation\IMetadataTable.cs" />
     <Compile Include="Evaluation\IntrinsicFunctions.cs" />
