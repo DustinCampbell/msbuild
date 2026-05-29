@@ -2,9 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -97,10 +98,9 @@ internal ref struct Parser
         return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
     }
 
-    private bool UnexpectedTokenInConditionAndReturn<T>(out T? result)
-        where T : class
+    private bool UnexpectedTokenInConditionAndReturn<T>(out T result)
     {
-        result = null;
+        result = default!;
         return UnexpectedTokenInConditionAndReturn();
     }
 
@@ -331,7 +331,7 @@ internal ref struct Parser
                 return UnexpectedTokenInConditionAndReturn(out result);
             }
 
-            if (!TryParseArglist(out List<ExpressionNode>? arglist))
+            if (!TryParseArglist(out ImmutableArray<ExpressionNode> arglist))
             {
                 result = null;
                 return false;
@@ -342,7 +342,7 @@ internal ref struct Parser
                 return UnexpectedTokenInConditionAndReturn(out result);
             }
 
-            result = new FunctionCallExpressionNode(current.Text.ToString(), arglist);
+            result = new FunctionCallExpressionNode(current.Text, arglist);
             return true;
         }
 
@@ -379,14 +379,15 @@ internal ref struct Parser
         return UnexpectedTokenInConditionAndReturn(out result);
     }
 
-    private bool TryParseArglist([NotNullWhen(true)] out List<ExpressionNode>? result)
+    private bool TryParseArglist(out ImmutableArray<ExpressionNode> result)
     {
-        result = new List<ExpressionNode>();
-
         if (IsNext(TokenKind.RightParenthesis))
         {
+            result = [];
             return true;
         }
+
+        using RefArrayBuilder<ExpressionNode> args = default;
 
         while (true)
         {
@@ -395,10 +396,11 @@ internal ref struct Parser
                 return UnexpectedTokenInConditionAndReturn(out result);
             }
 
-            result.Add(arg);
+            args.Add(arg);
 
             if (!Same(TokenKind.Comma))
             {
+                result = args.ToImmutable();
                 return true;
             }
         }

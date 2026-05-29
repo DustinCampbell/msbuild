@@ -3,228 +3,227 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using static Microsoft.Build.Execution.ProjectItemInstance;
 
-using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
+namespace Microsoft.Build.Evaluation;
 
-#nullable disable
-
-namespace Microsoft.Build.Evaluation
+/// <summary>
+/// Evaluates a function expression, such as "Exists('foo')"
+/// </summary>
+internal sealed class FunctionCallExpressionNode : OperandExpressionNode
 {
-    /// <summary>
-    /// Evaluates a function expression, such as "Exists('foo')"
-    /// </summary>
-    internal sealed class FunctionCallExpressionNode : OperandExpressionNode
+    private readonly ReadOnlyMemory<char> _functionName;
+    private readonly ImmutableArray<ExpressionNode> _arguments;
+
+    internal FunctionCallExpressionNode(ReadOnlyMemory<char> functionName, ImmutableArray<ExpressionNode> arguments)
     {
-        private readonly List<ExpressionNode> _arguments;
-        private readonly string _functionName;
+        _functionName = functionName;
+        _arguments = arguments;
+    }
 
-        internal FunctionCallExpressionNode(string functionName, List<ExpressionNode> arguments)
+    public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
+    {
+        if (_functionName.Span.Equals("Exists", StringComparison.OrdinalIgnoreCase))
         {
-            _functionName = functionName;
-            _arguments = arguments;
-        }
+            // Check we only have one argument
+            VerifyArgumentCount(1, state);
 
-        public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
-        {
-            if (String.Equals(_functionName, "exists", StringComparison.OrdinalIgnoreCase))
+            try
             {
-                // Check we only have one argument
-                VerifyArgumentCount(1, state);
+                // Expand the items and use DefaultIfEmpty in case there is nothing returned
+                // Then check if everything is not null (because the list was empty), not
+                // already loaded into the cache, and exists
+                ImmutableArray<string> fileList = ExpandArgumentAsFileList(_arguments[0], state);
 
-                try
+                if (fileList.IsEmpty)
                 {
-                    // Expand the items and use DefaultIfEmpty in case there is nothing returned
-                    // Then check if everything is not null (because the list was empty), not
-                    // already loaded into the cache, and exists
-                    List<string> list = ExpandArgumentAsFileList(_arguments[0], state);
-                    if (list == null)
+                    result = false;
+                    return true;
+                }
+
+                foreach (string file in fileList)
+                {
+                    if (file == null || !(state.LoadedProjectsCache?.TryGet(file) != null || FileUtilities.FileOrDirectoryExistsNoThrow(file, state.FileSystem)))
                     {
                         result = false;
                         return true;
                     }
-
-                    foreach (var item in list)
-                    {
-                        if (item == null || !(state.LoadedProjectsCache?.TryGet(item) != null || FileUtilities.FileOrDirectoryExistsNoThrow(item, state.FileSystem)))
-                        {
-                            result = false;
-                            return true;
-                        }
-                    }
-
-                    result = true;
-                    return true;
                 }
-                catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
-                {
-                    // Ignore invalid characters or path related exceptions
 
-                    // We will ignore the PathTooLong exception caused by GetFullPath because in single proc this code
-                    // is not executed and the condition is just evaluated to false as File.Exists and Directory.Exists does not throw in this situation.
-                    // To be consistant with that we will return a false in this case also.
-                    // DevDiv Bugs: 46035
-
-                    result = false;
-                    return true;
-                }
+                result = true;
+                return true;
             }
-            else if (String.Equals(_functionName, "HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
+            catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                // Check we only have one argument
-                VerifyArgumentCount(1, state);
+                // Ignore invalid characters or path related exceptions
 
-                // Expand properties and items, and verify the result is an appropriate scalar
-                string expandedValue = ExpandArgumentForScalarParameter("HasTrailingSlash", _arguments[0], state);
-
-                // Is the last character a backslash?
-                if (expandedValue.Length != 0)
-                {
-                    char lastCharacter = expandedValue[expandedValue.Length - 1];
-                    // Either back or forward slashes satisfy the function: this is useful for URL's
-                    result = lastCharacter == Path.DirectorySeparatorChar || lastCharacter == Path.AltDirectorySeparatorChar || lastCharacter == '\\';
-                    return true;
-                }
-                else
-                {
-                    result = false;
-                    return true;
-                }
-            }
-            // We haven't implemented any other "functions"
-            else
-            {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    state.ElementLocation,
-                    "UndefinedFunctionCall",
-                    state.Condition,
-                    _functionName);
-
+                // We will ignore the PathTooLong exception caused by GetFullPath because in single proc this code
+                // is not executed and the condition is just evaluated to false as File.Exists and Directory.Exists does not throw in this situation.
+                // To be consistant with that we will return a false in this case also.
+                // DevDiv Bugs: 46035
                 result = false;
                 return true;
             }
         }
 
-        public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
+        if (_functionName.Span.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
         {
-            result = default;
-            return false;
+            // Check we only have one argument
+            VerifyArgumentCount(1, state);
+
+            // Expand properties and items, and verify the result is an appropriate scalar
+            string expandedValue = ExpandArgumentForScalarParameter("HasTrailingSlash", _arguments[0], state);
+
+            // Is the last character a backslash?
+            if (expandedValue.Length != 0)
+            {
+                char lastCharacter = expandedValue[^1];
+
+                // Either back or forward slashes satisfy the function: this is useful for URL's
+                result = lastCharacter == Path.DirectorySeparatorChar || lastCharacter == Path.AltDirectorySeparatorChar || lastCharacter == '\\';
+                return true;
+            }
+
+            result = false;
+            return true;
         }
 
-        public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version result)
+        // We haven't implemented any other "functions"
+        ProjectErrorUtilities.ThrowInvalidProject(
+            state.ElementLocation,
+            "UndefinedFunctionCall",
+            state.Condition,
+            _functionName.ToString());
+
+        result = false;
+        return true;
+    }
+
+    public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
+    {
+        result = default;
+        return false;
+    }
+
+    public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version? result)
+    {
+        result = null;
+        return false;
+    }
+
+    internal override string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+        => null;
+
+    internal override string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+        => null;
+
+    /// <inheritdoc cref="ExpressionNode"/>
+    internal override bool IsUnexpandedValueEmpty() => true;
+
+    internal override void ResetState()
+    {
+        foreach (ExpressionNode argument in _arguments)
         {
-            result = default;
-            return false;
-        }
-
-        internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state) => null;
-
-        internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state) => null;
-
-        /// <inheritdoc cref="ExpressionNode"/>
-        internal override bool IsUnexpandedValueEmpty() => true;
-
-        internal override void ResetState()
-        {
-            foreach (ExpressionNode argument in _arguments)
-            {
-                argument.ResetState();
-            }
-        }
-
-        /// <summary>
-        /// Expands properties and items in the argument, and verifies that the result is consistent
-        /// with a scalar parameter type.
-        /// </summary>
-        /// <param name="function">Function name for errors</param>
-        /// <param name="argumentNode">Argument to be expanded</param>
-        /// <param name="state"></param>
-        /// <param name="isFilePath">True if this is afile name and the path should be normalized</param>
-        /// <returns>Scalar result</returns>
-        private static string ExpandArgumentForScalarParameter(string function, ExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state,
-            bool isFilePath = true)
-        {
-            string argument = argumentNode.GetUnexpandedValue(state);
-
-            // Fix path before expansion
-            if (isFilePath)
-            {
-                argument = FileUtilities.FixFilePath(argument);
-            }
-
-            IList<TaskItem> items = state.ExpandIntoTaskItems(argument);
-
-            string expandedValue = String.Empty;
-
-            if (items.Count == 0)
-            {
-                // Empty argument, that's fine.
-            }
-            else if (items.Count == 1)
-            {
-                expandedValue = items[0].ItemSpec;
-            }
-            else // too many items for the function
-            {
-                // We only allow a single item to be passed into a scalar parameter.
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    state.ElementLocation,
-                    "CannotPassMultipleItemsIntoScalarFunction", function, argument,
-                    state.ExpandIntoString(argument));
-            }
-
-            return expandedValue;
-        }
-
-        private List<string> ExpandArgumentAsFileList(ExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state, bool isFilePath = true)
-        {
-            string argument = argumentNode.GetUnexpandedValue(state);
-
-            // Fix path before expansion
-            if (isFilePath)
-            {
-                argument = FileUtilities.FixFilePath(argument);
-            }
-
-            IList<TaskItem> expanded = state.ExpandIntoTaskItems(argument);
-            var expandedCount = expanded.Count;
-
-            if (expandedCount == 0)
-            {
-                return null;
-            }
-
-            var list = new List<string>(capacity: expandedCount);
-            for (var i = 0; i < expandedCount; i++)
-            {
-                var item = expanded[i];
-                if (state.EvaluationDirectory != null && !Path.IsPathRooted(item.ItemSpec))
-                {
-                    list.Add(Path.GetFullPath(Path.Combine(state.EvaluationDirectory, item.ItemSpec)));
-                }
-                else
-                {
-                    list.Add(item.ItemSpec);
-                }
-            }
-
-            return list;
-        }
-
-        /// <summary>
-        /// Check that the number of function arguments is correct.
-        /// </summary>
-        private void VerifyArgumentCount(int expected, ConditionEvaluator.IConditionEvaluationState state)
-        {
-            ProjectErrorUtilities.VerifyThrowInvalidProject(
-                _arguments.Count == expected,
-                 state.ElementLocation,
-                 "IncorrectNumberOfFunctionArguments",
-                 state.Condition,
-                 _arguments.Count,
-                 expected);
+            argument.ResetState();
         }
     }
+
+    /// <summary>
+    /// Expands properties and items in the argument, and verifies that the result is consistent
+    /// with a scalar parameter type.
+    /// </summary>
+    /// <param name="function">Function name for errors</param>
+    /// <param name="argumentNode">Argument to be expanded</param>
+    /// <param name="state"></param>
+    /// <param name="isFilePath">True if this is afile name and the path should be normalized</param>
+    /// <returns>Scalar result</returns>
+    private static string ExpandArgumentForScalarParameter(
+        string function,
+        ExpressionNode argumentNode,
+        ConditionEvaluator.IConditionEvaluationState state,
+        bool isFilePath = true)
+    {
+        string? argument = argumentNode.GetUnexpandedValue(state);
+        Assumed.NotNull(argument, "Arguments should only be literals, i.e. strings or numbers.");
+
+        // Fix path before expansion
+        if (isFilePath)
+        {
+            argument = FileUtilities.FixFilePath(argument);
+        }
+
+        IList<TaskItem> items = state.ExpandIntoTaskItems(argument);
+
+        switch (items)
+        {
+            case []:
+                // Empty argument, that's fine.
+                return string.Empty;
+            case [TaskItem item]:
+                return item.ItemSpec;
+        }
+
+        // We only allow a single item to be passed into a scalar parameter.
+        ProjectErrorUtilities.ThrowInvalidProject(
+            state.ElementLocation,
+            "CannotPassMultipleItemsIntoScalarFunction", function, argument,
+            state.ExpandIntoString(argument));
+
+        return string.Empty;
+    }
+
+    private ImmutableArray<string> ExpandArgumentAsFileList(ExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state, bool isFilePath = true)
+    {
+        string? argument = argumentNode.GetUnexpandedValue(state);
+        Assumed.NotNull(argument, "Arguments should only be literals, i.e. strings or numbers.");
+
+        // Fix path before expansion
+        if (isFilePath)
+        {
+            argument = FileUtilities.FixFilePath(argument);
+        }
+
+        IList<TaskItem> expanded = state.ExpandIntoTaskItems(argument);
+        int expandedCount = expanded.Count;
+
+        if (expandedCount == 0)
+        {
+            return [];
+        }
+
+        using RefArrayBuilder<string> list = new(initialCapacity: expandedCount);
+
+        for (int i = 0; i < expandedCount; i++)
+        {
+            TaskItem item = expanded[i];
+
+            if (state.EvaluationDirectory != null && !Path.IsPathRooted(item.ItemSpec))
+            {
+                list.Add(Path.GetFullPath(Path.Combine(state.EvaluationDirectory, item.ItemSpec)));
+            }
+            else
+            {
+                list.Add(item.ItemSpec);
+            }
+        }
+
+        return list.ToImmutable();
+    }
+
+    /// <summary>
+    /// Check that the number of function arguments is correct.
+    /// </summary>
+    private void VerifyArgumentCount(int expected, ConditionEvaluator.IConditionEvaluationState state)
+        => ProjectErrorUtilities.VerifyThrowInvalidProject(
+            _arguments.Length == expected,
+            state.ElementLocation,
+            "IncorrectNumberOfFunctionArguments",
+            state.Condition,
+            _arguments.Length,
+            expected);
 }
