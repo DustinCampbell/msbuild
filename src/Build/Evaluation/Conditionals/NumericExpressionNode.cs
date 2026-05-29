@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -27,13 +27,13 @@ internal sealed class NumericExpressionNode : OperandExpressionNode
 
     private string ValueText => _valueText ??= _value.ToString();
 
-    internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
+    public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
     {
         result = default;
         return false;
     }
 
-    internal override bool TryNumericEvaluate(ConditionEvaluator.IConditionEvaluationState state, out double result)
+    public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
     {
         (bool success, double numericValue) = _cachedNumericValue ??= Compute();
 
@@ -53,7 +53,7 @@ internal sealed class NumericExpressionNode : OperandExpressionNode
 #endif
     }
 
-    internal override bool TryVersionEvaluate(ConditionEvaluator.IConditionEvaluationState state, out Version? result)
+    public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version? result)
     {
         (bool success, Version? versionValue) = _cachedVersionValue ??= Compute();
 
@@ -73,7 +73,7 @@ internal sealed class NumericExpressionNode : OperandExpressionNode
 #endif
     }
 
-    /// <inheritdoc cref="GenericExpressionNode"/>
+    /// <inheritdoc cref="ExpressionNode"/>
     internal override bool IsUnexpandedValueEmpty()
         => false;
 

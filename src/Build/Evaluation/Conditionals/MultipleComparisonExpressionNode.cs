@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Shared;
@@ -12,9 +12,14 @@ namespace Microsoft.Build.Evaluation
     /// Order in which comparisons are attempted is numeric, boolean, then string.
     /// Updates conditioned properties table.
     /// </summary>
-    internal abstract class MultipleComparisonNode : OperatorExpressionNode
+    internal abstract class MultipleComparisonNode : BinaryOperatorExpressionNode
     {
         private bool _conditionedPropertiesUpdated = false;
+
+        protected MultipleComparisonNode(ExpressionNode leftChild, ExpressionNode rightChild)
+            : base(leftChild, rightChild)
+        {
+        }
 
         /// <summary>
         /// Compare numbers
@@ -36,7 +41,7 @@ namespace Microsoft.Build.Evaluation
         /// Order in which comparisons are attempted is numeric, boolean, then string.
         /// Updates conditioned properties table.
         /// </summary>
-        internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
             ProjectErrorUtilities.VerifyThrowInvalidProject(
                 LeftChild != null && RightChild != null,
@@ -66,9 +71,10 @@ namespace Microsoft.Build.Evaluation
             {
                 UpdateConditionedProperties(state);
 
-                return Compare(leftEmpty, rightEmpty);
+                result = Compare(leftEmpty, rightEmpty);
+                return true;
             }
-            else if (LeftChild.TryNumericEvaluate(state, out double leftNumericValue) && RightChild.TryNumericEvaluate(state, out double rightNumericValue))
+            else if (LeftChild.TryEvaluateAsNumber(state, out double leftNumericValue) && RightChild.TryEvaluateAsNumber(state, out double rightNumericValue))
             {
                 // The left child evaluating to a number and the right child not evaluating to a number
                 // is insufficient to say they are not equal because $(MSBuildToolsVersion) evaluates to
@@ -76,11 +82,13 @@ namespace Microsoft.Build.Evaluation
                 // as a version and returns "17.0" (or whatever the current tools version is). This means
                 // that if '$(MSBuildToolsVersion)' is "equal" to BOTH '17.0' and 'Current' (if 'Current'
                 // is 17.0).
-                return Compare(leftNumericValue, rightNumericValue);
+                result = Compare(leftNumericValue, rightNumericValue);
+                return true;
             }
-            else if (LeftChild.TryBoolEvaluate(state, out bool leftBoolValue) && RightChild.TryBoolEvaluate(state, out bool rightBoolValue))
+            else if (LeftChild.TryEvaluateAsBoolean(state, out bool leftBoolValue) && RightChild.TryEvaluateAsBoolean(state, out bool rightBoolValue))
             {
-                return Compare(leftBoolValue, rightBoolValue);
+                result = Compare(leftBoolValue, rightBoolValue);
+                return true;
             }
 
             string leftExpandedValue = LeftChild.GetExpandedValue(state);
@@ -97,7 +105,8 @@ namespace Microsoft.Build.Evaluation
             // reset back the property read context (it's no longer a condition with one side empty)
             state.PropertiesUseTracker.PropertyReadContext = PropertyReadContext.ConditionEvaluation;
 
-            return Compare(leftExpandedValue, rightExpandedValue);
+            result = Compare(leftExpandedValue, rightExpandedValue);
+            return true;
         }
 
         /// <summary>

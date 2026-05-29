@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
@@ -11,14 +11,19 @@ namespace Microsoft.Build.Evaluation
     /// Does not update conditioned properties table
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class OrExpressionNode : OperatorExpressionNode
+    internal sealed class OrExpressionNode : BinaryOperatorExpressionNode
     {
+        internal OrExpressionNode(ExpressionNode leftChild, ExpressionNode rightChild)
+            : base(leftChild, rightChild)
+        {
+        }
+
         /// <summary>
         /// Evaluate as boolean
         /// </summary>
-        internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
-            if (!LeftChild.TryBoolEvaluate(state, out bool leftBool))
+            if (!LeftChild.TryEvaluateAsBoolean(state, out bool leftBool))
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     state.ElementLocation,
@@ -31,11 +36,12 @@ namespace Microsoft.Build.Evaluation
             if (leftBool)
             {
                 // Short circuit
+                result = true;
                 return true;
             }
             else
             {
-                if (!RightChild.TryBoolEvaluate(state, out bool rightBool))
+                if (!RightChild.TryEvaluateAsBoolean(state, out bool rightBool))
                 {
                     ProjectErrorUtilities.ThrowInvalidProject(
                         state.ElementLocation,
@@ -45,7 +51,8 @@ namespace Microsoft.Build.Evaluation
                         state.Condition);
                 }
 
-                return rightBool;
+                result = rightBool;
+                return true;
             }
         }
 

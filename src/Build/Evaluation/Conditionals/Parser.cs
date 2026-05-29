@@ -73,7 +73,7 @@ internal ref struct Parser
             return ErrorResult();
         }
 
-        if (!TryParseExpr(out GenericExpressionNode? node))
+        if (!TryParseExpr(out ExpressionNode? node))
         {
             Assumed.NotNull(_errorResource);
             return ErrorResult();
@@ -138,9 +138,9 @@ internal ref struct Parser
     [MemberNotNullWhen(true, nameof(_errorArgs))]
     private bool HasError => _errorResource is not null;
 
-    private bool TryParseExpr([NotNullWhen(true)] out GenericExpressionNode? result)
+    private bool TryParseExpr([NotNullWhen(true)] out ExpressionNode? result)
     {
-        if (!TryParseBooleanTerm(out GenericExpressionNode? node))
+        if (!TryParseBooleanTerm(out ExpressionNode? node))
         {
             result = null;
             return false;
@@ -170,7 +170,7 @@ internal ref struct Parser
         return true;
     }
 
-    private bool TryParseExprPrime(GenericExpressionNode lhs, [NotNullWhen(true)] out GenericExpressionNode? result)
+    private bool TryParseExprPrime(ExpressionNode lhs, [NotNullWhen(true)] out ExpressionNode? result)
     {
         if (Same(TokenKind.EndOfInput))
         {
@@ -180,15 +180,13 @@ internal ref struct Parser
 
         if (Same(TokenKind.Or))
         {
-            if (!TryParseBooleanTerm(out GenericExpressionNode? rhs))
+            if (!TryParseBooleanTerm(out ExpressionNode? rhs))
             {
                 result = null;
                 return false;
             }
 
-            OperatorExpressionNode orNode = new OrExpressionNode();
-            orNode.LeftChild = lhs;
-            orNode.RightChild = rhs;
+            var orNode = new OrExpressionNode(lhs, rhs);
             return TryParseExprPrime(orNode, out result);
         }
 
@@ -198,9 +196,9 @@ internal ref struct Parser
         return true;
     }
 
-    private bool TryParseBooleanTerm([NotNullWhen(true)] out GenericExpressionNode? result)
+    private bool TryParseBooleanTerm([NotNullWhen(true)] out ExpressionNode? result)
     {
-        if (!TryParseRelationalExpr(out GenericExpressionNode? node))
+        if (!TryParseRelationalExpr(out ExpressionNode? node))
         {
             result = null;
             return false;
@@ -216,7 +214,7 @@ internal ref struct Parser
         return true;
     }
 
-    private bool TryParseBooleanTermPrime(GenericExpressionNode lhs, [NotNullWhen(true)] out GenericExpressionNode? result)
+    private bool TryParseBooleanTermPrime(ExpressionNode lhs, [NotNullWhen(true)] out ExpressionNode? result)
     {
         if (IsNext(TokenKind.EndOfInput))
         {
@@ -226,15 +224,13 @@ internal ref struct Parser
 
         if (Same(TokenKind.And))
         {
-            if (!TryParseRelationalExpr(out GenericExpressionNode? rhs))
+            if (!TryParseRelationalExpr(out ExpressionNode? rhs))
             {
                 result = null;
                 return false;
             }
 
-            OperatorExpressionNode andNode = new AndExpressionNode();
-            andNode.LeftChild = lhs;
-            andNode.RightChild = rhs;
+            var andNode = new AndExpressionNode(lhs, rhs);
             return TryParseBooleanTermPrime(andNode, out result);
         }
 
@@ -243,75 +239,82 @@ internal ref struct Parser
         return true;
     }
 
-    private bool TryParseRelationalExpr([NotNullWhen(true)] out GenericExpressionNode? result)
+    private bool TryParseRelationalExpr([NotNullWhen(true)] out ExpressionNode? result)
     {
-        if (!TryParseFactor(out GenericExpressionNode? lhs))
+        if (!TryParseFactor(out ExpressionNode? lhs))
         {
             result = null;
             return false;
         }
 
-        if (!TryParseRelationalOperation(out OperatorExpressionNode? node))
+        if (!TryParseRelationalOperation(out TokenKind operatorKind))
         {
             result = lhs;
             return true;
         }
 
-        if (!TryParseFactor(out GenericExpressionNode? rhs))
+        if (!TryParseFactor(out ExpressionNode? rhs))
         {
             result = null;
             return false;
         }
 
-        node.LeftChild = lhs;
-        node.RightChild = rhs;
-        result = node;
+        result = operatorKind switch
+        {
+            TokenKind.LessThan => new LessThanExpressionNode(lhs, rhs),
+            TokenKind.GreaterThan => new GreaterThanExpressionNode(lhs, rhs),
+            TokenKind.LessThanOrEqualTo => new LessThanOrEqualExpressionNode(lhs, rhs),
+            TokenKind.GreaterThanOrEqualTo => new GreaterThanOrEqualExpressionNode(lhs, rhs),
+            TokenKind.EqualTo => new EqualExpressionNode(lhs, rhs),
+            TokenKind.NotEqualTo => new NotEqualExpressionNode(lhs, rhs),
+            _ => throw new InternalErrorException($"Unexpected operator kind: {operatorKind}")
+        };
         return true;
     }
 
-    private bool TryParseRelationalOperation([NotNullWhen(true)] out OperatorExpressionNode? result)
+    private bool TryParseRelationalOperation(out TokenKind result)
     {
         if (Same(TokenKind.LessThan))
         {
-            result = new LessThanExpressionNode();
+            result = TokenKind.LessThan;
             return true;
         }
 
         if (Same(TokenKind.GreaterThan))
         {
-            result = new GreaterThanExpressionNode();
+            result = TokenKind.GreaterThan;
             return true;
         }
 
         if (Same(TokenKind.LessThanOrEqualTo))
         {
-            result = new LessThanOrEqualExpressionNode();
+            result = TokenKind.LessThanOrEqualTo;
             return true;
         }
 
         if (Same(TokenKind.GreaterThanOrEqualTo))
         {
-            result = new GreaterThanOrEqualExpressionNode();
+            result = TokenKind.GreaterThanOrEqualTo;
             return true;
         }
 
         if (Same(TokenKind.EqualTo))
         {
-            result = new EqualExpressionNode();
+            result = TokenKind.EqualTo;
             return true;
         }
 
         if (Same(TokenKind.NotEqualTo))
         {
-            result = new NotEqualExpressionNode();
+            result = TokenKind.NotEqualTo;
             return true;
         }
 
-        result = null;
+        result = default;
         return false;
     }
 
-    private bool TryParseFactor([NotNullWhen(true)] out GenericExpressionNode? result)
+    private bool TryParseFactor([NotNullWhen(true)] out ExpressionNode? result)
     {
         // Checks for TokenTypes String, Numeric, Property, ItemMetadata, and ItemList.
         if (TryParseArg(out result))
@@ -328,7 +331,7 @@ internal ref struct Parser
                 return UnexpectedTokenInConditionAndReturn(out result);
             }
 
-            if (!TryParseArglist(out List<GenericExpressionNode>? arglist))
+            if (!TryParseArglist(out List<ExpressionNode>? arglist))
             {
                 result = null;
                 return false;
@@ -345,7 +348,7 @@ internal ref struct Parser
 
         if (Same(TokenKind.LeftParenthesis))
         {
-            if (!TryParseExpr(out GenericExpressionNode? child))
+            if (!TryParseExpr(out ExpressionNode? child))
             {
                 result = null;
                 return false;
@@ -362,14 +365,13 @@ internal ref struct Parser
 
         if (Same(TokenKind.Not))
         {
-            if (!TryParseFactor(out GenericExpressionNode? expr))
+            if (!TryParseFactor(out ExpressionNode? expr))
             {
                 result = null;
                 return false;
             }
 
-            OperatorExpressionNode notNode = new NotExpressionNode();
-            notNode.LeftChild = expr;
+            var notNode = new NotExpressionNode(expr);
             result = notNode;
             return true;
         }
@@ -377,9 +379,9 @@ internal ref struct Parser
         return UnexpectedTokenInConditionAndReturn(out result);
     }
 
-    private bool TryParseArglist([NotNullWhen(true)] out List<GenericExpressionNode>? result)
+    private bool TryParseArglist([NotNullWhen(true)] out List<ExpressionNode>? result)
     {
-        result = new List<GenericExpressionNode>();
+        result = new List<ExpressionNode>();
 
         if (IsNext(TokenKind.RightParenthesis))
         {
@@ -388,7 +390,7 @@ internal ref struct Parser
 
         while (true)
         {
-            if (!TryParseArg(out GenericExpressionNode? arg))
+            if (!TryParseArg(out ExpressionNode? arg))
             {
                 return UnexpectedTokenInConditionAndReturn(out result);
             }
@@ -402,7 +404,7 @@ internal ref struct Parser
         }
     }
 
-    private bool TryParseArg([NotNullWhen(true)] out GenericExpressionNode? result)
+    private bool TryParseArg([NotNullWhen(true)] out ExpressionNode? result)
     {
         Token current = _current;
 

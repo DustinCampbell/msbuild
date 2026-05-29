@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 namespace Microsoft.Build.Evaluation
@@ -6,7 +6,7 @@ namespace Microsoft.Build.Evaluation
     /// <summary>
     /// Base class for all nodes that are operands (are leaves in the parse tree)
     /// </summary>
-    internal abstract class OperandExpressionNode : GenericExpressionNode
+    internal abstract class OperandExpressionNode : ExpressionNode
     {
         #region REMOVE_COMPAT_WARNING
 

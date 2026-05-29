@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -16,21 +16,18 @@ namespace Microsoft.Build.Evaluation
     /// <summary>
     /// Evaluates a function expression, such as "Exists('foo')"
     /// </summary>
-    internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
+    internal sealed class FunctionCallExpressionNode : OperandExpressionNode
     {
-        private readonly List<GenericExpressionNode> _arguments;
+        private readonly List<ExpressionNode> _arguments;
         private readonly string _functionName;
 
-        internal FunctionCallExpressionNode(string functionName, List<GenericExpressionNode> arguments)
+        internal FunctionCallExpressionNode(string functionName, List<ExpressionNode> arguments)
         {
             _functionName = functionName;
             _arguments = arguments;
         }
 
-        /// <summary>
-        /// Evaluate node as boolean
-        /// </summary>
-        internal override bool BoolEvaluate(ConditionEvaluator.IConditionEvaluationState state)
+        public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
             if (String.Equals(_functionName, "exists", StringComparison.OrdinalIgnoreCase))
             {
@@ -45,17 +42,20 @@ namespace Microsoft.Build.Evaluation
                     List<string> list = ExpandArgumentAsFileList(_arguments[0], state);
                     if (list == null)
                     {
-                        return false;
+                        result = false;
+                        return true;
                     }
 
                     foreach (var item in list)
                     {
                         if (item == null || !(state.LoadedProjectsCache?.TryGet(item) != null || FileUtilities.FileOrDirectoryExistsNoThrow(item, state.FileSystem)))
                         {
-                            return false;
+                            result = false;
+                            return true;
                         }
                     }
 
+                    result = true;
                     return true;
                 }
                 catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
@@ -67,7 +67,8 @@ namespace Microsoft.Build.Evaluation
                     // To be consistant with that we will return a false in this case also.
                     // DevDiv Bugs: 46035
 
-                    return false;
+                    result = false;
+                    return true;
                 }
             }
             else if (String.Equals(_functionName, "HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
@@ -83,11 +84,13 @@ namespace Microsoft.Build.Evaluation
                 {
                     char lastCharacter = expandedValue[expandedValue.Length - 1];
                     // Either back or forward slashes satisfy the function: this is useful for URL's
-                    return lastCharacter == Path.DirectorySeparatorChar || lastCharacter == Path.AltDirectorySeparatorChar || lastCharacter == '\\';
+                    result = lastCharacter == Path.DirectorySeparatorChar || lastCharacter == Path.AltDirectorySeparatorChar || lastCharacter == '\\';
+                    return true;
                 }
                 else
                 {
-                    return false;
+                    result = false;
+                    return true;
                 }
             }
             // We haven't implemented any other "functions"
@@ -99,7 +102,35 @@ namespace Microsoft.Build.Evaluation
                     state.Condition,
                     _functionName);
 
-                return false;
+                result = false;
+                return true;
+            }
+        }
+
+        public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
+        {
+            result = default;
+            return false;
+        }
+
+        public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version result)
+        {
+            result = default;
+            return false;
+        }
+
+        internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state) => null;
+
+        internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state) => null;
+
+        /// <inheritdoc cref="ExpressionNode"/>
+        internal override bool IsUnexpandedValueEmpty() => true;
+
+        internal override void ResetState()
+        {
+            foreach (ExpressionNode argument in _arguments)
+            {
+                argument.ResetState();
             }
         }
 
@@ -112,7 +143,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="state"></param>
         /// <param name="isFilePath">True if this is afile name and the path should be normalized</param>
         /// <returns>Scalar result</returns>
-        private static string ExpandArgumentForScalarParameter(string function, GenericExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state,
+        private static string ExpandArgumentForScalarParameter(string function, ExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state,
             bool isFilePath = true)
         {
             string argument = argumentNode.GetUnexpandedValue(state);
@@ -147,7 +178,7 @@ namespace Microsoft.Build.Evaluation
             return expandedValue;
         }
 
-        private List<string> ExpandArgumentAsFileList(GenericExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state, bool isFilePath = true)
+        private List<string> ExpandArgumentAsFileList(ExpressionNode argumentNode, ConditionEvaluator.IConditionEvaluationState state, bool isFilePath = true)
         {
             string argument = argumentNode.GetUnexpandedValue(state);
 
