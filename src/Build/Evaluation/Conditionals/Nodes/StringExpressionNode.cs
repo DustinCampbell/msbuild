@@ -37,6 +37,14 @@ internal sealed class StringExpressionNode : OperandExpressionNode
 
     private string ValueText => _valueText ??= _value.ToString();
 
+    private static Version CurrentVisualStudioVersion
+        => field ??= Version.Parse(MSBuildConstants.CurrentVisualStudioVersion);
+
+    private static double? s_currentVisualStudioVersionAsDouble;
+
+    private static double CurrentVisualStudioVersionAsDouble
+        => s_currentVisualStudioVersionAsDouble ??= ConversionUtilities.ConvertDecimalOrHexToDouble(MSBuildConstants.CurrentVisualStudioVersion);
+
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         => !_expandable
             ? ConversionUtilities.TryConvertStringToBool(_value.Span, out result)
@@ -46,7 +54,7 @@ internal sealed class StringExpressionNode : OperandExpressionNode
     {
         if (ShouldBeTreatedAsVisualStudioVersion(state))
         {
-            result = ConversionUtilities.ConvertDecimalOrHexToDouble(MSBuildConstants.CurrentVisualStudioVersion);
+            result = CurrentVisualStudioVersionAsDouble;
             return true;
         }
 
@@ -64,7 +72,7 @@ internal sealed class StringExpressionNode : OperandExpressionNode
     {
         if (ShouldBeTreatedAsVisualStudioVersion(state))
         {
-            result = Version.Parse(MSBuildConstants.CurrentVisualStudioVersion);
+            result = CurrentVisualStudioVersion;
             return true;
         }
 
@@ -173,25 +181,24 @@ internal sealed class StringExpressionNode : OperandExpressionNode
     /// ToolsVersion is "Current". https://github.com/dotnet/msbuild/issues/4150
     /// </remarks>
     private bool ShouldBeTreatedAsVisualStudioVersion(ConditionEvaluator.IConditionEvaluationState state)
+        => _shouldBeTreatedAsVisualStudioVersion ??= ComputeShouldBeTreatedAsVisualStudioVersion(state);
+
+    private bool ComputeShouldBeTreatedAsVisualStudioVersion(ConditionEvaluator.IConditionEvaluationState state)
     {
-        if (!_shouldBeTreatedAsVisualStudioVersion.HasValue)
+        // A non-expandable string is a literal and can never be $(MSBuildToolsVersion).
+        if (_expandable)
         {
             // Treat specially if the node would expand to "Current".
-
             // Do this check first, because if it's not (common) we can early-out and the next
             // expansion will be cheap because this will populate the cached expanded value.
             if (string.Equals(GetExpandedValue(state), MSBuildConstants.CurrentToolsVersion, StringComparison.Ordinal))
             {
                 // and it is just an expansion of MSBuildToolsVersion
-                _shouldBeTreatedAsVisualStudioVersion = _value.Span.Equals("$(MSBuildToolsVersion)", StringComparison.OrdinalIgnoreCase);
-            }
-            else
-            {
-                _shouldBeTreatedAsVisualStudioVersion = false;
+                return _value.Span.Equals("$(MSBuildToolsVersion)", StringComparison.OrdinalIgnoreCase);
             }
         }
 
-        return _shouldBeTreatedAsVisualStudioVersion.Value;
+        return false;
     }
 
     internal override string DebuggerDisplay => $"\"{ValueText}\"";
