@@ -43,30 +43,45 @@ namespace Microsoft.Build.Evaluation
         public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
             bool isLeftNum = LeftChild.TryEvaluateAsNumber(state, out double leftNum);
-            bool isLeftVersion = LeftChild.TryEvaluateAsVersion(state, out Version leftVersion);
             bool isRightNum = RightChild.TryEvaluateAsNumber(state, out double rightNum);
-            bool isRightVersion = RightChild.TryEvaluateAsVersion(state, out Version rightVersion);
 
-            if ((!isLeftNum && !isLeftVersion) || (!isRightNum && !isRightVersion))
+            // Both sides are numeric — most common case, no need to check versions.
+            if (isLeftNum && isRightNum)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    state.ElementLocation,
-                    "ComparisonOnNonNumericExpression",
-                    state.Condition,
-                    /* helpfully display unexpanded token and expanded result in error message */
-                    isLeftNum ? RightChild.GetUnexpandedValue(state) : LeftChild.GetUnexpandedValue(state),
-                    isLeftNum ? RightChild.GetExpandedValue(state) : LeftChild.GetExpandedValue(state));
+                result = Compare(leftNum, rightNum);
+                return true;
             }
 
-            result = (isLeftNum, isLeftVersion, isRightNum, isRightVersion) switch
-            {
-                (true, _, true, _) => Compare(leftNum, rightNum),
-                (_, true, _, true) => Compare(leftVersion, rightVersion),
-                (true, _, _, true) => Compare(leftNum, rightVersion),
-                (_, true, true, _) => Compare(leftVersion, rightNum),
+            bool isLeftVersion = LeftChild.TryEvaluateAsVersion(state, out Version leftVersion);
+            bool isRightVersion = RightChild.TryEvaluateAsVersion(state, out Version rightVersion);
 
-                _ => false
-            };
+            if (isLeftVersion && isRightVersion)
+            {
+                result = Compare(leftVersion, rightVersion);
+                return true;
+            }
+
+            if (isLeftNum && isRightVersion)
+            {
+                result = Compare(leftNum, rightVersion);
+                return true;
+            }
+
+            if (isLeftVersion && isRightNum)
+            {
+                result = Compare(leftVersion, rightNum);
+                return true;
+            }
+
+            ProjectErrorUtilities.ThrowInvalidProject(
+                state.ElementLocation,
+                "ComparisonOnNonNumericExpression",
+                state.Condition,
+                /* helpfully display unexpanded token and expanded result in error message */
+                isLeftNum || isLeftVersion ? RightChild.GetUnexpandedValue(state) : LeftChild.GetUnexpandedValue(state),
+                isLeftNum || isLeftVersion ? RightChild.GetExpandedValue(state) : LeftChild.GetExpandedValue(state));
+
+            result = false;
             return true;
         }
     }
