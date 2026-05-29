@@ -49,23 +49,5 @@ namespace Microsoft.Build.Evaluation
         {
             Child?.ResetState();
         }
-
-        #region REMOVE_COMPAT_WARNING
-        internal override bool DetectAnd()
-        {
-            bool detectedAnd = this.PossibleAndCollision;
-            this.PossibleAndCollision = false;
-            bool detectAndChild = Child != null ? Child.DetectAnd() : false;
-            return detectedAnd || detectAndChild;
-        }
-
-        internal override bool DetectOr()
-        {
-            bool detectedOr = this.PossibleOrCollision;
-            this.PossibleOrCollision = false;
-            bool detectOrChild = Child != null ? Child.DetectOr() : false;
-            return detectedOr || detectOrChild;
-        }
-        #endregion
     }
 }

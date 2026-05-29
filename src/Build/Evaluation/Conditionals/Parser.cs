@@ -41,6 +41,8 @@ internal ref struct Parser
     private readonly ILoggingService? _loggingServices;
     private readonly BuildEventContext? _logBuildEventContext;
     private bool _warnedForExpression;
+    private bool _hasAnd;
+    private bool _hasOr;
 
     private static string EndOfInput => field ??= ResourceUtilities.GetResourceString("EndOfInputTokenName");
 
@@ -156,7 +158,7 @@ internal ref struct Parser
         }
 
         // Check for potential change in behavior
-        if (_loggingServices != null && !_warnedForExpression && node.PotentialAndOrConflict())
+        if (_loggingServices != null && !_warnedForExpression && _hasAnd && _hasOr)
         {
             // We only want to warn once even if there multiple () sub expressions
             _warnedForExpression = true;
@@ -180,6 +182,8 @@ internal ref struct Parser
 
         if (Same(TokenKind.Or))
         {
+            _hasOr = true;
+
             if (!TryParseBooleanTerm(out ExpressionNode? rhs))
             {
                 result = null;
@@ -224,6 +228,8 @@ internal ref struct Parser
 
         if (Same(TokenKind.And))
         {
+            _hasAnd = true;
+
             if (!TryParseRelationalExpr(out ExpressionNode? rhs))
             {
                 result = null;
@@ -267,7 +273,8 @@ internal ref struct Parser
             TokenKind.GreaterThanOrEqualTo => new GreaterThanOrEqualExpressionNode(lhs, rhs),
             TokenKind.EqualTo => new EqualExpressionNode(lhs, rhs),
             TokenKind.NotEqualTo => new NotEqualExpressionNode(lhs, rhs),
-            _ => throw new InternalErrorException($"Unexpected operator kind: {operatorKind}")
+
+            _ => Assumed.Unreachable<ExpressionNode>($"Unexpected operator kind: {operatorKind}"),
         };
         return true;
     }
@@ -348,11 +355,24 @@ internal ref struct Parser
 
         if (Same(TokenKind.LeftParenthesis))
         {
+            // Save and reset the and/or tracking state so that the
+            // parenthesized sub-expression is checked independently.
+            bool savedHasAnd = _hasAnd;
+            bool savedHasOr = _hasOr;
+            _hasAnd = false;
+            _hasOr = false;
+
             if (!TryParseExpr(out ExpressionNode? child))
             {
                 result = null;
                 return false;
             }
+
+            // Restore the outer state. The parenthesized sub-expression
+            // was already checked in TryParseExpr, so its and/or flags
+            // should not contribute to the outer expression's check.
+            _hasAnd = savedHasAnd;
+            _hasOr = savedHasOr;
 
             if (Same(TokenKind.RightParenthesis))
             {
