@@ -412,7 +412,7 @@ internal ref struct Parser
 
         if (Same(TokenKind.String))
         {
-            result = new StringExpressionNode(current.Text.ToString(), current.Expandable);
+            result = new StringExpressionNode(current.Text, current.Expandable);
             return true;
         }
 
@@ -424,19 +424,19 @@ internal ref struct Parser
 
         if (Same(TokenKind.Property))
         {
-            result = new StringExpressionNode(current.Text.ToString(), expandable: true);
+            result = new StringExpressionNode(current.Text, expandable: true);
             return true;
         }
 
         if (Same(TokenKind.ItemMetadata))
         {
-            result = new StringExpressionNode(current.Text.ToString(), expandable: true);
+            result = new StringExpressionNode(current.Text, expandable: true);
             return true;
         }
 
         if (Same(TokenKind.ItemList))
         {
-            result = new StringExpressionNode(current.Text.ToString(), expandable: true);
+            result = new StringExpressionNode(current.Text, expandable: true);
             return true;
         }
 
