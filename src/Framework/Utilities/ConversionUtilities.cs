@@ -75,11 +75,30 @@ internal static class ConversionUtilities
         return ValidBooleanFalse(parameterValue);
     }
 
+    public static bool TryConvertStringToBool(ReadOnlySpan<char> parameterValue, out bool boolValue)
+    {
+        if (ValidBooleanTrue(parameterValue))
+        {
+            boolValue = true;
+            return true;
+        }
+
+        boolValue = false;
+        return ValidBooleanFalse(parameterValue);
+    }
+
     /// <summary>
     ///  Returns true if the string can be successfully converted to a bool,
     ///  such as "on" or "yes".
     /// </summary>
     public static bool CanConvertStringToBool(string? parameterValue)
+        => ValidBooleanTrue(parameterValue) || ValidBooleanFalse(parameterValue);
+
+    /// <summary>
+    ///  Returns true if the span can be successfully converted to a bool,
+    ///  such as "on" or "yes".
+    /// </summary>
+    public static bool CanConvertStringToBool(ReadOnlySpan<char> parameterValue)
         => ValidBooleanTrue(parameterValue) || ValidBooleanFalse(parameterValue);
 
     /// <summary>
@@ -95,8 +114,20 @@ internal static class ConversionUtilities
            string.Equals(parameterValue, "!no", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
+    ///  Returns true if the span represents a valid MSBuild boolean true value,
+    ///  such as "on", "!false", "yes".
+    /// </summary>
+    public static bool ValidBooleanTrue(ReadOnlySpan<char> parameterValue)
+        => parameterValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("on", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!false", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!off", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!no", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     ///  Returns true if the string represents a valid MSBuild boolean false value,
-    ///  such as "!on" "off" "no" "!true"
+    ///  such as "!on" "off" "no" "!true".
     /// </summary>
     public static bool ValidBooleanFalse(string? parameterValue)
         => string.Equals(parameterValue, "false", StringComparison.OrdinalIgnoreCase) ||
@@ -105,6 +136,18 @@ internal static class ConversionUtilities
            string.Equals(parameterValue, "!true", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(parameterValue, "!on", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(parameterValue, "!yes", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///  Returns true if the span represents a valid MSBuild boolean false value,
+    ///  such as "!on" "off" "no" "!true".
+    /// </summary>
+    public static bool ValidBooleanFalse(ReadOnlySpan<char> parameterValue)
+        => parameterValue.Equals("false", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("off", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("no", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!true", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!on", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!yes", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     ///  Converts a string like "123.456" into a double. Leading sign is allowed.
