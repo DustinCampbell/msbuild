@@ -438,7 +438,7 @@ internal ref struct Parser
 
         if (Same(TokenKind.Number))
         {
-            result = new NumericExpressionNode(current.Text);
+            result = new NumberExpressionNode(current.Text);
             return true;
         }
 

@@ -11,7 +11,7 @@ namespace Microsoft.Build.Evaluation;
 /// Represents a number - evaluates as numeric.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class NumericExpressionNode : OperandExpressionNode
+internal sealed class NumberExpressionNode : ExpressionNode
 {
     private readonly ReadOnlyMemory<char> _value;
 
@@ -19,7 +19,7 @@ internal sealed class NumericExpressionNode : OperandExpressionNode
     private (bool, double)? _cachedNumericValue;
     private (bool, Version?)? _cachedVersionValue;
 
-    public NumericExpressionNode(ReadOnlyMemory<char> value)
+    public NumberExpressionNode(ReadOnlyMemory<char> value)
     {
         Assumed.False(value.IsEmpty, "NumericExpressionNode cannot have empty value");
         _value = value;
