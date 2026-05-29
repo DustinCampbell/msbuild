@@ -99,26 +99,19 @@ internal sealed class StringExpressionNode : OperandExpressionNode
         {
             if (_expandable)
             {
-                ReadOnlySpan<char> value = _value.Span;
-
-                switch (value.Length)
+                switch (_value.Span)
                 {
-                    case 0:
+                    case []:
                         _cachedExpandedValue = string.Empty;
                         return true;
+
                     // If the length is 1 or 2, it can't possibly be a property, item, or metadata, and it isn't empty.
-                    case 1:
-                    case 2:
+                    case [_] or [_, _]:
                         _cachedExpandedValue = ValueText;
                         return false;
-                    default:
-                        if (value[1] != '(' || (value[0] != '$' && value[0] != '%' && value[0] != '@') || value[^1] != ')')
-                        {
-                            // This isn't just a property, item, or metadata value, and it isn't empty.
-                            return false;
-                        }
 
-                        break;
+                    case not ['$' or '%' or '@', '(', .., ')']: // This isn't just a property, item, or metadata value, and it isn't empty.
+                        return false;
                 }
 
                 string? expandBreakEarly = state.ExpandIntoStringBreakEarly(ValueText);
