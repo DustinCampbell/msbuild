@@ -461,7 +461,22 @@ internal ref struct Parser
         => !AtEnd && _expression[_position] == c;
 
     private readonly bool At(string s)
-        => _expression.AsSpan(_position).StartsWith(s);
+    {
+        if (_position + s.Length > _expression.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (_expression[_position + i] != s[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private readonly bool At(TokenKind kind)
         => _current.Kind == kind;
