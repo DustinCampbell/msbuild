@@ -7,20 +7,20 @@ using System.Diagnostics;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Compares for equality
+///  Compares for inequality
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class EqualExpressionNode(ExpressionNode left, ExpressionNode right) : MultipleComparisonNode(left, right)
+internal sealed class NotEqualOperatorNode(ExpressionNode left, ExpressionNode right) : EqualityComparisonNode(left, right)
 {
     protected override bool Compare(double left, double right)
-        => left == right;
+        => left != right;
 
     protected override bool Compare(bool left, bool right)
-        => left == right;
+        => left != right;
 
     protected override bool Compare(string left, string right)
-        => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        => !string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
-    internal override string DebuggerDisplay
-        => $"(== {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
+    public override string DebuggerDisplay
+        => $"(!= {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }

@@ -8,32 +8,26 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Node representing a string
+///  Node representing a string.
 /// </summary>
+/// <param name="value">The unexpanded string value.</param>
+/// <param name="expandable">
+///  Whether the string potentially has expandable content,
+///  such as a property expression or escaped character.
+/// </param>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class StringExpressionNode : ExpressionNode
+internal sealed class StringLiteralNode(ReadOnlyMemory<char> value, bool expandable) : ExpressionNode
 {
-    private readonly ReadOnlyMemory<char> _value;
-    private readonly bool _expandable;
+    private readonly ReadOnlyMemory<char> _value = value;
+    private readonly bool _expandable = expandable;
 
     /// <summary>
-    /// The string value, lazily materialized from <see cref="_value"/>.
+    ///  The string value, lazily materialized from <see cref="_value"/>.
     /// </summary>
     private string? _valueText;
 
     private string? _cachedExpandedValue;
     private bool? _shouldBeTreatedAsVisualStudioVersion;
-
-    /// <param name="value">The unexpanded string value.</param>
-    /// <param name="expandable">
-    /// Whether the string potentially has expandable content,
-    /// such as a property expression or escaped character.
-    /// </param>
-    public StringExpressionNode(ReadOnlyMemory<char> value, bool expandable)
-    {
-        _value = value;
-        _expandable = expandable;
-    }
 
     private string ValueText => _valueText ??= _value.ToString();
 
@@ -87,13 +81,13 @@ internal sealed class StringExpressionNode : ExpressionNode
     }
 
     /// <summary>
-    /// Returns true if this node evaluates to an empty string,
-    /// otherwise false.
-    /// It may be cheaper to determine whether an expression will evaluate
-    /// to empty than to fully evaluate it.
-    /// Implementations should cache the result so that calls after the first are free.
+    ///  Returns true if this node evaluates to an empty string,
+    ///  otherwise false.
+    ///  It may be cheaper to determine whether an expression will evaluate
+    ///  to empty than to fully evaluate it.
+    ///  Implementations should cache the result so that calls after the first are free.
     /// </summary>
-    internal override bool EvaluatesToEmpty(ConditionEvaluator.IConditionEvaluationState state)
+    public override bool EvaluatesToEmpty(ConditionEvaluator.IConditionEvaluationState state)
     {
         if (_cachedExpandedValue is null)
         {
@@ -136,42 +130,32 @@ internal sealed class StringExpressionNode : ExpressionNode
         return _cachedExpandedValue.Length == 0;
     }
 
-    internal override bool IsUnexpandedValueEmpty()
+    public override bool IsUnexpandedValueEmpty()
         => _value.Length == 0;
 
-    /// <summary>
-    /// Value before any item and property expressions are expanded
-    /// </summary>
-    internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    public override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => ValueText;
 
-    /// <summary>
-    /// Value after any item and property expressions are expanded
-    /// </summary>
-    internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    public override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => _cachedExpandedValue ??= _expandable
             ? state.ExpandIntoString(ValueText)
             : ValueText;
 
-    /// <summary>
-    /// If any expression nodes cache any state for the duration of evaluation,
-    /// now's the time to clean it up
-    /// </summary>
-    internal override void ResetState()
+    public override void ResetState()
     {
         _cachedExpandedValue = null;
         _shouldBeTreatedAsVisualStudioVersion = null;
     }
 
     /// <summary>
-    /// Should this node be treated as an expansion of VisualStudioVersion, rather than
-    /// its literal meaning?
+    ///  Should this node be treated as an expansion of VisualStudioVersion, rather than
+    ///  its literal meaning?
     /// </summary>
     /// <remarks>
-    /// Needed to provide a compat shim for numeric/version comparisons
-    /// on MSBuildToolsVersion, which were fine when it was a number
-    /// but now cause the project to throw InvalidProjectException when
-    /// ToolsVersion is "Current". https://github.com/dotnet/msbuild/issues/4150
+    ///  Needed to provide a compat shim for numeric/version comparisons
+    ///  on MSBuildToolsVersion, which were fine when it was a number
+    ///  but now cause the project to throw InvalidProjectException when
+    ///  ToolsVersion is "Current". https://github.com/dotnet/msbuild/issues/4150
     /// </remarks>
     private bool ShouldBeTreatedAsVisualStudioVersion(ConditionEvaluator.IConditionEvaluationState state)
         => _shouldBeTreatedAsVisualStudioVersion ??= ComputeShouldBeTreatedAsVisualStudioVersion(state);
@@ -194,5 +178,5 @@ internal sealed class StringExpressionNode : ExpressionNode
         return false;
     }
 
-    internal override string DebuggerDisplay => $"\"{ValueText}\"";
+    public override string DebuggerDisplay => $"\"{ValueText}\"";
 }

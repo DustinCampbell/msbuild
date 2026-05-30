@@ -13,14 +13,14 @@ using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Evaluates a function expression, such as "Exists('foo')"
+///  Evaluates a function expression, such as "Exists('foo')"
 /// </summary>
-internal sealed class FunctionCallExpressionNode : ExpressionNode
+internal sealed class FunctionCallNode : ExpressionNode
 {
     private readonly ReadOnlyMemory<char> _functionName;
     private readonly ImmutableArray<ExpressionNode> _arguments;
 
-    internal FunctionCallExpressionNode(ReadOnlyMemory<char> functionName, ImmutableArray<ExpressionNode> arguments)
+    public FunctionCallNode(ReadOnlyMemory<char> functionName, ImmutableArray<ExpressionNode> arguments)
     {
         _functionName = functionName;
         _arguments = arguments;
@@ -63,16 +63,16 @@ internal sealed class FunctionCallExpressionNode : ExpressionNode
         return false;
     }
 
-    internal override string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    public override string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => null;
 
-    internal override string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    public override string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => null;
 
     /// <inheritdoc cref="ExpressionNode"/>
-    internal override bool IsUnexpandedValueEmpty() => true;
+    public override bool IsUnexpandedValueEmpty() => true;
 
-    internal override void ResetState()
+    public override void ResetState()
     {
         foreach (ExpressionNode argument in _arguments)
         {
@@ -143,14 +143,16 @@ internal sealed class FunctionCallExpressionNode : ExpressionNode
     }
 
     /// <summary>
-    /// Expands properties and items in the argument, and verifies that the result is consistent
-    /// with a scalar parameter type.
+    ///  Expands properties and items in the argument, and verifies that the result is consistent
+    ///  with a scalar parameter type.
     /// </summary>
     /// <param name="functionName">Function name for errors</param>
     /// <param name="argumentNode">Argument to be expanded</param>
     /// <param name="state"></param>
     /// <param name="isFilePath">True if this is afile name and the path should be normalized</param>
-    /// <returns>Scalar result</returns>
+    /// <returns>
+    ///  Scalar result
+    /// </returns>
     private static string ExpandArgumentForScalarParameter(
         ReadOnlyMemory<char> functionName,
         ExpressionNode argumentNode,

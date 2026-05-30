@@ -144,14 +144,14 @@ namespace Microsoft.Build.UnitTests
             Console.WriteLine("ItemFuncParseTest()");
 
             ParseResult tree = Parser.Parse("@(item->foo('ab'))", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<StringExpressionNode>(tree.Node);
+            Assert.IsType<StringLiteralNode>(tree.Node);
             Assert.Equal("@(item->foo('ab'))", tree.Node.GetUnexpandedValue(null));
 
             tree = Parser.Parse("!@(item->foo())", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<NotExpressionNode>(tree.Node);
+            Assert.IsType<NotOperatorNode>(tree.Node);
 
             tree = Parser.Parse("(@(item->foo('ab')) and @(item->foo('bc')))", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<AndExpressionNode>(tree.Node);
+            Assert.IsType<AndOperatorNode>(tree.Node);
         }
 
         [Fact]
@@ -167,7 +167,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests the special error for "=" (should be "==").
+        ///  Tests the special error for "=" (should be "==").
         /// </summary>
         [Fact]
         public void SingleEqualsProducesError()
@@ -178,7 +178,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests the special errors for "$(" and "$x" patterns.
+        ///  Tests the special errors for "$(" and "$x" patterns.
         /// </summary>
         [Theory]
         [InlineData("$(", "IllFormedPropertyCloseParenthesisInCondition")]
@@ -191,7 +191,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that spaces adjacent to property name boundaries produce errors.
+        ///  Tests that spaces adjacent to property name boundaries produce errors.
         /// </summary>
         [Theory]
         [InlineData("$(x )")]
@@ -206,7 +206,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that spaces in the middle of property expressions (not adjacent to name boundaries) are OK.
+        ///  Tests that spaces in the middle of property expressions (not adjacent to name boundaries) are OK.
         /// </summary>
         [Theory]
         [InlineData("$(x.StartsWith( 'y' ))")]
@@ -221,7 +221,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests the special errors for "@(" and "@x" and similar malformed item list patterns.
+        ///  Tests the special errors for "@(" and "@x" and similar malformed item list patterns.
         /// </summary>
         [Theory]
         [InlineData("@(", "IllFormedItemListCloseParenthesisInCondition")]
@@ -238,7 +238,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests the special error for unterminated quotes.
+        ///  Tests the special error for unterminated quotes.
         /// </summary>
         [Theory]
         [InlineData("false or 'abc")]
@@ -251,7 +251,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that item lists are rejected when only properties are allowed.
+        ///  Tests that item lists are rejected when only properties are allowed.
         /// </summary>
         [Theory]
         [InlineData("@(foo)")]
@@ -265,7 +265,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that unterminated quoted strings fail.
+        ///  Tests that unterminated quoted strings fail.
         /// </summary>
         [Fact]
         public void UnterminatedQuotedString()
@@ -275,7 +275,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that numeric literals parse successfully.
+        ///  Tests that numeric literals parse successfully.
         /// </summary>
         [Theory]
         [InlineData("1234 == 1234")]
@@ -294,7 +294,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that various single-token expressions parse successfully.
+        ///  Tests that various single-token expressions parse successfully.
         /// </summary>
         [Theory]
         [InlineData("$(foo) == ''")]
@@ -312,7 +312,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that string edge cases with embedded item lists and escaped characters parse correctly.
+        ///  Tests that string edge cases with embedded item lists and escaped characters parse correctly.
         /// </summary>
         [Theory]
         [InlineData("'String with a $(Property) inside' == ''")]
@@ -329,7 +329,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that function call expressions with various argument types parse correctly.
+        ///  Tests that function call expressions with various argument types parse correctly.
         /// </summary>
         [Theory]
         [InlineData("Foo()")]
@@ -348,7 +348,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests that expressions with no whitespace between tokens parse correctly.
+        ///  Tests that expressions with no whitespace between tokens parse correctly.
         /// </summary>
         [Theory]
         [InlineData("'abc-efg'==$(foo)")]
@@ -362,7 +362,7 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// Tests error position reporting.
+        ///  Tests error position reporting.
         /// </summary>
         [Theory]
         [InlineData("1==0xFG", 7, ParserOptions.AllowAll)]                   // Position of G
@@ -421,8 +421,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// This test verifies that we trigger warnings for expressions that
-        /// could be incorrectly evaluated
+        ///  This test verifies that we trigger warnings for expressions that
+        ///  could be incorrectly evaluated
         /// </summary>
         [Fact]
         public void VerifyWarningForOrder()
@@ -463,8 +463,8 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
-        /// This test verifies that we don't trigger warnings for expressions that
-        /// couldn't be incorrectly evaluated
+        ///  This test verifies that we don't trigger warnings for expressions that
+        ///  couldn't be incorrectly evaluated
         /// </summary>
         [Fact]
         public void VerifyNoWarningForOrder()
@@ -606,10 +606,10 @@ namespace Microsoft.Build.UnitTests
         [InlineData("!off", true)]
         [InlineData("!yes", false)]
         [InlineData("!no", true)]
-        public void BooleanKeyword_ProducesBooleanExpressionNode(string keyword, bool expected)
+        public void BooleanKeyword_ProducesBooleanLiteralNode(string keyword, bool expected)
         {
             ParseResult result = Parser.Parse(keyword, ParserOptions.AllowAll, _elementLocation);
-            result.Node.ShouldBeOfType<BooleanExpressionNode>();
+            result.Node.ShouldBeOfType<BooleanLiteralNode>();
             result.Node.TryEvaluateAsBoolean(null, out bool actual).ShouldBeTrue();
             actual.ShouldBe(expected);
         }
@@ -628,10 +628,10 @@ namespace Microsoft.Build.UnitTests
         [InlineData("'!off'", true)]
         [InlineData("'!yes'", false)]
         [InlineData("'!no'", true)]
-        public void QuotedBooleanKeyword_ProducesBooleanExpressionNode(string expression, bool expected)
+        public void QuotedBooleanKeyword_ProducesBooleanLiteralNode(string expression, bool expected)
         {
             ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
-            result.Node.ShouldBeOfType<BooleanExpressionNode>();
+            result.Node.ShouldBeOfType<BooleanLiteralNode>();
             result.Node.TryEvaluateAsBoolean(null, out bool actual).ShouldBeTrue();
             actual.ShouldBe(expected);
         }
@@ -641,10 +641,10 @@ namespace Microsoft.Build.UnitTests
         [InlineData("'hello'")]
         [InlineData("'truthy'")]
         [InlineData("'falsehood'")]
-        public void NonBooleanString_ProducesStringExpressionNode(string expression)
+        public void NonBooleanString_ProducesStringLiteralNode(string expression)
         {
             ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
-            result.Node.ShouldBeOfType<StringExpressionNode>();
+            result.Node.ShouldBeOfType<StringLiteralNode>();
         }
     }
 }

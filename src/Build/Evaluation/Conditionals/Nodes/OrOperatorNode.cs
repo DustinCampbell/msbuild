@@ -7,11 +7,10 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Performs logical OR on children
-/// Does not update conditioned properties table
+///  Performs a logical OR on left and right children with short-circuit evaluation.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class OrExpressionNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorExpressionNode(left, right)
+internal sealed class OrOperatorNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorNode(left, right)
 {
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
     {
@@ -46,6 +45,6 @@ internal sealed class OrExpressionNode(ExpressionNode left, ExpressionNode right
         return true;
     }
 
-    internal override string DebuggerDisplay
+    public override string DebuggerDisplay
         => $"(or {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }

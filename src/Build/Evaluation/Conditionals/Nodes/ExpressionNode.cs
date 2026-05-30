@@ -7,7 +7,7 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Base class for all expression nodes.
+///  Abstract base class for all nodes in a condition expression tree.
 /// </summary>
 internal abstract class ExpressionNode
 {
@@ -18,45 +18,35 @@ internal abstract class ExpressionNode
     public abstract bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version? result);
 
     /// <summary>
-    /// Returns true if this node evaluates to an empty string,
-    /// otherwise false.
-    /// (It may be cheaper to determine whether an expression will evaluate
-    /// to empty than to fully evaluate it.)
-    /// Implementations should cache the result so that calls after the first are free.
+    ///  Returns true if this node evaluates to an empty string without performing full expansion.
     /// </summary>
-    internal virtual bool EvaluatesToEmpty(ConditionEvaluator.IConditionEvaluationState state)
+    public virtual bool EvaluatesToEmpty(ConditionEvaluator.IConditionEvaluationState state)
         => false;
 
     /// <summary>
-    /// Value after any item and property expressions are expanded
+    ///  Returns the value of this node after expanding item and property expressions.
     /// </summary>
-    /// <returns></returns>
-    internal abstract string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state);
+    public abstract string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state);
 
     /// <summary>
-    /// Value before any item and property expressions are expanded
+    ///  Returns the value of this node before expanding item and property expressions.
     /// </summary>
-    /// <returns></returns>
-    internal abstract string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state);
+    public abstract string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state);
 
     /// <summary>
-    /// Checks if value is empty before any item and property expressions are expanded
+    ///  Returns true if the unexpanded value is empty without performing any expansion.
     /// </summary>
-    /// <returns></returns>
-    internal abstract bool IsUnexpandedValueEmpty();
+    public abstract bool IsUnexpandedValueEmpty();
 
     /// <summary>
-    /// If any expression nodes cache any state for the duration of evaluation,
-    /// now's the time to clean it up
+    ///  Resets any cached state from a previous evaluation.
     /// </summary>
-    internal abstract void ResetState();
+    public abstract void ResetState();
 
     /// <summary>
-    /// The main evaluate entry point for expression trees
+    ///  Evaluates this node as a boolean, throwing if evaluation fails.
     /// </summary>
-    /// <param name="state"></param>
-    /// <returns></returns>
-    internal bool Evaluate(ConditionEvaluator.IConditionEvaluationState state)
+    public bool Evaluate(ConditionEvaluator.IConditionEvaluationState state)
     {
         if (!TryEvaluateAsBoolean(state, out bool boolValue))
         {
@@ -71,7 +61,7 @@ internal abstract class ExpressionNode
     }
 
     /// <summary>
-    ///  Get display string for this node for use in the debugger.
+    ///  Gets a display string for this node for use in the debugger.
     /// </summary>
-    internal virtual string? DebuggerDisplay { get; }
+    public virtual string? DebuggerDisplay { get; }
 }

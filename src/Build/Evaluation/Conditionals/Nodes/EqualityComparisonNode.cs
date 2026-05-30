@@ -6,11 +6,11 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Evaluates as boolean and evaluates children as boolean, numeric, or string.
-/// Order in which comparisons are attempted is numeric, boolean, then string.
-/// Updates conditioned properties table.
+///  Evaluates as boolean and evaluates children as boolean, numeric, or string.
+///  Order in which comparisons are attempted is numeric, boolean, then string.
+///  Updates conditioned properties table.
 /// </summary>
-internal abstract class MultipleComparisonNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorExpressionNode(left, right)
+internal abstract class EqualityComparisonNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorNode(left, right)
 {
     private bool _conditionedPropertiesUpdated = false;
 
@@ -21,9 +21,9 @@ internal abstract class MultipleComparisonNode(ExpressionNode left, ExpressionNo
     protected abstract bool Compare(string left, string right);
 
     /// <summary>
-    /// Evaluates as boolean and evaluates children as boolean, numeric, or string.
-    /// Order in which comparisons are attempted is numeric, boolean, then string.
-    /// Updates conditioned properties table.
+    ///  Evaluates as boolean and evaluates children as boolean, numeric, or string.
+    ///  Order in which comparisons are attempted is numeric, boolean, then string.
+    ///  Updates conditioned properties table.
     /// </summary>
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
     {
@@ -45,6 +45,7 @@ internal abstract class MultipleComparisonNode(ExpressionNode left, ExpressionNo
 
         bool leftEmpty = Left.EvaluatesToEmpty(state);
         bool rightEmpty = Right.EvaluatesToEmpty(state);
+
         if (leftEmpty || rightEmpty)
         {
             UpdateConditionedProperties(state);
@@ -52,7 +53,9 @@ internal abstract class MultipleComparisonNode(ExpressionNode left, ExpressionNo
             result = Compare(leftEmpty, rightEmpty);
             return true;
         }
-        else if (Left.TryEvaluateAsNumber(state, out double leftNumericValue) && Right.TryEvaluateAsNumber(state, out double rightNumericValue))
+
+        if (Left.TryEvaluateAsNumber(state, out double leftNumericValue) &&
+            Right.TryEvaluateAsNumber(state, out double rightNumericValue))
         {
             // The left child evaluating to a number and the right child not evaluating to a number
             // is insufficient to say they are not equal because $(MSBuildToolsVersion) evaluates to
@@ -63,7 +66,9 @@ internal abstract class MultipleComparisonNode(ExpressionNode left, ExpressionNo
             result = Compare(leftNumericValue, rightNumericValue);
             return true;
         }
-        else if (Left.TryEvaluateAsBoolean(state, out bool leftBoolValue) && Right.TryEvaluateAsBoolean(state, out bool rightBoolValue))
+
+        if (Left.TryEvaluateAsBoolean(state, out bool leftBoolValue) &&
+            Right.TryEvaluateAsBoolean(state, out bool rightBoolValue))
         {
             result = Compare(leftBoolValue, rightBoolValue);
             return true;
@@ -88,16 +93,16 @@ internal abstract class MultipleComparisonNode(ExpressionNode left, ExpressionNo
     }
 
     /// <summary>
-    /// Reset temporary state
+    ///  Reset temporary state
     /// </summary>
-    internal override void ResetState()
+    public override void ResetState()
     {
         base.ResetState();
         _conditionedPropertiesUpdated = false;
     }
 
     /// <summary>
-    /// Updates the conditioned properties table if it hasn't already been done.
+    ///  Updates the conditioned properties table if it hasn't already been done.
     /// </summary>
     private void UpdateConditionedProperties(ConditionEvaluator.IConditionEvaluationState state)
     {

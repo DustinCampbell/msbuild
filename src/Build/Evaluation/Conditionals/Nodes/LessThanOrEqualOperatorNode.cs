@@ -7,22 +7,22 @@ using System.Diagnostics;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Compares for left &lt;= right
+///  Compares for left &lt;= right
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class LessThanOrEqualExpressionNode(ExpressionNode left, ExpressionNode right) : NumericComparisonExpressionNode(left, right)
+internal sealed class LessThanOrEqualOperatorNode(ExpressionNode left, ExpressionNode right) : RelationalComparisonNode(left, right)
 {
     protected override bool Compare(double left, double right)
         => left <= right;
 
     /// <summary>
-    /// Compare Versions. This is only intended to compare version formats like "A.B.C.D" which can otherwise not be compared numerically
+    ///  Compare Versions. This is only intended to compare version formats like "A.B.C.D" which can otherwise not be compared numerically
     /// </summary>
     protected override bool Compare(Version left, Version right)
         => left <= right;
 
     /// <summary>
-    /// Compare mixed numbers and Versions
+    ///  Compare mixed numbers and Versions
     /// </summary>
     protected override bool Compare(Version left, double right)
     {
@@ -37,7 +37,7 @@ internal sealed class LessThanOrEqualExpressionNode(ExpressionNode left, Express
     }
 
     /// <summary>
-    /// Compare mixed numbers and Versions
+    ///  Compare mixed numbers and Versions
     /// </summary>
     protected override bool Compare(double left, Version right)
     {
@@ -51,6 +51,6 @@ internal sealed class LessThanOrEqualExpressionNode(ExpressionNode left, Express
         return true;
     }
 
-    internal override string DebuggerDisplay
+    public override string DebuggerDisplay
         => $"(<= {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }

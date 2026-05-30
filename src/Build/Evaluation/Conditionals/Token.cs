@@ -66,9 +66,6 @@ internal readonly struct Token
     public static Token String(ReadOnlyMemory<char> text, bool expandable = false)
         => new(TokenKind.String, text, expandable);
 
-    public bool IsKind(TokenKind kind)
-        => Kind == kind;
-
     public override string ToString()
         => Text.ToString();
 }
