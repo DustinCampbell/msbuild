@@ -8,10 +8,10 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Represents a number - evaluates as numeric.
+///  Represents a number - evaluates as numeric.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class NumberExpressionNode : ExpressionNode
+internal sealed class NumberLiteralNode : ExpressionNode
 {
     private readonly ReadOnlyMemory<char> _value;
 
@@ -19,7 +19,7 @@ internal sealed class NumberExpressionNode : ExpressionNode
     private (bool, double)? _cachedNumericValue;
     private (bool, Version?)? _cachedVersionValue;
 
-    public NumberExpressionNode(ReadOnlyMemory<char> value)
+    public NumberLiteralNode(ReadOnlyMemory<char> value)
     {
         Assumed.False(value.IsEmpty, "NumericExpressionNode cannot have empty value");
         _value = value;
@@ -74,29 +74,29 @@ internal sealed class NumberExpressionNode : ExpressionNode
     }
 
     /// <inheritdoc cref="ExpressionNode"/>
-    internal override bool IsUnexpandedValueEmpty()
+    public override bool IsUnexpandedValueEmpty()
         => false;
 
     /// <summary>
-    /// Get the unexpanded value
+    ///  Get the unexpanded value
     /// </summary>
-    internal override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    public override string GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => ValueText;
 
     /// <summary>
-    /// Get the expanded value
+    ///  Get the expanded value
     /// </summary>
-    internal override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    public override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => ValueText;
 
     /// <summary>
-    /// If any expression nodes cache any state for the duration of evaluation,
-    /// now's the time to clean it up
+    ///  If any expression nodes cache any state for the duration of evaluation,
+    ///  now's the time to clean it up
     /// </summary>
-    internal override void ResetState()
+    public override void ResetState()
     {
     }
 
-    internal override string DebuggerDisplay
+    public override string DebuggerDisplay
         => $"#\"{ValueText}\")";
 }

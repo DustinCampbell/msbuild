@@ -13,13 +13,26 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// This ref struct implements the grammar for complex conditionals.
-///
-/// The usage is:
-///    ParseResult result = Parser.Parse(expression, options, elementLocation);
-///
-/// The expression tree can then be evaluated and re-evaluated as needed.
+///  Parses MSBuild condition expressions into expression trees.
 /// </summary>
+/// <remarks>
+///  <para>The grammar is:</para>
+///  <code>
+///  Expression     :=  AndExpression ( 'or' AndExpression )*
+///  AndExpression  :=  Comparison ( 'and' Comparison )*
+///  Comparison     :=  Primary ( ComparisonOp Primary )?
+///  ComparisonOp   :=  '==' | '!=' | '&lt;' | '&gt;' | '&lt;=' | '&gt;='
+///  Primary        :=  Literal
+///                   |  FunctionName '(' ArgumentList ')'
+///                   |  '(' Expression ')'
+///                   |  '!' Primary
+///  ArgumentList   :=  ( Literal ( ',' Literal )* )?
+///  Literal        :=  BooleanKeyword | String | Number | Property | ItemMetadata | ItemList
+///  </code>
+///  <para>
+///  The resulting expression tree can then be evaluated and re-evaluated as needed.
+///  </para>
+/// </remarks>
 internal ref struct Parser
 {
     private readonly string _expression;
@@ -58,11 +71,9 @@ internal ref struct Parser
         _logBuildEventContext = loggingContext?.BuildEventContext ?? BuildEventContext.Invalid;
     }
 
-    //
-    // Main entry point for parser.
-    // You pass in the expression you want to parse, and you get a
-    // ParseResult containing either the parsed expression tree or error information.
-    //
+    /// <summary>
+    ///  Parses a condition expression string into an expression tree.
+    /// </summary>
     public static ParseResult Parse(string expression, ParserOptions options, ElementLocation elementLocation, LoggingContext? loggingContext = null)
     {
         var parser = new Parser(expression, options, elementLocation, loggingContext);
@@ -76,15 +87,14 @@ internal ref struct Parser
             return ErrorResult();
         }
 
-        if (!TryParseExpr(out ExpressionNode? node))
+        if (!TryParseExpression(out ExpressionNode? node))
         {
-            Assumed.NotNull(_errorResource);
             return ErrorResult();
         }
 
-        if (!IsNext(TokenKind.EndOfInput))
+        if (!At(TokenKind.EndOfInput))
         {
-            UnexpectedTokenInCondition();
+            SetUnexpectedTokenError();
             return ErrorResult();
         }
 
@@ -100,27 +110,21 @@ internal ref struct Parser
         return ParseResult.Error(_errorResource, _errorArgs, _errorPosition, _elementLocation);
     }
 
-    private bool UnexpectedTokenInConditionAndReturn<T>(out T result)
+    private bool SetUnexpectedTokenError<T>(out T result)
     {
         result = default!;
-        return UnexpectedTokenInConditionAndReturn();
+        return SetUnexpectedTokenError();
     }
 
-    private bool UnexpectedTokenInConditionAndReturn()
+    private bool SetUnexpectedTokenError()
     {
-        UnexpectedTokenInCondition();
-        return false;
-    }
-
-    private void UnexpectedTokenInCondition()
-    {
-        if (HasError)
+        if (!HasError)
         {
-            return;
+            _errorResource = "UnexpectedTokenInCondition";
+            _errorArgs = [_expression, _current.ToString(), _errorPosition];
         }
 
-        _errorResource = "UnexpectedTokenInCondition";
-        _errorArgs = [_expression, _current.ToString(), _errorPosition];
+        return false;
     }
 
     private bool SetErrorInfo(int position, string resource, string? extraArg = null)
@@ -140,21 +144,25 @@ internal ref struct Parser
     [MemberNotNullWhen(true, nameof(_errorArgs))]
     private bool HasError => _errorResource is not null;
 
-    private bool TryParseExpr([NotNullWhen(true)] out ExpressionNode? result)
+    private bool TryParseExpression([NotNullWhen(true)] out ExpressionNode? result)
     {
-        if (!TryParseBooleanTerm(out ExpressionNode? node))
+        if (!TryParseAndExpression(out ExpressionNode? node))
         {
             result = null;
             return false;
         }
 
-        if (!IsNext(TokenKind.EndOfInput))
+        while (!At(TokenKind.EndOfInput) && TryConsume(TokenKind.Or))
         {
-            if (!TryParseExprPrime(node, out node))
+            _hasOr = true;
+
+            if (!TryParseAndExpression(out ExpressionNode? rhs))
             {
                 result = null;
                 return false;
             }
+
+            node = new OrOperatorNode(node, rhs);
         }
 
         // Check for potential change in behavior
@@ -172,94 +180,46 @@ internal ref struct Parser
         return true;
     }
 
-    private bool TryParseExprPrime(ExpressionNode lhs, [NotNullWhen(true)] out ExpressionNode? result)
+    private bool TryParseAndExpression([NotNullWhen(true)] out ExpressionNode? result)
     {
-        if (Same(TokenKind.EndOfInput))
+        if (!TryParseComparison(out ExpressionNode? node))
         {
-            result = lhs;
-            return true;
+            result = null;
+            return false;
         }
 
-        if (Same(TokenKind.Or))
+        while (!At(TokenKind.EndOfInput) && TryConsume(TokenKind.And))
         {
-            _hasOr = true;
+            _hasAnd = true;
 
-            if (!TryParseBooleanTerm(out ExpressionNode? rhs))
+            if (!TryParseComparison(out ExpressionNode? rhs))
             {
                 result = null;
                 return false;
             }
 
-            var orNode = new OrExpressionNode(lhs, rhs);
-            return TryParseExprPrime(orNode, out result);
-        }
-
-        // ExprPrime always shows up at the rightmost side of the grammar rhs,
-        // the EndOfInput case takes care of things
-        result = lhs;
-        return true;
-    }
-
-    private bool TryParseBooleanTerm([NotNullWhen(true)] out ExpressionNode? result)
-    {
-        if (!TryParseRelationalExpr(out ExpressionNode? node))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!IsNext(TokenKind.EndOfInput) && !TryParseBooleanTermPrime(node, out node))
-        {
-            result = null;
-            return false;
+            node = new AndOperatorNode(node, rhs);
         }
 
         result = node;
         return true;
     }
 
-    private bool TryParseBooleanTermPrime(ExpressionNode lhs, [NotNullWhen(true)] out ExpressionNode? result)
+    private bool TryParseComparison([NotNullWhen(true)] out ExpressionNode? result)
     {
-        if (IsNext(TokenKind.EndOfInput))
-        {
-            result = lhs;
-            return true;
-        }
-
-        if (Same(TokenKind.And))
-        {
-            _hasAnd = true;
-
-            if (!TryParseRelationalExpr(out ExpressionNode? rhs))
-            {
-                result = null;
-                return false;
-            }
-
-            var andNode = new AndExpressionNode(lhs, rhs);
-            return TryParseBooleanTermPrime(andNode, out result);
-        }
-
-        // Should this be error case?
-        result = lhs;
-        return true;
-    }
-
-    private bool TryParseRelationalExpr([NotNullWhen(true)] out ExpressionNode? result)
-    {
-        if (!TryParseFactor(out ExpressionNode? lhs))
+        if (!TryParsePrimary(out ExpressionNode? lhs))
         {
             result = null;
             return false;
         }
 
-        if (!TryParseRelationalOperation(out TokenKind operatorKind))
+        if (!TryParseComparisonOperator(out TokenKind operatorKind))
         {
             result = lhs;
             return true;
         }
 
-        if (!TryParseFactor(out ExpressionNode? rhs))
+        if (!TryParsePrimary(out ExpressionNode? rhs))
         {
             result = null;
             return false;
@@ -267,93 +227,66 @@ internal ref struct Parser
 
         result = operatorKind switch
         {
-            TokenKind.LessThan => new LessThanExpressionNode(lhs, rhs),
-            TokenKind.GreaterThan => new GreaterThanExpressionNode(lhs, rhs),
-            TokenKind.LessThanOrEqualTo => new LessThanOrEqualExpressionNode(lhs, rhs),
-            TokenKind.GreaterThanOrEqualTo => new GreaterThanOrEqualExpressionNode(lhs, rhs),
-            TokenKind.EqualTo => new EqualExpressionNode(lhs, rhs),
-            TokenKind.NotEqualTo => new NotEqualExpressionNode(lhs, rhs),
+            TokenKind.LessThan => new LessThanOperatorNode(lhs, rhs),
+            TokenKind.GreaterThan => new GreaterThanOperatorNode(lhs, rhs),
+            TokenKind.LessThanOrEqualTo => new LessThanOrEqualOperatorNode(lhs, rhs),
+            TokenKind.GreaterThanOrEqualTo => new GreaterThanOrEqualOperatorNode(lhs, rhs),
+            TokenKind.EqualTo => new EqualOperatorNode(lhs, rhs),
+            TokenKind.NotEqualTo => new NotEqualOperatorNode(lhs, rhs),
 
             _ => Assumed.Unreachable<ExpressionNode>($"Unexpected operator kind: {operatorKind}"),
         };
         return true;
     }
 
-    private bool TryParseRelationalOperation(out TokenKind result)
+    private bool TryParseComparisonOperator(out TokenKind result)
     {
-        if (Same(TokenKind.LessThan))
-        {
-            result = TokenKind.LessThan;
-            return true;
-        }
+        result = _current.Kind;
 
-        if (Same(TokenKind.GreaterThan))
+        if (result is TokenKind.LessThan or TokenKind.GreaterThan
+                   or TokenKind.LessThanOrEqualTo or TokenKind.GreaterThanOrEqualTo
+                   or TokenKind.EqualTo or TokenKind.NotEqualTo)
         {
-            result = TokenKind.GreaterThan;
-            return true;
-        }
-
-        if (Same(TokenKind.LessThanOrEqualTo))
-        {
-            result = TokenKind.LessThanOrEqualTo;
-            return true;
-        }
-
-        if (Same(TokenKind.GreaterThanOrEqualTo))
-        {
-            result = TokenKind.GreaterThanOrEqualTo;
-            return true;
-        }
-
-        if (Same(TokenKind.EqualTo))
-        {
-            result = TokenKind.EqualTo;
-            return true;
-        }
-
-        if (Same(TokenKind.NotEqualTo))
-        {
-            result = TokenKind.NotEqualTo;
-            return true;
+            return Advance();
         }
 
         result = default;
         return false;
     }
 
-    private bool TryParseFactor([NotNullWhen(true)] out ExpressionNode? result)
+    private bool TryParsePrimary([NotNullWhen(true)] out ExpressionNode? result)
     {
         // Checks for TokenTypes String, Numeric, Property, ItemMetadata, and ItemList.
-        if (TryParseArg(out result))
+        if (TryParseLiteral(out result))
         {
             return true;
         }
 
         // If it's not one of those, check for other TokenTypes.
         Token current = _current;
-        if (Same(TokenKind.FunctionName))
+        if (TryConsume(TokenKind.FunctionName))
         {
-            if (!Same(TokenKind.LeftParenthesis))
+            if (!TryConsume(TokenKind.LeftParenthesis))
             {
-                return UnexpectedTokenInConditionAndReturn(out result);
+                return SetUnexpectedTokenError(out result);
             }
 
-            if (!TryParseArglist(out ImmutableArray<ExpressionNode> arglist))
+            if (!TryParseArgumentList(out ImmutableArray<ExpressionNode> arglist))
             {
                 result = null;
                 return false;
             }
 
-            if (!Same(TokenKind.RightParenthesis))
+            if (!TryConsume(TokenKind.RightParenthesis))
             {
-                return UnexpectedTokenInConditionAndReturn(out result);
+                return SetUnexpectedTokenError(out result);
             }
 
-            result = new FunctionCallExpressionNode(current.Text, arglist);
+            result = new FunctionCallNode(current.Text, arglist);
             return true;
         }
 
-        if (Same(TokenKind.LeftParenthesis))
+        if (TryConsume(TokenKind.LeftParenthesis))
         {
             // Save and reset the and/or tracking state so that the
             // parenthesized sub-expression is checked independently.
@@ -362,7 +295,7 @@ internal ref struct Parser
             _hasAnd = false;
             _hasOr = false;
 
-            if (!TryParseExpr(out ExpressionNode? child))
+            if (!TryParseExpression(out ExpressionNode? child))
             {
                 result = null;
                 return false;
@@ -374,46 +307,46 @@ internal ref struct Parser
             _hasAnd = savedHasAnd;
             _hasOr = savedHasOr;
 
-            if (Same(TokenKind.RightParenthesis))
+            if (TryConsume(TokenKind.RightParenthesis))
             {
                 result = child;
                 return true;
             }
 
-            return UnexpectedTokenInConditionAndReturn(out result);
+            return SetUnexpectedTokenError(out result);
         }
 
-        if (Same(TokenKind.Not))
+        if (TryConsume(TokenKind.Not))
         {
-            // Fold !true/!false into a BooleanExpressionNode at parse time.
-            if (Same(TokenKind.True))
+            // Fold !true/!false into a BooleanLiteralNode at parse time.
+            if (TryConsume(TokenKind.True))
             {
-                result = new BooleanExpressionNode(false);
+                result = new BooleanLiteralNode(false);
                 return true;
             }
 
-            if (Same(TokenKind.False))
+            if (TryConsume(TokenKind.False))
             {
-                result = new BooleanExpressionNode(true);
+                result = new BooleanLiteralNode(true);
                 return true;
             }
 
-            if (!TryParseFactor(out ExpressionNode? expr))
+            if (!TryParsePrimary(out ExpressionNode? expr))
             {
                 result = null;
                 return false;
             }
 
-            result = new NotExpressionNode(expr);
+            result = new NotOperatorNode(expr);
             return true;
         }
 
-        return UnexpectedTokenInConditionAndReturn(out result);
+        return SetUnexpectedTokenError(out result);
     }
 
-    private bool TryParseArglist(out ImmutableArray<ExpressionNode> result)
+    private bool TryParseArgumentList(out ImmutableArray<ExpressionNode> result)
     {
-        if (IsNext(TokenKind.RightParenthesis))
+        if (At(TokenKind.RightParenthesis))
         {
             result = [];
             return true;
@@ -423,14 +356,14 @@ internal ref struct Parser
 
         while (true)
         {
-            if (!TryParseArg(out ExpressionNode? arg))
+            if (!TryParseLiteral(out ExpressionNode? arg))
             {
-                return UnexpectedTokenInConditionAndReturn(out result);
+                return SetUnexpectedTokenError(out result);
             }
 
             args.Add(arg);
 
-            if (!Same(TokenKind.Comma))
+            if (!TryConsume(TokenKind.Comma))
             {
                 result = args.ToImmutable();
                 return true;
@@ -438,49 +371,39 @@ internal ref struct Parser
         }
     }
 
-    private bool TryParseArg([NotNullWhen(true)] out ExpressionNode? result)
+    private bool TryParseLiteral([NotNullWhen(true)] out ExpressionNode? result)
     {
         Token current = _current;
 
-        if (Same(TokenKind.True))
+        if (TryConsume(TokenKind.True))
         {
-            result = new BooleanExpressionNode(true);
+            result = new BooleanLiteralNode(true);
             return true;
         }
 
-        if (Same(TokenKind.False))
+        if (TryConsume(TokenKind.False))
         {
-            result = new BooleanExpressionNode(false);
+            result = new BooleanLiteralNode(false);
             return true;
         }
 
-        if (Same(TokenKind.String))
+        if (TryConsume(TokenKind.String))
         {
-            result = new StringExpressionNode(current.Text, current.Expandable);
+            result = new StringLiteralNode(current.Text, current.Expandable);
             return true;
         }
 
-        if (Same(TokenKind.Number))
+        if (TryConsume(TokenKind.Number))
         {
-            result = new NumberExpressionNode(current.Text);
+            result = new NumberLiteralNode(current.Text);
             return true;
         }
 
-        if (Same(TokenKind.Property))
+        if (TryConsume(TokenKind.Property) ||
+            TryConsume(TokenKind.ItemMetadata) ||
+            TryConsume(TokenKind.ItemList))
         {
-            result = new StringExpressionNode(current.Text, expandable: true);
-            return true;
-        }
-
-        if (Same(TokenKind.ItemMetadata))
-        {
-            result = new StringExpressionNode(current.Text, expandable: true);
-            return true;
-        }
-
-        if (Same(TokenKind.ItemList))
-        {
-            result = new StringExpressionNode(current.Text, expandable: true);
+            result = new StringLiteralNode(current.Text, expandable: true);
             return true;
         }
 
@@ -489,79 +412,61 @@ internal ref struct Parser
     }
 
     /// <summary>
-    /// Checks if the given span is a boolean keyword (true/false/on/off/yes/no)
-    /// or a negated boolean keyword (!true/!false/!on/!off/!yes/!no).
+    ///  Checks if the given span is a boolean keyword (true/false/on/off/yes/no)
+    ///  or a negated boolean keyword (!true/!false/!on/!off/!yes/!no).
     /// </summary>
     private static bool TryGetBooleanKeywordValue(ReadOnlySpan<char> text, out bool value)
     {
-        if (text.Length >= 2 && text.Length <= 6)
+        if (text is ['t' or 'T', 'r' or 'R', 'u' or 'U', 'e' or 'E'] // true
+                 or ['o' or 'O', 'n' or 'N'] // on
+                 or ['y' or 'Y', 'e' or 'E', 's' or 'S']) // yes
         {
-            if (text.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-                text.Equals("on", StringComparison.OrdinalIgnoreCase) ||
-                text.Equals("yes", StringComparison.OrdinalIgnoreCase))
-            {
-                value = true;
-                return true;
-            }
+            value = true;
+            return true;
+        }
 
-            if (text.Equals("false", StringComparison.OrdinalIgnoreCase) ||
-                text.Equals("off", StringComparison.OrdinalIgnoreCase) ||
-                text.Equals("no", StringComparison.OrdinalIgnoreCase))
-            {
-                value = false;
-                return true;
-            }
+        if (text is ['f' or 'F', 'a' or 'A', 'l' or 'L', 's' or 'S', 'e' or 'E'] // false
+                 or ['o' or 'O', 'f' or 'F', 'f' or 'F'] // off
+                 or ['n' or 'N', 'o' or 'O']) // no
+        {
+            value = false;
+            return true;
+        }
 
-            // Negated forms
-            if (text.Equals("!true", StringComparison.OrdinalIgnoreCase) ||
-                text.Equals("!on", StringComparison.OrdinalIgnoreCase) ||
-                text.Equals("!yes", StringComparison.OrdinalIgnoreCase))
-            {
-                value = false;
-                return true;
-            }
+        // Negated forms
+        if (text is ['!', 't' or 'T', 'r' or 'R', 'u' or 'U', 'e' or 'E'] // !true
+                 or ['!', 'o' or 'O', 'n' or 'N'] // !on
+                 or ['!', 'y' or 'Y', 'e' or 'E', 's' or 'S']) // !yes
+        {
+            value = false;
+            return true;
+        }
 
-            if (text.Equals("!false", StringComparison.OrdinalIgnoreCase) ||
-                text.Equals("!off", StringComparison.OrdinalIgnoreCase) ||
-                text.Equals("!no", StringComparison.OrdinalIgnoreCase))
-            {
-                value = true;
-                return true;
-            }
+        if (text is ['!', 'f' or 'F', 'a' or 'A', 'l' or 'L', 's' or 'S', 'e' or 'E'] // !false
+                 or ['!', 'o' or 'O', 'f' or 'F', 'f' or 'F'] // !off
+                 or ['!', 'n' or 'N', 'o' or 'O']) // !no
+        {
+            value = true;
+            return true;
         }
 
         value = default;
         return false;
     }
 
-    private bool IsNext(TokenKind kind)
-        => _current.IsKind(kind);
-
-    private bool AtEnd
+    private readonly bool AtEnd
         => _position >= _expression.Length;
 
-    private bool At(char c)
+    private readonly bool At(char c)
         => !AtEnd && _expression[_position] == c;
 
-    private bool At(string s)
-    {
-        if (_position + s.Length > _expression.Length)
-        {
-            return false;
-        }
+    private readonly bool At(string s)
+        => _expression.AsSpan(_position).StartsWith(s);
 
-        for (int i = 0; i < s.Length; i++)
-        {
-            if (_expression[_position + i] != s[i])
-            {
-                return false;
-            }
-        }
+    private readonly bool At(TokenKind kind)
+        => _current.Kind == kind;
 
-        return true;
-    }
-
-    private void Assume(char c)
+    private void Consume(char c)
     {
         Assumed.True(At(c));
         _position++;
@@ -578,16 +483,47 @@ internal ref struct Parser
         return false;
     }
 
-    private bool NextIs(char c)
+    private bool TryConsume(TokenKind kind)
+        => At(kind) && Advance();
+
+    private readonly bool PeekNext(char c)
         => _position + 1 < _expression.Length && _expression[_position + 1] == c;
 
+    private void SkipWhiteSpace()
+    {
+        while (!AtEnd && char.IsWhiteSpace(_expression[_position]))
+        {
+            _position++;
+        }
+    }
+
+    private void ScanDigits()
+    {
+        while (!AtEnd && char.IsDigit(_expression[_position]))
+        {
+            _position++;
+        }
+    }
+
+    private void ScanHexDigits()
+    {
+        while (!AtEnd && CharacterUtilities.IsHexDigit(_expression[_position]))
+        {
+            _position++;
+        }
+    }
+
+    private void ScanIdentifierChars()
+    {
+        while (!AtEnd && CharacterUtilities.IsIdentifier(_expression[_position]))
+        {
+            _position++;
+        }
+    }
+
     /// <summary>
-    /// Advance
-    /// returns true on successful advance
-    ///     and false on an erroneous token
-    ///
-    /// Doesn't return error until the bogus input is encountered.
-    /// Advance() returns true even after EndOfInput is encountered.
+    ///  Advances to the next token. Returns true on success and false if a scanning error occurs.
+    ///  After reaching end-of-input, subsequent calls return true without advancing further.
     /// </summary>
     private bool Advance()
     {
@@ -596,7 +532,7 @@ internal ref struct Parser
             return false;
         }
 
-        if (_current.IsKind(TokenKind.EndOfInput))
+        if (At(TokenKind.EndOfInput))
         {
             return true;
         }
@@ -630,37 +566,31 @@ internal ref struct Parser
                 break;
 
             case '$':
+                if (!TryScanProperty(out _current))
                 {
-                    if (!TryScanProperty(out _current))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
                 break;
 
             case '%':
+                if (!TryScanItemMetadata(out _current))
                 {
-                    if (!TryScanItemMetadata(out _current))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
                 break;
 
             case '@':
+                if (!TryScanItemList(out _current))
                 {
-                    if (!TryScanItemList(out _current))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
                 break;
 
             case '!':
-                if (NextIs('='))
+                if (PeekNext('='))
                 {
                     _current = Token.NotEqualTo;
                     _position += 2;
@@ -674,7 +604,7 @@ internal ref struct Parser
                 break;
 
             case '>':
-                if (NextIs('='))
+                if (PeekNext('='))
                 {
                     _current = Token.GreaterThanOrEqualTo;
                     _position += 2;
@@ -688,7 +618,7 @@ internal ref struct Parser
                 break;
 
             case '<':
-                if (NextIs('='))
+                if (PeekNext('='))
                 {
                     _current = Token.LessThanOrEqualTo;
                     _position += 2;
@@ -702,7 +632,7 @@ internal ref struct Parser
                 break;
 
             case '=':
-                if (NextIs('='))
+                if (PeekNext('='))
                 {
                     _current = Token.EqualTo;
                     _position += 2;
@@ -720,44 +650,39 @@ internal ref struct Parser
                 break;
 
             case '\'':
+                if (!TryScanQuotedString(out _current))
                 {
-                    if (!TryScanQuotedString(out _current))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
                 break;
 
             default:
+                int start = _position;
+
+                if (TryScanNumber(out _current) ||
+                    TryScanIdentifier(out _current))
                 {
-                    int start = _position;
-
-                    if (TryScanNumber(out _current) ||
-                        TryScanIdentifier(out _current))
-                    {
-                        return true;
-                    }
-
-                    return SetErrorInfo(
-                        start,
-                        "UnexpectedCharacterInCondition",
-                        _expression[start].ToString());
+                    return true;
                 }
+
+                return SetErrorInfo(
+                    start,
+                    "UnexpectedCharacterInCondition",
+                    _expression[start].ToString());
         }
 
         return true;
     }
 
     /// <summary>
-    /// Scans a property expression of the form $(propertyname).
-    /// Expects _position at '$' on entry.
+    ///  Scans a property expression of the form $(propertyname).
     /// </summary>
     private bool TryScanProperty(out Token token)
     {
         int start = _position;
 
-        Assume('$');
+        Consume('$');
 
         if (!TryConsume('('))
         {
@@ -829,14 +754,13 @@ internal ref struct Parser
     }
 
     /// <summary>
-    /// Scans an item metadata expression of the form %(metadataname).
-    /// Expects _position at '%' on entry.
+    ///  Scans an item metadata expression of the form %(metadataname).
     /// </summary>
     private bool TryScanItemMetadata(out Token token)
     {
         int start = _position;
 
-        Assume('%');
+        Consume('%');
 
         if (!TryConsume('('))
         {
@@ -875,9 +799,7 @@ internal ref struct Parser
     }
 
     /// <summary>
-    /// Helper to verify that any AllowBuiltInMetadata or AllowCustomMetadata
-    /// specifications are not respected.
-    /// Returns true if it is ok, otherwise false.
+    ///  Verifies that metadata references are allowed by the current parser options.
     /// </summary>
     private bool CheckForUnexpectedMetadata(int start, ReadOnlyMemory<char> expression)
     {
@@ -917,15 +839,13 @@ internal ref struct Parser
     }
 
     /// <summary>
-    /// Scans past an item list expression starting at the current position.
-    /// Expects At('@') on entry.
-    /// On success, _position is advanced past the closing ')'.
+    ///  Scans an item list expression of the form @(itemname).
     /// </summary>
     private bool TryScanItemList(out Token token)
     {
         int start = _position;
 
-        Assume('@');
+        Consume('@');
 
         if (!TryConsume('('))
         {
@@ -984,16 +904,14 @@ internal ref struct Parser
     }
 
     /// <summary>
-    /// Scans a quoted string that may contain property, item, or metadata expressions.
-    /// Expects _position at opening quote on entry.
-    /// On success, _position is advanced past the closing quote.
+    ///  Scans a quoted string that may contain property, item, or metadata expressions.
     /// </summary>
     private bool TryScanQuotedString(out Token token)
     {
         bool expandable = false;
         int start = _position;
 
-        Assume('\'');
+        Consume('\'');
 
         while (!AtEnd)
         {
@@ -1001,14 +919,9 @@ internal ref struct Parser
             {
                 var text = _expression.AsMemory(start + 1, _position - start - 2);
 
-                if (!expandable && TryGetBooleanKeywordValue(text.Span, out bool booleanValue))
-                {
-                    token = booleanValue ? Token.True : Token.False;
-                }
-                else
-                {
-                    token = Token.String(text, expandable);
-                }
+                token = !expandable && TryGetBooleanKeywordValue(text.Span, out bool booleanValue)
+                    ? booleanValue ? Token.True : Token.False
+                    : Token.String(text, expandable);
 
                 return true;
             }
@@ -1077,33 +990,33 @@ internal ref struct Parser
             return false;
         }
 
-        SkipIdentifierChars();
+        ScanIdentifierChars();
 
         span = span[..(_position - start)];
 
-        if (span.Equals("and", StringComparison.OrdinalIgnoreCase))
+        if (span is ['a' or 'A', 'n' or 'N', 'd' or 'D']) // and
         {
             token = Token.And;
             return true;
         }
 
-        if (span.Equals("or", StringComparison.OrdinalIgnoreCase))
+        if (span is ['o' or 'O', 'r' or 'R']) // or
         {
             token = Token.Or;
             return true;
         }
 
-        if (span.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-            span.Equals("on", StringComparison.OrdinalIgnoreCase) ||
-            span.Equals("yes", StringComparison.OrdinalIgnoreCase))
+        if (span is ['t' or 'T', 'r' or 'R', 'u' or 'U', 'e' or 'E'] // true
+                 or ['o' or 'O', 'n' or 'N'] // on
+                 or ['y' or 'Y', 'e' or 'E', 's' or 'S']) // yes
         {
             token = Token.True;
             return true;
         }
 
-        if (span.Equals("false", StringComparison.OrdinalIgnoreCase) ||
-            span.Equals("off", StringComparison.OrdinalIgnoreCase) ||
-            span.Equals("no", StringComparison.OrdinalIgnoreCase))
+        if (span is ['f' or 'F', 'a' or 'A', 'l' or 'L', 's' or 'S', 'e' or 'E'] // false
+                 or ['o' or 'O', 'f' or 'F', 'f' or 'F'] // off
+                 or ['n' or 'N', 'o' or 'O']) // no
         {
             token = Token.False;
             return true;
@@ -1134,7 +1047,7 @@ internal ref struct Parser
         if (span is ['0', ('x' or 'X'), ..])
         {
             _position += 2;
-            SkipHexDigits();
+            ScanHexDigits();
             token = Token.Number(_expression.AsMemory(start, _position - start));
             return true;
         }
@@ -1146,13 +1059,13 @@ internal ref struct Parser
 
         do
         {
-            SkipDigits();
+            ScanDigits();
 
             _ = TryConsume('.');
 
             if (!AtEnd)
             {
-                SkipDigits();
+                ScanDigits();
             }
         }
         while (At('.'));
@@ -1160,39 +1073,4 @@ internal ref struct Parser
         token = Token.Number(_expression.AsMemory(start, _position - start));
         return true;
     }
-
-    private void SkipWhiteSpace()
-    {
-        while (!AtEnd && char.IsWhiteSpace(_expression[_position]))
-        {
-            _position++;
-        }
-    }
-
-    private void SkipDigits()
-    {
-        while (!AtEnd && char.IsDigit(_expression[_position]))
-        {
-            _position++;
-        }
-    }
-
-    private void SkipHexDigits()
-    {
-        while (!AtEnd && CharacterUtilities.IsHexDigit(_expression[_position]))
-        {
-            _position++;
-        }
-    }
-
-    private void SkipIdentifierChars()
-    {
-        while (!AtEnd && CharacterUtilities.IsIdentifier(_expression[_position]))
-        {
-            _position++;
-        }
-    }
-
-    private bool Same(TokenKind token)
-        => IsNext(token) && Advance();
 }

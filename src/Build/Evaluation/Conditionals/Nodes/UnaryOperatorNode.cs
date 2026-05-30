@@ -6,11 +6,11 @@ using System;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Base class for nodes that are unary operators (have a single child in the parse tree)
+///  Base class for unary operator nodes that have a single child expression.
 /// </summary>
-internal abstract class UnaryOperatorExpressionNode(ExpressionNode expression) : ExpressionNode
+internal abstract class UnaryOperatorNode(ExpressionNode expression) : ExpressionNode
 {
-    internal ExpressionNode Expression { get; } = expression;
+    public ExpressionNode Expression { get; } = expression;
 
     public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
     {
@@ -24,15 +24,15 @@ internal abstract class UnaryOperatorExpressionNode(ExpressionNode expression) :
         return false;
     }
 
-    internal override string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    public override string? GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => null;
 
-    internal override string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
+    public override string? GetUnexpandedValue(ConditionEvaluator.IConditionEvaluationState state)
         => null;
 
-    internal override bool IsUnexpandedValueEmpty()
+    public override bool IsUnexpandedValueEmpty()
         => Expression.IsUnexpandedValueEmpty();
 
-    internal override void ResetState()
+    public override void ResetState()
         => Expression.ResetState();
 }

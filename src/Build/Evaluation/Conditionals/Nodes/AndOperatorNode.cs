@@ -7,11 +7,10 @@ using Microsoft.Build.Shared;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Performs logical AND on children
-/// Does not update conditioned properties table
+///  Performs a logical AND on left and right children with short-circuit evaluation.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class AndExpressionNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorExpressionNode(left, right)
+internal sealed class AndOperatorNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorNode(left, right)
 {
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
     {
@@ -46,6 +45,6 @@ internal sealed class AndExpressionNode(ExpressionNode left, ExpressionNode righ
         return true;
     }
 
-    internal override string DebuggerDisplay
+    public override string DebuggerDisplay
         => $"(and {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 }
