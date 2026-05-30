@@ -997,9 +997,8 @@ internal ref struct Parser
     private bool TryScanIdentifier(out Token token)
     {
         int start = _position;
-        ReadOnlySpan<char> span = _expression.AsSpan(start);
 
-        if (!CharacterUtilities.IsIdentifierStart(span[0]))
+        if (!CharacterUtilities.IsIdentifierStart(_expression[start]))
         {
             token = default;
             return false;
@@ -1007,34 +1006,93 @@ internal ref struct Parser
 
         ScanIdentifierChars();
 
-        span = span[..(_position - start)];
+        int length = _position - start;
 
-        if (span is ['a' or 'A', 'n' or 'N', 'd' or 'D']) // and
+        switch (length)
         {
-            token = Token.And;
-            return true;
-        }
+            case 2:
+                // or
+                if ((_expression[start] is 'o' or 'O') &&
+                    (_expression[start + 1] is 'r' or 'R'))
+                {
+                    token = Token.Or;
+                    return true;
+                }
 
-        if (span is ['o' or 'O', 'r' or 'R']) // or
-        {
-            token = Token.Or;
-            return true;
-        }
+                // on
+                if ((_expression[start] is 'o' or 'O') &&
+                    (_expression[start + 1] is 'n' or 'N'))
+                {
+                    token = Token.True;
+                    return true;
+                }
 
-        if (span is ['t' or 'T', 'r' or 'R', 'u' or 'U', 'e' or 'E'] // true
-                 or ['o' or 'O', 'n' or 'N'] // on
-                 or ['y' or 'Y', 'e' or 'E', 's' or 'S']) // yes
-        {
-            token = Token.True;
-            return true;
-        }
+                // no
+                if ((_expression[start] is 'n' or 'N') &&
+                    (_expression[start + 1] is 'o' or 'O'))
+                {
+                    token = Token.False;
+                    return true;
+                }
 
-        if (span is ['f' or 'F', 'a' or 'A', 'l' or 'L', 's' or 'S', 'e' or 'E'] // false
-                 or ['o' or 'O', 'f' or 'F', 'f' or 'F'] // off
-                 or ['n' or 'N', 'o' or 'O']) // no
-        {
-            token = Token.False;
-            return true;
+                break;
+
+            case 3:
+                // and
+                if ((_expression[start] is 'a' or 'A') &&
+                    (_expression[start + 1] is 'n' or 'N') &&
+                    (_expression[start + 2] is 'd' or 'D'))
+                {
+                    token = Token.And;
+                    return true;
+                }
+
+                // yes
+                if ((_expression[start] is 'y' or 'Y') &&
+                    (_expression[start + 1] is 'e' or 'E') &&
+                    (_expression[start + 2] is 's' or 'S'))
+                {
+                    token = Token.True;
+                    return true;
+                }
+
+                // off
+                if ((_expression[start] is 'o' or 'O') &&
+                    (_expression[start + 1] is 'f' or 'F') &&
+                    (_expression[start + 2] is 'f' or 'F'))
+                {
+                    token = Token.False;
+                    return true;
+                }
+
+                break;
+
+            case 4:
+                // true
+                if ((_expression[start] is 't' or 'T') &&
+                    (_expression[start + 1] is 'r' or 'R') &&
+                    (_expression[start + 2] is 'u' or 'U') &&
+                    (_expression[start + 3] is 'e' or 'E'))
+                {
+                    token = Token.True;
+                    return true;
+                }
+
+                break;
+
+            case 5:
+                // false
+                if ((_expression[start] is 'f' or 'F') &&
+                    (_expression[start + 1] is 'a' or 'A') &&
+                    (_expression[start + 2] is 'l' or 'L') &&
+                    (_expression[start + 3] is 's' or 'S') &&
+                    (_expression[start + 4] is 'e' or 'E'))
+                {
+                    token = Token.False;
+                    return true;
+                }
+
+                break;
         }
 
         int end = _position;
