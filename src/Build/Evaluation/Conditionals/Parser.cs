@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
@@ -9,6 +8,7 @@ using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -412,10 +412,9 @@ internal ref struct Parser
     }
 
     /// <summary>
-    ///  Checks if the given span is a boolean keyword (true/false/on/off/yes/no)
-    ///  or a negated boolean keyword (!true/!false/!on/!off/!yes/!no).
+    ///  Checks if the given segment is a boolean keyword (true/false/on/off/yes/no).
     /// </summary>
-    private static bool TryGetBooleanKeywordValue(ReadOnlySpan<char> text, out bool value)
+    private static bool TryGetBooleanKeywordValue(StringSegment text, out bool value)
     {
         if (text is ['t' or 'T', 'r' or 'R', 'u' or 'U', 'e' or 'E'] // true
                  or ['o' or 'O', 'n' or 'N'] // on
@@ -433,29 +432,30 @@ internal ref struct Parser
             return true;
         }
 
-        // Negated forms
-        if (text is ['!', 't' or 'T', 'r' or 'R', 'u' or 'U', 'e' or 'E'] // !true
-                 or ['!', 'o' or 'O', 'n' or 'N'] // !on
-                 or ['!', 'y' or 'Y', 'e' or 'E', 's' or 'S']) // !yes
-        {
-            value = false;
-            return true;
-        }
-
-        if (text is ['!', 'f' or 'F', 'a' or 'A', 'l' or 'L', 's' or 'S', 'e' or 'E'] // !false
-                 or ['!', 'o' or 'O', 'f' or 'F', 'f' or 'F'] // !off
-                 or ['!', 'n' or 'N', 'o' or 'O']) // !no
-        {
-            value = true;
-            return true;
-        }
-
         value = default;
         return false;
     }
 
     private readonly bool AtEnd
         => _position >= _expression.Length;
+
+    /// <summary>
+    ///  Returns a segment of the expression from <paramref name="start"/> to the current position.
+    /// </summary>
+    private readonly StringSegment SegmentFrom(int start)
+        => new(_expression, start, _position - start);
+
+    /// <summary>
+    ///  Returns a segment of the expression from <paramref name="start"/> with the given <paramref name="length"/>.
+    /// </summary>
+    private readonly StringSegment Segment(int start, int length)
+        => new(_expression, start, length);
+
+    /// <summary>
+    ///  Returns a segment of the expression from the current position to the end.
+    /// </summary>
+    private readonly StringSegment Remaining
+        => new(_expression, _position, _expression.Length - _position);
 
     private readonly bool At(char c)
         => !AtEnd && _expression[_position] == c;
@@ -748,7 +748,7 @@ internal ref struct Parser
                     }
 
                     _position++;
-                    token = Token.Property(_expression.AsMemory(start, _position - start));
+                    token = Token.Property(SegmentFrom(start));
                     return true;
                 }
             }
@@ -788,15 +788,15 @@ internal ref struct Parser
         {
             if (TryConsume(')'))
             {
-                ReadOnlyMemory<char> memory = _expression.AsMemory(start, _position - start);
+                StringSegment segment = SegmentFrom(start);
 
-                if (!CheckForUnexpectedMetadata(start, memory))
+                if (!CheckForUnexpectedMetadata(start, segment))
                 {
                     token = default;
                     return false;
                 }
 
-                token = Token.ItemMetadata(memory);
+                token = Token.ItemMetadata(segment);
                 return true;
             }
 
@@ -816,18 +816,18 @@ internal ref struct Parser
     /// <summary>
     ///  Verifies that metadata references are allowed by the current parser options.
     /// </summary>
-    private bool CheckForUnexpectedMetadata(int start, ReadOnlyMemory<char> expression)
+    private bool CheckForUnexpectedMetadata(int start, StringSegment expression)
     {
         if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
         {
             return true;
         }
 
-        ReadOnlySpan<char> name = expression.Span;
+        StringSegment name = expression;
 
-        if (name is ['%', '(', .. var span, ')'])
+        if (name is ['%', '(', .. var segment, ')'])
         {
-            name = span;
+            name = segment;
         }
 
         int dotIndex = name.IndexOf('.');
@@ -901,7 +901,7 @@ internal ref struct Parser
             {
                 if (parenCount == 0)
                 {
-                    token = Token.ItemList(_expression.AsMemory(start, _position - start));
+                    token = Token.ItemList(SegmentFrom(start));
                     return true;
                 }
 
@@ -932,12 +932,25 @@ internal ref struct Parser
         {
             if (TryConsume('\''))
             {
-                var text = _expression.AsMemory(start + 1, _position - start - 2);
+                StringSegment text = Segment(start + 1, _position - start - 2);
 
-                token = !expandable && TryGetBooleanKeywordValue(text.Span, out bool booleanValue)
-                    ? booleanValue ? Token.True : Token.False
-                    : Token.String(text, expandable);
+                if (!expandable)
+                {
+                    // Handle negated boolean keywords (e.g. '!true', '!off')
+                    if (text is ['!', .. var remainder] && TryGetBooleanKeywordValue(remainder, out bool negatedValue))
+                    {
+                        token = negatedValue ? Token.False : Token.True;
+                        return true;
+                    }
 
+                    if (TryGetBooleanKeywordValue(text, out bool booleanValue))
+                    {
+                        token = booleanValue ? Token.True : Token.False;
+                        return true;
+                    }
+                }
+
+                token = Token.String(text, expandable);
                 return true;
             }
 
@@ -1006,93 +1019,26 @@ internal ref struct Parser
 
         ScanIdentifierChars();
 
-        int length = _position - start;
+        StringSegment identifier = SegmentFrom(start);
 
-        switch (length)
+        // Check for 'and'/'or' keywords
+        if (identifier is ['o' or 'O', 'r' or 'R'])
         {
-            case 2:
-                // or
-                if ((_expression[start] is 'o' or 'O') &&
-                    (_expression[start + 1] is 'r' or 'R'))
-                {
-                    token = Token.Or;
-                    return true;
-                }
+            token = Token.Or;
+            return true;
+        }
 
-                // on
-                if ((_expression[start] is 'o' or 'O') &&
-                    (_expression[start + 1] is 'n' or 'N'))
-                {
-                    token = Token.True;
-                    return true;
-                }
+        if (identifier is ['a' or 'A', 'n' or 'N', 'd' or 'D'])
+        {
+            token = Token.And;
+            return true;
+        }
 
-                // no
-                if ((_expression[start] is 'n' or 'N') &&
-                    (_expression[start + 1] is 'o' or 'O'))
-                {
-                    token = Token.False;
-                    return true;
-                }
-
-                break;
-
-            case 3:
-                // and
-                if ((_expression[start] is 'a' or 'A') &&
-                    (_expression[start + 1] is 'n' or 'N') &&
-                    (_expression[start + 2] is 'd' or 'D'))
-                {
-                    token = Token.And;
-                    return true;
-                }
-
-                // yes
-                if ((_expression[start] is 'y' or 'Y') &&
-                    (_expression[start + 1] is 'e' or 'E') &&
-                    (_expression[start + 2] is 's' or 'S'))
-                {
-                    token = Token.True;
-                    return true;
-                }
-
-                // off
-                if ((_expression[start] is 'o' or 'O') &&
-                    (_expression[start + 1] is 'f' or 'F') &&
-                    (_expression[start + 2] is 'f' or 'F'))
-                {
-                    token = Token.False;
-                    return true;
-                }
-
-                break;
-
-            case 4:
-                // true
-                if ((_expression[start] is 't' or 'T') &&
-                    (_expression[start + 1] is 'r' or 'R') &&
-                    (_expression[start + 2] is 'u' or 'U') &&
-                    (_expression[start + 3] is 'e' or 'E'))
-                {
-                    token = Token.True;
-                    return true;
-                }
-
-                break;
-
-            case 5:
-                // false
-                if ((_expression[start] is 'f' or 'F') &&
-                    (_expression[start + 1] is 'a' or 'A') &&
-                    (_expression[start + 2] is 'l' or 'L') &&
-                    (_expression[start + 3] is 's' or 'S') &&
-                    (_expression[start + 4] is 'e' or 'E'))
-                {
-                    token = Token.False;
-                    return true;
-                }
-
-                break;
+        // Check for boolean keywords (true/false/on/off/yes/no)
+        if (TryGetBooleanKeywordValue(identifier, out bool boolValue))
+        {
+            token = boolValue ? Token.True : Token.False;
+            return true;
         }
 
         int end = _position;
@@ -1100,8 +1046,8 @@ internal ref struct Parser
         SkipWhiteSpace();
 
         token = At('(')
-            ? Token.FunctionName(_expression.AsMemory(start, end - start))
-            : Token.String(_expression.AsMemory(start, end - start));
+            ? Token.FunctionName(Segment(start, end - start))
+            : Token.String(Segment(start, end - start));
 
         return true;
     }
@@ -1109,23 +1055,23 @@ internal ref struct Parser
     private bool TryScanNumber(out Token token)
     {
         int start = _position;
-        ReadOnlySpan<char> span = _expression.AsSpan(start);
+        StringSegment remaining = Remaining;
 
-        if (!CharacterUtilities.IsNumberStart(span[0]))
+        if (!CharacterUtilities.IsNumberStart(remaining[0]))
         {
             token = default;
             return false;
         }
 
-        if (span is ['0', ('x' or 'X'), ..])
+        if (remaining is ['0', ('x' or 'X'), ..])
         {
             _position += 2;
             ScanHexDigits();
-            token = Token.Number(_expression.AsMemory(start, _position - start));
+            token = Token.Number(SegmentFrom(start));
             return true;
         }
 
-        if (span[0] is '+' or '-')
+        if (remaining[0] is '+' or '-')
         {
             _position++;
         }
@@ -1143,7 +1089,7 @@ internal ref struct Parser
         }
         while (At('.'));
 
-        token = Token.Number(_expression.AsMemory(start, _position - start));
+        token = Token.Number(SegmentFrom(start));
         return true;
     }
 }

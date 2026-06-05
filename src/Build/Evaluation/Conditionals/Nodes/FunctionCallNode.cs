@@ -8,6 +8,7 @@ using System.IO;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 
 namespace Microsoft.Build.Evaluation;
@@ -17,10 +18,10 @@ namespace Microsoft.Build.Evaluation;
 /// </summary>
 internal sealed class FunctionCallNode : ExpressionNode
 {
-    private readonly ReadOnlyMemory<char> _functionName;
+    private readonly StringSegment _functionName;
     private readonly ImmutableArray<ExpressionNode> _arguments;
 
-    public FunctionCallNode(ReadOnlyMemory<char> functionName, ImmutableArray<ExpressionNode> arguments)
+    public FunctionCallNode(StringSegment functionName, ImmutableArray<ExpressionNode> arguments)
     {
         _functionName = functionName;
         _arguments = arguments;
@@ -28,13 +29,13 @@ internal sealed class FunctionCallNode : ExpressionNode
 
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
     {
-        if (_functionName.Span.Equals("Exists", StringComparison.OrdinalIgnoreCase))
+        if (_functionName.Equals("Exists", StringComparison.OrdinalIgnoreCase))
         {
             result = EvaluateExists(_arguments, state);
             return true;
         }
 
-        if (_functionName.Span.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
+        if (_functionName.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
         {
             result = EvaluateHasTrailingSlash(_functionName, _arguments, state);
             return true;
@@ -120,7 +121,7 @@ internal sealed class FunctionCallNode : ExpressionNode
     }
 
     private static bool EvaluateHasTrailingSlash(
-        ReadOnlyMemory<char> functionName,
+        StringSegment functionName,
         ImmutableArray<ExpressionNode> arguments,
         ConditionEvaluator.IConditionEvaluationState state)
     {
@@ -154,7 +155,7 @@ internal sealed class FunctionCallNode : ExpressionNode
     ///  Scalar result
     /// </returns>
     private static string ExpandArgumentForScalarParameter(
-        ReadOnlyMemory<char> functionName,
+        StringSegment functionName,
         ExpressionNode argumentNode,
         ConditionEvaluator.IConditionEvaluationState state,
         bool isFilePath = true)
