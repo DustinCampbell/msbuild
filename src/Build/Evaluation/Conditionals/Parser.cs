@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
@@ -437,17 +438,22 @@ internal ref struct Parser
     }
 
     private readonly bool AtEnd
-        => _position >= _expression.Length;
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _position >= _expression.Length;
+    }
 
     /// <summary>
     ///  Returns a segment of the expression from <paramref name="start"/> to the current position.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly StringSegment SegmentFrom(int start)
         => new(_expression, start, _position - start);
 
     /// <summary>
     ///  Returns a segment of the expression from <paramref name="start"/> with the given <paramref name="length"/>.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly StringSegment Segment(int start, int length)
         => new(_expression, start, length);
 
@@ -455,8 +461,12 @@ internal ref struct Parser
     ///  Returns a segment of the expression from the current position to the end.
     /// </summary>
     private readonly StringSegment Remaining
-        => new(_expression, _position, _expression.Length - _position);
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(_expression, _position, _expression.Length - _position);
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly bool At(char c)
         => !AtEnd && _expression[_position] == c;
 
@@ -478,6 +488,7 @@ internal ref struct Parser
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly bool At(TokenKind kind)
         => _current.Kind == kind;
 
@@ -501,6 +512,7 @@ internal ref struct Parser
     private bool TryConsume(TokenKind kind)
         => At(kind) && Advance();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly bool PeekNext(char c)
         => _position + 1 < _expression.Length && _expression[_position + 1] == c;
 
