@@ -3,6 +3,7 @@
 
 using System;
 using System.Globalization;
+using Microsoft.Build.Text;
 #if !NET
 using System.Text;
 #endif
@@ -95,6 +96,13 @@ internal static class ConversionUtilities
         => ValidBooleanTrue(parameterValue) || ValidBooleanFalse(parameterValue);
 
     /// <summary>
+    ///  Returns true if the segment can be successfully converted to a bool,
+    ///  such as "on" or "yes".
+    /// </summary>
+    public static bool CanConvertStringToBool(StringSegment parameterValue)
+        => ValidBooleanTrue(parameterValue) || ValidBooleanFalse(parameterValue);
+
+    /// <summary>
     ///  Returns true if the span can be successfully converted to a bool,
     ///  such as "on" or "yes".
     /// </summary>
@@ -112,6 +120,18 @@ internal static class ConversionUtilities
            string.Equals(parameterValue, "!false", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(parameterValue, "!off", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(parameterValue, "!no", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///  Returns true if the segment represents a valid MSBuild boolean true value,
+    ///  such as "on", "!false", "yes".
+    /// </summary>
+    public static bool ValidBooleanTrue(StringSegment parameterValue)
+        => parameterValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("on", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!false", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!off", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!no", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     ///  Returns true if the span represents a valid MSBuild boolean true value,
@@ -136,6 +156,18 @@ internal static class ConversionUtilities
            string.Equals(parameterValue, "!true", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(parameterValue, "!on", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(parameterValue, "!yes", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///  Returns true if the segment represents a valid MSBuild boolean false value,
+    ///  such as "!on" "off" "no" "!true".
+    /// </summary>
+    public static bool ValidBooleanFalse(StringSegment parameterValue)
+        => parameterValue.Equals("false", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("off", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("no", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!true", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!on", StringComparison.OrdinalIgnoreCase) ||
+           parameterValue.Equals("!yes", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     ///  Returns true if the span represents a valid MSBuild boolean false value,

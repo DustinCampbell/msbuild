@@ -1,7 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -24,7 +24,7 @@ internal readonly struct Token
     public static readonly Token EqualTo = new(TokenKind.EqualTo, "==");
     public static readonly Token NotEqualTo = new(TokenKind.NotEqualTo, "!=");
     public static readonly Token Not = new(TokenKind.Not, "!");
-    public static readonly Token EndOfInput = new(TokenKind.EndOfInput, ReadOnlyMemory<char>.Empty);
+    public static readonly Token EndOfInput = new(TokenKind.EndOfInput, default(StringSegment));
 
     public TokenKind Kind { get; }
 
@@ -34,36 +34,36 @@ internal readonly struct Token
     /// </summary>
     public bool Expandable { get; }
 
-    public ReadOnlyMemory<char> Text { get; }
+    public StringSegment Text { get; }
 
     private Token(TokenKind kind, string text, bool expandable = false)
-        : this(kind, text.AsMemory(), expandable)
+        : this(kind, (StringSegment)text, expandable)
     {
     }
 
-    private Token(TokenKind kind, ReadOnlyMemory<char> text, bool expandable = false)
+    private Token(TokenKind kind, StringSegment text, bool expandable = false)
     {
         Kind = kind;
         Text = text;
         Expandable = expandable;
     }
 
-    public static Token Number(ReadOnlyMemory<char> text)
+    public static Token Number(StringSegment text)
         => new(TokenKind.Number, text);
 
-    public static Token FunctionName(ReadOnlyMemory<char> text)
+    public static Token FunctionName(StringSegment text)
         => new(TokenKind.FunctionName, text);
 
-    public static Token Property(ReadOnlyMemory<char> text)
+    public static Token Property(StringSegment text)
         => new(TokenKind.Property, text);
 
-    public static Token ItemMetadata(ReadOnlyMemory<char> text)
+    public static Token ItemMetadata(StringSegment text)
         => new(TokenKind.ItemMetadata, text);
 
-    public static Token ItemList(ReadOnlyMemory<char> text)
+    public static Token ItemList(StringSegment text)
         => new(TokenKind.ItemList, text);
 
-    public static Token String(ReadOnlyMemory<char> text, bool expandable = false)
+    public static Token String(StringSegment text, bool expandable = false)
         => new(TokenKind.String, text, expandable);
 
     public override string ToString()

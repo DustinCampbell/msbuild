@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -13,13 +14,13 @@ namespace Microsoft.Build.Evaluation;
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class NumberLiteralNode : ExpressionNode
 {
-    private readonly ReadOnlyMemory<char> _value;
+    private readonly StringSegment _value;
 
     private string? _valueText;
     private (bool, double)? _cachedNumericValue;
     private (bool, Version?)? _cachedVersionValue;
 
-    public NumberLiteralNode(ReadOnlyMemory<char> value)
+    public NumberLiteralNode(StringSegment value)
     {
         Assumed.False(value.IsEmpty, "NumericExpressionNode cannot have empty value");
         _value = value;
@@ -42,7 +43,7 @@ internal sealed class NumberLiteralNode : ExpressionNode
 
 #if NET
         (bool, double) Compute()
-            => ConversionUtilities.TryConvertDecimalOrHexToDouble(_value.Span, out double value)
+            => ConversionUtilities.TryConvertDecimalOrHexToDouble(_value.AsSpan(), out double value)
                 ? (true, value)
                 : (false, default);
 #else
@@ -62,7 +63,7 @@ internal sealed class NumberLiteralNode : ExpressionNode
 
 #if NET
         (bool, Version?) Compute()
-            => Version.TryParse(_value.Span, out Version? value)
+            => Version.TryParse(_value.AsSpan(), out Version? value)
                 ? (true, value)
                 : (false, default);
 #else

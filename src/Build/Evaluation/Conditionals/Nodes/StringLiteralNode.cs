@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -16,9 +17,9 @@ namespace Microsoft.Build.Evaluation;
 ///  such as a property expression or escaped character.
 /// </param>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class StringLiteralNode(ReadOnlyMemory<char> value, bool expandable) : ExpressionNode
+internal sealed class StringLiteralNode(StringSegment value, bool expandable) : ExpressionNode
 {
-    private readonly ReadOnlyMemory<char> _value = value;
+    private readonly StringSegment _value = value;
     private readonly bool _expandable = expandable;
 
     /// <summary>
@@ -41,7 +42,7 @@ internal sealed class StringLiteralNode(ReadOnlyMemory<char> value, bool expanda
 
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         => !_expandable
-            ? ConversionUtilities.TryConvertStringToBool(_value.Span, out result)
+            ? ConversionUtilities.TryConvertStringToBool(_value, out result)
             : ConversionUtilities.TryConvertStringToBool(GetExpandedValue(state), out result);
 
     public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
@@ -55,7 +56,7 @@ internal sealed class StringLiteralNode(ReadOnlyMemory<char> value, bool expanda
 #if NET
         if (!_expandable)
         {
-            return ConversionUtilities.TryConvertDecimalOrHexToDouble(_value.Span, out result);
+            return ConversionUtilities.TryConvertDecimalOrHexToDouble(_value.AsSpan(), out result);
         }
 #endif
 
@@ -73,7 +74,7 @@ internal sealed class StringLiteralNode(ReadOnlyMemory<char> value, bool expanda
 #if NET
         if (!_expandable)
         {
-            return Version.TryParse(_value.Span, out result);
+            return Version.TryParse(_value.AsSpan(), out result);
         }
 #endif
 
@@ -93,7 +94,7 @@ internal sealed class StringLiteralNode(ReadOnlyMemory<char> value, bool expanda
         {
             if (_expandable)
             {
-                switch (_value.Span)
+                switch (_value)
                 {
                     case []:
                         _cachedExpandedValue = string.Empty;
@@ -171,7 +172,7 @@ internal sealed class StringLiteralNode(ReadOnlyMemory<char> value, bool expanda
             if (string.Equals(GetExpandedValue(state), MSBuildConstants.CurrentToolsVersion, StringComparison.Ordinal))
             {
                 // and it is just an expansion of MSBuildToolsVersion
-                return _value.Span.Equals("$(MSBuildToolsVersion)", StringComparison.OrdinalIgnoreCase);
+                return _value.Equals("$(MSBuildToolsVersion)", StringComparison.OrdinalIgnoreCase);
             }
         }
 

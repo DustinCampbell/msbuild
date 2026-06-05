@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Framework;
 
@@ -313,7 +314,7 @@ internal static class ItemSpecModifiers
         return false;
     }
 
-    public static bool TryGetModifierKind(ReadOnlySpan<char> name, out ItemSpecModifierKind kind)
+    public static bool TryGetModifierKind(StringSegment name, out ItemSpecModifierKind kind)
     {
         switch (name.Length)
         {
@@ -504,7 +505,7 @@ internal static class ItemSpecModifiers
     /// <summary>
     /// Indicates if the given name is reserved for an item-spec modifier.
     /// </summary>
-    public static bool IsItemSpecModifier(ReadOnlySpan<char> name)
+    public static bool IsItemSpecModifier(StringSegment name)
         => name.Length > 0
         && TryGetModifierKind(name, out _);
 
