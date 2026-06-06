@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -283,7 +284,23 @@ internal ref struct Parser
                 return SetUnexpectedTokenError(out result);
             }
 
-            result = new FunctionCallNode(current.Text, arglist);
+            if (current.Text.Equals("Exists", StringComparison.OrdinalIgnoreCase))
+            {
+                result = new ExistsCallNode(arglist);
+            }
+            else if (current.Text.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
+            {
+                result = new HasTrailingSlashCallNode(arglist);
+            }
+            else
+            {
+                _errorPosition = _position + 1;
+                _errorResource = "UndefinedFunctionCall";
+                _errorArgs = [_expression, current.Text.ToString()];
+                result = null;
+                return false;
+            }
+
             return true;
         }
 

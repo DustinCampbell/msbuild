@@ -332,6 +332,23 @@ namespace Microsoft.Build.UnitTests
         ///  Tests that function call expressions with various argument types parse correctly.
         /// </summary>
         [Theory]
+        [InlineData("Exists( 1 )")]
+        [InlineData("Exists( $(Property) )")]
+        [InlineData("Exists( @(ItemList) )")]
+        [InlineData("Exists( simplestring )")]
+        [InlineData("Exists( 'Not a Simple String' )")]
+        [InlineData("HasTrailingSlash( $(Property) )")]
+        [InlineData("HasTrailingSlash( 'some/path/' )")]
+        internal void FunctionCallExpressions(string expression)
+        {
+            ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
+            result.IsError.ShouldBeFalse();
+        }
+
+        /// <summary>
+        ///  Tests that calls to undefined functions produce parse errors.
+        /// </summary>
+        [Theory]
         [InlineData("Foo()")]
         [InlineData("Foo( 1 )")]
         [InlineData("Foo( $(Property) )")]
@@ -341,10 +358,10 @@ namespace Microsoft.Build.UnitTests
         [InlineData("Foo( 'Not a Simple String', 1234 )")]
         [InlineData("Foo( $(Property), 'Not a Simple String', 1234 )")]
         [InlineData("Foo( @(ItemList), $(Property), simplestring, 'Not a Simple String', 1234 )")]
-        internal void FunctionCallExpressions(string expression)
+        internal void UndefinedFunctionCallExpressions(string expression)
         {
             ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
-            result.IsError.ShouldBeFalse();
+            result.IsError.ShouldBeTrue();
         }
 
         /// <summary>
