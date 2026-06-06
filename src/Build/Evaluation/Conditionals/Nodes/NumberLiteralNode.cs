@@ -36,22 +36,14 @@ internal sealed class NumberLiteralNode : ExpressionNode
 
     public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
     {
-        (bool success, double numericValue) = _cachedNumericValue ??= Compute();
+        (bool success, result) = _cachedNumericValue ??= Compute();
 
-        result = numericValue;
         return success;
 
-#if NET
         (bool, double) Compute()
-            => ConversionUtilities.TryConvertDecimalOrHexToDouble(_value.AsSpan(), out double value)
+            => ConversionUtilities.TryConvertDecimalOrHexToDouble(_value, out double value)
                 ? (true, value)
                 : (false, default);
-#else
-        (bool, double) Compute()
-            => ConversionUtilities.TryConvertDecimalOrHexToDouble(ValueText, out double value)
-                ? (true, value)
-                : (false, default);
-#endif
     }
 
     public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version? result)
