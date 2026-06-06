@@ -484,10 +484,12 @@
     <Compile Include="Evaluation\Conditionals\Nodes\BooleanLiteralNode.cs" />
     <Compile Include="Evaluation\Conditionals\CharacterUtilities.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\EqualOperatorNode.cs" />
+    <Compile Include="Evaluation\Conditionals\Nodes\ExistsCallNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\FunctionCallNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\ExpressionNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\GreaterThanOperatorNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\GreaterThanOrEqualOperatorNode.cs" />
+    <Compile Include="Evaluation\Conditionals\Nodes\HasTrailingSlashCallNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\LessThanOperatorNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\LessThanOrEqualOperatorNode.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\EqualityComparisonNode.cs" />
