@@ -527,7 +527,7 @@ internal ref struct Parser
 
     private bool TryConsume(char c)
     {
-        if (!AtEnd && _expression[_position] == c)
+        if (At(c))
         {
             _position++;
             return true;
@@ -598,22 +598,22 @@ internal ref struct Parser
 
         if (AtEnd)
         {
-            SetCurrent(TokenKind.EndOfInput, 0);
+            SetCurrentAndAdvance(TokenKind.EndOfInput, length: 0);
             return true;
         }
 
         switch (_expression[_position])
         {
             case ',':
-                SetCurrent(TokenKind.Comma, length: 1);
+                SetCurrentAndAdvance(TokenKind.Comma, length: 1);
                 break;
 
             case '(':
-                SetCurrent(TokenKind.LeftParenthesis, length: 1);
+                SetCurrentAndAdvance(TokenKind.LeftParenthesis, length: 1);
                 break;
 
             case ')':
-                SetCurrent(TokenKind.RightParenthesis, length: 1);
+                SetCurrentAndAdvance(TokenKind.RightParenthesis, length: 1);
                 break;
 
             case '$':
@@ -643,11 +643,11 @@ internal ref struct Parser
             case '!':
                 if (PeekNext('='))
                 {
-                    SetCurrent(TokenKind.NotEqualTo, length: 2);
+                    SetCurrentAndAdvance(TokenKind.NotEqualTo, length: 2);
                 }
                 else
                 {
-                    SetCurrent(TokenKind.Not, length: 1);
+                    SetCurrentAndAdvance(TokenKind.Not, length: 1);
                 }
 
                 break;
@@ -655,11 +655,11 @@ internal ref struct Parser
             case '>':
                 if (PeekNext('='))
                 {
-                    SetCurrent(TokenKind.GreaterThanOrEqualTo, length: 2);
+                    SetCurrentAndAdvance(TokenKind.GreaterThanOrEqualTo, length: 2);
                 }
                 else
                 {
-                    SetCurrent(TokenKind.GreaterThan, length: 1);
+                    SetCurrentAndAdvance(TokenKind.GreaterThan, length: 1);
                 }
 
                 break;
@@ -667,11 +667,11 @@ internal ref struct Parser
             case '<':
                 if (PeekNext('='))
                 {
-                    SetCurrent(TokenKind.LessThanOrEqualTo, length: 2);
+                    SetCurrentAndAdvance(TokenKind.LessThanOrEqualTo, length: 2);
                 }
                 else
                 {
-                    SetCurrent(TokenKind.LessThan, length: 1);
+                    SetCurrentAndAdvance(TokenKind.LessThan, length: 1);
                 }
 
                 break;
@@ -679,7 +679,7 @@ internal ref struct Parser
             case '=':
                 if (PeekNext('='))
                 {
-                    SetCurrent(TokenKind.EqualTo, length: 2);
+                    SetCurrentAndAdvance(TokenKind.EqualTo, length: 2);
                 }
                 else
                 {
@@ -720,7 +720,7 @@ internal ref struct Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetCurrent(TokenKind kind, int length)
+    private void SetCurrentAndAdvance(TokenKind kind, int length)
     {
         _currentKind = kind;
         _currentStart = _position;
