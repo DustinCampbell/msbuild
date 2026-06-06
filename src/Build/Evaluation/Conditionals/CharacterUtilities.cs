@@ -1,6 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Build.Framework.Utilities;
+
 namespace Microsoft.Build.Evaluation
 {
     internal static class CharacterUtilities
@@ -15,6 +17,6 @@ namespace Microsoft.Build.Evaluation
             => IsIdentifierStart(candidate) || char.IsDigit(candidate);
 
         public static bool IsHexDigit(char candidate)
-            => char.IsDigit(candidate) || ((uint)((candidate | 0x20) - 'a') <= 'f' - 'a');
+            => HexConverter.FromChar(candidate) != 0xff;
     }
 }

@@ -43,8 +43,8 @@ public readonly struct StringSegment :
     ISpanFormattable
 {
     private readonly string? _value;
-    internal readonly int _startIndex;
-    internal readonly int _length;
+    private readonly int _startIndex;
+    private readonly int _length;
 
     internal string Value => _value ?? string.Empty;
 
