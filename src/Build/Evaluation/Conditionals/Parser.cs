@@ -353,7 +353,22 @@ internal ref struct Parser
             return true;
         }
 
-        using RefArrayBuilder<ExpressionNode> args = default;
+        // Parse the first argument.
+        if (!TryParseLiteral(out ExpressionNode? firstArg))
+        {
+            return SetUnexpectedTokenError(out result);
+        }
+
+        // If there's no comma, it's a single-argument list — avoid RefArrayBuilder.
+        if (!TryConsume(TokenKind.Comma))
+        {
+            result = [firstArg];
+            return true;
+        }
+
+        // Multiple arguments — use RefArrayBuilder for the rest.
+        using RefArrayBuilder<ExpressionNode> args = new(initialCapacity: 4);
+        args.Add(firstArg);
 
         while (true)
         {
