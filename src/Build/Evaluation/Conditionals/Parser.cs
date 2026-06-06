@@ -41,7 +41,10 @@ internal ref struct Parser
     private readonly ParserOptions _options;
     private readonly ElementLocation _elementLocation;
 
-    private Token _current;
+    private TokenKind _currentKind;
+    private int _currentStart;
+    private int _currentEnd;
+    private bool _currentExpandable;
     private int _position;
 
     private string? _errorResource;
@@ -123,7 +126,7 @@ internal ref struct Parser
         if (!HasError)
         {
             _errorResource = "UnexpectedTokenInCondition";
-            _errorArgs = [_expression, _current.ToString(), _errorPosition];
+            _errorArgs = [_expression, CurrentSegment.ToString(), _errorPosition];
         }
 
         return false;
@@ -243,7 +246,7 @@ internal ref struct Parser
 
     private bool TryParseComparisonOperator(out TokenKind result)
     {
-        result = _current.Kind;
+        result = _currentKind;
 
         if (result is TokenKind.LessThan or TokenKind.GreaterThan
                    or TokenKind.LessThanOrEqualTo or TokenKind.GreaterThanOrEqualTo
@@ -265,7 +268,8 @@ internal ref struct Parser
         }
 
         // If it's not one of those, check for other TokenTypes.
-        Token current = _current;
+        int functionStart = _currentStart;
+        int functionEnd = _currentEnd;
         if (TryConsume(TokenKind.FunctionName))
         {
             if (!TryConsume(TokenKind.LeftParenthesis))
@@ -284,11 +288,13 @@ internal ref struct Parser
                 return SetUnexpectedTokenError(out result);
             }
 
-            if (current.Text.Equals("Exists", StringComparison.OrdinalIgnoreCase))
+            StringSegment functionName = Segment(functionStart, functionEnd - functionStart);
+
+            if (functionName.Equals("Exists", StringComparison.OrdinalIgnoreCase))
             {
                 result = new ExistsCallNode(arglist);
             }
-            else if (current.Text.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
+            else if (functionName.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
             {
                 result = new HasTrailingSlashCallNode(arglist);
             }
@@ -296,7 +302,7 @@ internal ref struct Parser
             {
                 _errorPosition = _position + 1;
                 _errorResource = "UndefinedFunctionCall";
-                _errorArgs = [_expression, current.Text.ToString()];
+                _errorArgs = [_expression, functionName.ToString()];
                 result = null;
                 return false;
             }
@@ -406,7 +412,9 @@ internal ref struct Parser
 
     private bool TryParseLiteral([NotNullWhen(true)] out ExpressionNode? result)
     {
-        Token current = _current;
+        int start = _currentStart;
+        int end = _currentEnd;
+        bool expandable = _currentExpandable;
 
         if (TryConsume(TokenKind.True))
         {
@@ -422,13 +430,13 @@ internal ref struct Parser
 
         if (TryConsume(TokenKind.String))
         {
-            result = new StringLiteralNode(current.Text, current.Expandable);
+            result = new StringLiteralNode(Segment(start, end - start), expandable);
             return true;
         }
 
         if (TryConsume(TokenKind.Number))
         {
-            result = new NumberLiteralNode(current.Text);
+            result = new NumberLiteralNode(Segment(start, end - start));
             return true;
         }
 
@@ -436,7 +444,7 @@ internal ref struct Parser
             TryConsume(TokenKind.ItemMetadata) ||
             TryConsume(TokenKind.ItemList))
         {
-            result = new StringLiteralNode(current.Text, expandable: true);
+            result = new StringLiteralNode(Segment(start, end - start), expandable: true);
             return true;
         }
 
@@ -451,6 +459,15 @@ internal ref struct Parser
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _position >= _expression.Length;
+    }
+
+    /// <summary>
+    ///  Returns a segment for the current token's text.
+    /// </summary>
+    private readonly StringSegment CurrentSegment
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(_expression, _currentStart, _currentEnd - _currentStart);
     }
 
     /// <summary>
@@ -500,7 +517,7 @@ internal ref struct Parser
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly bool At(TokenKind kind)
-        => _current.Kind == kind;
+        => _currentKind == kind;
 
     private void Consume(char c)
     {
@@ -581,29 +598,26 @@ internal ref struct Parser
 
         if (AtEnd)
         {
-            _current = Token.EndOfInput;
+            SetCurrent(TokenKind.EndOfInput, 0);
             return true;
         }
 
         switch (_expression[_position])
         {
             case ',':
-                _current = Token.Comma;
-                _position++;
+                SetCurrent(TokenKind.Comma, length: 1);
                 break;
 
             case '(':
-                _current = Token.LeftParenthesis;
-                _position++;
+                SetCurrent(TokenKind.LeftParenthesis, length: 1);
                 break;
 
             case ')':
-                _current = Token.RightParenthesis;
-                _position++;
+                SetCurrent(TokenKind.RightParenthesis, length: 1);
                 break;
 
             case '$':
-                if (!TryScanProperty(out _current))
+                if (!TryScanProperty())
                 {
                     return false;
                 }
@@ -611,7 +625,7 @@ internal ref struct Parser
                 break;
 
             case '%':
-                if (!TryScanItemMetadata(out _current))
+                if (!TryScanItemMetadata())
                 {
                     return false;
                 }
@@ -619,7 +633,7 @@ internal ref struct Parser
                 break;
 
             case '@':
-                if (!TryScanItemList(out _current))
+                if (!TryScanItemList())
                 {
                     return false;
                 }
@@ -629,13 +643,11 @@ internal ref struct Parser
             case '!':
                 if (PeekNext('='))
                 {
-                    _current = Token.NotEqualTo;
-                    _position += 2;
+                    SetCurrent(TokenKind.NotEqualTo, length: 2);
                 }
                 else
                 {
-                    _current = Token.Not;
-                    _position++;
+                    SetCurrent(TokenKind.Not, length: 1);
                 }
 
                 break;
@@ -643,13 +655,11 @@ internal ref struct Parser
             case '>':
                 if (PeekNext('='))
                 {
-                    _current = Token.GreaterThanOrEqualTo;
-                    _position += 2;
+                    SetCurrent(TokenKind.GreaterThanOrEqualTo, length: 2);
                 }
                 else
                 {
-                    _current = Token.GreaterThan;
-                    _position++;
+                    SetCurrent(TokenKind.GreaterThan, length: 1);
                 }
 
                 break;
@@ -657,13 +667,11 @@ internal ref struct Parser
             case '<':
                 if (PeekNext('='))
                 {
-                    _current = Token.LessThanOrEqualTo;
-                    _position += 2;
+                    SetCurrent(TokenKind.LessThanOrEqualTo, length: 2);
                 }
                 else
                 {
-                    _current = Token.LessThan;
-                    _position++;
+                    SetCurrent(TokenKind.LessThan, length: 1);
                 }
 
                 break;
@@ -671,8 +679,7 @@ internal ref struct Parser
             case '=':
                 if (PeekNext('='))
                 {
-                    _current = Token.EqualTo;
-                    _position += 2;
+                    SetCurrent(TokenKind.EqualTo, length: 2);
                 }
                 else
                 {
@@ -687,7 +694,7 @@ internal ref struct Parser
                 break;
 
             case '\'':
-                if (!TryScanQuotedString(out _current))
+                if (!TryScanQuotedString())
                 {
                     return false;
                 }
@@ -697,8 +704,8 @@ internal ref struct Parser
             default:
                 int start = _position;
 
-                if (TryScanNumber(out _current) ||
-                    TryScanIdentifier(out _current))
+                if (TryScanNumber() ||
+                    TryScanIdentifier())
                 {
                     return true;
                 }
@@ -712,10 +719,29 @@ internal ref struct Parser
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SetCurrent(TokenKind kind, int length)
+    {
+        _currentKind = kind;
+        _currentStart = _position;
+        _currentEnd = _position + length;
+        _currentExpandable = false;
+        _position += length;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SetCurrentFrom(TokenKind kind, int start, bool expandable = false)
+    {
+        _currentKind = kind;
+        _currentStart = start;
+        _currentEnd = _position;
+        _currentExpandable = expandable;
+    }
+
     /// <summary>
     ///  Scans a property expression of the form $(propertyname).
     /// </summary>
-    private bool TryScanProperty(out Token token)
+    private bool TryScanProperty()
     {
         int start = _position;
 
@@ -723,7 +749,6 @@ internal ref struct Parser
 
         if (!TryConsume('('))
         {
-            token = default;
             return SetErrorInfo(start, "IllFormedPropertyOpenParenthesisInCondition");
         }
 
@@ -741,9 +766,8 @@ internal ref struct Parser
             {
                 nonIdentifierCharacterFound = true;
 
-                if (!TryScanProperty(out _))
+                if (!TryScanProperty())
                 {
-                    token = default;
                     return false;
                 }
 
@@ -765,12 +789,11 @@ internal ref struct Parser
                 {
                     if (whitespacePosition is int pos && !nonIdentifierCharacterFound)
                     {
-                        token = default;
                         return SetErrorInfo(pos, "IllFormedPropertySpaceInCondition");
                     }
 
                     _position++;
-                    token = Token.Property(SegmentFrom(start));
+                    SetCurrentFrom(TokenKind.Property, start);
                     return true;
                 }
             }
@@ -786,14 +809,13 @@ internal ref struct Parser
             _position++;
         }
 
-        token = default;
         return SetErrorInfo(start, "IllFormedPropertyCloseParenthesisInCondition");
     }
 
     /// <summary>
     ///  Scans an item metadata expression of the form %(metadataname).
     /// </summary>
-    private bool TryScanItemMetadata(out Token token)
+    private bool TryScanItemMetadata()
     {
         int start = _position;
 
@@ -801,7 +823,6 @@ internal ref struct Parser
 
         if (!TryConsume('('))
         {
-            token = default;
             return SetErrorInfo(start, "IllFormedMetadataOpenParenthesisInCondition");
         }
 
@@ -814,24 +835,21 @@ internal ref struct Parser
 
                 if (!CheckForUnexpectedMetadata(start, segment))
                 {
-                    token = default;
                     return false;
                 }
 
-                token = Token.ItemMetadata(segment);
+                SetCurrentFrom(TokenKind.ItemMetadata, start);
                 return true;
             }
 
             if (At(' '))
             {
-                token = default;
                 return SetErrorInfo(_position, "IllFormedMetadataSpaceInCondition");
             }
 
             _position++;
         }
 
-        token = default;
         return SetErrorInfo(start, "IllFormedMetadataCloseParenthesisInCondition");
     }
 
@@ -878,7 +896,7 @@ internal ref struct Parser
     /// <summary>
     ///  Scans an item list expression of the form @(itemname).
     /// </summary>
-    private bool TryScanItemList(out Token token)
+    private bool TryScanItemList()
     {
         int start = _position;
 
@@ -886,13 +904,11 @@ internal ref struct Parser
 
         if (!TryConsume('('))
         {
-            token = default;
             return SetErrorInfo(start, "IllFormedItemListOpenParenthesisInCondition");
         }
 
         if ((_options & ParserOptions.AllowItemLists) == 0)
         {
-            token = default;
             return SetErrorInfo(start, "ItemListNotAllowedInThisConditional");
         }
 
@@ -923,7 +939,7 @@ internal ref struct Parser
             {
                 if (parenCount == 0)
                 {
-                    token = Token.ItemList(SegmentFrom(start));
+                    SetCurrentFrom(TokenKind.ItemList, start);
                     return true;
                 }
 
@@ -934,7 +950,6 @@ internal ref struct Parser
             _position++;
         }
 
-        token = default;
         return SetErrorInfo(
             start,
             inReplacement ? "IllFormedItemListQuoteInCondition" : "IllFormedItemListCloseParenthesisInCondition");
@@ -943,7 +958,7 @@ internal ref struct Parser
     /// <summary>
     ///  Scans a quoted string that may contain property, item, or metadata expressions.
     /// </summary>
-    private bool TryScanQuotedString(out Token token)
+    private bool TryScanQuotedString()
     {
         bool expandable = false;
         int start = _position;
@@ -954,32 +969,38 @@ internal ref struct Parser
         {
             if (TryConsume('\''))
             {
-                StringSegment text = Segment(start + 1, _position - start - 2);
+                // The text segment excludes the surrounding quotes.
+                _currentStart = start + 1;
+                _currentEnd = _position - 1;
 
                 if (!expandable)
                 {
+                    StringSegment text = Segment(_currentStart, _currentEnd - _currentStart);
+
                     if (ConversionUtilities.ValidBooleanTrue(text))
                     {
-                        token = Token.True;
+                        _currentKind = TokenKind.True;
+                        _currentExpandable = false;
                         return true;
                     }
 
                     if (ConversionUtilities.ValidBooleanFalse(text))
                     {
-                        token = Token.False;
+                        _currentKind = TokenKind.False;
+                        _currentExpandable = false;
                         return true;
                     }
                 }
 
-                token = Token.String(text, expandable);
+                _currentKind = TokenKind.String;
+                _currentExpandable = expandable;
                 return true;
             }
 
             if (At("%("))
             {
-                if (!TryScanItemMetadata(out _))
+                if (!TryScanItemMetadata())
                 {
-                    token = default;
                     return false;
                 }
 
@@ -989,9 +1010,8 @@ internal ref struct Parser
 
             if (At("@("))
             {
-                if (!TryScanItemList(out _))
+                if (!TryScanItemList())
                 {
-                    token = default;
                     return false;
                 }
 
@@ -1001,9 +1021,8 @@ internal ref struct Parser
 
             if (At("$("))
             {
-                if (!TryScanProperty(out _))
+                if (!TryScanProperty())
                 {
-                    token = default;
                     return false;
                 }
 
@@ -1020,7 +1039,6 @@ internal ref struct Parser
             _position++;
         }
 
-        token = default;
         return SetErrorInfo(start, "IllFormedQuotedStringInCondition");
     }
 
@@ -1028,13 +1046,12 @@ internal ref struct Parser
     // this works perfectly well:
     // Condition="%(a.Identity)!=''and%(a.m)=='1'"
     // Since people now depend on this behavior, we must not change it.
-    private bool TryScanIdentifier(out Token token)
+    private bool TryScanIdentifier()
     {
         int start = _position;
 
         if (!CharacterUtilities.IsIdentifierStart(_expression[start]))
         {
-            token = default;
             return false;
         }
 
@@ -1045,26 +1062,26 @@ internal ref struct Parser
         // Check for 'and'/'or' keywords
         if (identifier is ['o' or 'O', 'r' or 'R'])
         {
-            token = Token.Or;
+            SetCurrentFrom(TokenKind.Or, start);
             return true;
         }
 
         if (identifier is ['a' or 'A', 'n' or 'N', 'd' or 'D'])
         {
-            token = Token.And;
+            SetCurrentFrom(TokenKind.And, start);
             return true;
         }
 
         // Check for boolean keywords (true/false/on/off/yes/no)
         if (ConversionUtilities.ValidBooleanTrue(identifier))
         {
-            token = Token.True;
+            SetCurrentFrom(TokenKind.True, start);
             return true;
         }
 
         if (ConversionUtilities.ValidBooleanFalse(identifier))
         {
-            token = Token.False;
+            SetCurrentFrom(TokenKind.False, start);
             return true;
         }
 
@@ -1072,21 +1089,20 @@ internal ref struct Parser
 
         SkipWhiteSpace();
 
-        token = At('(')
-            ? Token.FunctionName(Segment(start, end - start))
-            : Token.String(Segment(start, end - start));
-
+        _currentKind = At('(') ? TokenKind.FunctionName : TokenKind.String;
+        _currentStart = start;
+        _currentEnd = end;
+        _currentExpandable = false;
         return true;
     }
 
-    private bool TryScanNumber(out Token token)
+    private bool TryScanNumber()
     {
         int start = _position;
         StringSegment remaining = Remaining;
 
         if (!CharacterUtilities.IsNumberStart(remaining[0]))
         {
-            token = default;
             return false;
         }
 
@@ -1094,7 +1110,7 @@ internal ref struct Parser
         {
             _position += 2;
             ScanHexDigits();
-            token = Token.Number(SegmentFrom(start));
+            SetCurrentFrom(TokenKind.Number, start);
             return true;
         }
 
@@ -1116,7 +1132,7 @@ internal ref struct Parser
         }
         while (At('.'));
 
-        token = Token.Number(SegmentFrom(start));
+        SetCurrentFrom(TokenKind.Number, start);
         return true;
     }
 }
