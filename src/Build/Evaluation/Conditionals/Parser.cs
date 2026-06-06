@@ -447,28 +447,6 @@ internal ref struct Parser
     /// <summary>
     ///  Checks if the given segment is a boolean keyword (true/false/on/off/yes/no).
     /// </summary>
-    private static bool TryGetBooleanKeywordValue(StringSegment text, out bool value)
-    {
-        if (text is ['t' or 'T', 'r' or 'R', 'u' or 'U', 'e' or 'E'] // true
-                 or ['o' or 'O', 'n' or 'N'] // on
-                 or ['y' or 'Y', 'e' or 'E', 's' or 'S']) // yes
-        {
-            value = true;
-            return true;
-        }
-
-        if (text is ['f' or 'F', 'a' or 'A', 'l' or 'L', 's' or 'S', 'e' or 'E'] // false
-                 or ['o' or 'O', 'f' or 'F', 'f' or 'F'] // off
-                 or ['n' or 'N', 'o' or 'O']) // no
-        {
-            value = false;
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
     private readonly bool AtEnd
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -980,16 +958,15 @@ internal ref struct Parser
 
                 if (!expandable)
                 {
-                    // Handle negated boolean keywords (e.g. '!true', '!off')
-                    if (text is ['!', .. var remainder] && TryGetBooleanKeywordValue(remainder, out bool negatedValue))
+                    if (ConversionUtilities.ValidBooleanTrue(text))
                     {
-                        token = negatedValue ? Token.False : Token.True;
+                        token = Token.True;
                         return true;
                     }
 
-                    if (TryGetBooleanKeywordValue(text, out bool booleanValue))
+                    if (ConversionUtilities.ValidBooleanFalse(text))
                     {
-                        token = booleanValue ? Token.True : Token.False;
+                        token = Token.False;
                         return true;
                     }
                 }
@@ -1079,9 +1056,15 @@ internal ref struct Parser
         }
 
         // Check for boolean keywords (true/false/on/off/yes/no)
-        if (TryGetBooleanKeywordValue(identifier, out bool boolValue))
+        if (ConversionUtilities.ValidBooleanTrue(identifier))
         {
-            token = boolValue ? Token.True : Token.False;
+            token = Token.True;
+            return true;
+        }
+
+        if (ConversionUtilities.ValidBooleanFalse(identifier))
+        {
+            token = Token.False;
             return true;
         }
 
