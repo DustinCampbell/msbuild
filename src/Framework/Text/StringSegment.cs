@@ -3,6 +3,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -746,6 +747,17 @@ public readonly struct StringSegment :
         => segment._value.AsMemory(segment._startIndex, segment._length);
 
     /// <summary>
+    ///  Gets a value indicating whether the segment equals the specified object.
+    /// </summary>
+    /// <param name="obj">The object to compare with.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the segment equals the specified object; otherwise, <see langword="false"/>.
+    /// </returns>
+    public override bool Equals(object? obj)
+        => (obj is StringSegment other && Equals(other))
+        || (obj is string otherString && Equals(otherString));
+
+    /// <summary>
     ///  Gets a value indicating whether two segments are equal.
     /// </summary>
     /// <param name="other">The segment to compare with.</param>
@@ -756,9 +768,9 @@ public readonly struct StringSegment :
         => Equals(other, StringComparison.Ordinal);
 
     /// <summary>
-    ///  Gets a value indicating whether the segment equals the specified span.
+    ///  Gets a value indicating whether the segment equals the specified segment.
     /// </summary>
-    /// <param name="other">The span to compare with.</param>
+    /// <param name="other">The segment to compare with.</param>
     /// <param name="ignoreCase">Whether or not to ignore case.</param>
     /// <returns>
     ///  <see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.
@@ -767,9 +779,9 @@ public readonly struct StringSegment :
         => Equals(other, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     /// <summary>
-    ///  Gets a value indicating whether the segment equals the specified span.
+    ///  Gets a value indicating whether the segment equals the specified segment.
     /// </summary>
-    /// <param name="other">The span to compare with.</param>
+    /// <param name="other">The segment to compare with.</param>
     /// <param name="comparison">The comparison to use.</param>
     /// <returns>
     ///  <see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.
@@ -780,29 +792,48 @@ public readonly struct StringSegment :
                 || string.Compare(_value, _startIndex, other._value, other._startIndex, _length, comparison) == 0);
 
     /// <summary>
-    ///  Gets a value indicating whether the segment equals the specified span.
+    ///  Gets a value indicating whether the segment equals the specified <see langword="string"/>.
     /// </summary>
-    /// <param name="other">The span to compare with.</param>
-    /// <returns><see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.</returns>
-    public bool Equals(ReadOnlySpan<char> other)
-        => _length == other.Length && AsSpan().SequenceEqual(other);
+    /// <param name="other">The string to compare with.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool Equals([NotNullWhen(true)] string? other)
+        => Equals(other, StringComparison.Ordinal);
 
     /// <summary>
     ///  Gets a value indicating whether the segment equals the specified <see langword="string"/>.
     /// </summary>
-    /// <param name="other">The span to compare with.</param>
-    /// <returns><see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.</returns>
-    public bool Equals(string? other)
-        => other is not null && _length == other.Length && AsSpan().SequenceEqual(other.AsSpan());
+    /// <param name="other">The string to compare with.</param>
+    /// <param name="ignoreCase">Whether or not to ignore case.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool Equals([NotNullWhen(true)] string? other, bool ignoreCase)
+        => Equals(other, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     /// <summary>
-    ///  Gets a value indicating whether the segment equals the specified object.
+    ///  Gets a value indicating whether the segment equals the specified <see langword="string"/>.
     /// </summary>
-    /// <param name="obj">The object to compare with.</param>
-    /// <returns><see langword="true"/> if the segment equals the specified object; otherwise, <see langword="false"/>.</returns>
-    public override bool Equals(object? obj)
-        => (obj is StringSegment other && Equals(other))
-        || (obj is string otherString && Equals(otherString));
+    /// <param name="other">The string to compare with.</param>
+    /// <param name="comparison">The comparison to use.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool Equals([NotNullWhen(true)] string? other, StringComparison comparison)
+        => other is not null && _length == other.Length
+            && (_length == 0
+                || string.Compare(_value, _startIndex, other, 0, _length, comparison) == 0);
+
+    /// <summary>
+    ///  Gets a value indicating whether the segment equals the specified span.
+    /// </summary>
+    /// <param name="other">The span to compare with.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool Equals(ReadOnlySpan<char> other)
+        => _length == other.Length && AsSpan().SequenceEqual(other);
 
     /// <summary>
     ///  Gets the hash code for the segment.
