@@ -268,8 +268,9 @@ internal ref struct Parser
         }
 
         // If it's not one of those, check for other TokenTypes.
-        int functionStart = _currentStart;
-        int functionEnd = _currentEnd;
+        int start = _currentStart;
+        int length = _currentEnd - _currentStart;
+
         if (TryConsume(TokenKind.FunctionName))
         {
             if (!TryConsume(TokenKind.LeftParenthesis))
@@ -288,26 +289,23 @@ internal ref struct Parser
                 return SetUnexpectedTokenError(out result);
             }
 
-            StringSegment functionName = Segment(functionStart, functionEnd - functionStart);
-
-            if (functionName.Equals("Exists", StringComparison.OrdinalIgnoreCase))
+            if (IdentifierEquals(start, length, "Exists"))
             {
                 result = new ExistsCallNode(arglist);
-            }
-            else if (functionName.Equals("HasTrailingSlash", StringComparison.OrdinalIgnoreCase))
-            {
-                result = new HasTrailingSlashCallNode(arglist);
-            }
-            else
-            {
-                _errorPosition = _position + 1;
-                _errorResource = "UndefinedFunctionCall";
-                _errorArgs = [_expression, functionName.ToString()];
-                result = null;
-                return false;
+                return true;
             }
 
-            return true;
+            if (IdentifierEquals(start, length, "HasTrailingSlash"))
+            {
+                result = new HasTrailingSlashCallNode(arglist);
+                return true;
+            }
+
+            _errorPosition = _position + 1;
+            _errorResource = "UndefinedFunctionCall";
+            _errorArgs = [_expression, _expression.Substring(start, length)];
+            result = null;
+            return false;
         }
 
         if (TryConsume(TokenKind.LeftParenthesis))
@@ -733,47 +731,58 @@ internal ref struct Parser
         {
             char c = _expression[_position];
 
-            // Handle nested property expressions by recursing into TryScanProperty.
-            if (c == '$' && PeekNext('('))
+            switch (c)
             {
-                nonIdentifierCharacterFound = true;
-
-                if (!TryScanProperty())
-                {
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (c == '(')
-            {
-                nestLevel++;
-                nonIdentifierCharacterFound = true;
-            }
-            else if (c == ')')
-            {
-                nestLevel--;
-
-                if (nestLevel == 0)
-                {
-                    if (whitespacePosition is int pos && !nonIdentifierCharacterFound)
+                case '$':
+                    // Handle nested property expressions by recursing into TryScanProperty.
+                    if (PeekNext('('))
                     {
-                        return SetErrorInfo(pos, "IllFormedPropertySpaceInCondition");
+                        nonIdentifierCharacterFound = true;
+
+                        if (!TryScanProperty())
+                        {
+                            return false;
+                        }
+
+                        continue;
                     }
 
-                    _position++;
-                    SetCurrentFrom(TokenKind.Property, start);
-                    return true;
-                }
-            }
-            else if (char.IsWhiteSpace(c))
-            {
-                whitespacePosition ??= _position;
-            }
-            else if (!XmlUtilities.IsValidSubsequentElementNameCharacter(c))
-            {
-                nonIdentifierCharacterFound = true;
+                    nonIdentifierCharacterFound = true;
+                    break;
+
+                case '(':
+                    nestLevel++;
+                    nonIdentifierCharacterFound = true;
+                    break;
+
+                case ')':
+                    nestLevel--;
+
+                    if (nestLevel == 0)
+                    {
+                        if (whitespacePosition is int pos && !nonIdentifierCharacterFound)
+                        {
+                            return SetErrorInfo(pos, "IllFormedPropertySpaceInCondition");
+                        }
+
+                        _position++;
+                        SetCurrentFrom(TokenKind.Property, start);
+                        return true;
+                    }
+
+                    break;
+
+                default:
+                    if (char.IsWhiteSpace(c))
+                    {
+                        whitespacePosition ??= _position;
+                    }
+                    else if (!XmlUtilities.IsValidSubsequentElementNameCharacter(c))
+                    {
+                        nonIdentifierCharacterFound = true;
+                    }
+
+                    break;
             }
 
             _position++;
@@ -939,20 +948,84 @@ internal ref struct Parser
 
                     if (!expandable)
                     {
-                        StringSegment text = Segment(_currentStart, _currentEnd - _currentStart);
+                        int length = _currentEnd - _currentStart;
 
-                        if (ConversionUtilities.ValidBooleanTrue(text))
+                        switch (length)
                         {
-                            _currentKind = TokenKind.True;
-                            _currentExpandable = false;
-                            return true;
-                        }
+                            case 2:
+                                if (IdentifierEquals(_currentStart, length, "on"))
+                                {
+                                    _currentKind = TokenKind.True;
+                                    _currentExpandable = false;
+                                    return true;
+                                }
 
-                        if (ConversionUtilities.ValidBooleanFalse(text))
-                        {
-                            _currentKind = TokenKind.False;
-                            _currentExpandable = false;
-                            return true;
+                                if (IdentifierEquals(_currentStart, length, "no"))
+                                {
+                                    _currentKind = TokenKind.False;
+                                    _currentExpandable = false;
+                                    return true;
+                                }
+
+                                break;
+
+                            case 3:
+                                if (IdentifierEquals(_currentStart, length, "yes") ||
+                                    IdentifierEquals(_currentStart, length, "!no"))
+                                {
+                                    _currentKind = TokenKind.True;
+                                    _currentExpandable = false;
+                                    return true;
+                                }
+
+                                if (IdentifierEquals(_currentStart, length, "off") ||
+                                    IdentifierEquals(_currentStart, length, "!on"))
+                                {
+                                    _currentKind = TokenKind.False;
+                                    _currentExpandable = false;
+                                    return true;
+                                }
+
+                                break;
+
+                            case 4:
+                                if (IdentifierEquals(_currentStart, length, "true") ||
+                                    IdentifierEquals(_currentStart, length, "!off"))
+                                {
+                                    _currentKind = TokenKind.True;
+                                    _currentExpandable = false;
+                                    return true;
+                                }
+
+                                if (IdentifierEquals(_currentStart, length, "!yes"))
+                                {
+                                    _currentKind = TokenKind.False;
+                                    _currentExpandable = false;
+                                    return true;
+                                }
+
+                                break;
+
+                            case 5:
+                                if (IdentifierEquals(_currentStart, length, "false") ||
+                                    IdentifierEquals(_currentStart, length, "!true"))
+                                {
+                                    _currentKind = TokenKind.False;
+                                    _currentExpandable = false;
+                                    return true;
+                                }
+
+                                break;
+
+                            case 6:
+                                if (IdentifierEquals(_currentStart, length, "!false"))
+                                {
+                                    _currentKind = TokenKind.True;
+                                    _currentExpandable = false;
+                                    return true;
+                                }
+
+                                break;
                         }
                     }
 
