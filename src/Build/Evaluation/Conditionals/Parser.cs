@@ -471,27 +471,11 @@ internal ref struct Parser
     }
 
     /// <summary>
-    ///  Returns a segment of the expression from <paramref name="start"/> to the current position.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private readonly StringSegment SegmentFrom(int start)
-        => new(_expression, start, _position - start);
-
-    /// <summary>
     ///  Returns a segment of the expression from <paramref name="start"/> with the given <paramref name="length"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly StringSegment Segment(int start, int length)
         => new(_expression, start, length);
-
-    /// <summary>
-    ///  Returns a segment of the expression from the current position to the end.
-    /// </summary>
-    private readonly StringSegment Remaining
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(_expression, _position, _expression.Length - _position);
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly bool At(char c)
@@ -524,6 +508,10 @@ internal ref struct Parser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly bool PeekNext(char c)
         => _position + 1 < _expression.Length && _expression[_position + 1] == c;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private readonly bool IdentifierEquals(int start, int length, string keyword)
+        => length == keyword.Length && string.Compare(_expression, start, keyword, 0, keyword.Length, StringComparison.OrdinalIgnoreCase) == 0;
 
     private void SkipWhiteSpace()
     {
@@ -813,9 +801,7 @@ internal ref struct Parser
         {
             if (TryConsume(')'))
             {
-                StringSegment segment = SegmentFrom(start);
-
-                if (!CheckForUnexpectedMetadata(start, segment))
+                if (!CheckForUnexpectedMetadata(start, Segment(start + 2, _position - start - 3)))
                 {
                     return false;
                 }
@@ -838,18 +824,11 @@ internal ref struct Parser
     /// <summary>
     ///  Verifies that metadata references are allowed by the current parser options.
     /// </summary>
-    private bool CheckForUnexpectedMetadata(int start, StringSegment expression)
+    private bool CheckForUnexpectedMetadata(int start, StringSegment name)
     {
         if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
         {
             return true;
-        }
-
-        StringSegment name = expression;
-
-        if (name is ['%', '(', .. var segment, ')'])
-        {
-            name = segment;
         }
 
         int dotIndex = name.IndexOf('.');
@@ -1058,32 +1037,70 @@ internal ref struct Parser
 
         ScanIdentifierChars();
 
-        StringSegment identifier = SegmentFrom(start);
+        int length = _position - start;
 
-        // Check for 'and'/'or' keywords
-        if (identifier is ['o' or 'O', 'r' or 'R'])
+        // Check for keywords by length to minimize comparisons.
+        switch (length)
         {
-            SetCurrentFrom(TokenKind.Or, start);
-            return true;
-        }
+            case 2:
+                if (IdentifierEquals(start, length, "or"))
+                {
+                    SetCurrentFrom(TokenKind.Or, start);
+                    return true;
+                }
 
-        if (identifier is ['a' or 'A', 'n' or 'N', 'd' or 'D'])
-        {
-            SetCurrentFrom(TokenKind.And, start);
-            return true;
-        }
+                if (IdentifierEquals(start, length, "on"))
+                {
+                    SetCurrentFrom(TokenKind.True, start);
+                    return true;
+                }
 
-        // Check for boolean keywords (true/false/on/off/yes/no)
-        if (ConversionUtilities.ValidBooleanTrue(identifier))
-        {
-            SetCurrentFrom(TokenKind.True, start);
-            return true;
-        }
+                if (IdentifierEquals(start, length, "no"))
+                {
+                    SetCurrentFrom(TokenKind.False, start);
+                    return true;
+                }
 
-        if (ConversionUtilities.ValidBooleanFalse(identifier))
-        {
-            SetCurrentFrom(TokenKind.False, start);
-            return true;
+                break;
+
+            case 3:
+                if (IdentifierEquals(start, length, "and"))
+                {
+                    SetCurrentFrom(TokenKind.And, start);
+                    return true;
+                }
+
+                if (IdentifierEquals(start, length, "yes"))
+                {
+                    SetCurrentFrom(TokenKind.True, start);
+                    return true;
+                }
+
+                if (IdentifierEquals(start, length, "off"))
+                {
+                    SetCurrentFrom(TokenKind.False, start);
+                    return true;
+                }
+
+                break;
+
+            case 4:
+                if (IdentifierEquals(start, length, "true"))
+                {
+                    SetCurrentFrom(TokenKind.True, start);
+                    return true;
+                }
+
+                break;
+
+            case 5:
+                if (IdentifierEquals(start, length, "false"))
+                {
+                    SetCurrentFrom(TokenKind.False, start);
+                    return true;
+                }
+
+                break;
         }
 
         int end = _position;
@@ -1100,14 +1117,14 @@ internal ref struct Parser
     private bool TryScanNumber()
     {
         int start = _position;
-        StringSegment remaining = Remaining;
+        char c = _expression[_position];
 
-        if (!CharacterUtilities.IsNumberStart(remaining[0]))
+        if (!CharacterUtilities.IsNumberStart(c))
         {
             return false;
         }
 
-        if (remaining is ['0', ('x' or 'X'), ..])
+        if (c == '0' && _position + 1 < _expression.Length && (_expression[_position + 1] | 0x20) == 'x')
         {
             _position += 2;
             ScanHexDigits();
@@ -1115,7 +1132,7 @@ internal ref struct Parser
             return true;
         }
 
-        if (remaining[0] is '+' or '-')
+        if (c is '+' or '-')
         {
             _position++;
         }
