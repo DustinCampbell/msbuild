@@ -1040,39 +1040,24 @@ internal ref struct Parser
                         {
                             return false;
                         }
-
-                        expandable = true;
                     }
                     else
                     {
-                        // TODO: Verify that the next two characters are hex digits.
-                        expandable = true;
                         _position++;
                     }
 
+                    expandable = true;
+                    break;
+
+                case '$':
+                    expandable = true;
+                    _position++;
                     break;
 
                 case '@':
                     if (PeekNext('('))
                     {
                         if (!TryScanItemList())
-                        {
-                            return false;
-                        }
-
-                        expandable = true;
-                    }
-                    else
-                    {
-                        _position++;
-                    }
-
-                    break;
-
-                case '$':
-                    if (PeekNext('('))
-                    {
-                        if (!TryScanProperty())
                         {
                             return false;
                         }
