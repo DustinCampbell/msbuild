@@ -497,24 +497,6 @@ internal ref struct Parser
     private readonly bool At(char c)
         => !AtEnd && _expression[_position] == c;
 
-    private readonly bool At(string s)
-    {
-        if (_position + s.Length > _expression.Length)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < s.Length; i++)
-        {
-            if (_expression[_position + i] != s[i])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly bool At(TokenKind kind)
         => _currentKind == kind;
@@ -761,8 +743,10 @@ internal ref struct Parser
 
         while (!AtEnd)
         {
+            char c = _expression[_position];
+
             // Handle nested property expressions by recursing into TryScanProperty.
-            if (At("$("))
+            if (c == '$' && PeekNext('('))
             {
                 nonIdentifierCharacterFound = true;
 
@@ -773,8 +757,6 @@ internal ref struct Parser
 
                 continue;
             }
-
-            char c = _expression[_position];
 
             if (c == '(')
             {
@@ -967,76 +949,95 @@ internal ref struct Parser
 
         while (!AtEnd)
         {
-            if (TryConsume('\''))
+            switch (_expression[_position])
             {
-                // The text segment excludes the surrounding quotes.
-                _currentStart = start + 1;
-                _currentEnd = _position - 1;
+                case '\'':
+                    _position++;
 
-                if (!expandable)
-                {
-                    StringSegment text = Segment(_currentStart, _currentEnd - _currentStart);
+                    // The text segment excludes the surrounding quotes.
+                    _currentStart = start + 1;
+                    _currentEnd = _position - 1;
 
-                    if (ConversionUtilities.ValidBooleanTrue(text))
+                    if (!expandable)
                     {
-                        _currentKind = TokenKind.True;
-                        _currentExpandable = false;
-                        return true;
+                        StringSegment text = Segment(_currentStart, _currentEnd - _currentStart);
+
+                        if (ConversionUtilities.ValidBooleanTrue(text))
+                        {
+                            _currentKind = TokenKind.True;
+                            _currentExpandable = false;
+                            return true;
+                        }
+
+                        if (ConversionUtilities.ValidBooleanFalse(text))
+                        {
+                            _currentKind = TokenKind.False;
+                            _currentExpandable = false;
+                            return true;
+                        }
                     }
 
-                    if (ConversionUtilities.ValidBooleanFalse(text))
+                    _currentKind = TokenKind.String;
+                    _currentExpandable = expandable;
+                    return true;
+
+                case '%':
+                    if (PeekNext('('))
                     {
-                        _currentKind = TokenKind.False;
-                        _currentExpandable = false;
-                        return true;
+                        if (!TryScanItemMetadata())
+                        {
+                            return false;
+                        }
+
+                        expandable = true;
                     }
-                }
+                    else
+                    {
+                        // TODO: Verify that the next two characters are hex digits.
+                        expandable = true;
+                        _position++;
+                    }
 
-                _currentKind = TokenKind.String;
-                _currentExpandable = expandable;
-                return true;
+                    break;
+
+                case '@':
+                    if (PeekNext('('))
+                    {
+                        if (!TryScanItemList())
+                        {
+                            return false;
+                        }
+
+                        expandable = true;
+                    }
+                    else
+                    {
+                        _position++;
+                    }
+
+                    break;
+
+                case '$':
+                    if (PeekNext('('))
+                    {
+                        if (!TryScanProperty())
+                        {
+                            return false;
+                        }
+
+                        expandable = true;
+                    }
+                    else
+                    {
+                        _position++;
+                    }
+
+                    break;
+
+                default:
+                    _position++;
+                    break;
             }
-
-            if (At("%("))
-            {
-                if (!TryScanItemMetadata())
-                {
-                    return false;
-                }
-
-                expandable = true;
-                continue;
-            }
-
-            if (At("@("))
-            {
-                if (!TryScanItemList())
-                {
-                    return false;
-                }
-
-                expandable = true;
-                continue;
-            }
-
-            if (At("$("))
-            {
-                if (!TryScanProperty())
-                {
-                    return false;
-                }
-
-                expandable = true;
-                continue;
-            }
-
-            if (At('%'))
-            {
-                // TODO: Verify that the next two characters are hex digits.
-                expandable = true;
-            }
-
-            _position++;
         }
 
         return SetErrorInfo(start, "IllFormedQuotedStringInCondition");
