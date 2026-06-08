@@ -810,9 +810,30 @@ internal ref struct Parser
         {
             if (TryConsume(')'))
             {
-                if (!CheckForUnexpectedMetadata(start, Segment(start + 2, _position - start - 3)))
+                // Verify that metadata references are allowed by the current parser options.
+                if ((_options & ParserOptions.AllowItemMetadata) != ParserOptions.AllowItemMetadata)
                 {
-                    return false;
+                    StringSegment name = Segment(start + 2, _position - start - 3);
+
+                    int dotIndex = name.IndexOf('.');
+
+                    // Note: The '.' can't be the first or last character.
+                    if (dotIndex > 0 && dotIndex < name.Length - 1)
+                    {
+                        name = name[(dotIndex + 1)..];
+                    }
+
+                    bool isItemSpecModifier = ItemSpecModifiers.IsItemSpecModifier(name);
+
+                    if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
+                    {
+                        return SetErrorInfo(start, "BuiltInMetadataNotAllowedInThisConditional", name.ToString());
+                    }
+
+                    if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
+                    {
+                        return SetErrorInfo(start, "CustomMetadataNotAllowedInThisConditional", name.ToString());
+                    }
                 }
 
                 SetCurrentFrom(TokenKind.ItemMetadata, start);
@@ -828,39 +849,6 @@ internal ref struct Parser
         }
 
         return SetErrorInfo(start, "IllFormedMetadataCloseParenthesisInCondition");
-    }
-
-    /// <summary>
-    ///  Verifies that metadata references are allowed by the current parser options.
-    /// </summary>
-    private bool CheckForUnexpectedMetadata(int start, StringSegment name)
-    {
-        if ((_options & ParserOptions.AllowItemMetadata) == ParserOptions.AllowItemMetadata)
-        {
-            return true;
-        }
-
-        int dotIndex = name.IndexOf('.');
-
-        // Note: The '.' can't be the first or last character.
-        if (dotIndex > 0 && dotIndex < name.Length - 1)
-        {
-            name = name[(dotIndex + 1)..];
-        }
-
-        bool isItemSpecModifier = ItemSpecModifiers.IsItemSpecModifier(name);
-
-        if (((_options & ParserOptions.AllowBuiltInMetadata) == 0) && isItemSpecModifier)
-        {
-            return SetErrorInfo(start, "BuiltInMetadataNotAllowedInThisConditional", name.ToString());
-        }
-
-        if (((_options & ParserOptions.AllowCustomMetadata) == 0) && !isItemSpecModifier)
-        {
-            return SetErrorInfo(start, "CustomMetadataNotAllowedInThisConditional", name.ToString());
-        }
-
-        return true;
     }
 
     /// <summary>
