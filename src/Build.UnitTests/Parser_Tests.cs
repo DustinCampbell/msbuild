@@ -144,7 +144,7 @@ namespace Microsoft.Build.UnitTests
             Console.WriteLine("ItemFuncParseTest()");
 
             ParseResult tree = Parser.Parse("@(item->foo('ab'))", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
-            Assert.IsType<StringLiteralNode>(tree.Node);
+            Assert.IsType<ExpandableStringNode>(tree.Node);
             Assert.Equal("@(item->foo('ab'))", tree.Node.GetUnexpandedValue(null));
 
             tree = Parser.Parse("!@(item->foo())", ParserOptions.AllowProperties | ParserOptions.AllowItemLists, _elementLocation);
@@ -654,7 +654,6 @@ namespace Microsoft.Build.UnitTests
         }
 
         [Theory]
-        [InlineData("'$(foo)'")]
         [InlineData("'hello'")]
         [InlineData("'truthy'")]
         [InlineData("'falsehood'")]
@@ -662,6 +661,13 @@ namespace Microsoft.Build.UnitTests
         {
             ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll, _elementLocation);
             result.Node.ShouldBeOfType<StringLiteralNode>();
+        }
+
+        [Fact]
+        public void ExpandableString_ProducesExpandableStringNode()
+        {
+            ParseResult result = Parser.Parse("'$(foo)'", ParserOptions.AllowAll, _elementLocation);
+            result.Node.ShouldBeOfType<ExpandableStringNode>();
         }
     }
 }

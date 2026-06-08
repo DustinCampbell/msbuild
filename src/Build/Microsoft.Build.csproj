@@ -527,6 +527,7 @@
     <Compile Include="Evaluation\Conditionals\Nodes\OrOperatorNode.cs" />
     <Compile Include="Evaluation\Conditionals\Parser.cs" />
     <Compile Include="Evaluation\Conditionals\Nodes\StringLiteralNode.cs" />
+    <Compile Include="Evaluation\Conditionals\Nodes\ExpandableStringNode.cs" />
     <Compile Include="Evaluation\EvaluatorMetadataTable.cs" />
     <Compile Include="Evaluation\IEvaluatorData.cs" />
     <Compile Include="Evaluation\IItem.cs" />

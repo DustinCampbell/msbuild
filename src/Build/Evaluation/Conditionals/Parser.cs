@@ -428,7 +428,9 @@ internal ref struct Parser
 
         if (TryConsume(TokenKind.String))
         {
-            result = new StringLiteralNode(Segment(start, end - start), expandable);
+            result = expandable
+                ? new ExpandableStringNode(Segment(start, end - start))
+                : new StringLiteralNode(Segment(start, end - start));
             return true;
         }
 
@@ -442,7 +444,7 @@ internal ref struct Parser
             TryConsume(TokenKind.ItemMetadata) ||
             TryConsume(TokenKind.ItemList))
         {
-            result = new StringLiteralNode(Segment(start, end - start), expandable: true);
+            result = new ExpandableStringNode(Segment(start, end - start));
             return true;
         }
 
