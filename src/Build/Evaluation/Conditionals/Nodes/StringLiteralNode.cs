@@ -3,6 +3,8 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Text;
 
@@ -94,24 +96,26 @@ internal sealed class StringLiteralNode(StringSegment value, bool expandable) : 
         {
             if (_expandable)
             {
-                switch (_value)
+                if (_value.Length == 0)
                 {
-                    case []:
-                        _cachedExpandedValue = string.Empty;
-                        return true;
-
-                    // If the length is 1 or 2, it can't possibly be a property, item, or metadata, and it isn't empty.
-                    case [_] or [_, _]:
-                        _cachedExpandedValue = ValueText;
-                        return false;
-
-                    case not ['$' or '%' or '@', '(', .., ')']: // This isn't just a property, item, or metadata value, and it isn't empty.
-                        return false;
+                    _cachedExpandedValue = string.Empty;
+                    return true;
                 }
 
-                string? expandBreakEarly = state.ExpandIntoStringBreakEarly(ValueText);
+                // If the length is 1 or 2, it can't possibly be a property, item, or metadata, and it isn't empty.
+                if (_value.Length is 1 or 2)
+                {
+                    _cachedExpandedValue = ValueText;
+                    return false;
+                }
 
-                if (expandBreakEarly is null)
+                if (_value is not ['$' or '%' or '@', '(', .., ')'])
+                {
+                    // This isn't just a property, item, or metadata value, and it isn't empty.
+                    return false;
+                }
+
+                if (!TryExpandIntoStringBreakEarly(ValueText, state, out string? expandedValue))
                 {
                     // It broke early: we can't store the value, we just
                     // know it's non empty
@@ -120,7 +124,7 @@ internal sealed class StringLiteralNode(StringSegment value, bool expandable) : 
 
                 // It didn't break early, the result is accurate,
                 // so store it so the work isn't done again.
-                _cachedExpandedValue = expandBreakEarly;
+                _cachedExpandedValue = expandedValue;
             }
             else
             {
@@ -129,6 +133,15 @@ internal sealed class StringLiteralNode(StringSegment value, bool expandable) : 
         }
 
         return _cachedExpandedValue.Length == 0;
+
+        // NoInlining prevents the JIT from pulling the expansion pipeline into callers,
+        // which bloats the method with a large stack-zeroing prologue paid on every call.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static bool TryExpandIntoStringBreakEarly(string value, ConditionEvaluator.IConditionEvaluationState state, [NotNullWhen(true)] out string? result)
+        {
+            result = state.ExpandIntoStringBreakEarly(value);
+            return result is not null;
+        }
     }
 
     public override bool IsUnexpandedValueEmpty()
