@@ -512,166 +512,133 @@ internal ref struct Parser
         => length == keyword.Length && string.Compare(_expression, start, keyword, 0, keyword.Length, StringComparison.OrdinalIgnoreCase) == 0;
 
     /// <summary>
-    ///  Attempts to match the text at the given position to a boolean literal keyword.
+    ///  Matches the text at the given position to a boolean literal keyword.
     ///  Handles true/false/on/off/yes/no and their negated forms (!true/!false/!on/!off/!yes/!no).
+    ///  Returns <see cref="TokenKind.None"/> if the text does not match any boolean keyword.
     ///  The '| 0x20' trick converts ASCII uppercase letters to lowercase by setting bit 5,
     ///  allowing a single switch case per letter instead of matching both cases.
     ///  Non-letter characters like '!' are unaffected since bit 5 is already set.
     /// </summary>
-    private readonly bool TryGetBooleanLiteralKind(int start, int length, out TokenKind kind)
+    private readonly TokenKind GetBooleanLiteralKind(int start, int length)
     {
         switch (length)
         {
             case 2:
                 switch (_expression[start] | 0x20)
                 {
-                    case 'o':
-                        if (IdentifierEquals(start, length, "on"))
-                        {
-                            kind = TokenKind.True;
-                            return true;
-                        }
+                    case 'o': // "on"
+                        return (_expression[start + 1] | 0x20) == 'n'
+                            ? TokenKind.True
+                            : TokenKind.None;
 
-                        break;
-
-                    case 'n':
-                        if (IdentifierEquals(start, length, "no"))
-                        {
-                            kind = TokenKind.False;
-                            return true;
-                        }
-
-                        break;
+                    case 'n': // "no"
+                        return (_expression[start + 1] | 0x20) == 'o'
+                            ? TokenKind.False
+                            : TokenKind.None;
                 }
 
-                break;
+                return TokenKind.None;
 
             case 3:
                 switch (_expression[start] | 0x20)
                 {
-                    case 'y':
-                        if (IdentifierEquals(start, length, "yes"))
-                        {
-                            kind = TokenKind.True;
-                            return true;
-                        }
+                    case 'y': // "yes"
+                        return (_expression[start + 1] | 0x20) == 'e'
+                            && (_expression[start + 2] | 0x20) == 's'
+                            ? TokenKind.True
+                            : TokenKind.None;
 
-                        break;
-
-                    case 'o':
-                        if (IdentifierEquals(start, length, "off"))
-                        {
-                            kind = TokenKind.False;
-                            return true;
-                        }
-
-                        break;
+                    case 'o': // "off"
+                        return (_expression[start + 1] | 0x20) == 'f'
+                            && (_expression[start + 2] | 0x20) == 'f'
+                            ? TokenKind.False
+                            : TokenKind.None;
 
                     case '!':
                         switch (_expression[start + 1] | 0x20)
                         {
-                            case 'n':
-                                if (IdentifierEquals(start, length, "!no"))
-                                {
-                                    kind = TokenKind.True;
-                                    return true;
-                                }
+                            case 'n': // "!no"
+                                return (_expression[start + 2] | 0x20) == 'o'
+                                    ? TokenKind.True
+                                    : TokenKind.None;
 
-                                break;
-
-                            case 'o':
-                                if (IdentifierEquals(start, length, "!on"))
-                                {
-                                    kind = TokenKind.False;
-                                    return true;
-                                }
-
-                                break;
+                            case 'o': // "!on"
+                                return (_expression[start + 2] | 0x20) == 'n'
+                                    ? TokenKind.False
+                                    : TokenKind.None;
                         }
 
-                        break;
+                        return TokenKind.None;
                 }
 
-                break;
+                return TokenKind.None;
 
             case 4:
                 switch (_expression[start] | 0x20)
                 {
-                    case 't':
-                        if (IdentifierEquals(start, length, "true"))
-                        {
-                            kind = TokenKind.True;
-                            return true;
-                        }
-
-                        break;
+                    case 't': // "true"
+                        return (_expression[start + 1] | 0x20) == 'r'
+                            && (_expression[start + 2] | 0x20) == 'u'
+                            && (_expression[start + 3] | 0x20) == 'e'
+                            ? TokenKind.True
+                            : TokenKind.None;
 
                     case '!':
                         switch (_expression[start + 1] | 0x20)
                         {
-                            case 'o':
-                                if (IdentifierEquals(start, length, "!off"))
-                                {
-                                    kind = TokenKind.True;
-                                    return true;
-                                }
+                            case 'o': // "!off"
+                                return (_expression[start + 2] | 0x20) == 'f'
+                                    && (_expression[start + 3] | 0x20) == 'f'
+                                    ? TokenKind.True
+                                    : TokenKind.None;
 
-                                break;
-
-                            case 'y':
-                                if (IdentifierEquals(start, length, "!yes"))
-                                {
-                                    kind = TokenKind.False;
-                                    return true;
-                                }
-
-                                break;
+                            case 'y': // "!yes"
+                                return (_expression[start + 2] | 0x20) == 'e'
+                                    && (_expression[start + 3] | 0x20) == 's'
+                                    ? TokenKind.False
+                                    : TokenKind.None;
                         }
 
-                        break;
+                        return TokenKind.None;
                 }
 
-                break;
+                return TokenKind.None;
 
             case 5:
                 switch (_expression[start] | 0x20)
                 {
-                    case 'f':
-                        if (IdentifierEquals(start, length, "false"))
-                        {
-                            kind = TokenKind.False;
-                            return true;
-                        }
+                    case 'f': // "false"
+                        return (_expression[start + 1] | 0x20) == 'a'
+                            && (_expression[start + 2] | 0x20) == 'l'
+                            && (_expression[start + 3] | 0x20) == 's'
+                            && (_expression[start + 4] | 0x20) == 'e'
+                            ? TokenKind.False
+                            : TokenKind.None;
 
-                        break;
-
-                    case '!':
-                        if ((_expression[start + 1] | 0x20) == 't'
-                            && IdentifierEquals(start, length, "!true"))
-                        {
-                            kind = TokenKind.False;
-                            return true;
-                        }
-
-                        break;
+                    case '!': // "!true"
+                        return (_expression[start + 1] | 0x20) == 't'
+                            && (_expression[start + 2] | 0x20) == 'r'
+                            && (_expression[start + 3] | 0x20) == 'u'
+                            && (_expression[start + 4] | 0x20) == 'e'
+                            ? TokenKind.False
+                            : TokenKind.None;
                 }
 
-                break;
+                return TokenKind.None;
 
-            case 6:
-                if (_expression[start] == '!'
+            case 6: // "!false"
+                return _expression[start] == '!'
                     && (_expression[start + 1] | 0x20) == 'f'
-                    && IdentifierEquals(start, length, "!false"))
-                {
-                    kind = TokenKind.True;
-                    return true;
-                }
+                    && (_expression[start + 2] | 0x20) == 'a'
+                    && (_expression[start + 3] | 0x20) == 'l'
+                    && (_expression[start + 4] | 0x20) == 's'
+                    && (_expression[start + 5] | 0x20) == 'e'
+                    ? TokenKind.True
+                    : TokenKind.None;
 
-                break;
+            default:
+                return TokenKind.None;
         }
-
-        kind = default;
-        return false;
     }
 
     private void SkipWhiteSpace()
@@ -1089,11 +1056,16 @@ internal ref struct Parser
                     _currentStart = start + 1;
                     _currentEnd = _position - 1;
 
-                    if (!expandable && TryGetBooleanLiteralKind(_currentStart, _currentEnd - _currentStart, out TokenKind boolKind))
+                    if (!expandable)
                     {
-                        _currentKind = boolKind;
-                        _currentExpandable = false;
-                        return true;
+                        TokenKind boolKind = GetBooleanLiteralKind(_currentStart, _currentEnd - _currentStart);
+
+                        if (boolKind != TokenKind.None)
+                        {
+                            _currentKind = boolKind;
+                            _currentExpandable = false;
+                            return true;
+                        }
                     }
 
                     _currentKind = TokenKind.String;
@@ -1167,8 +1139,10 @@ internal ref struct Parser
         // Check for 'and'/'or' keywords by length + first char.
         switch (length)
         {
+            // "or"
             case 2:
-                if ((_expression[start] | 0x20) == 'o' && IdentifierEquals(start, length, "or"))
+                if ((_expression[start] | 0x20) == 'o'
+                    && (_expression[start + 1] | 0x20) == 'r')
                 {
                     SetCurrentFrom(TokenKind.Or, start);
                     return true;
@@ -1176,8 +1150,11 @@ internal ref struct Parser
 
                 break;
 
+            // "and"
             case 3:
-                if ((_expression[start] | 0x20) == 'a' && IdentifierEquals(start, length, "and"))
+                if ((_expression[start] | 0x20) == 'a'
+                    && (_expression[start + 1] | 0x20) == 'n'
+                    && (_expression[start + 2] | 0x20) == 'd')
                 {
                     SetCurrentFrom(TokenKind.And, start);
                     return true;
@@ -1188,7 +1165,9 @@ internal ref struct Parser
 
         // Check for boolean literal keywords (true/false/on/off/yes/no).
         // Negated forms can't appear here since '!' isn't a valid identifier character.
-        if (TryGetBooleanLiteralKind(start, length, out TokenKind boolKind))
+        TokenKind boolKind = GetBooleanLiteralKind(start, length);
+
+        if (boolKind != TokenKind.None)
         {
             SetCurrentFrom(boolKind, start);
             return true;
