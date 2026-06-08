@@ -641,6 +641,78 @@ internal ref struct Parser
         }
     }
 
+    /// <summary>
+    ///  Returns true if the text at the given position represents a numeric literal.
+    ///  Matches the same patterns as <see cref="TryScanNumber"/>: decimal numbers with
+    ///  optional sign and decimal point(s), or hexadecimal numbers with "0x" prefix.
+    /// </summary>
+    private readonly bool IsNumberLiteral(int start, int length)
+    {
+        if (length == 0)
+        {
+            return false;
+        }
+
+        int pos = start;
+        int end = start + length;
+        char c = _expression[pos];
+
+        // Hex: 0x...
+        if (c == '0' && pos + 1 < end && (_expression[pos + 1] | 0x20) == 'x')
+        {
+            pos += 2;
+
+            // Must have at least one hex digit.
+            if (pos >= end || !CharacterUtilities.IsHexDigit(_expression[pos]))
+            {
+                return false;
+            }
+
+            while (pos < end && CharacterUtilities.IsHexDigit(_expression[pos]))
+            {
+                pos++;
+            }
+
+            return pos == end;
+        }
+
+        // Optional leading sign
+        if (c is '+' or '-')
+        {
+            pos++;
+
+            if (pos >= end)
+            {
+                return false;
+            }
+        }
+
+        // Must have at least one digit or a decimal point followed by digits.
+        if (!char.IsDigit(_expression[pos]) && _expression[pos] != '.')
+        {
+            return false;
+        }
+
+        // Scan digits and decimal points (matches TryScanNumber's loop structure).
+        while (pos < end)
+        {
+            if (char.IsDigit(_expression[pos]))
+            {
+                pos++;
+            }
+            else if (_expression[pos] == '.')
+            {
+                pos++;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private void SkipWhiteSpace()
     {
         while (!AtEnd && char.IsWhiteSpace(_expression[_position]))
@@ -1063,6 +1135,13 @@ internal ref struct Parser
                         if (boolKind != TokenKind.None)
                         {
                             _currentKind = boolKind;
+                            _currentExpandable = false;
+                            return true;
+                        }
+
+                        if (IsNumberLiteral(_currentStart, _currentEnd - _currentStart))
+                        {
+                            _currentKind = TokenKind.Number;
                             _currentExpandable = false;
                             return true;
                         }
