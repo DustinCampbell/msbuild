@@ -1038,34 +1038,26 @@ internal ref struct Parser
 
         while (!AtEnd)
         {
-            if (TryConsume('\''))
+            switch (_expression[_position])
             {
-                inReplacement = !inReplacement;
-                continue;
-            }
+                case '\'':
+                    inReplacement = !inReplacement;
+                    break;
 
-            if (inReplacement)
-            {
-                _position++;
-                continue;
-            }
+                case '(' when !inReplacement:
+                    parenCount++;
+                    break;
 
-            if (TryConsume('('))
-            {
-                parenCount++;
-                continue;
-            }
+                case ')' when !inReplacement:
+                    if (parenCount == 0)
+                    {
+                        _position++;
+                        SetCurrentFrom(TokenKind.ItemList, start);
+                        return true;
+                    }
 
-            if (TryConsume(')'))
-            {
-                if (parenCount == 0)
-                {
-                    SetCurrentFrom(TokenKind.ItemList, start);
-                    return true;
-                }
-
-                parenCount--;
-                continue;
+                    parenCount--;
+                    break;
             }
 
             _position++;
