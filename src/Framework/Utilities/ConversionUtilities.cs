@@ -152,72 +152,173 @@ internal static class ConversionUtilities
     ///  such as "on", "!false", "yes".
     /// </summary>
     public static bool ValidBooleanTrue([NotNullWhen(true)] string? value)
-        => string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "on", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "!false", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "!off", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "!no", StringComparison.OrdinalIgnoreCase);
+    {
+        if (value is null)
+        {
+            return false;
+        }
+
+        // Use length switching with fully unrolled character comparisons.
+        // The '| 0x20' trick converts ASCII uppercase to lowercase by setting bit 5.
+        return value.Length switch
+        {
+            // "on"
+            2 => (value[0] | 0x20) == 'o' && (value[1] | 0x20) == 'n',
+
+            // "yes" or "!no"
+            3 => ((value[0] | 0x20) == 'y' && (value[1] | 0x20) == 'e' && (value[2] | 0x20) == 's')
+                || (value[0] == '!' && (value[1] | 0x20) == 'n' && (value[2] | 0x20) == 'o'),
+
+            // "true" or "!off"
+            4 => ((value[0] | 0x20) == 't' && (value[1] | 0x20) == 'r' && (value[2] | 0x20) == 'u' && (value[3] | 0x20) == 'e')
+                || (value[0] == '!' && (value[1] | 0x20) == 'o' && (value[2] | 0x20) == 'f' && (value[3] | 0x20) == 'f'),
+
+            // "!false"
+            6 => value[0] == '!' && (value[1] | 0x20) == 'f' && (value[2] | 0x20) == 'a'
+                && (value[3] | 0x20) == 'l' && (value[4] | 0x20) == 's' && (value[5] | 0x20) == 'e',
+
+            _ => false,
+        };
+    }
 
     /// <summary>
     ///  Returns true if the segment represents a valid MSBuild boolean true value,
     ///  such as "on", "!false", "yes".
     /// </summary>
     public static bool ValidBooleanTrue(StringSegment value)
-        => value.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("on", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!false", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!off", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!no", StringComparison.OrdinalIgnoreCase);
+        // Use length switching with fully unrolled character comparisons.
+        // The '| 0x20' trick converts ASCII uppercase to lowercase by setting bit 5.
+        => value.Length switch
+        {
+            // "on"
+            2 => (value[0] | 0x20) == 'o' && (value[1] | 0x20) == 'n',
+
+            // "yes" or "!no"
+            3 => ((value[0] | 0x20) == 'y' && (value[1] | 0x20) == 'e' && (value[2] | 0x20) == 's')
+                || (value[0] == '!' && (value[1] | 0x20) == 'n' && (value[2] | 0x20) == 'o'),
+
+            // "true" or "!off"
+            4 => ((value[0] | 0x20) == 't' && (value[1] | 0x20) == 'r' && (value[2] | 0x20) == 'u' && (value[3] | 0x20) == 'e')
+                || (value[0] == '!' && (value[1] | 0x20) == 'o' && (value[2] | 0x20) == 'f' && (value[3] | 0x20) == 'f'),
+
+            // "!false"
+            6 => value[0] == '!' && (value[1] | 0x20) == 'f' && (value[2] | 0x20) == 'a'
+                && (value[3] | 0x20) == 'l' && (value[4] | 0x20) == 's' && (value[5] | 0x20) == 'e',
+
+            _ => false,
+        };
 
     /// <summary>
     ///  Returns true if the span represents a valid MSBuild boolean true value,
     ///  such as "on", "!false", "yes".
     /// </summary>
     public static bool ValidBooleanTrue(ReadOnlySpan<char> value)
-        => value.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("on", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!false", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!off", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!no", StringComparison.OrdinalIgnoreCase);
+        // Use length switching with fully unrolled character comparisons.
+        // The '| 0x20' trick converts ASCII uppercase to lowercase by setting bit 5.
+        => value.Length switch
+        {
+            // "on"
+            2 => (value[0] | 0x20) == 'o' && (value[1] | 0x20) == 'n',
+
+            // "yes" or "!no"
+            3 => ((value[0] | 0x20) == 'y' && (value[1] | 0x20) == 'e' && (value[2] | 0x20) == 's')
+                || (value[0] == '!' && (value[1] | 0x20) == 'n' && (value[2] | 0x20) == 'o'),
+
+            // "true" or "!off"
+            4 => ((value[0] | 0x20) == 't' && (value[1] | 0x20) == 'r' && (value[2] | 0x20) == 'u' && (value[3] | 0x20) == 'e')
+                || (value[0] == '!' && (value[1] | 0x20) == 'o' && (value[2] | 0x20) == 'f' && (value[3] | 0x20) == 'f'),
+
+            // "!false"
+            6 => value[0] == '!' && (value[1] | 0x20) == 'f' && (value[2] | 0x20) == 'a'
+                && (value[3] | 0x20) == 'l' && (value[4] | 0x20) == 's' && (value[5] | 0x20) == 'e',
+
+            _ => false,
+        };
 
     /// <summary>
     ///  Returns true if the string represents a valid MSBuild boolean false value,
     ///  such as "!on" "off" "no" "!true".
     /// </summary>
     public static bool ValidBooleanFalse([NotNullWhen(true)] string? value)
-        => string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "off", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "no", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "!true", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "!on", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(value, "!yes", StringComparison.OrdinalIgnoreCase);
+    {
+        if (value is null)
+        {
+            return false;
+        }
+
+        // Use length switching with fully unrolled character comparisons.
+        // The '| 0x20' trick converts ASCII uppercase to lowercase by setting bit 5.
+        return value.Length switch
+        {
+            // "no"
+            2 => (value[0] | 0x20) == 'n' && (value[1] | 0x20) == 'o',
+
+            // "off" or "!on"
+            3 => ((value[0] | 0x20) == 'o' && (value[1] | 0x20) == 'f' && (value[2] | 0x20) == 'f')
+                || (value[0] == '!' && (value[1] | 0x20) == 'o' && (value[2] | 0x20) == 'n'),
+
+            // "!yes"
+            4 => value[0] == '!' && (value[1] | 0x20) == 'y' && (value[2] | 0x20) == 'e' && (value[3] | 0x20) == 's',
+
+            // "false" or "!true"
+            5 => ((value[0] | 0x20) == 'f' && (value[1] | 0x20) == 'a' && (value[2] | 0x20) == 'l' && (value[3] | 0x20) == 's' && (value[4] | 0x20) == 'e')
+                || (value[0] == '!' && (value[1] | 0x20) == 't' && (value[2] | 0x20) == 'r' && (value[3] | 0x20) == 'u' && (value[4] | 0x20) == 'e'),
+
+            _ => false,
+        };
+    }
 
     /// <summary>
     ///  Returns true if the segment represents a valid MSBuild boolean false value,
     ///  such as "!on" "off" "no" "!true".
     /// </summary>
     public static bool ValidBooleanFalse(StringSegment value)
-        => value.Equals("false", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("off", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("no", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!true", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!on", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!yes", StringComparison.OrdinalIgnoreCase);
+        // Use length switching with fully unrolled character comparisons.
+        // The '| 0x20' trick converts ASCII uppercase to lowercase by setting bit 5.
+        => value.Length switch
+        {
+            // "no"
+            2 => (value[0] | 0x20) == 'n' && (value[1] | 0x20) == 'o',
+
+            // "off" or "!on"
+            3 => ((value[0] | 0x20) == 'o' && (value[1] | 0x20) == 'f' && (value[2] | 0x20) == 'f')
+                || (value[0] == '!' && (value[1] | 0x20) == 'o' && (value[2] | 0x20) == 'n'),
+
+            // "!yes"
+            4 => value[0] == '!' && (value[1] | 0x20) == 'y' && (value[2] | 0x20) == 'e' && (value[3] | 0x20) == 's',
+
+            // "false" or "!true"
+            5 => ((value[0] | 0x20) == 'f' && (value[1] | 0x20) == 'a' && (value[2] | 0x20) == 'l' && (value[3] | 0x20) == 's' && (value[4] | 0x20) == 'e')
+                || (value[0] == '!' && (value[1] | 0x20) == 't' && (value[2] | 0x20) == 'r' && (value[3] | 0x20) == 'u' && (value[4] | 0x20) == 'e'),
+
+            _ => false,
+        };
 
     /// <summary>
     ///  Returns true if the span represents a valid MSBuild boolean false value,
     ///  such as "!on" "off" "no" "!true".
     /// </summary>
     public static bool ValidBooleanFalse(ReadOnlySpan<char> value)
-        => value.Equals("false", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("off", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("no", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!true", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!on", StringComparison.OrdinalIgnoreCase) ||
-           value.Equals("!yes", StringComparison.OrdinalIgnoreCase);
+        // Use length switching with fully unrolled character comparisons.
+        // The '| 0x20' trick converts ASCII uppercase to lowercase by setting bit 5.
+        => value.Length switch
+        {
+            // "no"
+            2 => (value[0] | 0x20) == 'n' && (value[1] | 0x20) == 'o',
+
+            // "off" or "!on"
+            3 => ((value[0] | 0x20) == 'o' && (value[1] | 0x20) == 'f' && (value[2] | 0x20) == 'f')
+                || (value[0] == '!' && (value[1] | 0x20) == 'o' && (value[2] | 0x20) == 'n'),
+
+            // "!yes"
+            4 => value[0] == '!' && (value[1] | 0x20) == 'y' && (value[2] | 0x20) == 'e' && (value[3] | 0x20) == 's',
+
+            // "false" or "!true"
+            5 => ((value[0] | 0x20) == 'f' && (value[1] | 0x20) == 'a' && (value[2] | 0x20) == 'l' && (value[3] | 0x20) == 's' && (value[4] | 0x20) == 'e')
+                || (value[0] == '!' && (value[1] | 0x20) == 't' && (value[2] | 0x20) == 'r' && (value[3] | 0x20) == 'u' && (value[4] | 0x20) == 'e'),
+
+            _ => false,
+        };
 
     /// <summary>
     ///  Converts a string like "123.456" into a double. Leading sign is allowed.
