@@ -511,6 +511,169 @@ internal ref struct Parser
     private readonly bool IdentifierEquals(int start, int length, string keyword)
         => length == keyword.Length && string.Compare(_expression, start, keyword, 0, keyword.Length, StringComparison.OrdinalIgnoreCase) == 0;
 
+    /// <summary>
+    ///  Attempts to match the text at the given position to a boolean literal keyword.
+    ///  Handles true/false/on/off/yes/no and their negated forms (!true/!false/!on/!off/!yes/!no).
+    ///  The '| 0x20' trick converts ASCII uppercase letters to lowercase by setting bit 5,
+    ///  allowing a single switch case per letter instead of matching both cases.
+    ///  Non-letter characters like '!' are unaffected since bit 5 is already set.
+    /// </summary>
+    private readonly bool TryGetBooleanLiteralKind(int start, int length, out TokenKind kind)
+    {
+        switch (length)
+        {
+            case 2:
+                switch (_expression[start] | 0x20)
+                {
+                    case 'o':
+                        if (IdentifierEquals(start, length, "on"))
+                        {
+                            kind = TokenKind.True;
+                            return true;
+                        }
+
+                        break;
+
+                    case 'n':
+                        if (IdentifierEquals(start, length, "no"))
+                        {
+                            kind = TokenKind.False;
+                            return true;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            case 3:
+                switch (_expression[start] | 0x20)
+                {
+                    case 'y':
+                        if (IdentifierEquals(start, length, "yes"))
+                        {
+                            kind = TokenKind.True;
+                            return true;
+                        }
+
+                        break;
+
+                    case 'o':
+                        if (IdentifierEquals(start, length, "off"))
+                        {
+                            kind = TokenKind.False;
+                            return true;
+                        }
+
+                        break;
+
+                    case '!':
+                        switch (_expression[start + 1] | 0x20)
+                        {
+                            case 'n':
+                                if (IdentifierEquals(start, length, "!no"))
+                                {
+                                    kind = TokenKind.True;
+                                    return true;
+                                }
+
+                                break;
+
+                            case 'o':
+                                if (IdentifierEquals(start, length, "!on"))
+                                {
+                                    kind = TokenKind.False;
+                                    return true;
+                                }
+
+                                break;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            case 4:
+                switch (_expression[start] | 0x20)
+                {
+                    case 't':
+                        if (IdentifierEquals(start, length, "true"))
+                        {
+                            kind = TokenKind.True;
+                            return true;
+                        }
+
+                        break;
+
+                    case '!':
+                        switch (_expression[start + 1] | 0x20)
+                        {
+                            case 'o':
+                                if (IdentifierEquals(start, length, "!off"))
+                                {
+                                    kind = TokenKind.True;
+                                    return true;
+                                }
+
+                                break;
+
+                            case 'y':
+                                if (IdentifierEquals(start, length, "!yes"))
+                                {
+                                    kind = TokenKind.False;
+                                    return true;
+                                }
+
+                                break;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            case 5:
+                switch (_expression[start] | 0x20)
+                {
+                    case 'f':
+                        if (IdentifierEquals(start, length, "false"))
+                        {
+                            kind = TokenKind.False;
+                            return true;
+                        }
+
+                        break;
+
+                    case '!':
+                        if ((_expression[start + 1] | 0x20) == 't'
+                            && IdentifierEquals(start, length, "!true"))
+                        {
+                            kind = TokenKind.False;
+                            return true;
+                        }
+
+                        break;
+                }
+
+                break;
+
+            case 6:
+                if (_expression[start] == '!'
+                    && (_expression[start + 1] | 0x20) == 'f'
+                    && IdentifierEquals(start, length, "!false"))
+                {
+                    kind = TokenKind.True;
+                    return true;
+                }
+
+                break;
+        }
+
+        kind = default;
+        return false;
+    }
+
     private void SkipWhiteSpace()
     {
         while (!AtEnd && char.IsWhiteSpace(_expression[_position]))
@@ -934,87 +1097,11 @@ internal ref struct Parser
                     _currentStart = start + 1;
                     _currentEnd = _position - 1;
 
-                    if (!expandable)
+                    if (!expandable && TryGetBooleanLiteralKind(_currentStart, _currentEnd - _currentStart, out TokenKind boolKind))
                     {
-                        int length = _currentEnd - _currentStart;
-
-                        switch (length)
-                        {
-                            case 2:
-                                if (IdentifierEquals(_currentStart, length, "on"))
-                                {
-                                    _currentKind = TokenKind.True;
-                                    _currentExpandable = false;
-                                    return true;
-                                }
-
-                                if (IdentifierEquals(_currentStart, length, "no"))
-                                {
-                                    _currentKind = TokenKind.False;
-                                    _currentExpandable = false;
-                                    return true;
-                                }
-
-                                break;
-
-                            case 3:
-                                if (IdentifierEquals(_currentStart, length, "yes") ||
-                                    IdentifierEquals(_currentStart, length, "!no"))
-                                {
-                                    _currentKind = TokenKind.True;
-                                    _currentExpandable = false;
-                                    return true;
-                                }
-
-                                if (IdentifierEquals(_currentStart, length, "off") ||
-                                    IdentifierEquals(_currentStart, length, "!on"))
-                                {
-                                    _currentKind = TokenKind.False;
-                                    _currentExpandable = false;
-                                    return true;
-                                }
-
-                                break;
-
-                            case 4:
-                                if (IdentifierEquals(_currentStart, length, "true") ||
-                                    IdentifierEquals(_currentStart, length, "!off"))
-                                {
-                                    _currentKind = TokenKind.True;
-                                    _currentExpandable = false;
-                                    return true;
-                                }
-
-                                if (IdentifierEquals(_currentStart, length, "!yes"))
-                                {
-                                    _currentKind = TokenKind.False;
-                                    _currentExpandable = false;
-                                    return true;
-                                }
-
-                                break;
-
-                            case 5:
-                                if (IdentifierEquals(_currentStart, length, "false") ||
-                                    IdentifierEquals(_currentStart, length, "!true"))
-                                {
-                                    _currentKind = TokenKind.False;
-                                    _currentExpandable = false;
-                                    return true;
-                                }
-
-                                break;
-
-                            case 6:
-                                if (IdentifierEquals(_currentStart, length, "!false"))
-                                {
-                                    _currentKind = TokenKind.True;
-                                    _currentExpandable = false;
-                                    return true;
-                                }
-
-                                break;
-                        }
+                        _currentKind = boolKind;
+                        _currentExpandable = false;
+                        return true;
                     }
 
                     _currentKind = TokenKind.String;
@@ -1085,68 +1172,34 @@ internal ref struct Parser
 
         int length = _position - start;
 
-        // Check for keywords by length to minimize comparisons.
+        // Check for 'and'/'or' keywords by length + first char.
         switch (length)
         {
             case 2:
-                if (IdentifierEquals(start, length, "or"))
+                if ((_expression[start] | 0x20) == 'o' && IdentifierEquals(start, length, "or"))
                 {
                     SetCurrentFrom(TokenKind.Or, start);
-                    return true;
-                }
-
-                if (IdentifierEquals(start, length, "on"))
-                {
-                    SetCurrentFrom(TokenKind.True, start);
-                    return true;
-                }
-
-                if (IdentifierEquals(start, length, "no"))
-                {
-                    SetCurrentFrom(TokenKind.False, start);
                     return true;
                 }
 
                 break;
 
             case 3:
-                if (IdentifierEquals(start, length, "and"))
+                if ((_expression[start] | 0x20) == 'a' && IdentifierEquals(start, length, "and"))
                 {
                     SetCurrentFrom(TokenKind.And, start);
                     return true;
                 }
 
-                if (IdentifierEquals(start, length, "yes"))
-                {
-                    SetCurrentFrom(TokenKind.True, start);
-                    return true;
-                }
-
-                if (IdentifierEquals(start, length, "off"))
-                {
-                    SetCurrentFrom(TokenKind.False, start);
-                    return true;
-                }
-
                 break;
+        }
 
-            case 4:
-                if (IdentifierEquals(start, length, "true"))
-                {
-                    SetCurrentFrom(TokenKind.True, start);
-                    return true;
-                }
-
-                break;
-
-            case 5:
-                if (IdentifierEquals(start, length, "false"))
-                {
-                    SetCurrentFrom(TokenKind.False, start);
-                    return true;
-                }
-
-                break;
+        // Check for boolean literal keywords (true/false/on/off/yes/no).
+        // Negated forms can't appear here since '!' isn't a valid identifier character.
+        if (TryGetBooleanLiteralKind(start, length, out TokenKind boolKind))
+        {
+            SetCurrentFrom(boolKind, start);
+            return true;
         }
 
         int end = _position;
