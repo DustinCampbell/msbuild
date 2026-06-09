@@ -9,8 +9,14 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 ///  Abstract base class for all nodes in a condition expression tree.
 /// </summary>
-internal abstract class ExpressionNode
+internal abstract class ExpressionNode(ExpressionNodeFlags flags)
 {
+    /// <summary>
+    ///  Flags indicating what types this node can potentially evaluate to.
+    ///  Used by comparison nodes to skip unnecessary virtual calls.
+    /// </summary>
+    public ExpressionNodeFlags Flags { get; } = flags;
+
     public abstract bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result);
 
     public abstract bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result);

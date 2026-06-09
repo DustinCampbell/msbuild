@@ -232,12 +232,12 @@ internal ref struct Parser
 
         result = operatorKind switch
         {
-            TokenKind.LessThan => new LessThanOperatorNode(lhs, rhs),
-            TokenKind.GreaterThan => new GreaterThanOperatorNode(lhs, rhs),
-            TokenKind.LessThanOrEqualTo => new LessThanOrEqualOperatorNode(lhs, rhs),
-            TokenKind.GreaterThanOrEqualTo => new GreaterThanOrEqualOperatorNode(lhs, rhs),
-            TokenKind.EqualTo => new EqualOperatorNode(lhs, rhs),
-            TokenKind.NotEqualTo => new NotEqualOperatorNode(lhs, rhs),
+            TokenKind.LessThan => new RelationalOperatorNode(RelationalOperationKind.LessThan, lhs, rhs),
+            TokenKind.GreaterThan => new RelationalOperatorNode(RelationalOperationKind.GreaterThan, lhs, rhs),
+            TokenKind.LessThanOrEqualTo => new RelationalOperatorNode(RelationalOperationKind.LessThanOrEqual, lhs, rhs),
+            TokenKind.GreaterThanOrEqualTo => new RelationalOperatorNode(RelationalOperationKind.GreaterThanOrEqual, lhs, rhs),
+            TokenKind.EqualTo => new EqualityOperatorNode(negate: false, lhs, rhs),
+            TokenKind.NotEqualTo => new EqualityOperatorNode(negate: true, lhs, rhs),
 
             _ => Assumed.Unreachable<ExpressionNode>($"Unexpected operator kind: {operatorKind}"),
         };

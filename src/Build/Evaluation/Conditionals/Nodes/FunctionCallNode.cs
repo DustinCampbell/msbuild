@@ -10,7 +10,8 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 ///  Base class for condition function call nodes such as Exists() and HasTrailingSlash().
 /// </summary>
-internal abstract class FunctionCallNode(ImmutableArray<ExpressionNode> arguments) : ExpressionNode
+internal abstract class FunctionCallNode(ImmutableArray<ExpressionNode> arguments, ExpressionNodeFlags flags)
+    : ExpressionNode(flags)
 {
     private protected readonly ImmutableArray<ExpressionNode> _arguments = arguments;
 

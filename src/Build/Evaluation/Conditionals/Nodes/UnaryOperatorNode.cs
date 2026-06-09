@@ -8,7 +8,8 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 ///  Base class for unary operator nodes that have a single child expression.
 /// </summary>
-internal abstract class UnaryOperatorNode(ExpressionNode expression) : ExpressionNode
+internal abstract class UnaryOperatorNode(ExpressionNode expression)
+    : ExpressionNode(ExpressionNodeFlags.CanBeBoolean)
 {
     public ExpressionNode Expression { get; } = expression;
 

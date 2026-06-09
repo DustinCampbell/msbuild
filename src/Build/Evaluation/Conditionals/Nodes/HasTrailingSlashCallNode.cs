@@ -13,7 +13,8 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 ///  Evaluates the HasTrailingSlash('path') condition function.
 /// </summary>
-internal sealed class HasTrailingSlashCallNode(ImmutableArray<ExpressionNode> arguments) : FunctionCallNode(arguments)
+internal sealed class HasTrailingSlashCallNode(ImmutableArray<ExpressionNode> arguments)
+    : FunctionCallNode(arguments, ExpressionNodeFlags.CanBeBoolean)
 {
     protected override string FunctionName => "HasTrailingSlash";
 

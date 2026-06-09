@@ -14,7 +14,8 @@ namespace Microsoft.Build.Evaluation;
 ///  so this node will never evaluate as numeric or boolean.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class StringLiteralNode(StringSegment value) : ExpressionNode
+internal sealed class StringLiteralNode(StringSegment value)
+    : ExpressionNode(ExpressionNodeFlags.None)
 {
     private readonly StringSegment _value = value;
 
