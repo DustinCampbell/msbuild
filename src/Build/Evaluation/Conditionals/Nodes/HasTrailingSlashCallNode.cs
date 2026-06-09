@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using static Microsoft.Build.Execution.ProjectItemInstance;
@@ -57,7 +58,7 @@ internal sealed class HasTrailingSlashCallNode(ImmutableArray<ExpressionNode> ar
         // Fix path before expansion
         argument = FileUtilities.FixFilePath(argument);
 
-        IList<TaskItem> items = state.ExpandIntoTaskItems(argument);
+        IList<TaskItem> items = ExpandIntoTaskItems(argument, state);
 
         switch (items)
         {
@@ -77,5 +78,11 @@ internal sealed class HasTrailingSlashCallNode(ImmutableArray<ExpressionNode> ar
             state.ExpandIntoString(argument));
 
         return string.Empty;
+
+        // NoInlining prevents the JIT from pulling the expansion pipeline into callers,
+        // which bloats the method with a large stack-zeroing prologue paid on every call.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static IList<TaskItem> ExpandIntoTaskItems(string argument, ConditionEvaluator.IConditionEvaluationState state)
+            => state.ExpandIntoTaskItems(argument);
     }
 }
