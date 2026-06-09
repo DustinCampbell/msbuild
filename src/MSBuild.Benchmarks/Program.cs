@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnostics.Windows;
+using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using static MSBuild.Benchmarks.Extensions;
@@ -11,15 +12,16 @@ using static MSBuild.Benchmarks.Extensions;
 var argList = new List<string>(args);
 
 ParseAndRemoveBooleanParameter(argList, "--collect-etw", out bool collectEtw);
+ParseAndRemoveBooleanParameter(argList, "--disasm", out bool disasm);
 ParseAndRemoveBooleanParameter(argList, "--disable-ngen", out bool disableNGen);
 ParseAndRemoveBooleanParameter(argList, "--disable-inlining", out bool disableJitInlining);
 
 return BenchmarkSwitcher
     .FromAssembly(typeof(Program).Assembly)
-    .Run([.. argList], GetConfig(collectEtw, disableNGen, disableJitInlining))
+    .Run([.. argList], GetConfig(collectEtw, disasm, disableNGen, disableJitInlining))
     .ToExitCode();
 
-static IConfig GetConfig(bool collectEtw, bool disableNGen, bool disableJitInlining)
+static IConfig GetConfig(bool collectEtw, bool disasm, bool disableNGen, bool disableJitInlining)
 {
     if (Debugger.IsAttached)
     {
@@ -31,6 +33,16 @@ static IConfig GetConfig(bool collectEtw, bool disableNGen, bool disableJitInlin
     if (collectEtw)
     {
         config = config.AddDiagnoser(new EtwProfiler());
+    }
+
+    if (disasm)
+    {
+        config = config.AddDiagnoser(
+            new DisassemblyDiagnoser(
+                new DisassemblyDiagnoserConfig(
+                    maxDepth: 3,
+                    printSource: true,
+                    printInstructionAddresses: true)));
     }
 
     // Use a mutator for settings that should apply to all jobs
