@@ -43,7 +43,6 @@ internal sealed class ExpandableStringNode(StringSegment value) : ExpressionNode
 
     // NoInlining prevents the JIT from pulling NumberFormatInfo, double.TryParse, and
     // ShouldBeTreatedAsVisualStudioVersion into callers like EqualityComparisonNode.
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
     {
         if (ShouldBeTreatedAsVisualStudioVersion(state))
@@ -55,7 +54,6 @@ internal sealed class ExpandableStringNode(StringSegment value) : ExpressionNode
         return ConversionUtilities.TryConvertDecimalOrHexToDouble(GetExpandedValue(state), out result);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public override bool TryEvaluateAsVersion(ConditionEvaluator.IConditionEvaluationState state, out Version? result)
     {
         if (ShouldBeTreatedAsVisualStudioVersion(state))
@@ -155,6 +153,7 @@ internal sealed class ExpandableStringNode(StringSegment value) : ExpressionNode
     private bool ShouldBeTreatedAsVisualStudioVersion(ConditionEvaluator.IConditionEvaluationState state)
         => _shouldBeTreatedAsVisualStudioVersion ??= ComputeShouldBeTreatedAsVisualStudioVersion(state);
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private bool ComputeShouldBeTreatedAsVisualStudioVersion(ConditionEvaluator.IConditionEvaluationState state)
     {
         // Treat specially if the node would expand to "Current".
