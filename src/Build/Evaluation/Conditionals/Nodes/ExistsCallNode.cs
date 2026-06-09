@@ -14,7 +14,8 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 ///  Evaluates the Exists('path') condition function.
 /// </summary>
-internal sealed class ExistsCallNode(ImmutableArray<ExpressionNode> arguments) : FunctionCallNode(arguments)
+internal sealed class ExistsCallNode(ImmutableArray<ExpressionNode> arguments)
+    : FunctionCallNode(arguments, ExpressionNodeFlags.CanBeBoolean)
 {
     protected override string FunctionName => "Exists";
 

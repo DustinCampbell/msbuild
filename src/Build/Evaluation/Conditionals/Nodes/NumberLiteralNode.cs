@@ -21,6 +21,7 @@ internal sealed class NumberLiteralNode : ExpressionNode
     private (bool, Version?)? _cachedVersionValue;
 
     public NumberLiteralNode(StringSegment value)
+        : base(ExpressionNodeFlags.CanBeNumeric)
     {
         Assumed.False(value.IsEmpty, "NumericExpressionNode cannot have empty value");
         _value = value;

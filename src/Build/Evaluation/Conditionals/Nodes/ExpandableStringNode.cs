@@ -16,7 +16,8 @@ namespace Microsoft.Build.Evaluation;
 ///  or metadata references (<c>%(Meta)</c>).
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class ExpandableStringNode(StringSegment value) : ExpressionNode
+internal sealed class ExpandableStringNode(StringSegment value)
+    : ExpressionNode(ExpressionNodeFlags.CanBeNumeric | ExpressionNodeFlags.CanBeBoolean)
 {
     private readonly StringSegment _value = value;
 
@@ -42,7 +43,7 @@ internal sealed class ExpandableStringNode(StringSegment value) : ExpressionNode
         => ConversionUtilities.TryConvertStringToBool(GetExpandedValue(state), out result);
 
     // NoInlining prevents the JIT from pulling NumberFormatInfo, double.TryParse, and
-    // ShouldBeTreatedAsVisualStudioVersion into callers like EqualityComparisonNode.
+    // ShouldBeTreatedAsVisualStudioVersion into callers like EqualityOperatorNode.
     public override bool TryEvaluateAsNumber(ConditionEvaluator.IConditionEvaluationState state, out double result)
     {
         if (ShouldBeTreatedAsVisualStudioVersion(state))

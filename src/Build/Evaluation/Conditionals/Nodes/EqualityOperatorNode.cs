@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation;
@@ -10,15 +13,22 @@ namespace Microsoft.Build.Evaluation;
 ///  Order in which comparisons are attempted is numeric, boolean, then string.
 ///  Updates conditioned properties table.
 /// </summary>
-internal abstract class EqualityComparisonNode(ExpressionNode left, ExpressionNode right) : BinaryOperatorNode(left, right)
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
+internal sealed class EqualityOperatorNode(bool negate, ExpressionNode left, ExpressionNode right) : BinaryOperatorNode(left, right)
 {
     private bool _conditionedPropertiesUpdated = false;
 
-    protected abstract bool Compare(double left, double right);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool Compare(double left, double right)
+        => (left == right) ^ negate;
 
-    protected abstract bool Compare(bool left, bool right);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool Compare(bool left, bool right)
+        => (left == right) ^ negate;
 
-    protected abstract bool Compare(string left, string right);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool Compare(string left, string right)
+        => string.Equals(left, right, StringComparison.OrdinalIgnoreCase) ^ negate;
 
     /// <summary>
     ///  Evaluates as boolean and evaluates children as boolean, numeric, or string.
@@ -54,7 +64,8 @@ internal abstract class EqualityComparisonNode(ExpressionNode left, ExpressionNo
             return true;
         }
 
-        if (Left.TryEvaluateAsNumber(state, out double leftNumericValue) &&
+        if ((Left.Flags & Right.Flags & ExpressionNodeFlags.CanBeNumeric) != 0 &&
+            Left.TryEvaluateAsNumber(state, out double leftNumericValue) &&
             Right.TryEvaluateAsNumber(state, out double rightNumericValue))
         {
             // The left child evaluating to a number and the right child not evaluating to a number
@@ -67,7 +78,8 @@ internal abstract class EqualityComparisonNode(ExpressionNode left, ExpressionNo
             return true;
         }
 
-        if (Left.TryEvaluateAsBoolean(state, out bool leftBoolValue) &&
+        if ((Left.Flags & Right.Flags & ExpressionNodeFlags.CanBeBoolean) != 0 &&
+            Left.TryEvaluateAsBoolean(state, out bool leftBoolValue) &&
             Right.TryEvaluateAsBoolean(state, out bool rightBoolValue))
         {
             result = Compare(leftBoolValue, rightBoolValue);
@@ -100,6 +112,11 @@ internal abstract class EqualityComparisonNode(ExpressionNode left, ExpressionNo
         base.ResetState();
         _conditionedPropertiesUpdated = false;
     }
+
+    public override string DebuggerDisplay
+        => negate
+            ? $"(!= {Left.DebuggerDisplay} {Right.DebuggerDisplay})"
+            : $"(== {Left.DebuggerDisplay} {Right.DebuggerDisplay})";
 
     /// <summary>
     ///  Updates the conditioned properties table if it hasn't already been done.

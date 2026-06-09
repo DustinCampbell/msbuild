@@ -11,7 +11,8 @@ namespace Microsoft.Build.Evaluation;
 ///  The boolean value is resolved at parse time, avoiding runtime string-to-bool conversion.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class BooleanLiteralNode(bool value) : ExpressionNode
+internal sealed class BooleanLiteralNode(bool value)
+    : ExpressionNode(ExpressionNodeFlags.CanBeBoolean)
 {
     public override bool TryEvaluateAsBoolean(ConditionEvaluator.IConditionEvaluationState state, out bool result)
     {

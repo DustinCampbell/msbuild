@@ -8,7 +8,8 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 ///  Base class for binary operator nodes that have left and right children.
 /// </summary>
-internal abstract class BinaryOperatorNode(ExpressionNode left, ExpressionNode right) : ExpressionNode
+internal abstract class BinaryOperatorNode(ExpressionNode left, ExpressionNode right)
+    : ExpressionNode(ExpressionNodeFlags.CanBeBoolean)
 {
     public ExpressionNode Left { get; } = left;
 
