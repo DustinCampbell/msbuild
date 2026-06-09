@@ -126,7 +126,15 @@ internal sealed class ExpandableStringNode(StringSegment value) : ExpressionNode
         => ValueText;
 
     public override string GetExpandedValue(ConditionEvaluator.IConditionEvaluationState state)
-        => _cachedExpandedValue ??= state.ExpandIntoString(ValueText);
+    {
+        return _cachedExpandedValue ??= ExpandIntoString(ValueText, state);
+
+        // NoInlining prevents the JIT from pulling the expansion pipeline into callers,
+        // which bloats the method with a large stack-zeroing prologue paid on every call.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static string ExpandIntoString(string value, ConditionEvaluator.IConditionEvaluationState state)
+            => state.ExpandIntoString(value);
+    }
 
     public override void ResetState()
     {
