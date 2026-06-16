@@ -77,6 +77,13 @@ namespace Microsoft.Build.UnitTests.Shared
         }
 #endif
 
+        public static string PathToExecutable
+#if NET
+            => Path.Combine(BootstrapMsBuildBinaryLocation, "sdk", BootstrapLocationAttribute.BootstrapSdkVersion, Constants.MSBuildExecutableName);
+#else
+            => Path.Combine(BootstrapMsBuildBinaryLocation, Constants.MSBuildExecutableName);
+#endif
+
         /// <summary>
         /// Invoke the currently running msbuild and return the stdout, stderr, and process exit status.
         /// This method may invoke msbuild via other runtimes.
@@ -114,9 +121,7 @@ namespace Microsoft.Build.UnitTests.Shared
             ITestOutputHelper outputHelper = null,
             bool attachProcessId = true,
             int timeoutMilliseconds = 30_000)
-        {
-            return RunProcessAndGetOutput(BootstrapMSBuildExecutablePath, msbuildParameters, out successfulExit, shellExecute, outputHelper, attachProcessId, timeoutMilliseconds, environmentVariables: GetMSBuildEnvironmentVariables(useBootstrapHost: true));
-        }
+            => RunProcessAndGetOutput(BootstrapMSBuildExecutablePath, msbuildParameters, out successfulExit, shellExecute, outputHelper, attachProcessId, timeoutMilliseconds, environmentVariables: GetMSBuildEnvironmentVariables(useBootstrapHost: true));
 
         /// <summary>
         /// Returns environment variables that should be set when launching MSBuild as a child process.
