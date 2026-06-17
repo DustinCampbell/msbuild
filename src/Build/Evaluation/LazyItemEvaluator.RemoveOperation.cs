@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -19,7 +20,7 @@ namespace Microsoft.Build.Evaluation
             private readonly ImmutableList<string> _matchOnMetadata;
             private MetadataTrie<P, I> _metadataSet;
 
-            public RemoveOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, ImmutableDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator, ImmutableList<string> matchOnMetadata, MatchOnMetadataOptions matchOnMetadataOptions)
+            public RemoveOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, CompactDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator, ImmutableList<string> matchOnMetadata, MatchOnMetadataOptions matchOnMetadataOptions)
                 : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
                 _matchOnMetadata = matchOnMetadata;

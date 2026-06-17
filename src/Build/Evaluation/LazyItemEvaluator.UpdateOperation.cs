@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 
@@ -21,7 +22,7 @@ namespace Microsoft.Build.Evaluation
             private ItemSpecMatchesItem _matchItemSpec = null;
             private bool? _needToExpandMetadataForEachItem = null;
 
-            public UpdateOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, ImmutableDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator, ImmutableArray<ProjectMetadataElement> metadata)
+            public UpdateOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, CompactDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator, ImmutableArray<ProjectMetadataElement> metadata)
                 : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
                 _metadata = metadata;

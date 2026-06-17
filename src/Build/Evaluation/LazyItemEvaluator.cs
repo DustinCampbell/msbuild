@@ -42,9 +42,11 @@ namespace Microsoft.Build.Evaluation
 
         private int _nextElementOrder = 0;
 
-        private Dictionary<string, LazyItemList> _itemLists = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
-            new Dictionary<string, LazyItemList>() :
-            new Dictionary<string, LazyItemList>(StringComparer.OrdinalIgnoreCase);
+        private static IEqualityComparer<string> ItemTypeKeyComparer => Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames
+            ? StringComparer.Ordinal
+            : StringComparer.OrdinalIgnoreCase;
+
+        private readonly Dictionary<string, LazyItemList> _itemLists = new(ItemTypeKeyComparer);
 
         protected EvaluationContext EvaluationContext { get; }
 
@@ -469,12 +471,12 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private void AddReferencedItemList(string itemType, IDictionary<string, LazyItemList> referencedItemLists)
+        private void AddReferencedItemList(string itemType, ref CompactDictionary<string, LazyItemList>.Builder referencedItemLists)
         {
             if (_itemLists.TryGetValue(itemType, out LazyItemList itemList))
             {
                 itemList.MarkAsReferenced();
-                referencedItemLists[itemType] = itemList;
+                referencedItemLists.Set(itemType, itemList);
             }
         }
 
@@ -512,23 +514,23 @@ namespace Microsoft.Build.Evaluation
 
         private UpdateOperation CreateUpdateOperation(ProjectItemElement itemElement, bool conditionResult)
         {
-            var referencedItemLists = CreateReferencedItemListsDictionary();
+            var referencedItemLists = new CompactDictionary<string, LazyItemList>.Builder(ItemTypeKeyComparer);
 
             // Process Update attribute
-            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Update, itemElement.UpdateLocation, referencedItemLists);
+            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Update, itemElement.UpdateLocation, ref referencedItemLists);
 
-            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, referencedItemLists);
+            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, ref referencedItemLists);
 
-            return new UpdateOperation(itemElement, itemSpec, referencedItemLists.ToImmutable(), conditionResult, this, metadata);
+            return new UpdateOperation(itemElement, itemSpec, referencedItemLists.Build(), conditionResult, this, metadata);
         }
 
         private IncludeOperation CreateIncludeOperation(ProjectItemElement itemElement, bool conditionResult)
         {
             int elementOrder = _nextElementOrder++;
-            var referencedItemLists = CreateReferencedItemListsDictionary();
+            var referencedItemLists = new CompactDictionary<string, LazyItemList>.Builder(ItemTypeKeyComparer);
 
             // Process include
-            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Include, itemElement.IncludeLocation, referencedItemLists);
+            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Include, itemElement.IncludeLocation, ref referencedItemLists);
 
             // Code corresponds to Evaluator.EvaluateItemElement
 
@@ -547,22 +549,22 @@ namespace Microsoft.Build.Evaluation
                     foreach (var excludeSplit in excludeSplits)
                     {
                         excludes.Add(excludeSplit);
-                        AddItemReferences(excludeSplit, referencedItemLists, itemElement.ExcludeLocation);
+                        AddItemReferences(excludeSplit, ref referencedItemLists, itemElement.ExcludeLocation);
                     }
                 }
             }
 
             // Process Metadata (STEP 5: Evaluate each metadata XML and apply them to each item we have so far)
-            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, referencedItemLists);
+            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, ref referencedItemLists);
 
-            return new IncludeOperation(itemElement, itemSpec, referencedItemLists.ToImmutable(), conditionResult, this, elementOrder, _rootDirectory, excludes.ToImmutable(), metadata);
+            return new IncludeOperation(itemElement, itemSpec, referencedItemLists.Build(), conditionResult, this, elementOrder, _rootDirectory, excludes.ToImmutable(), metadata);
         }
 
         private RemoveOperation CreateRemoveOperation(ProjectItemElement itemElement, bool conditionResult)
         {
-            var referencedItemLists = CreateReferencedItemListsDictionary();
+            var referencedItemLists = new CompactDictionary<string, LazyItemList>.Builder(ItemTypeKeyComparer);
 
-            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Remove, itemElement.RemoveLocation, referencedItemLists);
+            ItemSpec<P, I> itemSpec = ProcessItemSpec(itemElement.Remove, itemElement.RemoveLocation, ref referencedItemLists);
 
             // Process MatchOnMetadata
             var matchOnMetadata = ImmutableList.CreateBuilder<string>();
@@ -576,7 +578,7 @@ namespace Microsoft.Build.Evaluation
 
                     foreach (var matchOnMetadataSplit in matchOnMetadataSplits)
                     {
-                        AddItemReferences(matchOnMetadataSplit, referencedItemLists, itemElement.MatchOnMetadataLocation);
+                        AddItemReferences(matchOnMetadataSplit, ref referencedItemLists, itemElement.MatchOnMetadataLocation);
                         string metadataExpanded = _expander.ExpandIntoStringLeaveEscaped(matchOnMetadataSplit, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
                         var metadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded);
                         matchOnMetadata.AddRange(metadataSplits);
@@ -590,17 +592,10 @@ namespace Microsoft.Build.Evaluation
                 matchOnMetadataOptions = parsedOptions;
             }
 
-            return new RemoveOperation(itemElement, itemSpec, referencedItemLists.ToImmutable(), conditionResult, this, matchOnMetadata.ToImmutable(), matchOnMetadataOptions);
+            return new RemoveOperation(itemElement, itemSpec, referencedItemLists.Build(), conditionResult, this, matchOnMetadata.ToImmutable(), matchOnMetadataOptions);
         }
 
-        private static ImmutableDictionary<string, LazyItemList>.Builder CreateReferencedItemListsDictionary()
-        {
-            return Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames
-                ? ImmutableDictionary.CreateBuilder<string, LazyItemList>()
-                : ImmutableDictionary.Create<string, LazyItemList>(StringComparer.OrdinalIgnoreCase).ToBuilder();
-        }
-
-        private ItemSpec<P, I> ProcessItemSpec(string itemSpec, IElementLocation itemSpecLocation, IDictionary<string, LazyItemList> referencedItemLists)
+        private ItemSpec<P, I> ProcessItemSpec(string itemSpec, IElementLocation itemSpecLocation, ref CompactDictionary<string, LazyItemList>.Builder referencedItemLists)
         {
             var spec = new ItemSpec<P, I>(itemSpec, _outerExpander, itemSpecLocation, _rootDirectory);
 
@@ -608,14 +603,14 @@ namespace Microsoft.Build.Evaluation
             {
                 if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemExpression)
                 {
-                    AddReferencedItemLists(referencedItemLists, itemExpression.Capture);
+                    AddReferencedItemLists(ref referencedItemLists, itemExpression.Capture);
                 }
             }
 
             return spec;
         }
 
-        private ImmutableArray<ProjectMetadataElement> ProcessMetadataElements(ProjectItemElement itemElement, IDictionary<string, LazyItemList> referencedItemLists)
+        private ImmutableArray<ProjectMetadataElement> ProcessMetadataElements(ProjectItemElement itemElement, ref CompactDictionary<string, LazyItemList>.Builder referencedItemLists)
         {
             if (!itemElement.HasMetadata)
             {
@@ -652,14 +647,14 @@ namespace Microsoft.Build.Evaluation
             {
                 foreach (var itemType in itemsAndMetadataFound.Items)
                 {
-                    AddReferencedItemList(itemType, referencedItemLists);
+                    AddReferencedItemList(itemType, ref referencedItemLists);
                 }
             }
 
             return metadata.ToImmutable();
         }
 
-        private void AddItemReferences(string expression, IDictionary<string, LazyItemList> referencedItemLists, IElementLocation elementLocation)
+        private void AddItemReferences(string expression, ref CompactDictionary<string, LazyItemList>.Builder referencedItemLists, IElementLocation elementLocation)
         {
             if (expression.Length == 0)
             {
@@ -674,20 +669,20 @@ namespace Microsoft.Build.Evaluation
                 return;
             }
 
-            AddReferencedItemLists(referencedItemLists, match.Value);
+            AddReferencedItemLists(ref referencedItemLists, match.Value);
         }
 
-        private void AddReferencedItemLists(IDictionary<string, LazyItemList> referencedItemLists, ExpressionShredder.ItemExpressionCapture match)
+        private void AddReferencedItemLists(ref CompactDictionary<string, LazyItemList>.Builder referencedItemLists, ExpressionShredder.ItemExpressionCapture match)
         {
             if (match.ItemType != null)
             {
-                AddReferencedItemList(match.ItemType, referencedItemLists);
+                AddReferencedItemList(match.ItemType, ref referencedItemLists);
             }
             if (match.Captures != null)
             {
                 foreach (var subMatch in match.Captures)
                 {
-                    AddReferencedItemLists(referencedItemLists, subMatch);
+                    AddReferencedItemLists(ref referencedItemLists, subMatch);
                 }
             }
         }

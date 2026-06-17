@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
@@ -20,7 +21,7 @@ namespace Microsoft.Build.Evaluation
         private abstract class LazyItemOperation : IItemOperation
         {
             private readonly string _itemType;
-            private readonly ImmutableDictionary<string, LazyItemList> _referencedItemLists;
+            private readonly CompactDictionary<string, LazyItemList> _referencedItemLists;
 
             protected readonly LazyItemEvaluator<P, I, M, D> _lazyEvaluator;
             protected readonly ProjectItemElement _itemElement;
@@ -34,7 +35,7 @@ namespace Microsoft.Build.Evaluation
             protected readonly IItemFactory<I, I> _itemFactory;
             internal ItemSpec<P, I> Spec => _itemSpec;
 
-            protected LazyItemOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, ImmutableDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+            protected LazyItemOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, CompactDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
             {
                 _itemElement = itemElement;
                 _itemType = itemElement.ItemType;

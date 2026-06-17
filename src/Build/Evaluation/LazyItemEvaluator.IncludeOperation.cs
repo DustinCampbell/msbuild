@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
@@ -24,7 +25,7 @@ namespace Microsoft.Build.Evaluation
             private readonly ImmutableSegmentedList<string> _excludes;
             private readonly ImmutableArray<ProjectMetadataElement> _metadata;
 
-            public IncludeOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, ImmutableDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator, int elementOrder, string? rootDirectory, ImmutableSegmentedList<string> excludes, ImmutableArray<ProjectMetadataElement> metadata)
+            public IncludeOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, CompactDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator, int elementOrder, string? rootDirectory, ImmutableSegmentedList<string> excludes, ImmutableArray<ProjectMetadataElement> metadata)
                 : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
                 _elementOrder = elementOrder;
