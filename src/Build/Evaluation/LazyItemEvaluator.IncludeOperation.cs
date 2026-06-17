@@ -24,14 +24,13 @@ namespace Microsoft.Build.Evaluation
             private readonly ImmutableSegmentedList<string> _excludes;
             private readonly ImmutableArray<ProjectMetadataElement> _metadata;
 
-            public IncludeOperation(IncludeOperationBuilder builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            public IncludeOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, ImmutableDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator, int elementOrder, string? rootDirectory, ImmutableSegmentedList<string> excludes, ImmutableArray<ProjectMetadataElement> metadata)
+                : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
-                _elementOrder = builder.ElementOrder;
-                _rootDirectory = builder.RootDirectory;
-
-                _excludes = builder.Excludes.ToImmutable();
-                _metadata = builder.Metadata.ToImmutable();
+                _elementOrder = elementOrder;
+                _rootDirectory = rootDirectory;
+                _excludes = excludes;
+                _metadata = metadata;
             }
 
             [SuppressMessage("Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "_lazyEvaluator._evaluationProfiler has own dipose logic.")]
@@ -202,18 +201,6 @@ namespace Microsoft.Build.Evaluation
                 {
                     listBuilder.Add(new ItemData(item, _itemElement, _elementOrder, _conditionResult));
                 }
-            }
-        }
-
-        private class IncludeOperationBuilder : OperationBuilderWithMetadata
-        {
-            public int ElementOrder { get; set; }
-            public string? RootDirectory { get; set; }
-
-            public ImmutableSegmentedList<string>.Builder Excludes { get; } = ImmutableSegmentedList.CreateBuilder<string>();
-
-            public IncludeOperationBuilder(ProjectItemElement itemElement, bool conditionResult) : base(itemElement, conditionResult)
-            {
             }
         }
     }

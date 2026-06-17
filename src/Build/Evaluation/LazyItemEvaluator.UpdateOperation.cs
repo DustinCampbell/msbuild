@@ -21,10 +21,10 @@ namespace Microsoft.Build.Evaluation
             private ItemSpecMatchesItem _matchItemSpec = null;
             private bool? _needToExpandMetadataForEachItem = null;
 
-            public UpdateOperation(OperationBuilderWithMetadata builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            public UpdateOperation(ProjectItemElement itemElement, ItemSpec<P, I> itemSpec, ImmutableDictionary<string, LazyItemList> referencedItemLists, bool conditionResult, LazyItemEvaluator<P, I, M, D> lazyEvaluator, ImmutableArray<ProjectMetadataElement> metadata)
+                : base(itemElement, itemSpec, referencedItemLists, conditionResult, lazyEvaluator)
             {
-                _metadata = builder.Metadata.ToImmutable();
+                _metadata = metadata;
             }
 
             private readonly struct MatchResult
