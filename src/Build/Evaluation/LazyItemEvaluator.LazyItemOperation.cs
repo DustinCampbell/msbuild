@@ -204,7 +204,7 @@ namespace Microsoft.Build.Evaluation
 
                             foreach (var metadataElement in metadata)
                             {
-                                if (!EvaluateCondition(metadataElement.Condition, metadataElement, metadataExpansionOptions, ParserOptions.AllowAll, _expander, _lazyEvaluator))
+                                if (!_lazyEvaluator.EvaluateCondition(metadataElement, ParserOptions.AllowAll, _expander, metadataExpansionOptions))
                                 {
                                     continue;
                                 }
@@ -235,14 +235,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             // Because of the checking above, it should be safe to expand metadata in conditions; the condition
                             // will be true for either all the items or none
-                            if (
-                                !EvaluateCondition(
-                                    metadataElement.Condition,
-                                    metadataElement,
-                                    metadataExpansionOptions,
-                                    ParserOptions.AllowAll,
-                                    _expander,
-                                    _lazyEvaluator))
+                            if (!_lazyEvaluator.EvaluateCondition(metadataElement, ParserOptions.AllowAll, _expander, metadataExpansionOptions))
                             {
                                 continue;
                             }

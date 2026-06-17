@@ -187,6 +187,7 @@
     <Compile Include="Evaluation\Conditionals\ParserOptions.cs" />
     <Compile Include="Evaluation\Conditionals\TokenKind.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
+    <Compile Include="Evaluation\LazyItemEvaluatorOptions.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="Evaluation\ToolsetElement.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />

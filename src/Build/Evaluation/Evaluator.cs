@@ -703,7 +703,14 @@ namespace Microsoft.Build.Evaluation
                 using (_evaluationProfiler.TrackPass(EvaluationPass.Items))
                 {
                     // comment next line to turn off lazy Evaluation
-                    lazyEvaluator = new LazyItemEvaluator<P, I, M, D>(_data, _itemFactory, _evaluationLoggingContext, _evaluationProfiler, _evaluationContext);
+                    lazyEvaluator = new LazyItemEvaluator<P, I, M, D>(
+                        _data,
+                        _itemFactory,
+                        _evaluationLoggingContext,
+                        _evaluationProfiler,
+                        _evaluationContext,
+                        options: GetLazyItemEvaluatorOptions(),
+                        _projectRootElement.DirectoryPath);
 
                     // Pass3: evaluate project items
                     MSBuildEventSource.Log.EvaluatePass3Start(projectFile);
@@ -714,7 +721,7 @@ namespace Microsoft.Build.Evaluation
                     {
                         using (_evaluationProfiler.TrackElement(itemGroup))
                         {
-                            EvaluateItemGroupElement(itemGroup, lazyEvaluator);
+                            lazyEvaluator.EvaluateItemGroupElement(itemGroup);
                         }
                     }
                 }
@@ -842,6 +849,28 @@ namespace Microsoft.Build.Evaluation
             }
 
             Assumed.True(_evaluationProfiler.IsEmpty(), "Evaluation profiler stack is not empty.");
+        }
+
+        private LazyItemEvaluatorOptions GetLazyItemEvaluatorOptions()
+        {
+            LazyItemEvaluatorOptions options = LazyItemEvaluatorOptions.None;
+
+            if (_data.ShouldEvaluateForDesignTime)
+            {
+                options |= LazyItemEvaluatorOptions.EvaluateForDesignTime;
+            }
+
+            if (_data.CanEvaluateElementsWithFalseConditions)
+            {
+                options |= LazyItemEvaluatorOptions.CanEvaluateElementsWithFalseConditions;
+            }
+
+            if ((_loadSettings & ProjectLoadSettings.RecordEvaluatedItemElements) == ProjectLoadSettings.RecordEvaluatedItemElements)
+            {
+                options |= LazyItemEvaluatorOptions.RecordEvaluatedItemElements;
+            }
+
+            return options;
         }
 
         private IEnumerable FilterOutEnvironmentDerivedProperties(PropertyDictionary<P> dictionary)
@@ -1021,25 +1050,6 @@ namespace Microsoft.Build.Evaluation
                     using (_evaluationProfiler.TrackElement(itemDefinitionElement))
                     {
                         EvaluateItemDefinitionElement(itemDefinitionElement);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Evaluate the items in the itemgroup and add the applicable ones to the data passed in
-        /// </summary>
-        private void EvaluateItemGroupElement(ProjectItemGroupElement itemGroupElement, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-        {
-            bool itemGroupConditionResult = lazyEvaluator.EvaluateConditionWithCurrentState(itemGroupElement, ExpanderOptions.ExpandPropertiesAndItems, ParserOptions.AllowPropertiesAndItemLists);
-
-            if (itemGroupConditionResult || (_data.ShouldEvaluateForDesignTime && _data.CanEvaluateElementsWithFalseConditions))
-            {
-                foreach (ProjectItemElement itemElement in itemGroupElement.Items)
-                {
-                    using (_evaluationProfiler.TrackElement(itemElement))
-                    {
-                        EvaluateItemElement(itemGroupConditionResult, itemElement, lazyEvaluator);
                     }
                 }
             }
@@ -1333,25 +1343,6 @@ namespace Microsoft.Build.Evaluation
                 _expander.PropertiesUseTracker.CheckPreexistingUndefinedUsage(propertyElement, evaluatedValue, _evaluationLoggingContext);
 
                 _data.SetProperty(propertyElement, evaluatedValue, _evaluationLoggingContext);
-            }
-        }
-
-        private void EvaluateItemElement(bool itemGroupConditionResult, ProjectItemElement itemElement, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-        {
-            bool itemConditionResult = lazyEvaluator.EvaluateConditionWithCurrentState(itemElement, ExpanderOptions.ExpandPropertiesAndItems, ParserOptions.AllowPropertiesAndItemLists);
-
-            if (!itemConditionResult && !(_data.ShouldEvaluateForDesignTime && _data.CanEvaluateElementsWithFalseConditions))
-            {
-                return;
-            }
-
-            var conditionResult = itemGroupConditionResult && itemConditionResult;
-
-            lazyEvaluator.ProcessItemElement(_projectRootElement.DirectoryPath, itemElement, conditionResult);
-
-            if (conditionResult)
-            {
-                RecordEvaluatedItemElement(itemElement);
             }
         }
 
@@ -2518,14 +2509,6 @@ namespace Microsoft.Build.Evaluation
             else
             {
                 return _data.Directory;
-            }
-        }
-
-        private void RecordEvaluatedItemElement(ProjectItemElement itemElement)
-        {
-            if ((_loadSettings & ProjectLoadSettings.RecordEvaluatedItemElements) == ProjectLoadSettings.RecordEvaluatedItemElements)
-            {
-                _data.EvaluatedItemElements.Add(itemElement);
             }
         }
 

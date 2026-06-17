@@ -36,6 +36,9 @@ namespace Microsoft.Build.Evaluation
         private readonly IItemFactory<I, I> _itemFactory;
         private readonly LoggingContext _loggingContext;
         private readonly EvaluationProfiler _evaluationProfiler;
+        private readonly string _rootDirectory;
+        private readonly bool _evaluateFalseConditions;
+        private readonly bool _recordEvaluatedItemElements;
 
         private int _nextElementOrder = 0;
 
@@ -49,7 +52,7 @@ namespace Microsoft.Build.Evaluation
 
         protected FileMatcher FileMatcher => EvaluationContext.FileMatcher;
 
-        public LazyItemEvaluator(IEvaluatorData<P, I, M, D> data, IItemFactory<I, I> itemFactory, LoggingContext loggingContext, EvaluationProfiler evaluationProfiler, EvaluationContext evaluationContext)
+        public LazyItemEvaluator(IEvaluatorData<P, I, M, D> data, IItemFactory<I, I> itemFactory, LoggingContext loggingContext, EvaluationProfiler evaluationProfiler, EvaluationContext evaluationContext, LazyItemEvaluatorOptions options, string rootDirectory)
         {
             _outerEvaluatorData = data;
             _outerExpander = new Expander<P, I>(_outerEvaluatorData, _outerEvaluatorData, evaluationContext, loggingContext);
@@ -58,61 +61,71 @@ namespace Microsoft.Build.Evaluation
             _itemFactory = itemFactory;
             _loggingContext = loggingContext;
             _evaluationProfiler = evaluationProfiler;
+            _rootDirectory = rootDirectory;
+            _evaluateFalseConditions = (options & LazyItemEvaluatorOptions.EvaluateForDesignTime) != 0
+                && (options & LazyItemEvaluatorOptions.CanEvaluateElementsWithFalseConditions) != 0;
+            _recordEvaluatedItemElements = (options & LazyItemEvaluatorOptions.RecordEvaluatedItemElements) != 0;
 
             EvaluationContext = evaluationContext;
         }
 
-        public bool EvaluateConditionWithCurrentState(ProjectElement element, ExpanderOptions expanderOptions, ParserOptions parserOptions)
+        public void EvaluateItemGroupElement(ProjectItemGroupElement itemGroupElement)
         {
-            return EvaluateCondition(element.Condition, element, expanderOptions, parserOptions, _expander, this);
+            bool itemGroupConditionResult = EvaluateCondition(itemGroupElement);
+
+            if (itemGroupConditionResult || _evaluateFalseConditions)
+            {
+                foreach (ProjectItemElement itemElement in itemGroupElement.Items)
+                {
+                    using (_evaluationProfiler.TrackElement(itemElement))
+                    {
+                        bool itemConditionResult = EvaluateCondition(itemElement);
+
+                        if (itemConditionResult || _evaluateFalseConditions)
+                        {
+                            bool conditionResult = itemGroupConditionResult && itemConditionResult;
+
+                            ProcessItemElement(itemElement, conditionResult, _rootDirectory);
+
+                            if (conditionResult && _recordEvaluatedItemElements)
+                            {
+                                _outerEvaluatorData.EvaluatedItemElements.Add(itemElement);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        private static bool EvaluateCondition(
-            string condition,
-            ProjectElement element,
-            ExpanderOptions expanderOptions,
-            ParserOptions parserOptions,
-            Expander<P, I> expander,
-            LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+        private bool EvaluateCondition(ProjectElement element)
+            => EvaluateCondition(element, ParserOptions.AllowPropertiesAndItemLists, _expander, ExpanderOptions.ExpandPropertiesAndItems);
+
+        private bool EvaluateCondition(ProjectElement element, ParserOptions parserOptions, Expander<P, I> expander, ExpanderOptions expanderOptions)
         {
+            string condition = element.Condition;
+
             if (condition?.Length == 0)
             {
                 return true;
             }
+
             MSBuildEventSource.Log.EvaluateConditionStart(condition);
 
-            using (lazyEvaluator._evaluationProfiler.TrackCondition(element.ConditionLocation, condition))
+            using (_evaluationProfiler.TrackCondition(element.ConditionLocation, condition))
             {
                 bool result = ConditionEvaluator.EvaluateCondition(
                     condition,
                     parserOptions,
                     expander,
                     expanderOptions,
-                    GetCurrentDirectoryForConditionEvaluation(element, lazyEvaluator),
+                    evaluationDirectory: _outerEvaluatorData.Directory,
                     element.ConditionLocation,
-                    lazyEvaluator.FileSystem,
-                    loggingContext: lazyEvaluator._loggingContext);
+                    FileSystem,
+                    _loggingContext);
+
                 MSBuildEventSource.Log.EvaluateConditionStop(condition, result);
 
                 return result;
-            }
-        }
-
-        /// <summary>
-        /// COMPAT: Whidbey used the "current project file/targets" directory for evaluating Import and PropertyGroup conditions
-        /// Orcas broke this by using the current root project file for all conditions
-        /// For Dev10+, we'll fix this, and use the current project file/targets directory for Import, ImportGroup and PropertyGroup
-        /// but the root project file for the rest. Inside of targets will use the root project file as always.
-        /// </summary>
-        private static string GetCurrentDirectoryForConditionEvaluation(ProjectElement element, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-        {
-            if (element is ProjectPropertyGroupElement || element is ProjectImportElement || element is ProjectImportGroupElement)
-            {
-                return element.ContainingProject.DirectoryPath;
-            }
-            else
-            {
-                return lazyEvaluator._outerEvaluatorData.Directory;
             }
         }
 
@@ -503,7 +516,7 @@ namespace Microsoft.Build.Evaluation
                                     .OrderBy(itemData => itemData.ElementOrder);
         }
 
-        public void ProcessItemElement(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
+        private void ProcessItemElement(ProjectItemElement itemElement, bool conditionResult, string rootDirectory)
         {
             LazyItemOperation operation = null;
 
