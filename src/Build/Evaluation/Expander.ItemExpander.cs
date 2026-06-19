@@ -349,7 +349,7 @@ internal partial class Expander<P, I>
             }
 
             IList<T> result;
-            if (expressionCapture.Separator != null)
+            if (expressionCapture.HasSeparator)
             {
                 // Reference contains a separator, for example @(Compile, ';').
                 // We need to flatten the list into
@@ -505,14 +505,41 @@ internal partial class Expander<P, I>
                 }
             }
 
-            if (expressionCapture.Separator != null)
+            if (expressionCapture.HasSeparator)
             {
-                var joinedItems = string.Join(expressionCapture.Separator, entries.Select(i => i.Value));
+                string joinedItems = JoinWithSeparator(expressionCapture.Separator, entries);
                 entries.Clear();
                 entries.Add(new TransformEntry(joinedItems, null));
             }
 
             return false; // did not break early
+
+            static string JoinWithSeparator(ReadOnlyMemory<char> separator, List<TransformEntry> entries)
+            {
+                if (entries.Count == 0)
+                {
+                    return string.Empty;
+                }
+
+                if (entries.Count == 1)
+                {
+                    return entries[0].Value;
+                }
+
+                using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
+
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        builder.Append(separator);
+                    }
+
+                    builder.Append(entries[i].Value);
+                }
+
+                return builder.ToString();
+            }
         }
 
         /// <summary>

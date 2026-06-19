@@ -102,7 +102,7 @@ internal partial class Expander<P, I>
 
                 if (itemVectorExpressions.MoveNext()
                     && itemVectorExpressions.Current.Value == expression
-                    && itemVectorExpressions.Current.Separator == null
+                    && !itemVectorExpressions.Current.HasSeparator
                     && !itemVectorExpressions.MoveNext())
                 {
                     return expression;
@@ -147,7 +147,7 @@ internal partial class Expander<P, I>
             }
 
             // Expand metadata that appears in the item vector expression's separator.
-            if (itemExpressionCapture.Separator != null)
+            if (itemExpressionCapture.HasSeparator)
             {
                 // Append the portion before the separator verbatim, then expand within the separator portion.
                 string value = itemExpressionCapture.Value;
