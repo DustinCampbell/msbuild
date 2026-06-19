@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
@@ -165,7 +167,9 @@ namespace Microsoft.Build.Evaluation
 
                     SinkWhitespace(expression, ref currentIndex);
                     bool transformOrFunctionFound = true;
-                    List<ItemExpressionCapture> transformExpressions = null;
+
+                    // PERF: Almost all expressions have only one capture, so optimize for that case.
+                    using RefArrayBuilder<ItemExpressionCapture> transformExpressions = new(initialCapacity: 1);
 
                     // If there's an '->' eat it and the subsequent quoted expression or transform function
                     while (Sink(expression, ref currentIndex, end, '-', '>') && transformOrFunctionFound)
@@ -178,13 +182,10 @@ namespace Microsoft.Build.Evaluation
                         {
                             int startQuoted = startTransform + 1;
                             int endQuoted = currentIndex - 1;
-                            if (transformExpressions == null)
-                            {
-                                // PERF: Almost all expressions have only one capture, so optimize for that case
-                                transformExpressions = new List<ItemExpressionCapture>(1);
-                            }
-
-                            transformExpressions.Add(new ItemExpressionCapture(startQuoted, endQuoted - startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
+                            transformExpressions.Add(new ItemExpressionCapture(
+                                index: startQuoted,
+                                length: endQuoted - startQuoted,
+                                subExpression: expression.Substring(startQuoted, endQuoted - startQuoted)));
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
                         }
@@ -193,12 +194,6 @@ namespace Microsoft.Build.Evaluation
                         ItemExpressionCapture? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref currentIndex, end);
                         if (functionCapture != null)
                         {
-                            if (transformExpressions == null)
-                            {
-                                // PERF: Almost all expressions have only one capture, so optimize for that case
-                                transformExpressions = new List<ItemExpressionCapture>(1);
-                            }
-
                             transformExpressions.Add(functionCapture.Value);
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
@@ -259,7 +254,16 @@ namespace Microsoft.Build.Evaluation
                     // Create an expression capture that encompasses the entire expression between the @( and the )
                     // with the item name and any separator contained within it
                     // and each transform expression contained within it (i.e. each ->XYZ)
-                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(startPoint, endPoint - startPoint, Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), itemName, separatorStart, separatorLength, transformExpressions);
+                    ItemExpressionCapture expressionCapture = new(
+                        index: startPoint,
+                        length: endPoint - startPoint,
+                        subExpression: Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)),
+                        itemType: itemName,
+                        separatorStart,
+                        separatorLength,
+                        captures: transformExpressions.IsEmpty
+                            ? null
+                            : transformExpressions.AsSpan().ToArray());
 
                     Current = expressionCapture;
                     ++currentIndex;
@@ -649,7 +653,13 @@ namespace Microsoft.Build.Evaluation
                         functionArgumentsLength = endFunctionArguments - startFunctionArguments;
                     }
 
-                    ItemExpressionCapture capture = new ItemExpressionCapture(startTransform, i - startTransform, subExpression, functionName, functionArgumentsStart, functionArgumentsLength);
+                    ItemExpressionCapture capture = new(
+                        index: startTransform,
+                        length: i - startTransform,
+                        subExpression,
+                        functionName,
+                        functionArgumentsStart,
+                        functionArgumentsLength);
 
                     return capture;
                 }
@@ -738,6 +748,8 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal readonly struct ItemExpressionCapture
         {
+            private readonly ItemExpressionCapture[] _captures;
+
             public ItemExpressionCapture(int index, int length, string subExpression)
                 : this(index, length, subExpression, itemType: null, separatorStart: -1, separatorLength: 0, captures: null, functionName: null, functionArgumentsStart: -1, functionArgumentsLength: 0)
             {
@@ -750,7 +762,7 @@ namespace Microsoft.Build.Evaluation
                 string itemType,
                 int separatorStart,
                 int separatorLength,
-                List<ItemExpressionCapture> captures)
+                ItemExpressionCapture[] captures)
                 : this(index, length, subExpression, itemType, separatorStart, separatorLength, captures, functionName: null, functionArgumentsStart: -1, functionArgumentsLength: 0)
             {
             }
@@ -773,7 +785,7 @@ namespace Microsoft.Build.Evaluation
                 string itemType,
                 int separatorStart,
                 int separatorLength,
-                List<ItemExpressionCapture> captures,
+                ItemExpressionCapture[] captures,
                 string functionName,
                 int functionArgumentsStart,
                 int functionArgumentsLength)
@@ -784,16 +796,23 @@ namespace Microsoft.Build.Evaluation
                 ItemType = itemType;
                 SeparatorStart = separatorStart;
                 SeparatorLength = separatorLength;
-                Captures = captures;
+                _captures = captures;
                 FunctionName = functionName;
                 FunctionArgumentsStart = functionArgumentsStart;
                 FunctionArgumentsLength = functionArgumentsLength;
             }
 
             /// <summary>
+            ///  Gets a value indicating whether this expression has captures.
+            /// </summary>
+            public bool HasCaptures
+                => _captures is not null;
+
+            /// <summary>
             ///  Gets captures within this capture.
             /// </summary>
-            public List<ItemExpressionCapture> Captures { get; }
+            public ImmutableArray<ItemExpressionCapture> Captures
+                => ImmutableCollectionsMarshal.AsImmutableArray(_captures);
 
             /// <summary>
             ///  Gets the position in the original string where the first character of the captured
@@ -825,7 +844,7 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             ///  Gets the separator as a <see cref="ReadOnlyMemory{T}"/>, or empty if there is no separator.
             /// </summary>
-            public readonly ReadOnlyMemory<char> Separator
+            public ReadOnlyMemory<char> Separator
                 => HasSeparator ? Value.AsMemory(SeparatorStart, SeparatorLength) : default;
 
             /// <summary>
@@ -846,13 +865,13 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             ///  Gets a value indicating whether this expression has function arguments.
             /// </summary>
-            public readonly bool HasFunctionArguments
+            public bool HasFunctionArguments
                 => FunctionArgumentsStart >= 0;
 
             /// <summary>
             ///  Gets the function arguments as a <see cref="ReadOnlyMemory{T}"/>, or empty if there are no function arguments.
             /// </summary>
-            public readonly ReadOnlyMemory<char> FunctionArguments
+            public ReadOnlyMemory<char> FunctionArguments
                 => HasFunctionArguments ? Value.AsMemory(FunctionArgumentsStart, FunctionArgumentsLength) : default;
 
             /// <summary>

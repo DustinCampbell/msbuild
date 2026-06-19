@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
@@ -106,7 +106,7 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             ExpanderOptions options,
             bool includeNullEntries,
-            List<ExpressionShredder.ItemExpressionCapture> captures,
+            ImmutableArray<ExpressionShredder.ItemExpressionCapture> captures,
             ICollection<I> itemsOfType,
             out List<TransformEntry> result)
         {
@@ -117,7 +117,7 @@ internal partial class Expander<P, I>
 
             // Create a TransformFunction for each transform in the chain by extracting the relevant information
             // from the regex parsing results
-            for (int i = 0; i < captures.Count; i++)
+            for (int i = 0; i < captures.Length; i++)
             {
                 ExpressionShredder.ItemExpressionCapture capture = captures[i];
                 string function = capture.Value;
@@ -205,7 +205,7 @@ internal partial class Expander<P, I>
                 }
 
                 // If we have another transform, swap the source and transform lists.
-                if (i < captures.Count - 1)
+                if (i < captures.Length - 1)
                 {
                     (output, input) = (input, output);
                     output.Clear();
@@ -305,7 +305,7 @@ internal partial class Expander<P, I>
                 return null;
             }
 
-            if (!expression.Contains('@'))
+            if (expression.IndexOf('@') < 0)
             {
                 return null;
             }
@@ -416,27 +416,24 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Expands an expression capture into a list of items
-        /// If the capture uses a separator, then all the items are concatenated into one string using that separator.
-        ///
-        /// Returns true if ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and so it broke out early.
+        ///  Expands an expression capture into a list of items. If the capture uses a separator,
+        ///  all items are concatenated into one string using that separator.
         /// </summary>
-        /// <param name="isTransformExpression"></param>
-        /// <param name="entries">
-        /// List of items.
-        ///
-        /// <see cref="TransformEntry.Value"/> represents the item string, escaped.
-        /// <see cref="TransformEntry.Item"/> represents the original item.
-        ///
-        /// Value differs from Item's string when it is coming from a transform.
-        ///
-        /// </param>
         /// <param name="expander">The expander whose state will be used to expand any transforms.</param>
-        /// <param name="expressionCapture">The <see cref="ExpandSingleItemVectorExpressionIntoExpressionCapture"/> representing the structure of an item expression.</param>
-        /// <param name="evaluatedItems"><see cref="IItemProvider{T}"/> to provide the inital items (which may get subsequently transformed, if <paramref name="expressionCapture"/> is a transform expression)>.</param>
-        /// <param name="elementLocation">Location of the xml element containing the <paramref name="expressionCapture"/>.</param>
-        /// <param name="options">expander options.</param>
-        /// <param name="includeNullEntries">Wether to include items that evaluated to empty / null.</param>
+        /// <param name="expressionCapture">The parsed item expression structure.</param>
+        /// <param name="evaluatedItems">Provider of items that may be subsequently transformed.</param>
+        /// <param name="elementLocation">Location of the XML element containing the expression.</param>
+        /// <param name="options">Expander options.</param>
+        /// <param name="includeNullEntries">Whether to include items that evaluated to empty/null.</param>
+        /// <param name="isTransformExpression">Set to <see langword="true"/> if the expression contains transforms.</param>
+        /// <param name="entries">
+        ///  The expanded items. <see cref="TransformEntry.Value"/> is the item string (escaped);
+        ///  <see cref="TransformEntry.Item"/> is the original item (differs from Value when a transform is applied).
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> if <see cref="ExpanderOptions.BreakOnNotEmpty"/> was specified and
+        ///  the result would be non-empty (the method broke out early); otherwise <see langword="false"/>.
+        /// </returns>
         internal static bool ExpandExpressionCapture(
             Expander<P, I> expander,
             ExpressionShredder.ItemExpressionCapture expressionCapture,
@@ -448,35 +445,54 @@ internal partial class Expander<P, I>
             out List<TransformEntry> entries)
         {
             Assumed.NotNull(evaluatedItems, "Cannot expand items without providing items");
+
             // There's something wrong with the expression, and we ended up with a blank item type
             ProjectErrorUtilities.VerifyThrowInvalidProject(!string.IsNullOrEmpty(expressionCapture.ItemType), elementLocation, "InvalidFunctionPropertyExpression");
 
-            isTransformExpression = false;
+            isTransformExpression = expressionCapture.HasCaptures;
 
             ICollection<I> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
-            List<ExpressionShredder.ItemExpressionCapture> captures = expressionCapture.Captures;
 
-            // If there are no items of the given type, then bail out early
+            // If there are no items of the given type, then bail out early,
+            // but only if there isn't a function like "Count" or "AnyHaveMetadataValue"
+            // that needs to return a value for an empty list.
             if (itemsOfType.Count == 0)
             {
-                // ... but only if there isn't a function "Count", since that will want to return something (zero) for an empty list
-                if (captures?.Any(capture => string.Equals(capture.FunctionName, "Count", StringComparison.OrdinalIgnoreCase)) != true)
+                bool hasFunctionForEmptyList = false;
+
+                if (isTransformExpression)
                 {
-                    // ...or a function "AnyHaveMetadataValue", since that will want to return false for an empty list.
-                    if (captures?.Any(capture => string.Equals(capture.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)) != true)
+                    foreach (ExpressionShredder.ItemExpressionCapture capture in expressionCapture.Captures)
                     {
-                        entries = null;
-                        return false;
+                        if (string.Equals(capture.FunctionName, "Count", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(capture.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase))
+                        {
+                            hasFunctionForEmptyList = true;
+                            break;
+                        }
                     }
+                }
+
+                if (!hasFunctionForEmptyList)
+                {
+                    entries = null;
+                    return false;
                 }
             }
 
-            if (captures != null)
+            if (isTransformExpression)
             {
-                isTransformExpression = true;
-            }
+                ImmutableArray<ExpressionShredder.ItemExpressionCapture> captures = expressionCapture.Captures;
 
-            if (!isTransformExpression)
+                // There's something wrong with the expression, and we ended up with no function names
+                ProjectErrorUtilities.VerifyThrowInvalidProject(captures.Length > 0, elementLocation, "InvalidFunctionPropertyExpression");
+
+                if (!TryTransform(expander, elementLocation, options, includeNullEntries, captures, itemsOfType, out entries))
+                {
+                    return true;
+                }
+            }
+            else
             {
                 entries = null;
 
@@ -493,20 +509,11 @@ internal partial class Expander<P, I>
                     entries.Add(new TransformEntry(evaluatedIncludeEscaped, item));
                 }
             }
-            else
-            {
-                // There's something wrong with the expression, and we ended up with no function names
-                ProjectErrorUtilities.VerifyThrowInvalidProject(captures.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
-
-                if (!TryTransform(expander, elementLocation, options, includeNullEntries, captures, itemsOfType, out entries))
-                {
-                    return true;
-                }
-            }
 
             if (expressionCapture.HasSeparator)
             {
                 string joinedItems = JoinWithSeparator(expressionCapture.Separator, entries);
+
                 entries.Clear();
                 entries.Add(new TransformEntry(joinedItems, null));
             }
