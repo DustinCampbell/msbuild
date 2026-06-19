@@ -638,13 +638,18 @@ namespace Microsoft.Build.Evaluation
                     int endFunctionArguments = i - 1;
 
                     string functionName = expression.Substring(startTransform, endFunctionName - startTransform);
-                    string functionArguments = null;
+                    string subExpression = expression.Substring(startTransform, i - startTransform);
+
+                    int functionArgumentsStart = -1;
+                    int functionArgumentsLength = 0;
                     if (endFunctionArguments > startFunctionArguments)
                     {
-                        functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
+                        // The arguments start/length are relative to the subExpression (Value), not the original expression.
+                        functionArgumentsStart = startFunctionArguments - startTransform;
+                        functionArgumentsLength = endFunctionArguments - startFunctionArguments;
                     }
 
-                    ItemExpressionCapture capture = new ItemExpressionCapture(startTransform, i - startTransform, expression.Substring(startTransform, i - startTransform), functionName, functionArguments);
+                    ItemExpressionCapture capture = new ItemExpressionCapture(startTransform, i - startTransform, subExpression, functionName, functionArgumentsStart, functionArgumentsLength);
 
                     return capture;
                 }
@@ -734,7 +739,7 @@ namespace Microsoft.Build.Evaluation
         internal readonly struct ItemExpressionCapture
         {
             public ItemExpressionCapture(int index, int length, string subExpression)
-                : this(index, length, subExpression, itemType: null, separatorStart: -1, separatorLength: 0, captures: null, functionName: null, functionArguments: null)
+                : this(index, length, subExpression, itemType: null, separatorStart: -1, separatorLength: 0, captures: null, functionName: null, functionArgumentsStart: -1, functionArgumentsLength: 0)
             {
             }
 
@@ -746,12 +751,18 @@ namespace Microsoft.Build.Evaluation
                 int separatorStart,
                 int separatorLength,
                 List<ItemExpressionCapture> captures)
-                : this(index, length, subExpression, itemType, separatorStart, separatorLength, captures, null, null)
+                : this(index, length, subExpression, itemType, separatorStart, separatorLength, captures, functionName: null, functionArgumentsStart: -1, functionArgumentsLength: 0)
             {
             }
 
-            public ItemExpressionCapture(int index, int length, string subExpression, string functionName, string functionArguments)
-                : this(index, length, subExpression, itemType: null, separatorStart: -1, separatorLength: 0, captures: null, functionName, functionArguments)
+            public ItemExpressionCapture(
+                int index,
+                int length,
+                string subExpression,
+                string functionName,
+                int functionArgumentsStart,
+                int functionArgumentsLength)
+                : this(index, length, subExpression, itemType: null, separatorStart: -1, separatorLength: 0, captures: null, functionName, functionArgumentsStart, functionArgumentsLength)
             {
             }
 
@@ -764,7 +775,8 @@ namespace Microsoft.Build.Evaluation
                 int separatorLength,
                 List<ItemExpressionCapture> captures,
                 string functionName,
-                string functionArguments)
+                int functionArgumentsStart,
+                int functionArgumentsLength)
             {
                 Index = index;
                 Length = length;
@@ -774,11 +786,12 @@ namespace Microsoft.Build.Evaluation
                 SeparatorLength = separatorLength;
                 Captures = captures;
                 FunctionName = functionName;
-                FunctionArguments = functionArguments;
+                FunctionArgumentsStart = functionArgumentsStart;
+                FunctionArgumentsLength = functionArgumentsLength;
             }
 
             /// <summary>
-            /// Gets captures within this capture.
+            ///  Gets captures within this capture.
             /// </summary>
             public List<ItemExpressionCapture> Captures { get; }
 
@@ -831,9 +844,26 @@ namespace Microsoft.Build.Evaluation
             public string FunctionName { get; }
 
             /// <summary>
-            ///  Gets the function arguments, if any, within this expression.
+            ///  Gets a value indicating whether this expression has function arguments.
             /// </summary>
-            public string FunctionArguments { get; }
+            public readonly bool HasFunctionArguments
+                => FunctionArgumentsStart >= 0;
+
+            /// <summary>
+            ///  Gets the function arguments as a <see cref="ReadOnlyMemory{T}"/>, or empty if there are no function arguments.
+            /// </summary>
+            public readonly ReadOnlyMemory<char> FunctionArguments
+                => HasFunctionArguments ? Value.AsMemory(FunctionArgumentsStart, FunctionArgumentsLength) : default;
+
+            /// <summary>
+            ///  Gets the starting character of the function arguments within <see cref="Value"/>.
+            /// </summary>
+            public int FunctionArgumentsStart { get; }
+
+            /// <summary>
+            ///  Gets the length of the function arguments.
+            /// </summary>
+            public int FunctionArgumentsLength { get; }
 
             /// <summary>
             ///  Gets the captured substring from the input string.

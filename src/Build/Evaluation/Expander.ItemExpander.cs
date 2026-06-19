@@ -122,7 +122,6 @@ internal partial class Expander<P, I>
                 ExpressionShredder.ItemExpressionCapture capture = captures[i];
                 string function = capture.Value;
                 string functionName = capture.FunctionName;
-                string argumentsExpression = capture.FunctionArguments;
 
                 string[] arguments = null;
 
@@ -131,9 +130,9 @@ internal partial class Expander<P, I>
                     functionName = "ExpandQuotedExpressionFunction";
                     arguments = [function];
                 }
-                else if (argumentsExpression != null)
+                else if (capture.HasFunctionArguments)
                 {
-                    arguments = ExtractFunctionArguments(elementLocation, argumentsExpression, argumentsExpression.AsMemory());
+                    arguments = ExtractFunctionArguments(elementLocation, function, capture.FunctionArguments);
                 }
 
                 TransformKind kind;

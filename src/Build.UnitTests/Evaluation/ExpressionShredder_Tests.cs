@@ -738,7 +738,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Single(capture.Captures);
             Assert.Equal("Bar(a,b)", capture.Captures[0].Value);
             Assert.Equal("Bar", capture.Captures[0].FunctionName);
-            Assert.Equal("a,b", capture.Captures[0].FunctionArguments);
+            Assert.Equal("a,b", capture.Captures[0].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -759,7 +759,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Single(capture.Captures);
             Assert.Equal("Bar(a,b)", capture.Captures[0].Value);
             Assert.Equal("Bar", capture.Captures[0].FunctionName);
-            Assert.Equal("a,b", capture.Captures[0].FunctionArguments);
+            Assert.Equal("a,b", capture.Captures[0].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -779,10 +779,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("Metadata('Meta0')", capture.Captures[0].Value);
             Assert.Equal("Metadata", capture.Captures[0].FunctionName);
-            Assert.Equal("'Meta0'", capture.Captures[0].FunctionArguments);
+            Assert.Equal("'Meta0'", capture.Captures[0].FunctionArguments.ToString());
             Assert.Equal("Directory()", capture.Captures[1].Value);
             Assert.Equal("Directory", capture.Captures[1].FunctionName);
-            Assert.Null(capture.Captures[1].FunctionArguments);
+            Assert.False(capture.Captures[1].HasFunctionArguments);
         }
 
         [Fact]
@@ -802,10 +802,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("Metadata('Meta0')", capture.Captures[0].Value);
             Assert.Equal("Metadata", capture.Captures[0].FunctionName);
-            Assert.Equal("'Meta0'", capture.Captures[0].FunctionArguments);
+            Assert.Equal("'Meta0'", capture.Captures[0].FunctionArguments.ToString());
             Assert.Equal("Directory()", capture.Captures[1].Value);
             Assert.Equal("Directory", capture.Captures[1].FunctionName);
-            Assert.Null(capture.Captures[1].FunctionArguments);
+            Assert.False(capture.Captures[1].HasFunctionArguments);
         }
 
         [Fact]
@@ -825,10 +825,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Fullpath)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Directory()", capture.Captures[1].Value);
             Assert.Equal("Directory", capture.Captures[1].FunctionName);
-            Assert.Null(capture.Captures[1].FunctionArguments);
+            Assert.False(capture.Captures[1].HasFunctionArguments);
         }
 
         [Fact]
@@ -848,10 +848,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Fullpath)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Directory()", capture.Captures[1].Value);
             Assert.Equal("Directory", capture.Captures[1].FunctionName);
-            Assert.Null(capture.Captures[1].FunctionArguments);
+            Assert.False(capture.Captures[1].HasFunctionArguments);
         }
 
         [Fact]
@@ -871,7 +871,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("$(SOMEPROP)%(Fullpath)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
         }
 
         [Fact]
@@ -891,10 +891,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring($(Val), $(Boo))", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("$(Val), $(Boo)", capture.Captures[1].FunctionArguments);
+            Assert.Equal("$(Val), $(Boo)", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -914,10 +914,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring(\"AA\", 'BB', `cc`)", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"AA\", 'BB', `cc`", capture.Captures[1].FunctionArguments);
+            Assert.Equal("\"AA\", 'BB', `cc`", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -937,10 +937,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring('()', $(Boo), ')(')", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("'()', $(Boo), ')('", capture.Captures[1].FunctionArguments);
+            Assert.Equal("'()', $(Boo), ')('", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -960,10 +960,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring(`()`, $(Boo), \"AA\")", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("`()`, $(Boo), \"AA\"", capture.Captures[1].FunctionArguments);
+            Assert.Equal("`()`, $(Boo), \"AA\"", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -983,10 +983,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring(`()`, $(Boo), \")(\")", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("`()`, $(Boo), \")(\"", capture.Captures[1].FunctionArguments);
+            Assert.Equal("`()`, $(Boo), \")(\"", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -1006,10 +1006,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring(\"()\", $(Boo), `)(`)", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments);
+            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -1034,10 +1034,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring(\"()\", $(Boo), `)(`)", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments);
+            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -1062,10 +1062,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", firstCapture.ItemType);
             Assert.Equal("%(Filename)", firstCapture.Captures[0].Value);
             Assert.Null(firstCapture.Captures[0].FunctionName);
-            Assert.Null(firstCapture.Captures[0].FunctionArguments);
+            Assert.False(firstCapture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring(\"()\", $(Boo), `)(`)", firstCapture.Captures[1].Value);
             Assert.Equal("Substring", firstCapture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", firstCapture.Captures[1].FunctionArguments);
+            Assert.Equal("\"()\", $(Boo), `)(`", firstCapture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -1090,10 +1090,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring(\"()\", $(Boo), `)(`)", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments);
+            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -1118,10 +1118,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("Foo", capture.ItemType);
             Assert.Equal("%(Filename)", capture.Captures[0].Value);
             Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            Assert.False(capture.Captures[0].HasFunctionArguments);
             Assert.Equal("Substring(\"()\", $(Boo), `)(\"`)", capture.Captures[1].Value);
             Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(\"`", capture.Captures[1].FunctionArguments);
+            Assert.Equal("\"()\", $(Boo), `)(\"`", capture.Captures[1].FunctionArguments.ToString());
         }
 
         [Fact]
@@ -1175,9 +1175,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("I", capture.ItemType);
             Assert.Equal(2, capture.Captures.Count);
             Assert.Equal("WithMetadataValue", capture.Captures[0].FunctionName);
-            Assert.Equal("'M', 'T'", capture.Captures[0].FunctionArguments);
+            Assert.Equal("'M', 'T'", capture.Captures[0].FunctionArguments.ToString());
             Assert.Equal("WithMetadataValue", capture.Captures[1].FunctionName);
-            Assert.Equal("'M', 'T'", capture.Captures[1].FunctionArguments);
+            Assert.Equal("'M', 'T'", capture.Captures[1].FunctionArguments.ToString());
 
             // Test without space before second arrow: ")->"
             expression = "@(I -> WithMetadataValue('M', 'T')-> WithMetadataValue('M', 'T'))";
@@ -1188,9 +1188,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal("I", capture.ItemType);
             Assert.Equal(2, capture.Captures.Count);
             Assert.Equal("WithMetadataValue", capture.Captures[0].FunctionName);
-            Assert.Equal("'M', 'T'", capture.Captures[0].FunctionArguments);
+            Assert.Equal("'M', 'T'", capture.Captures[0].FunctionArguments.ToString());
             Assert.Equal("WithMetadataValue", capture.Captures[1].FunctionName);
-            Assert.Equal("'M', 'T'", capture.Captures[1].FunctionArguments);
+            Assert.Equal("'M', 'T'", capture.Captures[1].FunctionArguments.ToString());
 
             // Test with multiple spaces and chained functions
             expression = "@(I->Distinct() -> Reverse() ->Count())";
