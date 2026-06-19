@@ -532,19 +532,38 @@ internal partial class Expander<P, I>
                     return entries[0].Value;
                 }
 
-                using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
+                int separatorLength = separator.Length;
+                int totalLength = separatorLength * (entries.Count - 1);
 
-                for (int i = 0; i < entries.Count; i++)
+                foreach (var (value, _) in entries)
                 {
-                    if (i > 0)
-                    {
-                        builder.Append(separator);
-                    }
-
-                    builder.Append(entries[i].Value);
+                    totalLength += value?.Length ?? 0;
                 }
 
-                return builder.ToString();
+                return string.Create(totalLength, (entries, separator), static (span, state) =>
+                {
+                    List<TransformEntry> entries = state.entries;
+                    ReadOnlySpan<char> separatorSpan = state.separator.Span;
+                    int position = 0;
+
+                    bool isFirst = true;
+
+                    foreach (var (value, _) in entries)
+                    {
+                        if (isFirst)
+                        {
+                            isFirst = false;
+                        }
+                        else
+                        {
+                            separatorSpan.CopyTo(span.Slice(position));
+                            position += separatorSpan.Length;
+                        }
+
+                        value.AsSpan().CopyTo(span.Slice(position));
+                        position += value.Length;
+                    }
+                });
             }
         }
 
