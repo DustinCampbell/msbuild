@@ -6,32 +6,101 @@ using System.Collections.Generic;
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
-/// Represents one substring for a single successful capture.
+///  Represents a single item vector expression (or a transform sub-expression within one)
+///  parsed out of a larger string, e.g. <c>@(Compile-&gt;'%(Filename)', ';')</c>.
 /// </summary>
-internal struct ItemExpressionCapture
+internal readonly struct ItemExpressionCapture
 {
     /// <summary>
-    /// Create an Expression Capture instance
-    /// Represents a sub expression, shredded from a larger expression
+    ///  Gets the text of the parsed expression, e.g. <c>@(Compile)</c> for a top-level item vector
+    ///  expression or <c>Metadata('Filename')</c> for a transform sub-expression.
     /// </summary>
-    public ItemExpressionCapture(int index, string subExpression)
-        : this(index, subExpression, null, null, -1, null, null, null)
-    {
-    }
-
-    public ItemExpressionCapture(int index, string subExpression, string? itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures)
-        : this(index, subExpression, itemType, separator, separatorStart, captures, null, null)
-    {
-    }
+    public string Value { get; }
 
     /// <summary>
-    /// Create an Expression Capture instance
-    /// Represents a sub expression, shredded from a larger expression
+    ///  Gets the offset in the original string at which this expression begins.
     /// </summary>
-    public ItemExpressionCapture(int index, string subExpression, string? itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures, string? functionName, string? functionArguments)
+    public int Index { get; }
+
+    /// <summary>
+    ///  Gets the length of the expression text. Always equal to <see cref="Value"/>'s length.
+    /// </summary>
+    public int Length => Value?.Length ?? 0;
+
+    /// <summary>
+    ///  Gets the referenced item type, e.g. <c>Compile</c> in <c>@(Compile)</c>.
+    ///  Set only on a top-level item vector expression.
+    /// </summary>
+    public string? ItemType { get; }
+
+    /// <summary>
+    ///  Gets the literal string used to join the expanded items, e.g. <c>;</c> in <c>@(Compile, ';')</c>,
+    ///  or <see langword="null"/> when no separator was specified.
+    ///  Set only on a top-level item vector expression.
+    /// </summary>
+    public string? Separator { get; }
+
+    /// <summary>
+    ///  Gets the offset of the separator relative to the start of this expression,
+    ///  or <c>-1</c> when there is no separator.
+    /// </summary>
+    public int SeparatorStart { get; }
+
+    /// <summary>
+    ///  Gets the transform sub-expressions applied to the item vector, one per <c>-&gt;</c> link
+    ///  (e.g. the sub-expressions for <c>-&gt;'%(Filename)'</c> and <c>-&gt;Distinct()</c> in
+    ///  <c>@(Compile-&gt;'%(Filename)'-&gt;Distinct())</c>), or <see langword="null"/> when the
+    ///  expression has no transforms.
+    /// </summary>
+    public List<ItemExpressionCapture>? Captures { get; }
+
+    /// <summary>
+    ///  Gets the item function name for a function transform sub-expression, e.g. <c>Metadata</c> in
+    ///  <c>-&gt;Metadata('Filename')</c>. <see langword="null"/> for a quoted transform (e.g.
+    ///  <c>-&gt;'%(Filename)'</c>) or a top-level expression.
+    /// </summary>
+    public string? FunctionName { get; }
+
+    /// <summary>
+    ///  Gets the raw argument text for a function transform sub-expression, e.g. <c>'Filename'</c> in
+    ///  <c>-&gt;Metadata('Filename')</c>, or <see langword="null"/> when the function takes no
+    ///  arguments or this is not a function transform.
+    /// </summary>
+    public string? FunctionArguments { get; }
+
+    public ItemExpressionCapture(string value, int index)
+        : this(value, index, itemType: null, separator: null, separatorStart: -1, captures: null, functionName: null, functionArguments: null)
     {
+    }
+
+    public ItemExpressionCapture(string value, int index, string functionName, string? functionArguments)
+        : this(value, index, itemType: null, separator: null, separatorStart: -1, captures: null, functionName, functionArguments)
+    {
+    }
+
+    public ItemExpressionCapture(
+        string value,
+        int index,
+        string? itemType,
+        string? separator,
+        int separatorStart,
+        List<ItemExpressionCapture>? captures)
+        : this(value, index, itemType, separator, separatorStart, captures, functionName: null, functionArguments: null)
+    {
+    }
+
+    private ItemExpressionCapture(
+        string value,
+        int index,
+        string? itemType,
+        string? separator,
+        int separatorStart,
+        List<ItemExpressionCapture>? captures,
+        string? functionName,
+        string? functionArguments)
+    {
+        Value = value;
         Index = index;
-        Value = subExpression;
         ItemType = itemType;
         Separator = separator;
         SeparatorStart = separatorStart;
@@ -41,56 +110,8 @@ internal struct ItemExpressionCapture
     }
 
     /// <summary>
-    /// Captures within this capture
-    /// </summary>
-    public List<ItemExpressionCapture>? Captures { get; }
-
-    /// <summary>
-    /// The position in the original string where the first character of the captured
-    /// substring was found.
-    /// </summary>
-    public int Index { get; }
-
-    /// <summary>
-    /// The length of the captured substring.
-    /// </summary>
-    public int Length => Value?.Length ?? 0;
-
-    /// <summary>
-    /// Gets the captured substring from the input string.
-    /// </summary>
-    public string Value { get; }
-
-    /// <summary>
-    /// Gets the captured itemtype.
-    /// </summary>
-    public string? ItemType { get; }
-
-    /// <summary>
-    /// Gets the captured itemtype.
-    /// </summary>
-    public string? Separator { get; }
-
-    /// <summary>
-    /// The starting character of the separator.
-    /// </summary>
-    public int SeparatorStart { get; }
-
-    /// <summary>
-    /// The function name, if any, within this expression
-    /// </summary>
-    public string? FunctionName { get; }
-
-    /// <summary>
-    /// The function arguments, if any, within this expression
-    /// </summary>
-    public string? FunctionArguments { get; }
-
-    /// <summary>
-    /// Gets the captured substring from the input string.
+    ///  Returns the expression text (<see cref="Value"/>).
     /// </summary>
     public override string ToString()
-    {
-        return Value;
-    }
+        => Value;
 }
