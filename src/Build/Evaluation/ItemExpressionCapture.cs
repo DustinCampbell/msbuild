@@ -3,8 +3,6 @@
 
 using System.Collections.Generic;
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation;
 
 /// <summary>
@@ -21,7 +19,7 @@ internal struct ItemExpressionCapture
     {
     }
 
-    public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures)
+    public ItemExpressionCapture(int index, int length, string subExpression, string? itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures)
         : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
     {
     }
@@ -30,7 +28,7 @@ internal struct ItemExpressionCapture
     /// Create an Expression Capture instance
     /// Represents a sub expression, shredded from a larger expression
     /// </summary>
-    public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures, string functionName, string functionArguments)
+    public ItemExpressionCapture(int index, int length, string subExpression, string? itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures, string? functionName, string? functionArguments)
     {
         Index = index;
         Length = length;
@@ -46,7 +44,7 @@ internal struct ItemExpressionCapture
     /// <summary>
     /// Captures within this capture
     /// </summary>
-    public List<ItemExpressionCapture> Captures { get; }
+    public List<ItemExpressionCapture>? Captures { get; }
 
     /// <summary>
     /// The position in the original string where the first character of the captured
@@ -67,12 +65,12 @@ internal struct ItemExpressionCapture
     /// <summary>
     /// Gets the captured itemtype.
     /// </summary>
-    public string ItemType { get; }
+    public string? ItemType { get; }
 
     /// <summary>
     /// Gets the captured itemtype.
     /// </summary>
-    public string Separator { get; }
+    public string? Separator { get; }
 
     /// <summary>
     /// The starting character of the separator.
@@ -82,12 +80,12 @@ internal struct ItemExpressionCapture
     /// <summary>
     /// The function name, if any, within this expression
     /// </summary>
-    public string FunctionName { get; }
+    public string? FunctionName { get; }
 
     /// <summary>
     /// The function arguments, if any, within this expression
     /// </summary>
-    public string FunctionArguments { get; }
+    public string? FunctionArguments { get; }
 
     /// <summary>
     /// Gets the captured substring from the input string.
