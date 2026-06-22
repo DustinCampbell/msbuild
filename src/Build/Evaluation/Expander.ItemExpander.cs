@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -106,7 +106,7 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             ExpanderOptions options,
             bool includeNullEntries,
-            List<ExpressionShredder.ItemExpressionCapture> captures,
+            List<ItemExpressionCapture> captures,
             ICollection<I> itemsOfType,
             out List<TransformEntry> result)
         {
@@ -119,7 +119,7 @@ internal partial class Expander<P, I>
             // from the regex parsing results
             for (int i = 0; i < captures.Count; i++)
             {
-                ExpressionShredder.ItemExpressionCapture capture = captures[i];
+                ItemExpressionCapture capture = captures[i];
                 string function = capture.Value;
                 string functionName = capture.FunctionName;
                 string argumentsExpression = capture.FunctionArguments;
@@ -298,7 +298,7 @@ internal partial class Expander<P, I>
                 out isTransformExpression, elementLocation);
         }
 
-        internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
+        internal static ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
             string expression, ExpanderOptions options, IElementLocation elementLocation)
         {
             if (((options & ExpanderOptions.ExpandItems) == 0) || (expression.Length == 0))
@@ -318,7 +318,7 @@ internal partial class Expander<P, I>
                 return null;
             }
 
-            ExpressionShredder.ItemExpressionCapture match = matchesEnumerator.Current;
+            ItemExpressionCapture match = matchesEnumerator.Current;
 
             // We have a single valid @(itemlist) reference in the given expression.
             // If the passed-in expression contains exactly one item list reference,
@@ -331,7 +331,7 @@ internal partial class Expander<P, I>
         }
 
         internal static IList<T> ExpandExpressionCaptureIntoItems<T>(
-            ExpressionShredder.ItemExpressionCapture expressionCapture, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
+            ItemExpressionCapture expressionCapture, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
             ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
             where T : class, IItem
         {
@@ -440,7 +440,7 @@ internal partial class Expander<P, I>
         /// <param name="includeNullEntries">Wether to include items that evaluated to empty / null.</param>
         internal static bool ExpandExpressionCapture(
             Expander<P, I> expander,
-            ExpressionShredder.ItemExpressionCapture expressionCapture,
+            ItemExpressionCapture expressionCapture,
             IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             ExpanderOptions options,
@@ -455,7 +455,7 @@ internal partial class Expander<P, I>
             isTransformExpression = false;
 
             ICollection<I> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
-            List<ExpressionShredder.ItemExpressionCapture> captures = expressionCapture.Captures;
+            List<ItemExpressionCapture> captures = expressionCapture.Captures;
 
             // If there are no items of the given type, then bail out early
             if (itemsOfType.Count == 0)
@@ -544,7 +544,7 @@ internal partial class Expander<P, I>
             int lastStringIndex = 0;
             do
             {
-                ExpressionShredder.ItemExpressionCapture currentItem = matchesEnumerator.Current;
+                ItemExpressionCapture currentItem = matchesEnumerator.Current;
                 if (currentItem.Index > lastStringIndex)
                 {
                     if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
@@ -577,7 +577,7 @@ internal partial class Expander<P, I>
         /// </summary>
         private static bool ExpandExpressionCaptureIntoStringBuilder(
             Expander<P, I> expander,
-            ExpressionShredder.ItemExpressionCapture capture,
+            ItemExpressionCapture capture,
             IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             SpanBasedStringBuilder builder,

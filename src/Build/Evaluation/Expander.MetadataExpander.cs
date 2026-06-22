@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -152,7 +152,7 @@ internal partial class Expander<P, I>
             }
         }
 
-        private int ProcessItemExpressionCapture(string expression, int start, ExpressionShredder.ItemExpressionCapture itemExpressionCapture)
+        private int ProcessItemExpressionCapture(string expression, int start, ItemExpressionCapture itemExpressionCapture)
         {
             // Expand metadata in the gap before this item vector expression.
             if (itemExpressionCapture.Index > start)
