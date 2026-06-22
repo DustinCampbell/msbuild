@@ -380,6 +380,23 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Equal(@"", result);
         }
 
+        /// <summary>
+        ///  An item vector with a separator over an empty item list (and no transforms) should expand to an
+        ///  empty string. This exercises the empty-items early-out in <c>ItemExpander.ExpandExpressionCapture</c>,
+        ///  which must bail out before the separator join when there are no items and no Count/AnyHaveMetadataValue
+        ///  transform.
+        /// </summary>
+        [Fact]
+        public void ExpandItemVectorWithSeparatorOverEmptyList()
+        {
+            ProjectHelpers.CreateEmptyProjectInstance();
+            var expander = CreateItemFunctionExpander();
+
+            string result = expander.ExpandIntoStringLeaveEscaped("[@(nonexistent, ';')]", ExpanderOptions.ExpandItems, MockElementLocation.Instance);
+
+            result.ShouldBe("[]");
+        }
+
         [Fact]
         [Trait("Category", "netcore-osx-failing")]
         [Trait("Category", "netcore-linux-failing")]

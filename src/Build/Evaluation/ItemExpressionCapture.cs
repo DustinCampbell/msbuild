@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -49,7 +50,13 @@ internal readonly struct ItemExpressionCapture
     ///  <c>@(Compile-&gt;'%(Filename)'-&gt;Distinct())</c>), or <see langword="null"/> when the
     ///  expression has no transforms.
     /// </summary>
-    public List<ItemTransform>? Captures { get; }
+    public List<ItemTransform>? Transforms { get; }
+
+    /// <summary>
+    ///  Gets a value indicating whether the expression has any transforms.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Transforms))]
+    public bool HasTransforms => Transforms != null;
 
     public ItemExpressionCapture(
         string text,
@@ -57,14 +64,16 @@ internal readonly struct ItemExpressionCapture
         string itemType,
         string? separator,
         int separatorStart,
-        List<ItemTransform>? captures)
+        List<ItemTransform>? transforms)
     {
+        Assumed.True(transforms is null or { Count: > 0 }, "Transforms must be null or non-empty.");
+
         Text = text;
         Index = index;
         ItemType = itemType;
         Separator = separator;
         SeparatorStart = separatorStart;
-        Captures = captures;
+        Transforms = transforms;
     }
 
     /// <summary>

@@ -449,36 +449,43 @@ internal partial class Expander<P, I>
             out List<TransformEntry> entries)
         {
             Assumed.NotNull(evaluatedItems, "Cannot expand items without providing items");
+
             // There's something wrong with the expression, and we ended up with a blank item type
             ProjectErrorUtilities.VerifyThrowInvalidProject(!string.IsNullOrEmpty(expressionCapture.ItemType), elementLocation, "InvalidFunctionPropertyExpression");
 
-            isTransformExpression = false;
-
             ICollection<I> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
-            List<ItemTransform> transforms = expressionCapture.Captures;
 
             // If there are no items of the given type, then bail out early
             if (itemsOfType.Count == 0)
             {
-                // ... but only if there isn't a function "Count", since that will want to return something (zero) for an empty list
-                if (transforms?.Any(transform => string.Equals(transform.FunctionName, "Count", StringComparison.OrdinalIgnoreCase)) != true)
+                // ...but only if there isn't a "Count" function (which returns 0 for an empty list)
+                // or an "AnyHaveMetadataValue" function (which returns false for an empty list).
+                bool hasEmptyListFunction = false;
+                if (expressionCapture.HasTransforms)
                 {
-                    // ...or a function "AnyHaveMetadataValue", since that will want to return false for an empty list.
-                    if (transforms?.Any(transform => string.Equals(transform.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)) != true)
+                    foreach (ItemTransform transform in expressionCapture.Transforms)
                     {
-                        entries = null;
-                        return false;
+                        if (transform.FunctionName is not null &&
+                            (transform.FunctionName.Equals("Count", StringComparison.OrdinalIgnoreCase) ||
+                             transform.FunctionName.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            hasEmptyListFunction = true;
+                            break;
+                        }
                     }
+                }
+
+                if (!hasEmptyListFunction)
+                {
+                    isTransformExpression = false;
+                    entries = null;
+                    return false;
                 }
             }
 
-            if (transforms != null)
+            if (!expressionCapture.HasTransforms)
             {
-                isTransformExpression = true;
-            }
-
-            if (!isTransformExpression)
-            {
+                isTransformExpression = false;
                 entries = null;
 
                 // No transform: expression is like @(Compile), so include the item spec without a transform base item
@@ -497,9 +504,11 @@ internal partial class Expander<P, I>
             else
             {
                 // There's something wrong with the expression, and we ended up with no function names
-                ProjectErrorUtilities.VerifyThrowInvalidProject(transforms.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
+                ProjectErrorUtilities.VerifyThrowInvalidProject(expressionCapture.Transforms.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
 
-                if (!TryTransform(expander, elementLocation, options, includeNullEntries, transforms, itemsOfType, out entries))
+                isTransformExpression = true;
+
+                if (!TryTransform(expander, elementLocation, options, includeNullEntries, expressionCapture.Transforms, itemsOfType, out entries))
                 {
                     return true;
                 }
