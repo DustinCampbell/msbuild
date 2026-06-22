@@ -103,6 +103,57 @@ namespace Microsoft.Build.Evaluation
             return GetReferencedItemExpressions(expression, 0, expression.Length);
         }
 
+        /// <summary>
+        ///  Attempts to parse <paramref name="expression"/> as a single item vector expression
+        ///  (e.g. <c>@(Compile)</c> or <c>@(Compile-&gt;'%(Filename)', ';')</c>) that spans the
+        ///  entire string.
+        /// </summary>
+        /// <remarks>
+        ///  Throws an invalid-project error when the string contains a single item vector reference
+        ///  that does not span the whole expression (e.g. <c>x@(Compile)</c>).
+        /// </remarks>
+        /// <param name="expression">The string to parse.</param>
+        /// <param name="location">
+        ///  The location used to report an invalid-project error when the expression contains a single
+        ///  item vector reference that does not span the whole string.
+        /// </param>
+        /// <param name="result">
+        ///  When this method returns <see langword="true"/>, the parsed item vector expression;
+        ///  otherwise, the default value.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> if <paramref name="expression"/> is a single item vector expression
+        ///  spanning the entire string; otherwise, <see langword="false"/>.
+        /// </returns>
+        internal static bool TryGetItemVectorExpression(string expression, IElementLocation location, out ItemVectorExpression result)
+        {
+            if (expression.Length == 0 || expression.IndexOf('@') < 0)
+            {
+                result = default;
+                return false;
+            }
+
+            ReferencedItemExpressionsEnumerator enumerator = GetReferencedItemExpressions(expression);
+
+            if (!enumerator.MoveNext())
+            {
+                result = default;
+                return false;
+            }
+
+            ItemVectorExpression itemVector = enumerator.Current;
+
+            // We have a single valid @(itemlist) reference in the given expression.
+            // If the passed-in expression contains exactly one item list reference,
+            // with nothing else concatenated to the beginning or end, then proceed
+            // with itemizing it, otherwise error.
+            ProjectErrorUtilities.VerifyThrowInvalidProject(itemVector.Text == expression, location, "EmbeddedItemVectorCannotBeItemized", expression);
+            Assumed.False(enumerator.MoveNext(), "Expected just one item vector");
+
+            result = itemVector;
+            return true;
+        }
+
         internal struct ReferencedItemExpressionsEnumerator
         {
             private readonly string expression;

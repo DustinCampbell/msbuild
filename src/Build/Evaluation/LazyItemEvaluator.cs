@@ -672,15 +672,12 @@ namespace Microsoft.Build.Evaluation
             }
             else
             {
-                ItemVectorExpression? itemVector = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
-                    expression, ExpanderOptions.ExpandItems, elementLocation);
-
-                if (itemVector == null)
+                if (!ExpressionShredder.TryGetItemVectorExpression(expression, elementLocation, out ItemVectorExpression itemVector))
                 {
                     return;
                 }
 
-                AddReferencedItemLists(operationBuilder, itemVector.Value);
+                AddReferencedItemLists(operationBuilder, itemVector);
             }
         }
 

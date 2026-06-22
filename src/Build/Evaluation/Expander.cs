@@ -403,12 +403,6 @@ internal partial class Expander<P, I>
         return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, expression, _items, itemFactory, options, includeNullItems, out isTransformExpression, elementLocation);
     }
 
-    internal static ItemVectorExpression? ExpandSingleItemVectorExpressionIntoExpressionCapture(
-            string expression, ExpanderOptions options, IElementLocation elementLocation)
-    {
-        return ItemExpander.ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
-    }
-
     internal IList<T> ExpandExpressionCaptureIntoItems<T>(
         ItemVectorExpression itemVector, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
         ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)

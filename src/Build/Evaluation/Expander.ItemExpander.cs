@@ -288,46 +288,13 @@ internal partial class Expander<P, I>
         {
             isTransformExpression = false;
 
-            var itemVector = ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
-            if (itemVector == null)
+            if (!ExpressionShredder.TryGetItemVectorExpression(expression, elementLocation, out ItemVectorExpression itemVector))
             {
                 return null;
             }
 
-            return ExpandExpressionCaptureIntoItems(itemVector.Value, expander, items, itemFactory, options, includeNullEntries,
+            return ExpandExpressionCaptureIntoItems(itemVector, expander, items, itemFactory, options, includeNullEntries,
                 out isTransformExpression, elementLocation);
-        }
-
-        internal static ItemVectorExpression? ExpandSingleItemVectorExpressionIntoExpressionCapture(
-            string expression, ExpanderOptions options, IElementLocation elementLocation)
-        {
-            if (((options & ExpanderOptions.ExpandItems) == 0) || (expression.Length == 0))
-            {
-                return null;
-            }
-
-            if (!expression.Contains('@'))
-            {
-                return null;
-            }
-
-            ExpressionShredder.ReferencedItemExpressionsEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-
-            if (!enumerator.MoveNext())
-            {
-                return null;
-            }
-
-            ItemVectorExpression itemVector = enumerator.Current;
-
-            // We have a single valid @(itemlist) reference in the given expression.
-            // If the passed-in expression contains exactly one item list reference,
-            // with nothing else concatenated to the beginning or end, then proceed
-            // with itemizing it, otherwise error.
-            ProjectErrorUtilities.VerifyThrowInvalidProject(itemVector.Text == expression, elementLocation, "EmbeddedItemVectorCannotBeItemized", expression);
-            Assumed.False(enumerator.MoveNext(), "Expected just one item vector");
-
-            return itemVector;
         }
 
         internal static IList<T> ExpandExpressionCaptureIntoItems<T>(
@@ -433,7 +400,7 @@ internal partial class Expander<P, I>
         ///
         /// </param>
         /// <param name="expander">The expander whose state will be used to expand any transforms.</param>
-        /// <param name="itemVector">The <see cref="ExpandSingleItemVectorExpressionIntoExpressionCapture"/> representing the structure of an item expression.</param>
+        /// <param name="itemVector">The <see cref="ItemVectorExpression"/> representing the structure of an item expression.</param>
         /// <param name="evaluatedItems"><see cref="IItemProvider{T}"/> to provide the inital items (which may get subsequently transformed, if <paramref name="itemVector"/> is a transform expression)>.</param>
         /// <param name="elementLocation">Location of the xml element containing the <paramref name="itemVector"/>.</param>
         /// <param name="options">expander options.</param>
