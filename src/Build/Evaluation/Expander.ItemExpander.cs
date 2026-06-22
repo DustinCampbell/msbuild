@@ -349,7 +349,7 @@ internal partial class Expander<P, I>
             }
 
             IList<T> result;
-            if (expressionCapture.Separator != null)
+            if (expressionCapture.HasSeparator)
             {
                 // Reference contains a separator, for example @(Compile, ';').
                 // We need to flatten the list into
@@ -514,7 +514,7 @@ internal partial class Expander<P, I>
                 }
             }
 
-            if (expressionCapture.Separator != null)
+            if (expressionCapture.HasSeparator)
             {
                 var joinedItems = string.Join(expressionCapture.Separator, entries.Select(i => i.Value));
                 entries.Clear();

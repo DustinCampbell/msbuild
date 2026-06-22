@@ -39,6 +39,12 @@ internal readonly struct ItemExpressionCapture
     public string? Separator { get; }
 
     /// <summary>
+    ///  Gets a value indicating whether the expression specifies a separator.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Separator))]
+    public bool HasSeparator => Separator != null;
+
+    /// <summary>
     ///  Gets the offset of the separator relative to the start of this expression,
     ///  or <c>-1</c> when there is no separator.
     /// </summary>
@@ -66,6 +72,7 @@ internal readonly struct ItemExpressionCapture
         int separatorStart,
         List<ItemTransform>? transforms)
     {
+        Assumed.True(separator is null || separatorStart >= 0, "SeparatorStart must be non-negative when a separator is present.");
         Assumed.True(transforms is null or { Count: > 0 }, "Transforms must be null or non-empty.");
 
         Text = text;
