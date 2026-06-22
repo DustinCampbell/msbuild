@@ -208,21 +208,26 @@ namespace Microsoft.Build.Evaluation
         /// </returns>
         private static bool TryGetNextItemVectorExpression(string expression, int start, int end, out ItemVectorExpression result, out int next)
         {
-            for (int currentIndex = start; currentIndex < end; currentIndex++)
+            int current = start;
+
+            while (current < end)
             {
-                if (!Sink(expression, ref currentIndex, end, '@', '('))
+                int atIndex = expression.IndexOf("@(", current, StringComparison.Ordinal);
+                if (atIndex < 0 || atIndex >= end - 1)
                 {
-                    continue;
+                    break;
                 }
 
                 // Start of a possible item list expression
 
-                // Store the index to backtrack to if this doesn't turn out to be a well
-                // formed expression. (Subtract one for the increment when we loop around.)
-                int restartPoint = currentIndex - 1;
-
                 // Store the expression's start point
-                int startPoint = currentIndex - 2;
+                int startPoint = atIndex;
+
+                // Store the index to resume searching from if this doesn't turn out to be a
+                // well formed expression (just past the "@(").
+                int restartPoint = atIndex + 2;
+
+                int currentIndex = atIndex + 2;
 
                 SinkWhitespace(expression, ref currentIndex);
 
@@ -230,7 +235,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (!SinkValidName(expression, ref currentIndex, end))
                 {
-                    currentIndex = restartPoint;
+                    current = restartPoint;
                     continue;
                 }
 
@@ -289,13 +294,13 @@ namespace Microsoft.Build.Evaluation
 
                     if (!isQuotedTransform && functionTransform == null)
                     {
-                        currentIndex = restartPoint;
                         transformOrFunctionFound = false;
                     }
                 }
 
                 if (!transformOrFunctionFound)
                 {
+                    current = restartPoint;
                     continue;
                 }
 
@@ -311,14 +316,14 @@ namespace Microsoft.Build.Evaluation
 
                     if (!Sink(expression, ref currentIndex, '\''))
                     {
-                        currentIndex = restartPoint;
+                        current = restartPoint;
                         continue;
                     }
 
                     int closingQuote = expression.IndexOf('\'', currentIndex);
                     if (closingQuote == -1)
                     {
-                        currentIndex = restartPoint;
+                        current = restartPoint;
                         continue;
                     }
 
@@ -332,7 +337,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (!Sink(expression, ref currentIndex, ')'))
                 {
-                    currentIndex = restartPoint;
+                    current = restartPoint;
                     continue;
                 }
 
