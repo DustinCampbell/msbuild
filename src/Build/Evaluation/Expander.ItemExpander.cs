@@ -120,7 +120,7 @@ internal partial class Expander<P, I>
             for (int i = 0; i < captures.Count; i++)
             {
                 ItemExpressionCapture capture = captures[i];
-                string function = capture.Value;
+                string function = capture.Text;
                 string functionName = capture.FunctionName;
                 string argumentsExpression = capture.FunctionArguments;
 
@@ -311,23 +311,23 @@ internal partial class Expander<P, I>
                 return null;
             }
 
-            ExpressionShredder.ReferencedItemExpressionsEnumerator matchesEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+            ExpressionShredder.ReferencedItemExpressionsEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
-            if (!matchesEnumerator.MoveNext())
+            if (!enumerator.MoveNext())
             {
                 return null;
             }
 
-            ItemExpressionCapture match = matchesEnumerator.Current;
+            ItemExpressionCapture current = enumerator.Current;
 
             // We have a single valid @(itemlist) reference in the given expression.
             // If the passed-in expression contains exactly one item list reference,
             // with nothing else concatenated to the beginning or end, then proceed
             // with itemizing it, otherwise error.
-            ProjectErrorUtilities.VerifyThrowInvalidProject(match.Value == expression, elementLocation, "EmbeddedItemVectorCannotBeItemized", expression);
-            Assumed.False(matchesEnumerator.MoveNext(), "Expected just one item vector");
+            ProjectErrorUtilities.VerifyThrowInvalidProject(current.Text == expression, elementLocation, "EmbeddedItemVectorCannotBeItemized", expression);
+            Assumed.False(enumerator.MoveNext(), "Expected just one item vector");
 
-            return match;
+            return current;
         }
 
         internal static IList<T> ExpandExpressionCaptureIntoItems<T>(

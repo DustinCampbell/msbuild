@@ -104,7 +104,7 @@ internal partial class Expander<P, I>
                     // scan the entire string for metadata references.
                     ScanAndExpandMetadata(expression);
                 }
-                else if (enumerator.Current.Value == expression
+                else if (enumerator.Current.Text == expression
                     && enumerator.Current.Separator == null
                     && !enumerator.MoveNext())
                 {
@@ -164,16 +164,16 @@ internal partial class Expander<P, I>
             if (itemExpressionCapture.Separator != null)
             {
                 // Append the portion before the separator verbatim, then expand within the separator portion.
-                string value = itemExpressionCapture.Value;
+                string text = itemExpressionCapture.Text;
                 int separatorStart = itemExpressionCapture.SeparatorStart;
 
-                _builder.Append(value, 0, separatorStart);
-                ScanAndExpandMetadata(value, separatorStart, value.Length);
+                _builder.Append(text, 0, separatorStart);
+                ScanAndExpandMetadata(text, separatorStart, text.Length);
             }
             else
             {
                 // Append the item vector expression as-is.
-                _builder.Append(itemExpressionCapture.Value);
+                _builder.Append(itemExpressionCapture.Text);
             }
 
             // Advance past this item vector expression.

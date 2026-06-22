@@ -15,7 +15,7 @@ internal readonly struct ItemExpressionCapture
     ///  Gets the text of the parsed expression, e.g. <c>@(Compile)</c> for a top-level item vector
     ///  expression or <c>Metadata('Filename')</c> for a transform sub-expression.
     /// </summary>
-    public string Value { get; }
+    public string Text { get; }
 
     /// <summary>
     ///  Gets the offset in the original string at which this expression begins.
@@ -23,9 +23,9 @@ internal readonly struct ItemExpressionCapture
     public int Index { get; }
 
     /// <summary>
-    ///  Gets the length of the expression text. Always equal to <see cref="Value"/>'s length.
+    ///  Gets the length of the expression text. Always equal to <see cref="Text"/>'s length.
     /// </summary>
-    public int Length => Value?.Length ?? 0;
+    public int Length => Text?.Length ?? 0;
 
     /// <summary>
     ///  Gets the referenced item type, e.g. <c>Compile</c> in <c>@(Compile)</c>.
@@ -68,29 +68,29 @@ internal readonly struct ItemExpressionCapture
     /// </summary>
     public string? FunctionArguments { get; }
 
-    public ItemExpressionCapture(string value, int index)
-        : this(value, index, itemType: null, separator: null, separatorStart: -1, captures: null, functionName: null, functionArguments: null)
+    public ItemExpressionCapture(string text, int index)
+        : this(text, index, itemType: null, separator: null, separatorStart: -1, captures: null, functionName: null, functionArguments: null)
     {
     }
 
-    public ItemExpressionCapture(string value, int index, string functionName, string? functionArguments)
-        : this(value, index, itemType: null, separator: null, separatorStart: -1, captures: null, functionName, functionArguments)
+    public ItemExpressionCapture(string text, int index, string functionName, string? functionArguments)
+        : this(text, index, itemType: null, separator: null, separatorStart: -1, captures: null, functionName, functionArguments)
     {
     }
 
     public ItemExpressionCapture(
-        string value,
+        string text,
         int index,
         string? itemType,
         string? separator,
         int separatorStart,
         List<ItemExpressionCapture>? captures)
-        : this(value, index, itemType, separator, separatorStart, captures, functionName: null, functionArguments: null)
+        : this(text, index, itemType, separator, separatorStart, captures, functionName: null, functionArguments: null)
     {
     }
 
     private ItemExpressionCapture(
-        string value,
+        string text,
         int index,
         string? itemType,
         string? separator,
@@ -99,7 +99,7 @@ internal readonly struct ItemExpressionCapture
         string? functionName,
         string? functionArguments)
     {
-        Value = value;
+        Text = text;
         Index = index;
         ItemType = itemType;
         Separator = separator;
@@ -110,8 +110,8 @@ internal readonly struct ItemExpressionCapture
     }
 
     /// <summary>
-    ///  Returns the expression text (<see cref="Value"/>).
+    ///  Returns the expression text (<see cref="Text"/>).
     /// </summary>
     public override string ToString()
-        => Value;
+        => Text;
 }
