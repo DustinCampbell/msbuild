@@ -114,9 +114,9 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    // Reuse the already-advanced enumerator (positioned at the first capture) to
-                    // expand metadata in the gaps between item vector expressions. This avoids
-                    // shredding the expression a second time.
+                    // Reuse the already-advanced enumerator (positioned at the first item vector
+                    // expression) to expand metadata in the gaps between item vector expressions.
+                    // This avoids shredding the expression a second time.
                     ScanAndExpandMetadataInGaps(expression, ref enumerator);
                 }
             }
@@ -130,7 +130,8 @@ internal partial class Expander<P, I>
         ///  Expands metadata in the gaps between item vector expressions and within their separators.
         /// </summary>
         /// <remarks>
-        ///  The supplied enumerator must already be positioned at the first capture (i.e. a successful
+        ///  The supplied enumerator must already be positioned at the first item vector expression
+        ///  (i.e. a successful
         ///  <see cref="ExpressionShredder.ReferencedItemExpressionsEnumerator.MoveNext"/> has been called).
         ///  Passing the already-advanced enumerator lets the caller's shred be reused instead of
         ///  re-scanning the expression from scratch.
@@ -141,7 +142,7 @@ internal partial class Expander<P, I>
 
             do
             {
-                start = ProcessItemExpressionCapture(expression, start, enumerator.Current);
+                start = ProcessItemVector(expression, start, enumerator.Current);
             }
             while (enumerator.MoveNext());
 
@@ -152,7 +153,7 @@ internal partial class Expander<P, I>
             }
         }
 
-        private int ProcessItemExpressionCapture(string expression, int start, ItemVectorExpression itemVector)
+        private int ProcessItemVector(string expression, int start, ItemVectorExpression itemVector)
         {
             // Expand metadata in the gap before this item vector expression.
             if (itemVector.Index > start)
