@@ -165,7 +165,7 @@ namespace Microsoft.Build.Evaluation
 
                     SinkWhitespace(expression, ref currentIndex);
                     bool transformOrFunctionFound = true;
-                    List<ItemExpressionCapture> transformExpressions = null;
+                    List<ItemTransform> transforms = null;
 
                     // If there's an '->' eat it and the subsequent quoted expression or transform function
                     while (Sink(expression, ref currentIndex, end, '-', '>') && transformOrFunctionFound)
@@ -178,33 +178,33 @@ namespace Microsoft.Build.Evaluation
                         {
                             int startQuoted = startTransform + 1;
                             int endQuoted = currentIndex - 1;
-                            if (transformExpressions == null)
+                            if (transforms == null)
                             {
-                                // PERF: Almost all expressions have only one capture, so optimize for that case
-                                transformExpressions = new List<ItemExpressionCapture>(1);
+                                // PERF: Almost all expressions have only one transform, so optimize for that case
+                                transforms = new List<ItemTransform>(1);
                             }
 
-                            transformExpressions.Add(new ItemExpressionCapture(expression.Substring(startQuoted, endQuoted - startQuoted), startQuoted));
+                            transforms.Add(new ItemTransform(expression.Substring(startQuoted, endQuoted - startQuoted)));
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
                         }
 
                         startTransform = currentIndex;
-                        ItemExpressionCapture? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref currentIndex, end);
-                        if (functionCapture != null)
+                        ItemTransform? functionTransform = SinkItemFunctionExpression(expression, startTransform, ref currentIndex, end);
+                        if (functionTransform != null)
                         {
-                            if (transformExpressions == null)
+                            if (transforms == null)
                             {
-                                // PERF: Almost all expressions have only one capture, so optimize for that case
-                                transformExpressions = new List<ItemExpressionCapture>(1);
+                                // PERF: Almost all expressions have only one transform, so optimize for that case
+                                transforms = new List<ItemTransform>(1);
                             }
 
-                            transformExpressions.Add(functionCapture.Value);
+                            transforms.Add(functionTransform.Value);
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
                         }
 
-                        if (!isQuotedTransform && functionCapture == null)
+                        if (!isQuotedTransform && functionTransform == null)
                         {
                             currentIndex = restartPoint;
                             transformOrFunctionFound = false;
@@ -259,7 +259,7 @@ namespace Microsoft.Build.Evaluation
                     // Create an expression capture that encompasses the entire expression between the @( and the )
                     // with the item name and any separator contained within it
                     // and each transform expression contained within it (i.e. each ->XYZ)
-                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), startPoint, itemName, separator, separatorStart, transformExpressions);
+                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), startPoint, itemName, separator, separatorStart, transforms);
 
                     Current = expressionCapture;
                     ++currentIndex;
@@ -343,14 +343,14 @@ namespace Microsoft.Build.Evaluation
                             continue;
                         }
 
-                        ItemExpressionCapture? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref i, end);
-                        if (functionCapture != null)
+                        ItemTransform? functionTransform = SinkItemFunctionExpression(expression, startTransform, ref i, end);
+                        if (functionTransform != null)
                         {
                             SinkWhitespace(expression, ref i);
                             continue;
                         }
 
-                        if (!isQuotedTransform && functionCapture == null)
+                        if (!isQuotedTransform && functionTransform == null)
                         {
                             i = restartPoint;
                             transformOrFunctionFound = false;
@@ -625,7 +625,7 @@ namespace Microsoft.Build.Evaluation
         /// and ends before the specified end index.
         /// Leaves index one past the end of the closing paren.
         /// </summary>
-        private static ItemExpressionCapture? SinkItemFunctionExpression(string expression, int startTransform, ref int i, int end)
+        private static ItemTransform? SinkItemFunctionExpression(string expression, int startTransform, ref int i, int end)
         {
             if (SinkValidName(expression, ref i, end))
             {
@@ -646,9 +646,9 @@ namespace Microsoft.Build.Evaluation
                         functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                     }
 
-                    ItemExpressionCapture capture = new ItemExpressionCapture(expression.Substring(startTransform, i - startTransform), startTransform, functionName, functionArguments);
+                    ItemTransform transform = new ItemTransform(expression.Substring(startTransform, i - startTransform), functionName, functionArguments);
 
-                    return capture;
+                    return transform;
                 }
 
                 return null;
