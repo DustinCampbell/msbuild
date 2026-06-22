@@ -14,13 +14,13 @@ internal struct ItemExpressionCapture
     /// Create an Expression Capture instance
     /// Represents a sub expression, shredded from a larger expression
     /// </summary>
-    public ItemExpressionCapture(int index, int length, string subExpression)
-        : this(index, length, subExpression, null, null, -1, null, null, null)
+    public ItemExpressionCapture(int index, string subExpression)
+        : this(index, subExpression, null, null, -1, null, null, null)
     {
     }
 
-    public ItemExpressionCapture(int index, int length, string subExpression, string? itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures)
-        : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
+    public ItemExpressionCapture(int index, string subExpression, string? itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures)
+        : this(index, subExpression, itemType, separator, separatorStart, captures, null, null)
     {
     }
 
@@ -28,10 +28,9 @@ internal struct ItemExpressionCapture
     /// Create an Expression Capture instance
     /// Represents a sub expression, shredded from a larger expression
     /// </summary>
-    public ItemExpressionCapture(int index, int length, string subExpression, string? itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures, string? functionName, string? functionArguments)
+    public ItemExpressionCapture(int index, string subExpression, string? itemType, string? separator, int separatorStart, List<ItemExpressionCapture>? captures, string? functionName, string? functionArguments)
     {
         Index = index;
-        Length = length;
         Value = subExpression;
         ItemType = itemType;
         Separator = separator;
@@ -55,7 +54,7 @@ internal struct ItemExpressionCapture
     /// <summary>
     /// The length of the captured substring.
     /// </summary>
-    public int Length { get; }
+    public int Length => Value?.Length ?? 0;
 
     /// <summary>
     /// Gets the captured substring from the input string.

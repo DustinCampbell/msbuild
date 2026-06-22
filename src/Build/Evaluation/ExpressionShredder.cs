@@ -184,7 +184,7 @@ namespace Microsoft.Build.Evaluation
                                 transformExpressions = new List<ItemExpressionCapture>(1);
                             }
 
-                            transformExpressions.Add(new ItemExpressionCapture(startQuoted, endQuoted - startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
+                            transformExpressions.Add(new ItemExpressionCapture(startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
                         }
@@ -259,7 +259,7 @@ namespace Microsoft.Build.Evaluation
                     // Create an expression capture that encompasses the entire expression between the @( and the )
                     // with the item name and any separator contained within it
                     // and each transform expression contained within it (i.e. each ->XYZ)
-                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(startPoint, endPoint - startPoint, Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), itemName, separator, separatorStart, transformExpressions);
+                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(startPoint, Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), itemName, separator, separatorStart, transformExpressions);
 
                     Current = expressionCapture;
                     ++currentIndex;
@@ -646,7 +646,7 @@ namespace Microsoft.Build.Evaluation
                         functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                     }
 
-                    ItemExpressionCapture capture = new ItemExpressionCapture(startTransform, i - startTransform, expression.Substring(startTransform, i - startTransform), null, null, -1, null, functionName, functionArguments);
+                    ItemExpressionCapture capture = new ItemExpressionCapture(startTransform, expression.Substring(startTransform, i - startTransform), null, null, -1, null, functionName, functionArguments);
 
                     return capture;
                 }
