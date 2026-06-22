@@ -41,7 +41,8 @@ namespace Microsoft.Build.Evaluation
             private IMSBuildGlob _msbuildGlob;
 
             private List<ReferencedItem> _referencedItems;
-            public ItemVectorExpression Capture { get; }
+
+            public ItemVectorExpression ItemVector { get; }
 
             public List<ReferencedItem> ReferencedItems
             {
@@ -72,7 +73,7 @@ namespace Microsoft.Build.Evaluation
                 string projectDirectory)
                 : base(textFragment, projectDirectory)
             {
-                Capture = itemVector;
+                ItemVector = itemVector;
 
                 _containingItemSpec = containingItemSpec;
                 _expander = _containingItemSpec.Expander;
@@ -118,7 +119,7 @@ namespace Microsoft.Build.Evaluation
                     _expander = _containingItemSpec.Expander;
 
                     _expander.ExpandExpressionCapture(
-                        Capture,
+                        ItemVector,
                         _containingItemSpec.ItemSpecLocation,
                         ExpanderOptions.ExpandItems,
                         includeNullEntries: false,

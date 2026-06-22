@@ -620,7 +620,7 @@ namespace Microsoft.Build.Evaluation
             {
                 if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemExpression)
                 {
-                    AddReferencedItemLists(builder, itemExpression.Capture);
+                    AddReferencedItemLists(builder, itemExpression.ItemVector);
                 }
             }
         }
