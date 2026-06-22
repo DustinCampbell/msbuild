@@ -403,30 +403,30 @@ internal partial class Expander<P, I>
         return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, expression, _items, itemFactory, options, includeNullItems, out isTransformExpression, elementLocation);
     }
 
-    internal static ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
+    internal static ItemVectorExpression? ExpandSingleItemVectorExpressionIntoExpressionCapture(
             string expression, ExpanderOptions options, IElementLocation elementLocation)
     {
         return ItemExpander.ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
     }
 
     internal IList<T> ExpandExpressionCaptureIntoItems<T>(
-        ItemExpressionCapture expressionCapture, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
+        ItemVectorExpression itemVector, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
         ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
         where T : class, IItem
     {
-        return ItemExpander.ExpandExpressionCaptureIntoItems(expressionCapture, this, items, itemFactory, options,
+        return ItemExpander.ExpandExpressionCaptureIntoItems(itemVector, this, items, itemFactory, options,
             includeNullEntries, out isTransformExpression, elementLocation);
     }
 
     internal bool ExpandExpressionCapture(
-        ItemExpressionCapture expressionCapture,
+        ItemVectorExpression itemVector,
         IElementLocation elementLocation,
         ExpanderOptions options,
         bool includeNullEntries,
         out bool isTransformExpression,
         out List<TransformEntry> entries)
     {
-        return ItemExpander.ExpandExpressionCapture(this, expressionCapture, _items, elementLocation, options, includeNullEntries, out isTransformExpression, out entries);
+        return ItemExpander.ExpandExpressionCapture(this, itemVector, _items, elementLocation, options, includeNullEntries, out isTransformExpression, out entries);
     }
 
     private static string TruncateString(string metadataValue)

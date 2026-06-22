@@ -672,19 +672,19 @@ namespace Microsoft.Build.Evaluation
             }
             else
             {
-                ItemExpressionCapture? match = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
+                ItemVectorExpression? itemVector = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
                     expression, ExpanderOptions.ExpandItems, elementLocation);
 
-                if (match == null)
+                if (itemVector == null)
                 {
                     return;
                 }
 
-                AddReferencedItemLists(operationBuilder, match.Value);
+                AddReferencedItemLists(operationBuilder, itemVector.Value);
             }
         }
 
-        private void AddReferencedItemLists(OperationBuilder operationBuilder, ItemExpressionCapture match)
-            => AddReferencedItemList(match.ItemType, operationBuilder.ReferencedItemLists);
+        private void AddReferencedItemLists(OperationBuilder operationBuilder, ItemVectorExpression itemVector)
+            => AddReferencedItemList(itemVector.ItemType, operationBuilder.ReferencedItemLists);
     }
 }

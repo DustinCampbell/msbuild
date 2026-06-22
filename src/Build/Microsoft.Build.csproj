@@ -534,7 +534,7 @@
     <Compile Include="Evaluation\SemiColonTokenizer.cs" />
     <Compile Include="Evaluation\StringMetadataTable.cs" />
     <Compile Include="Evaluation\ExpressionShredder.cs" />
-    <Compile Include="Evaluation\ItemExpressionCapture.cs" />
+    <Compile Include="Evaluation\ItemVectorExpression.cs" />
     <Compile Include="Evaluation\ItemTransform.cs" />
     <Compile Include="Evaluation\Evaluator.cs" />
     <Compile Include="Evaluation\Expander.cs" />

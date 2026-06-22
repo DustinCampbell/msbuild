@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -121,7 +121,7 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            public ItemExpressionCapture Current { get; private set; }
+            public ItemVectorExpression Current { get; private set; }
 
             public bool MoveNext()
             {
@@ -259,9 +259,9 @@ namespace Microsoft.Build.Evaluation
                     // Create an expression capture that encompasses the entire expression between the @( and the )
                     // with the item name and any separator contained within it
                     // and each transform expression contained within it (i.e. each ->XYZ)
-                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), startPoint, itemName, separator, separatorStart, transforms);
+                    ItemVectorExpression itemVector = new ItemVectorExpression(Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), startPoint, itemName, separator, separatorStart, transforms);
 
-                    Current = expressionCapture;
+                    Current = itemVector;
                     ++currentIndex;
 
                     return true;

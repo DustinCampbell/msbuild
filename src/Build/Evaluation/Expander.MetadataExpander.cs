@@ -152,20 +152,20 @@ internal partial class Expander<P, I>
             }
         }
 
-        private int ProcessItemExpressionCapture(string expression, int start, ItemExpressionCapture itemExpressionCapture)
+        private int ProcessItemExpressionCapture(string expression, int start, ItemVectorExpression itemVector)
         {
             // Expand metadata in the gap before this item vector expression.
-            if (itemExpressionCapture.Index > start)
+            if (itemVector.Index > start)
             {
-                ScanAndExpandMetadata(expression, start, itemExpressionCapture.Index);
+                ScanAndExpandMetadata(expression, start, itemVector.Index);
             }
 
             // Expand metadata that appears in the item vector expression's separator.
-            if (itemExpressionCapture.HasSeparator)
+            if (itemVector.HasSeparator)
             {
                 // Append the portion before the separator verbatim, then expand within the separator portion.
-                string text = itemExpressionCapture.Text;
-                int separatorStart = itemExpressionCapture.SeparatorStart;
+                string text = itemVector.Text;
+                int separatorStart = itemVector.SeparatorStart;
 
                 _builder.Append(text, 0, separatorStart);
                 ScanAndExpandMetadata(text, separatorStart, text.Length);
@@ -173,11 +173,11 @@ internal partial class Expander<P, I>
             else
             {
                 // Append the item vector expression as-is.
-                _builder.Append(itemExpressionCapture.Text);
+                _builder.Append(itemVector.Text);
             }
 
             // Advance past this item vector expression.
-            return itemExpressionCapture.Index + itemExpressionCapture.Length;
+            return itemVector.Index + itemVector.Length;
         }
 
         /// <inheritdoc cref="ScanAndExpandMetadata(string, int, int)" />

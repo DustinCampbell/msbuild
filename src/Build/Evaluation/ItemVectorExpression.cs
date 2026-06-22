@@ -10,7 +10,7 @@ namespace Microsoft.Build.Evaluation;
 ///  Represents a single top-level item vector expression parsed out of a larger string,
 ///  e.g. <c>@(Compile-&gt;'%(Filename)', ';')</c>.
 /// </summary>
-internal readonly struct ItemExpressionCapture
+internal readonly struct ItemVectorExpression
 {
     /// <summary>
     ///  Gets the text of the item vector expression, e.g. <c>@(Compile)</c>.
@@ -64,7 +64,7 @@ internal readonly struct ItemExpressionCapture
     [MemberNotNullWhen(true, nameof(Transforms))]
     public bool HasTransforms => Transforms != null;
 
-    public ItemExpressionCapture(
+    public ItemVectorExpression(
         string text,
         int index,
         string itemType,
