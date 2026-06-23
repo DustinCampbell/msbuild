@@ -15,8 +15,6 @@ using Microsoft.NET.StringTools;
 namespace Microsoft.Build.Evaluation;
 
 internal partial class Expander<P, I>
-    where P : class, IProperty
-    where I : class, IItem
 {
     /// <summary>
     /// Expands item expressions, like @(Compile), possibly with transforms and/or separators.
@@ -84,36 +82,34 @@ internal partial class Expander<P, I>
         /// </summary>
         /// <remarks>
         ///  <para>
-        ///  Each captured transform function will be mapped to either a static method on
-        ///  <see cref="Transforms"/> or a known item spec modifier which operates on the item path.
+        ///   Each captured transform function will be mapped to either a static method on
+        ///   <see cref="Transforms"/> or a known item spec modifier which operates on the item path.
         ///  </para>
         ///  <para>
-        ///  For each function, the full list of items will be iteratively transformed using the
-        ///  output of the previous. E.g. given functions f, g, h, the order of operations will
-        ///  look like: <c>results = h(g(f(items)))</c>.
+        ///   For each function, the full list of items will be iteratively transformed using the
+        ///   output of the previous. E.g. given functions f, g, h, the order of operations will
+        ///   look like: <c>results = h(g(f(items)))</c>.
         ///  </para>
         ///  <para>
-        ///  If no function name is found, we default to
-        ///  <see cref="Transforms.ExpandQuotedExpressionFunction"/>.
+        ///   If no function name is found, we default to
+        ///   <see cref="Transforms.ExpandQuotedExpressionFunction"/>.
         ///  </para>
         /// </remarks>
         /// <returns>
-        ///  <see langword="true"/> if the transform completed successfully; <see langword="false"/> if
-        ///  <see cref="ExpanderOptions.BreakOnNotEmpty"/> was set and the result is non-empty.
+        ///  The list of <see cref="TransformEntry"/> values produced by applying every transform in
+        ///  <paramref name="transforms"/> in sequence.
         /// </returns>
-        private static bool TryTransform(
+        private static List<TransformEntry> TransformItems(
+            ICollection<I> items,
+            List<ItemTransform> transforms,
             Expander<P, I> expander,
             IElementLocation elementLocation,
-            ExpanderOptions options,
-            bool includeNullEntries,
-            List<ItemTransform> transforms,
-            ICollection<I> itemsOfType,
-            out List<TransformEntry> result)
+            bool includeNullEntries)
         {
             // Each transform runs on the full set of transformed items from the previous result.
             // We can reuse our buffers by just swapping the references after each transform.
-            List<TransformEntry> input = CreateEntries(itemsOfType);
-            List<TransformEntry> output = new(itemsOfType.Count);
+            List<TransformEntry> input = CreateEntries(items);
+            List<TransformEntry> output = new(items.Count);
 
             // Create a TransformFunction for each transform in the chain by extracting the relevant information
             // from the regex parsing results
@@ -213,21 +209,7 @@ internal partial class Expander<P, I>
                 }
             }
 
-            // Check for break on non-empty only after ALL transforms are complete
-            if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
-            {
-                foreach (TransformEntry entry in output)
-                {
-                    if (!string.IsNullOrEmpty(entry.Value))
-                    {
-                        result = null;
-                        return false;
-                    }
-                }
-            }
-
-            result = output;
-            return true;
+            return output;
         }
 
         /// <summary>
@@ -475,9 +457,18 @@ internal partial class Expander<P, I>
 
                 isTransformExpression = true;
 
-                if (!TryTransform(expander, elementLocation, options, includeNullEntries, itemVector.Transforms, itemsOfType, out entries))
+                entries = TransformItems(itemsOfType, itemVector.Transforms, expander, elementLocation, includeNullEntries);
+
+                // Check for break on non-empty only after ALL transforms are complete
+                if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
                 {
-                    return true;
+                    foreach (TransformEntry entry in entries)
+                    {
+                        if (!entry.Value.IsNullOrEmpty())
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
 
@@ -485,7 +476,7 @@ internal partial class Expander<P, I>
             {
                 var joinedItems = string.Join(itemVector.Separator, entries.Select(i => i.Value));
                 entries.Clear();
-                entries.Add(new TransformEntry(joinedItems, null));
+                entries.Add(new TransformEntry(value: joinedItems, item: null));
             }
 
             return false; // did not break early
