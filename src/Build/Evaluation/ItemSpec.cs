@@ -125,6 +125,7 @@ namespace Microsoft.Build.Evaluation
                         includeNullEntries: false,
                         isTransformExpression: out _,
                         entries: out var entries);
+
                     _referencedItems =
                         entries?.Select(i => new ReferencedItem(i.Item, new ValueFragment(i.Value, ProjectDirectory))).ToList() ?? [];
 

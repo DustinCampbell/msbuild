@@ -286,7 +286,6 @@ internal partial class Expander<P, I>
         {
             Assumed.NotNull(items, "Cannot expand items without providing items");
             isTransformExpression = false;
-            bool brokeEarlyNonEmpty;
 
             // If the incoming factory doesn't have an item type that it can use to
             // create items, it's our indication that the caller wants its items to have the type of the
@@ -298,22 +297,21 @@ internal partial class Expander<P, I>
             }
 
             IList<T> result;
+
             if (itemVector.HasSeparator)
             {
                 // Reference contains a separator, for example @(Compile, ';').
                 // We need to flatten the list into
                 // a scalar and then create a single item. Basically we need this
                 // to be able to convert item lists with user specified separators into properties.
-                string expandedItemVector;
                 using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
-                brokeEarlyNonEmpty = ExpandExpressionCaptureIntoStringBuilder(expander, itemVector, items, elementLocation, builder, options);
 
-                if (brokeEarlyNonEmpty)
+                if (!TryAppendItemVector(itemVector, items, builder, options, expander, elementLocation))
                 {
                     return null;
                 }
 
-                expandedItemVector = builder.ToString();
+                string expandedItemVector = builder.ToString();
 
                 result = Array.Empty<T>();
 
@@ -327,13 +325,16 @@ internal partial class Expander<P, I>
                 return result;
             }
 
-            List<TransformEntry> entries;
-            brokeEarlyNonEmpty = ExpandExpressionCapture(expander, itemVector, items, elementLocation /* including null items */, options, true, out isTransformExpression, out entries);
+            var expandItemVectorResult = ExpandItemVector(itemVector, items, expander, elementLocation, options, includeNullEntries: true);
 
-            if (brokeEarlyNonEmpty)
+            isTransformExpression = expandItemVectorResult.HasTransforms;
+
+            if (expandItemVectorResult.StoppedEarly)
             {
                 return null;
             }
+
+            var entries = expandItemVectorResult.Entries;
 
             if (entries == null || entries.Count == 0)
             {
@@ -366,46 +367,77 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Expands an item vector expression into a list of items
-        /// If the expression uses a separator, then all the items are concatenated into one string using that separator.
-        ///
-        /// Returns true if ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and so it broke out early.
+        ///  The result of expanding an item vector expression via <see cref="ExpandItemVector"/>.
         /// </summary>
-        /// <param name="isTransformExpression"></param>
-        /// <param name="entries">
-        /// List of items.
-        ///
-        /// <see cref="TransformEntry.Value"/> represents the item string, escaped.
-        /// <see cref="TransformEntry.Item"/> represents the original item.
-        ///
-        /// Value differs from Item's string when it is coming from a transform.
-        ///
+        internal readonly struct ExpandItemVectorResult
+        {
+            /// <summary>
+            ///  The expanded items, or <see langword="null"/> if there were no items to expand
+            ///  (or if expansion <see cref="StoppedEarly"/>).
+            /// </summary>
+            /// <remarks>
+            ///  <see cref="TransformEntry.Value"/> is the item string, escaped, and
+            ///  <see cref="TransformEntry.Item"/> is the original item. The value differs from the item's
+            ///  string when it is produced by a transform.
+            /// </remarks>
+            public List<TransformEntry> Entries { get; }
+
+            /// <summary>
+            ///  <see langword="true"/> if <see cref="ExpanderOptions.BreakOnNotEmpty"/> was passed and the
+            ///  expression was going to be non-empty, so expansion broke out early. When <see langword="true"/>,
+            ///  <see cref="Entries"/> must not be relied upon.
+            /// </summary>
+            public bool StoppedEarly { get; }
+
+            /// <summary>
+            ///  <see langword="true"/> if the expression was a transform (for example <c>@(Foo-&gt;'%(Bar)')</c>)
+            ///  rather than a plain item reference such as <c>@(Foo)</c>.
+            /// </summary>
+            public bool HasTransforms { get; }
+
+            public ExpandItemVectorResult(List<TransformEntry> entries, bool stoppedEarly, bool hasTransforms)
+            {
+                Entries = entries;
+                StoppedEarly = stoppedEarly;
+                HasTransforms = hasTransforms;
+            }
+        }
+
+        /// <summary>
+        ///  Expands an item vector expression into a list of items.
+        ///  If the expression uses a separator, then all the items are concatenated into one string using that separator.
+        /// </summary>
+        /// <param name="itemVector">The <see cref="ItemVectorExpression"/> representing the structure of an item expression.</param>
+        /// <param name="itemProvider">
+        ///  <see cref="IItemProvider{T}"/> to provide the initial items (which may get subsequently transformed,
+        ///  if <paramref name="itemVector"/> is a transform expression).
         /// </param>
         /// <param name="expander">The expander whose state will be used to expand any transforms.</param>
-        /// <param name="itemVector">The <see cref="ItemVectorExpression"/> representing the structure of an item expression.</param>
-        /// <param name="evaluatedItems"><see cref="IItemProvider{T}"/> to provide the inital items (which may get subsequently transformed, if <paramref name="itemVector"/> is a transform expression)>.</param>
         /// <param name="elementLocation">Location of the xml element containing the <paramref name="itemVector"/>.</param>
         /// <param name="options">expander options.</param>
-        /// <param name="includeNullEntries">Wether to include items that evaluated to empty / null.</param>
-        internal static bool ExpandExpressionCapture(
-            Expander<P, I> expander,
+        /// <param name="includeNullEntries">Whether to include items that evaluated to empty / null.</param>
+        /// <returns>
+        ///  An <see cref="ExpandItemVectorResult"/> describing the expanded items. If
+        ///  <see cref="ExpanderOptions.BreakOnNotEmpty"/> was passed and the expression was going to be non-empty,
+        ///  expansion breaks out early and <see cref="ExpandItemVectorResult.StoppedEarly"/> is <see langword="true"/>.
+        /// </returns>
+        internal static ExpandItemVectorResult ExpandItemVector(
             ItemVectorExpression itemVector,
-            IItemProvider<I> evaluatedItems,
+            IItemProvider<I> itemProvider,
+            Expander<P, I> expander,
             IElementLocation elementLocation,
             ExpanderOptions options,
-            bool includeNullEntries,
-            out bool isTransformExpression,
-            out List<TransformEntry> entries)
+            bool includeNullEntries)
         {
-            Assumed.NotNull(evaluatedItems, "Cannot expand items without providing items");
+            Assumed.NotNull(itemProvider, "Cannot expand items without providing items");
 
             // There's something wrong with the expression, and we ended up with a blank item type
             ProjectErrorUtilities.VerifyThrowInvalidProject(!string.IsNullOrEmpty(itemVector.ItemType), elementLocation, "InvalidFunctionPropertyExpression");
 
-            ICollection<I> itemsOfType = evaluatedItems.GetItems(itemVector.ItemType);
+            ICollection<I> items = itemProvider.GetItems(itemVector.ItemType);
 
             // If there are no items of the given type, then bail out early
-            if (itemsOfType.Count == 0)
+            if (items.Count == 0)
             {
                 // ...but only if there isn't a "Count" function (which returns 0 for an empty list)
                 // or an "AnyHaveMetadataValue" function (which returns false for an empty list).
@@ -414,9 +446,9 @@ internal partial class Expander<P, I>
                 {
                     foreach (ItemTransform transform in itemVector.Transforms)
                     {
-                        if (transform.FunctionName is not null &&
-                            (transform.FunctionName.Equals("Count", StringComparison.OrdinalIgnoreCase) ||
-                             transform.FunctionName.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
+                        if (transform.FunctionName is string functionName &&
+                            (functionName.Equals("Count", StringComparison.OrdinalIgnoreCase) ||
+                             functionName.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
                         {
                             hasEmptyListFunction = true;
                             break;
@@ -426,27 +458,24 @@ internal partial class Expander<P, I>
 
                 if (!hasEmptyListFunction)
                 {
-                    isTransformExpression = false;
-                    entries = null;
-                    return false;
+                    return default;
                 }
             }
 
+            List<TransformEntry> entries = null;
+
             if (!itemVector.HasTransforms)
             {
-                isTransformExpression = false;
-                entries = null;
-
                 // No transform: expression is like @(Compile), so include the item spec without a transform base item
-                foreach (I item in itemsOfType)
+                foreach (I item in items)
                 {
                     string evaluatedIncludeEscaped = item.EvaluatedIncludeEscaped;
                     if ((evaluatedIncludeEscaped.Length > 0) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
                     {
-                        return true;
+                        return new(entries: null, stoppedEarly: true, hasTransforms: false);
                     }
 
-                    entries ??= new List<TransformEntry>(itemsOfType.Count);
+                    entries ??= new List<TransformEntry>(items.Count);
                     entries.Add(new TransformEntry(evaluatedIncludeEscaped, item));
                 }
             }
@@ -455,9 +484,7 @@ internal partial class Expander<P, I>
                 // There's something wrong with the expression, and we ended up with no function names
                 ProjectErrorUtilities.VerifyThrowInvalidProject(itemVector.Transforms.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
 
-                isTransformExpression = true;
-
-                entries = TransformItems(itemsOfType, itemVector.Transforms, expander, elementLocation, includeNullEntries);
+                entries = TransformItems(items, itemVector.Transforms, expander, elementLocation, includeNullEntries);
 
                 // Check for break on non-empty only after ALL transforms are complete
                 if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
@@ -466,7 +493,7 @@ internal partial class Expander<P, I>
                     {
                         if (!entry.Value.IsNullOrEmpty())
                         {
-                            return true;
+                            return new(entries, stoppedEarly: true, hasTransforms: true);
                         }
                     }
                 }
@@ -479,7 +506,7 @@ internal partial class Expander<P, I>
                 entries.Add(new TransformEntry(value: joinedItems, item: null));
             }
 
-            return false; // did not break early
+            return new(entries, stoppedEarly: false, itemVector.HasTransforms);
         }
 
         /// <summary>
@@ -508,97 +535,112 @@ internal partial class Expander<P, I>
             // As we walk through the matches, we need to copy out the original parts of the string which
             // are not covered by the match.  This preserves original behavior which did not trim whitespace
             // from between separators.
-            int lastStringIndex = 0;
+            int startIndex = 0;
             do
             {
                 ItemVectorExpression itemVector = matchesEnumerator.Current;
-                if (itemVector.Index > lastStringIndex)
+
+                if (itemVector.Index > startIndex)
                 {
                     if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
                     {
                         return null;
                     }
 
-                    builder.Append(expression, lastStringIndex, itemVector.Index - lastStringIndex);
+                    builder.Append(expression, startIndex, itemVector.Index - startIndex);
                 }
 
-                bool brokeEarlyNonEmpty = ExpandExpressionCaptureIntoStringBuilder(expander, itemVector, items, elementLocation, builder, options);
-
-                if (brokeEarlyNonEmpty)
+                if (!TryAppendItemVector(itemVector, items, builder, options, expander, elementLocation))
                 {
                     return null;
                 }
 
-                lastStringIndex = itemVector.Index + itemVector.Length;
+                startIndex = itemVector.Index + itemVector.Length;
             }
             while (matchesEnumerator.MoveNext());
 
-            builder.Append(expression, lastStringIndex, expression.Length - lastStringIndex);
+            builder.Append(expression, startIndex, expression.Length - startIndex);
 
             return builder.ToString();
         }
 
         /// <summary>
-        /// Expand the match provided into a string, and append that to the provided InternableString.
-        /// Returns true if ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and so it broke out early.
+        ///  Expands the provided item vector expression and appends the result to <paramref name="builder"/>.
         /// </summary>
-        private static bool ExpandExpressionCaptureIntoStringBuilder(
-            Expander<P, I> expander,
+        /// <param name="itemVector">The <see cref="ItemVectorExpression"/> representing the structure of an item expression.</param>
+        /// <param name="itemProvider">
+        ///  <see cref="IItemProvider{T}"/> to provide the initial items (which may get subsequently transformed, if
+        ///  <paramref name="itemVector"/> is a transform expression).
+        /// </param>
+        /// <param name="builder">The builder to append the expanded item vector to.</param>
+        /// <param name="options">expander options.</param>
+        /// <param name="expander">The expander whose state will be used to expand any transforms.</param>
+        /// <param name="elementLocation">Location of the xml element containing the <paramref name="itemVector"/>.</param>
+        /// <returns>
+        ///  <see langword="false"/> if <see cref="ExpanderOptions.BreakOnNotEmpty"/> was passed and the expression
+        ///  was going to be non-empty, so expansion broke out early; otherwise <see langword="true"/>.
+        /// </returns>
+        private static bool TryAppendItemVector(
             ItemVectorExpression itemVector,
-            IItemProvider<I> evaluatedItems,
-            IElementLocation elementLocation,
+            IItemProvider<I> itemProvider,
             SpanBasedStringBuilder builder,
-            ExpanderOptions options)
+            ExpanderOptions options,
+            Expander<P, I> expander,
+            IElementLocation elementLocation)
         {
-            List<TransformEntry> entries;
-            bool throwaway;
-            var brokeEarlyNonEmpty = ExpandExpressionCapture(expander, itemVector, evaluatedItems, elementLocation /* including null items */, options, true, out throwaway, out entries);
-
-            if (brokeEarlyNonEmpty)
+            var expandItemVectorResult = ExpandItemVector(itemVector, itemProvider, expander, elementLocation, options, includeNullEntries: true);
+            if (expandItemVectorResult.StoppedEarly)
             {
-                return true;
+                return false;
             }
+
+            List<TransformEntry> entries = expandItemVectorResult.Entries;
 
             if (entries == null)
             {
                 // No items to expand.
-                return false;
+                return true;
             }
 
             int startLength = builder.Length;
             bool truncate = IsTruncationEnabled(options);
 
-            // if the Separator is not null, then ExpandExpressionCapture would have joined the items using that separator itself
+            // if the Separator is not null, then ExpandItemVector would have joined the items using that separator itself
             for (int i = 0; i < entries.Count; i++)
             {
-                var entry = entries[i];
+                var (value, _) = entries[i];
+
                 if (truncate)
                 {
                     if (i >= ItemLimitPerExpansion)
                     {
                         builder.Append("...");
-                        return false;
+                        return true;
                     }
+
                     int currentLength = builder.Length - startLength;
-                    if (!string.IsNullOrEmpty(entry.Value) && currentLength + entry.Value.Length > CharacterLimitPerExpansion)
+                    if (!value.IsNullOrEmpty() && currentLength + value.Length > CharacterLimitPerExpansion)
                     {
                         int truncateIndex = CharacterLimitPerExpansion - currentLength - 3;
                         if (truncateIndex > 0)
                         {
-                            builder.Append(entry.Value, 0, truncateIndex);
+                            builder.Append(value, 0, truncateIndex);
                         }
+
                         builder.Append("...");
-                        return false;
+                        return true;
                     }
                 }
-                builder.Append(entry.Value);
+
+                builder.Append(value);
+
                 if (i < entries.Count - 1)
                 {
                     builder.Append(";");
                 }
             }
 
-            return false;
+            return true;
         }
     }
 }

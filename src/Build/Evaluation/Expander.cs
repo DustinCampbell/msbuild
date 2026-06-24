@@ -420,7 +420,12 @@ internal partial class Expander<P, I>
         out bool isTransformExpression,
         out List<TransformEntry> entries)
     {
-        return ItemExpander.ExpandExpressionCapture(this, itemVector, _items, elementLocation, options, includeNullEntries, out isTransformExpression, out entries);
+        var expandItemVectorResult = ItemExpander.ExpandItemVector(itemVector, _items, this, elementLocation, options, includeNullEntries);
+
+        isTransformExpression = expandItemVectorResult.HasTransforms;
+        entries = expandItemVectorResult.Entries;
+
+        return expandItemVectorResult.StoppedEarly;
     }
 
     private static string TruncateString(string metadataValue)
