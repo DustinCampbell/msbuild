@@ -23,8 +23,35 @@ internal static class StringExtensions
         /// <summary>
         ///  Allocates a string of the specified length filled with null characters.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        ///  This is implemented as <c>new string('\0', length)</c>, which is effectively a pure
+        ///  allocation with no redundant zero-fill on <em>both</em> .NET Framework and modern .NET.
+        ///  Newly allocated managed memory is already zero-initialized by the GC, and the
+        ///  <see cref="string(char, int)"/> constructor special-cases <c>'\0'</c> to skip the
+        ///  memset that it would otherwise perform for a non-null fill character:
+        /// </para>
+        /// <list type="bullet">
+        ///  <item>
+        ///   <description>
+        ///    On modern .NET, the constructor checks <c>if (c != '\0')</c> before filling, so the
+        ///    fill is elided for <c>'\0'</c> (see the runtime's <c>String.Ctor(char, int)</c>).
+        ///   </description>
+        ///  </item>
+        ///  <item>
+        ///   <description>
+        ///    On .NET Framework, the constructor is a native internal call, but it likewise skips
+        ///    the fill for <c>'\0'</c>. This was verified empirically with BenchmarkDotNet: on
+        ///    net472, <c>new string('\0', n)</c> tracks the raw allocation lower bound and is many
+        ///    times faster than <c>new string('a', n)</c> (the gap scaling linearly with <c>n</c>,
+        ///    the signature of an elided fill).
+        ///   </description>
+        ///  </item>
+        /// </list>
+        /// </remarks>
         public static string FastAllocateString(int length)
-            // This calls FastAllocateString in the runtime, with extra checks.
+            // new string('\0', length) skips the memset on both .NET Framework and modern .NET
+            // (the ctor special-cases '\0'), so this is effectively a pure allocation.
             => new('\0', length);
 
 #if !NET
