@@ -474,6 +474,64 @@ public class StringSegment_Tests
     }
 
     [Fact]
+    public void Trim_Whitespace()
+    {
+        ((StringSegment)"  hi  ").Trim().Value.ShouldBe("hi");
+        ((StringSegment)"  hi  ").TrimStart().Value.ShouldBe("hi  ");
+        ((StringSegment)"  hi  ").TrimEnd().Value.ShouldBe("  hi");
+    }
+
+    [Fact]
+    public void Trim_SingleChar()
+    {
+        ((StringSegment)"xxhixx").Trim('x').Value.ShouldBe("hi");
+        ((StringSegment)"xxhixx").TrimStart('x').Value.ShouldBe("hixx");
+        ((StringSegment)"xxhixx").TrimEnd('x').Value.ShouldBe("xxhi");
+    }
+
+    [Fact]
+    public void Trim_MultipleChars()
+    {
+        ((StringSegment)"xyhixy").Trim('x', 'y').Value.ShouldBe("hi");
+        ((StringSegment)"xyhixy").Trim(new[] { 'x', 'y' }).Value.ShouldBe("hi");
+        ((StringSegment)"xyhixy").Trim(['x', 'y']).Value.ShouldBe("hi");
+    }
+
+    [Fact]
+    public void Trim_AllTrimChars_ProducesEmpty()
+    {
+        StringSegment result = ((StringSegment)"xxxx").Trim('x');
+
+        result.IsEmpty.ShouldBeTrue();
+        result.Length.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Trim_EmptySet_DoesNothing()
+    {
+        ((StringSegment)"  hi  ").Trim(default(ReadOnlySpan<char>)).Value.ShouldBe("  hi  ");
+    }
+
+    [Fact]
+    public void Trim_ReturnsViewOverSameBuffer()
+    {
+        string source = string.Concat("  ", "hi", "  ");
+        StringSegment trimmed = ((StringSegment)source).Trim();
+
+        ReferenceEquals(trimmed.Buffer, source).ShouldBeTrue();
+        trimmed.Offset.ShouldBe(2);
+        trimmed.Length.ShouldBe(2);
+        trimmed.Value.ShouldBe("hi");
+    }
+
+    [Fact]
+    public void Trim_OnSubSegment()
+    {
+        StringSegment segment = new("[[  hi  ]]", 2, 6); // "  hi  "
+        segment.Trim().Value.ShouldBe("hi");
+    }
+
+    [Fact]
     public void CopyTo_Span()
     {
         Span<char> destination = new char[11];
