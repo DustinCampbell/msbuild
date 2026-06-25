@@ -5,6 +5,7 @@ using System;
 #if NET
 using System.Buffers;
 #endif
+using System.Collections.Generic;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Text;
 using Shouldly;
@@ -566,6 +567,97 @@ public class StringSegment_Tests
     public void CopyTo_CharArray_InvalidRange_Throws()
     {
         Should.Throw<InternalErrorException>(() => HelloWorld.CopyTo(0, new char[5], 0, 100));
+    }
+
+    [Fact]
+    public void Join_Char_ParamsSpan()
+    {
+        StringSegment.Join(',', "a", "b", "c").ShouldBe("a,b,c");
+    }
+
+    [Fact]
+    public void Join_String_ParamsSpan()
+    {
+        StringSegment.Join("--", "a", "b", "c").ShouldBe("a--b--c");
+    }
+
+    [Fact]
+    public void Join_SingleValue_HasNoSeparator()
+    {
+        StringSegment.Join(',', "only").ShouldBe("only");
+    }
+
+    [Fact]
+    public void Join_Empty_ReturnsEmpty()
+    {
+        StringSegment.Join(',', default(ReadOnlySpan<StringSegment>)).ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void Join_UsesSegmentWindow()
+    {
+        StringSegment.Join(',', HelloWorld, "x").ShouldBe("hello world,x");
+    }
+
+    [Fact]
+    public void Join_Enumerable_List()
+    {
+        List<StringSegment> values = ["a", "b", "c"];
+
+        StringSegment.Join(',', values).ShouldBe("a,b,c");
+        StringSegment.Join("--", values).ShouldBe("a--b--c");
+    }
+
+    [Fact]
+    public void Join_Enumerable_ArrayFastPath()
+    {
+        StringSegment[] values = ["a", "b", "c"];
+
+        StringSegment.Join(',', values).ShouldBe("a,b,c");
+        StringSegment.Join(";;", values).ShouldBe("a;;b;;c");
+    }
+
+    [Fact]
+    public void Join_StringSeparator_SingleChar_MatchesCharOverload()
+    {
+        StringSegment[] values = ["a", "b"];
+
+        StringSegment.Join(",", values).ShouldBe("a,b");
+        StringSegment.Join(",", values).ShouldBe("a,b");
+    }
+
+    [Fact]
+    public void Join_EmptySeparator_Concatenates()
+    {
+        StringSegment.Join(string.Empty, "a", "b", "c").ShouldBe("abc");
+    }
+
+    [Fact]
+    public void Join_WindowedSegment_InNonFirstPosition()
+    {
+        StringSegment.Join('|', "x", HelloWorld).ShouldBe("x|hello world");
+        StringSegment.Join("--", "x", HelloWorld).ShouldBe("x--hello world");
+    }
+
+    [Fact]
+    public void Join_EmptyFirstSegment()
+    {
+        StringSegment.Join(',', "", "b").ShouldBe(",b");
+        StringSegment.Join("--", "", "b").ShouldBe("--b");
+    }
+
+    [Fact]
+    public void Join_EmptySegmentInMiddle()
+    {
+        StringSegment.Join(',', "a", "", "c").ShouldBe("a,,c");
+        StringSegment.Join("--", "a", "", "c").ShouldBe("a----c");
+    }
+
+    [Fact]
+    public void Join_SingleValue_StringAndNoSeparator()
+    {
+        StringSegment.Join("--", "only").ShouldBe("only");
+        StringSegment.Join(string.Empty, "only").ShouldBe("only");
     }
 
     [Fact]
