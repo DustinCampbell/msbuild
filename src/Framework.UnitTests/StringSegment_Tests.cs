@@ -15,6 +15,10 @@ namespace Microsoft.Build.Framework.UnitTests;
 
 public class StringSegment_Tests
 {
+    // StringSplitOptions.TrimEntries (value 2) was introduced in .NET 5 and is absent from the .NET
+    // Framework enum. Reference it by value so these tests build and run on every target.
+    private const StringSplitOptions TrimEntries = (StringSplitOptions)2;
+
     // "hello world" embedded in a larger buffer so that Offset is non-zero. This is important for
     // verifying that search results, slices, and copies are reported relative to the segment, not the
     // underlying buffer.
@@ -658,6 +662,103 @@ public class StringSegment_Tests
     {
         StringSegment.Join("--", "only").ShouldBe("only");
         StringSegment.Join(string.Empty, "only").ShouldBe("only");
+    }
+
+    private static List<string> Split(StringSegment segment, char separator, StringSplitOptions options = StringSplitOptions.None)
+    {
+        List<string> result = [];
+        foreach (StringSegment piece in segment.Split(separator, options))
+        {
+            result.Add(piece.ToString());
+        }
+
+        return result;
+    }
+
+    [Fact]
+    public void Split_Char_Basic()
+    {
+        Split("a,b,c", ',').ShouldBe(["a", "b", "c"]);
+    }
+
+    [Fact]
+    public void Split_Char_NoSeparator_YieldsWhole()
+    {
+        Split("abc", ',').ShouldBe(["abc"]);
+    }
+
+    [Fact]
+    public void Split_LeadingTrailingSeparators()
+    {
+        Split(",a,", ',').ShouldBe(["", "a", ""]);
+    }
+
+    [Fact]
+    public void Split_RemoveEmptyEntries()
+    {
+        Split("a,,c", ',', StringSplitOptions.RemoveEmptyEntries).ShouldBe(["a", "c"]);
+        Split(",a,,", ',', StringSplitOptions.RemoveEmptyEntries).ShouldBe(["a"]);
+    }
+
+    [Fact]
+    public void Split_TrimEntries()
+    {
+        Split(" a , b ", ',', TrimEntries).ShouldBe(["a", "b"]);
+    }
+
+    [Fact]
+    public void Split_TrimAndRemoveEmpty()
+    {
+        Split(" a ,  , b ", ',', StringSplitOptions.RemoveEmptyEntries | TrimEntries).ShouldBe(["a", "b"]);
+    }
+
+    [Fact]
+    public void Split_EmptySegment_YieldsSingleEmpty()
+    {
+        Split(string.Empty, ',').ShouldBe([""]);
+        Split(string.Empty, ',', StringSplitOptions.RemoveEmptyEntries).ShouldBe([]);
+    }
+
+    [Fact]
+    public void Split_MultipleSeparators()
+    {
+        List<string> result = [];
+        foreach (StringSegment piece in ((StringSegment)"a;b,c").Split([';', ',']))
+        {
+            result.Add(piece.ToString());
+        }
+
+        result.ShouldBe(["a", "b", "c"]);
+    }
+
+    [Fact]
+    public void Split_EmptySeparatorSet_YieldsWhole()
+    {
+        List<string> result = [];
+        foreach (StringSegment piece in ((StringSegment)"a,b").Split(default(ReadOnlySpan<char>)))
+        {
+            result.Add(piece.ToString());
+        }
+
+        result.ShouldBe(["a,b"]);
+    }
+
+    [Fact]
+    public void Split_YieldsViewsOverOriginalBuffer()
+    {
+        const string source = "a,b,c";
+
+        foreach (StringSegment piece in ((StringSegment)source).Split(','))
+        {
+            ReferenceEquals(piece.Buffer, source).ShouldBeTrue();
+        }
+    }
+
+    [Fact]
+    public void Split_OnSubSegment_IsRelative()
+    {
+        StringSegment segment = new("[[a,b]]", 2, 3); // "a,b"
+        Split(segment, ',').ShouldBe(["a", "b"]);
     }
 
     [Fact]
