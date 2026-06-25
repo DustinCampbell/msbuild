@@ -8,7 +8,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
-using Microsoft.Build.Experimental.BuildCheck;
 
 namespace Microsoft.Build.Framework
 {
@@ -501,7 +500,7 @@ namespace Microsoft.Build.Framework
             else
             {
                 int count = reader.ReadInt32();
-                HashSet<string> set = EnumerableExtensions.NewHashSet<string>(count, StringComparer.OrdinalIgnoreCase);
+                HashSet<string> set = Experimental.BuildCheck.EnumerableExtensions.NewHashSet<string>(count, StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < count; i++)
                 {
                     set.Add(reader.ReadString());
