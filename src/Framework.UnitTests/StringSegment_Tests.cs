@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+#if NET
+using System.Buffers;
+#endif
 using Microsoft.Build.Framework;
 using Microsoft.Build.Text;
 using Shouldly;
@@ -288,6 +291,188 @@ public class StringSegment_Tests
         ((StringSegment)"abc").CompareTo((StringSegment)"abc").ShouldBe(0);
         Math.Sign(((StringSegment)"ABC").CompareTo("abc", StringComparison.OrdinalIgnoreCase)).ShouldBe(0);
     }
+
+    [Theory]
+    [InlineData('h', 0)]
+    [InlineData('o', 4)]
+    [InlineData('d', 10)]
+    [InlineData('z', -1)]
+    public void IndexOf_Char_IsSegmentRelative(char value, int expected)
+    {
+        HelloWorld.IndexOf(value).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IndexOf_Char_WithStart()
+    {
+        HelloWorld.IndexOf('o', 5).ShouldBe(7);
+        HelloWorld.IndexOf('o', 8).ShouldBe(-1);
+    }
+
+    [Theory]
+    [InlineData("world", 6)]
+    [InlineData("hello", 0)]
+    [InlineData("missing", -1)]
+    public void IndexOf_String(string value, int expected)
+    {
+        HelloWorld.IndexOf(value).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IndexOf_String_IgnoreCase()
+    {
+        HelloWorld.IndexOf("WORLD", StringComparison.OrdinalIgnoreCase).ShouldBe(6);
+    }
+
+    [Fact]
+    public void IndexOf_Span()
+    {
+        HelloWorld.IndexOf("world".AsSpan()).ShouldBe(6);
+    }
+
+    [Theory]
+    [InlineData('o', 7)]
+    [InlineData('l', 9)]
+    [InlineData('h', 0)]
+    [InlineData('z', -1)]
+    public void LastIndexOf_Char(char value, int expected)
+    {
+        HelloWorld.LastIndexOf(value).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void LastIndexOf_Char_WithStartAndLength()
+    {
+        HelloWorld.LastIndexOf('o', 10).ShouldBe(7);
+        HelloWorld.LastIndexOf('o', 6).ShouldBe(4);
+        HelloWorld.LastIndexOf('o', 10, 4).ShouldBe(7);
+        HelloWorld.LastIndexOf('o', 6, 2).ShouldBe(-1);
+        HelloWorld.LastIndexOf('h', 0, 1).ShouldBe(0);
+        HelloWorld.LastIndexOf('h', 11, 0).ShouldBe(-1);
+    }
+
+    [Fact]
+    public void LastIndexOf_String()
+    {
+        HelloWorld.LastIndexOf("o").ShouldBe(7);
+        HelloWorld.LastIndexOf("l").ShouldBe(9);
+        HelloWorld.LastIndexOf(string.Empty).ShouldBe(11);
+        StringSegment.Empty.LastIndexOf(string.Empty).ShouldBe(0);
+        HelloWorld.Slice(1, 0).LastIndexOf(string.Empty).ShouldBe(0);
+    }
+
+    [Fact]
+    public void LastIndexOf_String_WithStartAndLength()
+    {
+        HelloWorld.LastIndexOf("o", 10).ShouldBe(7);
+        HelloWorld.LastIndexOf("o", 6).ShouldBe(4);
+        HelloWorld.LastIndexOf("world", 10, 5).ShouldBe(6);
+        HelloWorld.LastIndexOf("o", 6, 2).ShouldBe(-1);
+        HelloWorld.LastIndexOf("d", 11, 1).ShouldBe(-1);
+        HelloWorld.LastIndexOf("d", 11, 2).ShouldBe(10);
+        HelloWorld.LastIndexOf("HELLO", 4, 5, StringComparison.OrdinalIgnoreCase).ShouldBe(0);
+    }
+
+    [Fact]
+    public void LastIndexOf_String_EmptyValue_WithStartAndLength()
+    {
+        HelloWorld.LastIndexOf(string.Empty, 10).ShouldBe(11);
+        HelloWorld.LastIndexOf(string.Empty, 7, 3).ShouldBe(8);
+        HelloWorld.LastIndexOf(string.Empty, 11, 0).ShouldBe(11);
+        StringSegment.Empty.LastIndexOf(string.Empty, 0, 1).ShouldBe(0);
+        HelloWorld.Slice(1, 0).LastIndexOf(string.Empty, 0, 1).ShouldBe(0);
+    }
+
+    [Fact]
+    public void LastIndexOf_Span()
+    {
+        HelloWorld.LastIndexOf("o".AsSpan()).ShouldBe(7);
+    }
+
+    [Fact]
+    public void IndexOfAny_CharArray()
+    {
+        HelloWorld.IndexOfAny(new[] { 'w', 'r' }).ShouldBe(6);
+        HelloWorld.IndexOfAny(new[] { 'z', 'q' }).ShouldBe(-1);
+    }
+
+    [Fact]
+    public void IndexOfAny_TwoAndThreeChars()
+    {
+        HelloWorld.IndexOfAny('w', 'o').ShouldBe(4);
+        HelloWorld.IndexOfAny('z', 'w', 'r').ShouldBe(6);
+    }
+
+    [Fact]
+    public void IndexOfAny_Span_DispatchesBySize()
+    {
+        HelloWorld.IndexOfAny("o".AsSpan()).ShouldBe(4);
+        HelloWorld.IndexOfAny("wo".AsSpan()).ShouldBe(4);
+        HelloWorld.IndexOfAny("zwr".AsSpan()).ShouldBe(6);
+        HelloWorld.IndexOfAny("zqxw".AsSpan()).ShouldBe(6);
+    }
+
+#if NET
+    [Fact]
+    public void IndexOfAny_SearchValues()
+    {
+        HelloWorld.IndexOfAny(SearchValues.Create("ow")).ShouldBe(4);
+        HelloWorld.IndexOfAny(SearchValues.Create("zq")).ShouldBe(-1);
+    }
+
+#endif
+
+    [Fact]
+    public void LastIndexOfAny_Variants()
+    {
+        HelloWorld.LastIndexOfAny(new[] { 'o', 'l' }).ShouldBe(9);
+        HelloWorld.LastIndexOfAny('o', 'l').ShouldBe(9);
+        HelloWorld.LastIndexOfAny('o', 'l', 'h').ShouldBe(9);
+        HelloWorld.LastIndexOfAny("ol".AsSpan()).ShouldBe(9);
+    }
+
+    [Fact]
+    public void LastIndexOfAny_CharArray_WithStartAndLength()
+    {
+        char[] values = ['o', 'l'];
+
+        HelloWorld.LastIndexOfAny(values, 10).ShouldBe(9);
+        HelloWorld.LastIndexOfAny(values, 6).ShouldBe(4);
+        HelloWorld.LastIndexOfAny(values, 10, 4).ShouldBe(9);
+        HelloWorld.LastIndexOfAny(values, 6, 2).ShouldBe(-1);
+        HelloWorld.LastIndexOfAny(['h'], 0, 1).ShouldBe(0);
+        HelloWorld.LastIndexOfAny(values, 11, 0).ShouldBe(-1);
+    }
+
+#if NET
+    [Fact]
+    public void LastIndexOfAny_SearchValues()
+    {
+        HelloWorld.LastIndexOfAny(SearchValues.Create("ol")).ShouldBe(9);
+        HelloWorld.LastIndexOfAny(SearchValues.Create("zq")).ShouldBe(-1);
+    }
+
+#endif
+
+    [Fact]
+    public void Contains_Variants()
+    {
+        HelloWorld.Contains('h').ShouldBeTrue();
+        HelloWorld.Contains('z').ShouldBeFalse();
+        HelloWorld.Contains("world").ShouldBeTrue();
+        HelloWorld.Contains("WORLD", StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
+        HelloWorld.Contains("lo".AsSpan()).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ContainsAny_Variants()
+    {
+        HelloWorld.ContainsAny(new[] { 'z', 'd' }).ShouldBeTrue();
+        HelloWorld.ContainsAny('z', 'q').ShouldBeFalse();
+        HelloWorld.ContainsAny('z', 'q', 'h').ShouldBeTrue();
+        HelloWorld.ContainsAny("zq".AsSpan()).ShouldBeFalse();
+    }
+
     [Fact]
     public void CopyTo_Span()
     {
