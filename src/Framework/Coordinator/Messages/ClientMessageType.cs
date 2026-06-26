@@ -27,4 +27,9 @@ internal enum ClientMessageType : byte
     ///  Heartbeat indicating the build is still active. No payload.
     /// </summary>
     Heartbeat = 4,
+
+    /// <summary>
+    ///  Join an existing node grant. Payload: int requestedNodes, Guid grantId.
+    /// </summary>
+    JoinGrant = 5,
 }

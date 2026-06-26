@@ -78,7 +78,7 @@ internal sealed partial class CoordinatorServer
 
             output.WriteLine($"CoordinatorServer: Handshake received (ConnectionId {Id}, PID {ProcessId}, Capabilities: [{string.Join(", ", ClientCapabilities)}])");
 
-            WriteServerMessage(new ServerHandshakeMessage(capabilities: []));
+            WriteServerMessage(new ServerHandshakeMessage([Capabilities.NestedGrants]));
 
             return true;
         }

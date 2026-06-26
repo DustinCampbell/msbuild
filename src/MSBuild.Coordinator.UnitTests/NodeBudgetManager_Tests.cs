@@ -159,6 +159,24 @@ public class NodeBudgetManager_Tests
     }
 
     [Fact]
+    public void Release_NestedGrant_DoesNotReturnRootBudget()
+    {
+        NodeBudgetManager manager = new(totalBudget: 4);
+        BuildGrant root = NewGrant(processId: 1, requestedNodes: 4);
+        manager.TryGrant(root).ShouldBe(4);
+
+        BuildGrant nested = new(Guid.NewGuid(), processId: 2, requestedNodes: 4, root.GrantId, isNested: true)
+        {
+            GrantedNodes = 4,
+        };
+
+        manager.Release(nested);
+
+        manager.AllocatedNodes.ShouldBe(4);
+        manager.ActiveBuildCount.ShouldBe(1);
+    }
+
+    [Fact]
     public void Release_DrainsWaitQueue_InFIFOOrder()
     {
         NodeBudgetManager manager = new(totalBudget: 8);

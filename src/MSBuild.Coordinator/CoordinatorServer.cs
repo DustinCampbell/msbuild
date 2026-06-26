@@ -24,6 +24,7 @@ internal sealed partial class CoordinatorServer(CoordinatorSettings settings, IC
     private readonly int _heartbeatIntervalMs = settings.HeartbeatIntervalMs;
     private readonly int _shutdownTimeoutMs = settings.ShutdownTimeoutMs;
     private readonly Dictionary<Guid, ConnectedClient> _clientsById = [];
+    private readonly Dictionary<Guid, BuildGrant> _activeRootGrantsById = [];
     private readonly ReaderWriterLockSlim _clientsLock = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly ICoordinatorDebugOutput _output = output ?? DefaultDebugOutput.Instance;
@@ -162,23 +163,55 @@ internal sealed partial class CoordinatorServer(CoordinatorSettings settings, IC
 
             ClientMessage requestMessage = connection.ReadClientMessage();
 
-            if (requestMessage is not RequestNodesMessage request)
+            if (requestMessage is not (RequestNodesMessage or JoinGrantMessage))
             {
                 _output.WriteLine($"CoordinatorServer: Rejected client — second message was {requestMessage.GetType().Name}");
-                connection.WriteServerMessage(new ErrorMessage("Second message must be RequestNodes"));
+                connection.WriteServerMessage(new ErrorMessage("Second message must be RequestNodes or JoinGrant"));
                 return;
             }
 
-            if (connection.ProcessId <= 0 || request.RequestedNodes <= 0)
+            int requestedNodes = requestMessage switch
             {
-                _output.WriteLine($"CoordinatorServer: Rejected client — invalid request (PID={connection.ProcessId}, RequestedNodes={request.RequestedNodes})");
+                RequestNodesMessage request => request.RequestedNodes,
+                JoinGrantMessage join => join.RequestedNodes,
+                _ => Assumed.Unreachable<int>(),
+            };
+
+            bool clientSupportsNestedGrants = connection.ClientCapabilities.Contains(Capabilities.NestedGrants);
+
+            // A client may only join an existing grant if it opted into the nested-grants
+            // protocol. That guarantees it can understand a grant response carrying a grant ID.
+            if (requestMessage is JoinGrantMessage && !clientSupportsNestedGrants)
+            {
+                _output.WriteLine("CoordinatorServer: Rejected client — JoinGrant requires nested-grants capability");
+                connection.WriteServerMessage(new ErrorMessage("JoinGrant requires nested-grants capability"));
+                return;
+            }
+
+            if (connection.ProcessId <= 0 || requestedNodes <= 0)
+            {
+                _output.WriteLine($"CoordinatorServer: Rejected client — invalid request (PID={connection.ProcessId}, RequestedNodes={requestedNodes})");
                 connection.WriteServerMessage(new ErrorMessage("Invalid request: ProcessId and RequestedNodes must be > 0"));
                 return;
             }
 
-            _output.WriteLine($"CoordinatorServer: Client connected (PID {connection.ProcessId}, ConnectionId {connection.Id}, requested {request.RequestedNodes} nodes)");
+            _output.WriteLine($"CoordinatorServer: Client connected (PID {connection.ProcessId}, ConnectionId {connection.Id}, requested {requestedNodes} nodes)");
 
-            BuildGrant grant = new(connection.Id, connection.ProcessId, request.RequestedNodes);
+            // Root requests create a new grant and participate in global budget allocation.
+            // Nested requests validate an existing root grant token and borrow that grant's
+            // node count without consuming additional global budget.
+            BuildGrant grant = requestMessage is JoinGrantMessage joinRequest
+                ? CreateNestedGrant(connection.Id, connection.ProcessId, requestedNodes, joinRequest.GrantId)
+                : new BuildGrant(connection.Id, connection.ProcessId, requestedNodes);
+
+            // Nested grants are immediate grant-or-error. They should never enter the wait queue
+            // because they don't consume global coordinator budget.
+            if (grant.IsNested && grant.GrantedNodes == 0)
+            {
+                _output.WriteLine($"CoordinatorServer: Rejected nested client — grant {grant.GrantId} is not active");
+                connection.WriteServerMessage(new ErrorMessage("Requested coordinator grant is not active"));
+                return;
+            }
 
             // Once a client is accepted, transfer pipe ownership to ConnectedClient so
             // cleanup and subsequent message I/O are tied to the grant lifecycle.
@@ -189,13 +222,22 @@ internal sealed partial class CoordinatorServer(CoordinatorSettings settings, IC
                 _clientsById[connection.Id] = client;
             }
 
-            // Try to grant nodes.
-            int grantedNodes = _budgetManager.TryGrant(grant);
+            int grantedNodes = grant.IsNested
+                ? grant.GrantedNodes
+                : _budgetManager.TryGrant(grant);
 
             if (grantedNodes > 0)
             {
                 _output.WriteLine($"CoordinatorServer: Granted {grantedNodes} nodes to PID {connection.ProcessId}");
-                client.WriteServerMessage(new NodeGrantMessage(grantedNodes));
+
+                // Only root grants are tracked by grant ID. Nested grants reference their root
+                // grant ID, but releasing a nested connection must not invalidate that root grant.
+                if (!grant.IsNested)
+                {
+                    TrackRootGrant(grant);
+                }
+
+                WriteGrantMessage(client, grant);
             }
             else
             {
@@ -281,6 +323,11 @@ internal sealed partial class CoordinatorServer(CoordinatorSettings settings, IC
             {
                 _clientsById.Remove(client.ConnectionId);
             }
+
+            if (!client.Grant.IsNested)
+            {
+                _activeRootGrantsById.Remove(client.Grant.GrantId);
+            }
         }
 
         ImmutableArray<BuildGrant> newlyGranted = _budgetManager.Release(client.Grant);
@@ -305,7 +352,8 @@ internal sealed partial class CoordinatorServer(CoordinatorSettings settings, IC
                 try
                 {
                     _output.WriteLine($"CoordinatorServer: Granting {grant.GrantedNodes} deferred nodes to PID {grant.ProcessId}");
-                    waitingClient.WriteServerMessage(new NodeGrantMessage(grant.GrantedNodes));
+                    TrackRootGrant(grant);
+                    WriteGrantMessage(waitingClient, grant);
                 }
                 catch (IOException)
                 {
@@ -318,6 +366,43 @@ internal sealed partial class CoordinatorServer(CoordinatorSettings settings, IC
         }
 
         ResetShutdownTimer();
+    }
+
+    private BuildGrant CreateNestedGrant(Guid connectionId, int processId, int requestedNodes, Guid grantId)
+    {
+        using (_clientsLock.EnterDisposableReadLock())
+        {
+            if (_activeRootGrantsById.TryGetValue(grantId, out BuildGrant? rootGrant) &&
+                rootGrant.IsActive)
+            {
+                return new BuildGrant(connectionId, processId, requestedNodes, grantId, isNested: true)
+                {
+                    GrantedNodes = Math.Min(requestedNodes, rootGrant.GrantedNodes),
+                };
+            }
+        }
+
+        return new BuildGrant(connectionId, processId, requestedNodes, grantId, isNested: true);
+    }
+
+    private void TrackRootGrant(BuildGrant grant)
+    {
+        using (_clientsLock.EnterDisposableWriteLock())
+        {
+            _activeRootGrantsById[grant.GrantId] = grant;
+        }
+    }
+
+    private static void WriteGrantMessage(ConnectedClient client, BuildGrant grant)
+    {
+        if (client.Capabilities.Contains(Capabilities.NestedGrants))
+        {
+            client.WriteServerMessage(new NodeGrantWithIdMessage(grant.GrantId, grant.GrantedNodes));
+        }
+        else
+        {
+            client.WriteServerMessage(new NodeGrantMessage(grant.GrantedNodes));
+        }
     }
 
     /// <summary>

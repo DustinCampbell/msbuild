@@ -11,6 +11,7 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Coordinator;
 using Microsoft.Build.Shared;
+using Constants = Microsoft.Build.Framework.Coordinator.Constants;
 
 namespace Microsoft.Build.BackEnd;
 
@@ -26,12 +27,19 @@ internal sealed partial class CoordinatorClient : IDisposable
     private readonly BinaryWriter _writer;
     private readonly Timer _heartbeatTimer;
     private readonly ICoordinatorDebugOutput _output;
+    private readonly string? _previousGrantId;
+    private readonly GrantOwnership _grantOwnership;
     private volatile bool _disposed;
 
     /// <summary>
     ///  The unique identifier for this connection to the coordinator.
     /// </summary>
     public Guid ConnectionId { get; }
+
+    /// <summary>
+    ///  The grant token associated with this coordinator lease.
+    /// </summary>
+    public Guid GrantId { get; }
 
     /// <summary>
     ///  The capabilities advertised by the server during handshake.
@@ -50,11 +58,14 @@ internal sealed partial class CoordinatorClient : IDisposable
 
     private CoordinatorClient(
         Connection connection,
+        Guid grantId,
         int grantedNodes,
+        GrantOwnership grantOwnership,
         int heartbeatIntervalMs,
         ICoordinatorDebugOutput output)
     {
         ConnectionId = connection.Id;
+        GrantId = grantId;
         ServerCapabilities = connection.ServerCapabilities;
         (_pipeStream, _reader, _writer) = connection.TransferOwnership();
         _output = output;
@@ -65,6 +76,13 @@ internal sealed partial class CoordinatorClient : IDisposable
             state: null,
             dueTime: heartbeatIntervalMs,
             period: heartbeatIntervalMs);
+
+        _grantOwnership = grantOwnership;
+
+        if (grantOwnership == GrantOwnership.Root && grantId != Guid.Empty)
+        {
+            _previousGrantId = SetInheritedGrantId(grantId, output);
+        }
     }
 
     /// <summary>
@@ -78,6 +96,13 @@ internal sealed partial class CoordinatorClient : IDisposable
         }
 
         _disposed = true;
+
+        // Only the root grant owner establishes and restores the environment variable.
+        // Nested clients borrow the ambient grant token and leave it untouched.
+        if (_grantOwnership == GrantOwnership.Root && GrantId != Guid.Empty)
+        {
+            RestoreInheritedGrantId(GrantId, _previousGrantId);
+        }
 
         // Stop heartbeat timer and wait for any in-flight callback to complete.
         // This prevents SendHeartbeat from running after resources are disposed.
@@ -110,6 +135,32 @@ internal sealed partial class CoordinatorClient : IDisposable
         _reader.Dispose();
         _pipeStream.Dispose();
     }
+
+    private static string? SetInheritedGrantId(Guid grantId, ICoordinatorDebugOutput output)
+    {
+        string? previousGrantId = Environment.GetEnvironmentVariable(Constants.GrantIdEnvVarName);
+
+        if (!string.IsNullOrEmpty(previousGrantId) &&
+            !string.Equals(previousGrantId, grantId.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            output.WriteLine($"CoordinatorClient: Replacing existing coordinator grant environment value with grant {grantId}");
+        }
+
+        Environment.SetEnvironmentVariable(Constants.GrantIdEnvVarName, grantId.ToString());
+        return previousGrantId;
+    }
+
+    private static void RestoreInheritedGrantId(Guid grantId, string? previousGrantId)
+    {
+        string? currentGrantId = Environment.GetEnvironmentVariable(Constants.GrantIdEnvVarName);
+        if (string.Equals(currentGrantId, grantId.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            Environment.SetEnvironmentVariable(Constants.GrantIdEnvVarName, previousGrantId);
+        }
+    }
+
+    private static bool TryGetInheritedGrantId(out Guid grantId)
+        => Guid.TryParse(Environment.GetEnvironmentVariable(Constants.GrantIdEnvVarName), out grantId);
 
     /// <summary>
     ///  Attempts to connect to the coordinator and request a node grant.
@@ -336,22 +387,38 @@ internal sealed partial class CoordinatorClient : IDisposable
             return null;
         }
 
-        // Send the node request.
-        output.WriteLine($"CoordinatorClient: Requesting {requestedNodes} nodes (PID {settings.ProcessId}, ConnectionId {connection.Id})");
-        connection.WriteClientMessage(new RequestNodesMessage(requestedNodes));
+        int processId = settings.ProcessId;
+        GrantOwnership grantOwnership;
+        if (TryGetInheritedGrantId(out Guid inheritedGrantId) &&
+            connection.ServerCapabilities.Contains(Capabilities.NestedGrants))
+        {
+            grantOwnership = GrantOwnership.Nested;
+            output.WriteLine($"CoordinatorClient: Joining coordinator grant {inheritedGrantId} for {requestedNodes} nodes (PID {processId}, ConnectionId {connection.Id})");
+            connection.WriteClientMessage(new JoinGrantMessage(inheritedGrantId, requestedNodes));
+        }
+        else
+        {
+            grantOwnership = GrantOwnership.Root;
+            output.WriteLine($"CoordinatorClient: Requesting {requestedNodes} nodes (PID {processId}, ConnectionId {connection.Id})");
+            connection.WriteClientMessage(new RequestNodesMessage(requestedNodes));
+        }
 
         // Read the response.
         ServerMessage response = connection.ReadServerMessage();
 
         switch (response)
         {
-            case NodeGrantMessage grant:
+            case INodeGrantMessage grant:
                 output.WriteLine($"CoordinatorClient: Granted {grant.GrantedNodes} nodes");
                 loggingService?.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorNodeGrantReceived", grant.GrantedNodes);
 
-                return new CoordinatorClient(connection, grant.GrantedNodes, settings.HeartbeatIntervalMs, output);
+                return grantOwnership == GrantOwnership.Root
+                    ? CreateRootClient(connection, grant, settings.HeartbeatIntervalMs, output)
+                    : CreateNestedClient(connection, grant, settings.HeartbeatIntervalMs, output);
 
             case WaitMessage:
+                Assumed.Equal(grantOwnership, GrantOwnership.Root, "Nested coordinator grant joins should not wait for global resources.");
+
                 output.WriteLine("CoordinatorClient: Received WaitMessage, waiting for deferred grant");
                 loggingService?.LogComment(BuildEventContext.Invalid, MessageImportance.High, "CoordinatorWaitingForNodes");
 
@@ -382,16 +449,13 @@ internal sealed partial class CoordinatorClient : IDisposable
 
             switch (responseAfterWait)
             {
-                case NodeGrantMessage grant:
+                case INodeGrantMessage grant:
                     waitTimer.Stop();
 
                     output.WriteLine($"CoordinatorClient: Deferred grant received: {grant.GrantedNodes} nodes (waited {waitTimer.Elapsed.TotalSeconds:F2}s)");
                     loggingService?.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorNodeGrantReceived", grant.GrantedNodes);
 
-                    return new CoordinatorClient(connection, grant.GrantedNodes, settings.HeartbeatIntervalMs, output)
-                    {
-                        WaitDuration = waitTimer.Elapsed,
-                    };
+                    return CreateRootClient(connection, grant, settings.HeartbeatIntervalMs, output, waitTimer.Elapsed);
 
                 case ErrorMessage waitError:
                     output.WriteLine($"CoordinatorClient: Server error while waiting: {waitError.Message} (waited {waitTimer.Elapsed.TotalSeconds:F2}s)");
@@ -423,6 +487,24 @@ internal sealed partial class CoordinatorClient : IDisposable
                 dueTime: intervalMs,
                 period: intervalMs);
     }
+
+    private static CoordinatorClient CreateRootClient(
+        Connection connection,
+        INodeGrantMessage grant,
+        int heartbeatIntervalMs,
+        ICoordinatorDebugOutput output,
+        TimeSpan? waitDuration = null)
+        => new(connection, grant.GrantId, grant.GrantedNodes, GrantOwnership.Root, heartbeatIntervalMs, output)
+        {
+            WaitDuration = waitDuration,
+        };
+
+    private static CoordinatorClient CreateNestedClient(
+        Connection connection,
+        INodeGrantMessage grant,
+        int heartbeatIntervalMs,
+        ICoordinatorDebugOutput output)
+        => new(connection, grant.GrantId, grant.GrantedNodes, GrantOwnership.Nested, heartbeatIntervalMs, output);
 
     private static bool TryConnectToPipe(NamedPipeClientStream pipeStream, int timeoutMs)
     {
