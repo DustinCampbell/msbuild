@@ -26,7 +26,12 @@ internal sealed partial class CoordinatorClient : IDisposable
     private readonly BinaryWriter _writer;
     private readonly Timer _heartbeatTimer;
     private readonly ICoordinatorDebugOutput _output;
-    private volatile bool _disposed;
+
+    private int _disposeState;
+
+    private const int NotDisposed = 0;
+    private const int Disposing = 1;
+    private const int Disposed = 2;
 
     /// <summary>
     ///  The unique identifier for this connection to the coordinator.
@@ -47,6 +52,11 @@ internal sealed partial class CoordinatorClient : IDisposable
     ///  The time spent waiting for a deferred node grant, or <see langword="null"/> if no wait occurred.
     /// </summary>
     public TimeSpan? WaitDuration { get; private init; }
+
+    /// <summary>
+    ///  Indicates whether disposal is in progress or has completed.
+    /// </summary>
+    private bool IsDisposingOrDisposed => Volatile.Read(ref _disposeState) != NotDisposed;
 
     private CoordinatorClient(
         Connection connection,
@@ -72,43 +82,72 @@ internal sealed partial class CoordinatorClient : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed)
+        if (Interlocked.CompareExchange(ref _disposeState, Disposing, NotDisposed) != NotDisposed)
         {
             return;
         }
 
-        _disposed = true;
-
-        // Stop heartbeat timer and wait for any in-flight callback to complete.
-        // This prevents SendHeartbeat from running after resources are disposed.
-        using (var disposeEvent = new ManualResetEvent(false))
+        try
         {
-            _heartbeatTimer.Dispose(disposeEvent);
-            disposeEvent.WaitOne();
-        }
+            // Dispose first enters the Disposing state so callbacks that have not
+            // yet started will observe disposal and avoid writing another heartbeat.
+            // A callback may already have passed IsDisposed; drain the timer before
+            // sending ReleaseNodesMessage or disposing the transport.
+            using (var disposeEvent = new ManualResetEvent(false))
+            {
+                _heartbeatTimer.Dispose(disposeEvent);
+                disposeEvent.WaitOne();
+            }
 
-        _output.WriteLine($"CoordinatorClient: Releasing grant ({GrantedNodes} nodes)");
+            _output.WriteLine($"CoordinatorClient: Releasing grant ({GrantedNodes} nodes)");
+
+            try
+            {
+                _writer.Write(ReleaseNodesMessage.Instance);
+            }
+            catch (IOException)
+            {
+                // Pipe may already be broken.
+            }
+
+            try
+            {
+                _writer.Dispose();
+            }
+            catch (IOException)
+            {
+                // BinaryWriter.Dispose calls Flush, which can throw on broken pipe.
+            }
+
+            _reader.Dispose();
+            _pipeStream.Dispose();
+        }
+        finally
+        {
+            Volatile.Write(ref _disposeState, Disposed);
+        }
+    }
+
+    private void SendHeartbeat(object? state)
+    {
+        // Dispose marks the client first, then drains the timer. A callback that
+        // observes disposal here must not write after ReleaseNodesMessage.
+        if (IsDisposingOrDisposed)
+        {
+            return;
+        }
 
         try
         {
-            _writer.Write(ReleaseNodesMessage.Instance);
+            _writer.Write(HeartbeatMessage.Instance);
         }
         catch (IOException)
         {
-            // Pipe may already be broken.
-        }
+            _output.WriteLine("CoordinatorClient: Heartbeat failed (pipe broken)");
 
-        try
-        {
-            _writer.Dispose();
+            // Pipe broken — nothing we can do. The build continues
+            // with whatever nodes were already granted.
         }
-        catch (IOException)
-        {
-            // Flush in BinaryWriter.Dispose can throw on broken pipe.
-        }
-
-        _reader.Dispose();
-        _pipeStream.Dispose();
     }
 
     /// <summary>
@@ -493,25 +532,5 @@ internal sealed partial class CoordinatorClient : IDisposable
         }
 
         return null;
-    }
-
-    private void SendHeartbeat(object? state)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        try
-        {
-            _writer.Write(HeartbeatMessage.Instance);
-        }
-        catch (IOException)
-        {
-            _output.WriteLine("CoordinatorClient: Heartbeat failed (pipe broken)");
-
-            // Pipe broken — nothing we can do. The build continues
-            // with whatever nodes were already granted.
-        }
     }
 }

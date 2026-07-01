@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.IO.Pipes;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework.Coordinator;
 using Shouldly;
@@ -155,6 +156,37 @@ public class CoordinatorClient_Tests(ITestOutputHelper testOutput) : IDisposable
     }
 
     [Fact]
+    public async Task Dispose_WhenCalledConcurrently_ReleasesGrantOnce()
+    {
+        // Use a minimal server so the test can count the client's release messages directly.
+        Task<int> releaseCountTask = RunFakeServerAndCountReleasesAsync(Pid1);
+
+        CoordinatorClient? client = TryConnectToServer(requestedNodes: 4, Pid1);
+        client.ShouldNotBeNull();
+        client.GrantedNodes.ShouldBe(4);
+
+        using ManualResetEventSlim startDispose = new(initialState: false);
+
+        // Race several callers through Dispose.
+        // Only one should run the cleanup path that sends ReleaseNodesMessage.
+        List<Task> disposeTasks = [];
+        for (int i = 0; i < 16; i++)
+        {
+            disposeTasks.Add(Task.Run(() =>
+            {
+                startDispose.Wait();
+                client.Dispose();
+            }));
+        }
+
+        startDispose.Set();
+        await Task.WhenAll(disposeTasks);
+
+        int releaseCount = await releaseCountTask;
+        releaseCount.ShouldBe(1);
+    }
+
+    [Fact]
     public Task MultipleClients_SequentialReuse()
     {
         using CoordinatorServer server = CreateServer(totalNodeBudget: 8);
@@ -187,4 +219,47 @@ public class CoordinatorClient_Tests(ITestOutputHelper testOutput) : IDisposable
 
     private CoordinatorClient? TryConnectToServer(int requestedNodes, CoordinatorSettings settings)
         => CoordinatorClient.TestAccessor.TryConnectToServer(requestedNodes, settings, _output);
+
+    private async Task<int> RunFakeServerAndCountReleasesAsync(int processId)
+    {
+        CoordinatorSettings settings = DefaultSettings with { ProcessId = processId };
+
+        using NamedPipeServerStream pipeStream = new(
+            settings.PipeName,
+            PipeDirection.InOut,
+            NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous);
+
+        await pipeStream.WaitForConnectionAsync(_cts.Token);
+
+        using BinaryReader reader = new(pipeStream);
+        using BinaryWriter writer = new(pipeStream);
+
+        reader.ReadClientMessage().ShouldBeOfType<ClientHandshakeMessage>();
+        writer.Write(new ServerHandshakeMessage(capabilities: []));
+
+        // Grant the first request, then count every release message until the
+        // client closes the pipe during Dispose.
+        RequestNodesMessage request = reader.ReadClientMessage().ShouldBeOfType<RequestNodesMessage>();
+        writer.Write(new NodeGrantMessage(request.RequestedNodes));
+
+        int releaseCount = 0;
+        while (pipeStream.IsConnected)
+        {
+            try
+            {
+                if (reader.ReadClientMessage() is ReleaseNodesMessage)
+                {
+                    releaseCount++;
+                }
+            }
+            catch (Exception ex) when (ex is EndOfStreamException or IOException)
+            {
+                break;
+            }
+        }
+
+        return releaseCount;
+    }
 }
