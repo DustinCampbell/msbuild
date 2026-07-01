@@ -21,13 +21,9 @@ namespace Microsoft.Build.BackEnd;
 /// </summary>
 internal sealed partial class CoordinatorClient : IDisposable
 {
-    private readonly NamedPipeClientStream _pipeStream;
-    private readonly BinaryReader _reader;
-    private readonly BinaryWriter _writer;
+    private readonly Connection _connection;
     private readonly Timer _heartbeatTimer;
     private readonly ICoordinatorDebugOutput _output;
-
-    private readonly LockType _writeGate = new();
 
     private int _disposeState;
 
@@ -66,9 +62,9 @@ internal sealed partial class CoordinatorClient : IDisposable
         int heartbeatIntervalMs,
         ICoordinatorDebugOutput output)
     {
+        _connection = connection;
         ConnectionId = connection.Id;
         ServerCapabilities = connection.ServerCapabilities;
-        (_pipeStream, _reader, _writer) = connection.TransferOwnership();
         _output = output;
         GrantedNodes = grantedNodes;
 
@@ -105,36 +101,18 @@ internal sealed partial class CoordinatorClient : IDisposable
 
             try
             {
-                WriteClientMessage(ReleaseNodesMessage.Instance);
+                _connection.WriteClientMessage(ReleaseNodesMessage.Instance);
             }
             catch (IOException)
             {
                 // Pipe may already be broken.
             }
 
-            try
-            {
-                _writer.Dispose();
-            }
-            catch (IOException)
-            {
-                // BinaryWriter.Dispose calls Flush, which can throw on broken pipe.
-            }
-
-            _reader.Dispose();
-            _pipeStream.Dispose();
+            _connection.Dispose();
         }
         finally
         {
             Volatile.Write(ref _disposeState, Disposed);
-        }
-    }
-
-    private void WriteClientMessage(ClientMessage message)
-    {
-        lock (_writeGate)
-        {
-            _writer.Write(message);
         }
     }
 
@@ -149,7 +127,7 @@ internal sealed partial class CoordinatorClient : IDisposable
 
         try
         {
-            WriteClientMessage(HeartbeatMessage.Instance);
+            _connection.WriteClientMessage(HeartbeatMessage.Instance);
         }
         catch (IOException)
         {

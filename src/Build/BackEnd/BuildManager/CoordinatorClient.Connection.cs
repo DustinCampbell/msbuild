@@ -17,9 +17,10 @@ internal sealed partial class CoordinatorClient
     /// </summary>
     private sealed class Connection : IDisposable
     {
-        private NamedPipeClientStream? _pipeStream;
-        private BinaryReader? _reader;
-        private BinaryWriter? _writer;
+        private readonly NamedPipeClientStream _pipeStream;
+        private readonly BinaryReader _reader;
+        private readonly BinaryWriter _writer;
+        private readonly LockType _writeGate = new();
 
         /// <summary>
         ///  Gets the unique identifier sent during the coordinator handshake.
@@ -88,43 +89,36 @@ internal sealed partial class CoordinatorClient
         ///  Reads the next server message from the coordinator pipe.
         /// </summary>
         public ServerMessage ReadServerMessage()
-        {
-            Assumed.NotNull(_reader);
-            return _reader.ReadServerMessage();
-        }
+            => _reader.ReadServerMessage();
 
         /// <summary>
         ///  Writes a client message to the coordinator pipe.
         /// </summary>
         public void WriteClientMessage(ClientMessage message)
         {
-            Assumed.NotNull(_writer);
-            _writer.Write(message);
-        }
-
-        /// <summary>
-        ///  Transfers ownership of the pipe, reader, and writer to the caller.
-        /// </summary>
-        public (NamedPipeClientStream PipeStream, BinaryReader Reader, BinaryWriter Writer) TransferOwnership()
-        {
-            Assumed.NotNull(_pipeStream);
-            Assumed.NotNull(_reader);
-            Assumed.NotNull(_writer);
-
-            var result = (_pipeStream, _reader, _writer);
-
-            _pipeStream = null;
-            _reader = null;
-            _writer = null;
-
-            return result;
+            lock (_writeGate)
+            {
+                _writer.Write(message);
+            }
         }
 
         public void Dispose()
         {
-            _reader?.Dispose();
-            _writer?.Dispose();
-            _pipeStream?.Dispose();
+            _reader.Dispose();
+
+            try
+            {
+                lock (_writeGate)
+                {
+                    _writer.Dispose();
+                }
+            }
+            catch (IOException)
+            {
+                // BinaryWriter.Dispose calls Flush, which can throw on broken pipe.
+            }
+
+            _pipeStream.Dispose();
         }
     }
 }
