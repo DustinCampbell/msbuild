@@ -27,6 +27,8 @@ internal sealed partial class CoordinatorClient : IDisposable
     private readonly Timer _heartbeatTimer;
     private readonly ICoordinatorDebugOutput _output;
 
+    private readonly LockType _writeGate = new();
+
     private int _disposeState;
 
     private const int NotDisposed = 0;
@@ -103,7 +105,7 @@ internal sealed partial class CoordinatorClient : IDisposable
 
             try
             {
-                _writer.Write(ReleaseNodesMessage.Instance);
+                WriteClientMessage(ReleaseNodesMessage.Instance);
             }
             catch (IOException)
             {
@@ -128,6 +130,14 @@ internal sealed partial class CoordinatorClient : IDisposable
         }
     }
 
+    private void WriteClientMessage(ClientMessage message)
+    {
+        lock (_writeGate)
+        {
+            _writer.Write(message);
+        }
+    }
+
     private void SendHeartbeat(object? state)
     {
         // Dispose marks the client first, then drains the timer. A callback that
@@ -139,7 +149,7 @@ internal sealed partial class CoordinatorClient : IDisposable
 
         try
         {
-            _writer.Write(HeartbeatMessage.Instance);
+            WriteClientMessage(HeartbeatMessage.Instance);
         }
         catch (IOException)
         {
