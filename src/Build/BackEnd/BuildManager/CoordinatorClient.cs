@@ -22,7 +22,7 @@ namespace Microsoft.Build.BackEnd;
 internal sealed partial class CoordinatorClient : IDisposable
 {
     private readonly Connection _connection;
-    private readonly Timer _heartbeatTimer;
+    private readonly HeartbeatTimer _heartbeatTimer;
     private readonly ICoordinatorDebugOutput _output;
 
     private int _disposeState;
@@ -51,11 +51,6 @@ internal sealed partial class CoordinatorClient : IDisposable
     /// </summary>
     public TimeSpan? WaitDuration { get; private init; }
 
-    /// <summary>
-    ///  Indicates whether disposal is in progress or has completed.
-    /// </summary>
-    private bool IsDisposingOrDisposed => Volatile.Read(ref _disposeState) != NotDisposed;
-
     private CoordinatorClient(
         Connection connection,
         int grantedNodes,
@@ -68,11 +63,7 @@ internal sealed partial class CoordinatorClient : IDisposable
         _output = output;
         GrantedNodes = grantedNodes;
 
-        _heartbeatTimer = new Timer(
-            SendHeartbeat,
-            state: null,
-            dueTime: heartbeatIntervalMs,
-            period: heartbeatIntervalMs);
+        _heartbeatTimer = new HeartbeatTimer(connection, heartbeatIntervalMs, output);
     }
 
     /// <summary>
@@ -87,15 +78,10 @@ internal sealed partial class CoordinatorClient : IDisposable
 
         try
         {
-            // Dispose first enters the Disposing state so callbacks that have not
-            // yet started will observe disposal and avoid writing another heartbeat.
-            // A callback may already have passed IsDisposed; drain the timer before
-            // sending ReleaseNodesMessage or disposing the transport.
-            using (var disposeEvent = new ManualResetEvent(false))
-            {
-                _heartbeatTimer.Dispose(disposeEvent);
-                disposeEvent.WaitOne();
-            }
+            // Enter the Disposing state before stopping heartbeats so new callbacks
+            // observe disposal. HeartbeatTimer.Dispose waits for in-flight callbacks
+            // before we send ReleaseNodesMessage or dispose the connection.
+            _heartbeatTimer.Dispose();
 
             _output.WriteLine($"CoordinatorClient: Releasing grant ({GrantedNodes} nodes)");
 
@@ -113,28 +99,6 @@ internal sealed partial class CoordinatorClient : IDisposable
         finally
         {
             Volatile.Write(ref _disposeState, Disposed);
-        }
-    }
-
-    private void SendHeartbeat(object? state)
-    {
-        // Dispose marks the client first, then drains the timer. A callback that
-        // observes disposal here must not write after ReleaseNodesMessage.
-        if (IsDisposingOrDisposed)
-        {
-            return;
-        }
-
-        try
-        {
-            _connection.WriteClientMessage(HeartbeatMessage.Instance);
-        }
-        catch (IOException)
-        {
-            _output.WriteLine("CoordinatorClient: Heartbeat failed (pipe broken)");
-
-            // Pipe broken — nothing we can do. The build continues
-            // with whatever nodes were already granted.
         }
     }
 
@@ -381,53 +345,35 @@ internal sealed partial class CoordinatorClient : IDisposable
     {
         var waitTimer = Stopwatch.StartNew();
 
-        // Send heartbeats while waiting so the server doesn't consider us stale.
-        using (Timer heartbeatPump = CreateHeartbeatPump(connection, settings.HeartbeatIntervalMs))
+        ServerMessage responseAfterWait;
+
+        // Send heartbeats only while waiting so the server doesn't consider us stale.
+        using (new HeartbeatTimer(connection, settings.HeartbeatIntervalMs, output))
         {
-            ServerMessage responseAfterWait = connection.ReadServerMessage();
-
-            switch (responseAfterWait)
-            {
-                case NodeGrantMessage grant:
-                    waitTimer.Stop();
-
-                    output.WriteLine($"CoordinatorClient: Deferred grant received: {grant.GrantedNodes} nodes (waited {waitTimer.Elapsed.TotalSeconds:F2}s)");
-                    loggingService?.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorNodeGrantReceived", grant.GrantedNodes);
-
-                    return new CoordinatorClient(connection, grant.GrantedNodes, settings.HeartbeatIntervalMs, output)
-                    {
-                        WaitDuration = waitTimer.Elapsed,
-                    };
-
-                case ErrorMessage waitError:
-                    output.WriteLine($"CoordinatorClient: Server error while waiting: {waitError.Message} (waited {waitTimer.Elapsed.TotalSeconds:F2}s)");
-                    return null;
-
-                default:
-                    output.WriteLine($"CoordinatorClient: Unexpected response after wait: {responseAfterWait.GetType().Name} (waited {waitTimer.Elapsed.TotalSeconds:F2}s)");
-                    return null;
-            }
+            responseAfterWait = connection.ReadServerMessage();
         }
 
-        static Timer CreateHeartbeatPump(Connection connection, int intervalMs)
-            => new(
-                static state =>
+        waitTimer.Stop();
+
+        switch (responseAfterWait)
+        {
+            case NodeGrantMessage grant:
+                output.WriteLine($"CoordinatorClient: Deferred grant received: {grant.GrantedNodes} nodes (waited {waitTimer.Elapsed.TotalSeconds:F2}s)");
+                loggingService?.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorNodeGrantReceived", grant.GrantedNodes);
+
+                return new CoordinatorClient(connection, grant.GrantedNodes, settings.HeartbeatIntervalMs, output)
                 {
-                    try
-                    {
-                        if (state is Connection connection)
-                        {
-                            connection.WriteClientMessage(HeartbeatMessage.Instance);
-                        }
-                    }
-                    catch
-                    {
-                        // Pipe may be broken; swallow and let the next read detect it.
-                    }
-                },
-                state: connection,
-                dueTime: intervalMs,
-                period: intervalMs);
+                    WaitDuration = waitTimer.Elapsed,
+                };
+
+            case ErrorMessage waitError:
+                output.WriteLine($"CoordinatorClient: Server error while waiting: {waitError.Message} (waited {waitTimer.Elapsed.TotalSeconds:F2}s)");
+                return null;
+
+            default:
+                output.WriteLine($"CoordinatorClient: Unexpected response after wait: {responseAfterWait.GetType().Name} (waited {waitTimer.Elapsed.TotalSeconds:F2}s)");
+                return null;
+        }
     }
 
     private static Connection? TryConnectToCoordinator(string pipeName, int processId, int timeoutMs, ICoordinatorDebugOutput output)
