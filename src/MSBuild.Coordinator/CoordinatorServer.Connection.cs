@@ -16,9 +16,10 @@ internal sealed partial class CoordinatorServer
     /// </summary>
     private sealed class Connection : IDisposable
     {
-        private NamedPipeServerStream? _pipeStream;
-        private BinaryReader? _reader;
-        private BinaryWriter? _writer;
+        private readonly NamedPipeServerStream _pipeStream;
+        private readonly BinaryReader _reader;
+        private readonly BinaryWriter _writer;
+        private readonly LockType _writeGate = new();
 
         /// <summary>
         ///  Gets the unique identifier received during the client handshake.
@@ -98,55 +99,45 @@ internal sealed partial class CoordinatorServer
             }
         }
 
-        /// <summary>
-        ///  Transfers ownership of the pipe, reader, and writer to the caller.
-        /// </summary>
-        public (NamedPipeServerStream PipeStream, BinaryReader Reader, BinaryWriter Writer) TransferOwnership()
-        {
-            Assumed.NotNull(_pipeStream);
-            Assumed.NotNull(_reader);
-            Assumed.NotNull(_writer);
-
-            var result = (_pipeStream, _reader, _writer);
-
-            _pipeStream = null;
-            _reader = null;
-            _writer = null;
-
-            return result;
-        }
-
         public void Dispose()
         {
+            _reader.Dispose();
+
             try
             {
-                _writer?.Dispose();
+                lock (_writeGate)
+                {
+                    _writer.Dispose();
+                }
             }
             catch (IOException)
             {
                 // The pipe may already be broken if the client disconnected.
             }
 
-            _reader?.Dispose();
-            _pipeStream?.Dispose();
+            _pipeStream.Dispose();
         }
+
+        /// <summary>
+        ///  Gets a value indicating whether the pipe is still connected to the client.
+        /// </summary>
+        public bool IsConnected => _pipeStream.IsConnected;
 
         /// <summary>
         ///  Reads the next client message from the coordinator pipe.
         /// </summary>
         public ClientMessage ReadClientMessage()
-        {
-            Assumed.NotNull(_reader);
-            return _reader.ReadClientMessage();
-        }
+            => _reader.ReadClientMessage();
 
         /// <summary>
         ///  Writes a server message to the coordinator pipe.
         /// </summary>
         public void WriteServerMessage(ServerMessage message)
         {
-            Assumed.NotNull(_writer);
-            _writer.Write(message);
+            lock (_writeGate)
+            {
+                _writer.Write(message);
+            }
         }
     }
 }

@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using System.IO;
-using System.IO.Pipes;
 using Microsoft.Build.Framework.Coordinator;
 
 namespace Microsoft.Build.Coordinator;
@@ -15,9 +13,7 @@ internal sealed partial class CoordinatorServer
     /// </summary>
     private sealed class ConnectedClient : IDisposable
     {
-        private readonly NamedPipeServerStream _pipeStream;
-        private readonly BinaryReader _reader;
-        private readonly BinaryWriter _writer;
+        private readonly Connection _connection;
 
         /// <summary>
         ///  Gets the unique identifier for this connection, assigned by the client during handshake.
@@ -42,14 +38,14 @@ internal sealed partial class CoordinatorServer
         /// <summary>
         ///  Gets a value indicating whether the pipe is still connected to the client.
         /// </summary>
-        public bool IsConnected => _pipeStream.IsConnected;
+        public bool IsConnected => _connection.IsConnected;
 
         /// <summary>
         ///  Creates a connected client by taking ownership of a negotiated connection.
         /// </summary>
         public ConnectedClient(Connection connection, BuildGrant grant)
         {
-            (_pipeStream, _reader, _writer) = connection.TransferOwnership();
+            _connection = connection;
 
             ConnectionId = connection.Id;
             ProcessId = connection.ProcessId;
@@ -61,27 +57,15 @@ internal sealed partial class CoordinatorServer
         ///  Reads the next client message from this connected client.
         /// </summary>
         public ClientMessage ReadClientMessage()
-            => _reader.ReadClientMessage();
+            => _connection.ReadClientMessage();
 
         /// <summary>
         ///  Writes a server message to this connected client.
         /// </summary>
         public void WriteServerMessage(ServerMessage message)
-            => _writer.Write(message);
+            => _connection.WriteServerMessage(message);
 
         public void Dispose()
-        {
-            try
-            {
-                _writer.Dispose();
-            }
-            catch (IOException)
-            {
-                // The pipe may already be broken if the client disconnected.
-            }
-
-            _reader.Dispose();
-            _pipeStream.Dispose();
-        }
+            => _connection.Dispose();
     }
 }
