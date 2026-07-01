@@ -174,37 +174,43 @@ internal sealed partial class CoordinatorClient : IDisposable
     {
         ICoordinatorDebugOutput output = DefaultDebugOutput.Instance;
 
-        NamedPipeClientStream? pipeStream = null;
+        Connection? connection = null;
 
         try
         {
-            pipeStream = new NamedPipeClientStream(".", settings.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-
             output.WriteLine($"CoordinatorClient: Connecting to pipe '{settings.PipeName}'");
 
             // Fast probe: use a short timeout to check if a coordinator is already running.
             // If no pipe exists, this fails quickly (~200ms) instead of waiting the full 5s.
-            if (!TryConnectToPipe(pipeStream, settings.InitialConnectionTimeoutMs))
+            connection = TryConnectToCoordinator(settings.PipeName, settings.ProcessId, settings.InitialConnectionTimeoutMs, output);
+            if (connection is null)
             {
                 output.WriteLine("CoordinatorClient: No coordinator running, attempting to launch");
 
-                pipeStream.Dispose();
-#pragma warning disable CA2000 // Ownership transferred to TryNegotiate or disposed in outer finally
-                pipeStream = TryLaunchAndConnect(settings, loggingService, output);
-#pragma warning restore CA2000
-
-                if (pipeStream is null)
+                if (!TryLaunchCoordinator(settings, loggingService, output))
                 {
+                    return null;
+                }
+
+                connection = TryConnectToCoordinator(settings.PipeName, settings.ProcessId, settings.ConnectionTimeoutMs, output);
+                if (connection is null)
+                {
+                    output.WriteLine("CoordinatorClient: Failed to connect to coordinator");
+                    loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorFailedToConnect");
                     return null;
                 }
             }
 
             output.WriteLine("CoordinatorClient: Connected to coordinator");
 
-            CoordinatorClient? client = TryNegotiate(pipeStream, requestedNodes, settings, output, loggingService);
-            pipeStream = null; // Ownership transferred unconditionally; TryNegotiate disposes on failure.
+            CoordinatorClient? client = TryNegotiate(connection, requestedNodes, settings, output, loggingService);
 
-            if (client is null)
+            if (client is not null)
+            {
+                // Ownership transferred to CoordinatorClient.
+                connection = null;
+            }
+            else
             {
                 loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorFailedToNegotiate");
             }
@@ -217,8 +223,11 @@ internal sealed partial class CoordinatorClient : IDisposable
             loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorFailedToConnect");
 
             // Any failure in coordinator communication should not break the build.
-            pipeStream?.Dispose();
             return null;
+        }
+        finally
+        {
+            connection?.Dispose();
         }
     }
 
@@ -231,10 +240,8 @@ internal sealed partial class CoordinatorClient : IDisposable
     /// <param name="settings">Coordinator connection settings.</param>
     /// <param name="loggingService">The MSBuild logging service for user-visible messages.</param>
     /// <param name="output">Debug trace output.</param>
-    /// <returns>
-    ///  A connected pipe stream, or <see langword="null"/> if the coordinator could not be started or reached.
-    /// </returns>
-    private static NamedPipeClientStream? TryLaunchAndConnect(
+    /// <returns><see langword="true"/> if the coordinator is running and expected to accept connections; otherwise, <see langword="false"/>.</returns>
+    private static bool TryLaunchCoordinator(
         CoordinatorSettings settings,
         ILoggingService loggingService,
         ICoordinatorDebugOutput output)
@@ -250,7 +257,7 @@ internal sealed partial class CoordinatorClient : IDisposable
             {
                 output.WriteLine("CoordinatorClient: Timed out waiting for launch mutex");
                 loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorLaunchTimedOut");
-                return null;
+                return false;
             }
         }
         catch (AbandonedMutexException)
@@ -270,10 +277,10 @@ internal sealed partial class CoordinatorClient : IDisposable
             else
             {
                 // No coordinator running. Launch one.
-                if (!TryLaunchCoordinator(loggingService, output))
+                if (!TryLaunchCoordinatorProcess(loggingService, output))
                 {
                     output.WriteLine("CoordinatorClient: Failed to launch coordinator");
-                    return null;
+                    return false;
                 }
 
                 // Wait for the coordinator to advertise its server mutex, indicating
@@ -282,7 +289,7 @@ internal sealed partial class CoordinatorClient : IDisposable
                 {
                     output.WriteLine("CoordinatorClient: Coordinator did not start in time");
                     loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorFailedToConnect");
-                    return null;
+                    return false;
                 }
             }
         }
@@ -293,29 +300,7 @@ internal sealed partial class CoordinatorClient : IDisposable
             launchMutex.ReleaseMutex();
         }
 
-        // Wait for the coordinator to be ready by connecting to its pipe.
-        NamedPipeClientStream? pipeStream = new(".", settings.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-
-        try
-        {
-            if (!TryConnectToPipe(pipeStream, settings.ConnectionTimeoutMs))
-            {
-                output.WriteLine("CoordinatorClient: Failed to connect to coordinator");
-                loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "CoordinatorFailedToConnect");
-                return null;
-            }
-
-            output.WriteLine("CoordinatorClient: Coordinator launched successfully");
-
-            NamedPipeClientStream connected = pipeStream;
-            pipeStream = null; // Ownership transferred to caller.
-
-            return connected;
-        }
-        finally
-        {
-            pipeStream?.Dispose();
-        }
+        return true;
     }
 
     /// <summary>
@@ -364,7 +349,7 @@ internal sealed partial class CoordinatorClient : IDisposable
     ///  Performs the request/response negotiation over an already-connected pipe.
     ///  On failure, disposes the pipe and returns null.
     /// </summary>
-    /// <param name="pipeStream">The connected named pipe stream.</param>
+    /// <param name="connection">The connected coordinator connection.</param>
     /// <param name="requestedNodes">The number of nodes to request.</param>
     /// <param name="settings">Coordinator settings including heartbeat interval and process ID.</param>
     /// <param name="output">Debug trace output for diagnostic logging.</param>
@@ -373,18 +358,12 @@ internal sealed partial class CoordinatorClient : IDisposable
     ///  A connected <see cref="CoordinatorClient"/> instance, or <see langword="null"/> if negotiation fails.
     /// </returns>
     private static CoordinatorClient? TryNegotiate(
-        NamedPipeClientStream pipeStream,
+        Connection connection,
         int requestedNodes,
         CoordinatorSettings settings,
         ICoordinatorDebugOutput output,
         ILoggingService? loggingService)
     {
-        using Connection? connection = Connection.TryCreate(pipeStream, settings.ProcessId, output);
-        if (connection is null)
-        {
-            return null;
-        }
-
         // Send the node request.
         output.WriteLine($"CoordinatorClient: Requesting {requestedNodes} nodes (PID {settings.ProcessId}, ConnectionId {connection.Id})");
         connection.WriteClientMessage(new RequestNodesMessage(requestedNodes));
@@ -473,20 +452,28 @@ internal sealed partial class CoordinatorClient : IDisposable
                 period: intervalMs);
     }
 
-    private static bool TryConnectToPipe(NamedPipeClientStream pipeStream, int timeoutMs)
+    private static Connection? TryConnectToCoordinator(string pipeName, int processId, int timeoutMs, ICoordinatorDebugOutput output)
     {
+        var pipeStream = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+
         try
         {
             pipeStream.Connect(timeoutMs);
-            return true;
+            return Connection.TryCreate(pipeStream, processId, output);
         }
         catch (TimeoutException)
         {
-            return false;
+            pipeStream.Dispose();
+            return null;
+        }
+        catch
+        {
+            pipeStream.Dispose();
+            throw;
         }
     }
 
-    private static bool TryLaunchCoordinator(ILoggingService loggingService, ICoordinatorDebugOutput output)
+    private static bool TryLaunchCoordinatorProcess(ILoggingService loggingService, ICoordinatorDebugOutput output)
     {
         try
         {
@@ -499,7 +486,7 @@ internal sealed partial class CoordinatorClient : IDisposable
 
             output.WriteLine($"CoordinatorClient: Launching coordinator: {startInfo.FileName} {startInfo.Arguments}");
 
-            Process? process = Process.Start(startInfo);
+            using Process? process = Process.Start(startInfo);
             return process is not null;
         }
         catch (Exception ex) when (!Debugger.IsAttached)

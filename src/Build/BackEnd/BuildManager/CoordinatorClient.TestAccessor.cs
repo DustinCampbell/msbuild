@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using System.IO.Pipes;
 using Microsoft.Build.Framework.Coordinator;
 
 namespace Microsoft.Build.BackEnd;
@@ -24,30 +23,43 @@ internal sealed partial class CoordinatorClient
         /// </returns>
         public static CoordinatorClient? TryConnectToServer(int requestedNodes, CoordinatorSettings settings, ICoordinatorDebugOutput output)
         {
-            NamedPipeClientStream? pipeStream = null;
+            Connection? connection = null;
 
             try
             {
-                pipeStream = new NamedPipeClientStream(".", settings.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-
                 output.WriteLine($"CoordinatorClient: Connecting to test pipe '{settings.PipeName}'");
 
-                if (!TryConnectToPipe(pipeStream, settings.ConnectionTimeoutMs))
+                connection = TryConnectToCoordinator(settings.PipeName, settings.ProcessId, settings.ConnectionTimeoutMs, output);
+                if (connection is null)
                 {
                     output.WriteLine("CoordinatorClient: Test connection timed out");
-                    pipeStream.Dispose();
                     return null;
                 }
 
                 output.WriteLine("CoordinatorClient: Connected to test server");
 
-                return TryNegotiate(pipeStream, requestedNodes, settings, output, loggingService: null);
+                var client = TryNegotiate(connection, requestedNodes, settings, output, loggingService: null);
+
+                if (client is not null)
+                {
+                    // Ownership transferred to CoordinatorClient.
+                    connection = null;
+                }
+                else
+                {
+                    output.WriteLine("CoordinatorClient: Test negotiation failed");
+                }
+
+                return client;
             }
             catch (Exception ex) when (!Debugger.IsAttached)
             {
                 output.WriteLine($"CoordinatorClient: Exception during test connect: {ex.Message}");
-                pipeStream?.Dispose();
                 return null;
+            }
+            finally
+            {
+                connection?.Dispose();
             }
         }
     }
