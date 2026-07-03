@@ -8,35 +8,28 @@ namespace Microsoft.Build.Framework.Coordinator;
 /// <summary>
 ///  Base type for all messages sent from an MSBuild client to the coordinator.
 /// </summary>
-internal abstract record ClientMessage
+internal abstract partial record ClientMessage : Message<ClientMessageType>
 {
-    public abstract ClientMessageType MessageType { get; }
+    protected ClientMessage(ClientMessageType messageType)
+        : base(messageType)
+    {
+    }
 
+    /// <summary>
+    ///  Reads a client-to-coordinator message from the stream.
+    /// </summary>
     public static ClientMessage ReadFrom(BinaryReader reader)
     {
-        var messageType = (ClientMessageType)reader.ReadByte();
+        (ClientMessageType messageType, bool hasExtendedFields) = ReadTypeByte(reader);
+        Factory factory = Factory.FromMessageType(messageType);
 
-        return messageType switch
+        if (hasExtendedFields)
         {
-            ClientMessageType.Handshake => ClientHandshakeMessage.ReadPayload(reader),
-            ClientMessageType.RequestNodes => RequestNodesMessage.ReadPayload(reader),
-            ClientMessageType.ReleaseNodes => ReleaseNodesMessage.Instance,
-            ClientMessageType.Heartbeat => HeartbeatMessage.Instance,
-            ClientMessageType.JoinGrant => JoinGrantMessage.ReadPayload(reader),
+            Assumed.True(factory.SupportsExtendedFields, $"Message type {factory.MessageType} does not support extended fields.");
+        }
 
-            _ => Assumed.Unreachable<ClientMessage>($"Unknown client message type: {messageType}"),
-        };
-    }
+        byte extendedFields = hasExtendedFields ? ReadExtendedFieldsByte(reader) : (byte)0;
 
-    public void WriteTo(BinaryWriter writer)
-    {
-        writer.Write((byte)MessageType);
-        WritePayload(writer);
-        writer.Flush();
-    }
-
-    protected virtual void WritePayload(BinaryWriter writer)
-    {
-        // Descendants can override.
+        return factory.Create(reader, extendedFields);
     }
 }

@@ -6,6 +6,11 @@ namespace Microsoft.Build.Framework.Coordinator;
 /// <summary>
 ///  Message types sent from the coordinator to an MSBuild client.
 /// </summary>
+/// <remarks>
+///  On the wire, the type byte's high bit (0x80) is reserved to indicate that a single extended fields byte
+///  follows the type byte, before the message's own payload. See <see cref="ServerMessage.ReadFrom"/> and
+///  <see cref="Message{TMessageType}.WriteTo(System.IO.BinaryWriter)"/>. The remaining 7 bits (values 0-127) hold the type ordinal below.
+/// </remarks>
 internal enum ServerMessageType : byte
 {
     /// <summary>
@@ -14,7 +19,9 @@ internal enum ServerMessageType : byte
     HandshakeResponse = 1,
 
     /// <summary>
-    ///  A node grant. Payload: int grantedNodes.
+    ///  A node grant. Payload depends on the flags value read for this message (see
+    ///  <see cref="NodeGrantMessage.ExtendedFields"/>): always an int grantedNodes, plus a Guid grantId when
+    ///  <see cref="NodeGrantMessage.ExtendedFields.GrantId"/> is set.
     /// </summary>
     NodeGrant = 2,
 
@@ -27,9 +34,4 @@ internal enum ServerMessageType : byte
     ///  An error occurred. Payload: string message.
     /// </summary>
     Error = 4,
-
-    /// <summary>
-    ///  A node grant with an associated grant token. Payload: Guid grantId, int grantedNodes.
-    /// </summary>
-    NodeGrantWithId = 5,
 }
