@@ -173,22 +173,8 @@ namespace Microsoft.Build.Evaluation
                         SinkWhitespace(expression, ref currentIndex);
                         int startTransform = currentIndex;
 
-                        bool isQuotedTransform = SinkSingleQuotedExpression(expression, ref currentIndex, end);
-                        if (isQuotedTransform)
-                        {
-                            int startQuoted = startTransform + 1;
-                            int endQuoted = currentIndex - 1;
-
-                            // PERF: Almost all expressions have only one capture, so optimize for that case
-                            transforms ??= new List<ItemTransform>(1);
-
-                            transforms.Add(ItemTransform.QuotedExpression(expression.Substring(startQuoted, endQuoted - startQuoted)));
-                            SinkWhitespace(expression, ref currentIndex);
-                            continue;
-                        }
-
-                        startTransform = currentIndex;
-                        if (TrySinkTransformFunction(expression, startTransform, ref currentIndex, end, out ItemTransform transform))
+                        if (TrySinkQuotedExpression(expression, ref currentIndex, end, out ItemTransform transform) ||
+                            TrySinkFunctionCall(expression, startTransform, ref currentIndex, end, out transform))
                         {
                             // PERF: Almost all expressions have only one capture, so optimize for that case
                             transforms ??= new List<ItemTransform>(1);
@@ -198,11 +184,8 @@ namespace Microsoft.Build.Evaluation
                             continue;
                         }
 
-                        if (!isQuotedTransform)
-                        {
-                            currentIndex = restartPoint;
-                            transformOrFunctionFound = false;
-                        }
+                        currentIndex = restartPoint;
+                        transformOrFunctionFound = false;
                     }
 
                     if (!transformOrFunctionFound)
@@ -328,26 +311,16 @@ namespace Microsoft.Build.Evaluation
                     while (Sink(expression, ref i, end, '-', '>') && transformOrFunctionFound)
                     {
                         SinkWhitespace(expression, ref i);
-                        int startTransform = i;
 
-                        bool isQuotedTransform = SinkSingleQuotedExpression(expression, ref i, end);
-                        if (isQuotedTransform)
+                        if (SinkQuotedExpression(expression, ref i, end) ||
+                            SinkFunctionCall(expression, ref i, end))
                         {
                             SinkWhitespace(expression, ref i);
                             continue;
                         }
 
-                        if (TrySinkTransformFunction(expression, startTransform, ref i, end, out _))
-                        {
-                            SinkWhitespace(expression, ref i);
-                            continue;
-                        }
-
-                        if (!isQuotedTransform)
-                        {
-                            i = restartPoint;
-                            transformOrFunctionFound = false;
-                        }
+                        i = restartPoint;
+                        transformOrFunctionFound = false;
                     }
 
                     if (!transformOrFunctionFound)
@@ -495,11 +468,11 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// Returns true if a single quoted subexpression begins at the specified index
-        /// and ends before the specified end index.
-        /// Leaves index one past the end of the second quote.
+        ///  Returns <see langword="true"/> if a single quoted subexpression begins at the specified index
+        ///  and ends before the specified end index.
+        ///  Leaves index one past the end of the second quote.
         /// </summary>
-        private static bool SinkSingleQuotedExpression(string expression, ref int i, int end)
+        private static bool SinkQuotedExpression(string expression, ref int i, int end)
         {
             if (!Sink(expression, ref i, '\''))
             {
@@ -513,11 +486,27 @@ namespace Microsoft.Build.Evaluation
 
             i++;
 
-            if (end <= i)
+            return end > i;
+        }
+
+        /// <summary>
+        ///  Returns <see langword="true"/> if a single quoted subexpression begins at the specified index
+        ///  and ends before the specified end index, producing the corresponding quoted-expression transform.
+        ///  Leaves index one past the end of the second quote.
+        /// </summary>
+        private static bool TrySinkQuotedExpression(string expression, ref int i, int end, out ItemTransform transform)
+        {
+            int startTransform = i;
+
+            if (!SinkQuotedExpression(expression, ref i, end))
             {
+                transform = default;
                 return false;
             }
 
+            int startQuoted = startTransform + 1;
+            int endQuoted = i - 1;
+            transform = ItemTransform.QuotedExpression(expression.Substring(startQuoted, endQuoted - startQuoted));
             return true;
         }
 
@@ -614,11 +603,29 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// Returns true if a item function subexpression begins at the specified index
-        /// and ends before the specified end index.
-        /// Leaves index one past the end of the closing paren.
+        ///  Returns <see langword="true"/> if an item function subexpression begins at the specified index
+        ///  and ends before the specified end index.
+        ///  Leaves index one past the end of the closing paren.
         /// </summary>
-        private static bool TrySinkTransformFunction(string expression, int startTransform, ref int i, int end, out ItemTransform transform)
+        private static bool SinkFunctionCall(string expression, ref int i, int end)
+        {
+            if (SinkValidName(expression, ref i, end))
+            {
+                // Eat any whitespace between the function name and its arguments
+                SinkWhitespace(expression, ref i);
+
+                return SinkArgumentsInParentheses(expression, ref i, end);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///  Returns <see langword="true"/> if an item function subexpression begins at the specified index
+        ///  and ends before the specified end index, producing the corresponding function-call transform.
+        ///  Leaves index one past the end of the closing paren.
+        /// </summary>
+        private static bool TrySinkFunctionCall(string expression, int startTransform, ref int i, int end, out ItemTransform transform)
         {
             if (SinkValidName(expression, ref i, end))
             {
