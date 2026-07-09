@@ -10,35 +10,23 @@ namespace Microsoft.Build.Evaluation;
 /// <summary>
 ///  Represents one substring for a single successful capture.
 /// </summary>
-internal struct ItemExpressionCapture
+internal readonly struct ItemExpressionCapture
 {
-    public ItemExpressionCapture(int index, int length, string subExpression)
-        : this(index, length, subExpression, null, null, -1, null, null, null)
-    {
-    }
-
-    public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures)
-        : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
-    {
-    }
-
-    public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures, string functionName, string functionArguments)
+    public ItemExpressionCapture(int index, int length, string value, string itemType, string separator, int separatorStart, List<ItemTransform> transforms)
     {
         Index = index;
         Length = length;
-        Value = subExpression;
+        Value = value;
         ItemType = itemType;
         Separator = separator;
         SeparatorStart = separatorStart;
-        Captures = captures;
-        FunctionName = functionName;
-        FunctionArguments = functionArguments;
+        Transforms = transforms;
     }
 
     /// <summary>
-    ///  Captures within this capture.
+    ///  Gets the transforms within this capture.
     /// </summary>
-    public List<ItemExpressionCapture> Captures { get; }
+    public List<ItemTransform> Transforms { get; }
 
     /// <summary>
     ///  The position in the original string where the first character of the captured
@@ -70,16 +58,6 @@ internal struct ItemExpressionCapture
     ///  The starting character of the separator.
     /// </summary>
     public int SeparatorStart { get; }
-
-    /// <summary>
-    ///  The function name, if any, within this expression.
-    /// </summary>
-    public string FunctionName { get; }
-
-    /// <summary>
-    ///  The function arguments, if any, within this expression.
-    /// </summary>
-    public string FunctionArguments { get; }
 
     /// <summary>
     ///  Gets the captured substring from the input string.

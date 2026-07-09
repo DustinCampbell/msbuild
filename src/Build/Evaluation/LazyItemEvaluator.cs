@@ -690,13 +690,6 @@ namespace Microsoft.Build.Evaluation
             {
                 AddReferencedItemList(match.ItemType, operationBuilder.ReferencedItemLists);
             }
-            if (match.Captures != null)
-            {
-                foreach (var subMatch in match.Captures)
-                {
-                    AddReferencedItemLists(operationBuilder, subMatch);
-                }
-            }
         }
     }
 }
