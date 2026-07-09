@@ -152,7 +152,7 @@ internal partial class Expander<P, I>
             }
         }
 
-        private int ProcessItemExpressionCapture(string expression, int start, ExpressionShredder.ItemExpressionCapture itemExpressionCapture)
+        private int ProcessItemExpressionCapture(string expression, int start, ItemExpressionCapture itemExpressionCapture)
         {
             // Expand metadata in the gap before this item vector expression.
             if (itemExpressionCapture.Index > start)
