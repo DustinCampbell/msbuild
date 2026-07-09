@@ -178,11 +178,9 @@ namespace Microsoft.Build.Evaluation
                         {
                             int startQuoted = startTransform + 1;
                             int endQuoted = currentIndex - 1;
-                            if (transforms == null)
-                            {
-                                // PERF: Almost all expressions have only one capture, so optimize for that case
-                                transforms = new List<ItemTransform>(1);
-                            }
+
+                            // PERF: Almost all expressions have only one capture, so optimize for that case
+                            transforms ??= new List<ItemTransform>(1);
 
                             transforms.Add(new ItemTransform(startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
                             SinkWhitespace(expression, ref currentIndex);
@@ -190,21 +188,17 @@ namespace Microsoft.Build.Evaluation
                         }
 
                         startTransform = currentIndex;
-                        ItemTransform? transform = SinkTransformFunction(expression, startTransform, ref currentIndex, end);
-                        if (transform != null)
+                        if (TrySinkTransformFunction(expression, startTransform, ref currentIndex, end, out ItemTransform transform))
                         {
-                            if (transforms == null)
-                            {
-                                // PERF: Almost all expressions have only one capture, so optimize for that case
-                                transforms = new List<ItemTransform>(1);
-                            }
+                            // PERF: Almost all expressions have only one capture, so optimize for that case
+                            transforms ??= new List<ItemTransform>(1);
 
-                            transforms.Add(transform.Value);
+                            transforms.Add(transform);
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
                         }
 
-                        if (!isQuotedTransform && transform == null)
+                        if (!isQuotedTransform)
                         {
                             currentIndex = restartPoint;
                             transformOrFunctionFound = false;
@@ -343,14 +337,13 @@ namespace Microsoft.Build.Evaluation
                             continue;
                         }
 
-                        ItemTransform? transform = SinkTransformFunction(expression, startTransform, ref i, end);
-                        if (transform != null)
+                        if (TrySinkTransformFunction(expression, startTransform, ref i, end, out _))
                         {
                             SinkWhitespace(expression, ref i);
                             continue;
                         }
 
-                        if (!isQuotedTransform && transform == null)
+                        if (!isQuotedTransform)
                         {
                             i = restartPoint;
                             transformOrFunctionFound = false;
@@ -625,7 +618,7 @@ namespace Microsoft.Build.Evaluation
         /// and ends before the specified end index.
         /// Leaves index one past the end of the closing paren.
         /// </summary>
-        private static ItemTransform? SinkTransformFunction(string expression, int startTransform, ref int i, int end)
+        private static bool TrySinkTransformFunction(string expression, int startTransform, ref int i, int end, out ItemTransform transform)
         {
             if (SinkValidName(expression, ref i, end))
             {
@@ -646,17 +639,13 @@ namespace Microsoft.Build.Evaluation
                         functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                     }
 
-                    ItemTransform transform = new ItemTransform(startTransform, expression.Substring(startTransform, i - startTransform), functionName, functionArguments);
-
-                    return transform;
+                    transform = new ItemTransform(startTransform, expression.Substring(startTransform, i - startTransform), functionName, functionArguments);
+                    return true;
                 }
+            }
 
-                return null;
-            }
-            else
-            {
-                return null;
-            }
+            transform = default;
+            return false;
         }
 
         /// <summary>
