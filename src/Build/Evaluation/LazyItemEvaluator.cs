@@ -644,14 +644,14 @@ namespace Microsoft.Build.Evaluation
                         expanderOptions,
                         metadatumElement.Location);
 
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
 
                     expression = _expander.ExpandIntoStringLeaveEscaped(
                         metadatumElement.Condition,
                         expanderOptions,
                         metadatumElement.ConditionLocation);
 
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, ref itemsAndMetadataFound, ShredderOptions.All);
                 }
 
                 if (itemsAndMetadataFound.Items != null)

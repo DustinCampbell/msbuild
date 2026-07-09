@@ -73,7 +73,7 @@ namespace Microsoft.Build.Evaluation
             for (int i = 0; i < expressions.Count; i++)
             {
                 string expression = expressions[i];
-                GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.All);
+                GetReferencedItemNamesAndMetadata(expression, ref pair, ShredderOptions.All);
             }
 
             return pair;
@@ -86,7 +86,7 @@ namespace Microsoft.Build.Evaluation
         {
             ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
 
-            GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.MetadataOutsideTransforms);
+            GetReferencedItemNamesAndMetadata(expression, ref pair, ShredderOptions.MetadataOutsideTransforms);
 
             bool result = (pair.Metadata?.Count > 0);
 
@@ -94,30 +94,27 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// Given a subexpression, finds referenced sub transform expressions
-        /// itemName and separator will be null if they are not found
-        /// return value will be null if no transform expressions are found
+        ///  Returns an enumerator over the well-formed item vector expressions (e.g. <c>@(Foo)</c>,
+        ///  <c>@(Foo->'%(Bar)')</c>, <c>@(Foo, ';')</c>) found in <paramref name="expression"/>.
+        ///  The enumerator yields no elements if none are present.
         /// </summary>
         internal static ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression)
-        {
-            return GetReferencedItemExpressions(expression, 0, expression.Length);
-        }
+            => new(expression);
 
         internal struct ReferencedItemExpressionsEnumerator
         {
-            private readonly string expression;
-            private readonly int end;
-            private int currentIndex;
+            private readonly string _expression;
+            private int _index;
 
-            public ReferencedItemExpressionsEnumerator(string expression, int start, int end)
+            public ReferencedItemExpressionsEnumerator(string expression)
             {
-                this.expression = expression;
-                this.end = end;
+                _expression = expression;
 
-                currentIndex = expression.IndexOf('@', start, end - start);
-                if (currentIndex < 0)
+                _index = expression.IndexOf('@');
+
+                if (_index < 0)
                 {
-                    currentIndex = int.MaxValue;
+                    _index = int.MaxValue;
                 }
             }
 
@@ -125,9 +122,9 @@ namespace Microsoft.Build.Evaluation
 
             public bool MoveNext()
             {
-                for (; currentIndex < end; currentIndex++)
+                for (; _index < _expression.Length; _index++)
                 {
-                    if (!Sink(expression, ref currentIndex, end, '@', '('))
+                    if (!Sink(_expression, ref _index, _expression.Length, '@', '('))
                     {
                         continue;
                     }
@@ -136,55 +133,55 @@ namespace Microsoft.Build.Evaluation
 
                     // Store the index to backtrack to if this doesn't turn out to be a well
                     // formed expression. (Subtract one for the increment when we loop around.)
-                    int restartPoint = currentIndex - 1;
+                    int restartPoint = _index - 1;
 
                     // Store the expression's start point
-                    int startPoint = currentIndex - 2;
+                    int startPoint = _index - 2;
 
-                    SinkWhitespace(expression, ref currentIndex);
+                    SinkWhitespace(_expression, ref _index);
 
-                    int startOfName = currentIndex;
+                    int startOfName = _index;
 
-                    if (!SinkValidName(expression, ref currentIndex, end))
+                    if (!SinkValidName(_expression, ref _index, _expression.Length))
                     {
-                        currentIndex = restartPoint;
+                        _index = restartPoint;
                         continue;
                     }
 
                     // '-' is a legitimate char in an item name, but we should match '->' as an arrow
                     // in '@(foo->'x')' rather than as the last char of the item name.
                     // The old regex accomplished this by being "greedy"
-                    if (end > currentIndex && expression[currentIndex - 1] == '-' && expression[currentIndex] == '>')
+                    if (_expression.Length > _index && _expression[_index - 1] == '-' && _expression[_index] == '>')
                     {
-                        currentIndex--;
+                        _index--;
                     }
 
                     // Grab the name, but continue to verify it's a well-formed expression
                     // before we store it.
-                    string itemName = Strings.WeakIntern(expression.AsSpan(startOfName, currentIndex - startOfName));
+                    string itemName = Strings.WeakIntern(_expression.AsSpan(startOfName, _index - startOfName));
 
-                    SinkWhitespace(expression, ref currentIndex);
+                    SinkWhitespace(_expression, ref _index);
                     bool transformOrFunctionFound = true;
                     List<ItemTransform> transforms = null;
 
                     // If there's an '->' eat it and the subsequent quoted expression or transform function
-                    while (Sink(expression, ref currentIndex, end, '-', '>') && transformOrFunctionFound)
+                    while (Sink(_expression, ref _index, _expression.Length, '-', '>') && transformOrFunctionFound)
                     {
-                        SinkWhitespace(expression, ref currentIndex);
-                        int startTransform = currentIndex;
+                        SinkWhitespace(_expression, ref _index);
+                        int startTransform = _index;
 
-                        if (TrySinkQuotedExpression(expression, ref currentIndex, end, out ItemTransform transform) ||
-                            TrySinkFunctionCall(expression, startTransform, ref currentIndex, end, out transform))
+                        if (TrySinkQuotedExpression(_expression, ref _index, _expression.Length, out ItemTransform transform) ||
+                            TrySinkFunctionCall(_expression, startTransform, ref _index, _expression.Length, out transform))
                         {
                             // PERF: Almost all expressions have only one capture, so optimize for that case
                             transforms ??= new List<ItemTransform>(1);
 
                             transforms.Add(transform);
-                            SinkWhitespace(expression, ref currentIndex);
+                            SinkWhitespace(_expression, ref _index);
                             continue;
                         }
 
-                        currentIndex = restartPoint;
+                        _index = restartPoint;
                         transformOrFunctionFound = false;
                     }
 
@@ -193,53 +190,53 @@ namespace Microsoft.Build.Evaluation
                         continue;
                     }
 
-                    SinkWhitespace(expression, ref currentIndex);
+                    SinkWhitespace(_expression, ref _index);
 
                     string separator = null;
                     int separatorStart = -1;
 
                     // If there's a ',', eat it and the subsequent quoted expression
-                    if (Sink(expression, ref currentIndex, ','))
+                    if (Sink(_expression, ref _index, ','))
                     {
-                        SinkWhitespace(expression, ref currentIndex);
+                        SinkWhitespace(_expression, ref _index);
 
-                        if (!Sink(expression, ref currentIndex, '\''))
+                        if (!Sink(_expression, ref _index, '\''))
                         {
-                            currentIndex = restartPoint;
+                            _index = restartPoint;
                             continue;
                         }
 
-                        int closingQuote = expression.IndexOf('\'', currentIndex);
+                        int closingQuote = _expression.IndexOf('\'', _index);
                         if (closingQuote == -1)
                         {
-                            currentIndex = restartPoint;
+                            _index = restartPoint;
                             continue;
                         }
 
-                        separatorStart = currentIndex - startPoint;
-                        separator = expression.Substring(currentIndex, closingQuote - currentIndex);
+                        separatorStart = _index - startPoint;
+                        separator = _expression.Substring(_index, closingQuote - _index);
 
-                        currentIndex = closingQuote + 1;
+                        _index = closingQuote + 1;
                     }
 
-                    SinkWhitespace(expression, ref currentIndex);
+                    SinkWhitespace(_expression, ref _index);
 
-                    if (!Sink(expression, ref currentIndex, ')'))
+                    if (!Sink(_expression, ref _index, ')'))
                     {
-                        currentIndex = restartPoint;
+                        _index = restartPoint;
                         continue;
                     }
 
-                    int endPoint = currentIndex;
-                    currentIndex--;
+                    int endPoint = _index;
+                    _index--;
 
                     // Create an expression capture that encompasses the entire expression between the @( and the )
                     // with the item name and any separator contained within it
                     // and each transform expression contained within it (i.e. each ->XYZ)
-                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(startPoint, endPoint - startPoint, Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), itemName, separator, separatorStart, transforms);
+                    ItemExpressionCapture expressionCapture = new ItemExpressionCapture(startPoint, endPoint - startPoint, Strings.WeakIntern(_expression.AsSpan(startPoint, endPoint - startPoint)), itemName, separator, separatorStart, transforms);
 
                     Current = expressionCapture;
-                    ++currentIndex;
+                    ++_index;
 
                     return true;
                 }
@@ -250,15 +247,8 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        /// <summary>
-        /// Given a subexpression, finds referenced sub transform expressions
-        /// itemName and separator will be null if they are not found
-        /// return value will be null if no transform expressions are found
-        /// </summary>
-        internal static ReferencedItemExpressionsEnumerator GetReferencedItemExpressions(string expression, int start, int end)
-        {
-            return new ReferencedItemExpressionsEnumerator(expression, start, end);
-        }
+        internal static void GetReferencedItemNamesAndMetadata(string expression, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
+            => GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, whatToShredFor);
 
         /// <summary>
         /// Given a subexpression, finds referenced item names and inserts them into the table
@@ -267,7 +257,7 @@ namespace Microsoft.Build.Evaluation
         /// <remarks>
         /// We can ignore any semicolons in the expression, since we're not itemizing it.
         /// </remarks>
-        internal static void GetReferencedItemNamesAndMetadata(string expression, int start, int end, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
+        private static void GetReferencedItemNamesAndMetadata(string expression, int start, int end, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
         {
             for (int i = start; i < end; i++)
             {
