@@ -120,20 +120,22 @@ internal partial class Expander<P, I>
             for (int i = 0; i < transforms.Count; i++)
             {
                 ItemTransform transform = transforms[i];
-                string function = transform.Value;
-                string functionName = transform.FunctionName;
-                string argumentsExpression = transform.FunctionArguments;
 
-                string[] arguments = null;
+                string functionName;
+                string[] arguments;
 
-                if (functionName == null)
+                if (transform.IsQuotedExpression)
                 {
                     functionName = "ExpandQuotedExpressionFunction";
-                    arguments = [function];
+                    arguments = [transform.Text];
                 }
-                else if (argumentsExpression != null)
+                else
                 {
-                    arguments = ExtractFunctionArguments(elementLocation, argumentsExpression, argumentsExpression.AsMemory());
+                    functionName = transform.FunctionName;
+                    ReadOnlyMemory<char> argumentsContent = transform.FunctionArguments;
+                    arguments = !argumentsContent.IsEmpty
+                        ? ExtractFunctionArguments(elementLocation, transform.Text, argumentsContent)
+                        : null;
                 }
 
                 TransformKind kind;

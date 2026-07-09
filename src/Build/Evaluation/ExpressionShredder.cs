@@ -182,7 +182,7 @@ namespace Microsoft.Build.Evaluation
                             // PERF: Almost all expressions have only one capture, so optimize for that case
                             transforms ??= new List<ItemTransform>(1);
 
-                            transforms.Add(new ItemTransform(startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
+                            transforms.Add(ItemTransform.QuotedExpression(expression.Substring(startQuoted, endQuoted - startQuoted)));
                             SinkWhitespace(expression, ref currentIndex);
                             continue;
                         }
@@ -633,13 +633,18 @@ namespace Microsoft.Build.Evaluation
                     int endFunctionArguments = i - 1;
 
                     string functionName = expression.Substring(startTransform, endFunctionName - startTransform);
-                    string functionArguments = null;
+
+                    int functionArgumentsIndex = 0;
+                    int functionArgumentsLength = 0;
+
                     if (endFunctionArguments > startFunctionArguments)
                     {
-                        functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
+                        // The argument text is a slice of the transform Text, which itself starts at startTransform.
+                        functionArgumentsIndex = startFunctionArguments - startTransform;
+                        functionArgumentsLength = endFunctionArguments - startFunctionArguments;
                     }
 
-                    transform = new ItemTransform(startTransform, expression.Substring(startTransform, i - startTransform), functionName, functionArguments);
+                    transform = ItemTransform.FunctionCall(expression.Substring(startTransform, i - startTransform), functionName, functionArgumentsIndex, functionArgumentsLength);
                     return true;
                 }
             }
