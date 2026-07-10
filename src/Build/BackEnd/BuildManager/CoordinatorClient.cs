@@ -11,6 +11,7 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Coordinator;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Utilities;
 using Constants = Microsoft.Build.Framework.Coordinator.Constants;
 
 namespace Microsoft.Build.BackEnd;
@@ -488,17 +489,19 @@ internal sealed partial class CoordinatorClient : IDisposable
     {
         try
         {
-            ProcessStartInfo? startInfo = TryGetStartInfo();
+            ProcessLaunchInfo? launchInfo = TryGetLaunchInfo();
 
-            if (startInfo is null)
+            if (launchInfo is null)
             {
                 return false;
             }
 
-            output.WriteLine($"CoordinatorClient: Launching coordinator: {startInfo.FileName} {startInfo.Arguments}");
+            output.WriteLine($"CoordinatorClient: Launching coordinator: {launchInfo.Value.FileName} {launchInfo.Value.Arguments}");
 
-            Process? process = Process.Start(startInfo);
-            return process is not null;
+            // The coordinator outlives the current process, so it must not inherit our stdin/stdout/stderr
+            // handles: doing so would tie its lifetime and console to ours.
+            ProcessLauncher.Start(launchInfo.Value);
+            return true;
         }
         catch (Exception ex) when (!Debugger.IsAttached)
         {
@@ -508,7 +511,7 @@ internal sealed partial class CoordinatorClient : IDisposable
         }
     }
 
-    private static ProcessStartInfo? TryGetStartInfo()
+    private static ProcessLaunchInfo? TryGetLaunchInfo()
     {
         string msbuildDir = BuildEnvironmentHelper.Instance.CurrentMSBuildToolsDirectory;
 
@@ -519,23 +522,22 @@ internal sealed partial class CoordinatorClient : IDisposable
         if (File.Exists(coordinatorDll) &&
             CurrentHost.GetCurrentHost() is string dotnetHost)
         {
-            return new ProcessStartInfo
+            return new ProcessLaunchInfo
             {
                 FileName = dotnetHost,
                 Arguments = $"\"{coordinatorDll}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
+                DetachStandardHandles = true,
             };
         }
 
         // Full Framework — fall back to the native .exe if available.
         if (File.Exists(coordinatorExe))
         {
-            return new ProcessStartInfo
+            return new ProcessLaunchInfo
             {
                 FileName = coordinatorExe,
-                UseShellExecute = false,
-                CreateNoWindow = true,
+                Arguments = string.Empty,
+                DetachStandardHandles = true,
             };
         }
 
