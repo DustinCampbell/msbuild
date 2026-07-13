@@ -187,7 +187,7 @@ namespace Microsoft.Build.UnitTests.Construction
             Assert.Equal(location.File, deserializedLocation.File);
             Assert.Equal(location.Line, deserializedLocation.Line);
             Assert.Equal(location.Column, deserializedLocation.Column);
-            Assert.Contains("SmallElementLocation", deserializedLocation.GetType().FullName);
+            Assert.Contains("EmptyElementLocation", deserializedLocation.GetType().FullName);
         }
 
         /// <summary>
