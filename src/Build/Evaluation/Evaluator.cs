@@ -2099,7 +2099,9 @@ namespace Microsoft.Build.Evaluation
                     return LoadImportsResult.ImportExpressionResolvedToNothing;
                 }
 
-                ProjectErrorUtilities.ThrowInvalidProject(importLocationInProject, "InvalidAttributeValue", string.Empty, XMakeAttributes.project, XMakeElements.import);
+                ProjectErrors.InvalidAttributeValue
+                    .Format(string.Empty, XMakeAttributes.project, XMakeElements.import)
+                    .Throw(importLocationInProject);
             }
 
             bool atleastOneImportIgnored = false;
@@ -2129,7 +2131,13 @@ namespace Microsoft.Build.Evaluation
                 }
                 catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(importLocationInProject, "InvalidAttributeValueWithException", EscapingUtilities.UnescapeAll(importExpressionEscapedItem), XMakeAttributes.project, XMakeElements.import, ex.Message);
+                    ProjectErrors.InvalidAttributeValueWithException
+                        .Format(
+                            EscapingUtilities.UnescapeAll(importExpressionEscapedItem),
+                            XMakeAttributes.project,
+                            XMakeElements.import,
+                            ex.Message)
+                        .Throw(importLocationInProject);
                 }
 
                 if (importFilesEscaped.Length == 0)
@@ -2174,7 +2182,13 @@ namespace Microsoft.Build.Evaluation
                     }
                     catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
                     {
-                        ProjectErrorUtilities.ThrowInvalidProject(importLocationInProject, "InvalidAttributeValueWithException", importFileUnescaped, XMakeAttributes.project, XMakeElements.import, ex.Message);
+                        ProjectErrors.InvalidAttributeValueWithException
+                            .Format(
+                                importFileUnescaped,
+                                XMakeAttributes.project,
+                                XMakeElements.import,
+                                ex.Message)
+                            .Throw(importLocationInProject);
                     }
 
                     // If a file is included twice, or there is a cycle of imports, we ignore all but the first import
@@ -2338,8 +2352,9 @@ namespace Microsoft.Build.Evaluation
 
                             VerifyVSDistributionPath(importElement.Project, importLocationInProject);
 
-                            ProjectErrorUtilities.ThrowInvalidProject(importLocationInProject, "ImportedProjectNotFound",
-                                                                      importFileUnescaped, unescapedExpression, importExpressionEscaped);
+                            ProjectErrors.ImportedProjectNotFound
+                                .Format(importFileUnescaped, unescapedExpression, importExpressionEscaped)
+                                .Throw(importLocationInProject);
                         }
                         else
                         {
@@ -2591,7 +2606,13 @@ namespace Microsoft.Build.Evaluation
                 catch (ArgumentException ex)
                 {
                     // https://github.com/dotnet/msbuild/issues/8762 .Catch the exceptions when extensionsPathPropValue is null or importExpandedWithDefaultPath is empty. In NET Framework, Path.* function also throws exceptions if the path contains invalid characters.
-                    ProjectErrorUtilities.ThrowInvalidProject(importElement.Location, "InvalidAttributeValueWithException", importExpandedWithDefaultPath, XMakeAttributes.project, XMakeElements.import, ex.Message);
+                    ProjectErrors.InvalidAttributeValueWithException
+                        .Format(
+                            importExpandedWithDefaultPath,
+                            XMakeAttributes.project,
+                            XMakeElements.import,
+                            ex.Message)
+                        .Throw(importElement.Location);
                     return;
                 }
             }
@@ -2613,19 +2634,22 @@ namespace Microsoft.Build.Evaluation
 #if FEATURE_SYSTEM_CONFIGURATION
             string configLocation = AppDomain.CurrentDomain.SetupInformation.ConfigurationFile;
 
-            ProjectErrorUtilities.ThrowInvalidProject(importElement.ProjectLocation,
-                "ImportedProjectFromExtensionsPathNotFoundFromAppConfig",
-                importExpandedWithDefaultPath,
-                relativeProjectPath,
-                searchPathMatch.MsBuildPropertyFormat,
-                stringifiedListOfSearchPaths,
-                configLocation);
+            ProjectErrors.ImportedProjectFromExtensionsPathNotFoundFromAppConfig
+                .Format(
+                    importExpandedWithDefaultPath,
+                    relativeProjectPath,
+                    searchPathMatch.MsBuildPropertyFormat,
+                    stringifiedListOfSearchPaths,
+                    configLocation)
+                .Throw(importElement.ProjectLocation);
 #else
-            ProjectErrorUtilities.ThrowInvalidProject(importElement.ProjectLocation, "ImportedProjectFromExtensionsPathNotFound",
-                                                        importExpandedWithDefaultPath,
-                                                        relativeProjectPath,
-                                                        searchPathMatch.MsBuildPropertyFormat,
-                                                        stringifiedListOfSearchPaths);
+            ProjectErrors.ImportedProjectFromExtensionsPathNotFoundFromAppConfig
+                .Format(
+                    importExpandedWithDefaultPath,
+                    relativeProjectPath,
+                    searchPathMatch.MsBuildPropertyFormat,
+                    stringifiedListOfSearchPaths)
+                .Throw(importElement.ProjectLocation);
 #endif
         }
 

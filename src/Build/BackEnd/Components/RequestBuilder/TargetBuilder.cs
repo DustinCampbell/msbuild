@@ -719,7 +719,14 @@ namespace Microsoft.Build.BackEnd
                     {
                         if (HasCircularDependenceInTargets(parentTargetEntry, targetSpecification, out List<string> targetDependenceChain))
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(targetLocation, "CircularDependencyInTargetGraph", targetSpecification.TargetName, parentTargetEntry.Name, buildReason, targetSpecification.TargetName, string.Join("<-", targetDependenceChain));
+                            ProjectErrors.CircularDependencyInTargetGraph
+                                .Format(
+                                    targetSpecification.TargetName,
+                                    parentTargetEntry.Name,
+                                    buildReason,
+                                    targetSpecification.TargetName,
+                                    string.Join("<-", targetDependenceChain))
+                                .Throw(targetLocation);
                         }
                     }
                     else

@@ -686,12 +686,9 @@ namespace Microsoft.Build.BackEnd
                 }
                 else
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(
-                        parameterLocation,
-                        "UnsupportedTaskParameterTypeError",
-                        parameter.PropertyType.FullName,
-                        parameter.Name,
-                        _taskName);
+                    ProjectErrors.UnsupportedTaskParameterTypeError
+                        .Format(parameter.PropertyType.FullName, parameter.Name, _taskName)
+                        .Throw(parameterLocation);
                 }
             }
             catch (InvalidOperationException e)
@@ -720,21 +717,15 @@ namespace Microsoft.Build.BackEnd
 
                 // We do not recover from a task exception while getting outputs,
                 // so do not merely set gatheredGeneratedOutputsSuccessfully = false; here
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    parameterLocation,
-                    "FailedToRetrieveTaskOutputs",
-                    _taskName,
-                    parameterName,
-                    e.InnerException?.Message);
+                ProjectErrors.FailedToRetrieveTaskOutputs
+                    .Format(_taskName, parameterName, e.InnerException?.Message)
+                    .Throw(parameterLocation);
             }
             catch (Exception e) when (!ExceptionHandling.NotExpectedReflectionException(e))
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    parameterLocation,
-                    "FailedToRetrieveTaskOutputs",
-                    _taskName,
-                    parameterName,
-                    e.Message);
+                ProjectErrors.FailedToRetrieveTaskOutputs
+                    .Format(_taskName, parameterName, e.Message)
+                    .Throw(parameterLocation);
             }
 
             return gatheredGeneratedOutputsSuccessfully;
@@ -1098,13 +1089,13 @@ namespace Microsoft.Build.BackEnd
                     ex is FormatException || // bad string representation of a type
                     ex is OverflowException) // overflow when converting string representation of a numerical type
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(
-                        parameterLocation,
-                        "InvalidTaskParameterValueError",
-                        currentItem.ItemSpec,
-                        parameter.Name,
-                        parameterType.FullName,
-                        _taskName);
+                    ProjectErrors.InvalidTaskParameterValueError
+                        .Format(
+                            currentItem.ItemSpec,
+                            parameter.Name,
+                            parameterType.FullName,
+                            _taskName)
+                        .Throw(parameterLocation);
                 }
 
                 throw;
@@ -1576,13 +1567,13 @@ namespace Microsoft.Build.BackEnd
                             // We only allow a single item to be passed into a parameter of ITaskItem or TaskItem<T>.
 
                             // Some of the computation (expansion) here is expensive, so don't switch to VerifyThrowInvalidProject.
-                            ProjectErrorUtilities.ThrowInvalidProject(
-                                parameterLocation,
-                                "CannotPassMultipleItemsIntoScalarParameter",
-                                _batchBucket.Expander.ExpandIntoStringAndUnescape(parameterValue, ExpanderOptions.ExpandAll, parameterLocation),
-                                parameter.Name,
-                                parameterType.FullName,
-                                _taskName);
+                            ProjectErrors.CannotPassMultipleItemsIntoScalarParameter
+                                .Format(
+                                    _batchBucket.Expander.ExpandIntoStringAndUnescape(parameterValue, ExpanderOptions.ExpandAll, parameterLocation),
+                                    parameter.Name,
+                                    parameterType.FullName,
+                                    _taskName)
+                                .Throw(parameterLocation);
                         }
 
                         RecordItemForDisconnectIfNecessary(finalTaskItems[0]);
@@ -1623,13 +1614,13 @@ namespace Microsoft.Build.BackEnd
                     ex is FormatException || // bad string representation of a type
                     ex is OverflowException) // overflow when converting string representation of a numerical type
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(
-                        parameterLocation,
-                        "InvalidTaskParameterValueError",
-                        _batchBucket.Expander.ExpandIntoStringAndUnescape(parameterValue, ExpanderOptions.ExpandAll, parameterLocation),
-                        parameter.Name,
-                        parameterType.FullName,
-                        _taskName);
+                    ProjectErrors.InvalidTaskParameterValueError
+                        .Format(
+                            _batchBucket.Expander.ExpandIntoStringAndUnescape(parameterValue, ExpanderOptions.ExpandAll, parameterLocation),
+                            parameter.Name,
+                            parameterType.FullName,
+                            _taskName)
+                        .Throw(parameterLocation);
                 }
 
                 throw;

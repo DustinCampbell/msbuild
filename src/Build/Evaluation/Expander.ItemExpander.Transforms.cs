@@ -127,7 +127,9 @@ internal partial class Expander<P, I>
                     // we do not want to rethrow in that case.
                     catch (Exception e) when (!ExceptionHandling.NotExpectedException(e) || e is InvalidOperationException)
                     {
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidItemFunctionExpression", functionName, item.Value, e.Message);
+                        ProjectErrors.InvalidItemFunctionExpression
+                            .Format(functionName, item.Value, e.Message)
+                            .Throw(elementLocation);
                     }
 
                     if (!String.IsNullOrEmpty(result))
@@ -187,7 +189,9 @@ internal partial class Expander<P, I>
                     }
                     catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                     {
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidItemFunctionExpression", functionName, item.Value, e.Message);
+                        ProjectErrors.InvalidItemFunctionExpression
+                            .Format(functionName, item.Value, e.Message)
+                            .Throw(elementLocation);
                     }
 
                     if (FileSystems.Default.FileOrDirectoryExists(rootedPath))
@@ -283,7 +287,9 @@ internal partial class Expander<P, I>
                     }
                     catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                     {
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidItemFunctionExpression", functionName, item.Value, e.Message);
+                        ProjectErrors.InvalidItemFunctionExpression
+                            .Format(functionName, item.Value, e.Message)
+                            .Throw(elementLocation);
                     }
 
                     while (!String.IsNullOrEmpty(directoryName))
@@ -364,7 +370,9 @@ internal partial class Expander<P, I>
                         }
                         catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidItemFunctionExpression", functionName, item.Value, e.Message);
+                            ProjectErrors.InvalidItemFunctionExpression
+                                .Format(functionName, item.Value, e.Message)
+                                .Throw(elementLocation);
                         }
 
                         // Escape as this is going back into the engine

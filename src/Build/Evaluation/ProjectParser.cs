@@ -288,7 +288,7 @@ namespace Microsoft.Build.Construction
             if (exclusiveAttributeCount > 1)
             {
                 XmlAttributeWithLocation errorAttribute = remove.Length > 0 ? (XmlAttributeWithLocation)element.Attributes[XMakeAttributes.remove] : (XmlAttributeWithLocation)element.Attributes[XMakeAttributes.update];
-                ProjectErrorUtilities.ThrowInvalidProject(errorAttribute.Location, "InvalidAttributeExclusive");
+                ProjectErrors.InvalidAttributeExclusive.Throw(errorAttribute.Location);
             }
 
             // Include, remove, or update must be present unless inside a target
@@ -595,7 +595,9 @@ namespace Microsoft.Build.Construction
                     case XMakeElements.propertyGroup:
                         if (onError != null)
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(onError.Location, "NodeMustBeLastUnderElement", XMakeElements.onError, XMakeElements.target, childElement.Name);
+                            ProjectErrors.NodeMustBeLastUnderElement
+                                .Format(XMakeElements.onError, XMakeElements.target, childElement.Name)
+                                .Throw(onError.Location);
                         }
 
                         child = ParseProjectPropertyGroupElement(childElement, target);
@@ -604,7 +606,9 @@ namespace Microsoft.Build.Construction
                     case XMakeElements.itemGroup:
                         if (onError != null)
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(onError.Location, "NodeMustBeLastUnderElement", XMakeElements.onError, XMakeElements.target, childElement.Name);
+                            ProjectErrors.NodeMustBeLastUnderElement
+                                .Format(XMakeElements.onError, XMakeElements.target, childElement.Name)
+                                .Throw(onError.Location);
                         }
 
                         child = ParseProjectItemGroupElement(childElement, target);
@@ -627,8 +631,11 @@ namespace Microsoft.Build.Construction
                     default:
                         if (onError != null)
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(onError.Location, "NodeMustBeLastUnderElement", XMakeElements.onError, XMakeElements.target, childElement.Name);
+                            ProjectErrors.NodeMustBeLastUnderElement
+                                .Format(XMakeElements.onError, XMakeElements.target, childElement.Name)
+                                .Throw(onError.Location);
                         }
+
                         if (childElement.ChildNodes.Count == 1 && childElement.FirstChild.NodeType == XmlNodeType.Text)
                         {
                             // If the element has inner text and no other child elements except text, then this should be a property and throw invalid child element of <Target>

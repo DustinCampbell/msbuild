@@ -309,7 +309,7 @@ namespace Microsoft.Build.Internal
 
                         // Logging mechanism received from Evaluator.
                         case ILoggingService loggingService:
-                            ThrowDriveEnumerationExceptionWithLoggingService(includeLocation, filespecUnescaped);
+                            ThrowDriveEnumerationExceptionWithLoggingService(includeLocation!, filespecUnescaped);
 
                             break;
 
@@ -404,11 +404,11 @@ namespace Microsoft.Build.Internal
                 ((includeLocation == null) && (excludeLocation != null)))
             {
                 targetLoggingContext.LogWarning(
-                        DriveEnumeratingWildcardMessageResourceName,
-                        fileSpec,
-                        XMakeAttributes.exclude,
-                        XMakeElements.itemGroup,
-                        excludeLocation?.LocationString ?? "");
+                    DriveEnumeratingWildcardMessageResourceName,
+                    fileSpec,
+                    XMakeAttributes.exclude,
+                    XMakeElements.itemGroup,
+                    excludeLocation?.LocationString ?? "");
             }
 
             // Both conditions are necessary to reach for both GetFileListEscaped calls
@@ -480,13 +480,13 @@ namespace Microsoft.Build.Internal
             // whenever the wildcarded Exclude attribute results in drive enumeration.
             if (excludeFileSpecIsEmpty && (includeLocation != null))
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    includeLocation,
-                    DriveEnumeratingWildcardMessageResourceName,
-                    filespecUnescaped,
-                    XMakeAttributes.include,
-                    XMakeElements.itemGroup,
-                    includeLocation.LocationString);
+                ProjectErrors.WildcardResultsInDriveEnumeration
+                    .Format(
+                        filespecUnescaped,
+                        XMakeAttributes.include,
+                        XMakeElements.itemGroup,
+                        includeLocation.LocationString)
+                    .Throw(includeLocation);
             }
 
             // The first condition is necessary to reach for both GetFileListEscaped calls
@@ -495,58 +495,58 @@ namespace Microsoft.Build.Internal
             // (also when the wildcarded Exclude attribute results in drive enumeration).
             else if (((!excludeFileSpecIsEmpty) || (includeLocation == null)) && (excludeLocation != null))
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                        excludeLocation,
-                        DriveEnumeratingWildcardMessageResourceName,
+                ProjectErrors.WildcardResultsInDriveEnumeration
+                    .Format(
                         fileSpec,
                         XMakeAttributes.exclude,
                         XMakeElements.itemGroup,
-                        excludeLocation.LocationString);
+                        excludeLocation.LocationString)
+                    .Throw(excludeLocation);
             }
         }
 
-        private static void ThrowDriveEnumerationExceptionWithLoggingService(IElementLocation? includeLocation, string filespecUnescaped)
+        private static void ThrowDriveEnumerationExceptionWithLoggingService(IElementLocation includeLocation, string filespecUnescaped)
         {
-            ProjectErrorUtilities.ThrowInvalidProject(
-                includeLocation,
-                DriveEnumeratingWildcardMessageResourceName,
-                filespecUnescaped,
-                XMakeAttributes.include,
-                XMakeElements.itemGroup,
-                includeLocation?.LocationString ?? "");
+            ProjectErrors.WildcardResultsInDriveEnumeration
+                .Format(
+                    filespecUnescaped,
+                    XMakeAttributes.include,
+                    XMakeElements.itemGroup,
+                    includeLocation.LocationString)
+                .Throw(includeLocation);
         }
 
         private static void ThrowDriveEnumerationExceptionWithEvaluationLoggingContext(IElementLocation? importLocation, IElementLocation? includeLocation, IElementLocation? excludeLocation, string filespecUnescaped, string fileSpec, bool excludeFileSpecIsEmpty)
         {
             if (importLocation != null)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    importLocation,
-                    DriveEnumeratingWildcardMessageResourceName,
-                    filespecUnescaped,
-                    XMakeAttributes.project,
-                    XMakeElements.import,
-                    importLocation.LocationString);
+                ProjectErrors.WildcardResultsInDriveEnumeration
+                    .Format(
+                        filespecUnescaped,
+                        XMakeAttributes.project,
+                        XMakeElements.import,
+                        importLocation.LocationString)
+                    .Throw(importLocation);
             }
             else if (excludeFileSpecIsEmpty && includeLocation != null)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    includeLocation,
-                    DriveEnumeratingWildcardMessageResourceName,
-                    fileSpec,
-                    XMakeAttributes.include,
-                    XMakeElements.itemGroup,
-                    includeLocation.LocationString);
+                ProjectErrors.WildcardResultsInDriveEnumeration
+                    .Format(
+                        fileSpec,
+                        XMakeAttributes.include,
+                        XMakeElements.itemGroup,
+                        includeLocation.LocationString)
+                    .Throw(includeLocation);
             }
             else if (excludeLocation != null)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    excludeLocation,
-                    DriveEnumeratingWildcardMessageResourceName,
-                    fileSpec,
-                    XMakeAttributes.exclude,
-                    XMakeElements.itemGroup,
-                    excludeLocation.LocationString);
+                ProjectErrors.WildcardResultsInDriveEnumeration
+                    .Format(
+                        fileSpec,
+                        XMakeAttributes.exclude,
+                        XMakeElements.itemGroup,
+                        excludeLocation.LocationString)
+                    .Throw(excludeLocation);
             }
         }
 

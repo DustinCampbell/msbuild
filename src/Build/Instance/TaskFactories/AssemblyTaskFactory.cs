@@ -269,7 +269,9 @@ namespace Microsoft.Build.BackEnd
             {
                 // Exception thrown by the called code itself
                 // Log the stack, so the task vendor can fix their code
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, loadInfo.AssemblyLocation, Environment.NewLine + e.InnerException.ToString());
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, loadInfo.AssemblyLocation, Environment.NewLine + e.InnerException.ToString())
+                    .Throw(elementLocation);
             }
             catch (ReflectionTypeLoadException e)
             {
@@ -282,16 +284,22 @@ namespace Microsoft.Build.BackEnd
                     }
                 }
 
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, loadInfo.AssemblyLocation, e.Message);
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, loadInfo.AssemblyLocation, e.Message)
+                    .Throw(elementLocation);
             }
             catch (ArgumentNullException e)
             {
                 // taskName may be null
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, loadInfo.AssemblyLocation, e.Message);
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, loadInfo.AssemblyLocation, e.Message)
+                    .Throw(elementLocation);
             }
             catch (Exception e) when (!ExceptionHandling.NotExpectedReflectionException(e))
             {
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, loadInfo.AssemblyLocation, e.Message);
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, loadInfo.AssemblyLocation, e.Message)
+                    .Throw(elementLocation);
             }
 
             return _loadedType;
@@ -465,7 +473,9 @@ namespace Microsoft.Build.BackEnd
             {
                 // Exception thrown by the called code itself
                 // Log the stack, so the task vendor can fix their code
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, _loadedType.Assembly.AssemblyLocation, Environment.NewLine + e.InnerException.ToString());
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, _loadedType.Assembly.AssemblyLocation, Environment.NewLine + e.InnerException.ToString())
+                    .Throw(elementLocation);
             }
             catch (ReflectionTypeLoadException e)
             {
@@ -478,23 +488,31 @@ namespace Microsoft.Build.BackEnd
                     }
                 }
 
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, _loadedType.Assembly.AssemblyLocation, e.Message);
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, _loadedType.Assembly.AssemblyLocation, e.Message)
+                    .Throw(elementLocation);
             }
             catch (ArgumentNullException e)
             {
                 // taskName may be null
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, _loadedType.Assembly.AssemblyLocation, e.Message);
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, _loadedType.Assembly.AssemblyLocation, e.Message)
+                    .Throw(elementLocation);
             }
 #if NETCOREAPP
             catch (FileNotFoundException e)
             {
                 // The specified task assembly could not be found, it might be misspelled. It usually discovered during MetadataLoadContext run.
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, _loadedType.Assembly.AssemblyLocation, e.Message);
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, _loadedType.Assembly.AssemblyLocation, e.Message)
+                    .Throw(elementLocation);
             }
 #endif
             catch (Exception e) when (!ExceptionHandling.NotExpectedReflectionException(e))
             {
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, _loadedType.Assembly.AssemblyLocation, e.Message);
+                ProjectErrors.TaskLoadFailure
+                    .Format(taskName, _loadedType.Assembly.AssemblyLocation, e.Message)
+                    .Throw(elementLocation);
             }
 
             return false;
@@ -514,16 +532,16 @@ namespace Microsoft.Build.BackEnd
             {
                 if (!XMakeAttributes.IsValidMSBuildRuntimeValue(identityParameters.Runtime))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(
-                        errorLocation,
-                        "TaskLoadFailureInvalidTaskHostFactoryParameter",
-                        taskName,
-                        identityParameters.Runtime,
-                        runtimeName,
-                        XMakeAttributes.MSBuildRuntimeValues.clr2,
-                        XMakeAttributes.MSBuildRuntimeValues.clr4,
-                        XMakeAttributes.MSBuildRuntimeValues.currentRuntime,
-                        XMakeAttributes.MSBuildRuntimeValues.any);
+                    ProjectErrors.TaskLoadFailureInvalidTaskHostFactoryParameter
+                        .Format(
+                            taskName,
+                            identityParameters.Runtime,
+                            runtimeName,
+                            XMakeAttributes.MSBuildRuntimeValues.clr2,
+                            XMakeAttributes.MSBuildRuntimeValues.clr4,
+                            XMakeAttributes.MSBuildRuntimeValues.currentRuntime,
+                            XMakeAttributes.MSBuildRuntimeValues.any)
+                        .Throw(errorLocation);
                 }
             }
 
@@ -531,16 +549,16 @@ namespace Microsoft.Build.BackEnd
             {
                 if (!XMakeAttributes.IsValidMSBuildArchitectureValue(identityParameters.Architecture))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(
-                        errorLocation,
-                        "TaskLoadFailureInvalidTaskHostFactoryParameter",
-                        taskName,
-                        identityParameters.Architecture,
-                        architectureName,
-                        XMakeAttributes.MSBuildArchitectureValues.x86,
-                        XMakeAttributes.MSBuildArchitectureValues.x64,
-                        XMakeAttributes.MSBuildArchitectureValues.currentArchitecture,
-                        XMakeAttributes.MSBuildArchitectureValues.any);
+                    ProjectErrors.TaskLoadFailureInvalidTaskHostFactoryParameter
+                        .Format(
+                            taskName,
+                            identityParameters.Architecture,
+                            architectureName,
+                            XMakeAttributes.MSBuildArchitectureValues.x86,
+                            XMakeAttributes.MSBuildArchitectureValues.x64,
+                            XMakeAttributes.MSBuildArchitectureValues.currentArchitecture,
+                            XMakeAttributes.MSBuildArchitectureValues.any)
+                        .Throw(errorLocation);
                 }
             }
         }

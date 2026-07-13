@@ -138,10 +138,9 @@ namespace Microsoft.Build.Evaluation
             else // too many items for the function
             {
                 // We only allow a single item to be passed into a scalar parameter.
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    state.ElementLocation,
-                    "CannotPassMultipleItemsIntoScalarFunction", function, argument,
-                    state.ExpandIntoString(argument));
+                ProjectErrors.CannotPassMultipleItemsIntoScalarParameter
+                    .Format(function, argument, state.ExpandIntoString(argument))
+                    .Throw(state.ElementLocation);
             }
 
             return expandedValue;

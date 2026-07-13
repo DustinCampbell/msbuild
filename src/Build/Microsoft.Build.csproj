@@ -187,6 +187,10 @@
     <Compile Include="Collections\IKeyed.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Errors\ProjectErrors.cs" />
+    <Compile Include="Errors\ProjectErrors.Resource.cs" />
+    <Compile Include="Errors\ProjectErrors.Throwable.cs" />
+    <Compile Include="Errors\StringResource.cs" />
     <Compile Include="Evaluation\Expander.Function.cs" />
     <Compile Include="Evaluation\Expander.FunctionBuilder.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.cs" />

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation
 {
@@ -20,12 +19,9 @@ namespace Microsoft.Build.Evaluation
         {
             if (!LeftChild.TryBoolEvaluate(state, out bool boolValue))
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    state.ElementLocation,
-                    "ExpressionDoesNotEvaluateToBoolean",
-                    LeftChild.GetUnexpandedValue(state),
-                    LeftChild.GetExpandedValue(state),
-                    state.Condition);
+                ProjectErrors.ExpressionDoesNotEvaluateToBoolean
+                    .Format(LeftChild.GetUnexpandedValue(state), LeftChild.GetExpandedValue(state), state.Condition)
+                    .Throw(state.ElementLocation);
             }
 
             return !boolValue;

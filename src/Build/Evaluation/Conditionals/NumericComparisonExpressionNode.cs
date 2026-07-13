@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation
 {
@@ -44,13 +43,13 @@ namespace Microsoft.Build.Evaluation
 
             if ((!isLeftNum && !isLeftVersion) || (!isRightNum && !isRightVersion))
             {
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    state.ElementLocation,
-                    "ComparisonOnNonNumericExpression",
-                    state.Condition,
-                    /* helpfully display unexpanded token and expanded result in error message */
-                    isLeftNum ? RightChild.GetUnexpandedValue(state) : LeftChild.GetUnexpandedValue(state),
-                    isLeftNum ? RightChild.GetExpandedValue(state) : LeftChild.GetExpandedValue(state));
+                ProjectErrors.ComparisonOnNonNumericExpression
+                    .Format(
+                        state.Condition,
+                        /* helpfully display unexpanded token and expanded result in error message */
+                        isLeftNum ? RightChild.GetUnexpandedValue(state) : LeftChild.GetUnexpandedValue(state),
+                        isLeftNum ? RightChild.GetExpandedValue(state) : LeftChild.GetExpandedValue(state))
+                    .Throw(state.ElementLocation);
             }
 
             return (isLeftNum, isLeftVersion, isRightNum, isRightVersion) switch

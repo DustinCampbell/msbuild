@@ -408,7 +408,13 @@ namespace Microsoft.Build.Execution
             catch (ArgumentException ex)
             {
                 // Invalid chars in AssemblyFile path
-                ProjectErrorUtilities.ThrowInvalidProject(projectUsingTaskXml.Location, "InvalidAttributeValueWithException", assemblyFile, XMakeAttributes.assemblyFile, XMakeElements.usingTask, ex.Message);
+                ProjectErrors.InvalidAttributeValueWithException
+                    .Format(
+                        assemblyFile,
+                        XMakeAttributes.assemblyFile,
+                        XMakeElements.usingTask,
+                        ex.Message)
+                    .Throw(projectUsingTaskXml.Location);
             }
 
             RegisteredTaskRecord.ParameterGroupAndTaskElementRecord parameterGroupAndTaskElementRecord = null;
@@ -1359,7 +1365,9 @@ namespace Microsoft.Build.Execution
                                 UnhandledFactoryError +
 #endif
                                 e.ToString();
-                                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskLoadFailure", taskName, _taskFactoryWrapperInstance.Name, message);
+                                ProjectErrors.TaskLoadFailure
+                                    .Format(taskName, _taskFactoryWrapperInstance.Name, message)
+                                    .Throw(elementLocation);
                             }
                         }
                     }
@@ -1468,7 +1476,9 @@ namespace Microsoft.Build.Execution
                             {
                                 // Exception thrown by the called code itself
                                 // Log the stack, so the task vendor can fix their code
-                                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskFactoryLoadFailure", TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, Environment.NewLine + e.InnerException.ToString());
+                                ProjectErrors.TaskFactoryLoadFailure
+                                    .Format(TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, Environment.NewLine + e.InnerException.ToString())
+                                    .Throw(elementLocation);
                             }
                             catch (ReflectionTypeLoadException e)
                             {
@@ -1481,11 +1491,15 @@ namespace Microsoft.Build.Execution
                                     }
                                 }
 
-                                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskFactoryLoadFailure", TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, e.Message);
+                                ProjectErrors.TaskFactoryLoadFailure
+                                    .Format(TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, e.Message)
+                                    .Throw(elementLocation);
                             }
                             catch (Exception e) when (!ExceptionHandling.NotExpectedReflectionException(e))
                             {
-                                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskFactoryLoadFailure", TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, e.Message);
+                                ProjectErrors.TaskFactoryLoadFailure
+                                    .Format(TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, e.Message)
+                                    .Throw(elementLocation);
                             }
 
                             try
@@ -1585,7 +1599,9 @@ namespace Microsoft.Build.Execution
 #endif
                                 e.Message;
 
-                                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "TaskFactoryLoadFailure", TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, message);
+                                ProjectErrors.TaskFactoryLoadFailure
+                                    .Format(TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, message)
+                                    .Throw(elementLocation);
                             }
                         }
                         finally
@@ -1710,13 +1726,13 @@ namespace Microsoft.Build.Execution
 
                     if (!Boolean.TryParse(expandedType, out evaluate))
                     {
-                        ProjectErrorUtilities.ThrowInvalidProject(
-                         taskElement.EvaluateLocation,
-                         "InvalidEvaluatedAttributeValue",
-                         expandedType,
-                         taskElement.Evaluate,
-                         XMakeAttributes.evaluate,
-                         XMakeElements.usingTaskBody);
+                        ProjectErrors.InvalidEvaluatedAttributeValue
+                            .Format(
+                                 expandedType,
+                                 taskElement.Evaluate,
+                                 XMakeAttributes.evaluate,
+                                 XMakeElements.usingTaskBody)
+                            .Throw(taskElement.EvaluateLocation);
                     }
 
                     _taskBodyEvaluated = evaluate;
@@ -1813,25 +1829,22 @@ namespace Microsoft.Build.Execution
 
                         if (!Boolean.TryParse(expandedOutput, out output))
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(
-                                parameter.OutputLocation,
-                                "InvalidEvaluatedAttributeValue",
-                                expandedOutput,
-                                parameter.Output,
-                                XMakeAttributes.output,
-                                XMakeElements.usingTaskParameter);
+                            ProjectErrors.InvalidEvaluatedAttributeValue
+                                .Format(
+                                    expandedOutput,
+                                    parameter.Output,
+                                    XMakeAttributes.output,
+                                    XMakeElements.usingTaskParameter)
+                                .Throw(parameter.OutputLocation);
                         }
 
                         if (
                             (!output && (!TaskParameterTypeVerifier.IsValidInputParameter(paramType))) ||
                             (output && !TaskParameterTypeVerifier.IsValidOutputParameter(paramType)))
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(
-                                parameter.Location,
-                                "UnsupportedTaskParameterTypeError",
-                                paramType.FullName,
-                                parameter.ParameterType,
-                                parameter.Name);
+                            ProjectErrors.UnsupportedTaskParameterTypeError
+                                .Format(paramType.FullName, parameter.ParameterType, parameter.Name)
+                                .Throw(parameter.Location);
                         }
 
                         bool required;
@@ -1839,13 +1852,13 @@ namespace Microsoft.Build.Execution
 
                         if (!Boolean.TryParse(expandedRequired, out required))
                         {
-                            ProjectErrorUtilities.ThrowInvalidProject(
-                                parameter.RequiredLocation,
-                                "InvalidEvaluatedAttributeValue",
-                                expandedRequired,
-                                parameter.Required,
-                                XMakeAttributes.required,
-                                XMakeElements.usingTaskParameter);
+                            ProjectErrors.InvalidEvaluatedAttributeValue
+                                .Format(
+                                    expandedRequired,
+                                    parameter.Required,
+                                    XMakeAttributes.required,
+                                    XMakeElements.usingTaskParameter)
+                                .Throw(parameter.RequiredLocation);
                         }
 
                         UsingTaskParameters.Add(parameter.Name, new TaskPropertyInfo(parameter.Name, paramType, output, required));

@@ -66,44 +66,6 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Overload for three string format arguments.
-        /// </summary>
-        /// <param name="elementLocation">The <see cref="IElementLocation"/> of the element.</param>
-        /// <param name="resourceName">The resource string for the error message.</param>
-        /// <param name="arg0"></param>
-        /// <param name="arg1"></param>
-        /// <param name="arg2"></param>
-        internal static void ThrowInvalidProject<T1, T2, T3>(IElementLocation elementLocation, string resourceName, T1 arg0, T2 arg1, T3 arg2)
-        {
-            ThrowInvalidProject(null, elementLocation, resourceName, arg0, arg1, arg2);
-        }
-
-        /// <summary>
-        /// Overload for four string format arguments.
-        /// </summary>
-        /// <param name="elementLocation">The <see cref="IElementLocation"/> of the element.</param>
-        /// <param name="resourceName">The resource string for the error message.</param>
-        /// <param name="arg0"></param>
-        /// <param name="arg1"></param>
-        /// <param name="arg2"></param>
-        /// <param name="arg3"></param>
-        internal static void ThrowInvalidProject<T1, T2, T3, T4>(IElementLocation elementLocation, string resourceName, T1 arg0, T2 arg1, T3 arg2, T4 arg3)
-        {
-            ThrowInvalidProject(null, elementLocation, resourceName, arg0, arg1, arg2, arg3);
-        }
-
-        /// <summary>
-        /// Overload for if there are more than four string format arguments.
-        /// </summary>
-        /// <param name="elementLocation">The <see cref="IElementLocation"/> of the element.</param>
-        /// <param name="resourceName">The resource string for the error message.</param>
-        /// <param name="args"></param>
-        internal static void ThrowInvalidProject(IElementLocation elementLocation, string resourceName, params object[] args)
-        {
-            ThrowInvalidProject(null, elementLocation, resourceName, args);
-        }
-
-        /// <summary>
         /// Overload for two string format arguments.
         /// </summary>
         /// <param name="condition">The condition to check.</param>
