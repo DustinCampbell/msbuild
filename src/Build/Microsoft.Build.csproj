@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Shared\DebuggingSources.proj" />
 
@@ -259,6 +259,7 @@
     <Compile Include="BackEnd\Components\Caching\IRegisteredTaskObjectCache.cs" />
     <Compile Include="..\Shared\RegisteredTaskObjectCacheBase.cs" />
     <Compile Include="BackEnd\Components\Caching\RegisteredTaskObjectCache.cs" />
+    <Compile Include="BackEnd\Components\Logging\BuildEventFileInfo.cs" />
     <Compile Include="BackEnd\Components\Logging\EvaluationLoggingContext.cs" />
     <Compile Include="BackEnd\Components\Logging\BuildLoggingContext.cs" />
     <Compile Include="BackEnd\Components\Logging\LoggingContext.cs" />
@@ -497,6 +498,8 @@
     <Compile Include="Errors\InternalLoggerException.cs" />
     <Compile Include="Errors\InvalidProjectFileException.cs" />
     <Compile Include="Errors\InvalidToolsetDefinitionException.cs" />
+    <Compile Include="Errors\ProjectErrorUtilities.cs" />
+    <Compile Include="Errors\ProjectFileErrorUtilities.cs" />
     <Compile Include="Errors\RegistryException.cs" />
     <!-- #### EVALUATION ### -->
     <Compile Include="Evaluation\ConditionEvaluator.cs" />
@@ -643,20 +646,11 @@
     <Compile Include="Xml\ProjectXmlUtilities.XmlElementChildIterator.cs" />
     <Compile Include="Xml\ProjectXmlUtilities.cs" />
     <Compile Include="Xml\XmlReaderExtension.cs" />
-    <Compile Include="..\Shared\BuildEventFileInfo.cs">
-      <Link>SharedUtilities\BuildEventFileInfo.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\ErrorUtilities.cs">
       <Link>Errors\ErrorUtilities.cs</Link>
     </Compile>
     <Compile Include="..\Shared\InprocTrackingNativeMethods.cs">
       <Link>InprocTrackingNativeMethods.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\ProjectErrorUtilities.cs">
-      <Link>Errors\ProjectErrorUtilities.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\ProjectFileErrorUtilities.cs">
-      <Link>Errors\ProjectFileErrorUtilities.cs</Link>
     </Compile>
     <Compile Include="..\Shared\ResourceUtilities.cs">
       <Link>SharedUtilities\ResourceUtilities.cs</Link>
