@@ -37,11 +37,6 @@
         <target state="translated">이벤트 유형 "{0}"은(는) .NET serializer를 사용하여 serialize할 수 있어야 합니다. 이 이벤트는 serialize할 수 없으므로 무시되었습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0}({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
-      </trans-unit>
       <trans-unit id="LoggingBeforeTaskInitialization">
         <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
         <target state="translated">MSB6005: 작업을 초기화하기 전에 로깅하려고 했습니다. 메시지: {0}</target>

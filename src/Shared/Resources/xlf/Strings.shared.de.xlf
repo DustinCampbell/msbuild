@@ -37,11 +37,6 @@
         <target state="translated">Es wurde erwartet, dass der Ereignistyp "{0}" mithilfe des .NET-Serialisierers serialisierbar ist. Das Ereignis war nicht serialisierbar und wurde ignoriert.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0} ({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
-      </trans-unit>
       <trans-unit id="LoggingBeforeTaskInitialization">
         <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
         <target state="translated">MSB6005: Die Aufgabe hat versucht, eine Protokollierung durchzuführen, bevor sie initialisiert wurde. Meldung: {0}</target>

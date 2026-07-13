@@ -138,10 +138,6 @@
   <data name="DeprecatedEventSerialization" xml:space="preserve">
     <value>Custom event type '{0}' is not supported as all custom event types were deprecated. Please use Extended*EventArgs instead. More info: https://aka.ms/msbuild/eventargs</value>
   </data>
-  <data name="FileLocation" xml:space="preserve">
-    <value>{0} ({1},{2})</value>
-    <comment>A file location to be embedded in a string.</comment>
-  </data>
   <data name="ModifyingTaskHostEnvironmentHeader" xml:space="preserve">
     <value>Making the following modifications to the environment received from the parent node before applying it to the task host:</value>
     <comment>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</comment>

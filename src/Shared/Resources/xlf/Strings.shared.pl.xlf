@@ -37,11 +37,6 @@
         <target state="translated">Oczekiwano, że zdarzenie typu „{0}” będzie uszeregowane przy użyciu serializatora platformy .NET. Zdarzenie nie może podlegać szeregowaniu, dlatego zostało zignorowane.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0} ({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
-      </trans-unit>
       <trans-unit id="LoggingBeforeTaskInitialization">
         <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
         <target state="translated">MSB6005: Zadanie podjęło próbę zarejestrowania przed zainicjowaniem. Pojawił się komunikat: {0}</target>

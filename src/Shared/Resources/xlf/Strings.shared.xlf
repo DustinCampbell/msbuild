@@ -23,10 +23,6 @@
         <source>Event type "{0}" was expected to be serializable using the .NET serializer. The event was not serializable and has been ignored.</source>
         <note />
       </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <note>A file location to be embedded in a string.</note>
-      </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentHeader">
         <source>Making the following modifications to the environment received from the parent node before applying it to the task host:</source>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>

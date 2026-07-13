@@ -37,11 +37,6 @@
         <target state="translated">Očekávalo se, že typ události {0} bude možné serializovat pomocí serializátoru .NET. Událost nebylo možné serializovat a byla ignorována.</target>
         <note />
       </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0} ({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
-      </trans-unit>
       <trans-unit id="LoggingBeforeTaskInitialization">
         <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
         <target state="translated">MSB6005: Úloha se pokusila přihlásit před tím, než byla inicializována. Zpráva: {0}</target>

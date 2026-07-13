@@ -37,11 +37,6 @@
         <target state="translated">事件類型 "{0}" 應該可以使用 .NET 序列化程式序列化。此事件不可序列化，已略過。</target>
         <note />
       </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0} ({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
-      </trans-unit>
       <trans-unit id="LoggingBeforeTaskInitialization">
         <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
         <target state="translated">MSB6005: 工作在初始化之前就嘗試記錄。訊息為: {0}</target>
