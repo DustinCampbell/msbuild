@@ -143,7 +143,7 @@ namespace Microsoft.Build.BackEnd
 
                     if (truncateTaskInputs && (sb.Length >= parameterCharacterLimit || i > parameterLimit))
                     {
-                        sb.Append(ResourceUtilities.GetResourceString("LogTaskInputs.Truncated"));
+                        sb.Append(ResourceUtilities.GetResourceString("LogTaskInputs_Truncated"));
                         break;
                     }
                 }

@@ -758,19 +758,19 @@
         <source>Output files: {0}</source>
         <note>{0} is a semicolon-separated list of filenames.</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.TargetingHigherFrameworksDefaultsTo40">
+      <trans-unit id="AspNetCompiler_TargetingHigherFrameworksDefaultsTo40">
         <source>{0}: Defaulting .NET Framework v{1} to the .NET Framework v4.0 version of aspnet_compiler.exe. To change the version of the tool used, please set the "ToolPath" parameter with the correct path to the tool.</source>
         <note />
       </trans-unit>
-      <trans-unit id="AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET">
+      <trans-unit id="AspNetCompiler_InvalidTargetFrameworkMonikerNotDotNET">
         <source>MSB4203: {0}: Invalid TargetFrameworkMoniker {1}. The AspNetCompiler task only supports targeting the .NET Framework.</source>
         <note>{StrBegin="MSB4203: "}</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.20NotInstalled">
+      <trans-unit id="AspNetCompiler_20NotInstalled">
         <source>MSB4205: The website project in this solution is targeting the v2.0 runtime, but it is not installed.</source>
         <note>{StrBegin="MSB4205: "}</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.InvalidTargetFrameworkMonikerFromException">
+      <trans-unit id="AspNetCompiler_InvalidTargetFrameworkMonikerFromException">
         <source>MSB4204: {0}: Invalid TargetFrameworkMoniker {1}. {2}.</source>
         <note>{StrBegin="MSB4204: "}</note>
       </trans-unit>

@@ -13,7 +13,7 @@
         <note>{StrBegin="MSB4001: "}UE: This message is shown when a task has more than one .NET property with the same name -- it's unclear which of
     those properties the task wants to use as a parameter in project files.</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.UnsupportedMSBuildVersion">
+      <trans-unit id="AspNetCompiler_UnsupportedMSBuildVersion">
         <source>MSB4249: Unable to build website project "{0}". The ASP.NET compiler is only available on the .NET Framework version of MSBuild.</source>
         <target state="translated">MSB4249: Não foi possível compilar o projeto do site da Web "{0}". O compilador do ASP.NET está disponível apenas na versão .NET Framework do MSBuild.</target>
         <note>{StrBegin="MSB4249: "}</note>
@@ -634,7 +634,7 @@
       LOCALIZATION: {0} is an enum value of LoggerVerbosity.
     </note>
       </trans-unit>
-      <trans-unit id="LogTaskInputs.Truncated">
+      <trans-unit id="LogTaskInputs_Truncated">
         <source>The parameters have been truncated beyond this point. To view all parameters, clear the MSBUILDTRUNCATETASKINPUTLOGGING environment variable.</source>
         <target state="translated">Os parâmetros foram truncados além deste ponto. Para exibir todos os parâmetros, limpe a variável de ambiente MSBUILDTRUNCATETASKINPUTLOGGING.</target>
         <note />
@@ -2110,22 +2110,22 @@ Erros: {3}</target>
         <target state="translated">Arquivos de saída: {0}</target>
         <note>{0} is a semicolon-separated list of filenames.</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.TargetingHigherFrameworksDefaultsTo40">
+      <trans-unit id="AspNetCompiler_TargetingHigherFrameworksDefaultsTo40">
         <source>{0}: Defaulting .NET Framework v{1} to the .NET Framework v4.0 version of aspnet_compiler.exe. To change the version of the tool used, please set the "ToolPath" parameter with the correct path to the tool.</source>
         <target state="translated">{0}: O padrão usado para .NET Framework v{1} é a versão .NET Framework v4.0 do aspnet_compiler.exe. Para alterar a versão da ferramenta usada, defina o parâmetro "ToolPath" com o caminho correto da ferramenta.</target>
         <note />
       </trans-unit>
-      <trans-unit id="AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET">
+      <trans-unit id="AspNetCompiler_InvalidTargetFrameworkMonikerNotDotNET">
         <source>MSB4203: {0}: Invalid TargetFrameworkMoniker {1}. The AspNetCompiler task only supports targeting the .NET Framework.</source>
         <target state="translated">MSB4203: {0}: TargetFrameworkMoniker inválido {1}. A tarefa AspNetCompiler dá suporte apenas ao direcionamento do .NET Framework.</target>
         <note>{StrBegin="MSB4203: "}</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.20NotInstalled">
+      <trans-unit id="AspNetCompiler_20NotInstalled">
         <source>MSB4205: The website project in this solution is targeting the v2.0 runtime, but it is not installed.</source>
         <target state="translated">MSB4205: O projeto de site nesta solução está direcionando o runtime v2.0, mas ele não está instalado.</target>
         <note>{StrBegin="MSB4205: "}</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.InvalidTargetFrameworkMonikerFromException">
+      <trans-unit id="AspNetCompiler_InvalidTargetFrameworkMonikerFromException">
         <source>MSB4204: {0}: Invalid TargetFrameworkMoniker {1}. {2}.</source>
         <target state="translated">MSB4204: {0}: TargetFrameworkMoniker inválido {1}. {2}.</target>
         <note>{StrBegin="MSB4204: "}</note>

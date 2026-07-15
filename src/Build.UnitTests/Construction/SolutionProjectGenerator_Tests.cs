@@ -2388,7 +2388,7 @@ EndGlobal
 
 #if FEATURE_ASPNET_COMPILER
                 Version ver = new Version("4.34");
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("AspNetCompiler.TargetingHigherFrameworksDefaultsTo40", solution.ProjectsInOrder[0].ProjectName, ver.ToString());
+                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("AspNetCompiler_TargetingHigherFrameworksDefaultsTo40", solution.ProjectsInOrder[0].ProjectName, ver.ToString());
                 logger.AssertLogContains(message);
 #endif
                 }

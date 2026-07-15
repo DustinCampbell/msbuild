@@ -13,7 +13,7 @@
         <note>{StrBegin="MSB4001: "}UE: This message is shown when a task has more than one .NET property with the same name -- it's unclear which of
     those properties the task wants to use as a parameter in project files.</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.UnsupportedMSBuildVersion">
+      <trans-unit id="AspNetCompiler_UnsupportedMSBuildVersion">
         <source>MSB4249: Unable to build website project "{0}". The ASP.NET compiler is only available on the .NET Framework version of MSBuild.</source>
         <target state="translated">MSB4249: 無法建置網站專案 "{0}"。ASP.NET 編譯器只適用於 NET Framework 版本的 MSBuild。</target>
         <note>{StrBegin="MSB4249: "}</note>
@@ -634,7 +634,7 @@
       LOCALIZATION: {0} is an enum value of LoggerVerbosity.
     </note>
       </trans-unit>
-      <trans-unit id="LogTaskInputs.Truncated">
+      <trans-unit id="LogTaskInputs_Truncated">
         <source>The parameters have been truncated beyond this point. To view all parameters, clear the MSBUILDTRUNCATETASKINPUTLOGGING environment variable.</source>
         <target state="translated">參數已在此點之後截斷。若要檢視所有參數，請清除 MSBUILDTRUNCATETASKINPUTLOGGING 環境變數。</target>
         <note />
@@ -2110,22 +2110,22 @@ Errors: {3}</source>
         <target state="translated">輸出檔: {0}</target>
         <note>{0} is a semicolon-separated list of filenames.</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.TargetingHigherFrameworksDefaultsTo40">
+      <trans-unit id="AspNetCompiler_TargetingHigherFrameworksDefaultsTo40">
         <source>{0}: Defaulting .NET Framework v{1} to the .NET Framework v4.0 version of aspnet_compiler.exe. To change the version of the tool used, please set the "ToolPath" parameter with the correct path to the tool.</source>
         <target state="translated">{0}: 將 .NET Framework v{1} 預設為 aspnet_compiler.exe 的 .NET Framework v4.0 版本。若要變更所使用的工具版本，請以正確的工具路徑設定 "ToolPath" 參數。</target>
         <note />
       </trans-unit>
-      <trans-unit id="AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET">
+      <trans-unit id="AspNetCompiler_InvalidTargetFrameworkMonikerNotDotNET">
         <source>MSB4203: {0}: Invalid TargetFrameworkMoniker {1}. The AspNetCompiler task only supports targeting the .NET Framework.</source>
         <target state="translated">MSB4203: {0}: TargetFrameworkMoniker {1} 無效。AspNetCompiler 工作只支援將 .NET Framework 作為目標。</target>
         <note>{StrBegin="MSB4203: "}</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.20NotInstalled">
+      <trans-unit id="AspNetCompiler_20NotInstalled">
         <source>MSB4205: The website project in this solution is targeting the v2.0 runtime, but it is not installed.</source>
         <target state="translated">MSB4205: 這個方案中的網站專案是以 v2.0 執行階段為目標，但是並未安裝此執行階段。</target>
         <note>{StrBegin="MSB4205: "}</note>
       </trans-unit>
-      <trans-unit id="AspNetCompiler.InvalidTargetFrameworkMonikerFromException">
+      <trans-unit id="AspNetCompiler_InvalidTargetFrameworkMonikerFromException">
         <source>MSB4204: {0}: Invalid TargetFrameworkMoniker {1}. {2}.</source>
         <target state="translated">MSB4204: {0}: 無效的 TargetFrameworkMoniker {1}。{2}。</target>
         <note>{StrBegin="MSB4204: "}</note>
