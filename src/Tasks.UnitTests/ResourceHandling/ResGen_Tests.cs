@@ -103,7 +103,7 @@ namespace Microsoft.Build.UnitTests
 
             ExecuteTaskAndVerifyLogContainsErrorFromResource(
                 t,
-                "General.TwoVectorsMustHaveSameLength",
+                "General_TwoVectorsMustHaveSameLength",
                 differentLengthInput.Length,
                 differentLengthOutput.Length,
                 "InputFiles",

@@ -2048,16 +2048,6 @@ Nota: livello di dettaglio dei logger di file
         <target state="translated">MSBUILD : error MSB1048: non è possibile eseguire direttamente il debug dei file della soluzione. Eseguire MSBuild prima con una variabile di ambiente MSBUILDEMITSOLUTION=1 per creare un file ".sln.metaproj" corrispondente. Eseguirne quindi il debug.</target>
         <note>{StrBegin="MSBUILD : error MSB1048: "} LOC: ".SLN" should not be localized</note>
       </trans-unit>
-      <trans-unit id="BuildStarted">
-        <source>Build started.</source>
-        <target state="translated">Compilazione avviata.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0} ({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
-      </trans-unit>
       <trans-unit id="AmbiguousProjectDirectoryError">
         <source>MSBUILD : error MSB1050: Specify which project or solution file to use because the folder "{0}" contains more than one project or solution file.</source>
         <target state="translated">MSBUILD : error MSB1050: specificare il file di progetto o di soluzione da usare perché la cartella "{0}" ne contiene più di uno.</target>

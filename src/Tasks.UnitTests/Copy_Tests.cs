@@ -350,7 +350,7 @@ namespace Microsoft.Build.UnitTests
                     DestinationFiles = destinationFiles,
                 };
                 task.Execute().ShouldBeFalse();
-                // Copy.NeedsDestination (MSB3023) or General.TwoVectorsMustHaveSameLength (MSB3094)
+                // Copy.NeedsDestination (MSB3023) or General_TwoVectorsMustHaveSameLength (MSB3094)
                 engine.AssertLogContains(destinationFiles == null ? "MSB3023" : "MSB3094");
                 task.CopiedFiles.ShouldBeNull();
                 (task.DestinationFiles == null || task.DestinationFiles.Length == 0).ShouldBeTrue();
@@ -424,7 +424,7 @@ namespace Microsoft.Build.UnitTests
                     DestinationFiles = new ITaskItem[] { new TaskItem("destination0.txt"), new TaskItem("destination1.txt") },
                 };
                 task.Execute().ShouldBeFalse();
-                engine.AssertLogContains("MSB3094"); // General.TwoVectorsMustHaveSameLength
+                engine.AssertLogContains("MSB3094"); // General_TwoVectorsMustHaveSameLength
                 task.CopiedFiles.ShouldBeNull();
                 task.DestinationFiles.ShouldNotBeNull();
                 task.WroteAtLeastOneFile.ShouldBeFalse();

@@ -325,9 +325,9 @@ namespace Microsoft.Build.UnitTests
             ObjectModelHelpers.BuildTempProjectFileExpectFailure(@"SkipNonexistentProjectsMain.csproj", logger);
 
             logger.AssertLogContains("Hello from foo.csproj");
-            string message = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFoundMessage"), "this_project_does_not_exist_warn.csproj");
-            string error = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFound"), "this_project_does_not_exist_warn.csproj");
-            string error2 = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFound"), "this_project_does_not_exist_error.csproj");
+            string message = String.Format(AssemblyResources.GetString("MSBuild_ProjectFileNotFoundMessage"), "this_project_does_not_exist_warn.csproj");
+            string error = String.Format(AssemblyResources.GetString("MSBuild_ProjectFileNotFound"), "this_project_does_not_exist_warn.csproj");
+            string error2 = String.Format(AssemblyResources.GetString("MSBuild_ProjectFileNotFound"), "this_project_does_not_exist_error.csproj");
             Assert.Equal(0, logger.WarningCount);
             Assert.Equal(1, logger.ErrorCount);
             Assert.Contains(message, logger.FullLog); // for the missing project

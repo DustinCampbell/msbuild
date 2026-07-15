@@ -2047,16 +2047,6 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
         <target state="translated">MSBUILD : error MSB1048: Plików rozwiązań nie można debugować bezpośrednio. Najpierw uruchom program MSBuild przy użyciu zmiennej środowiskowej MSBUILDEMITSOLUTION=1, aby utworzyć odpowiedni plik „.sln.metaproj”. Następnie debuguj ten plik.</target>
         <note>{StrBegin="MSBUILD : error MSB1048: "} LOC: ".SLN" should not be localized</note>
       </trans-unit>
-      <trans-unit id="BuildStarted">
-        <source>Build started.</source>
-        <target state="translated">Kompilacja rozpoczęła się.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FileLocation">
-        <source>{0} ({1},{2})</source>
-        <target state="translated">{0} ({1},{2})</target>
-        <note>A file location to be embedded in a string.</note>
-      </trans-unit>
       <trans-unit id="AmbiguousProjectDirectoryError">
         <source>MSBUILD : error MSB1050: Specify which project or solution file to use because the folder "{0}" contains more than one project or solution file.</source>
         <target state="translated">MSBUILD : error MSB1050: określ plik projektu lub rozwiązania, który zostanie użyty, ponieważ folder „{0}” zawiera więcej niż jeden plik projektu lub rozwiązania.</target>

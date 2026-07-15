@@ -477,7 +477,7 @@ namespace Microsoft.Build.Graph
             throw new InvalidProjectFileException(
                 String.Format(
                     CultureInfo.InvariantCulture,
-                    ResourceUtilities.GetResourceString("General.InvalidPropertyError"),
+                    ResourceUtilities.GetResourceString("General_InvalidPropertyError"),
                     syntaxName,
                     propertyNameAndValuesString));
         }
