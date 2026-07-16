@@ -54,7 +54,8 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </remarks>
         public string AlignConsoleOutput(string message, bool prefixAlreadyWritten, int prefixWidth)
         {
-            StringBuilder sb = BuildAlignedOutput(message, prefixAlreadyWritten, prefixWidth);
+            StringBuilder sb = _stringBuilderProvider.Acquire(EstimateCapacity(message.Length, prefixAlreadyWritten, prefixWidth));
+            AppendAlignedOutput(sb, new StringCharSource(message), prefixAlreadyWritten, prefixWidth);
             return _stringBuilderProvider.GetStringAndRelease(sb);
         }
 
@@ -69,9 +70,10 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </remarks>
         public void AlignConsoleOutput(TextWriter writer, string message, bool prefixAlreadyWritten, int prefixWidth)
         {
-            StringBuilder sb = BuildAlignedOutput(message, prefixAlreadyWritten, prefixWidth);
+            StringBuilder sb = _stringBuilderProvider.Acquire(EstimateCapacity(message.Length, prefixAlreadyWritten, prefixWidth));
             try
             {
+                AppendAlignedOutput(sb, new StringCharSource(message), prefixAlreadyWritten, prefixWidth);
                 WriteStringBuilder(writer, sb);
             }
             finally
@@ -81,33 +83,62 @@ namespace Microsoft.Build.BackEnd.Logging
         }
 
         /// <summary>
-        /// Based on bufferWidth split message into multiple lines and indent if needed, appending the
-        /// result into a <see cref="StringBuilder"/> acquired from the provider.
-        /// TAB character are interpreted by standard Console logic.
+        /// Same alignment as <see cref="AlignConsoleOutput(TextWriter, string, bool, int)"/> but reads the
+        /// message straight from a <see cref="StringBuilder"/>, so a caller that has already assembled the
+        /// message in a pooled builder never has to materialize it as a string.
         /// </summary>
-        private StringBuilder BuildAlignedOutput(string message, bool prefixAlreadyWritten, int prefixWidth)
+        /// <remarks>
+        /// The destination builder is taken from the global <see cref="Microsoft.Build.Framework.StringBuilderCache"/> rather than the
+        /// injected provider, because <paramref name="message"/> typically already occupies the provider's
+        /// single shared builder; this keeps the source and destination builders distinct.
+        /// </remarks>
+        public void AlignConsoleOutput(TextWriter writer, StringBuilder message, bool prefixAlreadyWritten, int prefixWidth)
         {
-            int i = 0;
-            int j = message.IndexOfAny(MSBuildConstants.CrLf);
+            StringBuilder sb = StringBuilderCache.Acquire(EstimateCapacity(message.Length, prefixAlreadyWritten, prefixWidth));
+            try
+            {
+                AppendAlignedOutput(sb, new BuilderCharSource(message), prefixAlreadyWritten, prefixWidth);
+                WriteStringBuilder(writer, sb);
+            }
+            finally
+            {
+                StringBuilderCache.Release(sb);
+            }
+        }
 
-            // Empiric value of average line length in console output. Used to estimate number of lines in message for StringBuilder capacity.
-            // Wrongly estimated capacity is not a problem as StringBuilder will grow as needed. It is just optimization to avoid multiple reallocations.
-            const int averageLineLength = 40;
-            int estimatedCapacity = message.Length + ((prefixAlreadyWritten ? 0 : prefixWidth) + Environment.NewLine.Length) * (message.Length / averageLineLength + 1);
-            StringBuilder sb = _stringBuilderProvider.Acquire(estimatedCapacity);
+        // Empiric value of average line length in console output. Used to estimate number of lines in message for StringBuilder capacity.
+        // Wrongly estimated capacity is not a problem as StringBuilder will grow as needed. It is just optimization to avoid multiple reallocations.
+        private const int AverageLineLength = 40;
+
+        /// <summary>
+        /// Estimates the capacity needed for the aligned output, to avoid reallocating while building it.
+        /// </summary>
+        private static int EstimateCapacity(int messageLength, bool prefixAlreadyWritten, int prefixWidth)
+            => messageLength + ((prefixAlreadyWritten ? 0 : prefixWidth) + Environment.NewLine.Length) * (messageLength / AverageLineLength + 1);
+
+        /// <summary>
+        /// Based on bufferWidth split message into multiple lines and indent if needed, appending the
+        /// result into <paramref name="sb"/>. TAB characters are interpreted by standard Console logic.
+        /// The message is read through <typeparamref name="TSource"/> so the same logic serves both a
+        /// <see cref="string"/> and a <see cref="StringBuilder"/> source without boxing or a virtual call.
+        /// </summary>
+        private void AppendAlignedOutput<TSource>(StringBuilder sb, in TSource source, bool prefixAlreadyWritten, int prefixWidth)
+            where TSource : struct, ICharSource
+        {
+            int length = source.Length;
+            int i = 0;
+            int j = source.IndexOfCrLf(0);
 
             // The string contains new lines, treat each new line as a different string to format and send to the console
             while (j >= 0)
             {
-                AlignAndIndentLineOfMessage(sb, prefixAlreadyWritten, prefixWidth, message, i, j - i);
-                i = j + (message[j] == '\r' && (j + 1) < message.Length && message[j + 1] == '\n' ? 2 : 1);
-                j = message.IndexOfAny(MSBuildConstants.CrLf, i);
+                AlignAndIndentLineOfMessage(sb, prefixAlreadyWritten, prefixWidth, in source, i, j - i);
+                i = j + (source[j] == '\r' && (j + 1) < length && source[j + 1] == '\n' ? 2 : 1);
+                j = source.IndexOfCrLf(i);
             }
 
             // Process rest of message
-            AlignAndIndentLineOfMessage(sb, prefixAlreadyWritten, prefixWidth, message, i, message.Length - i);
-
-            return sb;
+            AlignAndIndentLineOfMessage(sb, prefixAlreadyWritten, prefixWidth, in source, i, length - i);
         }
 
         /// <summary>
@@ -153,7 +184,8 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <summary>
         /// Append aligned and indented message lines into running <see cref="StringBuilder"/>.
         /// </summary>
-        private void AlignAndIndentLineOfMessage(StringBuilder sb, bool prefixAlreadyWritten, int prefixWidth, string message, int start, int count)
+        private void AlignAndIndentLineOfMessage<TSource>(StringBuilder sb, bool prefixAlreadyWritten, int prefixWidth, in TSource source, int start, int count)
+            where TSource : struct, ICharSource
         {
             int bufferWidthMinusNewLine = _bufferWidth - 1;
 
@@ -185,7 +217,7 @@ namespace Microsoft.Build.BackEnd.Logging
                     while (cursor < bufferWidthMinusNewLine)
                     {
                         int remainingCharsToEndOfBuffer = Math.Min(bufferWidthMinusNewLine - cursor, count - endIndex);
-                        int nextTab = message.IndexOf('\t', start + endIndex, remainingCharsToEndOfBuffer);
+                        int nextTab = source.IndexOf('\t', start + endIndex, remainingCharsToEndOfBuffer);
                         if (nextTab >= 0)
                         {
                             // Position before tab
@@ -202,7 +234,7 @@ namespace Microsoft.Build.BackEnd.Logging
                         }
                     }
 
-                    sb.Append(message, start + index, endIndex - index);
+                    source.AppendTo(sb, start + index, endIndex - index);
                     sb.AppendLine();
 
                     index = endIndex;
@@ -216,8 +248,99 @@ namespace Microsoft.Build.BackEnd.Logging
                     sb.Append(' ', prefixWidth);
                 }
 
-                sb.Append(message, start, count);
+                source.AppendTo(sb, start, count);
                 sb.AppendLine();
+            }
+        }
+
+        /// <summary>
+        /// Abstraction over a read-only character source (a <see cref="string"/> or a <see cref="StringBuilder"/>)
+        /// so the alignment logic can be shared. Implemented by <see langword="readonly"/> structs and consumed
+        /// through a generic <c>struct</c> constraint, so calls are devirtualized with no boxing.
+        /// </summary>
+        private interface ICharSource
+        {
+            int Length { get; }
+
+            char this[int index] { get; }
+
+            /// <summary>Returns the index of the first '\r' or '\n' at or after <paramref name="start"/>, or -1.</summary>
+            int IndexOfCrLf(int start);
+
+            /// <summary>Returns the index of <paramref name="value"/> within [start, start + count), or -1.</summary>
+            int IndexOf(char value, int start, int count);
+
+            /// <summary>Appends <paramref name="count"/> characters starting at <paramref name="start"/> to <paramref name="dest"/>.</summary>
+            void AppendTo(StringBuilder dest, int start, int count);
+        }
+
+        private readonly struct StringCharSource : ICharSource
+        {
+            private readonly string _value;
+
+            public StringCharSource(string value) => _value = value;
+
+            public int Length => _value.Length;
+
+            public char this[int index] => _value[index];
+
+            public int IndexOfCrLf(int start) => _value.IndexOfAny(MSBuildConstants.CrLf, start);
+
+            public int IndexOf(char value, int start, int count) => _value.IndexOf(value, start, count);
+
+            public void AppendTo(StringBuilder dest, int start, int count) => dest.Append(_value, start, count);
+        }
+
+        private readonly struct BuilderCharSource : ICharSource
+        {
+            private readonly StringBuilder _value;
+
+            public BuilderCharSource(StringBuilder value) => _value = value;
+
+            public int Length => _value.Length;
+
+            public char this[int index] => _value[index];
+
+            public int IndexOfCrLf(int start)
+            {
+                StringBuilder value = _value;
+                int length = value.Length;
+                for (int i = start; i < length; i++)
+                {
+                    char c = value[i];
+                    if (c == '\r' || c == '\n')
+                    {
+                        return i;
+                    }
+                }
+
+                return -1;
+            }
+
+            public int IndexOf(char value, int start, int count)
+            {
+                StringBuilder source = _value;
+                int end = start + count;
+                for (int i = start; i < end; i++)
+                {
+                    if (source[i] == value)
+                    {
+                        return i;
+                    }
+                }
+
+                return -1;
+            }
+
+            public void AppendTo(StringBuilder dest, int start, int count)
+            {
+                // dest and the source builder are always distinct instances (see the StringBuilder overload of
+                // AlignConsoleOutput), so appending from one into the other is safe.
+                StringBuilder source = _value;
+                for (int i = 0; i < count; i++)
+                {
+                    dest.Append(source[start + i]);
+                }
             }
         }
     }

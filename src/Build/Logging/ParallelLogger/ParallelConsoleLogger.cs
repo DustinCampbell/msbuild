@@ -857,28 +857,28 @@ namespace Microsoft.Build.BackEnd.Logging
 
         /// <summary>
         /// Writes <paramref name="text"/> preceded by <paramref name="padding"/> spaces, building the
-        /// padded message with the shared pooled <see cref="StringBuilder"/> instead of allocating a
-        /// throwaway <c>new string(' ', padding)</c> and concatenating.
+        /// padded message with the shared pooled <see cref="StringBuilder"/> and handing that builder
+        /// straight to the aligner so no intermediate message string is allocated.
         /// </summary>
         private void WriteMessageAlignedWithPadding(int padding, string text)
         {
             IStringBuilderProvider stringBuilderProvider = this;
             StringBuilder builder = stringBuilderProvider.Acquire(padding + text.Length);
             builder.Append(' ', padding).Append(text);
-            WriteMessageAligned(stringBuilderProvider.GetStringAndRelease(builder), prefixAlreadyWritten: false);
+            WriteMessageAligned(builder, prefixAlreadyWritten: false);
         }
 
         /// <summary>
         /// Writes a "<paramref name="name"/> = <paramref name="value"/>" metadata line preceded by
         /// <paramref name="padding"/> spaces, building it with the shared pooled <see cref="StringBuilder"/>
-        /// instead of allocating a throwaway padding string and an interpolated result string.
+        /// and handing that builder straight to the aligner so no intermediate message string is allocated.
         /// </summary>
         private void WriteMetadataAligned(int padding, string name, string value)
         {
             IStringBuilderProvider stringBuilderProvider = this;
             StringBuilder builder = stringBuilderProvider.Acquire(padding + (name?.Length ?? 0) + (value?.Length ?? 0) + 3);
             builder.Append(' ', padding).Append(name).Append(" = ").Append(value);
-            WriteMessageAligned(stringBuilderProvider.GetStringAndRelease(builder), prefixAlreadyWritten: false);
+            WriteMessageAligned(builder, prefixAlreadyWritten: false);
         }
 
         /// <summary>
@@ -1457,6 +1457,48 @@ namespace Microsoft.Build.BackEnd.Logging
                 else
                 {
                     WriteHandler(_consoleOutputAligner.AlignConsoleOutput(message, prefixAlreadyWritten, adjustedPrefixWidth));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes a message that has been assembled in the shared pooled <see cref="StringBuilder"/>, aligned
+        /// and formatted to fit within the console width. Takes ownership of <paramref name="message"/> and
+        /// releases it back to the <see cref="IStringBuilderProvider"/>. When the write handler is a direct
+        /// <see cref="TextWriter"/>, the builder is streamed to the aligner without ever materializing a
+        /// message string.
+        /// </summary>
+        /// <param name="message">Message builder to be formatted to fit on the console.</param>
+        /// <param name="prefixAlreadyWritten">Has the prefix (timestamp or key) been written.</param>
+        /// <param name="prefixAdjustment">An amount to adjust the prefix by.</param>
+        private void WriteMessageAligned(StringBuilder message, bool prefixAlreadyWritten, int prefixAdjustment = 0)
+        {
+            IStringBuilderProvider stringBuilderProvider = this;
+
+            // This method may require the splitting of lines in order to format them to the console; this must be an atomic operation
+            lock (_lockObject)
+            {
+                int adjustedPrefixWidth = _prefixWidth + prefixAdjustment;
+                TextWriter directWriter = DirectOutputWriter;
+                if (directWriter != null)
+                {
+                    try
+                    {
+                        // Stream the aligned output straight to the writer, reading from the builder so no
+                        // intermediate message string is allocated.
+                        _consoleOutputAligner.AlignConsoleOutput(directWriter, message, prefixAlreadyWritten, adjustedPrefixWidth);
+                    }
+                    finally
+                    {
+                        stringBuilderProvider.Release(message);
+                    }
+                }
+                else
+                {
+                    // No direct writer: materialize the message (releasing the shared builder first so the
+                    // aligner can reuse it) and take the existing string path.
+                    string messageText = stringBuilderProvider.GetStringAndRelease(message);
+                    WriteHandler(_consoleOutputAligner.AlignConsoleOutput(messageText, prefixAlreadyWritten, adjustedPrefixWidth));
                 }
             }
         }
