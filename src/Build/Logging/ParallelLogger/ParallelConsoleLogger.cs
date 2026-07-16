@@ -1639,7 +1639,10 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         private void WriteLinePrefix(BuildEventContext e, DateTime eventTimeStamp, bool isMessagePrefix)
         {
-            WriteLinePrefix(GetFullProjectKey(e).ToString(Verbosity), eventTimeStamp, isMessagePrefix);
+            // Resolve the project/entry-point keys as integers and emit them structurally, avoiding both the
+            // ProjectFullKey object allocation and the key string that ProjectFullKey.ToString(Verbosity) builds.
+            GetFullProjectKey(e, out int projectKey, out int entryPointKey);
+            WriteLinePrefixCore(projectKey, entryPointKey, eventTimeStamp, isMessagePrefix);
         }
 
         private void WriteLinePrefix(string key, DateTime eventTimeStamp, bool isMessagePrefix)
@@ -1656,11 +1659,66 @@ namespace Microsoft.Build.BackEnd.Logging
                 return;
             }
 
+            bool includeKey = !isMessagePrefix || IsVerbosityAtLeast(LoggerVerbosity.Detailed);
+            string keySegment = includeKey ? (key ?? string.Empty) : string.Empty;
+
+            StringBuilder prefix = BeginLinePrefix(eventTimeStamp, out IStringBuilderProvider stringBuilderProvider, out int prefixStart);
+            AppendKeyFieldPadding(prefix, keySegment.Length);
+            prefix.Append(keySegment).Append(includeKey ? '>' : ' ');
+            EndLinePrefix(stringBuilderProvider, prefix, prefixStart);
+        }
+
+        // Prototype seam: exposed as internal so allocation benchmarks can exercise the integer-key prefix path.
+        internal void WriteLinePrefixCore(int projectKey, int entryPointKey, DateTime eventTimeStamp, bool isMessagePrefix)
+        {
+            // Don't want any prefix for single proc
+            if (NumberOfProcessors == 1)
+            {
+                return;
+            }
+
+            bool includeKey = !isMessagePrefix || IsVerbosityAtLeast(LoggerVerbosity.Detailed);
+
+            // Match ProjectFullKey.ToString(Verbosity): the entry-point key is only shown above Normal
+            // verbosity and only when it is greater than 1; otherwise just the project key is shown.
+            bool includeEntryPoint = Verbosity > LoggerVerbosity.Normal && entryPointKey > 1;
+
+            StringBuilder prefix = BeginLinePrefix(eventTimeStamp, out IStringBuilderProvider stringBuilderProvider, out int prefixStart);
+
+            if (includeKey)
+            {
+                int keyLength = DecimalDigitCount(projectKey) + (includeEntryPoint ? 1 + DecimalDigitCount(entryPointKey) : 0);
+                AppendKeyFieldPadding(prefix, keyLength);
+                AppendNonNegativeInt(prefix, projectKey);
+                if (includeEntryPoint)
+                {
+                    prefix.Append(':');
+                    AppendNonNegativeInt(prefix, entryPointKey);
+                }
+
+                prefix.Append('>');
+            }
+            else
+            {
+                AppendKeyFieldPadding(prefix, 0);
+                prefix.Append(' ');
+            }
+
+            EndLinePrefix(stringBuilderProvider, prefix, prefixStart);
+        }
+
+        /// <summary>
+        /// Acquires the shared pooled <see cref="StringBuilder"/> and appends the indentation and timestamp
+        /// portion of a line prefix (everything up to, but not including, the right-aligned key field), so
+        /// that the string- and integer-key prefix paths share the same head-of-prefix logic.
+        /// </summary>
+        private StringBuilder BeginLinePrefix(DateTime eventTimeStamp, out IStringBuilderProvider stringBuilderProvider, out int prefixStart)
+        {
             setColor(ConsoleColor.Cyan);
 
             // Assemble the prefix into the shared pooled StringBuilder rather than allocating an intermediate
             // timestamp string, a resource-formatted string, and a further interpolated string.
-            IStringBuilderProvider stringBuilderProvider = this;
+            stringBuilderProvider = this;
             StringBuilder prefix = stringBuilderProvider.Acquire(48);
 
             // Match WritePretty's indentation: prefixes are indented by the current indent level at Normal+.
@@ -1671,31 +1729,40 @@ namespace Microsoft.Build.BackEnd.Logging
                 prefix.Append(' ', padding);
             }
 
-            int prefixStart = prefix.Length;
+            // _prefixWidth tracks the prefix length without the leading indentation (as before).
+            prefixStart = prefix.Length;
 
             // The "BuildEventContext" resource is "{0} {1,5}" in every locale (it is layout, not translated
-            // text), so emit it structurally to avoid allocating the arguments: {0} = timestamp, a literal
-            // space, {1,5} = key right-aligned to a minimum width of 5, then '>' for event prefixes / ' ' for
-            // message prefixes.
-            bool includeKey = !isMessagePrefix || IsVerbosityAtLeast(LoggerVerbosity.Detailed);
-
+            // text), so emit it structurally: {0} = timestamp, a literal space, {1,5} = key right-aligned to a
+            // minimum width of 5, then '>' for event prefixes / ' ' for message prefixes.
             if (_showTimeStamp || IsVerbosityAtLeast(LoggerVerbosity.Diagnostic))
             {
                 AppendTimeStamp(prefix, eventTimeStamp);
             }
 
             prefix.Append(' ');
+            return prefix;
+        }
 
-            string keySegment = includeKey ? (key ?? string.Empty) : string.Empty;
+        /// <summary>
+        /// Left-pads the key field with spaces so that a key of <paramref name="keyLength"/> characters is
+        /// right-aligned to a minimum width of 5, matching the "{1,5}" layout of the "BuildEventContext" resource.
+        /// </summary>
+        private static void AppendKeyFieldPadding(StringBuilder prefix, int keyLength)
+        {
             const int keyFieldWidth = 5;
-            if (keySegment.Length < keyFieldWidth)
+            if (keyLength < keyFieldWidth)
             {
-                prefix.Append(' ', keyFieldWidth - keySegment.Length);
+                prefix.Append(' ', keyFieldWidth - keyLength);
             }
+        }
 
-            prefix.Append(keySegment).Append(includeKey ? '>' : ' ');
-
-            // _prefixWidth tracks the prefix length without the leading indentation (as before).
+        /// <summary>
+        /// Finalizes a line prefix: records <see cref="_prefixWidth"/> (once) and streams the assembled prefix
+        /// straight to the writer when possible, avoiding the final string allocation.
+        /// </summary>
+        private void EndLinePrefix(IStringBuilderProvider stringBuilderProvider, StringBuilder prefix, int prefixStart)
+        {
             if (_prefixWidth == 0)
             {
                 _prefixWidth = prefix.Length - prefixStart;
@@ -1771,6 +1838,37 @@ namespace Microsoft.Build.BackEnd.Logging
             }
         }
 #endif
+
+        /// <summary>
+        /// Appends a small non-negative integer as invariant decimal digits without allocating. Matches the
+        /// <see cref="CultureInfo.InvariantCulture"/> integer formatting used by <see cref="ProjectFullKey"/>.
+        /// </summary>
+        private static void AppendNonNegativeInt(StringBuilder sb, int value)
+        {
+#if NET
+            // StringBuilder.Append(int) is allocation-free on modern runtimes.
+            sb.Append(value);
+#else
+            // On .NET Framework StringBuilder.Append(int) allocates, so emit the digits as chars by hand.
+            AppendFixedDigits(sb, value, DecimalDigitCount(value));
+#endif
+        }
+
+        /// <summary>
+        /// Returns the number of decimal digits needed to render a small non-negative integer.
+        /// </summary>
+        private static int DecimalDigitCount(int value)
+        {
+            int digits = 1;
+            while (value >= 10)
+            {
+                value /= 10;
+                digits++;
+            }
+
+            return digits;
+        }
+
         private ProjectFullKey GetFullProjectKey(BuildEventContext e)
         {
             ProjectStartedEventMinimumFields startedEvent = null;
@@ -1785,6 +1883,30 @@ namespace Microsoft.Build.BackEnd.Logging
             return startedEvent == null
                 ? new ProjectFullKey(0, 0)
                 : new ProjectFullKey(startedEvent.ProjectKey, startedEvent.EntryPointKey);
+        }
+
+        /// <summary>
+        /// Resolves the project and entry-point keys for <paramref name="e"/> without allocating a
+        /// <see cref="ProjectFullKey"/>, for callers that only need to emit the keys.
+        /// </summary>
+        private void GetFullProjectKey(BuildEventContext e, out int projectKey, out int entryPointKey)
+        {
+            ProjectStartedEventMinimumFields startedEvent = e != null
+                ? _buildEventManager.GetProjectStartedEvent(e)
+                : null;
+
+            // Project started event can be null, if the message has come before the project started event
+            // or the message is not part of a project such as if the message came from the engine
+            if (startedEvent == null)
+            {
+                projectKey = 0;
+                entryPointKey = 0;
+            }
+            else
+            {
+                projectKey = startedEvent.ProjectKey;
+                entryPointKey = startedEvent.EntryPointKey;
+            }
         }
 
         /// <summary>

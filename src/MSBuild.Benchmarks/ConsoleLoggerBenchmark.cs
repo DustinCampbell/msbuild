@@ -133,6 +133,14 @@ public class ConsoleLoggerBenchmark
         => _prefixLogger.WriteLinePrefixCore("3:2", _timestamp, isMessagePrefix: false);
 
     /// <summary>
+    /// Integer-key event-style prefix, exercising the path that avoids the ProjectFullKey object and the
+    /// key string it would otherwise format (project key 3, entry-point key 2 -> "3:2").
+    /// </summary>
+    [Benchmark]
+    public void WriteLinePrefix_IntKeyEvent()
+        => _prefixLogger.WriteLinePrefixCore(3, 2, _timestamp, isMessagePrefix: false);
+
+    /// <summary>
     /// A reusable-single-instance <see cref="IStringBuilderProvider"/> matching the logger's own
     /// pooling behavior, so the aligner benchmarks reflect production allocation characteristics.
     /// </summary>
