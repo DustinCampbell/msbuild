@@ -29,6 +29,7 @@ using System.Security.Policy;
 using System.Text;
 using System.Xml;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Tasks.ManifestUtil.Resources;
 #if RUNTIME_TYPE_NETCORE && FEATURE_WINDOWSINTEROP
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -565,7 +566,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                                     string targetFrameworkIdentifier,
                                     bool disallowMansignTimestampFallback)
         {
-            System.Resources.ResourceManager resources = new System.Resources.ResourceManager("Microsoft.Build.Tasks.Core.Strings.ManifestUtilities", typeof(SecurityUtilities).Module.Assembly);
+            System.Resources.ResourceManager resources = ManifestUtilitiesSR.ResourceManager;
 
             if (String.IsNullOrEmpty(certThumbprint))
             {
@@ -649,7 +650,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
         public static void SignFile(X509Certificate2 cert, Uri timestampUrl, string path)
         {
             // setup resources
-            System.Resources.ResourceManager resources = new System.Resources.ResourceManager("Microsoft.Build.Tasks.Core.Strings.ManifestUtilities", typeof(SecurityUtilities).Module.Assembly);
+            System.Resources.ResourceManager resources = ManifestUtilitiesSR.ResourceManager;
             SignFileInternal(cert, timestampUrl, path, targetFrameworkSupportsSha256: true, resources);
         }
 

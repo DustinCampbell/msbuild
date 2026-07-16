@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.Versioning;
+using Microsoft.Build.Tasks.ManifestUtil.Resources;
+
 #if FEATURE_WINDOWSINTEROP
 using Microsoft.Win32;
 using System;
@@ -24,7 +26,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
 #if FEATURE_WINDOWSINTEROP
         private readonly OutputMessageCollection _outputMessages;
         private readonly string _outputDisplayName;
-        private readonly ResourceManager _resources = new ResourceManager("Microsoft.Build.Tasks.Core.Strings.ManifestUtilities", System.Reflection.Assembly.GetExecutingAssembly());
+        private readonly ResourceManager _resources = ManifestUtilitiesSR.ResourceManager;
 
         // These must be defined in sorted order!
         private static readonly string[] s_knownImplementedCategories =

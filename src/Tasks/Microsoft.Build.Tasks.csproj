@@ -426,9 +426,8 @@
       <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="ManifestUtil\Resources\Strings.ManifestUtilities.resx">
-      <LogicalName>$(AssemblyName).Strings.ManifestUtilities.resources</LogicalName>
-      <SubType>Designer</SubType>
+    <EmbeddedResource Include="ManifestUtil\Resources\ManifestUtilitiesSR.resx">
+      <GenerateSource>true</GenerateSource>
     </EmbeddedResource>
     <!-- The manifest is needed when PreferNativeArm64 is enabled in Unix environments. -->
     <EmbeddedResource Include="Resources\default.win32manifest" />

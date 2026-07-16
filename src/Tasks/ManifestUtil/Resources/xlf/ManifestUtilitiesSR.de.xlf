@@ -1,70 +1,70 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="ja" original="../Strings.ManifestUtilities.resx">
+  <file datatype="xml" source-language="en" target-language="de" original="../ManifestUtilitiesSR.resx">
     <body>
       <trans-unit id="ComImporter_LocalServerNotSupported">
         <source>Out of process servers are not supported</source>
-        <target state="translated">アウトプロセス サーバーはサポートされていません。</target>
+        <target state="translated">Out-of-Process-Server werden nicht unterstützt.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_MissingValue">
         <source>Registry key '{0}' is missing value '{1}'.</source>
-        <target state="translated">レジストリ キー '{0}' には値 '{1}' がありません。</target>
+        <target state="translated">Im Registrierungsschlüssel "{0}" fehlt der Wert "{1}".</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_NoRegisteredClasses">
         <source>No registered classes were detected for this component.</source>
-        <target state="translated">登録されたクラスは、このコンポーネントに対して検出されませんでした。</target>
+        <target state="translated">Für diese Komponente wurden keine registrierten Klassen gefunden.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_ProtectedFile">
         <source>Components under system file protection should not be isolated.</source>
-        <target state="translated">システム ファイルの保護下にあるコンポーネントは分離することはできません。</target>
+        <target state="translated">Komponenten unter dem Systemdateischutz dürfen nicht isoliert werden.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_TypeLibraryLoadFailure">
         <source>Could not load type library.</source>
-        <target state="translated">タイプ ライブラリを読み込めませんでした。</target>
+        <target state="translated">Die Typbibliothek konnte nicht geladen werden.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_SubKeyNotImported">
         <source>Registry key '{0}' was not imported.</source>
-        <target state="translated">レジストリ キー '{0}' はインポートされませんでした。</target>
+        <target state="translated">Der Registrierungsschlüssel "{0}" wurde nicht importiert.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_ValueNotImported">
         <source>Registry value '{0}' was not imported.</source>
-        <target state="translated">レジストリ値 '{0}' はインポートされませんでした。</target>
+        <target state="translated">Der Registrierungswert "{0}" wurde nicht importiert.</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_SignTargetNotFound">
         <source>The file to be signed {0} could not be found.</source>
-        <target state="translated">署名されるファイル {0} が見つかりませんでした。</target>
+        <target state="translated">Die zu signierende Datei "{0}" wurde nicht gefunden.</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_SigntoolFail">
         <source>Failed to sign {0}. {1}</source>
-        <target state="translated">{0} の署名に失敗しました。{1}</target>
+        <target state="translated">Fehler beim Signieren von "{0}". {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_SigntoolWarning">
         <source>Warning while signing {0}. {1}</source>
-        <target state="translated">{0} の署名中に警告が発生しました。{1}</target>
+        <target state="translated">Warnung während der Signierung von "{0}". {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_SigntoolNotFound">
         <source>SignTool.exe was not found at path {0}.</source>
-        <target state="translated">SignTool.exe が、パス {0} に見つかりませんでした。</target>
+        <target state="translated">"SignTool.exe" wurde im Pfad "{0}" nicht gefunden.</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_TimestampUrlNotFound">
         <source>Timestamp URL server name or address could not be resolved.</source>
-        <target state="translated">タイムスタンプ URL サーバーの名前またはアドレスを解決できませんでした。</target>
+        <target state="translated">Der Servername oder die Adresse für die Timestamp-URL konnte nicht aufgelöst werden.</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_OnlyRSACertsAreAllowed">
         <source>Only certificates using RSA encryption are valid for signing ClickOnce manifests.</source>
-        <target state="translated">ClickOnce マニフェストの署名に有効なのは、RSA 暗号化を使用する証明書だけです。</target>
+        <target state="translated">Nur Zertifikate mit RSA-Verschlüsselung sind für die Signierung von ClickOnce-Manifesten gültig.</target>
         <note />
       </trans-unit>
       <trans-unit id="TrustInfo_RequestedExecutionLevelComment">
@@ -81,16 +81,16 @@
          compatibility then delete the requestedExecutionLevel node.
     </source>
         <target state="translated">
-          UAC マニフェスト オプション
-          Windows のユーザー アカウント制御のレベルを変更するには、
-          requestedExecutionLevel ノードを以下のいずれかで置換します。
+          UAC-Manifestoptionen
+          Wenn Sie die Zugangsebene für das Windows-Benutzerkonto ändern möchten, ersetzen Sie den 
+          requestedExecutionLevel-Knoten durch eines der folgenden Elemente.
 
         &lt;requestedExecutionLevel  level="asInvoker" uiAccess="false" /&gt;
         &lt;requestedExecutionLevel  level="requireAdministrator" uiAccess="false" /&gt;
         &lt;requestedExecutionLevel  level="highestAvailable" uiAccess="false" /&gt;
 
-         下位互換性を保つためにファイルおよびレジストリの仮想化を使用する場合、
-         requestedExecutionLevel ノードを削除します。
+         Löschen Sie den requestedExecutionLevel-Knoten, wenn Sie 
+         zum Gewährleisten der Abwärtskompatibilität die Datei- und Registrierungsvirtualisierung verwenden möchten.
     </target>
         <note />
       </trans-unit>

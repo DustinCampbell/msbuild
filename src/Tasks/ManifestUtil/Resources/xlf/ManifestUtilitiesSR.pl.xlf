@@ -1,70 +1,70 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="tr" original="../Strings.ManifestUtilities.resx">
+  <file datatype="xml" source-language="en" target-language="pl" original="../ManifestUtilitiesSR.resx">
     <body>
       <trans-unit id="ComImporter_LocalServerNotSupported">
         <source>Out of process servers are not supported</source>
-        <target state="translated">İşlem dışı sunucular desteklenmez</target>
+        <target state="translated">Serwery poza procesem są nieobsługiwane</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_MissingValue">
         <source>Registry key '{0}' is missing value '{1}'.</source>
-        <target state="translated">'{0}' kayıt defteri anahtarında '{1}' değeri eksik.</target>
+        <target state="translated">Klucz rejestru '{0}' jest brakującą wartością '{1}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_NoRegisteredClasses">
         <source>No registered classes were detected for this component.</source>
-        <target state="translated">Bu bileşen için kaydettirilmiş sınıf algılanmadı.</target>
+        <target state="translated">Dla tego składnika nie wykryto żadnej zarejestrowanej klasy.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_ProtectedFile">
         <source>Components under system file protection should not be isolated.</source>
-        <target state="translated">Sistem dosyası koruması altındaki bileşenler yalıtılmamalıdır.</target>
+        <target state="translated">Składniki objęte ochroną systemu plików nie powinny być izolowane.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_TypeLibraryLoadFailure">
         <source>Could not load type library.</source>
-        <target state="translated">Tür kitaplığı yüklenemedi.</target>
+        <target state="translated">Nie można załadować biblioteki typów.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_SubKeyNotImported">
         <source>Registry key '{0}' was not imported.</source>
-        <target state="translated">'{0}' kayıt defteri anahtarı içeri aktarılamadı.</target>
+        <target state="translated">Nie zaimportowano klucza rejestru '{0}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="ComImporter_ValueNotImported">
         <source>Registry value '{0}' was not imported.</source>
-        <target state="translated">'{0}' kayıt defteri değeri içeri aktarılamadı.</target>
+        <target state="translated">Nie zaimportowano wartości rejestru '{0}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_SignTargetNotFound">
         <source>The file to be signed {0} could not be found.</source>
-        <target state="translated">İmzalanacak {0} dosyası bulunamadı.</target>
+        <target state="translated">Nie można odnaleźć pliku do podpisania {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_SigntoolFail">
         <source>Failed to sign {0}. {1}</source>
-        <target state="translated">{0} imzalanamadı. {1}</target>
+        <target state="translated">Podpisywanie {0} nie powiodło się. {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_SigntoolWarning">
         <source>Warning while signing {0}. {1}</source>
-        <target state="translated">{0} imzalanırken uyarı oluştu. {1}</target>
+        <target state="translated">Ostrzeżenie podczas podpisywania {0}. {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_SigntoolNotFound">
         <source>SignTool.exe was not found at path {0}.</source>
-        <target state="translated">SignTool.exe, {0} yolunda bulunamadı.</target>
+        <target state="translated">Nie znaleziono narzędzia SignTool.exe w ścieżce {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_TimestampUrlNotFound">
         <source>Timestamp URL server name or address could not be resolved.</source>
-        <target state="translated">Zaman damgası URL'si sunucu adı veya adresi çözümlenemedi.</target>
+        <target state="translated">Nie można rozpoznać znacznika czasu nazwy serwera adresów URL lub adresu.</target>
         <note />
       </trans-unit>
       <trans-unit id="SecurityUtil_OnlyRSACertsAreAllowed">
         <source>Only certificates using RSA encryption are valid for signing ClickOnce manifests.</source>
-        <target state="translated">ClickOnce bildirimlerini imzalamak için yalnızca RSA şifrelemesinin kullanıldığı sertifikalar geçerlidir.</target>
+        <target state="translated">Tylko certyfikaty używające szyfrowania RSA są prawidłowe do podpisywania manifestów funkcji ClickOnce.</target>
         <note />
       </trans-unit>
       <trans-unit id="TrustInfo_RequestedExecutionLevelComment">
@@ -81,16 +81,16 @@
          compatibility then delete the requestedExecutionLevel node.
     </source>
         <target state="translated">
-          UAC Bildirim Seçenekleri
-          Windows Kullanıcı Hesabı Denetimi düzeyini değiştirmek istiyorsanız,
-           requestedExecutionLevel düğümünü aşağıdakilerden biriyle değiştirin.
+          Opcje manifestu kontroli konta użytkownika
+          Jeśli chcesz zmienić poziom kontroli konta użytkownika systemu Windows, zastąp węzeł 
+          requestedExecutionLevel jednym z następujących.
 
         &lt;requestedExecutionLevel  level="asInvoker" uiAccess="false" /&gt;
         &lt;requestedExecutionLevel  level="requireAdministrator" uiAccess="false" /&gt;
         &lt;requestedExecutionLevel  level="highestAvailable" uiAccess="false" /&gt;
 
-         Geriye dönük uyumluluk için Dosya ve Kayıt Defteri Sanallaştırması
-         kullanmak istiyorsanız, requestedExecutionLevel düğümünü silin.
+         Jeśli chcesz użyć wirtualizacji plików i rejestru do celów zgodności wstecznej, 
+         usuń węzeł requestedExecutionLevel.
     </target>
         <note />
       </trans-unit>
