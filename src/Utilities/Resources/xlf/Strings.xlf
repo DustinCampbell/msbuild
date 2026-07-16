@@ -3,19 +3,19 @@
   <file datatype="xml" source-language="en" original="../Strings.resx">
     <body>
       <group id="MICROSOFT.BUILD.UTILITIES/RESOURCES/STRINGS.RESX" datatype="resx" />
-      <trans-unit id="General.InvalidToolSwitch">
+      <trans-unit id="General_InvalidToolSwitch">
         <source>MSB6001: Invalid command line switch for "{0}". {1}</source>
         <note>{StrBegin="MSB6001: "}UE: This message is shown when a tool-based task (i.e. the task is a wrapper for an .exe) is given a parameter value that converts into an invalid command line switch for the tool. "{0}" is the name of the tool e.g. "csc.exe", and "{1}" is a message explaining the problem. LOCALIZATION: "{1}" is a localized message.</note>
       </trans-unit>
-      <trans-unit id="General.QuotesNotAllowedInThisKindOfTaskParameter">
+      <trans-unit id="General_QuotesNotAllowedInThisKindOfTaskParameter">
         <source>Illegal quote passed to the command line switch named "{0}". The value was [{1}].</source>
         <note />
       </trans-unit>
-      <trans-unit id="General.QuotesNotAllowedInThisKindOfTaskParameterNoSwitchName">
+      <trans-unit id="General_QuotesNotAllowedInThisKindOfTaskParameterNoSwitchName">
         <source>Illegal quote in the command line value [{0}].</source>
         <note />
       </trans-unit>
-      <trans-unit id="General.ToolCommandFailedNoErrorCode">
+      <trans-unit id="General_ToolCommandFailedNoErrorCode">
         <source>The command exited with code {0}.</source>
         <note />
       </trans-unit>
@@ -23,39 +23,39 @@
         <source>MSB6005: Task attempted to log before it was initialized. Message was: {0}</source>
         <note>{StrBegin="MSB6005: "}UE: This occurs if the task attempts to log something in its own constructor.</note>
       </trans-unit>
-      <trans-unit id="PlatformManifest.MissingPlatformXml">
+      <trans-unit id="PlatformManifest_MissingPlatformXml">
         <source>MSB6010: Could not find platform manifest file at "{0}".</source>
         <note>{StrBegin="MSB6010: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.CommandTooLong">
+      <trans-unit id="ToolTask_CommandTooLong">
         <source>MSB6002: The command-line for the "{0}" task is too long. Command-lines longer than 32000 characters are likely to fail. Try reducing the length of the command-line by breaking down the call to "{0}" into multiple calls with fewer parameters per call.</source>
         <note>{StrBegin="MSB6002: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.CouldNotStartToolExecutable">
+      <trans-unit id="ToolTask_CouldNotStartToolExecutable">
         <source>MSB6003: The specified task executable "{0}" could not be run. {1}</source>
         <note>{StrBegin="MSB6003: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.ToolCommandFailed">
+      <trans-unit id="ToolTask_ToolCommandFailed">
         <source>MSB6006: "{0}" exited with code {1}.</source>
         <note>{StrBegin="MSB6006: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.ToolExecutableNotFound">
+      <trans-unit id="ToolTask_ToolExecutableNotFound">
         <source>MSB6004: The specified task executable location "{0}" is invalid.</source>
         <note>{StrBegin="MSB6004: "}</note>
       </trans-unit>
-      <trans-unit id="ToolsLocationHelper.InvalidRedistFile">
+      <trans-unit id="ToolsLocationHelper_InvalidRedistFile">
         <source>There was an error reading the redist list file "{0}". {1}</source>
         <note>No Error code because this resource will be used in an exception. The error code is discarded if it is included</note>
       </trans-unit>
-      <trans-unit id="ToolsLocationHelper.CouldNotCreateChain">
+      <trans-unit id="ToolsLocationHelper_CouldNotCreateChain">
         <source>The Framework at path "{0}" tried to include the framework at path "{1}" as part of its reference assembly paths but there was an error. {2}</source>
         <note>No Error code because this resource will be used in an exception. The error code is discarded if it is included</note>
       </trans-unit>
-      <trans-unit id="ToolTask.InvalidEnvironmentParameter">
+      <trans-unit id="ToolTask_InvalidEnvironmentParameter">
         <source>MSB6007: The "{0}" value passed to the Environment property is not in the format "name=value", where the value part may be empty.</source>
         <note>{StrBegin="MSB6007: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.EnvironmentVariableHeader">
+      <trans-unit id="ToolTask_EnvironmentVariableHeader">
         <source>Environment Variables passed to tool:</source>
         <note />
       </trans-unit>

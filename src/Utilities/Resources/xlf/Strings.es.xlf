@@ -7,97 +7,97 @@
         <target state="translated">MSB6012: La ruta de acceso "{0}" usada para los registros de depuración es demasiado larga. Establézcalo en un valor más corto con la variable de entorno MSBUILDDEBUGPATH o cambie la configuración del sistema para permitir rutas de acceso largas.</target>
         <note>{StrBegin="MSB6012: "}</note>
       </trans-unit>
-      <trans-unit id="General.InvalidToolSwitch">
+      <trans-unit id="General_InvalidToolSwitch">
         <source>MSB6001: Invalid command line switch for "{0}". {1}</source>
         <target state="translated">MSB6001: Modificador de línea de comandos no válido para "{0}". {1}</target>
         <note>{StrBegin="MSB6001: "}UE: This message is shown when a tool-based task (i.e. the task is a wrapper for an .exe) is given a parameter value that converts into an invalid command line switch for the tool. "{0}" is the name of the tool e.g. "csc.exe", and "{1}" is a message explaining the problem. LOCALIZATION: "{1}" is a localized message.</note>
       </trans-unit>
-      <trans-unit id="General.QuotesNotAllowedInThisKindOfTaskParameter">
+      <trans-unit id="General_QuotesNotAllowedInThisKindOfTaskParameter">
         <source>Illegal quote passed to the command line switch named "{0}". The value was [{1}].</source>
         <target state="translated">Se pasaron comillas no válidas al modificador de línea de comandos denominado "{0}". El valor era [{1}].</target>
         <note />
       </trans-unit>
-      <trans-unit id="General.QuotesNotAllowedInThisKindOfTaskParameterNoSwitchName">
+      <trans-unit id="General_QuotesNotAllowedInThisKindOfTaskParameterNoSwitchName">
         <source>Illegal quote in the command line value [{0}].</source>
         <target state="translated">Comillas no válidas en el valor de la línea de comandos [{0}].</target>
         <note />
       </trans-unit>
-      <trans-unit id="General.ToolCommandFailedNoErrorCode">
+      <trans-unit id="General_ToolCommandFailedNoErrorCode">
         <source>The command exited with code {0}.</source>
         <target state="translated">El comando salió con el código {0}.</target>
         <note />
       </trans-unit>
-      <trans-unit id="LockCheck.FileLocked">
+      <trans-unit id="LockCheck_FileLocked">
         <source>The file is locked by: "{0}"</source>
         <target state="translated">El archivo se ha bloqueado por: "{0}"</target>
         <note />
       </trans-unit>
-      <trans-unit id="PlatformManifest.MissingPlatformXml">
+      <trans-unit id="PlatformManifest_MissingPlatformXml">
         <source>MSB6010: Could not find platform manifest file at "{0}".</source>
         <target state="translated">MSB6010: No se ha podido encontrar el archivo de manifiesto de plataforma en "{0}".</target>
         <note>{StrBegin="MSB6010: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.CommandTooLong">
+      <trans-unit id="ToolTask_CommandTooLong">
         <source>MSB6002: The command-line for the "{0}" task is too long. Command-lines longer than 32000 characters are likely to fail. Try reducing the length of the command-line by breaking down the call to "{0}" into multiple calls with fewer parameters per call.</source>
         <target state="translated">MSB6002: La línea de comandos para la tarea "{0}" es demasiado larga. Las líneas de comandos con más de 32 000 caracteres son propensas a acabar en error. Reduzca la longitud de la línea de comandos dividiendo la llamada a "{0}" en varias llamadas con menos parámetros por llamada.</target>
         <note>{StrBegin="MSB6002: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.CouldNotStartToolExecutable">
+      <trans-unit id="ToolTask_CouldNotStartToolExecutable">
         <source>MSB6003: The specified task executable "{0}" could not be run. {1}</source>
         <target state="translated">MSB6003: No se pudo ejecutar la tarea ejecutable especificada "{0}". {1}</target>
         <note>{StrBegin="MSB6003: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.InvalidTerminationTimeout">
+      <trans-unit id="ToolTask_InvalidTerminationTimeout">
         <source>Specified termination timeout ({0}) is invalid - expecting value greater or equal to -1.</source>
         <target state="translated">El tiempo de espera de finalización especificado ({0}) no es válido; se espera un valor mayor o igual que -1.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ToolTask.NotUpToDate">
+      <trans-unit id="ToolTask_NotUpToDate">
         <source>Unable to skip task because it is not up-to-date.</source>
         <target state="translated">No se puede omitir la tarea porque no está actualizada.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ToolTask.PipeEOFTimeout">
+      <trans-unit id="ToolTask_PipeEOFTimeout">
         <source>Pipe EOF not received within {0} seconds. A grandchild process may still be holding the pipe open. Output already delivered has been logged.</source>
         <target state="translated">No se recibió el fin de archivo de la canalización en {0} segundos. Es posible que un proceso de secundaria aún mantenga abierta la canalización. La salida ya entregada se ha registrado.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ToolTask.ToolCommandFailed">
+      <trans-unit id="ToolTask_ToolCommandFailed">
         <source>MSB6006: "{0}" exited with code {1}.</source>
         <target state="translated">MSB6006: "{0}" salió con el código {1}.</target>
         <note>{StrBegin="MSB6006: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.ToolCommandExitedZeroWithErrors">
+      <trans-unit id="ToolTask_ToolCommandExitedZeroWithErrors">
         <source>The command exited with return value 0, but errors were detected during execution. ExitCode was set to -1.</source>
         <target state="translated">El comando se cerró con el valor devuelto 0, pero se detectaron errores durante la ejecución. ExitCode se estableció en -1.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ToolTask.ToolExecutableNotFound">
+      <trans-unit id="ToolTask_ToolExecutableNotFound">
         <source>MSB6004: The specified task executable location "{0}" is invalid.</source>
         <target state="translated">MSB6004: La ubicación de la tarea ejecutable especificada "{0}" no es válida.</target>
         <note>{StrBegin="MSB6004: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.ValidateParametersFailed">
+      <trans-unit id="ToolTask_ValidateParametersFailed">
         <source>MSB6011: Invalid parameters passed to the {0} task.</source>
         <target state="translated">MSB6011: Se han pasado parámetros no válidos a la tarea {0}.</target>
         <note>{StrBegin="MSB6011: "}</note>
       </trans-unit>
-      <trans-unit id="ToolsLocationHelper.InvalidRedistFile">
+      <trans-unit id="ToolsLocationHelper_InvalidRedistFile">
         <source>There was an error reading the redist list file "{0}". {1}</source>
         <target state="translated">Error al leer el archivo de lista de paquetes redistribuibles "{0}". {1}</target>
         <note>No Error code because this resource will be used in an exception. The error code is discarded if it is included</note>
       </trans-unit>
-      <trans-unit id="ToolsLocationHelper.CouldNotCreateChain">
+      <trans-unit id="ToolsLocationHelper_CouldNotCreateChain">
         <source>The Framework at path "{0}" tried to include the framework at path "{1}" as part of its reference assembly paths but there was an error. {2}</source>
         <target state="translated">Error al intentar que la versión de .NET Framework de la ruta de acceso "{0}" incluyera la versión de .NET Framework de la ruta de acceso "{1}" como parte de sus rutas de acceso de ensamblados de referencia. {2}</target>
         <note>No Error code because this resource will be used in an exception. The error code is discarded if it is included</note>
       </trans-unit>
-      <trans-unit id="ToolTask.InvalidEnvironmentParameter">
+      <trans-unit id="ToolTask_InvalidEnvironmentParameter">
         <source>MSB6007: The "{0}" value passed to the Environment property is not in the format "name=value", where the value part may be empty.</source>
         <target state="translated">MSB6007: El valor "{0}" pasado a la propiedad Environment no tiene el formato "nombre=valor", en donde la parte correspondiente al valor puede estar vacía.</target>
         <note>{StrBegin="MSB6007: "}</note>
       </trans-unit>
-      <trans-unit id="ToolTask.EnvironmentVariableHeader">
+      <trans-unit id="ToolTask_EnvironmentVariableHeader">
         <source>Environment Variables passed to tool:</source>
         <target state="translated">Variables de entorno pasadas a la herramienta:</target>
         <note />

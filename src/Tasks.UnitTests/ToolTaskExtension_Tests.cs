@@ -44,9 +44,9 @@ namespace Microsoft.Build.UnitTests
             // Now private Utilities messages. Should be accessible with the private LogPrivate property
             PropertyInfo logPrivate = typeof(ToolTask).GetProperty("LogPrivate", BindingFlags.Instance | BindingFlags.NonPublic);
             log = (TaskLoggingHelper)logPrivate.GetValue(t, null);
-            log.LogErrorWithCodeFromResources("ToolTask.CommandTooLong", "Painkiller");
-            log.LogWarningWithCodeFromResources("ToolTask.CouldNotStartToolExecutable", "Fallout Tactics", "Fallout 2");
-            log.LogMessageFromResources("ToolsLocationHelper.InvalidRedistFile", "Deus Ex", "Fallout");
+            log.LogErrorWithCodeFromResources("ToolTask_CommandTooLong", "Painkiller");
+            log.LogWarningWithCodeFromResources("ToolTask_CouldNotStartToolExecutable", "Fallout Tactics", "Fallout 2");
+            log.LogMessageFromResources("ToolsLocationHelper_InvalidRedistFile", "Deus Ex", "Fallout");
         }
 
         /// <summary>

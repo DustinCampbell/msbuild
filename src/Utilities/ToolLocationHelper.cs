@@ -3169,11 +3169,11 @@ namespace Microsoft.Build.Utilities
             }
             catch (XmlException ex)
             {
-                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper.InvalidRedistFile", redistFilePath, ex.Message);
+                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper_InvalidRedistFile", redistFilePath, ex.Message);
             }
             catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
-                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper.InvalidRedistFile", redistFilePath, ex.Message);
+                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper_InvalidRedistFile", redistFilePath, ex.Message);
             }
 
             // Cache the display name if we have one
@@ -3221,7 +3221,7 @@ namespace Microsoft.Build.Utilities
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
             {
-                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper.CouldNotCreateChain", path, pathToReturn, e.Message);
+                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper_CouldNotCreateChain", path, pathToReturn, e.Message);
             }
 
             return null;

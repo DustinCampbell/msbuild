@@ -291,7 +291,7 @@ namespace Microsoft.Build.UnitTests
                 "ResGen.CommandTooLong",
                 CommandLine.GetCommandLine(t, false).Length);
 
-            VerifyLogDoesNotContainResource((MockEngine)t.BuildEngine, GetPrivateLog(t), "ToolTask.CommandTooLong", typeof(ResGen).Name);
+            VerifyLogDoesNotContainResource((MockEngine)t.BuildEngine, GetPrivateLog(t), "ToolTask_CommandTooLong", typeof(ResGen).Name);
 
             //
             // Case 2: Command line length is one more than the maximum allowed value
@@ -314,7 +314,7 @@ namespace Microsoft.Build.UnitTests
                 "ResGen.CommandTooLong",
                 CommandLine.GetCommandLine(t, false).Length);
 
-            VerifyLogDoesNotContainResource((MockEngine)t.BuildEngine, GetPrivateLog(t), "ToolTask.CommandTooLong", typeof(ResGen).Name);
+            VerifyLogDoesNotContainResource((MockEngine)t.BuildEngine, GetPrivateLog(t), "ToolTask_CommandTooLong", typeof(ResGen).Name);
         }
 
         private ResGen CreateCommandLineResGen()
