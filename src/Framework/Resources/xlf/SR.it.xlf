@@ -92,6 +92,21 @@
         <target state="translated">Si è verificata un'eccezione durante l'espansione di un fileSpec con GLOBS: fileSpec: "{0}", presupponendo che si tratti di un nome di file. Eccezione: {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputDoesntExist">
+        <source>Input file "{0}" does not exist.</source>
+        <target state="translated">Il file di input "{0}" non esiste.</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
+      <trans-unit id="InputNewer">
+        <source>Input file "{0}" is newer than output file "{1}".</source>
+        <target state="translated">Il file di input "{0}" è più recente del file di output "{1}".</target>
+        <note>{0} and {1} are filenames on disk.</note>
+      </trans-unit>
+      <trans-unit id="OutputDoesntExist">
+        <source>Output file "{0}" does not exist.</source>
+        <target state="translated">Il file di output "{0}" non esiste.</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">L'elemento "{0}" include l'attributo "{1}" con il valore "{2}" che non è stato possibile convertire in "{3}".</target>

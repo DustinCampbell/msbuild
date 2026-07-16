@@ -644,11 +644,6 @@
         <target state="translated">この状態ファイルの形式は無効です。</target>
         <note />
       </trans-unit>
-      <trans-unit id="General.InvalidAttributeMetadata">
-        <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
-        <target state="translated">項目 "{0}" は、"{3}" に変換できなかった値 "{2}" を伴う属性 "{1}" を含んでいます。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="General.InvalidArgument">
         <source>MSB3095: Invalid argument. {0}</source>
         <target state="translated">MSB3095: 引数が無効です。{0}</target>
@@ -1166,16 +1161,6 @@
         <target state="translated">MSB3824: .NET Core を使用してビルドするには、リソースの入力を .txt 形式または .resx 形式にする必要があります。</target>
         <note>{StrBegin="MSB3824: "}</note>
       </trans-unit>
-      <trans-unit id="GenerateResource.InputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">入力ファイル {0} は存在しません。</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="GenerateResource.InputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">入力ファイル "{0}" は出力ファイル "{1}" よりも新しいです。</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
       <trans-unit id="GenerateResource.LinkedInputDoesntExist">
         <source>Linked input file "{0}" does not exist.</source>
         <target state="translated">リンクされた入力ファイル "{0}" は存在しません。</target>
@@ -1195,11 +1180,6 @@
         <source>MSB3826: Resource \"{0}\" in \"{1}\" uses MIME type \"{2}\", which is not supported by MSBuild when running on .NET.</source>
         <target state="translated">MSB3826: \"{1}\" のリソース \"{0}\" は MIME の種類 \"{2}\" を使用します。これは、.NET で実行されている場合、MSBuild ではサポートされていません。</target>
         <note>{StrBegin="MSB3826: "}</note>
-      </trans-unit>
-      <trans-unit id="GenerateResource.OutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">出力ファイル "{0}" は存在しません。</target>
-        <note>{0} is a filename on disk.</note>
       </trans-unit>
       <trans-unit id="GenerateResource.PreserializedResourcesRequiresExtensions">
         <source>MSB3822: Non-string resources require the System.Resources.Extensions assembly at runtime, but it was not found in this project's references.</source>

@@ -335,15 +335,15 @@ namespace Microsoft.Build.UnitTests.GenerateResource_Tests.InProc
 
             /* Unmerged change from project 'Microsoft.Build.Tasks.UnitTests (net7.0)'
             Before:
-            Utilities.AssertLogContainsResource(t, "GenerateResource.OutputDoesntExist", t.OutputResources[0].ItemSpec);
+            Utilities.AssertLogContainsResource(t, "OutputDoesntExist", t.OutputResources[0].ItemSpec);
 
             Utilities.AssertStateFileWasWritten(t);
             After:
-            Utilities.AssertLogContainsResource(t, "GenerateResource.OutputDoesntExist", t.OutputResources[0].ItemSpec);
+            Utilities.AssertLogContainsResource(t, "OutputDoesntExist", t.OutputResources[0].ItemSpec);
 
             Utilities.AssertStateFileWasWritten(t);
             */
-            Utilities.AssertLogContainsResource(t, "GenerateResource.OutputDoesntExist", t.OutputResources[0].ItemSpec);
+            Utilities.AssertLogContainsResource(t, "OutputDoesntExist", t.OutputResources[0].ItemSpec);
 
             Utilities.AssertStateFileWasWritten(t);
 
@@ -358,7 +358,7 @@ namespace Microsoft.Build.UnitTests.GenerateResource_Tests.InProc
 
             File.GetLastAccessTime(t2.OutputResources[0].ItemSpec).ShouldBe(DateTime.Now, TimeSpan.FromSeconds(5));
 
-            Utilities.AssertLogContainsResource(t2, "GenerateResource.InputNewer", t2.Sources[0].ItemSpec, t2.OutputResources[0].ItemSpec);
+            Utilities.AssertLogContainsResource(t2, "InputNewer", t2.Sources[0].ItemSpec, t2.OutputResources[0].ItemSpec);
         }
 
         [Fact]
@@ -373,7 +373,7 @@ namespace Microsoft.Build.UnitTests.GenerateResource_Tests.InProc
 
             Utilities.ExecuteTask(t);
 
-            Utilities.AssertLogContainsResource(t, "GenerateResource.OutputDoesntExist", t.OutputResources[0].ItemSpec);
+            Utilities.AssertLogContainsResource(t, "OutputDoesntExist", t.OutputResources[0].ItemSpec);
 
             GenerateResource t2 = Utilities.CreateTask(_output);
             t2.StateFile = new TaskItem(t.StateFile);
@@ -508,7 +508,7 @@ namespace Microsoft.Build.UnitTests.GenerateResource_Tests.InProc
             t1.StateFile = stateFile;
             Utilities.ExecuteTask(t1);
 
-            Utilities.AssertLogContainsResource(t1, "GenerateResource.OutputDoesntExist", t1.OutputResources[0].ItemSpec);
+            Utilities.AssertLogContainsResource(t1, "OutputDoesntExist", t1.OutputResources[0].ItemSpec);
 
             output = t1.OutputResources;
 
@@ -537,7 +537,7 @@ namespace Microsoft.Build.UnitTests.GenerateResource_Tests.InProc
             t4.StateFile = stateFile;
             Utilities.ExecuteTask(t4);
 
-            Utilities.AssertLogContainsResource(t4, "GenerateResource.OutputDoesntExist", t4.OutputResources[0].ItemSpec);
+            Utilities.AssertLogContainsResource(t4, "OutputDoesntExist", t4.OutputResources[0].ItemSpec);
 
             // Run again to ensure all files are up to date.
             GenerateResource t5 = Utilities.CreateTask(_output);
@@ -766,7 +766,7 @@ namespace Microsoft.Build.UnitTests.GenerateResource_Tests.InProc
             t2.FilesWritten[0].ItemSpec.ShouldBe(createResources.FilesWritten[0].ItemSpec);
             t2.FilesWritten[1].ItemSpec.ShouldBe(createResources.FilesWritten[1].ItemSpec);
 
-            Utilities.AssertLogContainsResource(t2, "GenerateResource.InputNewer", firstResx, t2.OutputResources[0].ItemSpec);
+            Utilities.AssertLogContainsResource(t2, "InputNewer", firstResx, t2.OutputResources[0].ItemSpec);
         }
 
         /// <summary>
@@ -964,7 +964,7 @@ namespace Microsoft.Build.UnitTests.GenerateResource_Tests.InProc
 
                 resourcesFile = incrementalOutOfDate.OutputResources[0].ItemSpec;
 
-                Utilities.AssertLogContainsResource(incrementalOutOfDate, "GenerateResource.InputNewer", localSystemDll, incrementalOutOfDate.OutputResources[0].ItemSpec);
+                Utilities.AssertLogContainsResource(incrementalOutOfDate, "InputNewer", localSystemDll, incrementalOutOfDate.OutputResources[0].ItemSpec);
             }
             finally
             {
@@ -1036,7 +1036,7 @@ namespace Microsoft.Build.UnitTests.GenerateResource_Tests.InProc
                 t3.StateFile = new TaskItem(t.StateFile);
                 Utilities.ExecuteTask(t3);
                 Utilities.AssertLogNotContainsResource(t3, "GenerateResource.NothingOutOfDate", "");
-                Utilities.AssertLogContainsResource(t3, "GenerateResource.InputNewer", additionalInputs[1].ItemSpec, t3.OutputResources[0].ItemSpec);
+                Utilities.AssertLogContainsResource(t3, "InputNewer", additionalInputs[1].ItemSpec, t3.OutputResources[0].ItemSpec);
                 resourcesFile = t3.OutputResources[0].ItemSpec;
             }
             finally

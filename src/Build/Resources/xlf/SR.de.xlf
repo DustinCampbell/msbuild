@@ -1259,21 +1259,6 @@ Fehler: {3}</target>
         <target state="translated">Es wurden keine Eingabedateien angegeben.</target>
         <note />
       </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">Die Eingabedatei "{0}" ist neuer als die Ausgabedatei "{1}".</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyOutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">Die Ausgabedatei "{0}" ist nicht vorhanden.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">Die Eingabedatei "{0}" ist nicht vorhanden.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
       <trans-unit id="BuildTargetPartially">
         <source>Building target "{0}" partially, because some output files are out of date with respect to their input files.</source>
         <target state="translated">Das Ziel "{0}" wird teilweise erstellt, da einige Ausgabedateien hinsichtlich ihrer Eingabedateien veraltet sind.</target>

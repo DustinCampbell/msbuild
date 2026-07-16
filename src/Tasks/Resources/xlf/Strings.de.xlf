@@ -644,11 +644,6 @@
         <target state="translated">Das Format dieser Zustandsdatei ist ungültig.</target>
         <note />
       </trans-unit>
-      <trans-unit id="General.InvalidAttributeMetadata">
-        <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
-        <target state="translated">Das Element "{0}" enthält das {1}-Attribut mit dem Wert "{2}", der nicht in "{3}" konvertiert werden konnte.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="General.InvalidArgument">
         <source>MSB3095: Invalid argument. {0}</source>
         <target state="translated">MSB3095: Ungültiges Argument. {0}</target>
@@ -1166,16 +1161,6 @@
         <target state="translated">MSB3824: Für die Kompilierung mit .NET Core müssen Ressourceneingaben im TXT- oder RESX-Format vorliegen.</target>
         <note>{StrBegin="MSB3824: "}</note>
       </trans-unit>
-      <trans-unit id="GenerateResource.InputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">Die Eingabedatei "{0}" ist nicht vorhanden.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="GenerateResource.InputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">Die Eingabedatei "{0}" ist neuer als die Ausgabedatei "{1}".</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
       <trans-unit id="GenerateResource.LinkedInputDoesntExist">
         <source>Linked input file "{0}" does not exist.</source>
         <target state="translated">Die verknüpfte Eingabedatei "{0}" ist nicht vorhanden.</target>
@@ -1195,11 +1180,6 @@
         <source>MSB3826: Resource \"{0}\" in \"{1}\" uses MIME type \"{2}\", which is not supported by MSBuild when running on .NET.</source>
         <target state="translated">MSB3826: Die Ressource \"{0}\" in \"{1}\" verwendet den MIME-Typ \"{2}\", der von MSBuild bei der Ausführung unter .NET nicht unterstützt wird.</target>
         <note>{StrBegin="MSB3826: "}</note>
-      </trans-unit>
-      <trans-unit id="GenerateResource.OutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">Die Ausgabedatei "{0}" ist nicht vorhanden.</target>
-        <note>{0} is a filename on disk.</note>
       </trans-unit>
       <trans-unit id="GenerateResource.PreserializedResourcesRequiresExtensions">
         <source>MSB3822: Non-string resources require the System.Resources.Extensions assembly at runtime, but it was not found in this project's references.</source>

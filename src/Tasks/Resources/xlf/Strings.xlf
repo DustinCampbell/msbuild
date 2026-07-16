@@ -335,10 +335,6 @@
         <source>The format of this state file is not valid.</source>
         <note />
       </trans-unit>
-      <trans-unit id="General.InvalidAttributeMetadata">
-        <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
-        <note />
-      </trans-unit>
       <trans-unit id="General.InvalidArgument">
         <source>MSB3095: Invalid argument. {0}</source>
         <note>{StrBegin="MSB3095: "}</note>

@@ -644,11 +644,6 @@
         <target state="translated">Il formato del file di stato non è valido.</target>
         <note />
       </trans-unit>
-      <trans-unit id="General.InvalidAttributeMetadata">
-        <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
-        <target state="translated">L'elemento "{0}" include l'attributo "{1}" con il valore "{2}" che non è stato possibile convertire in "{3}".</target>
-        <note />
-      </trans-unit>
       <trans-unit id="General.InvalidArgument">
         <source>MSB3095: Invalid argument. {0}</source>
         <target state="translated">MSB3095: Argomento non valido. {0}</target>
@@ -1166,16 +1161,6 @@
         <target state="translated">MSB3824: per compilare con .NET Core, gli input delle risorse devono essere in formato. txt o. resx.</target>
         <note>{StrBegin="MSB3824: "}</note>
       </trans-unit>
-      <trans-unit id="GenerateResource.InputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">Il file di input "{0}" non esiste.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="GenerateResource.InputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">Il file di input "{0}" è più recente del file di output "{1}".</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
       <trans-unit id="GenerateResource.LinkedInputDoesntExist">
         <source>Linked input file "{0}" does not exist.</source>
         <target state="translated">Il file di input collegato "{0}" non esiste.</target>
@@ -1195,11 +1180,6 @@
         <source>MSB3826: Resource \"{0}\" in \"{1}\" uses MIME type \"{2}\", which is not supported by MSBuild when running on .NET.</source>
         <target state="translated">MSB3826: la risorsa \"{0}\" in \"{1}\" usa il tipo MIME \"{2}\", che non è supportato da MSBuild durante l'esecuzione in .NET.</target>
         <note>{StrBegin="MSB3826: "}</note>
-      </trans-unit>
-      <trans-unit id="GenerateResource.OutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">Il file di output "{0}" non esiste.</target>
-        <note>{0} is a filename on disk.</note>
       </trans-unit>
       <trans-unit id="GenerateResource.PreserializedResourcesRequiresExtensions">
         <source>MSB3822: Non-string resources require the System.Resources.Extensions assembly at runtime, but it was not found in this project's references.</source>

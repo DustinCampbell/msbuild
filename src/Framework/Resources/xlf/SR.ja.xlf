@@ -92,6 +92,21 @@
         <target state="translated">glob を使用して fileSpec を展開中に例外が発生しました: fileSpec: "{0}"、これはファイル名であると仮定します。例外: {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputDoesntExist">
+        <source>Input file "{0}" does not exist.</source>
+        <target state="translated">入力ファイル {0} は存在しません。</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
+      <trans-unit id="InputNewer">
+        <source>Input file "{0}" is newer than output file "{1}".</source>
+        <target state="translated">入力ファイル "{0}" は出力ファイル "{1}" よりも新しいです。</target>
+        <note>{0} and {1} are filenames on disk.</note>
+      </trans-unit>
+      <trans-unit id="OutputDoesntExist">
+        <source>Output file "{0}" does not exist.</source>
+        <target state="translated">出力ファイル "{0}" は存在しません。</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">項目 "{0}" は、"{3}" に変換できなかった値 "{2}" を伴う属性 "{1}" を含んでいます。</target>

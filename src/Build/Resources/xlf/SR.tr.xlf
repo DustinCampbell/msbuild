@@ -1259,21 +1259,6 @@ Hatalar: {3}</target>
         <target state="translated">Giriş dosyası belirtilmedi.</target>
         <note />
       </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">"{0}" giriş dosyası, "{1}" çıkış dosyasından daha yeni.</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyOutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">"{0}" çıkış dosyası yok.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">"{0}" giriş dosyası yok.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
       <trans-unit id="BuildTargetPartially">
         <source>Building target "{0}" partially, because some output files are out of date with respect to their input files.</source>
         <target state="translated">Bazı çıkış dosyaları, giriş dosyalarına göre güncel durumda olmadığından "{0}" hedefi kısmen oluşturuluyor.</target>

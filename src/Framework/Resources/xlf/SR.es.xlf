@@ -92,6 +92,21 @@
         <target state="translated">Se produjo una excepción al expandir un fileSpec con globs: fileSpec: "{0}"; suponiendo que es un nombre de archivo. Excepción: {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputDoesntExist">
+        <source>Input file "{0}" does not exist.</source>
+        <target state="translated">El archivo de entrada "{0}" no existe.</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
+      <trans-unit id="InputNewer">
+        <source>Input file "{0}" is newer than output file "{1}".</source>
+        <target state="translated">El archivo de entrada "{0}" es más reciente que el archivo de salida "{1}".</target>
+        <note>{0} and {1} are filenames on disk.</note>
+      </trans-unit>
+      <trans-unit id="OutputDoesntExist">
+        <source>Output file "{0}" does not exist.</source>
+        <target state="translated">El archivo de salida "{0}" no existe.</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">El elemento "{0}" tiene el atributo "{1}" con el valor "{2}" que no se pudo convertir a "{3}".</target>

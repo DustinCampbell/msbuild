@@ -1590,7 +1590,7 @@ namespace Microsoft.Build.Tasks
             if (_newestUncorrelatedInput != null && _newestUncorrelatedInputWriteTime > outputTime)
             {
                 // An uncorrelated input is newer, need to build
-                Log.LogMessageFromResources(MessageImportance.Low, "GenerateResource.InputNewer", _newestUncorrelatedInput, outputFilePath);
+                Log.LogMessageFromResources(MessageImportance.Low, "InputNewer", _newestUncorrelatedInput, outputFilePath);
                 return true;
             }
 
@@ -1671,14 +1671,14 @@ namespace Microsoft.Build.Tasks
             if (outputTime == DateTime.MinValue)
             {
                 // Output file is missing, need to build
-                Log.LogMessageFromResources(MessageImportance.Low, "GenerateResource.OutputDoesntExist", outputFilePath);
+                Log.LogMessageFromResources(MessageImportance.Low, "OutputDoesntExist", outputFilePath);
                 return true;
             }
 
             if (sourceTime > outputTime)
             {
                 // Source file is newer, need to build
-                Log.LogMessageFromResources(MessageImportance.Low, "GenerateResource.InputNewer", sourceFilePath, outputFilePath);
+                Log.LogMessageFromResources(MessageImportance.Low, "InputNewer", sourceFilePath, outputFilePath);
                 return true;
             }
 
@@ -1686,7 +1686,7 @@ namespace Microsoft.Build.Tasks
             if (_newestUncorrelatedInput != null && _newestUncorrelatedInputWriteTime > outputTime)
             {
                 // An uncorrelated input is newer, need to build
-                Log.LogMessageFromResources(MessageImportance.Low, "GenerateResource.InputNewer", _newestUncorrelatedInput, outputFilePath);
+                Log.LogMessageFromResources(MessageImportance.Low, "InputNewer", _newestUncorrelatedInput, outputFilePath);
                 return true;
             }
 
@@ -1734,19 +1734,19 @@ namespace Microsoft.Build.Tasks
             {
                 // Source file is missing - force a build, so that resource generation
                 // will produce a nice error message
-                Log.LogMessageFromResources(MessageImportance.Low, "GenerateResource.InputDoesntExist", Sources[0].ItemSpec);
+                Log.LogMessageFromResources(MessageImportance.Low, "InputDoesntExist", Sources[0].ItemSpec);
                 needToRebuildSTR = true;
             }
             else if (outputTime == DateTime.MinValue)
             {
                 // Output file is missing, need to build it
-                Log.LogMessageFromResources(MessageImportance.Low, "GenerateResource.OutputDoesntExist", StronglyTypedFileName);
+                Log.LogMessageFromResources(MessageImportance.Low, "OutputDoesntExist", StronglyTypedFileName);
                 needToRebuildSTR = true;
             }
             else if (sourceTime > outputTime)
             {
                 // Source file is newer, need to build
-                Log.LogMessageFromResources(MessageImportance.Low, "GenerateResource.InputNewer", Sources[0].ItemSpec, StronglyTypedFileName);
+                Log.LogMessageFromResources(MessageImportance.Low, "InputNewer", Sources[0].ItemSpec, StronglyTypedFileName);
                 needToRebuildSTR = true;
             }
 
@@ -1794,7 +1794,7 @@ namespace Microsoft.Build.Tasks
                     _newestUncorrelatedInput = input.ItemSpec;
                     _newestUncorrelatedInputWriteTime = time;
                     // Log it here so it's logged only once for all inputs
-                    Log.LogMessageFromResources(MessageImportance.Low, "GenerateResource.InputDoesntExist", _newestUncorrelatedInput);
+                    Log.LogMessageFromResources(MessageImportance.Low, "InputDoesntExist", _newestUncorrelatedInput);
                     return;
                 }
 

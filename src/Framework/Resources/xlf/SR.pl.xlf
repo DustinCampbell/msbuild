@@ -92,6 +92,21 @@
         <target state="translated">Wystąpił wyjątek podczas rozwijania elementu fileSpec za pomocą globów: fileSpec: „{0}”, przy założeniu, że jest to nazwa pliku. Wyjątek: {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputDoesntExist">
+        <source>Input file "{0}" does not exist.</source>
+        <target state="translated">Plik wejściowy „{0}” nie istnieje.</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
+      <trans-unit id="InputNewer">
+        <source>Input file "{0}" is newer than output file "{1}".</source>
+        <target state="translated">Plik wejściowy „{0}” jest nowszy niż plik wyjściowy „{1}”.</target>
+        <note>{0} and {1} are filenames on disk.</note>
+      </trans-unit>
+      <trans-unit id="OutputDoesntExist">
+        <source>Output file "{0}" does not exist.</source>
+        <target state="translated">Plik wyjściowy „{0}” nie istnieje.</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">Element „{0}” ma atrybut „{1}” o wartości „{2}”, którego nie można przekonwertować na „{3}”.</target>

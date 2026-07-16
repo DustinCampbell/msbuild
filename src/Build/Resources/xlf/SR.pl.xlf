@@ -1259,21 +1259,6 @@ Błędy: {3}</target>
         <target state="translated">Nie określono plików wejściowych.</target>
         <note />
       </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">Plik wejściowy „{0}” jest nowszy niż plik wyjściowy „{1}”.</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyOutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">Plik wyjściowy „{0}” nie istnieje.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">Plik wejściowy „{0}” nie istnieje.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
       <trans-unit id="BuildTargetPartially">
         <source>Building target "{0}" partially, because some output files are out of date with respect to their input files.</source>
         <target state="translated">Trwa częściowe kompilowanie elementu docelowego „{0}”, ponieważ niektóre pliki wyjściowe są nieaktualne w porównaniu z plikami wejściowymi.</target>

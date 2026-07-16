@@ -1259,21 +1259,6 @@ Errori: {3}</target>
         <target state="translated">Non è stato specificato alcun file di input.</target>
         <note />
       </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">Il file di input "{0}" è più recente del file di output "{1}".</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyOutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">Il file di output "{0}" non esiste.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">Il file di input "{0}" non esiste.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
       <trans-unit id="BuildTargetPartially">
         <source>Building target "{0}" partially, because some output files are out of date with respect to their input files.</source>
         <target state="translated">Compilazione parziale della destinazione "{0}" perché alcuni file di output sono obsoleti rispetto ai file di input corrispondenti.</target>

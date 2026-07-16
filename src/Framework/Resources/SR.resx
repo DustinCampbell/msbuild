@@ -182,6 +182,18 @@
   <data name="CannotConvertStringToBool" xml:space="preserve">
     <value>The string "{0}" cannot be converted to a boolean (true/false) value.</value>
   </data>
+  <data name="InputDoesntExist" xml:space="preserve">
+    <value>Input file "{0}" does not exist.</value>
+    <comment>{0} is a filename on disk.</comment>
+  </data>
+  <data name="InputNewer" xml:space="preserve">
+    <value>Input file "{0}" is newer than output file "{1}".</value>
+    <comment>{0} and {1} are filenames on disk.</comment>
+  </data>
+  <data name="OutputDoesntExist" xml:space="preserve">
+    <value>Output file "{0}" does not exist.</value>
+    <comment>{0} is a filename on disk.</comment>
+  </data>
   <data name="InvalidAttributeMetadata" xml:space="preserve">
     <value>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</value>
   </data>

@@ -644,11 +644,6 @@
         <target state="translated">이 상태 파일의 형식이 잘못되었습니다.</target>
         <note />
       </trans-unit>
-      <trans-unit id="General.InvalidAttributeMetadata">
-        <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
-        <target state="translated">"{0}" 항목에 "{3}"(으)로 변환할 수 없는 "{2}" 값이 있는 "{1}" 특성이 있습니다.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="General.InvalidArgument">
         <source>MSB3095: Invalid argument. {0}</source>
         <target state="translated">MSB3095: 잘못된 인수입니다. {0}</target>
@@ -1166,16 +1161,6 @@
         <target state="translated">MSB3824: .NET Core로 빌드하려면 리소스 입력이 .txt 또는 .resx 형식이어야 합니다.</target>
         <note>{StrBegin="MSB3824: "}</note>
       </trans-unit>
-      <trans-unit id="GenerateResource.InputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">입력 파일 "{0}"이(가) 없습니다.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="GenerateResource.InputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">입력 파일 "{0}"이(가) 출력 파일 "{1}"보다 최신 파일입니다.</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
       <trans-unit id="GenerateResource.LinkedInputDoesntExist">
         <source>Linked input file "{0}" does not exist.</source>
         <target state="translated">연결된 입력 파일 "{0}"이 (가) 없습니다.</target>
@@ -1195,11 +1180,6 @@
         <source>MSB3826: Resource \"{0}\" in \"{1}\" uses MIME type \"{2}\", which is not supported by MSBuild when running on .NET.</source>
         <target state="translated">MSB3826: \"{1}\"의 리소스 \"{0}\"은(는) .NET에서 실행할 때 MSBuild에서 지원하지 않는 MIME 형식 \"{2}\"을 사용합니다.</target>
         <note>{StrBegin="MSB3826: "}</note>
-      </trans-unit>
-      <trans-unit id="GenerateResource.OutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">출력 파일 "{0}"이(가) 없습니다.</target>
-        <note>{0} is a filename on disk.</note>
       </trans-unit>
       <trans-unit id="GenerateResource.PreserializedResourcesRequiresExtensions">
         <source>MSB3822: Non-string resources require the System.Resources.Extensions assembly at runtime, but it was not found in this project's references.</source>

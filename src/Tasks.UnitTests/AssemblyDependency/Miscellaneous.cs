@@ -3515,7 +3515,7 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             t.SearchPaths = DefaultPaths;
             Execute(t);
 
-            string message = String.Format(AssemblyResources.GetString("General.InvalidAttributeMetadata"), assemblyNames[0].ItemSpec, "Private", "bogus", "bool");
+            string message = String.Format(AssemblyResources.GetString("InvalidAttributeMetadata"), assemblyNames[0].ItemSpec, "Private", "bogus", "bool");
             Assert.Contains(message, engine.Log);
         }
 

@@ -92,6 +92,21 @@
         <target state="translated">展開具有 glob 的 fileSpec 時發生例外狀況: fileSpec: "{0}" (假設它是檔案名稱)。例外狀況: {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputDoesntExist">
+        <source>Input file "{0}" does not exist.</source>
+        <target state="translated">輸入檔 "{0}" 不存在。</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
+      <trans-unit id="InputNewer">
+        <source>Input file "{0}" is newer than output file "{1}".</source>
+        <target state="translated">輸入檔 "{0}" 比輸出檔 "{1}" 新。</target>
+        <note>{0} and {1} are filenames on disk.</note>
+      </trans-unit>
+      <trans-unit id="OutputDoesntExist">
+        <source>Output file "{0}" does not exist.</source>
+        <target state="translated">輸出檔 "{0}" 不存在。</target>
+        <note>{0} is a filename on disk.</note>
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">項目 "{0}" 的屬性 "{1}" 的值為 "{2}"，不能轉換為 "{3}"。</target>

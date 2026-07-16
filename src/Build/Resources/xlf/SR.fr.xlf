@@ -1259,21 +1259,6 @@ Erreurs : {3}</target>
         <target state="translated">Aucun fichier d'entrée n'a été spécifié.</target>
         <note />
       </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputNewer">
-        <source>Input file "{0}" is newer than output file "{1}".</source>
-        <target state="translated">Le fichier d'entrée "{0}" est plus récent que le fichier de sortie "{1}".</target>
-        <note>{0} and {1} are filenames on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyOutputDoesntExist">
-        <source>Output file "{0}" does not exist.</source>
-        <target state="translated">Le fichier de sortie "{0}" n'existe pas.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
-      <trans-unit id="BuildTargetCompletelyInputDoesntExist">
-        <source>Input file "{0}" does not exist.</source>
-        <target state="translated">Le fichier d'entrée "{0}" n'existe pas.</target>
-        <note>{0} is a filename on disk.</note>
-      </trans-unit>
       <trans-unit id="BuildTargetPartially">
         <source>Building target "{0}" partially, because some output files are out of date with respect to their input files.</source>
         <target state="translated">Génération partielle de la cible "{0}", car certains fichiers de sortie sont obsolètes par rapport aux fichiers d'entrée.</target>
