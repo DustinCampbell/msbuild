@@ -38,6 +38,9 @@ public class ConsoleLoggerBenchmark
     private ParallelConsoleLogger _logger = null!;
     private ArrayList _items = null!;
 
+    private ParallelConsoleLogger _prefixLogger = null!;
+    private readonly DateTime _timestamp = new DateTime(2026, 7, 16, 14, 50, 10, 114);
+
     [GlobalSetup]
     public void Setup()
     {
@@ -65,6 +68,10 @@ public class ConsoleLoggerBenchmark
             item.SetMetadata("Link", $"Linked/File{i}.cs");
             _items.Add(item);
         }
+        // A diagnostic-verbosity, multi-proc logger for the WriteLinePrefix path. NumberOfProcessors > 1
+        // means prefixes are emitted; Diagnostic verbosity means the timestamp is included in the prefix.
+        _prefixLogger = new ParallelConsoleLogger(LoggerVerbosity.Diagnostic, _writer.Write, NoOpColor, NoOpReset);
+        _prefixLogger.Initialize(null, 4);
     }
 
     private static void NoOpColor(ConsoleColor color)
@@ -107,6 +114,23 @@ public class ConsoleLoggerBenchmark
     [Benchmark]
     public void OutputItems()
         => _logger.OutputItems("Compile", _items);
+
+    // --- #5: WriteLinePrefix (per-line prefix in multiproc builds) ---
+
+    /// <summary>
+    /// Message-style prefix (isMessagePrefix: true) at Diagnostic verbosity, so the timestamp is
+    /// included. Exercises the resource-format + interpolation + WritePretty prefix pipeline.
+    /// </summary>
+    [Benchmark]
+    public void WriteLinePrefix_Message()
+        => _prefixLogger.WriteLinePrefixCore("3:2", _timestamp, isMessagePrefix: true);
+
+    /// <summary>
+    /// Event-style prefix (isMessagePrefix: false), which appends the key and a '>' terminator.
+    /// </summary>
+    [Benchmark]
+    public void WriteLinePrefix_Event()
+        => _prefixLogger.WriteLinePrefixCore("3:2", _timestamp, isMessagePrefix: false);
 
     /// <summary>
     /// A reusable-single-instance <see cref="IStringBuilderProvider"/> matching the logger's own

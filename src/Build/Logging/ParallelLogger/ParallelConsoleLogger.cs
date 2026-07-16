@@ -1644,6 +1644,12 @@ namespace Microsoft.Build.BackEnd.Logging
 
         private void WriteLinePrefix(string key, DateTime eventTimeStamp, bool isMessagePrefix)
         {
+            WriteLinePrefixCore(key, eventTimeStamp, isMessagePrefix);
+        }
+
+        // Prototype seam: exposed as internal so allocation benchmarks can exercise the prefix pipeline directly.
+        internal void WriteLinePrefixCore(string key, DateTime eventTimeStamp, bool isMessagePrefix)
+        {
             // Don't want any prefix for single proc
             if (NumberOfProcessors == 1)
             {
@@ -1652,35 +1658,119 @@ namespace Microsoft.Build.BackEnd.Logging
 
             setColor(ConsoleColor.Cyan);
 
-            string context = string.Empty;
-            if (_showTimeStamp || IsVerbosityAtLeast(LoggerVerbosity.Diagnostic))
+            // Assemble the prefix into the shared pooled StringBuilder rather than allocating an intermediate
+            // timestamp string, a resource-formatted string, and a further interpolated string.
+            IStringBuilderProvider stringBuilderProvider = this;
+            StringBuilder prefix = stringBuilderProvider.Acquire(48);
+
+            // Match WritePretty's indentation: prefixes are indented by the current indent level at Normal+.
+            int indentLevel = IsVerbosityAtLeast(LoggerVerbosity.Normal) ? currentIndentLevel : 0;
+            int padding = (indentLevel > 0 ? indentLevel : 0) * tabWidth;
+            if (padding > 0)
             {
-                context = LogFormatter.FormatLogTimeStamp(eventTimeStamp);
+                prefix.Append(' ', padding);
             }
 
-            string prefixString;
+            int prefixStart = prefix.Length;
 
-            if (!isMessagePrefix || IsVerbosityAtLeast(LoggerVerbosity.Detailed))
+            // The "BuildEventContext" resource is "{0} {1,5}" in every locale (it is layout, not translated
+            // text), so emit it structurally to avoid allocating the arguments: {0} = timestamp, a literal
+            // space, {1,5} = key right-aligned to a minimum width of 5, then '>' for event prefixes / ' ' for
+            // message prefixes.
+            bool includeKey = !isMessagePrefix || IsVerbosityAtLeast(LoggerVerbosity.Detailed);
+
+            if (_showTimeStamp || IsVerbosityAtLeast(LoggerVerbosity.Diagnostic))
             {
-                prefixString = $"{ResourceUtilities.FormatResourceStringStripCodeAndKeyword("BuildEventContext", context, key)}>";
+                AppendTimeStamp(prefix, eventTimeStamp);
+            }
+
+            prefix.Append(' ');
+
+            string keySegment = includeKey ? (key ?? string.Empty) : string.Empty;
+            const int keyFieldWidth = 5;
+            if (keySegment.Length < keyFieldWidth)
+            {
+                prefix.Append(' ', keyFieldWidth - keySegment.Length);
+            }
+
+            prefix.Append(keySegment).Append(includeKey ? '>' : ' ');
+
+            // _prefixWidth tracks the prefix length without the leading indentation (as before).
+            if (_prefixWidth == 0)
+            {
+                _prefixWidth = prefix.Length - prefixStart;
+            }
+
+            TextWriter directWriter = DirectOutputWriter;
+            if (directWriter != null)
+            {
+                // Stream the assembled prefix straight to the writer, avoiding the final string allocation.
+                lock (_lockObject)
+                {
+                    ConsoleOutputAligner.WriteStringBuilder(directWriter, prefix);
+                }
+
+                stringBuilderProvider.Release(prefix);
             }
             else
             {
-                prefixString = $"{ResourceUtilities.FormatResourceStringStripCodeAndKeyword("BuildEventContext", context, string.Empty)} ";
+                WriteHandler(stringBuilderProvider.GetStringAndRelease(prefix));
             }
 
-            WritePretty(prefixString);
             resetColor();
-
-            if (_prefixWidth == 0)
-            {
-                _prefixWidth = prefixString.Length;
-            }
         }
 
         /// <summary>
-        /// Extract the full project key from the BuildEventContext
+        /// Appends the event timestamp ("HH:mm:ss.fff" in the current culture) directly to <paramref name="sb"/>
+        /// without allocating an intermediate string, matching <see cref="LogFormatter.FormatLogTimeStamp"/>.
         /// </summary>
+        private static void AppendTimeStamp(StringBuilder sb, DateTime timeStamp)
+        {
+#if NET
+            Span<char> buffer = stackalloc char[16];
+            if (timeStamp.TryFormat(buffer, out int charsWritten, "HH:mm:ss.fff", CultureInfo.CurrentCulture))
+            {
+                sb.Append(buffer.Slice(0, charsWritten));
+            }
+            else
+            {
+                sb.Append(LogFormatter.FormatLogTimeStamp(timeStamp));
+            }
+#else
+            // .NET Framework has neither DateTime.TryFormat nor StringBuilder.Append(ReadOnlySpan<char>), and
+            // StringBuilder.Append(int) allocates on this TFM, so emit the digits as chars by hand. In the
+            // "HH:mm:ss.fff" custom format ':' is the culture's TimeSeparator, '.' is a literal, and "fff" has
+            // no separator.
+            string timeSeparator = CultureInfo.CurrentCulture.DateTimeFormat.TimeSeparator;
+            AppendFixedDigits(sb, timeStamp.Hour, 2);
+            sb.Append(timeSeparator);
+            AppendFixedDigits(sb, timeStamp.Minute, 2);
+            sb.Append(timeSeparator);
+            AppendFixedDigits(sb, timeStamp.Second, 2);
+            sb.Append('.');
+            AppendFixedDigits(sb, timeStamp.Millisecond, 3);
+#endif
+        }
+
+#if !NET
+        /// <summary>
+        /// Appends exactly <paramref name="digits"/> least-significant decimal digits of a small non-negative
+        /// <paramref name="value"/> as characters, zero-padded on the left, without allocating.
+        /// </summary>
+        private static void AppendFixedDigits(StringBuilder sb, int value, int digits)
+        {
+            for (int place = digits - 1; place >= 0; place--)
+            {
+                int divisor = 1;
+                for (int i = 0; i < place; i++)
+                {
+                    divisor *= 10;
+                }
+
+                sb.Append((char)('0' + ((value / divisor) % 10)));
+            }
+        }
+#endif
         private ProjectFullKey GetFullProjectKey(BuildEventContext e)
         {
             ProjectStartedEventMinimumFields startedEvent = null;

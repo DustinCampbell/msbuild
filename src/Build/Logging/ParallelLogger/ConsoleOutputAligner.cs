@@ -116,7 +116,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// Framework (where the span/StringBuilder overloads are unavailable) the contents are copied into a
         /// pooled <see cref="char"/> buffer in blocks.
         /// </summary>
-        private static void WriteStringBuilder(TextWriter writer, StringBuilder sb)
+        internal static void WriteStringBuilder(TextWriter writer, StringBuilder sb)
         {
             int length = sb.Length;
             if (length == 0)
