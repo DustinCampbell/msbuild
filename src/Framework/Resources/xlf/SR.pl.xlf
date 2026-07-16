@@ -107,6 +107,51 @@
         <target state="translated">Plik wyjściowy „{0}” nie istnieje.</target>
         <note>{0} is a filename on disk.</note>
       </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_NoCompatiblePlatformFound">
+        <source>MSB3981: Could not determine what '{0}' should be built as. The project will be built without the Platform property set.</source>
+        <target state="translated">MSB3981: nie można było określić, jako co ma zostać skompilowany projekt "{0}". Zostanie on skompilowany bez ustawionej właściwości platformy.</target>
+        <note>{StrBegin="MSB3981: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_NoPlatformsListed">
+        <source>MSB3982: EnableDynamicPlatformResolution is true but referenced project '{0}' has no 'Platforms' or 'Platform' metadata set. It will be built without a specified platform.</source>
+        <target state="translated">MSB3982: element EnableDynamicPlatformResolution ma wartość True, ale projekt „{0}”, do którego się odnosi, nie ma ustawionych metadanych „Platform” lub „Platformy”. Zostanie on skompilowany bez określonej platformy.</target>
+        <note>{StrBegin="MSB3982: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_InvalidLookupTableFormat">
+        <source>MSB3983: The PlatformLookupTable '{0}' is in an invalid format and won't be used. The format should be 'A=B;C=D'.</source>
+        <target state="translated">MSB3983: element PlatformLookupTable "{0}" ma nieprawidłowy format i nie zostanie użyty. Formatem powinno być "A = B; C = D '.</target>
+        <note>{StrBegin="MSB3983: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_LookupTableParsed">
+        <source>Parsed lookup table:'{0}'.</source>
+        <target state="translated">Przeanalizowana tabela wyszukiwania: "{0}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_FoundMappingInTable">
+        <source>Found mapping '{0}'='{1}' in given lookup table: '{2}'.</source>
+        <target state="translated">Znaleziono mapowanie "{0}" = "{1}" w danej tabeli wyszukiwania: "{2}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_DisplayChosenPlatform">
+        <source>Project '{0}' will build with platform: '{1}'.</source>
+        <target state="translated">Projekt "{0}" zostanie skompilowany przy użyciu platformy: "{1}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_SamePlatform">
+        <source>ProjectReference and current project have the same platform.</source>
+        <target state="translated">Element ProjectReference i bieżący projekt mają tę samą platformę.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_AnyCPUDefault">
+        <source>Choosing AnyCPU by default.</source>
+        <target state="translated">Wybieranie opcji AnyCPU w sposób domyślny.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_ReferencedProjectHasDefinitivePlatform">
+        <source>Platform property of referenced project '{0}' matches current project's platform: '{1}'. Referenced project will be built without a global Platform property.</source>
+        <target state="translated">Właściwość platformy przywoływanego projektu „{0}” jest zgodna z platformą bieżącego projektu: „{1}”. Przywoływany projekt zostanie utworzony bez globalnej właściwości platformy.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">Element „{0}” ma atrybut „{1}” o wartości „{2}”, którego nie można przekonwertować na „{3}”.</target>

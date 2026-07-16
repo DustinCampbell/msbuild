@@ -2940,36 +2940,6 @@
   <!--
         MSB3981 - MSB3990   Task: GetCompatiblePlatform
   -->
-  <data name="GetCompatiblePlatform.NoCompatiblePlatformFound">
-    <value>MSB3981: Could not determine what '{0}' should be built as. The project will be built without the Platform property set.</value>
-    <comment>{StrBegin="MSB3981: "}</comment>
-  </data>
-  <data name="GetCompatiblePlatform.NoPlatformsListed">
-    <value>MSB3982: EnableDynamicPlatformResolution is true but referenced project '{0}' has no 'Platforms' or 'Platform' metadata set. It will be built without a specified platform.</value>
-    <comment>{StrBegin="MSB3982: "}</comment>
-  </data>
-  <data name="GetCompatiblePlatform.InvalidLookupTableFormat">
-    <value>MSB3983: The PlatformLookupTable '{0}' is in an invalid format and won't be used. The format should be 'A=B;C=D'.</value>
-    <comment>{StrBegin="MSB3983: "}</comment>
-  </data>
-  <data name="GetCompatiblePlatform.LookupTableParsed">
-    <value>Parsed lookup table:'{0}'.</value>
-  </data>
-    <data name="GetCompatiblePlatform.FoundMappingInTable">
-    <value>Found mapping '{0}'='{1}' in given lookup table: '{2}'.</value>
-  </data>
-  <data name="GetCompatiblePlatform.DisplayChosenPlatform">
-    <value>Project '{0}' will build with platform: '{1}'.</value>
-  </data>
-  <data name="GetCompatiblePlatform.SamePlatform">
-    <value>ProjectReference and current project have the same platform.</value>
-  </data>
-  <data name="GetCompatiblePlatform.AnyCPUDefault">
-    <value>Choosing AnyCPU by default.</value>
-  </data>
-  <data name="GetCompatiblePlatform.ReferencedProjectHasDefinitivePlatform">
-    <value>Platform property of referenced project '{0}' matches current project's platform: '{1}'. Referenced project will be built without a global Platform property.</value>
-  </data>
   <data name="ResolveKeySource.PfxUnsupported" xml:space="preserve">
     <value>PFX signing not supported on .NET Core.</value>
   </data>

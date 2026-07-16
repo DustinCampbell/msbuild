@@ -194,6 +194,36 @@
     <value>Output file "{0}" does not exist.</value>
     <comment>{0} is a filename on disk.</comment>
   </data>
+  <data name="GetCompatiblePlatform_NoCompatiblePlatformFound">
+    <value>MSB3981: Could not determine what '{0}' should be built as. The project will be built without the Platform property set.</value>
+    <comment>{StrBegin="MSB3981: "}</comment>
+  </data>
+  <data name="GetCompatiblePlatform_NoPlatformsListed">
+    <value>MSB3982: EnableDynamicPlatformResolution is true but referenced project '{0}' has no 'Platforms' or 'Platform' metadata set. It will be built without a specified platform.</value>
+    <comment>{StrBegin="MSB3982: "}</comment>
+  </data>
+  <data name="GetCompatiblePlatform_InvalidLookupTableFormat">
+    <value>MSB3983: The PlatformLookupTable '{0}' is in an invalid format and won't be used. The format should be 'A=B;C=D'.</value>
+    <comment>{StrBegin="MSB3983: "}</comment>
+  </data>
+  <data name="GetCompatiblePlatform_LookupTableParsed">
+    <value>Parsed lookup table:'{0}'.</value>
+  </data>
+    <data name="GetCompatiblePlatform_FoundMappingInTable">
+    <value>Found mapping '{0}'='{1}' in given lookup table: '{2}'.</value>
+  </data>
+  <data name="GetCompatiblePlatform_DisplayChosenPlatform">
+    <value>Project '{0}' will build with platform: '{1}'.</value>
+  </data>
+  <data name="GetCompatiblePlatform_SamePlatform">
+    <value>ProjectReference and current project have the same platform.</value>
+  </data>
+  <data name="GetCompatiblePlatform_AnyCPUDefault">
+    <value>Choosing AnyCPU by default.</value>
+  </data>
+  <data name="GetCompatiblePlatform_ReferencedProjectHasDefinitivePlatform">
+    <value>Platform property of referenced project '{0}' matches current project's platform: '{1}'. Referenced project will be built without a global Platform property.</value>
+  </data>
   <data name="InvalidAttributeMetadata" xml:space="preserve">
     <value>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</value>
   </data>

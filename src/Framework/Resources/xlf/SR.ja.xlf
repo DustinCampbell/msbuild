@@ -107,6 +107,51 @@
         <target state="translated">出力ファイル "{0}" は存在しません。</target>
         <note>{0} is a filename on disk.</note>
       </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_NoCompatiblePlatformFound">
+        <source>MSB3981: Could not determine what '{0}' should be built as. The project will be built without the Platform property set.</source>
+        <target state="translated">MSB3981: どの '{0}' をビルドする必要があるか特定できませんでした。プロジェクトは、プラットフォーム プロパティの設定なしでビルドされます。</target>
+        <note>{StrBegin="MSB3981: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_NoPlatformsListed">
+        <source>MSB3982: EnableDynamicPlatformResolution is true but referenced project '{0}' has no 'Platforms' or 'Platform' metadata set. It will be built without a specified platform.</source>
+        <target state="translated">MSB3982: EnableDynamicPlatformResolution は true ですが、参照対象プロジェクト '{0}' に 'Platforms' または 'Platform' メタデータが設定されていません。これは、指定されたプラットフォームなしでビルドされます。</target>
+        <note>{StrBegin="MSB3982: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_InvalidLookupTableFormat">
+        <source>MSB3983: The PlatformLookupTable '{0}' is in an invalid format and won't be used. The format should be 'A=B;C=D'.</source>
+        <target state="translated">MSB3983: PlatformLookupTable '{0}' は無効な形式であるため使用されません。この形式は 'A=B;C=D' である必要があります。C = D '。</target>
+        <note>{StrBegin="MSB3983: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_LookupTableParsed">
+        <source>Parsed lookup table:'{0}'.</source>
+        <target state="translated">解析済み参照テーブル:'{0}'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_FoundMappingInTable">
+        <source>Found mapping '{0}'='{1}' in given lookup table: '{2}'.</source>
+        <target state="translated">指定されたルックアップ テーブルでマッピング '{0}'='{1}' が見つかりました: '{2}'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_DisplayChosenPlatform">
+        <source>Project '{0}' will build with platform: '{1}'.</source>
+        <target state="translated">プロジェクト '{0}' はプラットフォームを使用してビルドされます: '{1}'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_SamePlatform">
+        <source>ProjectReference and current project have the same platform.</source>
+        <target state="translated">ProjectReference と現在のプロジェクトに同じプラットフォームがあります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_AnyCPUDefault">
+        <source>Choosing AnyCPU by default.</source>
+        <target state="translated">既定で AnyCPU を選択します。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_ReferencedProjectHasDefinitivePlatform">
+        <source>Platform property of referenced project '{0}' matches current project's platform: '{1}'. Referenced project will be built without a global Platform property.</source>
+        <target state="translated">参照されたプロジェクト '{0}' の Platform プロパティは現在のプロジェクトのプラットフォーム '{1}' と一致します。参照されたプロジェクトは、グローバル Platform プロパティなしでビルドされます。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">項目 "{0}" は、"{3}" に変換できなかった値 "{2}" を伴う属性 "{1}" を含んでいます。</target>

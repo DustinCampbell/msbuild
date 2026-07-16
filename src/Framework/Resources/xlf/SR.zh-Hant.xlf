@@ -107,6 +107,51 @@
         <target state="translated">輸出檔 "{0}" 不存在。</target>
         <note>{0} is a filename on disk.</note>
       </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_NoCompatiblePlatformFound">
+        <source>MSB3981: Could not determine what '{0}' should be built as. The project will be built without the Platform property set.</source>
+        <target state="translated">MSB3981: 無法判斷應該將 '{0}' 建置為何。將在沒有設定 Platform 屬性的情況下建置專案。</target>
+        <note>{StrBegin="MSB3981: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_NoPlatformsListed">
+        <source>MSB3982: EnableDynamicPlatformResolution is true but referenced project '{0}' has no 'Platforms' or 'Platform' metadata set. It will be built without a specified platform.</source>
+        <target state="translated">MSB3982: EnableDynamicPlatformResolution 為 true，但參考的專案 '{0}' 未設定 'Platforms' 或 'Platform' 中繼資料。它將在沒有指定平台的情況下建置。</target>
+        <note>{StrBegin="MSB3982: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_InvalidLookupTableFormat">
+        <source>MSB3983: The PlatformLookupTable '{0}' is in an invalid format and won't be used. The format should be 'A=B;C=D'.</source>
+        <target state="translated">MSB3983: PlatformLookupTable '{0}' 的格式無效，因此不會使用。格式應為 'A=B;C=D'。</target>
+        <note>{StrBegin="MSB3983: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_LookupTableParsed">
+        <source>Parsed lookup table:'{0}'.</source>
+        <target state="translated">剖析的查閱資料表: '{0}'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_FoundMappingInTable">
+        <source>Found mapping '{0}'='{1}' in given lookup table: '{2}'.</source>
+        <target state="translated">在指定的查閱資料表: '{2}' 中找到對應 '{0}'='{1}'。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_DisplayChosenPlatform">
+        <source>Project '{0}' will build with platform: '{1}'.</source>
+        <target state="translated">專案 '{0}' 將使用平台: '{1}' 建置。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_SamePlatform">
+        <source>ProjectReference and current project have the same platform.</source>
+        <target state="translated">ProjectReference 和目前的專案有相同的平台。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_AnyCPUDefault">
+        <source>Choosing AnyCPU by default.</source>
+        <target state="translated">預設會選擇 AnyCPU。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_ReferencedProjectHasDefinitivePlatform">
+        <source>Platform property of referenced project '{0}' matches current project's platform: '{1}'. Referenced project will be built without a global Platform property.</source>
+        <target state="translated">參考專案的平台屬性 '{0}' 符合目前專案的平太: '{1}'。將建置參考的專案，但不使用全域平台屬性。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">項目 "{0}" 的屬性 "{1}" 的值為 "{2}"，不能轉換為 "{3}"。</target>

@@ -107,6 +107,51 @@
         <target state="translated">El archivo de salida "{0}" no existe.</target>
         <note>{0} is a filename on disk.</note>
       </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_NoCompatiblePlatformFound">
+        <source>MSB3981: Could not determine what '{0}' should be built as. The project will be built without the Platform property set.</source>
+        <target state="translated">MSB3981: No se pudo determinar cómo se debe compilar "{0}". El proyecto se compilará sin el conjunto de propiedades Platform.</target>
+        <note>{StrBegin="MSB3981: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_NoPlatformsListed">
+        <source>MSB3982: EnableDynamicPlatformResolution is true but referenced project '{0}' has no 'Platforms' or 'Platform' metadata set. It will be built without a specified platform.</source>
+        <target state="translated">MSB3982: EnableDynamicPlatformResolution es true, pero el proyecto al que se hace referencia, “{0}”, no tiene establecido ningún conjunto de metadatos “Platforms” o “Platform”. Se compilará sin una plataforma especificada.</target>
+        <note>{StrBegin="MSB3982: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_InvalidLookupTableFormat">
+        <source>MSB3983: The PlatformLookupTable '{0}' is in an invalid format and won't be used. The format should be 'A=B;C=D'.</source>
+        <target state="translated">MSB3983: El valor PlatformLookupTable "{0}" tiene un formato no válido y no se usará. El formato debe ser "A" = "B"; C = D".</target>
+        <note>{StrBegin="MSB3983: "}</note>
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_LookupTableParsed">
+        <source>Parsed lookup table:'{0}'.</source>
+        <target state="translated">Tabla de búsqueda analizada: "{0}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_FoundMappingInTable">
+        <source>Found mapping '{0}'='{1}' in given lookup table: '{2}'.</source>
+        <target state="translated">Se ha encontrado la asignación "{0}" = "{1}" en la tabla de búsqueda especificada "{2}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_DisplayChosenPlatform">
+        <source>Project '{0}' will build with platform: '{1}'.</source>
+        <target state="translated">El proyecto "{0}" se compilará con la plataforma "{1}".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_SamePlatform">
+        <source>ProjectReference and current project have the same platform.</source>
+        <target state="translated">ProjectReference y el proyecto actual tienen la misma plataforma.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_AnyCPUDefault">
+        <source>Choosing AnyCPU by default.</source>
+        <target state="translated">Se elige AnyCPU de manera predeterminada.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GetCompatiblePlatform_ReferencedProjectHasDefinitivePlatform">
+        <source>Platform property of referenced project '{0}' matches current project's platform: '{1}'. Referenced project will be built without a global Platform property.</source>
+        <target state="translated">La propiedad “Platform” del proyecto al que se hace referencia “{0}” coincide con la plataforma del proyecto actual: “{1}”. El proyecto al que se hace referencia se compilará sin una propiedad de plataforma global.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InvalidAttributeMetadata">
         <source>Item "{0}" has attribute "{1}" with value "{2}" that could not be converted to "{3}".</source>
         <target state="translated">El elemento "{0}" tiene el atributo "{1}" con el valor "{2}" que no se pudo convertir a "{3}".</target>
