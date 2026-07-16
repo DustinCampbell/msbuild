@@ -17,7 +17,6 @@ using Microsoft.Build.Utilities;
 using EscapingUtilities = Microsoft.Build.Shared.EscapingUtilities;
 #endif
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
-using ResourceUtilities = Microsoft.Build.Shared.ResourceUtilities;
 using Shouldly;
 using Xunit;
 #if FEATURE_COMPILE_IN_TESTS
@@ -775,7 +774,7 @@ namespace Microsoft.Build.UnitTests.EscapingInProjects_Tests
             }
             catch (InvalidProjectFileException ex)
             {
-                string expectedErrorMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("NameInvalid", "$", "$");
+                string expectedErrorMessage = SR.Resource("NameInvalid").FormatStripCode("$", "$");
                 Assert.Equal(expectedErrorMessage, ex.Message); // "Wrong error message"
                 exceptionCaught = true;
             }

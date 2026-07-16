@@ -844,7 +844,7 @@ public class EndToEndTests : IDisposable
 
             foreach (string registeredRule in expectedRegisteredRules)
             {
-                projectCheckBuildLog.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("CustomCheckSuccessfulAcquisition", registeredRule));
+                projectCheckBuildLog.ShouldContain(SR.Resource("CustomCheckSuccessfulAcquisition").FormatStripCode(registeredRule));
             }
 
             if (!expectedRejectedChecks)
@@ -853,8 +853,7 @@ public class EndToEndTests : IDisposable
             }
             else
             {
-                projectCheckBuildLog.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                    "CustomCheckBaseTypeNotAssignable",
+                projectCheckBuildLog.ShouldContain(SR.Resource("CustomCheckBaseTypeNotAssignable").FormatStripCode(
                     "InvalidCheck",
                     "InvalidCustomCheck, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"));
             }
