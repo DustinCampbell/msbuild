@@ -24,15 +24,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="system.design\system.design.txt">
-      <Type>Resx</Type>
-      <WithCulture>false</WithCulture>
-      <ManifestResourceName>%(Filename)</ManifestResourceName>
-      <FullClassName>Microsoft.Build.Tasks.SR</FullClassName>
-      <LogicalName>System.Design.resources</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
 
     <!-- Node communication -->
@@ -249,7 +240,7 @@
     <Compile Include="SdkToolsPathUtility.cs" />
     <Compile Include="SGen.cs" />
     <Compile Include="SignFile.cs" />
-    <Compile Include="System.Design.cs" />
+    <Compile Include="system.design\SystemDesignSR.cs" />
     <Compile Include="system.design\stronglytypedresourcebuilder.cs" />
     <Compile Include="TaskExtension.cs" />
     <Compile Include="TaskTranslatorHelpers.cs" />
@@ -426,6 +417,12 @@
       <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="system.design\system.design.txt">
+      <Type>Resx</Type>
+      <WithCulture>false</WithCulture>
+      <ManifestResourceName>%(Filename)</ManifestResourceName>
+      <LogicalName>System.Design.resources</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="ManifestUtil\Resources\ManifestUtilitiesSR.resx">
       <GenerateSource>true</GenerateSource>
     </EmbeddedResource>
@@ -455,14 +452,6 @@
     <EmbeddedResource Include="BootstrapperUtil\xmltoconfig.xsl">
       <LogicalName>Microsoft.Build.Tasks.Deployment.Bootstrapper.xmltoconfig.xsl</LogicalName>
     </EmbeddedResource>
-    <TextStringResource Include="system.design\System.Design.txt">
-      <ResFile>System.Design</ResFile>
-      <Sealed>true</Sealed>
-      <Visibility>internal</Visibility>
-      <GenerateResource>true</GenerateResource>
-      <FullClassName>Microsoft.Build.Tasks.SR</FullClassName>
-      <LogicalName>System.Design.resources</LogicalName>
-    </TextStringResource>
     <!-- Files to copy -->
     <DataFile Include="Microsoft.Common.targets">
       <SubType>Designer</SubType>

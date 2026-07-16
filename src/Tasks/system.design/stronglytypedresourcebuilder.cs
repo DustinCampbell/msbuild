@@ -22,19 +22,20 @@
 ===========================================================*/
 
 using System;
-using System.IO;
 #if FEATURE_RESXREADER_LIVEDESERIALIZATION
 using System.Collections;
 #endif
-using System.Collections.Generic;
-using System.Resources;
 using System.CodeDom;
 using System.CodeDom.Compiler;
-using System.Reflection;
-using System.Globalization;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Build.Tasks.ResourceHandling;
+using System.Globalization;
+using System.IO;
+using System.Reflection;
+using System.Resources;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Tasks.ResourceHandling;
+using SR = Microsoft.Build.Tasks.SystemDesignSR;
 
 /*
   Plan for the future:
