@@ -75,4 +75,18 @@ internal static class FrameworkErrorUtilities
             InternalError.Throw($"{value} unexpectedly not a rooted path");
         }
     }
+
+    /// <summary>
+    /// Throws an InternalErrorException if the given object's type does not provide a real
+    /// implementation of <see cref="object.ToString"/>. Indicates a bug in MSBuild itself.
+    /// </summary>
+    public static void ThrowIfTypeDoesNotImplementToString(object param)
+    {
+#if DEBUG
+        if (string.Equals(param.GetType().ToString(), param.ToString(), StringComparison.Ordinal))
+        {
+            InternalError.Throw($"This type does not implement ToString() properly {param.GetType().FullName!}");
+        }
+#endif
+    }
 }

@@ -253,17 +253,10 @@ namespace Microsoft.Build.Shared
         private static void ThrowInvalidProject(string errorSubCategoryResourceName, IElementLocation elementLocation, string resourceName, params object[] args)
         {
             Assumed.NotNull(elementLocation);
-#if DEBUG
-            if (errorSubCategoryResourceName != null)
-            {
-                ResourceUtilities.VerifyResourceStringExists(errorSubCategoryResourceName);
-            }
 
-            ResourceUtilities.VerifyResourceStringExists(resourceName);
-#endif
-            string errorSubCategory = errorSubCategoryResourceName is null ? null : AssemblyResources.GetString(errorSubCategoryResourceName);
+            string errorSubCategory = errorSubCategoryResourceName is null ? null : Strings.GetString(errorSubCategoryResourceName);
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out string helpKeyword, resourceName, args);
+            string message = Strings.Resource(resourceName).FormatStripCode(out string errorCode, out string helpKeyword, args);
 
             throw new InvalidProjectFileException(elementLocation.File, elementLocation.Line, elementLocation.Column, 0 /* Unknown end line */, 0 /* Unknown end column */, message, errorSubCategory, errorCode, helpKeyword);
         }

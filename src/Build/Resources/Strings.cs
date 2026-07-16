@@ -32,6 +32,12 @@ internal static class Strings
     /// <summary>Looks up a resource string by name, returning null if it is not found.</summary>
     public static string? GetStringOrNull(string name) => s_provider.GetStringOrNull(name);
 
+    /// <summary>
+    ///  Creates a deferred <see cref="ResourceString"/> handle for a resource whose name is only
+    ///  known at runtime. Prefer the strongly-typed members above when the name is a constant.
+    /// </summary>
+    public static ResourceString Resource(string name) => s_provider[name];
+
     public static readonly ResourceString AmbiguousTaskParameterError = s_provider["AmbiguousTaskParameterError"];
     public static readonly ResourceString AttributeTypeLoadError = s_provider["AttributeTypeLoadError"];
     public static readonly ResourceString BadlyCasedSpecialTaskAttribute = s_provider["BadlyCasedSpecialTaskAttribute"];

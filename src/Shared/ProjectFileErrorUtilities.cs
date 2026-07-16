@@ -137,18 +137,10 @@ namespace Microsoft.Build.Shared
         {
             Assumed.NotNull(projectFile, "Must specify the invalid project file. If project file is not available, use VerifyThrowInvalidProject() and pass in the XML node instead.");
 
-#if DEBUG
-            if (errorSubCategoryResourceName != null)
-            {
-                ResourceUtilities.VerifyResourceStringExists(errorSubCategoryResourceName);
-            }
-
-            ResourceUtilities.VerifyResourceStringExists(resourceName);
-#endif
             if (!condition)
             {
-                string errorSubCategory = errorSubCategoryResourceName is null ? null : AssemblyResources.GetString(errorSubCategoryResourceName);
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out string helpKeyword, resourceName, args);
+                string errorSubCategory = errorSubCategoryResourceName is null ? null : Strings.GetString(errorSubCategoryResourceName);
+                string message = Strings.Resource(resourceName).FormatStripCode(out string errorCode, out string helpKeyword, args);
 
                 throw new InvalidProjectFileException(projectFile.File, projectFile.Line, projectFile.Column, projectFile.EndLine, projectFile.EndColumn, message, errorSubCategory, errorCode, helpKeyword, innerException);
             }
