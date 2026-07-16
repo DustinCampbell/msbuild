@@ -318,17 +318,17 @@ namespace Microsoft.Build.BackEnd
             if (logDetail.Reason == OutofdateReason.NewerInput)
             {
                 // One of the inputs was newer than all of the outputs
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetCompletelyInputNewer", logDetail.Input, logDetail.Output);
+                reason = SR.BuildTargetCompletelyInputNewer.Format(logDetail.Input, logDetail.Output);
             }
             else if (logDetail.Reason == OutofdateReason.MissingOutput)
             {
                 // One of the outputs was missing
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetCompletelyOutputDoesntExist", logDetail.Output);
+                reason = SR.BuildTargetCompletelyOutputDoesntExist.Format(logDetail.Output);
             }
             else if (logDetail.Reason == OutofdateReason.MissingInput)
             {
                 // One of the inputs was missing
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetCompletelyInputDoesntExist", logDetail.Input);
+                reason = SR.BuildTargetCompletelyInputDoesntExist.Format(logDetail.Input);
             }
 
             return reason;
@@ -344,17 +344,17 @@ namespace Microsoft.Build.BackEnd
             if (logDetail.Reason == OutofdateReason.NewerInput)
             {
                 // One of the inputs was newer than its corresponding output
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetPartiallyInputNewer", logDetail.InputItemName, logDetail.Input, logDetail.Output);
+                reason = SR.BuildTargetPartiallyInputNewer.Format(logDetail.InputItemName, logDetail.Input, logDetail.Output);
             }
             else if (logDetail.Reason == OutofdateReason.MissingOutput)
             {
                 // One of the outputs was missing
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetPartiallyOutputDoesntExist", logDetail.OutputItemName, logDetail.Input, logDetail.Output);
+                reason = SR.BuildTargetPartiallyOutputDoesntExist.Format(logDetail.OutputItemName, logDetail.Input, logDetail.Output);
             }
             else if (logDetail.Reason == OutofdateReason.MissingInput)
             {
                 // One of the inputs was missing
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetPartiallyInputDoesntExist", logDetail.InputItemName, logDetail.Input, logDetail.Output);
+                reason = SR.BuildTargetPartiallyInputDoesntExist.Format(logDetail.InputItemName, logDetail.Input, logDetail.Output);
             }
 
             return reason;
@@ -976,7 +976,7 @@ namespace Microsoft.Build.BackEnd
             //         in the cases I've seen, and adding this optimization would make the code hard to read.
 
             string oldestOutput = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(outputs[0].ToString()));
-            ErrorUtilities.ThrowIfTypeDoesNotImplementToString(outputs[0]);
+            FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(outputs[0]);
 
             DateTime oldestOutputFileTime = DateTime.MinValue;
             try
@@ -994,7 +994,7 @@ namespace Microsoft.Build.BackEnd
             {
                 // First output is missing: we must build the target
                 string arbitraryInput = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(inputs[0].ToString()));
-                ErrorUtilities.ThrowIfTypeDoesNotImplementToString(inputs[0]);
+                FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(inputs[0]);
                 dependencyAnalysisDetailEntry = new DependencyAnalysisLogDetail(arbitraryInput, oldestOutput, null, null, OutofdateReason.MissingOutput);
                 return true;
             }
@@ -1002,7 +1002,7 @@ namespace Microsoft.Build.BackEnd
             for (int i = 1; i < outputs.Count; i++)
             {
                 string candidateOutput = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(outputs[i].ToString()));
-                ErrorUtilities.ThrowIfTypeDoesNotImplementToString(outputs[i]);
+                FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(outputs[i]);
                 DateTime candidateOutputFileTime = DateTime.MinValue;
                 try
                 {
@@ -1020,7 +1020,7 @@ namespace Microsoft.Build.BackEnd
                     // An output is missing: we must build the target
                     string arbitraryInput =
                         EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(inputs[0].ToString()));
-                    ErrorUtilities.ThrowIfTypeDoesNotImplementToString(inputs[0]);
+                    FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(inputs[0]);
                     dependencyAnalysisDetailEntry = new DependencyAnalysisLogDetail(arbitraryInput, candidateOutput, null, null, OutofdateReason.MissingOutput);
                     return true;
                 }
@@ -1037,7 +1037,7 @@ namespace Microsoft.Build.BackEnd
             foreach (T input in inputs)
             {
                 string unescapedInput = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(input.ToString()));
-                ErrorUtilities.ThrowIfTypeDoesNotImplementToString(input);
+                FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(input);
                 DateTime inputFileTime = DateTime.MaxValue;
                 try
                 {
@@ -1093,7 +1093,7 @@ namespace Microsoft.Build.BackEnd
             {
                 foreach (T input in inputs)
                 {
-                    ErrorUtilities.ThrowIfTypeDoesNotImplementToString(input);
+                    FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(input);
                     if (!_uniqueTargetInputs.ContainsKey(input.ToString()))
                     {
                         _uniqueTargetInputs.Add(input.ToString(), null);
@@ -1101,7 +1101,7 @@ namespace Microsoft.Build.BackEnd
                 }
                 foreach (T output in outputs)
                 {
-                    ErrorUtilities.ThrowIfTypeDoesNotImplementToString(output);
+                    FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(output);
                     if (!_uniqueTargetOutputs.ContainsKey(output.ToString()))
                     {
                         _uniqueTargetOutputs.Add(output.ToString(), null);

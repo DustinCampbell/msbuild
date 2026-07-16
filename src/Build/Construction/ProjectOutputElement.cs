@@ -90,7 +90,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(PropertyName), "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.itemName, XMakeAttributes.propertyName);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(PropertyName), SR.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.itemName, XMakeAttributes.propertyName);
                 SetOrRemoveAttribute(XMakeAttributes.itemName, value, "Set Output ItemType {0}", value);
             }
         }
@@ -110,7 +110,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(ItemType), "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.itemName, XMakeAttributes.propertyName);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(ItemType), SR.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.itemName, XMakeAttributes.propertyName);
                 SetOrRemoveAttribute(XMakeAttributes.propertyName, value, "Set Output PropertyName {0}", value);
             }
         }
@@ -138,12 +138,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectOutputElement CreateDisconnected(string taskParameter, string itemType, string propertyName, ProjectRootElement containingProject)
         {
-            ErrorUtilities.VerifyThrowArgument(
-                String.IsNullOrEmpty(itemType) ^ String.IsNullOrEmpty(propertyName),
-                "OM_EitherAttributeButNotBoth",
-                XMakeElements.output,
-                XMakeAttributes.propertyName,
-                XMakeAttributes.itemName);
+            ArgumentException.ThrowIfFalse(String.IsNullOrEmpty(itemType) ^ String.IsNullOrEmpty(propertyName), SR.OM_EitherAttributeButNotBoth, XMakeElements.output, XMakeAttributes.propertyName, XMakeAttributes.itemName);
 
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.output);
 
@@ -167,7 +162,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectTaskElement, "OM_CannotAcceptParent");
+            InvalidOperationException.ThrowIfFalse(parent is ProjectTaskElement, SR.OM_CannotAcceptParent);
         }
 
         /// <inheritdoc />

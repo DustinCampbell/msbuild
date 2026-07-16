@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -185,7 +184,7 @@ namespace Microsoft.Build.Utilities
 
         private static Exception InvalidVersionFormat()
         {
-            return new FormatException(ResourceUtilities.GetResourceString(nameof(InvalidVersionFormat)));
+            return new FormatException(SR.Resource(nameof(InvalidVersionFormat)).Text);
         }
     }
 }

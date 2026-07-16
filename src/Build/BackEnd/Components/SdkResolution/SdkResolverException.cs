@@ -4,7 +4,6 @@
 using System;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.BuildException;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -20,7 +19,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
         public SdkReference Sdk { get; private set; }
 
         public SdkResolverException(string resourceName, SdkResolver resolver, SdkReference sdk, Exception innerException, params string[] args)
-            : base(string.Format(ResourceUtilities.GetResourceString(resourceName), args), innerException)
+            : base(string.Format(SR.Resource(resourceName).Text, args), innerException)
         {
             Resolver = resolver;
             Sdk = sdk;

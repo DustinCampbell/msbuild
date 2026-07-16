@@ -54,7 +54,7 @@ namespace Microsoft.Build.Construction
             set
             {
                 ArgumentException.ThrowIfNullOrEmpty(value, XMakeAttributes.assemblyName);
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(AssemblyName), "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.assemblyFile, XMakeAttributes.assemblyName);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(AssemblyName), SR.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.assemblyFile, XMakeAttributes.assemblyName);
                 value = FileUtilities.FixFilePath(value);
                 SetOrRemoveAttribute(XMakeAttributes.assemblyFile, value, "Set usingtask AssemblyFile {0}", value);
             }
@@ -71,7 +71,7 @@ namespace Microsoft.Build.Construction
             set
             {
                 ArgumentException.ThrowIfNullOrEmpty(value, XMakeAttributes.assemblyName);
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(AssemblyFile), "OM_EitherAttributeButNotBoth", XMakeElements.usingTask, XMakeAttributes.assemblyFile, XMakeAttributes.assemblyName);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(AssemblyFile), SR.OM_EitherAttributeButNotBoth, XMakeElements.usingTask, XMakeAttributes.assemblyFile, XMakeAttributes.assemblyName);
                 SetOrRemoveAttribute(XMakeAttributes.assemblyName, value, "Set usingtask AssemblyName {0}", value);
             }
         }
@@ -231,12 +231,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectUsingTaskElement CreateDisconnected(string taskName, string assemblyFile, string assemblyName, string runtime, string architecture, ProjectRootElement containingProject)
         {
-            ErrorUtilities.VerifyThrowArgument(
-                String.IsNullOrEmpty(assemblyFile) ^ String.IsNullOrEmpty(assemblyName),
-                "OM_EitherAttributeButNotBoth",
-                XMakeElements.usingTask,
-                XMakeAttributes.assemblyFile,
-                XMakeAttributes.assemblyName);
+            ArgumentException.ThrowIfFalse(String.IsNullOrEmpty(assemblyFile) ^ String.IsNullOrEmpty(assemblyName), SR.OM_EitherAttributeButNotBoth, XMakeElements.usingTask, XMakeAttributes.assemblyFile, XMakeAttributes.assemblyName);
 
             XmlElementWithLocation element = containingProject.CreateElement(XMakeElements.usingTask);
 
@@ -265,7 +260,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectRootElement, "OM_CannotAcceptParent");
+            InvalidOperationException.ThrowIfFalse(parent is ProjectRootElement, SR.OM_CannotAcceptParent);
         }
 
         /// <inheritdoc />

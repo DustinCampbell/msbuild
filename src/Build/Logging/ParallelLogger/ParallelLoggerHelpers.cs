@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -156,8 +155,8 @@ namespace Microsoft.Build.BackEnd.Logging
                 ProjectStartedEventMinimumFields projectStartedEvent = projectStackTrace[i];
 
                 stackTrace[stackTrace.Length - i - 1] = !string.IsNullOrEmpty(projectStartedEvent.TargetNames) ?
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectStackWithTargetNames", projectStartedEvent.ProjectFile, projectStartedEvent.TargetNames, projectStartedEvent.FullProjectKey) :
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectStackWithDefaultTargets", projectStartedEvent.ProjectFile, projectStartedEvent.FullProjectKey);
+                    SR.ProjectStackWithTargetNames.FormatStripCode(projectStartedEvent.ProjectFile, projectStartedEvent.TargetNames, projectStartedEvent.FullProjectKey) :
+                    SR.ProjectStackWithDefaultTargets.FormatStripCode(projectStartedEvent.ProjectFile, projectStartedEvent.FullProjectKey);
             }
 
             return stackTrace;

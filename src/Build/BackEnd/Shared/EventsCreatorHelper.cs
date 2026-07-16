@@ -36,7 +36,7 @@ internal static class EventsCreatorHelper
 
         if (subcategoryResourceName != null)
         {
-            subcategory = AssemblyResources.GetString(subcategoryResourceName);
+            subcategory = SR.GetString(subcategoryResourceName);
         }
 
         BuildErrorEventArgs buildEvent =
@@ -67,7 +67,7 @@ internal static class EventsCreatorHelper
 
         if (subcategoryResourceName != null)
         {
-            subcategory = AssemblyResources.GetString(subcategoryResourceName);
+            subcategory = SR.GetString(subcategoryResourceName);
         }
 
         BuildWarningEventArgs buildEvent =

@@ -46,7 +46,7 @@ namespace Microsoft.Build.Evaluation
             {
                 if (s_endOfInput == null)
                 {
-                    s_endOfInput = ResourceUtilities.GetResourceString("EndOfInputTokenName");
+                    s_endOfInput = SR.EndOfInputTokenName.Text;
                 }
 
                 return s_endOfInput;

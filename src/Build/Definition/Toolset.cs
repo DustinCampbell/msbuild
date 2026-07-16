@@ -903,14 +903,14 @@ namespace Microsoft.Build.Evaluation
 
                                     if (!overrideDirectoryExists)
                                     {
-                                        string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", _overrideTasksPath);
+                                        string rootedPathMessage = SR.OverrideTaskNotRootedPath.FormatStripCode(_overrideTasksPath);
                                         loggingContext.LogWarning(null, new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), "OverrideTasksFileFailure", rootedPathMessage);
                                     }
                                 }
                             }
                             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                             {
-                                string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskProblemWithPath", _overrideTasksPath, e.Message);
+                                string rootedPathMessage = SR.OverrideTaskProblemWithPath.FormatStripCode(_overrideTasksPath, e.Message);
                                 loggingContext.LogWarning(null, new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), "OverrideTasksFileFailure", rootedPathMessage);
                             }
 

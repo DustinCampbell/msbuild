@@ -1543,7 +1543,7 @@ namespace Microsoft.Build.Execution
                                     // Throw an error if the ITaskFactory did not set the TaskType property.  If the property is null, it can cause NullReferenceExceptions in our code
                                     if (initialized && factory.TaskType == null)
                                     {
-                                        throw new InvalidOperationException(AssemblyResources.GetString("TaskFactoryTaskTypeIsNotSet"));
+                                        throw new InvalidOperationException(SR.TaskFactoryTaskTypeIsNotSet.Text);
                                     }
                                 }
                                 finally

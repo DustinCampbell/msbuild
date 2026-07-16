@@ -484,7 +484,7 @@ namespace Microsoft.Build.Execution
                 {
                     foreach (ForwardingLoggerRecord logger in value)
                     {
-                        ErrorUtilities.VerifyThrowArgumentNull(logger, nameof(ForwardingLoggers), "NullLoggerNotAllowed");
+                        ArgumentGuard.VerifyThrowArgumentNull(logger, nameof(ForwardingLoggers), SR.NullLoggerNotAllowed);
                     }
                 }
 
@@ -544,7 +544,7 @@ namespace Microsoft.Build.Execution
                 {
                     foreach (ILogger logger in value)
                     {
-                        ErrorUtilities.VerifyThrowArgumentNull(logger, "Loggers", "NullLoggerNotAllowed");
+                        ArgumentGuard.VerifyThrowArgumentNull(logger, "Loggers", SR.NullLoggerNotAllowed);
                     }
                 }
 
@@ -561,7 +561,7 @@ namespace Microsoft.Build.Execution
 
             set
             {
-                ErrorUtilities.VerifyThrowArgument(value > 0, "InvalidMaxNodeCount");
+                ArgumentException.ThrowIfFalse(value > 0, SR.InvalidMaxNodeCount);
                 _maxNodeCount = value;
             }
         }

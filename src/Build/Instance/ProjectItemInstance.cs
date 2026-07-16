@@ -737,7 +737,7 @@ namespace Microsoft.Build.Execution
             ArgumentNullException.ThrowIfNull(projectToUse, "project");
             ArgumentException.ThrowIfNullOrEmpty(itemTypeToUse, "itemType");
             XmlUtilities.VerifyThrowArgumentValidElementName(itemTypeToUse);
-            ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(itemTypeToUse), "OM_ReservedName", itemTypeToUse);
+            ArgumentException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(itemTypeToUse), SR.OM_ReservedName, itemTypeToUse);
 
             IList<ProjectItemDefinitionInstance> inheritedItemDefinitions;
             if (itemDefinitions == null || !useItemDefinitionsWithoutModification)

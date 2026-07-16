@@ -232,7 +232,7 @@ namespace Microsoft.Build.Evaluation
 
             var args = new EnvironmentVariableReadEventArgs(
                 name,
-                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("EnvironmentVariableRead", name),
+                SR.EnvironmentVariableRead.Format(name),
                 string.Empty,
                 0,
                 0);

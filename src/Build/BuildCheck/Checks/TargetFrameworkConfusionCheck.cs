@@ -12,8 +12,8 @@ internal class TargetFrameworkConfusionCheck : Check
 {
     private const string RuleId = "BC0107";
     public static CheckRule SupportedRule = new CheckRule(RuleId, "TargetFrameworkConfusion",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0107_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0107_MessageFmt")!,
+        SR.BuildCheck_BC0107_Title.Text!,
+        SR.BuildCheck_BC0107_MessageFmt.Text!,
         new CheckConfiguration() { RuleId = RuleId, Severity = CheckResultSeverity.Warning });
 
     public override string FriendlyName => "MSBuild.TargetFrameworkConfusion";

@@ -231,7 +231,7 @@ namespace Microsoft.Build.Construction
                 bool preserveFormatting)
         {
             ArgumentException.ThrowIfNullOrEmpty(path);
-            ErrorUtilities.VerifyThrowInternalRooted(path);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(path);
             ArgumentNullException.ThrowIfNull(projectRootElementCache);
             ProjectRootElementCache = projectRootElementCache;
 
@@ -293,7 +293,7 @@ namespace Microsoft.Build.Construction
         public override string Condition
         {
             get => null;
-            set => ErrorUtilities.ThrowInvalidOperation("OM_CannotGetSetCondition");
+            set => InvalidOperationException.Throw(SR.OM_CannotGetSetCondition);
         }
 
         #region ChildEnumerators
@@ -1537,7 +1537,7 @@ namespace Microsoft.Build.Construction
                 return;
             }
 
-            ErrorUtilities.VerifyThrowInvalidOperation(_projectFileLocation != null, "OM_MustSetFileNameBeforeSave");
+            InvalidOperationException.ThrowIfFalse(_projectFileLocation != null, SR.OM_MustSetFileNameBeforeSave);
 
             Directory.CreateDirectory(DirectoryPath);
 
@@ -1645,7 +1645,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         public void Reload(bool throwIfUnsavedChanges = true, bool? preserveFormatting = null)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(!string.IsNullOrEmpty(FullPath), "ValueNotSet", $"{nameof(ProjectRootElement)}.{nameof(FullPath)}");
+            InvalidOperationException.ThrowIfFalse(!string.IsNullOrEmpty(FullPath), SR.ValueNotSet, $"{nameof(ProjectRootElement)}.{nameof(FullPath)}");
 
             ReloadFrom(FullPath, throwIfUnsavedChanges, preserveFormatting);
         }
@@ -1658,7 +1658,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         public void ReloadFrom(string path, bool throwIfUnsavedChanges = true, bool? preserveFormatting = null)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(FileSystems.Default.FileExists(path), "FileToReloadFromDoesNotExist", path);
+            InvalidOperationException.ThrowIfFalse(FileSystems.Default.FileExists(path), SR.FileToReloadFromDoesNotExist, path);
 
             if (Link != null)
             {
@@ -1756,7 +1756,7 @@ namespace Microsoft.Build.Construction
         internal static ProjectRootElement Open(string path, ProjectRootElementCacheBase projectRootElementCache, bool isExplicitlyLoaded,
             bool? preserveFormatting)
         {
-            ErrorUtilities.VerifyThrowInternalRooted(path);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(path);
 
             ProjectRootElement projectRootElement = projectRootElementCache.Get(path,
                 preserveFormatting ?? false ? s_openLoaderPreserveFormattingDelegate : s_openLoaderDelegate,
@@ -1788,7 +1788,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectRootElement OpenProjectOrSolution(string fullPath, IDictionary<string, string> globalProperties, string toolsVersion, ProjectRootElementCacheBase projectRootElementCache, bool isExplicitlyLoaded)
         {
-            ErrorUtilities.VerifyThrowInternalRooted(fullPath);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(fullPath);
 
             ProjectRootElement projectRootElement = projectRootElementCache.Get(
                 fullPath,
@@ -1825,7 +1825,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.ThrowInvalidOperation("OM_CannotAcceptParent");
+            InvalidOperationException.Throw(SR.OM_CannotAcceptParent);
         }
 
         /// <summary>
@@ -2046,7 +2046,7 @@ namespace Microsoft.Build.Construction
                 ProjectRootElementCacheBase projectRootElementCache,
                 bool preserveFormatting)
         {
-            ErrorUtilities.VerifyThrowInternalRooted(projectFile);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(projectFile);
 
             try
             {
@@ -2081,7 +2081,7 @@ namespace Microsoft.Build.Construction
         /// <param name="loadAsReadOnly">Whether to load the file in read-only mode.</param>
         private XmlDocumentWithLocation LoadDocument(string fullPath, bool preserveFormatting, bool loadAsReadOnly)
         {
-            ErrorUtilities.VerifyThrowInternalRooted(fullPath);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(fullPath);
 
             var document = new XmlDocumentWithLocation(loadAsReadOnly ? true : (bool?)null)
             {
@@ -2162,7 +2162,7 @@ namespace Microsoft.Build.Construction
         {
             if (HasUnsavedChanges && throwIfUnsavedChanges)
             {
-                ErrorUtilities.ThrowInvalidOperation("NoReloadOnUnsavedChanges", null);
+                InvalidOperationException.Throw(SR.NoReloadOnUnsavedChanges, null);
             }
         }
     }

@@ -2078,7 +2078,7 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         private void DisplayCancelWaitMessage()
         {
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string warningCode, out string helpKeyword, "UnableToCancelTask", _taskName);
+            string message = SR.UnableToCancelTask.FormatStripCode(out string warningCode, out string helpKeyword, _taskName);
             try
             {
                 _taskLoggingContext.LogWarningFromText(null, warningCode, helpKeyword, new BuildEventFileInfo(_taskLocation), message);

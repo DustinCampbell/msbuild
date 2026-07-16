@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Experimental.BuildCheck.Checks;
 
@@ -13,8 +12,8 @@ internal sealed class SharedOutputPathCheck : Check
 {
     private const string RuleId = "BC0101";
     public static CheckRule SupportedRule = new CheckRule(RuleId, "ConflictingOutputPath",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0101_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0101_MessageFmt")!,
+        SR.BuildCheck_BC0101_Title.Text!,
+        SR.BuildCheck_BC0101_MessageFmt.Text!,
         new CheckConfiguration() { RuleId = RuleId, Severity = CheckResultSeverity.Warning });
 
     public override string FriendlyName => "MSBuild.SharedOutputPathCheck";

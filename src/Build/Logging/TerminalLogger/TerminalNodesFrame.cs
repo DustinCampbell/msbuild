@@ -5,7 +5,9 @@ using System;
 using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Logging;
+#if NETFRAMEWORK
 using Microsoft.Build.Shared;
+#endif
 
 namespace Microsoft.Build.Logging;
 
@@ -44,9 +46,7 @@ internal sealed class TerminalNodesFrame
     {
         TerminalNodeStatus status = _nodes[i].nodeStatus;
 
-        string durationString = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-            "DurationDisplay",
-            status.Stopwatch.ElapsedSeconds);
+        string durationString = SR.DurationDisplay.Format(status.Stopwatch.ElapsedSeconds);
 
         _nodes[i].durationLength = durationString.Length;
 
@@ -134,7 +134,7 @@ internal sealed class TerminalNodesFrame
                 if (previousFrame._nodes[i] == _nodes[i])
                 {
                     // Same everything except time, AND same number of digits in time
-                    string durationString = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("DurationDisplay", _nodes[i].nodeStatus.Stopwatch.ElapsedSeconds);
+                    string durationString = SR.DurationDisplay.Format(_nodes[i].nodeStatus.Stopwatch.ElapsedSeconds);
                     sb.Append($"{AnsiCodes.SetCursorHorizontal(MaxColumn)}{AnsiCodes.MoveCursorBackward(durationString.Length)}{durationString}");
                 }
                 else

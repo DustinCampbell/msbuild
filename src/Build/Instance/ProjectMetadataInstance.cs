@@ -244,7 +244,7 @@ namespace Microsoft.Build.Execution
 
             if (ItemSpecModifiers.IsItemSpecModifier(name))
             {
-                ErrorUtilities.ThrowArgument("OM_ReservedName", name);
+                ArgumentException.Throw(SR.OM_ReservedName, name);
             }
         }
 
@@ -261,7 +261,7 @@ namespace Microsoft.Build.Execution
             {
                 if (reservedName.Length == name.Length && reservedName[0] == name[0])
                 {
-                    ErrorUtilities.VerifyThrowArgument(!StringComparer.Ordinal.Equals(reservedName, name), "OM_ReservedName", name);
+                    ArgumentException.ThrowIfFalse(!StringComparer.Ordinal.Equals(reservedName, name), SR.OM_ReservedName, name);
                 }
             }
         }

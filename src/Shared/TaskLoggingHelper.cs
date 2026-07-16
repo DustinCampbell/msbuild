@@ -17,6 +17,13 @@ using System.Runtime.Remoting;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
+#if BUILD_ENGINE
+// When compiled into Microsoft.Build the legacy shared ErrorUtilities/ResourceUtilities are not
+// available; redirect the small surface these files use onto the new helpers.
+using ErrorUtilities = Microsoft.Build.BackEnd.TaskEngineErrorUtilities;
+using ResourceUtilities = Microsoft.Build.Framework.ResourceHelpers;
+#endif
+
 #nullable disable
 
 #if BUILD_ENGINE

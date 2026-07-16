@@ -102,7 +102,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || (Remove.Length == 0 && Update.Length == 0), "OM_OneOfAttributeButNotMore", ElementName, XMakeAttributes.include, XMakeAttributes.remove, XMakeAttributes.update);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || (Remove.Length == 0 && Update.Length == 0), SR.OM_OneOfAttributeButNotMore, ElementName, XMakeAttributes.include, XMakeAttributes.remove, XMakeAttributes.update);
                 SetOrRemoveAttribute(XMakeAttributes.include, value, ref _include, "Set item Include {0}", value);
                 _includeHasWildcards = null;
             }
@@ -124,8 +124,8 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || Remove.Length == 0, "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.exclude, XMakeAttributes.remove);
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || Update.Length == 0, "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.exclude, XMakeAttributes.update);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || Remove.Length == 0, SR.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.exclude, XMakeAttributes.remove);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || Update.Length == 0, SR.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.exclude, XMakeAttributes.update);
                 SetOrRemoveAttribute(XMakeAttributes.exclude, value, ref _exclude, "Set item Exclude {0}", value);
             }
         }
@@ -146,7 +146,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || (Include.Length == 0 && Update.Length == 0), "OM_OneOfAttributeButNotMore", ElementName, XMakeAttributes.include, XMakeAttributes.remove, XMakeAttributes.update);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || (Include.Length == 0 && Update.Length == 0), SR.OM_OneOfAttributeButNotMore, ElementName, XMakeAttributes.include, XMakeAttributes.remove, XMakeAttributes.update);
                 SetOrRemoveAttribute(XMakeAttributes.remove, value, ref _remove, "Set item Remove {0}", value);
             }
         }
@@ -165,7 +165,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || (Remove.Length == 0 && Include.Length == 0), "OM_OneOfAttributeButNotMore", ElementName, XMakeAttributes.include, XMakeAttributes.remove, XMakeAttributes.update);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || (Remove.Length == 0 && Include.Length == 0), SR.OM_OneOfAttributeButNotMore, ElementName, XMakeAttributes.include, XMakeAttributes.remove, XMakeAttributes.update);
                 SetOrRemoveAttribute(XMakeAttributes.update, value, ref _update, "Set item Update {0}", value);
             }
         }
@@ -186,9 +186,9 @@ namespace Microsoft.Build.Construction
             set
             {
                 // MatchOnMetadata must be inside of a target
-                ErrorUtilities.VerifyThrowInvalidOperation(Parent == null || Parent.Parent is ProjectTargetElement || Parent.Parent is ProjectRootElement, "OM_NoMatchOnMetadataOutsideTargets");
+                InvalidOperationException.ThrowIfFalse(Parent == null || Parent.Parent is ProjectTargetElement || Parent.Parent is ProjectRootElement, SR.OM_NoMatchOnMetadataOutsideTargets);
                 // MatchOnMetadata must be inside of a remove item
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || RemoveMetadata.Length != 0, "OM_MatchOnMetadataOnlyApplicableToRemoveItems", ElementName, XMakeAttributes.matchOnMetadata);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || RemoveMetadata.Length != 0, SR.OM_MatchOnMetadataOnlyApplicableToRemoveItems, ElementName, XMakeAttributes.matchOnMetadata);
                 SetOrRemoveAttribute(XMakeAttributes.matchOnMetadata, value, ref _matchOnMetadata, "Set item MatchOnMetadata {0}", value);
             }
         }
@@ -208,7 +208,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || MatchOnMetadata.Length != 0, "OM_MatchOnMetadataOptionsOnlyApplicableToItemsWithMatchOnMetadata", ElementName, XMakeAttributes.matchOnMetadataOptions);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || MatchOnMetadata.Length != 0, SR.OM_MatchOnMetadataOptionsOnlyApplicableToItemsWithMatchOnMetadata, ElementName, XMakeAttributes.matchOnMetadataOptions);
                 SetOrRemoveAttribute(XMakeAttributes.matchOnMetadataOptions, value, "Set item MatchOnMetadataOptions {0}", value);
             }
         }
@@ -228,8 +228,8 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(Parent == null || Parent.Parent is ProjectTargetElement, "OM_NoKeepMetadataOutsideTargets");
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || RemoveMetadata.Length == 0, "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.removeMetadata, XMakeAttributes.keepMetadata);
+                InvalidOperationException.ThrowIfFalse(Parent == null || Parent.Parent is ProjectTargetElement, SR.OM_NoKeepMetadataOutsideTargets);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || RemoveMetadata.Length == 0, SR.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.removeMetadata, XMakeAttributes.keepMetadata);
                 SetOrRemoveAttribute(XMakeAttributes.keepMetadata, value, "Set item KeepMetadata {0}", value);
             }
         }
@@ -249,8 +249,8 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(Parent == null || Parent.Parent is ProjectTargetElement, "OM_NoRemoveMetadataOutsideTargets");
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(value) || KeepMetadata.Length == 0, "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.keepMetadata, XMakeAttributes.removeMetadata);
+                InvalidOperationException.ThrowIfFalse(Parent == null || Parent.Parent is ProjectTargetElement, SR.OM_NoRemoveMetadataOutsideTargets);
+                InvalidOperationException.ThrowIfFalse(String.IsNullOrEmpty(value) || KeepMetadata.Length == 0, SR.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.keepMetadata, XMakeAttributes.removeMetadata);
                 SetOrRemoveAttribute(XMakeAttributes.removeMetadata, value, "Set item RemoveMetadata {0}", value);
             }
         }
@@ -270,7 +270,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(Parent == null || Parent.Parent is ProjectTargetElement, "OM_NoKeepDuplicatesOutsideTargets");
+                InvalidOperationException.ThrowIfFalse(Parent == null || Parent.Parent is ProjectTargetElement, SR.OM_NoKeepDuplicatesOutsideTargets);
                 SetOrRemoveAttribute(XMakeAttributes.keepDuplicates, value, "Set item KeepDuplicates {0}", value);
             }
         }
@@ -427,7 +427,7 @@ namespace Microsoft.Build.Construction
         internal static ProjectItemElement CreateDisconnected(string itemType, ProjectRootElement containingProject)
         {
             XmlUtilities.VerifyThrowArgumentValidElementName(itemType);
-            ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(itemType), "CannotModifyReservedItem", itemType);
+            ArgumentException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(itemType), SR.CannotModifyReservedItem, itemType);
 
             XmlElementWithLocation element = containingProject.CreateElement(itemType);
 
@@ -446,7 +446,7 @@ namespace Microsoft.Build.Construction
         {
             ArgumentException.ThrowIfNullOrEmpty(newItemType);
             XmlUtilities.VerifyThrowArgumentValidElementName(newItemType);
-            ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(newItemType), "CannotModifyReservedItem", newItemType);
+            ArgumentException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(newItemType), SR.CannotModifyReservedItem, newItemType);
             if (Link != null)
             {
                 ItemLink.ChangeItemType(newItemType);
@@ -477,8 +477,8 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent.Parent is ProjectTargetElement || (Include.Length > 0 || Update.Length > 0 || Remove.Length > 0), "OM_ItemsOutsideTargetMustHaveIncludeOrUpdateOrRemove");
-            ErrorUtilities.VerifyThrowInvalidOperation(parent.Parent is ProjectRootElement || parent.Parent is ProjectTargetElement || parent.Parent is ProjectWhenElement || parent.Parent is ProjectOtherwiseElement, "OM_CannotAcceptParent");
+            InvalidOperationException.ThrowIfFalse(parent.Parent is ProjectTargetElement || (Include.Length > 0 || Update.Length > 0 || Remove.Length > 0), SR.OM_ItemsOutsideTargetMustHaveIncludeOrUpdateOrRemove);
+            InvalidOperationException.ThrowIfFalse(parent.Parent is ProjectRootElement || parent.Parent is ProjectTargetElement || parent.Parent is ProjectWhenElement || parent.Parent is ProjectOtherwiseElement, SR.OM_CannotAcceptParent);
         }
 
         /// <summary>

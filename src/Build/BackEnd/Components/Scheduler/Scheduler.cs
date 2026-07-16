@@ -15,7 +15,6 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.ProjectCache;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using BuildAbortedException = Microsoft.Build.Exceptions.BuildAbortedException;
 using ILoggingService = Microsoft.Build.BackEnd.Logging.ILoggingService;
@@ -1842,12 +1841,7 @@ namespace Microsoft.Build.BackEnd
                             var result = new BuildResult(
                                 request,
                                 new InvalidOperationException(
-                                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                                        "AffinityConflict",
-                                        requestAffinity,
-                                        existingRequestAffinity,
-                                        config.ProjectFullPath,
-                                        globalProperties)));
+                                    SR.AffinityConflict.FormatStripCode(requestAffinity, existingRequestAffinity, config.ProjectFullPath, globalProperties)));
                             response = GetResponseForResult(nodeForResults, request, result);
                             responses.Add(response);
                             continue;
@@ -2072,13 +2066,7 @@ namespace Microsoft.Build.BackEnd
                 return true;
             }
 
-            var errorMessage = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                "CacheMissesNotAllowedInIsolatedGraphBuilds",
-                parentConfig.ProjectFullPath,
-                ConcatenateGlobalProperties(parentConfig),
-                requestConfig.ProjectFullPath,
-                ConcatenateGlobalProperties(requestConfig),
-                request.Targets.Count == 0
+            var errorMessage = SR.CacheMissesNotAllowedInIsolatedGraphBuilds.Format(parentConfig.ProjectFullPath, ConcatenateGlobalProperties(parentConfig), requestConfig.ProjectFullPath, ConcatenateGlobalProperties(requestConfig), request.Targets.Count == 0
                     ? "default"
                     : string.Join(";", request.Targets));
 

@@ -325,7 +325,7 @@ namespace Microsoft.Build.Construction
             string textResourceName,
             params object[] args)
         {
-            string text = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string code, out string helpKeyword, textResourceName, args);
+            string text = SR.Resource(textResourceName).FormatStripCode(out string code, out string helpKeyword, args);
 
             if (treatAsLiteral)
             {
@@ -631,7 +631,7 @@ namespace Microsoft.Build.Construction
             string textResourceName,
             params object[] args)
         {
-            string text = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string code, out string helpKeyword, textResourceName, args);
+            string text = SR.Resource(textResourceName).FormatStripCode(out string code, out string helpKeyword, args);
 
             if (treatAsLiteral)
             {
@@ -1104,7 +1104,7 @@ namespace Microsoft.Build.Construction
                     metaproject.Save(writer);
                 }
 
-                string message = ResourceUtilities.GetResourceString("MetaprojectGenerated");
+                string message = SR.MetaprojectGenerated.Text;
                 var eventArgs = new MetaprojectGeneratedEventArgs(xml.ToString(), path, message)
                 {
                     BuildEventContext = _projectBuildEventContext,

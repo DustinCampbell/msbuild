@@ -520,7 +520,7 @@ public sealed partial class TerminalLogger : INodeLogger
         }
         else
         {
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string? errorCode, out string? helpKeyword, "InvalidVerbosity", parameterValue);
+            string message = SR.InvalidVerbosity.FormatStripCode(out string? errorCode, out string? helpKeyword, parameterValue);
             throw new LoggerException(message, null, errorCode, helpKeyword);
         }
     }
@@ -616,11 +616,11 @@ public sealed partial class TerminalLogger : INodeLogger
                     bool colorizePassed = passed > 0 && _buildErrorsCount == 0 && failed == 0;
                     bool colorizeSkipped = skipped > 0 && skipped == total && _buildErrorsCount == 0 && failed == 0;
 
-                    string summaryAndTotalText = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestSummary_BannerAndTotal", total);
-                    string failedText = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestSummary_Failed", failed);
-                    string passedText = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestSummary_Succeeded", passed);
-                    string skippedText = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestSummary_Skipped", skipped);
-                    string durationText = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestSummary_Duration", testDuration);
+                    string summaryAndTotalText = SR.TestSummary_BannerAndTotal.Format(total);
+                    string failedText = SR.TestSummary_Failed.Format(failed);
+                    string passedText = SR.TestSummary_Succeeded.Format(passed);
+                    string skippedText = SR.TestSummary_Skipped.Format(skipped);
+                    string durationText = SR.TestSummary_Duration.Format(testDuration);
 
                     failedText = colorizeFailed ? AnsiCodes.Colorize(failedText.ToString(), TerminalColor.Red) : failedText;
                     passedText = colorizePassed ? AnsiCodes.Colorize(passedText.ToString(), TerminalColor.Green) : passedText;
@@ -651,15 +651,11 @@ public sealed partial class TerminalLogger : INodeLogger
 
                 if (_restoreFailed)
                 {
-                    Terminal.WriteLine(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("RestoreCompleteWithMessage",
-                        buildResult,
-                        duration));
+                    Terminal.WriteLine(SR.RestoreCompleteWithMessage.Format(buildResult, duration));
                 }
                 else
                 {
-                    Terminal.WriteLine(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildFinished",
-                        buildResult,
-                        duration));
+                    Terminal.WriteLine(SR.BuildFinished.Format(buildResult, duration));
                 }
             }
         }
@@ -691,7 +687,7 @@ public sealed partial class TerminalLogger : INodeLogger
             return;
         }
 
-        Terminal.WriteLine(ResourceUtilities.GetResourceString("BuildSummary"));
+        Terminal.WriteLine(SR.BuildSummary.Text);
 
         foreach (TerminalProjectInfo project in _projects.Values.Where(p => p.HasErrorsOrWarnings))
         {
@@ -827,14 +823,11 @@ public sealed partial class TerminalLogger : INodeLogger
                         {
                             if (project.HasErrorsOrWarnings)
                             {
-                                Terminal.WriteLine(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("RestoreCompleteWithMessage",
-                                    buildResult,
-                                    duration));
+                                Terminal.WriteLine(SR.RestoreCompleteWithMessage.Format(buildResult, duration));
                             }
                             else
                             {
-                                Terminal.WriteLine(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("RestoreComplete",
-                                    duration));
+                                Terminal.WriteLine(SR.RestoreComplete.Format(duration));
                             }
                         }
                         else
@@ -860,7 +853,7 @@ public sealed partial class TerminalLogger : INodeLogger
                         if (outputPath is { } outputPathSpan)
                         {
                             (string? projectDisplayPath, var urlLink) = DetermineOutputPathToRender(outputPathSpan, _initialWorkingDirectory.AsMemory(), project.SourceRoot);
-                            Terminal.WriteLine(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ProjectFinished_OutputPath", CreateLink(urlLink, projectDisplayPath.ToString())));
+                            Terminal.WriteLine(SR.ProjectFinished_OutputPath.Format(CreateLink(urlLink, projectDisplayPath.ToString())));
                         }
                         else
                         {
@@ -998,54 +991,14 @@ public sealed partial class TerminalLogger : INodeLogger
 
         return (project.TargetFramework, project.RuntimeIdentifier, project.IsTestProject) switch
         {
-            (string tfm, null, true) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestProjectFinished_WithTF",
-                Indentation,
-                projectFile,
-                AnsiCodes.Colorize(tfm, TargetFrameworkColor),
-                buildResult,
-                duration),
-            (string tfm, null, false) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ProjectFinished_WithTF",
-                Indentation,
-                projectFile,
-                AnsiCodes.Colorize(tfm, TargetFrameworkColor),
-                buildResult,
-                duration),
-            (null, string rid, true) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestProjectFinished_WithTF",
-                Indentation,
-                projectFile,
-                AnsiCodes.Colorize(rid, RuntimeIdentifierColor),
-                buildResult,
-                duration),
-            (null, string rid, false) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ProjectFinished_WithTF",
-                Indentation,
-                projectFile,
-                AnsiCodes.Colorize(rid, RuntimeIdentifierColor),
-                buildResult,
-                duration),
-            (string tfm, string rid, true) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestProjectFinished_WithTFAndRID",
-                Indentation,
-                projectFile,
-                AnsiCodes.Colorize(tfm, TargetFrameworkColor),
-                AnsiCodes.Colorize(rid, RuntimeIdentifierColor),
-                buildResult,
-                duration),
-            (string tfm, string rid, false) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ProjectFinished_WithTFAndRID",
-                Indentation,
-                projectFile,
-                AnsiCodes.Colorize(tfm, TargetFrameworkColor),
-                AnsiCodes.Colorize(rid, RuntimeIdentifierColor),
-                buildResult,
-                duration),
-            (null, null, true) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TestProjectFinished_NoTF",
-                Indentation,
-                projectFile,
-                buildResult,
-                duration),
-            (null, null, false) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ProjectFinished_NoTF",
-                Indentation,
-                projectFile,
-                buildResult,
-                duration),
+            (string tfm, null, true) => SR.TestProjectFinished_WithTF.Format(Indentation, projectFile, AnsiCodes.Colorize(tfm, TargetFrameworkColor), buildResult, duration),
+            (string tfm, null, false) => SR.ProjectFinished_WithTF.Format(Indentation, projectFile, AnsiCodes.Colorize(tfm, TargetFrameworkColor), buildResult, duration),
+            (null, string rid, true) => SR.TestProjectFinished_WithTF.Format(Indentation, projectFile, AnsiCodes.Colorize(rid, RuntimeIdentifierColor), buildResult, duration),
+            (null, string rid, false) => SR.ProjectFinished_WithTF.Format(Indentation, projectFile, AnsiCodes.Colorize(rid, RuntimeIdentifierColor), buildResult, duration),
+            (string tfm, string rid, true) => SR.TestProjectFinished_WithTFAndRID.Format(Indentation, projectFile, AnsiCodes.Colorize(tfm, TargetFrameworkColor), AnsiCodes.Colorize(rid, RuntimeIdentifierColor), buildResult, duration),
+            (string tfm, string rid, false) => SR.ProjectFinished_WithTFAndRID.Format(Indentation, projectFile, AnsiCodes.Colorize(tfm, TargetFrameworkColor), AnsiCodes.Colorize(rid, RuntimeIdentifierColor), buildResult, duration),
+            (null, null, true) => SR.TestProjectFinished_NoTF.Format(Indentation, projectFile, buildResult, duration),
+            (null, null, false) => SR.ProjectFinished_NoTF.Format(Indentation, projectFile, buildResult, duration),
         };
     }
 
@@ -1569,20 +1522,20 @@ public sealed partial class TerminalLogger : INodeLogger
             // If the build failed, we print one of three red strings.
             string text = (countErrors > 0, countWarnings > 0) switch
             {
-                (true, true) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildResult_FailedWithErrorsAndWarnings", countErrors, countWarnings),
-                (true, _) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildResult_FailedWithErrors", countErrors),
-                (false, true) => ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildResult_FailedWithWarnings", countWarnings),
-                _ => ResourceUtilities.GetResourceString("BuildResult_Failed"),
+                (true, true) => SR.BuildResult_FailedWithErrorsAndWarnings.Format(countErrors, countWarnings),
+                (true, _) => SR.BuildResult_FailedWithErrors.Format(countErrors),
+                (false, true) => SR.BuildResult_FailedWithWarnings.Format(countWarnings),
+                _ => SR.BuildResult_Failed.Text,
             };
             return AnsiCodes.Colorize(text, TerminalColor.Red);
         }
         else if (countWarnings > 0)
         {
-            return AnsiCodes.Colorize(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildResult_SucceededWithWarnings", countWarnings), TerminalColor.Yellow);
+            return AnsiCodes.Colorize(SR.BuildResult_SucceededWithWarnings.Format(countWarnings), TerminalColor.Yellow);
         }
         else
         {
-            return AnsiCodes.Colorize(ResourceUtilities.GetResourceString("BuildResult_Succeeded"), TerminalColor.Green);
+            return AnsiCodes.Colorize(SR.BuildResult_Succeeded.Text, TerminalColor.Green);
         }
     }
 

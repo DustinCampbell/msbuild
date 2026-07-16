@@ -49,7 +49,7 @@ namespace Microsoft.Build.Construction
         public override string Condition
         {
             get => null;
-            set => ErrorUtilities.ThrowInvalidOperation("OM_CannotGetSetCondition");
+            set => InvalidOperationException.Throw(SR.OM_CannotGetSetCondition);
         }
 
         #region ChildEnumerators
@@ -93,8 +93,8 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectChooseElement, "OM_CannotAcceptParent");
-            ErrorUtilities.VerifyThrowInvalidOperation(!(nextSibling is ProjectWhenElement) && !(previousSibling is ProjectOtherwiseElement) && !(nextSibling is ProjectOtherwiseElement), "OM_NoOtherwiseBeforeWhenOrOtherwise");
+            InvalidOperationException.ThrowIfFalse(parent is ProjectChooseElement, SR.OM_CannotAcceptParent);
+            InvalidOperationException.ThrowIfFalse(!(nextSibling is ProjectWhenElement) && !(previousSibling is ProjectOtherwiseElement) && !(nextSibling is ProjectOtherwiseElement), SR.OM_NoOtherwiseBeforeWhenOrOtherwise);
         }
 
         /// <inheritdoc />

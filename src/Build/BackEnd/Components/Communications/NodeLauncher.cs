@@ -12,7 +12,6 @@ using System.Runtime.Versioning;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 #if FEATURE_WINDOWSINTEROP
 using System.Collections.Generic;
@@ -85,7 +84,7 @@ namespace Microsoft.Build.BackEnd
 
                 if (!FileSystems.Default.FileExists(msbuildLocation))
                 {
-                    throw new BuildAbortedException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("CouldNotFindMSBuildExe", msbuildLocation));
+                    throw new BuildAbortedException(SR.CouldNotFindMSBuildExe.FormatStripCode(msbuildLocation));
                 }
             }
         }

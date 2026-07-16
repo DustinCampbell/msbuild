@@ -6,7 +6,6 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Logging;
 using Microsoft.Build.Framework.Telemetry;
-using Microsoft.Build.Shared;
 using BaseConsoleLogger = Microsoft.Build.BackEnd.Logging.BaseConsoleLogger;
 using ParallelConsoleLogger = Microsoft.Build.BackEnd.Logging.ParallelConsoleLogger;
 
@@ -300,7 +299,7 @@ namespace Microsoft.Build.Logging
         /// </summary>
         public void ApplyParameter(string parameterName, string parameterValue)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(_consoleLogger != null, "MustCallInitializeBeforeApplyParameter");
+            InvalidOperationException.ThrowIfFalse(_consoleLogger != null, SR.MustCallInitializeBeforeApplyParameter);
             _consoleLogger.ApplyParameter(parameterName, parameterValue);
         }
 

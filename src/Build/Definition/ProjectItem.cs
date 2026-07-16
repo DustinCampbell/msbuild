@@ -578,9 +578,9 @@ namespace Microsoft.Build.Evaluation
             Project.VerifyThrowInvalidOperationNotImported(_xml.ContainingProject);
 
             XmlUtilities.VerifyThrowArgumentValidElementName(name);
-            ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsItemSpecModifier(name), "ItemSpecModifierCannotBeCustomMetadata", name);
-            ErrorUtilities.VerifyThrowInvalidOperation(!XMakeElements.ReservedItemNames.Contains(name), "CannotModifyReservedItemMetadata", name);
-            ErrorUtilities.VerifyThrowInvalidOperation(_xml.Parent?.Parent != null, "OM_ObjectIsNoLongerActive");
+            ArgumentException.ThrowIfFalse(!ItemSpecModifiers.IsItemSpecModifier(name), SR.ItemSpecModifierCannotBeCustomMetadata, name);
+            InvalidOperationException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(name), SR.CannotModifyReservedItemMetadata, name);
+            InvalidOperationException.ThrowIfFalse(_xml.Parent?.Parent != null, SR.OM_ObjectIsNoLongerActive);
 
             if (!propagateMetadataToSiblingItems)
             {
@@ -636,16 +636,16 @@ namespace Microsoft.Build.Evaluation
             }
 
             ArgumentException.ThrowIfNullOrEmpty(name);
-            ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsItemSpecModifier(name), "ItemSpecModifierCannotBeCustomMetadata", name);
+            ArgumentException.ThrowIfFalse(!ItemSpecModifiers.IsItemSpecModifier(name), SR.ItemSpecModifierCannotBeCustomMetadata, name);
             Project.VerifyThrowInvalidOperationNotImported(_xml.ContainingProject);
-            ErrorUtilities.VerifyThrowInvalidOperation(_xml.Parent?.Parent != null, "OM_ObjectIsNoLongerActive");
+            InvalidOperationException.ThrowIfFalse(_xml.Parent?.Parent != null, SR.OM_ObjectIsNoLongerActive);
 
             ProjectMetadata metadatum = _directMetadata?[name];
 
             if (metadatum == null)
             {
                 ProjectMetadata itemDefinitionMetadata = GetItemDefinitionMetadata(name);
-                ErrorUtilities.VerifyThrowInvalidOperation(itemDefinitionMetadata == null, "OM_CannotRemoveMetadataOriginatingFromItemDefinition", name);
+                InvalidOperationException.ThrowIfFalse(itemDefinitionMetadata == null, SR.OM_CannotRemoveMetadataOriginatingFromItemDefinition, name);
                 return false;
             }
 
@@ -688,7 +688,7 @@ namespace Microsoft.Build.Evaluation
             }
 
             Project.VerifyThrowInvalidOperationNotImported(_xml.ContainingProject);
-            ErrorUtilities.VerifyThrowInvalidOperation(_xml.Parent?.Parent != null, "OM_ObjectIsNoLongerActive");
+            InvalidOperationException.ThrowIfFalse(_xml.Parent?.Parent != null, SR.OM_ObjectIsNoLongerActive);
 
             if (String.Equals(UnevaluatedInclude, name, StringComparison.Ordinal))
             {
@@ -784,7 +784,7 @@ namespace Microsoft.Build.Evaluation
         {
             ArgumentException.ThrowIfNullOrEmpty(newItemType, "ItemType");
             Project.VerifyThrowInvalidOperationNotImported(_xml.ContainingProject);
-            ErrorUtilities.VerifyThrowInvalidOperation(_xml.Parent?.Parent != null, "OM_ObjectIsNoLongerActive");
+            InvalidOperationException.ThrowIfFalse(_xml.Parent?.Parent != null, SR.OM_ObjectIsNoLongerActive);
 
             if (String.Equals(ItemType, newItemType, StringComparison.Ordinal))
             {

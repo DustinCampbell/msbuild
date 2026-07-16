@@ -278,7 +278,7 @@ internal partial class Expander<P, I>
                 if (indexerEndIndex < 1)
                 {
                     // We ended up with something other than a function expression
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
+                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, SR.InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets.Text);
                 }
 
                 var methodStartIndex = indexerEndIndex + 1;
@@ -639,7 +639,7 @@ internal partial class Expander<P, I>
                             else if (!toReturn.Equals(currentReturnValue))
                             {
                                 // There were multiple methods that seemed viable and gave different results. We can't differentiate between them so throw.
-                                ErrorUtilities.ThrowArgument("CouldNotDifferentiateBetweenCompatibleMethods", _methodMethodName, args.Length);
+                                ArgumentException.Throw(SR.CouldNotDifferentiateBetweenCompatibleMethods, _methodMethodName, args.Length);
                                 return null;
                             }
                         }
@@ -917,7 +917,7 @@ internal partial class Expander<P, I>
 
                 if (argumentsEndIndex == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
+                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, SR.InvalidFunctionPropertyExpressionDetailMismatchedParenthesis.Text);
                 }
 
                 // We have been asked for a method invocation

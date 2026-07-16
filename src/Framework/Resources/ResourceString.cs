@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
-using System.Diagnostics;
-using System.Globalization;
 
 namespace Microsoft.Build.Framework;
 
@@ -84,39 +81,10 @@ internal readonly struct ResourceString
         return ExtractMessageCode(FormatString(Text, args), out code);
     }
 
-    // ---- Helpers relocated from ResourceUtilities ----
+    // ---- Helpers delegating to the shared ResourceHelpers relocated from ResourceUtilities ----
 
     private static string FormatString(string unformatted, params object?[]? args)
-    {
-        string formatted = unformatted;
-
-        // NOTE: String.Format() does not allow a null arguments array.
-        if (args?.Length > 0)
-        {
-            ValidateArgsIfDebug(args);
-
-            // NOTE: all String methods are thread-safe.
-            formatted = string.Format(CultureInfo.CurrentCulture, unformatted, args);
-        }
-
-        return formatted;
-    }
-
-    [Conditional("DEBUG")]
-    private static void ValidateArgsIfDebug(object?[] args)
-    {
-        // If you accidentally pass some random type in that can't be converted to a string,
-        // String.Format calls ToString() which returns the full name of the type!
-        foreach (object? param in args)
-        {
-            if (param is not null &&
-                string.Equals(param.GetType().ToString(), param.ToString(), StringComparison.Ordinal) &&
-                param.GetType() != typeof(string))
-            {
-                InternalError.Throw($"Invalid resource parameter type, was {param.GetType().FullName}");
-            }
-        }
-    }
+        => ResourceHelpers.FormatString(unformatted, args);
 
     /// <summary>
     ///  Extracts the MSBuild message code (if any) prefixed to <paramref name="message"/>.
@@ -124,43 +92,5 @@ internal readonly struct ResourceString
     /// </summary>
     /// <returns>The message without its code prefix, if any.</returns>
     private static string ExtractMessageCode(string message, out string? code)
-    {
-        Assumed.NotNull(message);
-
-        code = null;
-        int i = 0;
-
-        while (i < message.Length && char.IsWhiteSpace(message[i]))
-        {
-            i++;
-        }
-
-        if (message.Length < i + 8 ||
-            message[i] != 'M' ||
-            message[i + 1] != 'S' ||
-            message[i + 2] != 'B' ||
-            message[i + 3] < '0' || message[i + 3] > '9' ||
-            message[i + 4] < '0' || message[i + 4] > '9' ||
-            message[i + 5] < '0' || message[i + 5] > '9' ||
-            message[i + 6] < '0' || message[i + 6] > '9' ||
-            message[i + 7] != ':')
-        {
-            return message;
-        }
-
-        code = message.Substring(i, 7);
-        i += 8;
-
-        while (i < message.Length && char.IsWhiteSpace(message[i]))
-        {
-            i++;
-        }
-
-        if (i < message.Length)
-        {
-            message = message.Substring(i);
-        }
-
-        return message;
-    }
+        => ResourceHelpers.ExtractMessageCode(msbuildCodeOnly: true, message, out code);
 }

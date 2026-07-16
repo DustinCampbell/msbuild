@@ -9,7 +9,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Logging
@@ -171,7 +170,7 @@ namespace Microsoft.Build.Logging
         private void InvokeFileIOErrorEvent(string filePath, string message)
         {
             BuildEventArgs args = new BuildMessageEventArgs(
-                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ProjectImportsCollectorFileIOFail", filePath, message),
+                SR.ProjectImportsCollectorFileIOFail.Format(filePath, message),
                 helpKeyword: null,
                 senderName: nameof(ProjectImportsCollector),
                 MessageImportance.Low);
@@ -271,7 +270,7 @@ namespace Microsoft.Build.Logging
 
                 if (fileStream.Length > int.MaxValue)
                 {
-                    onError(ResourceUtilities.GetResourceString("Binlog_ImportFileSizeError"));
+                    onError(SR.Binlog_ImportFileSizeError.Text);
                 }
                 else
                 {

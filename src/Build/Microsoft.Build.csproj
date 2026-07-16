@@ -630,8 +630,10 @@
     <Compile Include="ObjectModelRemoting\ConstructionObjectLinks\ProjectTargetElementLink.cs" />
     <Compile Include="ObjectModelRemoting\ConstructionObjectLinks\ProjectTaskElementLink.cs" />
     <Compile Include="ObjectModelRemoting\ConstructionObjectLinks\ProjectUsingTaskBodyElementLink.cs" />
-    <Compile Include="Resources\AssemblyResources.cs" />
+    <Compile Include="Resources\ArgumentGuard.cs" />
     <Compile Include="Resources\Constants.cs" />
+    <Compile Include="Resources\Strings.cs" />
+    <Compile Include="Resources\TaskEngineErrorUtilities.cs" />
     <Compile Include="Resources\MSBuildAssemblyFileVersion.cs" />
     <!-- ######################## -->
     <!-- ######################## -->
@@ -648,9 +650,6 @@
     <Compile Include="..\Shared\BuildEventFileInfo.cs">
       <Link>SharedUtilities\BuildEventFileInfo.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\ErrorUtilities.cs">
-      <Link>Errors\ErrorUtilities.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\InprocTrackingNativeMethods.cs">
       <Link>InprocTrackingNativeMethods.cs</Link>
     </Compile>
@@ -659,9 +658,6 @@
     </Compile>
     <Compile Include="..\Shared\ProjectFileErrorUtilities.cs">
       <Link>Errors\ProjectFileErrorUtilities.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\ResourceUtilities.cs">
-      <Link>SharedUtilities\ResourceUtilities.cs</Link>
     </Compile>
     <Compile Include="..\Shared\Tracing.cs" />
     <Compile Include="..\Shared\TypeLoader.cs">

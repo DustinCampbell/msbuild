@@ -311,7 +311,7 @@ namespace Microsoft.Build.Execution
             ProjectEvaluationStage evaluationStage = ProjectEvaluationStage.Full)
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
 
             // We do not control the current directory at this point, but assume that if we were
             // passed a relative path, the caller assumes we will prepend the current directory.
@@ -656,7 +656,7 @@ namespace Microsoft.Build.Execution
         internal ProjectInstance(string projectFile, IDictionary<string, string> globalProperties, string toolsVersion, BuildParameters buildParameters, ILoggingService loggingService, BuildEventContext buildEventContext, ISdkResolverService sdkResolverService, int submissionId, ProjectLoadSettings? projectLoadSettings)
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(buildParameters);
 
             ProjectRootElement xml = ProjectRootElement.OpenProjectOrSolution(projectFile, globalProperties, toolsVersion, buildParameters.ProjectRootElementCache, false /*Not explicitly loaded*/);
@@ -672,7 +672,7 @@ namespace Microsoft.Build.Execution
         internal ProjectInstance(ProjectRootElement xml, IDictionary<string, string> globalProperties, string toolsVersion, BuildParameters buildParameters, ILoggingService loggingService, BuildEventContext buildEventContext, ISdkResolverService sdkResolverService, int submissionId)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(buildParameters);
             Initialize(xml, globalProperties, toolsVersion, null, 0 /* no solution version specified */, buildParameters, loggingService, buildEventContext, sdkResolverService, submissionId);
         }
@@ -685,7 +685,7 @@ namespace Microsoft.Build.Execution
         {
             Assumed.NotNull(data);
             Assumed.NotNullOrEmpty(directory);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(fullPath, nameof(fullPath));
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(fullPath, nameof(fullPath));
 
             _directory = directory;
             _projectFileLocation = ElementLocation.Create(fullPath);
@@ -1247,7 +1247,7 @@ namespace Microsoft.Build.Execution
         {
             if (_evaluationStage < requiredStage)
             {
-                ErrorUtilities.ThrowInvalidOperation("OM_PartialEvaluationMemberUnavailable", memberName, _evaluationStage, requiredStage);
+                InvalidOperationException.Throw(SR.OM_PartialEvaluationMemberUnavailable, memberName, _evaluationStage, requiredStage);
             }
         }
 
@@ -2697,7 +2697,7 @@ namespace Microsoft.Build.Execution
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
             ArgumentNullException.ThrowIfNull(globalPropertiesInstances);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(buildParameters);
             Assumed.True(FileUtilities.IsSolutionFilename(projectFile), $"Project file {projectFile} is not a solution.");
 
@@ -2835,7 +2835,7 @@ namespace Microsoft.Build.Execution
         {
             if (isImmutable)
             {
-                ErrorUtilities.ThrowInvalidOperation("OM_ProjectInstanceImmutable");
+                InvalidOperationException.Throw(SR.OM_ProjectInstanceImmutable);
             }
         }
 
@@ -3256,7 +3256,7 @@ namespace Microsoft.Build.Execution
             ProjectEvaluationStage evaluationStage = ProjectEvaluationStage.Full)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(explicitToolsVersion, "toolsVersion");
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(explicitToolsVersion, "toolsVersion");
             ArgumentNullException.ThrowIfNull(buildParameters);
 
             _directory = xml.DirectoryPath;

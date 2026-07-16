@@ -856,7 +856,7 @@ namespace Microsoft.Build.Execution
         private void EnableDetouredNodeLauncher()
         {
             // Currently BuildXL only supports x64. Once this feature moves out of the experimental phase, this will need to be addressed.
-            ErrorUtilities.VerifyThrowInvalidOperation(NativeMethodsShared.ProcessorArchitecture == NativeMethodsShared.ProcessorArchitectures.X64, "ReportFileAccessesX64Only");
+            InvalidOperationException.ThrowIfFalse(NativeMethodsShared.ProcessorArchitecture == NativeMethodsShared.ProcessorArchitectures.X64, SR.ReportFileAccessesX64Only);
 
             // To properly report file access, we need to disable the in-proc node which won't be detoured.
             _buildParameters!.DisableInProcNode = true;
@@ -1584,9 +1584,7 @@ namespace Microsoft.Build.Execution
                     {
                         if (_acquiredProjectRootElementCacheFromProjectInstance)
                         {
-                            ErrorUtilities.VerifyThrowArgument(
-                                _buildParameters!.ProjectRootElementCache == projectInstance.ProjectRootElementCache,
-                                "OM_BuildSubmissionsMultipleProjectCollections");
+                            ArgumentException.ThrowIfFalse(_buildParameters!.ProjectRootElementCache == projectInstance.ProjectRootElementCache, SR.OM_BuildSubmissionsMultipleProjectCollections);
                         }
                         else
                         {
@@ -2229,8 +2227,7 @@ namespace Microsoft.Build.Execution
             }
 
             LogMessage(
-                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                    "StaticGraphConstructionStarted"));
+                SR.StaticGraphConstructionStarted.Format());
 
             var projectGraph = submission.BuildRequestData.ProjectGraph;
             if (projectGraph == null)
@@ -2272,11 +2269,7 @@ namespace Microsoft.Build.Execution
             }
 
             LogMessage(
-                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                    "StaticGraphConstructionMetrics",
-                    Math.Round(projectGraph.ConstructionMetrics.ConstructionTime.TotalSeconds, 3),
-                    projectGraph.ConstructionMetrics.NodeCount,
-                    projectGraph.ConstructionMetrics.EdgeCount));
+                SR.StaticGraphConstructionMetrics.Format(Math.Round(projectGraph.ConstructionMetrics.ConstructionTime.TotalSeconds, 3), projectGraph.ConstructionMetrics.NodeCount, projectGraph.ConstructionMetrics.EdgeCount));
 
             Dictionary<ProjectGraphNode, BuildResult>? resultsPerNode = null;
 
@@ -2453,7 +2446,7 @@ namespace Microsoft.Build.Execution
         {
             if (_buildManagerState == disallowedState)
             {
-                ErrorUtilities.ThrowInvalidOperation(exceptionResouorce);
+                InvalidOperationException.Throw(SR.Resource(exceptionResouorce));
             }
         }
 
@@ -2462,7 +2455,7 @@ namespace Microsoft.Build.Execution
         /// </summary>
         private void RequireState(BuildManagerState requiredState, string exceptionResouorce)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(_buildManagerState == requiredState, exceptionResouorce);
+            InvalidOperationException.ThrowIfFalse(_buildManagerState == requiredState, SR.Resource(exceptionResouorce));
         }
 
         /// <summary>
@@ -2989,7 +2982,7 @@ namespace Microsoft.Build.Execution
                             BuildEventContext buildEventContext = new BuildEventContext(0, Scheduler.VirtualNode, BuildEventContext.InvalidProjectInstanceId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidTaskId);
                             ((IBuildComponentHost)this).LoggingService.LogError(buildEventContext, new BuildEventFileInfo(String.Empty), "UnableToCreateNode", response.RequiredNodeType.ToString("G"));
 
-                            throw new BuildAbortedException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("UnableToCreateNode", response.RequiredNodeType.ToString("G")));
+                            throw new BuildAbortedException(SR.UnableToCreateNode.FormatStripCode(response.RequiredNodeType.ToString("G")));
                         }
 
                         foreach (var node in newNodes)
@@ -3573,7 +3566,7 @@ namespace Microsoft.Build.Execution
 
                 if (inputCacheFiles.Any(f => !FileSystems.Default.FileExists(f)))
                 {
-                    LogErrorAndShutdown(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("InputCacheFilesDoNotExist", string.Join(";", inputCacheFiles.Where(f => !FileSystems.Default.FileExists(f)))));
+                    LogErrorAndShutdown(SR.InputCacheFilesDoNotExist.Format(string.Join(";", inputCacheFiles.Where(f => !FileSystems.Default.FileExists(f)))));
                     return false;
                 }
 
@@ -3585,7 +3578,7 @@ namespace Microsoft.Build.Execution
 
                     if (exception != null)
                     {
-                        LogErrorAndShutdown(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ErrorReadingCacheFile", inputCacheFile, exception.Message));
+                        LogErrorAndShutdown(SR.ErrorReadingCacheFile.Format(inputCacheFile, exception.Message));
                         return false;
                     }
 

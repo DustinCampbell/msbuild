@@ -360,7 +360,7 @@ namespace Microsoft.Build.Evaluation
                 : base(project, evaluatedValueEscaped)
             {
                 ArgumentNullException.ThrowIfNull(xml);
-                ErrorUtilities.VerifyThrowInvalidOperation(!ProjectHasMatchingGlobalProperty(project, xml.Name), "OM_GlobalProperty", xml.Name);
+                InvalidOperationException.ThrowIfFalse(!ProjectHasMatchingGlobalProperty(project, xml.Name), SR.OM_GlobalProperty, xml.Name);
 
                 _xml = xml;
             }
@@ -402,7 +402,7 @@ namespace Microsoft.Build.Evaluation
                 set
                 {
                     Project.VerifyThrowInvalidOperationNotImported(_xml.ContainingProject);
-                    ErrorUtilities.VerifyThrowInvalidOperation(_xml.Parent?.Parent != null, "OM_ObjectIsNoLongerActive");
+                    InvalidOperationException.ThrowIfFalse(_xml.Parent?.Parent != null, SR.OM_ObjectIsNoLongerActive);
 
                     _xml.Value = value;
 
@@ -545,9 +545,9 @@ namespace Microsoft.Build.Evaluation
                 : base(project, evaluatedValueEscaped)
             {
                 ArgumentException.ThrowIfNullOrEmpty(name);
-                ErrorUtilities.VerifyThrowInvalidOperation(isGlobalProperty || !ProjectHasMatchingGlobalProperty(project, name), "OM_GlobalProperty", name);
-                ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(name), "OM_ReservedName", name);
-                ErrorUtilities.VerifyThrowArgument(mayBeReserved || !ReservedPropertyNames.IsReservedProperty(name), "OM_ReservedName", name);
+                InvalidOperationException.ThrowIfFalse(isGlobalProperty || !ProjectHasMatchingGlobalProperty(project, name), SR.OM_GlobalProperty, name);
+                ArgumentException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(name), SR.OM_ReservedName, name);
+                ArgumentException.ThrowIfFalse(mayBeReserved || !ReservedPropertyNames.IsReservedProperty(name), SR.OM_ReservedName, name);
 
                 _name = name;
             }
@@ -588,8 +588,8 @@ namespace Microsoft.Build.Evaluation
 
                 set
                 {
-                    ErrorUtilities.VerifyThrowInvalidOperation(!IsReservedProperty, "OM_ReservedName", _name);
-                    ErrorUtilities.VerifyThrowInvalidOperation(!IsGlobalProperty, "OM_GlobalProperty", _name);
+                    InvalidOperationException.ThrowIfFalse(!IsReservedProperty, SR.OM_ReservedName, _name);
+                    InvalidOperationException.ThrowIfFalse(!IsGlobalProperty, SR.OM_GlobalProperty, _name);
 
                     if (IsEnvironmentProperty)
                     {

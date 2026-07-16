@@ -7,7 +7,6 @@ using System.Configuration;
 using System.IO;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -288,7 +287,7 @@ namespace Microsoft.Build.Evaluation
                         }
                     }
 
-                    string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MultipleDefinitionsForSameExtensionsPathOS", os, locationString);
+                    string message = SR.MultipleDefinitionsForSameExtensionsPathOS.FormatStripCode(os, locationString);
 
                     throw new ConfigurationErrorsException(message, element.ElementInformation.Source, element.ElementInformation.LineNumber);
                 }
@@ -458,7 +457,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (_previouslySeenPropertyNames.ContainsKey(propertyName))
                 {
-                    string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MultipleDefinitionsForSameProperty", propertyName);
+                    string message = SR.MultipleDefinitionsForSameProperty.FormatStripCode(propertyName);
 
                     throw new ConfigurationErrorsException(message, element.ElementInformation.Source, element.ElementInformation.LineNumber);
                 }
@@ -629,7 +628,7 @@ namespace Microsoft.Build.Evaluation
 
             if (_previouslySeenToolsVersions.ContainsKey(toolsVersion))
             {
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MultipleDefinitionsForSameToolset", toolsVersion);
+                string message = SR.MultipleDefinitionsForSameToolset.FormatStripCode(toolsVersion);
 
                 throw new ConfigurationErrorsException(message, element.ElementInformation.Source, element.ElementInformation.LineNumber);
             }

@@ -75,7 +75,7 @@ namespace Microsoft.Build.Shared
 
             if (-1 != firstInvalidCharLocation)
             {
-                ErrorUtilities.ThrowArgument("OM_NameInvalid", name, name[firstInvalidCharLocation]);
+                ArgumentException.Throw(SR.OM_NameInvalid, name, name[firstInvalidCharLocation]);
             }
         }
 

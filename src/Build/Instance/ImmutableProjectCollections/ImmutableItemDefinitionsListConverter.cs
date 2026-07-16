@@ -5,7 +5,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Build.Collections;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Instance
 {
@@ -84,7 +83,7 @@ namespace Microsoft.Build.Instance
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-            ErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, Count);
+            ArgumentGuard.VerifyCollectionCopyToArguments(array, arrayIndex, Count);
 
             int currentIndex = arrayIndex;
             void PutItemIntoArray(TCached item)

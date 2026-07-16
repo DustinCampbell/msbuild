@@ -8,7 +8,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Microsoft.Build.Collections;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Instance
 {
@@ -148,7 +147,7 @@ namespace Microsoft.Build.Instance
                     throw new ArgumentOutOfRangeException(nameof(count));
                 }
 
-                ErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, count);
+                ArgumentGuard.VerifyCollectionCopyToArguments(array, arrayIndex, count);
 
                 int index = arrayIndex;
                 int endIndex = arrayIndex + count;
@@ -165,7 +164,7 @@ namespace Microsoft.Build.Instance
 
             public void CopyTo(KeyValuePair<string, T>[] array, int arrayIndex)
             {
-                ErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, _projectElements.Count);
+                ArgumentGuard.VerifyCollectionCopyToArguments(array, arrayIndex, _projectElements.Count);
 
                 int index = arrayIndex;
                 foreach (var item in _projectElements.Values)

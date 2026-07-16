@@ -12,7 +12,6 @@ using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
-using ErrorUtilities = Microsoft.Build.Shared.ErrorUtilities;
 using OutOfProcNode = Microsoft.Build.Execution.OutOfProcNode;
 
 #nullable disable
@@ -253,7 +252,7 @@ namespace Microsoft.Build.Evaluation
             Assumed.False(System.Threading.Monitor.IsEntered(_locker), "Detected lock ordering inversion in ProjectRootElementCache.");
 #endif
             // Should already have been canonicalized
-            ErrorUtilities.VerifyThrowInternalRooted(projectFile);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(projectFile);
 
             // First try getting the ProjectRootElement from the cache.
             ProjectRootElement projectRootElement = GetOrLoad(projectFile, loadProjectRootElement: null, isExplicitlyLoaded, preserveFormatting);
@@ -530,7 +529,7 @@ namespace Microsoft.Build.Evaluation
 
             if (oldFullPathIfAny != null)
             {
-                ErrorUtilities.VerifyThrowInternalRooted(oldFullPathIfAny);
+                FrameworkErrorUtilities.VerifyThrowInternalRooted(oldFullPathIfAny);
                 Assumed.Equal(_weakCache[oldFullPathIfAny], projectRootElement, "Should already be present");
                 _weakCache.Remove(oldFullPathIfAny);
             }

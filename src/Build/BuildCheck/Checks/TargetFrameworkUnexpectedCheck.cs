@@ -13,8 +13,8 @@ internal class TargetFrameworkUnexpectedCheck : Check
 {
     private const string RuleId = "BC0108";
     public static CheckRule SupportedRule = new CheckRule(RuleId, "TargetFrameworkUnexpected",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0108_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0108_MessageFmt")!,
+        SR.BuildCheck_BC0108_Title.Text!,
+        SR.BuildCheck_BC0108_MessageFmt.Text!,
         new CheckConfiguration() { RuleId = RuleId, Severity = CheckResultSeverity.Warning });
 
     public override string FriendlyName => "MSBuild.TargetFrameworkUnexpected";

@@ -95,7 +95,7 @@ namespace Microsoft.Build.Construction
         {
             XmlUtilities.VerifyThrowArgumentValidElementName(name);
 
-            ErrorUtilities.VerifyThrowInvalidOperation(!XMakeElements.ReservedItemNames.Contains(name) && !ReservedPropertyNames.IsReservedProperty(name), "OM_CannotCreateReservedProperty", name);
+            InvalidOperationException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(name) && !ReservedPropertyNames.IsReservedProperty(name), SR.OM_CannotCreateReservedProperty, name);
 
             XmlElementWithLocation element = containingProject.CreateElement(name);
 
@@ -112,7 +112,7 @@ namespace Microsoft.Build.Construction
         {
             ArgumentException.ThrowIfNullOrEmpty(newName);
             XmlUtilities.VerifyThrowArgumentValidElementName(newName);
-            ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(newName), "CannotModifyReservedProperty", newName);
+            ArgumentException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(newName), SR.CannotModifyReservedProperty, newName);
             if (Link != null)
             {
                 PropertyLink.ChangeName(newName);
@@ -132,7 +132,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectPropertyGroupElement, "OM_CannotAcceptParent");
+            InvalidOperationException.ThrowIfFalse(parent is ProjectPropertyGroupElement, SR.OM_CannotAcceptParent);
         }
 
         /// <inheritdoc />

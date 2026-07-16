@@ -15,18 +15,18 @@ namespace Microsoft.Build.Experimental.BuildCheck.Checks;
 internal class PropertiesUsageCheck : WorkerNodeCheck
 {
     private static readonly CheckRule _usedBeforeInitializedRule = new CheckRule("BC0201", "PropertyUsedBeforeDeclared",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0201_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0201_MessageFmt")!,
+        SR.BuildCheck_BC0201_Title.Text!,
+        SR.BuildCheck_BC0201_MessageFmt.Text!,
         new CheckConfiguration() { RuleId = "BC0201", Severity = CheckResultSeverity.Warning, EvaluationCheckScope = EvaluationCheckScope.ProjectFileOnly });
 
     private static readonly CheckRule _initializedAfterUsedRule = new CheckRule("BC0202", "PropertyDeclaredAfterUsed",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0202_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0202_MessageFmt")!,
+        SR.BuildCheck_BC0202_Title.Text!,
+        SR.BuildCheck_BC0202_MessageFmt.Text!,
         new CheckConfiguration() { RuleId = "BC0202", Severity = CheckResultSeverity.Warning, EvaluationCheckScope = EvaluationCheckScope.ProjectFileOnly });
 
     private static readonly CheckRule _unusedPropertyRule = new CheckRule("BC0203", "UnusedPropertyDeclared",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0203_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0203_MessageFmt")!,
+        SR.BuildCheck_BC0203_Title.Text!,
+        SR.BuildCheck_BC0203_MessageFmt.Text!,
         new CheckConfiguration() { RuleId = "BC0203", Severity = CheckResultSeverity.None, EvaluationCheckScope = EvaluationCheckScope.ProjectFileOnly });
 
     internal static readonly IReadOnlyList<CheckRule> SupportedRulesList = [_usedBeforeInitializedRule, _initializedAfterUsedRule, _unusedPropertyRule];

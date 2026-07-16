@@ -290,7 +290,7 @@ namespace Microsoft.Build.BackEnd
             var (buildEventContext, timestamp, projectFile) = ReadEvaluationEvent(translator);
 
             var args = new ProjectEvaluationStartedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationStarted"), projectFile);
+                SR.EvaluationStarted.Text, projectFile);
 
             args.BuildEventContext = buildEventContext;
             args.RawTimestamp = timestamp;
@@ -304,7 +304,7 @@ namespace Microsoft.Build.BackEnd
             var (buildEventContext, timestamp, projectFile) = ReadEvaluationEvent(translator);
 
             var args = new ProjectEvaluationFinishedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationFinished"), projectFile);
+                SR.EvaluationFinished.Text, projectFile);
 
             args.BuildEventContext = buildEventContext;
             args.RawTimestamp = timestamp;

@@ -207,7 +207,7 @@ namespace Microsoft.Build.Internal
             {
                 if (Traits.Instance.LogExpandedWildcards)
                 {
-                    ErrorUtilities.DebugTraceMessage("EngineFileUtilities", $"Expanding wildcard for file spec {filespecEscaped}");
+                    FrameworkErrorUtilities.DebugTraceMessage("EngineFileUtilities", $"Expanding wildcard for file spec {filespecEscaped}");
                 }
 
                 // Unescape before handing it to the filesystem.
@@ -283,10 +283,7 @@ namespace Microsoft.Build.Internal
                             break;
 
                         default:
-                            InternalError.Throw(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                "UnknownLoggingType",
-                                loggingMechanism?.GetType(),
-                                nameof(GetFileList)));
+                            InternalError.Throw(SR.UnknownLoggingType.Format(loggingMechanism?.GetType(), nameof(GetFileList)));
 
                             break;
                     }
@@ -326,10 +323,7 @@ namespace Microsoft.Build.Internal
                             break;
 
                         default:
-                            InternalError.Throw(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                "UnknownLoggingType",
-                                loggingMechanism?.GetType(),
-                                nameof(GetFileList)));
+                            InternalError.Throw(SR.UnknownLoggingType.Format(loggingMechanism?.GetType(), nameof(GetFileList)));
 
                             break;
                     }
@@ -358,10 +352,7 @@ namespace Microsoft.Build.Internal
                                 evaluationLoggingContext.LogCommentFromText(MessageImportance.Low, globFailure);
                                 break;
                             default:
-                                InternalError.Throw(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                    "UnknownLoggingType",
-                                    loggingMechanism.GetType(),
-                                    nameof(GetFileList)));
+                                InternalError.Throw(SR.UnknownLoggingType.Format(loggingMechanism.GetType(), nameof(GetFileList)));
 
                                 break;
                         }

@@ -189,7 +189,7 @@ namespace Microsoft.Build.Logging
         {
             if (parametersString == null)
             {
-                throw new LoggerException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidBinaryLoggerParameters", ""));
+                throw new LoggerException(SR.InvalidBinaryLoggerParameters.FormatStripCode(""));
             }
 
             var result = new BinaryLoggerParameters();
@@ -214,7 +214,7 @@ namespace Microsoft.Build.Logging
                     continue;
                 }
 
-                throw new LoggerException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidBinaryLoggerParameters", parameter));
+                throw new LoggerException(SR.InvalidBinaryLoggerParameters.FormatStripCode(parameter));
             }
 
             return result;
@@ -399,7 +399,7 @@ namespace Microsoft.Build.Logging
             {
                 string errorCode;
                 string helpKeyword;
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, "InvalidFileLoggerFile", FilePath, e.Message);
+                string message = SR.InvalidFileLoggerFile.FormatStripCode(out errorCode, out helpKeyword, FilePath, e.Message);
                 throw new LoggerException(message, e, errorCode, helpKeyword);
             }
 
@@ -564,13 +564,7 @@ namespace Microsoft.Build.Logging
                     {
                         // Log the error but don't fail the build
                         // Note: We can't use LogMessage here since the stream is already closed
-                        string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                            out _,
-                            out _,
-                            "ErrorCopyingBinaryLog",
-                            FilePath,
-                            additionalPath,
-                            ex.Message);
+                        string message = SR.ErrorCopyingBinaryLog.FormatStripCode(out _, out _, FilePath, additionalPath, ex.Message);
 
                         Console.Error.WriteLine(message);
                     }
@@ -691,7 +685,7 @@ namespace Microsoft.Build.Logging
             {
                 string errorCode;
                 string helpKeyword;
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, "InvalidFileLoggerFile", FilePath, e.Message);
+                string message = SR.InvalidFileLoggerFile.FormatStripCode(out errorCode, out helpKeyword, FilePath, e.Message);
                 throw new LoggerException(message, e, errorCode, helpKeyword);
             }
         }

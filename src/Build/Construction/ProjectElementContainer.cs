@@ -294,7 +294,7 @@ namespace Microsoft.Build.Construction
         {
             ArgumentNullException.ThrowIfNull(child);
 
-            ErrorUtilities.VerifyThrowArgument(child.Parent == this, "OM_NodeNotAlreadyParentedByThis");
+            ArgumentException.ThrowIfFalse(child.Parent == this, SR.OM_NodeNotAlreadyParentedByThis);
 
             if (Link != null)
             {
@@ -352,7 +352,7 @@ namespace Microsoft.Build.Construction
         public virtual void DeepCopyFrom(ProjectElementContainer element)
         {
             ArgumentNullException.ThrowIfNull(element);
-            ErrorUtilities.VerifyThrowArgument(GetType().IsEquivalentTo(element.GetType()), "CannotCopyFromElementOfThatType");
+            ArgumentException.ThrowIfFalse(GetType().IsEquivalentTo(element.GetType()), SR.CannotCopyFromElementOfThatType);
 
             if (this == element)
             {
@@ -681,10 +681,10 @@ namespace Microsoft.Build.Construction
         /// </summary>
         private void VerifyForInsertBeforeAfterFirst(ProjectElement child, ProjectElement reference)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(Parent != null || ContainingProject == this, "OM_ParentNotParented");
-            ErrorUtilities.VerifyThrowInvalidOperation(reference == null || reference.Parent == this, "OM_ReferenceDoesNotHaveThisParent");
-            ErrorUtilities.VerifyThrowInvalidOperation(child.Parent == null, "OM_NodeAlreadyParented");
-            ErrorUtilities.VerifyThrowInvalidOperation(child.ContainingProject == ContainingProject, "OM_MustBeSameProject");
+            InvalidOperationException.ThrowIfFalse(Parent != null || ContainingProject == this, SR.OM_ParentNotParented);
+            InvalidOperationException.ThrowIfFalse(reference == null || reference.Parent == this, SR.OM_ReferenceDoesNotHaveThisParent);
+            InvalidOperationException.ThrowIfFalse(child.Parent == null, SR.OM_NodeAlreadyParented);
+            InvalidOperationException.ThrowIfFalse(child.ContainingProject == ContainingProject, SR.OM_MustBeSameProject);
 
             // In RemoveChild() we do not update the victim's NextSibling (or PreviousSibling) to null, to allow RemoveChild to be
             // called within an enumeration. So we can't expect these to be null if the child was previously removed. However, we
@@ -704,7 +704,7 @@ namespace Microsoft.Build.Construction
 
             while (ancestor != null)
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(ancestor != element, "OM_SelfAncestor");
+                InvalidOperationException.ThrowIfFalse(ancestor != element, SR.OM_SelfAncestor);
                 ancestor = ancestor.Parent;
             }
         }
@@ -836,9 +836,9 @@ namespace Microsoft.Build.Construction
                 }
             }
 
-            public void Add(T item) => ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+            public void Add(T item) => InvalidOperationException.Throw(SR.OM_NotSupportedReadOnlyCollection);
 
-            public void Clear() => ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+            public void Clear() => InvalidOperationException.Throw(SR.OM_NotSupportedReadOnlyCollection);
 
             public bool Contains(T item) => RealizedElements.Contains(item);
 
@@ -863,7 +863,7 @@ namespace Microsoft.Build.Construction
 
             public bool Remove(T item)
             {
-                ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+                InvalidOperationException.Throw(SR.OM_NotSupportedReadOnlyCollection);
                 return false;
             }
 

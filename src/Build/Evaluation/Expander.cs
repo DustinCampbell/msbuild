@@ -639,7 +639,7 @@ internal partial class Expander<P, I>
 
                 if (n == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
+                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, SR.InvalidFunctionPropertyExpressionDetailMismatchedParenthesis.Text);
                 }
 
                 FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: nestedPropertyStart);
@@ -654,7 +654,7 @@ internal partial class Expander<P, I>
 
                 if (n == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedQuote"));
+                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, SR.InvalidFunctionPropertyExpressionDetailMismatchedQuote.Text);
                 }
 
                 FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: quoteStart);

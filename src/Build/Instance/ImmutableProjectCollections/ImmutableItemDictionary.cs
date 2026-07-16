@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Instance
 {
@@ -182,7 +181,7 @@ namespace Microsoft.Build.Instance
 
             public void CopyTo(T[] array, int arrayIndex)
             {
-                ErrorUtilities.VerifyCollectionCopyToArguments(array, arrayIndex, _list.Count);
+                ArgumentGuard.VerifyCollectionCopyToArguments(array, arrayIndex, _list.Count);
 
                 int currentIndex = arrayIndex;
                 foreach (var item in _list)

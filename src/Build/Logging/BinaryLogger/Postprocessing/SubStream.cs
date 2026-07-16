@@ -5,7 +5,6 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Logging
 {
@@ -26,7 +25,7 @@ namespace Microsoft.Build.Logging
 
             if (!stream.CanRead)
             {
-                throw new NotSupportedException(ResourceUtilities.GetResourceString("Binlog_StreamUtils_MustBeReadable"));
+                throw new NotSupportedException(SR.Binlog_StreamUtils_MustBeReadable.Text);
             }
         }
 

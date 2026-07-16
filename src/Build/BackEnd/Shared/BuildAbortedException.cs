@@ -8,7 +8,6 @@ using Microsoft.Build.Framework.BuildException;
 #if FEATURE_SECURITY_PERMISSIONS
 using System.Security.Permissions;
 #endif
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -29,9 +28,9 @@ namespace Microsoft.Build.Exceptions
         /// Constructs a standard BuildAbortedException.
         /// </summary>
         public BuildAbortedException()
-            : base(ResourceUtilities.GetResourceString("BuildAborted"))
+            : base(SR.BuildAborted.Text)
         {
-            ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "BuildAborted");
+            SR.BuildAborted.FormatStripCode(out string errorCode, out _);
 
             ErrorCode = errorCode;
         }
@@ -40,9 +39,9 @@ namespace Microsoft.Build.Exceptions
         /// Constructs a BuildAbortedException with an additional message attached.
         /// </summary>
         public BuildAbortedException(string message)
-            : base(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("BuildAbortedWithMessage", message))
+            : base(SR.BuildAbortedWithMessage.FormatStripCode(message))
         {
-            ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "BuildAbortedWithMessage", message);
+            SR.BuildAbortedWithMessage.FormatStripCode(out string errorCode, out _, message);
 
             ErrorCode = errorCode;
         }
@@ -63,12 +62,12 @@ namespace Microsoft.Build.Exceptions
             : base(
                 calledFromDeserialization
                     ? message
-                    : ResourceUtilities.FormatResourceStringStripCodeAndKeyword("BuildAbortedWithMessage", message),
+                    : SR.BuildAbortedWithMessage.FormatStripCode(message),
                 innerException)
         {
             if (!calledFromDeserialization)
             {
-                ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "BuildAbortedWithMessage", message);
+                SR.BuildAbortedWithMessage.FormatStripCode(out string errorCode, out _, message);
 
                 ErrorCode = errorCode;
             }

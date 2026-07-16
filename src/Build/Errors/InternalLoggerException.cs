@@ -7,7 +7,6 @@ using System.Runtime.Serialization;
 using System.Security.Permissions;
 #endif
 
-using Microsoft.Build.Shared;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.BuildException;
 using Microsoft.Build.Framework.Telemetry;
@@ -38,7 +37,7 @@ namespace Microsoft.Build.Exceptions
         /// <exception cref="InvalidOperationException"></exception>
         public InternalLoggerException()
         {
-            ErrorUtilities.ThrowInvalidOperation("InternalLoggerExceptionOnlyThrownByEngine");
+            InvalidOperationException.Throw(SR.InternalLoggerExceptionOnlyThrownByEngine);
         }
 
         /// <summary>
@@ -52,7 +51,7 @@ namespace Microsoft.Build.Exceptions
         public InternalLoggerException(string message)
             : base(message)
         {
-            ErrorUtilities.ThrowInvalidOperation("InternalLoggerExceptionOnlyThrownByEngine");
+            InvalidOperationException.Throw(SR.InternalLoggerExceptionOnlyThrownByEngine);
         }
 
         /// <summary>
@@ -257,7 +256,7 @@ namespace Microsoft.Build.Exceptions
 
             string errorCode;
             string helpKeyword;
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, messageResourceName, messageArgs);
+            string message = SR.Resource(messageResourceName).FormatStripCode(out errorCode, out helpKeyword, messageArgs);
 
             throw new InternalLoggerException(message, innerException, e, errorCode, helpKeyword, initializationException);
         }

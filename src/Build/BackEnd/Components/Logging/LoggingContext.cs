@@ -147,7 +147,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 file.Column,
                 file.EndLine,
                 file.EndColumn,
-                ResourceUtilities.GetResourceString(messageResourceName),
+                SR.Resource(messageResourceName).Text,
                 helpKeyword: null,
                 senderName: "MSBuild",
                 importance,

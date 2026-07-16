@@ -254,9 +254,9 @@ namespace Microsoft.Build.Shared
         {
             Assumed.NotNull(elementLocation);
 
-            string errorSubCategory = errorSubCategoryResourceName is null ? null : Strings.GetString(errorSubCategoryResourceName);
+            string errorSubCategory = errorSubCategoryResourceName is null ? null : SR.GetString(errorSubCategoryResourceName);
 
-            string message = Strings.Resource(resourceName).FormatStripCode(out string errorCode, out string helpKeyword, args);
+            string message = SR.Resource(resourceName).FormatStripCode(out string errorCode, out string helpKeyword, args);
 
             throw new InvalidProjectFileException(elementLocation.File, elementLocation.Line, elementLocation.Column, 0 /* Unknown end line */, 0 /* Unknown end column */, message, errorSubCategory, errorCode, helpKeyword);
         }

@@ -113,7 +113,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectItemDefinitionGroupElement, "OM_CannotAcceptParent");
+            InvalidOperationException.ThrowIfFalse(parent is ProjectItemDefinitionGroupElement, SR.OM_CannotAcceptParent);
         }
 
         /// <inheritdoc />

@@ -111,7 +111,7 @@ namespace Microsoft.Build.BackEnd
                     .ToList();
             }
 
-            throw new BuildAbortedException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("CouldNotConnectToMSBuildExe", ComponentHost.BuildParameters.NodeExeLocation));
+            throw new BuildAbortedException(SR.CouldNotConnectToMSBuildExe.FormatStripCode(ComponentHost.BuildParameters.NodeExeLocation));
 
             void NodeContextCreated(NodeContext context)
             {

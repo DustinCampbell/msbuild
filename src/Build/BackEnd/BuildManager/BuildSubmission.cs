@@ -69,7 +69,7 @@ namespace Microsoft.Build.Execution
             object? context,
             bool allowMainThreadBuild)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(!IsCompleted, "SubmissionAlreadyComplete");
+            InvalidOperationException.ThrowIfFalse(!IsCompleted, SR.SubmissionAlreadyComplete);
             _completionCallback = callback;
             AsyncContext = context;
             BuildManager.ExecuteSubmission(this, allowMainThreadBuild);

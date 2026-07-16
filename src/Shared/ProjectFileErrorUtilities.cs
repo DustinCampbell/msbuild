@@ -139,8 +139,8 @@ namespace Microsoft.Build.Shared
 
             if (!condition)
             {
-                string errorSubCategory = errorSubCategoryResourceName is null ? null : Strings.GetString(errorSubCategoryResourceName);
-                string message = Strings.Resource(resourceName).FormatStripCode(out string errorCode, out string helpKeyword, args);
+                string errorSubCategory = errorSubCategoryResourceName is null ? null : SR.GetString(errorSubCategoryResourceName);
+                string message = SR.Resource(resourceName).FormatStripCode(out string errorCode, out string helpKeyword, args);
 
                 throw new InvalidProjectFileException(projectFile.File, projectFile.Line, projectFile.Column, projectFile.EndLine, projectFile.EndColumn, message, errorSubCategory, errorCode, helpKeyword, innerException);
             }

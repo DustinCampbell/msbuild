@@ -11,7 +11,9 @@ using BuildXL.Utilities.Core;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.FileAccesses;
 using Microsoft.Build.Internal;
+#if RUNTIME_TYPE_NETCORE
 using Microsoft.Build.Shared;
+#endif
 using Microsoft.Build.Shared.FileSystem;
 using static BuildXL.Processes.FileAccessManifest;
 #if RUNTIME_TYPE_NETCORE
@@ -63,7 +65,7 @@ namespace Microsoft.Build.BackEnd
 
             if (!FileSystems.Default.FileExists(launchData.MSBuildLocation))
             {
-                throw new BuildAbortedException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("CouldNotFindMSBuildExe", launchData.MSBuildLocation));
+                throw new BuildAbortedException(SR.CouldNotFindMSBuildExe.FormatStripCode(launchData.MSBuildLocation));
             }
 
             // Repeat the executable name as the first token of the command line because the command line

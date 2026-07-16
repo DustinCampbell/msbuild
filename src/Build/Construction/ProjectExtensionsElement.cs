@@ -53,7 +53,7 @@ namespace Microsoft.Build.Construction
         public override string Condition
         {
             get => null;
-            set => ErrorUtilities.ThrowInvalidOperation("OM_CannotGetSetCondition");
+            set => InvalidOperationException.Throw(SR.OM_CannotGetSetCondition);
         }
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace Microsoft.Build.Construction
         public override void CopyFrom(ProjectElement element)
         {
             ArgumentNullException.ThrowIfNull(element);
-            ErrorUtilities.VerifyThrowArgument(GetType().IsEquivalentTo(element.GetType()), "CannotCopyFromElementOfThatType");
+            ArgumentException.ThrowIfFalse(GetType().IsEquivalentTo(element.GetType()), SR.CannotCopyFromElementOfThatType);
 
             if (this == element)
             {
@@ -196,7 +196,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectRootElement, "OM_CannotAcceptParent");
+            InvalidOperationException.ThrowIfFalse(parent is ProjectRootElement, SR.OM_CannotAcceptParent);
         }
 
         /// <inheritdoc />

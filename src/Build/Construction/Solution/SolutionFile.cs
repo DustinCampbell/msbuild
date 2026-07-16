@@ -20,9 +20,7 @@ using Microsoft.VisualStudio.SolutionPersistence;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 using BuildEventFileInfo = Microsoft.Build.Shared.BuildEventFileInfo;
-using ErrorUtilities = Microsoft.Build.Shared.ErrorUtilities;
 using ProjectFileErrorUtilities = Microsoft.Build.Shared.ProjectFileErrorUtilities;
-using ResourceUtilities = Microsoft.Build.Shared.ResourceUtilities;
 using VisualStudioConstants = Microsoft.Build.Shared.VisualStudioConstants;
 
 #nullable disable
@@ -233,7 +231,7 @@ namespace Microsoft.Build.Construction
                     throw new ArgumentNullException(nameof(FullPath));
                 }
                 // Should already be canonicalized to a full path
-                ErrorUtilities.VerifyThrowInternalRooted(value);
+                FrameworkErrorUtilities.VerifyThrowInternalRooted(value);
                 // To reduce code duplication, this should be
                 //   if (FileUtilities.IsSolutionFilterFilename(value))
                 // But that's in Microsoft.Build.Framework and this codepath
@@ -349,7 +347,7 @@ namespace Microsoft.Build.Construction
         private void ReadSolutionModel(SolutionModel solutionModel)
         {
             Assumed.NotNullOrEmpty(_solutionFile, "ReadSolutionModel() got a null or empty solution file.");
-            ErrorUtilities.VerifyThrowInternalRooted(_solutionFile);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(_solutionFile);
 
             _projectsByGuid = new Dictionary<string, ProjectInSolution>(StringComparer.OrdinalIgnoreCase);
             _solutionFoldersByGuid = new Dictionary<string, ProjectInSolution>(StringComparer.OrdinalIgnoreCase);
@@ -536,7 +534,7 @@ namespace Microsoft.Build.Construction
         internal static void GetSolutionFileAndVisualStudioMajorVersions(string solutionFile, out int solutionVersion, out int visualStudioMajorVersion)
         {
             Assumed.NotNullOrEmpty(solutionFile, "null solution file passed to GetSolutionFileMajorVersion!");
-            ErrorUtilities.VerifyThrowInternalRooted(solutionFile);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(solutionFile);
 
             const string slnFileHeaderNoVersion = "Microsoft Visual Studio Solution File, Format Version ";
             const string slnFileVSVLinePrefix = "VisualStudioVersion";
@@ -733,7 +731,7 @@ namespace Microsoft.Build.Construction
         internal void ParseSolutionFile()
         {
             Assumed.NotNullOrEmpty(_solutionFile, "ParseSolutionFile() got a null solution file!");
-            ErrorUtilities.VerifyThrowInternalRooted(_solutionFile);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(_solutionFile);
 
             FileStream fileStream = null;
             SolutionReader = null;
@@ -1023,7 +1021,7 @@ namespace Microsoft.Build.Construction
             // as users such as blend opening a dev10 project cannot do anything about it.
             if (Version > slnFileMaxVersion)
             {
-                SolutionParserComments.Add(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("UnrecognizedSolutionComment", Version));
+                SolutionParserComments.Add(SR.UnrecognizedSolutionComment.FormatStripCode(Version));
             }
         }
 
@@ -1106,8 +1104,7 @@ namespace Microsoft.Build.Construction
                 else if (line.StartsWith("Project(", StringComparison.Ordinal))
                 {
                     // Another Project spotted instead of EndProject for the current one - solution file is malformed
-                    string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out _, out _, "Shared.InvalidProjectFile",
-                        _solutionFile, proj.ProjectName);
+                    string warning = SR.Shared_InvalidProjectFile.FormatStripCode(out _, out _, _solutionFile, proj.ProjectName);
                     SolutionParserWarnings.Add(warning);
 
                     // The line with new project is already read and we can't go one line back - we have no choice but to recursively parse spotted project
@@ -1227,8 +1224,7 @@ namespace Microsoft.Build.Construction
             catch (SecurityException e)
             {
                 // Log a warning
-                string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "Shared.ProjectFileCouldNotBeLoaded",
-                    etpProj.RelativePath, e.Message);
+                string warning = SR.Shared_ProjectFileCouldNotBeLoaded.FormatStripCode(out string errorCode, out _, etpProj.RelativePath, e.Message);
                 SolutionParserWarnings.Add(warning);
                 SolutionParserErrorCodes.Add(errorCode);
             }
@@ -1236,8 +1232,7 @@ namespace Microsoft.Build.Construction
             catch (NotSupportedException e)
             {
                 // Log a warning
-                string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "Shared.ProjectFileCouldNotBeLoaded",
-                    etpProj.RelativePath, e.Message);
+                string warning = SR.Shared_ProjectFileCouldNotBeLoaded.FormatStripCode(out string errorCode, out _, etpProj.RelativePath, e.Message);
                 SolutionParserWarnings.Add(warning);
                 SolutionParserErrorCodes.Add(errorCode);
             }
@@ -1245,8 +1240,7 @@ namespace Microsoft.Build.Construction
             catch (IOException e)
             {
                 // Log a warning
-                string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "Shared.ProjectFileCouldNotBeLoaded",
-                    etpProj.RelativePath, e.Message);
+                string warning = SR.Shared_ProjectFileCouldNotBeLoaded.FormatStripCode(out string errorCode, out _, etpProj.RelativePath, e.Message);
                 SolutionParserWarnings.Add(warning);
                 SolutionParserErrorCodes.Add(errorCode);
             }
@@ -1254,8 +1248,7 @@ namespace Microsoft.Build.Construction
             catch (UnauthorizedAccessException e)
             {
                 // Log a warning
-                string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "Shared.ProjectFileCouldNotBeLoaded",
-                    etpProj.RelativePath, e.Message);
+                string warning = SR.Shared_ProjectFileCouldNotBeLoaded.FormatStripCode(out string errorCode, out _, etpProj.RelativePath, e.Message);
                 SolutionParserWarnings.Add(warning);
                 SolutionParserErrorCodes.Add(errorCode);
             }
@@ -1263,8 +1256,7 @@ namespace Microsoft.Build.Construction
             catch (XmlException e)
             {
                 // Log a warning
-                string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "Shared.InvalidProjectFile",
-                   etpProj.RelativePath, e.Message);
+                string warning = SR.Shared_InvalidProjectFile.FormatStripCode(out string errorCode, out _, etpProj.RelativePath, e.Message);
                 SolutionParserWarnings.Add(warning);
                 SolutionParserErrorCodes.Add(errorCode);
             }

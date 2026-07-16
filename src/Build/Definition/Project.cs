@@ -271,7 +271,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(projectCollection);
             ProjectCollection = projectCollection;
             var defaultImplementation = new ProjectImpl(this, xml, globalProperties, toolsVersion, subToolsetVersion, loadSettings);
@@ -365,7 +365,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(xmlReader);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(projectCollection);
             ProjectCollection = projectCollection;
             var defaultImplementation = new ProjectImpl(this, xmlReader, globalProperties, toolsVersion, subToolsetVersion, loadSettings, evaluationContext);
@@ -461,7 +461,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(projectCollection);
 
             ProjectCollection = projectCollection;
@@ -562,7 +562,7 @@ namespace Microsoft.Build.Evaluation
 
             if (options.EvaluationStage != ProjectEvaluationStage.Full)
             {
-                ErrorUtilities.ThrowArgument("OM_PartialEvaluationNotSupportedForProject", options.EvaluationStage);
+                ArgumentException.Throw(SR.OM_PartialEvaluationNotSupportedForProject, options.EvaluationStage);
             }
         }
 
@@ -1709,7 +1709,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            ErrorUtilities.VerifyThrowInvalidOperation(!ThrowInsteadOfSplittingItemElement, "OM_CannotSplitItemElementWhenSplittingIsDisabled", itemElement.Location, $"{nameof(Project)}.{nameof(ThrowInsteadOfSplittingItemElement)}");
+            InvalidOperationException.ThrowIfFalse(!ThrowInsteadOfSplittingItemElement, SR.OM_CannotSplitItemElementWhenSplittingIsDisabled, itemElement.Location, $"{nameof(Project)}.{nameof(ThrowInsteadOfSplittingItemElement)}");
 
             var relevantItems = new List<ProjectItem>();
 
@@ -1841,7 +1841,7 @@ namespace Microsoft.Build.Evaluation
         internal void VerifyThrowInvalidOperationNotImported(ProjectRootElement otherXml)
         {
             Assumed.NotNull(otherXml);
-            ErrorUtilities.VerifyThrowInvalidOperation(ReferenceEquals(Xml, otherXml), "OM_CannotModifyEvaluatedObjectInImportedFile", otherXml.Location.File);
+            InvalidOperationException.ThrowIfFalse(ReferenceEquals(Xml, otherXml), SR.OM_CannotModifyEvaluatedObjectInImportedFile, otherXml.Location.File);
         }
 
         /// <summary>
@@ -1915,7 +1915,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, ProjectRootElement xml, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings)
             {
                 ArgumentNullException.ThrowIfNull(xml);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Xml = xml;
@@ -1939,7 +1939,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, XmlReader xmlReader, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings, EvaluationContext evaluationContext)
             {
                 ArgumentNullException.ThrowIfNull(xmlReader);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Owner = owner;
@@ -1974,7 +1974,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, string projectFile, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings, EvaluationContext evaluationContext)
             {
                 ArgumentNullException.ThrowIfNull(projectFile);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Owner = owner;
@@ -2279,7 +2279,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (!(_data.ShouldEvaluateForDesignTime && _data.CanEvaluateElementsWithFalseConditions))
                     {
-                        ErrorUtilities.ThrowInvalidOperation("OM_NotEvaluatedBecauseShouldEvaluateForDesignTimeIsFalse", nameof(ItemsIgnoringCondition));
+                        InvalidOperationException.Throw(SR.OM_NotEvaluatedBecauseShouldEvaluateForDesignTimeIsFalse, nameof(ItemsIgnoringCondition));
                     }
 
                     return new ReadOnlyCollection<ProjectItem>(_data.ItemsIgnoringCondition);
@@ -2321,7 +2321,7 @@ namespace Microsoft.Build.Evaluation
             {
                 get
                 {
-                    ErrorUtilities.VerifyThrowInvalidOperation((_loadSettings & ProjectLoadSettings.RecordDuplicateButNotCircularImports) != 0, "OM_MustSetRecordDuplicateInputs");
+                    InvalidOperationException.ThrowIfFalse((_loadSettings & ProjectLoadSettings.RecordDuplicateButNotCircularImports) != 0, SR.OM_MustSetRecordDuplicateInputs);
 
                     var imports = new List<ResolvedImport>(_data.ImportClosureWithDuplicates.Count - 1 /* outer project */);
 
@@ -2979,8 +2979,8 @@ namespace Microsoft.Build.Evaluation
 
                 ProjectProperty property = _data.Properties[name];
 
-                ErrorUtilities.VerifyThrowInvalidOperation(property?.IsReservedProperty != true, "OM_ReservedName", name);
-                ErrorUtilities.VerifyThrowInvalidOperation(property?.IsGlobalProperty != true, "OM_GlobalProperty", name);
+                InvalidOperationException.ThrowIfFalse(property?.IsReservedProperty != true, SR.OM_ReservedName, name);
+                InvalidOperationException.ThrowIfFalse(property?.IsGlobalProperty != true, SR.OM_GlobalProperty, name);
 
                 // If there's an existing regular property, we can reuse it, unless it's not attached to its XML any more
                 if (property?.IsEnvironmentProperty == false &&
@@ -3203,9 +3203,9 @@ namespace Microsoft.Build.Evaluation
             public override bool RemoveProperty(ProjectProperty property)
             {
                 ArgumentNullException.ThrowIfNull(property);
-                ErrorUtilities.VerifyThrowInvalidOperation(!property.IsReservedProperty, "OM_ReservedName", property.Name);
-                ErrorUtilities.VerifyThrowInvalidOperation(!property.IsGlobalProperty, "OM_GlobalProperty", property.Name);
-                ErrorUtilities.VerifyThrowArgument(property.Xml.Parent != null, "OM_IncorrectObjectAssociation", "ProjectProperty", "Project");
+                InvalidOperationException.ThrowIfFalse(!property.IsReservedProperty, SR.OM_ReservedName, property.Name);
+                InvalidOperationException.ThrowIfFalse(!property.IsGlobalProperty, SR.OM_GlobalProperty, property.Name);
+                ArgumentException.ThrowIfFalse(property.Xml.Parent != null, SR.OM_IncorrectObjectAssociation, "ProjectProperty", "Project");
                 VerifyThrowInvalidOperationNotImported(property.Xml.ContainingProject);
 
                 ProjectElementContainer parent = property.Xml.Parent;
@@ -3265,7 +3265,7 @@ namespace Microsoft.Build.Evaluation
             public override bool RemoveItem(ProjectItem item)
             {
                 ArgumentNullException.ThrowIfNull(item);
-                ErrorUtilities.VerifyThrowArgument(item.Project == Owner, "OM_IncorrectObjectAssociation", "ProjectItem", "Project");
+                ArgumentException.ThrowIfFalse(item.Project == Owner, SR.OM_IncorrectObjectAssociation, "ProjectItem", "Project");
 
                 bool result = RemoveItemHelper(item);
 
@@ -3446,7 +3446,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                ErrorUtilities.VerifyThrowInvalidOperation(!ThrowInsteadOfSplittingItemElement, "OM_CannotSplitItemElementWhenSplittingIsDisabled", itemElement.Location, $"{nameof(Project)}.{nameof(ThrowInsteadOfSplittingItemElement)}");
+                InvalidOperationException.ThrowIfFalse(!ThrowInsteadOfSplittingItemElement, SR.OM_CannotSplitItemElementWhenSplittingIsDisabled, itemElement.Location, $"{nameof(Project)}.{nameof(ThrowInsteadOfSplittingItemElement)}");
 
                 var relevantItems = new List<ProjectItem>();
 
@@ -3633,7 +3633,7 @@ namespace Microsoft.Build.Evaluation
             internal void VerifyThrowInvalidOperationNotImported(ProjectRootElement otherXml)
             {
                 Assumed.NotNull(otherXml);
-                ErrorUtilities.VerifyThrowInvalidOperation(ReferenceEquals(Xml, otherXml), "OM_CannotModifyEvaluatedObjectInImportedFile", otherXml.Location.File);
+                InvalidOperationException.ThrowIfFalse(ReferenceEquals(Xml, otherXml), SR.OM_CannotModifyEvaluatedObjectInImportedFile, otherXml.Location.File);
             }
 
             /// <summary>
@@ -3693,7 +3693,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                ErrorUtilities.VerifyThrowArgument(item.Project == Owner, "OM_IncorrectObjectAssociation", "ProjectItem", "Project");
+                ArgumentException.ThrowIfFalse(item.Project == Owner, SR.OM_IncorrectObjectAssociation, "ProjectItem", "Project");
 
                 VerifyThrowInvalidOperationNotImported(item.Xml.ContainingProject);
 

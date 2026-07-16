@@ -205,7 +205,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (Exception ex)
             {
-                throw new InternalErrorException(string.Format(AssemblyResources.GetString("NuGetAssemblyNotFound"), assemblyDirectory), ex);
+                throw new InternalErrorException(string.Format(SR.NuGetAssemblyNotFound.Text, assemblyDirectory), ex);
             }
         }
     }

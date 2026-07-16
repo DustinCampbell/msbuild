@@ -38,7 +38,7 @@ internal class CheckDispatchingContext : ICheckContext
     {
         Assumed.NotNullOrEmpty(messageResourceName);
 
-        DispatchAsCommentFromText(_eventContext, importance, ResourceUtilities.GetResourceString(messageResourceName), messageArgs);
+        DispatchAsCommentFromText(_eventContext, importance, SR.Resource(messageResourceName).Text, messageArgs);
     }
 
     public void DispatchAsCommentFromText(MessageImportance importance, string message)

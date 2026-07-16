@@ -1140,10 +1140,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         private static InternalLoggerException CreateReflectiveLoggerLoadingDisabledException()
         {
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                out string errorCode,
-                out string helpKeyword,
-                "ReflectiveLoggerLoadingNotSupported");
+            string message = SR.ReflectiveLoggerLoadingNotSupported.FormatStripCode(out string errorCode, out string helpKeyword);
             return new InternalLoggerException(message, innerException: null, e: null, errorCode, helpKeyword, initializationException: true);
         }
 

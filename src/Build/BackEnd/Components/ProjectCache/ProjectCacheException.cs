@@ -3,7 +3,6 @@
 
 using System;
 using Microsoft.Build.Framework.BuildException;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -57,7 +56,7 @@ namespace Microsoft.Build.ProjectCache
         {
             Assumed.NotNull(messageResourceName, "Need error message.");
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResourceName, messageArgs);
+            string message = SR.Resource(messageResourceName).FormatStripCode(out var errorCode, out _, messageArgs);
 
             throw new ProjectCacheException(message, innerException, hasBeenLoggedByProjectCache: false, errorCode);
         }
@@ -68,7 +67,7 @@ namespace Microsoft.Build.ProjectCache
         {
             Assumed.NotNull(messageResourceName, "Need error message.");
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResourceName, messageArgs);
+            string message = SR.Resource(messageResourceName).FormatStripCode(out var errorCode, out _, messageArgs);
 
             throw new ProjectCacheException(message: message, innerException: null, hasBeenLoggedByProjectCache: true, errorCode: errorCode);
         }
@@ -79,7 +78,7 @@ namespace Microsoft.Build.ProjectCache
         {
             Assumed.NotNull(messageResourceName, "Need error message.");
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResourceName, messageArgs);
+            string message = SR.Resource(messageResourceName).FormatStripCode(out var errorCode, out _, messageArgs);
 
             throw new ProjectCacheException(message: message, innerException: null, hasBeenLoggedByProjectCache: false, errorCode: errorCode);
         }

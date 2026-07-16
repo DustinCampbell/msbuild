@@ -805,10 +805,7 @@ namespace Microsoft.Build.BackEnd
                                 taskHost.ColumnNumberOfTaskNode,
                                 0,
                                 0,
-                                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                    "UndeclaredMSBuildTasksNotAllowedInIsolatedGraphBuilds",
-                                    string.Join(";", undeclaredProjects.Select(p => $"\"{p}\"")),
-                                    taskExecutionHost.ProjectInstance.FullPath),
+                                SR.UndeclaredMSBuildTasksNotAllowedInIsolatedGraphBuilds.Format(string.Join(";", undeclaredProjects.Select(p => $"\"{p}\"")), taskExecutionHost.ProjectInstance.FullPath),
                                 null,
                                 null,
                                 null);

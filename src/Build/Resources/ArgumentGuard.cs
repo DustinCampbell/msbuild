@@ -5,14 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Framework;
 
 namespace Microsoft.Build;
 
 /// <summary>
 ///  Argument-validation helpers that were previously provided by the shared <c>ErrorUtilities</c>
 ///  class. These are re-homed in Microsoft.Build on top of the <see cref="Framework.ResourceString"/>
-///  design (see <see cref="Strings"/>) so that Microsoft.Build no longer needs the resource-name-based
+///  design (see <see cref="SR"/>) so that Microsoft.Build no longer needs the resource-name-based
 ///  <c>ErrorUtilities</c>/<c>ResourceUtilities</c> helpers.
 /// </summary>
 internal static class ArgumentGuard
@@ -49,7 +49,7 @@ internal static class ArgumentGuard
 
     [DoesNotReturn]
     private static void ThrowArgumentLength(string? parameterName)
-        => throw new ArgumentException(Strings.Shared_ParameterCannotHaveZeroLength.FormatStripCode(parameterName));
+        => throw new ArgumentException(SR.Shared_ParameterCannotHaveZeroLength.FormatStripCode(parameterName));
 
     /// <summary>
     ///  Throws an <see cref="ArgumentNullException"/> if the given string parameter is null and an
@@ -61,7 +61,7 @@ internal static class ArgumentGuard
 
         if (FileUtilities.PathIsInvalid(parameter))
         {
-            ArgumentException.Throw(Strings.Shared_ParameterCannotHaveInvalidPathChars, parameterName, parameter);
+            ArgumentException.Throw(SR.Shared_ParameterCannotHaveInvalidPathChars, parameterName, parameter);
         }
     }
 
@@ -97,7 +97,7 @@ internal static class ArgumentGuard
         if (requiredCapacity > capacity)
         {
             throw new ArgumentException(
-                Strings.CollectionCopyToFailureProvidedArrayIsTooSmall.Text,
+                SR.CollectionCopyToFailureProvidedArrayIsTooSmall.Text,
                 collectionParamName);
         }
     }

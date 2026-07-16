@@ -325,8 +325,8 @@ namespace Microsoft.Build.Execution
             ArgumentNullException.ThrowIfNull(escapedValue);
             if (location == null)
             {
-                ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(name), "OM_ReservedName", name);
-                ErrorUtilities.VerifyThrowArgument(mayBeReserved || !ReservedPropertyNames.IsReservedProperty(name), "OM_CannotCreateReservedProperty", name);
+                ArgumentException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(name), SR.OM_ReservedName, name);
+                ArgumentException.ThrowIfFalse(mayBeReserved || !ReservedPropertyNames.IsReservedProperty(name), SR.OM_CannotCreateReservedProperty, name);
                 XmlUtilities.VerifyThrowArgumentValidElementName(name);
             }
             else

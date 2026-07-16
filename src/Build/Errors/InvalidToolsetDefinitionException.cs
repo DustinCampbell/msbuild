@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Microsoft.Build.Framework.BuildException;
-using Microsoft.Build.Shared;
 #if FEATURE_SECURITY_PERMISSIONS
 using System.Security.Permissions;
 #endif
@@ -166,10 +165,7 @@ namespace Microsoft.Build.Exceptions
             string resourceName,
             params string[] args)
         {
-            ResourceUtilities.VerifyResourceStringExists(resourceName);
-            string errorCode;
-            string helpKeyword;
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, resourceName, (object[])args);
+            string message = SR.Resource(resourceName).FormatStripCode(out string errorCode, out _, (object[])args);
 
             throw new InvalidToolsetDefinitionException(message, errorCode, innerException);
         }

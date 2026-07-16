@@ -745,7 +745,7 @@ namespace Microsoft.Build.BackEnd
                         }
                         catch (Exception e) when (e is DirectoryNotFoundException or UnauthorizedAccessException)
                         {
-                            ErrorUtilities.ThrowInvalidOperation("CacheFileInaccessible", cacheFile, e);
+                            InvalidOperationException.Throw(SR.CacheFileInaccessible, cacheFile, e);
                             throw;
                         }
 
@@ -784,7 +784,7 @@ namespace Microsoft.Build.BackEnd
                 }
                 catch (Exception e) when (e is DirectoryNotFoundException or UnauthorizedAccessException)
                 {
-                    ErrorUtilities.ThrowInvalidOperation("CacheFileInaccessible", cacheFile, e);
+                    InvalidOperationException.Throw(SR.CacheFileInaccessible, cacheFile, e);
                     throw;
                 }
 

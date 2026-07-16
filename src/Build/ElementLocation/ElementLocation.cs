@@ -210,7 +210,7 @@ namespace Microsoft.Build.Construction
             string locationString;
             if (line != 0 && column != 0)
             {
-                locationString = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("FileLocation", file, line, column);
+                locationString = SR.FileLocation.Format(file, line, column);
             }
             else if (line != 0)
             {
@@ -251,7 +251,7 @@ namespace Microsoft.Build.Construction
             /// </summary>
             internal RegularElementLocation(string file, int line, int column)
             {
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(file, nameof(file));
+                ArgumentGuard.VerifyThrowArgumentLengthIfNotNull(file, nameof(file));
                 Assumed.PositiveOrZero(line, "Use zero for unknown");
                 Assumed.PositiveOrZero(column, "Use zero for unknown");
 

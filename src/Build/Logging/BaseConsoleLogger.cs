@@ -159,7 +159,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         internal void WriteLinePrettyFromResource(int indentLevel, string resourceString, params object[] args)
         {
-            string formattedString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(resourceString, args);
+            string formattedString = SR.Resource(resourceString).FormatStripCode(args);
             WriteLinePretty(indentLevel, formattedString);
         }
 
@@ -509,7 +509,7 @@ namespace Microsoft.Build.BackEnd.Logging
         {
             // Write the banner
             setColor(ConsoleColor.Green);
-            WriteLinePretty(currentIndentLevel, ResourceUtilities.GetResourceString("EnvironmentHeader"));
+            WriteLinePretty(currentIndentLevel, SR.EnvironmentHeader.Text);
 
             if (environment != null)
             {
@@ -530,7 +530,7 @@ namespace Microsoft.Build.BackEnd.Logging
         {
             // Write the banner
             setColor(ConsoleColor.Green);
-            WriteLinePretty(currentIndentLevel, ResourceUtilities.GetResourceString("PropertyListHeader"));
+            WriteLinePretty(currentIndentLevel, SR.PropertyListHeader.Text);
             // Write each property name and its value, one per line
             foreach (DictionaryEntry prop in list)
             {
@@ -557,7 +557,7 @@ namespace Microsoft.Build.BackEnd.Logging
 
             // Write the banner
             setColor(ConsoleColor.Green);
-            WriteLinePretty(currentIndentLevel, ResourceUtilities.GetResourceString("ItemListHeader"));
+            WriteLinePretty(currentIndentLevel, SR.ItemListHeader.Text);
 
             // Write each item type and its itemspec, one per line
             foreach (DictionaryEntry entry in itemTypes)
@@ -1036,7 +1036,7 @@ namespace Microsoft.Build.BackEnd.Logging
             {
                 string errorCode;
                 string helpKeyword;
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, "InvalidVerbosity", parameterValue);
+                string message = SR.InvalidVerbosity.FormatStripCode(out errorCode, out helpKeyword, parameterValue);
                 throw new LoggerException(message, null, errorCode, helpKeyword);
             }
         }

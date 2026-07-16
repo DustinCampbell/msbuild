@@ -5,7 +5,6 @@ using System;
 using System.IO;
 
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -72,7 +71,7 @@ namespace Microsoft.Build.Logging
             {
                 if (string.IsNullOrEmpty(parameterValue))
                 {
-                    string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidFileLoggerFile", string.Empty, ResourceUtilities.GetResourceString("logfilePathNullOrEmpty"));
+                    string message = SR.InvalidFileLoggerFile.FormatStripCode(string.Empty, SR.logfilePathNullOrEmpty.Text);
                     throw new LoggerException(message);
                 }
 
@@ -121,7 +120,7 @@ namespace Microsoft.Build.Logging
 
                 string errorCode;
                 string helpKeyword;
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, "InvalidFileLoggerFile", fileName, e.Message);
+                string message = SR.InvalidFileLoggerFile.FormatStripCode(out errorCode, out helpKeyword, fileName, e.Message);
                 throw new LoggerException(message, e, errorCode, helpKeyword);
             }
 

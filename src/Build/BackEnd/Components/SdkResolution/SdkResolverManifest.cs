@@ -6,7 +6,6 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -91,7 +90,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                     }
                     else
                     {
-                        throw new XmlException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("UnrecognizedElement", reader.Name));
+                        throw new XmlException(SR.UnrecognizedElement.FormatStripCode(reader.Name));
                     }
                 }
             }
@@ -134,7 +133,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                                     }
                                     break;
                                 default:
-                                    throw new XmlException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("UnrecognizedElement", reader.Name));
+                                    throw new XmlException(SR.UnrecognizedElement.FormatStripCode(reader.Name));
                             }
                             break;
                         }
@@ -144,7 +143,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                         break;
 
                     default:
-                        throw new XmlException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("UnrecognizedElement", reader.Name));
+                        throw new XmlException(SR.UnrecognizedElement.FormatStripCode(reader.Name));
                 }
             }
 

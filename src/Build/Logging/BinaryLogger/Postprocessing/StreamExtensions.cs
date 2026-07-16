@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.IO;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Logging
 {
@@ -14,8 +13,7 @@ namespace Microsoft.Build.Logging
         {
             if (bytesCount is < 0 or > int.MaxValue)
             {
-                throw new ArgumentOutOfRangeException(nameof(bytesCount), ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Binlog_StreamUtils_UnsupportedSkipOffset",
-                    bytesCount));
+                throw new ArgumentOutOfRangeException(nameof(bytesCount), SR.Binlog_StreamUtils_UnsupportedSkipOffset.FormatStripCode(bytesCount));
             }
 
             return bytesCount > 0;

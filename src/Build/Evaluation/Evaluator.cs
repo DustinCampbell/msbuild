@@ -1726,14 +1726,14 @@ namespace Microsoft.Build.Evaluation
             return allProjects;
         }
 
-        private static readonly string CouldNotResolveSdk = ResourceUtilities.GetResourceString("CouldNotResolveSdk");
-        private static readonly string ProjectImported = ResourceUtilities.GetResourceString("ProjectImported");
-        private static readonly string ProjectImportSkippedEmptyFile = ResourceUtilities.GetResourceString("ProjectImportSkippedEmptyFile");
-        private static readonly string ProjectImportSkippedExpressionEvaluatedToEmpty = ResourceUtilities.GetResourceString("ProjectImportSkippedExpressionEvaluatedToEmpty");
-        private static readonly string ProjectImportSkippedFalseCondition = ResourceUtilities.GetResourceString("ProjectImportSkippedFalseCondition");
-        private static readonly string ProjectImportSkippedInvalidFile = ResourceUtilities.GetResourceString("ProjectImportSkippedInvalidFile");
-        private static readonly string ProjectImportSkippedMissingFile = ResourceUtilities.GetResourceString("ProjectImportSkippedMissingFile");
-        private static readonly string ProjectImportSkippedNoMatches = ResourceUtilities.GetResourceString("ProjectImportSkippedNoMatches");
+        private static readonly string CouldNotResolveSdk = SR.CouldNotResolveSdk.Text;
+        private static readonly string ProjectImported = SR.ProjectImported.Text;
+        private static readonly string ProjectImportSkippedEmptyFile = SR.ProjectImportSkippedEmptyFile.Text;
+        private static readonly string ProjectImportSkippedExpressionEvaluatedToEmpty = SR.ProjectImportSkippedExpressionEvaluatedToEmpty.Text;
+        private static readonly string ProjectImportSkippedFalseCondition = SR.ProjectImportSkippedFalseCondition.Text;
+        private static readonly string ProjectImportSkippedInvalidFile = SR.ProjectImportSkippedInvalidFile.Text;
+        private static readonly string ProjectImportSkippedMissingFile = SR.ProjectImportSkippedMissingFile.Text;
+        private static readonly string ProjectImportSkippedNoMatches = SR.ProjectImportSkippedNoMatches.Text;
 
         /// <summary>
         /// Load and parse the specified project import, which may have wildcards,
@@ -1837,7 +1837,7 @@ namespace Microsoft.Build.Evaluation
                                 case SdkReferencePropertyExpansionMode.NoExpansion:
                                 case SdkReferencePropertyExpansionMode.DefaultExpand:
                                 default:
-                                    ErrorUtilities.ThrowArgumentOutOfRange(nameof(mode));
+                                    ArgumentGuard.ThrowArgumentOutOfRange(nameof(mode));
                                     return value;
                             }
                         }

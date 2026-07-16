@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -121,15 +120,6 @@ namespace Microsoft.Build.Execution
         /// </summary>
         public void RegisterHostObject(string projectFile, string targetName, string taskName, ITaskHost hostObject)
         {
-
-            /* Unmerged change from project 'Microsoft.Build (netcoreapp2.1)'
-            Before:
-                        ErrorUtilities.VerifyThrowArgumentNull(projectFile, "projectFile");
-                        ErrorUtilities.VerifyThrowArgumentNull(targetName, "targetName");
-            After:
-                        ErrorUtilities.VerifyThrowArgumentNull(projectFile, "projectFile));
-                        ErrorUtilities.VerifyThrowArgumentNull(targetName, "targetName));
-            */
             ArgumentNullException.ThrowIfNull(projectFile);
             ArgumentNullException.ThrowIfNull(targetName);
             ArgumentNullException.ThrowIfNull(taskName);
@@ -138,7 +128,7 @@ namespace Microsoft.Build.Execution
             // out of proc, in which case it will become in-proc after this call completes.  See GetNodeAffinity.
             bool isExplicit;
             bool hasExplicitOutOfProcAffinity = (GetNodeAffinity(projectFile, out isExplicit) == NodeAffinity.OutOfProc) && isExplicit;
-            ErrorUtilities.VerifyThrowInvalidOperation(!hasExplicitOutOfProcAffinity || hostObject == null, "InvalidHostObjectOnOutOfProcProject");
+            InvalidOperationException.ThrowIfFalse(!hasExplicitOutOfProcAffinity || hostObject == null, SR.InvalidHostObjectOnOutOfProcProject);
             _hostObjectMap ??= new Dictionary<string, HostObjects>(StringComparer.OrdinalIgnoreCase);
 
             HostObjects hostObjects = GetHostObjectsFromMapByKeyOrCreateNew(projectFile);
@@ -213,7 +203,7 @@ namespace Microsoft.Build.Execution
             {
                 if (HasInProcessHostObject(projectFile))
                 {
-                    ErrorUtilities.VerifyThrowInvalidOperation(nodeAffinity == NodeAffinity.InProc, "InvalidAffinityForProjectWithHostObject");
+                    InvalidOperationException.ThrowIfFalse(nodeAffinity == NodeAffinity.InProc, SR.InvalidAffinityForProjectWithHostObject);
                 }
 
                 if (_projectAffinities == null)

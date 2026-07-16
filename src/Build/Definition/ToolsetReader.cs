@@ -149,7 +149,7 @@ namespace Microsoft.Build.Evaluation
                     // of this trimmed/Native AOT host. Fail observably rather than silently returning no toolsets.
                     // The configuration file is not a default toolset location on .NET, so hosts that do not opt in
                     // to ToolsetDefinitionLocations.ConfigurationFile never reach this path.
-                    ErrorUtilities.ThrowArgument("OM_ConfigurationFileToolsetsNotSupported");
+                    ArgumentException.Throw(SR.OM_ConfigurationFileToolsetsNotSupported);
                 }
             }
 
@@ -555,7 +555,7 @@ namespace Microsoft.Build.Evaluation
             else if (ReservedPropertyNames.IsReservedProperty(property.Name))
             {
                 // We don't allow toolsets to define reserved properties
-                string baseMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("CannotModifyReservedProperty", property.Name);
+                string baseMessage = SR.CannotModifyReservedProperty.FormatStripCode(property.Name);
                 InvalidToolsetDefinitionException.Throw("InvalidPropertyNameInToolset", property.Name, property.Source.LocationString, baseMessage);
             }
             else

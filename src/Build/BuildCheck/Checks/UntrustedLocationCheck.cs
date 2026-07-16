@@ -7,7 +7,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 #if FEATURE_WINDOWSINTEROP
 using Windows.Win32;
@@ -20,8 +19,8 @@ internal sealed class UntrustedLocationCheck : Check
     public static CheckRule SupportedRule = new CheckRule(
         "BC0301",
         "UntrustedLocation",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0301_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0301_MessageFmt")!,
+        SR.BuildCheck_BC0301_Title.Text!,
+        SR.BuildCheck_BC0301_MessageFmt.Text!,
         new CheckConfiguration() { Severity = CheckResultSeverity.Error });
 
     public override string FriendlyName => "DotUtils.UntrustedLocationCheck";

@@ -16,6 +16,10 @@ using System.Security;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
+#if BUILD_ENGINE
+using ErrorUtilities = Microsoft.Build.BackEnd.TaskEngineErrorUtilities;
+#endif
+
 #nullable disable
 
 namespace Microsoft.Build.BackEnd

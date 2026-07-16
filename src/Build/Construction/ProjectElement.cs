@@ -351,7 +351,7 @@ namespace Microsoft.Build.Construction
         public virtual void CopyFrom(ProjectElement element)
         {
             ArgumentNullException.ThrowIfNull(element);
-            ErrorUtilities.VerifyThrowArgument(GetType().IsEquivalentTo(element.GetType()), "CannotCopyFromElementOfThatType");
+            ArgumentException.ThrowIfFalse(GetType().IsEquivalentTo(element.GetType()), SR.CannotCopyFromElementOfThatType);
 
             if (this == element)
             {

@@ -105,8 +105,8 @@ namespace Microsoft.Build.Construction
         internal static ProjectMetadataElement CreateDisconnected(string name, ProjectRootElement containingProject, ElementLocation location = null)
         {
             XmlUtilities.VerifyThrowArgumentValidElementName(name);
-            ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsItemSpecModifier(name), "ItemSpecModifierCannotBeCustomMetadata", name);
-            ErrorUtilities.VerifyThrowInvalidOperation(!XMakeElements.ReservedItemNames.Contains(name), "CannotModifyReservedItemMetadata", name);
+            ArgumentException.ThrowIfFalse(!ItemSpecModifiers.IsItemSpecModifier(name), SR.ItemSpecModifierCannotBeCustomMetadata, name);
+            InvalidOperationException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(name), SR.CannotModifyReservedItemMetadata, name);
 
             XmlElementWithLocation element = containingProject.CreateElement(name, location);
 
@@ -123,7 +123,7 @@ namespace Microsoft.Build.Construction
         {
             ArgumentException.ThrowIfNullOrEmpty(newName);
             XmlUtilities.VerifyThrowArgumentValidElementName(newName);
-            ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(newName), "CannotModifyReservedItemMetadata", newName);
+            ArgumentException.ThrowIfFalse(!XMakeElements.ReservedItemNames.Contains(newName), SR.CannotModifyReservedItemMetadata, newName);
 
             if (Link != null)
             {
@@ -167,7 +167,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectItemElement || parent is ProjectItemDefinitionElement, "OM_CannotAcceptParent");
+            InvalidOperationException.ThrowIfFalse(parent is ProjectItemElement || parent is ProjectItemDefinitionElement, SR.OM_CannotAcceptParent);
         }
 
         /// <inheritdoc />

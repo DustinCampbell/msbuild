@@ -13,8 +13,8 @@ internal class CopyAlwaysCheck : Check
 {
     private const string RuleId = "BC0106";
     public static CheckRule SupportedRule = new CheckRule(RuleId, "AvoidCopyAlways",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0106_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0106_MessageFmt")!,
+        SR.BuildCheck_BC0106_Title.Text!,
+        SR.BuildCheck_BC0106_MessageFmt.Text!,
         new CheckConfiguration() { RuleId = RuleId, Severity = CheckResultSeverity.Warning });
 
     public override string FriendlyName => "MSBuild.CopyAlwaysCheck";

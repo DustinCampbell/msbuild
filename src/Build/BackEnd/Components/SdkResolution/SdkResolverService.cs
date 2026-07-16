@@ -377,7 +377,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
 
                 SetResolverState(submissionId, sdkResolver, context.State);
 
-                result ??= (SdkResult)resultFactory.IndicateFailure([ResourceUtilities.FormatResourceStringStripCodeAndKeyword("SDKResolverReturnedNull", sdkResolver.Name)], []);
+                result ??= (SdkResult)resultFactory.IndicateFailure([SR.SDKResolverReturnedNull.FormatStripCode(sdkResolver.Name)], []);
 
                 if (result.Success)
                 {

@@ -32,13 +32,13 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         internal static int parameterLimit = 200;
 
-        internal static string ItemGroupIncludeLogMessagePrefix = ResourceUtilities.GetResourceString("ItemGroupIncludeLogMessagePrefix");
-        internal static string ItemGroupRemoveLogMessage = ResourceUtilities.GetResourceString("ItemGroupRemoveLogMessage");
-        internal static string OutputItemParameterMessagePrefix = ResourceUtilities.GetResourceString("OutputItemParameterMessagePrefix");
-        internal static string OutputPropertyLogMessagePrefix = ResourceUtilities.GetResourceString("OutputPropertyLogMessagePrefix");
-        internal static string TaskParameterPrefix = ResourceUtilities.GetResourceString("TaskParameterPrefix");
-        internal static string SkipTargetUpToDateInputs = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("SkipTargetUpToDateInputs", string.Empty);
-        internal static string SkipTargetUpToDateOutputs = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("SkipTargetUpToDateOutputs", string.Empty);
+        internal static string ItemGroupIncludeLogMessagePrefix = SR.ItemGroupIncludeLogMessagePrefix.Text;
+        internal static string ItemGroupRemoveLogMessage = SR.ItemGroupRemoveLogMessage.Text;
+        internal static string OutputItemParameterMessagePrefix = SR.OutputItemParameterMessagePrefix.Text;
+        internal static string OutputPropertyLogMessagePrefix = SR.OutputPropertyLogMessagePrefix.Text;
+        internal static string TaskParameterPrefix = SR.TaskParameterPrefix.Text;
+        internal static string SkipTargetUpToDateInputs = SR.SkipTargetUpToDateInputs.Format(string.Empty);
+        internal static string SkipTargetUpToDateOutputs = SR.SkipTargetUpToDateOutputs.Format(string.Empty);
 
         /// <summary>
         /// <see cref="TaskParameterEventArgs"/> by itself doesn't have the implementation
@@ -49,7 +49,7 @@ namespace Microsoft.Build.BackEnd
         static ItemGroupLoggingHelper()
 #pragma warning restore CA1810 // Initialize reference type static fields inline
         {
-            BuildEventArgs.ResourceStringFormatter = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword;
+            BuildEventArgs.ResourceStringFormatter = SR.FormatResourceString;
             TaskParameterEventArgs.MessageGetter = GetTaskParameterText;
             TaskParameterEventArgs.DictionaryFactory = ArrayDictionary<string, string>.Create;
         }
@@ -143,7 +143,7 @@ namespace Microsoft.Build.BackEnd
 
                     if (truncateTaskInputs && (sb.Length >= parameterCharacterLimit || i > parameterLimit))
                     {
-                        sb.Append(ResourceUtilities.GetResourceString("LogTaskInputs.Truncated"));
+                        sb.Append(SR.LogTaskInputs_Truncated.Text);
                         break;
                     }
                 }
