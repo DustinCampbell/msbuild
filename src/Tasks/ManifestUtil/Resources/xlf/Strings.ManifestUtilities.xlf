@@ -3,59 +3,59 @@
   <file datatype="xml" source-language="en" original="../Strings.ManifestUtilities.resx">
     <body>
       <group id="MICROSOFT.BUILD.TASKS/MANIFESTUTIL/RESOURCES/STRINGS.RESX" datatype="resx" />
-      <trans-unit id="ComImporter.LocalServerNotSupported">
+      <trans-unit id="ComImporter_LocalServerNotSupported">
         <source>Out of process servers are not supported</source>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.MissingValue">
+      <trans-unit id="ComImporter_MissingValue">
         <source>Registry key '{0}' is missing value '{1}'.</source>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.NoRegisteredClasses">
+      <trans-unit id="ComImporter_NoRegisteredClasses">
         <source>No registered classes were detected for this component.</source>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.ProtectedFile">
+      <trans-unit id="ComImporter_ProtectedFile">
         <source>Components under system file protection should not be isolated.</source>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.TypeLibraryLoadFailure">
+      <trans-unit id="ComImporter_TypeLibraryLoadFailure">
         <source>Could not load type library.</source>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.SubKeyNotImported">
+      <trans-unit id="ComImporter_SubKeyNotImported">
         <source>Registry key '{0}' was not imported.</source>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.ValueNotImported">
+      <trans-unit id="ComImporter_ValueNotImported">
         <source>Registry value '{0}' was not imported.</source>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.SignTargetNotFound">
+      <trans-unit id="SecurityUtil_SignTargetNotFound">
         <source>The file to be signed {0} could not be found.</source>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.SigntoolFail">
+      <trans-unit id="SecurityUtil_SigntoolFail">
         <source>Failed to sign {0}. {1}</source>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.SigntoolWarning">
+      <trans-unit id="SecurityUtil_SigntoolWarning">
         <source>Warning while signing {0}. {1}</source>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.SigntoolNotFound">
+      <trans-unit id="SecurityUtil_SigntoolNotFound">
         <source>SignTool.exe was not found at path {0}.</source>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.TimestampUrlNotFound">
+      <trans-unit id="SecurityUtil_TimestampUrlNotFound">
         <source>Timestamp URL server name or address could not be resolved.</source>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.OnlyRSACertsAreAllowed">
+      <trans-unit id="SecurityUtil_OnlyRSACertsAreAllowed">
         <source>Only certificates using RSA encryption are valid for signing ClickOnce manifests.</source>
         <note />
       </trans-unit>
-      <trans-unit id="TrustInfo.RequestedExecutionLevelComment">
+      <trans-unit id="TrustInfo_RequestedExecutionLevelComment">
         <source>
           UAC Manifest Options
           If you want to change the Windows User Account Control level replace the

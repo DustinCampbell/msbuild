@@ -114,46 +114,46 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="ComImporter.LocalServerNotSupported">
+  <data name="ComImporter_LocalServerNotSupported">
     <value>Out of process servers are not supported</value>
   </data>
-  <data name="ComImporter.MissingValue">
+  <data name="ComImporter_MissingValue">
     <value>Registry key '{0}' is missing value '{1}'.</value>
   </data>
-  <data name="ComImporter.NoRegisteredClasses">
+  <data name="ComImporter_NoRegisteredClasses">
     <value>No registered classes were detected for this component.</value>
   </data>
-  <data name="ComImporter.ProtectedFile">
+  <data name="ComImporter_ProtectedFile">
     <value>Components under system file protection should not be isolated.</value>
   </data>
-  <data name="ComImporter.TypeLibraryLoadFailure">
+  <data name="ComImporter_TypeLibraryLoadFailure">
     <value>Could not load type library.</value>
   </data>
-  <data name="ComImporter.SubKeyNotImported">
+  <data name="ComImporter_SubKeyNotImported">
     <value>Registry key '{0}' was not imported.</value>
   </data>
-  <data name="ComImporter.ValueNotImported">
+  <data name="ComImporter_ValueNotImported">
     <value>Registry value '{0}' was not imported.</value>
   </data>
-  <data name="SecurityUtil.SignTargetNotFound">
+  <data name="SecurityUtil_SignTargetNotFound">
     <value xml:space="preserve">The file to be signed {0} could not be found.</value>
   </data>
-  <data name="SecurityUtil.SigntoolFail">
+  <data name="SecurityUtil_SigntoolFail">
     <value xml:space="preserve">Failed to sign {0}. {1}</value>
   </data>
-  <data name="SecurityUtil.SigntoolWarning">
+  <data name="SecurityUtil_SigntoolWarning">
     <value xml:space="preserve">Warning while signing {0}. {1}</value>
   </data>
-  <data name="SecurityUtil.SigntoolNotFound">
+  <data name="SecurityUtil_SigntoolNotFound">
     <value xml:space="preserve">SignTool.exe was not found at path {0}.</value>
   </data>
-  <data name="SecurityUtil.TimestampUrlNotFound">
+  <data name="SecurityUtil_TimestampUrlNotFound">
     <value xml:space="preserve">Timestamp URL server name or address could not be resolved.</value>
   </data>
-  <data name="SecurityUtil.OnlyRSACertsAreAllowed">
+  <data name="SecurityUtil_OnlyRSACertsAreAllowed">
     <value xml:space="preserve">Only certificates using RSA encryption are valid for signing ClickOnce manifests.</value>
   </data>
-  <data name="TrustInfo.RequestedExecutionLevelComment">
+  <data name="TrustInfo_RequestedExecutionLevelComment">
     <value xml:space="preserve">
           UAC Manifest Options
           If you want to change the Windows User Account Control level replace the

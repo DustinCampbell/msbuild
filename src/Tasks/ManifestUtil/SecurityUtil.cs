@@ -675,7 +675,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
 
             if (!FileSystems.Default.FileExists(path))
             {
-                throw new FileNotFoundException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil.SignTargetNotFound"), path), path);
+                throw new FileNotFoundException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil_SignTargetNotFound"), path), path);
             }
 
             bool useSha256 = UseSha256Algorithm(cert) && targetFrameworkSupportsSha256;
@@ -705,7 +705,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 {
                     if (rsa == null)
                     {
-                        throw new ApplicationException(resources.GetString("SecurityUtil.OnlyRSACertsAreAllowed"));
+                        throw new ApplicationException(resources.GetString("SecurityUtil_OnlyRSACertsAreAllowed"));
                     }
 
                     try
@@ -764,7 +764,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         int exceptionHR = Marshal.GetHRForException(ex);
                         if (exceptionHR == -2147012889 || exceptionHR == -2147012867)
                         {
-                            throw new ApplicationException(resources.GetString("SecurityUtil.TimestampUrlNotFound"), ex);
+                            throw new ApplicationException(resources.GetString("SecurityUtil_TimestampUrlNotFound"), ex);
                         }
                         throw new ApplicationException(ex.Message, ex);
                     }
@@ -832,13 +832,13 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         break;
                     case 1:
                         // error, report it
-                        throw new ApplicationException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil.SigntoolFail"), path, signTool.StandardError.ReadToEnd()));
+                        throw new ApplicationException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil_SigntoolFail"), path, signTool.StandardError.ReadToEnd()));
                     case 2:
                         // warning, report it
-                        throw new WarningException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil.SigntoolWarning"), path, signTool.StandardError.ReadToEnd()));
+                        throw new WarningException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil_SigntoolWarning"), path, signTool.StandardError.ReadToEnd()));
                     default:
                         // treat as error
-                        throw new ApplicationException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil.SigntoolFail"), path, signTool.StandardError.ReadToEnd()));
+                        throw new ApplicationException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil_SigntoolFail"), path, signTool.StandardError.ReadToEnd()));
                 }
             }
             finally
@@ -899,7 +899,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             if (!FileSystems.Default.FileExists(toolPath))
             {
                 throw new ApplicationException(String.Format(CultureInfo.CurrentCulture,
-                    resources.GetString("SecurityUtil.SigntoolNotFound"), toolPath));
+                    resources.GetString("SecurityUtil_SigntoolNotFound"), toolPath));
             }
 
             return toolPath;

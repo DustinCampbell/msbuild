@@ -2,72 +2,72 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../Strings.ManifestUtilities.resx">
     <body>
-      <trans-unit id="ComImporter.LocalServerNotSupported">
+      <trans-unit id="ComImporter_LocalServerNotSupported">
         <source>Out of process servers are not supported</source>
         <target state="translated">I server out-of-process non sono supportati</target>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.MissingValue">
+      <trans-unit id="ComImporter_MissingValue">
         <source>Registry key '{0}' is missing value '{1}'.</source>
         <target state="translated">Nella chiave '{0}' del Registro di sistema manca il valore '{1}'.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.NoRegisteredClasses">
+      <trans-unit id="ComImporter_NoRegisteredClasses">
         <source>No registered classes were detected for this component.</source>
         <target state="translated">Nessuna classe registrata rilevata per il componente.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.ProtectedFile">
+      <trans-unit id="ComImporter_ProtectedFile">
         <source>Components under system file protection should not be isolated.</source>
         <target state="translated">I componenti protetti dal sistema non devono essere isolati.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.TypeLibraryLoadFailure">
+      <trans-unit id="ComImporter_TypeLibraryLoadFailure">
         <source>Could not load type library.</source>
         <target state="translated">Non è stato possibile caricare la libreria dei tipi.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.SubKeyNotImported">
+      <trans-unit id="ComImporter_SubKeyNotImported">
         <source>Registry key '{0}' was not imported.</source>
         <target state="translated">Chiave '{0}' del Registro di sistema non importata.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ComImporter.ValueNotImported">
+      <trans-unit id="ComImporter_ValueNotImported">
         <source>Registry value '{0}' was not imported.</source>
         <target state="translated">Valore '{0}' del Registro di sistema non importato.</target>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.SignTargetNotFound">
+      <trans-unit id="SecurityUtil_SignTargetNotFound">
         <source>The file to be signed {0} could not be found.</source>
         <target state="translated">Il file da firmare {0} non è stato trovato.</target>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.SigntoolFail">
+      <trans-unit id="SecurityUtil_SigntoolFail">
         <source>Failed to sign {0}. {1}</source>
         <target state="translated">Non è stato possibile firmare {0}. {1}</target>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.SigntoolWarning">
+      <trans-unit id="SecurityUtil_SigntoolWarning">
         <source>Warning while signing {0}. {1}</source>
         <target state="translated">Avviso durante la firma di {0}. {1}</target>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.SigntoolNotFound">
+      <trans-unit id="SecurityUtil_SigntoolNotFound">
         <source>SignTool.exe was not found at path {0}.</source>
         <target state="translated">SignTool.exe non è stato trovato nel percorso {0}.</target>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.TimestampUrlNotFound">
+      <trans-unit id="SecurityUtil_TimestampUrlNotFound">
         <source>Timestamp URL server name or address could not be resolved.</source>
         <target state="translated">Non è stato possibile risolvere il nome o l'indirizzo del server degli URL di timestamp.</target>
         <note />
       </trans-unit>
-      <trans-unit id="SecurityUtil.OnlyRSACertsAreAllowed">
+      <trans-unit id="SecurityUtil_OnlyRSACertsAreAllowed">
         <source>Only certificates using RSA encryption are valid for signing ClickOnce manifests.</source>
         <target state="translated">Per la firma di manifesti ClickOnce è possibile usare solo i certificati con crittografia RSA.</target>
         <note />
       </trans-unit>
-      <trans-unit id="TrustInfo.RequestedExecutionLevelComment">
+      <trans-unit id="TrustInfo_RequestedExecutionLevelComment">
         <source>
           UAC Manifest Options
           If you want to change the Windows User Account Control level replace the
