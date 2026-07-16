@@ -270,9 +270,20 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         internal void WritePretty(int indentLevel, string formattedString)
         {
-            StringBuilder result = new StringBuilder((indentLevel * tabWidth) + formattedString.Length);
-            result.Append(' ', indentLevel * tabWidth).Append(formattedString);
-            WriteHandler(result.ToString());
+            int padding = (indentLevel > 0 ? indentLevel : 0) * tabWidth;
+
+            // No indentation: write the string as-is, avoiding a StringBuilder and an extra string allocation.
+            if (padding == 0)
+            {
+                WriteHandler(formattedString);
+                return;
+            }
+
+            // Use the shared, pooled StringBuilder instead of allocating a fresh one on every call.
+            IStringBuilderProvider stringBuilderProvider = this;
+            StringBuilder result = stringBuilderProvider.Acquire(padding + formattedString.Length);
+            result.Append(' ', padding).Append(formattedString);
+            WriteHandler(stringBuilderProvider.GetStringAndRelease(result));
         }
 
         /// <summary>

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -846,12 +847,38 @@ namespace Microsoft.Build.BackEnd.Logging
 
         protected override void WriteItemSpec(string itemSpec)
         {
-            WriteMessageAligned(new string(' ', 2 * tabWidth) + itemSpec, prefixAlreadyWritten: false);
+            WriteMessageAlignedWithPadding(2 * tabWidth, itemSpec);
         }
 
         protected override void WriteMetadata(string name, string value)
         {
-            WriteMessageAligned($"{new string(' ', 4 * tabWidth)}{name} = {value}", prefixAlreadyWritten: false);
+            WriteMetadataAligned(4 * tabWidth, name, value);
+        }
+
+        /// <summary>
+        /// Writes <paramref name="text"/> preceded by <paramref name="padding"/> spaces, building the
+        /// padded message with the shared pooled <see cref="StringBuilder"/> instead of allocating a
+        /// throwaway <c>new string(' ', padding)</c> and concatenating.
+        /// </summary>
+        private void WriteMessageAlignedWithPadding(int padding, string text)
+        {
+            IStringBuilderProvider stringBuilderProvider = this;
+            StringBuilder builder = stringBuilderProvider.Acquire(padding + text.Length);
+            builder.Append(' ', padding).Append(text);
+            WriteMessageAligned(stringBuilderProvider.GetStringAndRelease(builder), prefixAlreadyWritten: false);
+        }
+
+        /// <summary>
+        /// Writes a "<paramref name="name"/> = <paramref name="value"/>" metadata line preceded by
+        /// <paramref name="padding"/> spaces, building it with the shared pooled <see cref="StringBuilder"/>
+        /// instead of allocating a throwaway padding string and an interpolated result string.
+        /// </summary>
+        private void WriteMetadataAligned(int padding, string name, string value)
+        {
+            IStringBuilderProvider stringBuilderProvider = this;
+            StringBuilder builder = stringBuilderProvider.Acquire(padding + (name?.Length ?? 0) + (value?.Length ?? 0) + 3);
+            builder.Append(' ', padding).Append(name).Append(" = ").Append(value);
+            WriteMessageAligned(stringBuilderProvider.GetStringAndRelease(builder), prefixAlreadyWritten: false);
         }
 
         /// <summary>
@@ -917,7 +944,8 @@ namespace Microsoft.Build.BackEnd.Logging
 
                                 foreach (DictionaryEntry metadatum in metadata)
                                 {
-                                    WriteMessageAligned($"{new String(' ', 4 * tabWidth)}{metadatum.Key} = {item.GetMetadata(metadatum.Key as string)}", false);
+                                    string metadataName = metadatum.Key as string;
+                                    WriteMetadataAligned(4 * tabWidth, metadataName, item.GetMetadata(metadataName));
                                 }
                             }
                         }
