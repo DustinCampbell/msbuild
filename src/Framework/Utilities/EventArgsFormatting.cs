@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Globalization;
 
 using Microsoft.Build.Framework;
 
@@ -216,66 +215,124 @@ namespace Microsoft.Build.Shared
             int threadId,
             string logOutputProperties)
         {
-            // capacity is the longest possible path through the below
-            // to avoid reallocating while constructing the string
-            using ReuseableStringBuilder format = new(51);
+            // Build the formatted message directly rather than first constructing a positional format template
+            // string and running it through StringBuilder.AppendFormat. The old approach allocated the throwaway
+            // template string, an argument object[], and boxed all five integer arguments on every call; emitting
+            // the pieces in place avoids all of that (and is allocation-free for the structural parts on .NET).
+            // Capacity is the longest fixed prefix through the paths below, to avoid reallocating up front.
+            using ReuseableStringBuilder formattedMessage = new(51);
 
-            // Uncomment these lines to show show the processor, if present.
-            /*
-            if (threadId != 0)
+            // A null message is allowed and is to be treated as a blank line.
+            string messageText = message ?? string.Empty;
+
+            // Emit each line of the message with the full location/category/code prefix and project-file suffix.
+            // "\r\n" and "\n" are treated as line breaks (matching the former SplitStringOnNewLines), and each
+            // line is appended as a substring so no split array or per-line substrings are allocated.
+            int lineStart = 0;
+            bool firstLine = true;
+            while (true)
             {
-                format.Append("{0}>");
-            }
-            */
+                int newlineIndex = messageText.IndexOf('\n', lineStart);
+                int lineEnd = newlineIndex < 0 ? messageText.Length : newlineIndex;
+                int lineLength = lineEnd - lineStart;
 
+                // A '\r' immediately preceding '\n' is part of the "\r\n" break, not line content.
+                if (newlineIndex >= 0 && lineLength > 0 && messageText[lineEnd - 1] == '\r')
+                {
+                    lineLength--;
+                }
+
+                if (!firstLine)
+                {
+                    formattedMessage.AppendLine();
+                }
+
+                AppendFormattedLine(
+                    formattedMessage, category, subcategory, code, file, projectFile,
+                    lineNumber, endLineNumber, columnNumber, endColumnNumber,
+                    logOutputProperties, messageText, lineStart, lineLength);
+
+                firstLine = false;
+
+                if (newlineIndex < 0)
+                {
+                    break;
+                }
+
+                lineStart = newlineIndex + 1;
+            }
+
+            return formattedMessage.ToString();
+        }
+
+        /// <summary>
+        /// Appends a single formatted line (location prefix, subcategory, category, code, message text, and
+        /// project-file suffix) to <paramref name="sb"/>, reproducing the layout the former positional format
+        /// template produced.
+        /// </summary>
+        private static void AppendFormattedLine(
+            ReuseableStringBuilder sb,
+            string category,
+            string subcategory,
+            string code,
+            string file,
+            string projectFile,
+            int lineNumber,
+            int endLineNumber,
+            int columnNumber,
+            int endColumnNumber,
+            string logOutputProperties,
+            string messageText,
+            int lineStart,
+            int lineLength)
+        {
+            // File and location: "MSBUILD : " when there is no file, otherwise the file followed by an
+            // optional (line[,column][-end]) span, matching the original template branches exactly.
             if (string.IsNullOrEmpty(file))
             {
-                format.Append("MSBUILD : ");    // Should not be localized.
+                sb.Append("MSBUILD : ");    // Should not be localized.
             }
             else
             {
-                format.Append("{1}");
+                sb.Append(file);
 
                 if (lineNumber == 0)
                 {
-                    format.Append(" : ");
+                    sb.Append(" : ");
+                }
+                else if (columnNumber == 0)
+                {
+                    if (endLineNumber == 0)
+                    {
+                        sb.Append('(').Append(lineNumber).Append("): ");
+                    }
+                    else
+                    {
+                        sb.Append('(').Append(lineNumber).Append('-').Append(endLineNumber).Append("): ");
+                    }
                 }
                 else
                 {
-                    if (columnNumber == 0)
+                    if (endLineNumber == 0)
                     {
-                        if (endLineNumber == 0)
+                        if (endColumnNumber == 0)
                         {
-                            format.Append("({2}): ");
+                            sb.Append('(').Append(lineNumber).Append(',').Append(columnNumber).Append("): ");
                         }
                         else
                         {
-                            format.Append("({2}-{7}): ");
+                            sb.Append('(').Append(lineNumber).Append(',').Append(columnNumber).Append('-').Append(endColumnNumber).Append("): ");
                         }
                     }
                     else
                     {
-                        if (endLineNumber == 0)
+                        if (endColumnNumber == 0)
                         {
-                            if (endColumnNumber == 0)
-                            {
-                                format.Append("({2},{3}): ");
-                            }
-                            else
-                            {
-                                format.Append("({2},{3}-{8}): ");
-                            }
+                            sb.Append('(').Append(lineNumber).Append('-').Append(endLineNumber).Append(',').Append(columnNumber).Append("): ");
                         }
                         else
                         {
-                            if (endColumnNumber == 0)
-                            {
-                                format.Append("({2}-{7},{3}): ");
-                            }
-                            else
-                            {
-                                format.Append("({2},{3},{7},{8}): ");
-                            }
+                            sb.Append('(').Append(lineNumber).Append(',').Append(columnNumber).Append(',').Append(endLineNumber).Append(',').Append(endColumnNumber).Append("): ");
                         }
                     }
                 }
@@ -283,103 +340,49 @@ namespace Microsoft.Build.Shared
 
             if (!string.IsNullOrEmpty(subcategory))
             {
-                format.Append("{9} ");
+                sb.Append(subcategory).Append(' ');
             }
 
-            // The category as a string (should not be localized)
-            format.Append("{4} ");
+            // The category as a string (should not be localized).
+            sb.Append(category).Append(' ');
 
             // Put a code in, if available and necessary.
             if (code == null)
             {
-                format.Append(": ");
+                sb.Append(": ");
             }
             else
             {
-                format.Append("{5}: ");
+                sb.Append(code).Append(": ");
             }
 
-            // Put the message in, if available.
-            if (message != null)
+            // The message text for this line (empty when the overall message was null or blank).
+            if (lineLength > 0)
             {
-                format.Append("{6}");
+                sb.Append(messageText, lineStart, lineLength);
             }
 
-            // If the project file was specified, tack that onto the very end.
-            // Check for additional properties that should be output with project file
+            // If the project file was specified, tack that (and any additional output properties) onto the end.
             if (projectFile != null)
             {
-                // If the project file was specified, tack that onto the very end.
                 if (!string.Equals(projectFile, file))
                 {
-                    // Check for additional properties that should be output with project file
                     if (logOutputProperties?.Length > 0)
                     {
-                        format.Append(" [{10}::{11}]");
+                        sb.Append(" [").Append(projectFile).Append("::").Append(logOutputProperties).Append(']');
                     }
                     else
                     {
-                        format.Append(" [{10}]");
+                        sb.Append(" [").Append(projectFile).Append(']');
                     }
                 }
-                else
+                else if (logOutputProperties?.Length > 0)
                 {
                     // If the file location of the error _was_ the project file, append only the
-                    // additional output properties
-
-                    if (logOutputProperties?.Length > 0)
-                    {
-                        format.Append(" [{11}]");
-                    }
+                    // additional output properties.
+                    sb.Append(" [").Append(logOutputProperties).Append(']');
                 }
             }
-
-            // A null message is allowed and is to be treated as a blank line.
-            if (message == null)
-            {
-                message = String.Empty;
-            }
-
-            string finalFormat = format.ToString();
-
-            // Reuse the string builder to create the final message
-            ReuseableStringBuilder formattedMessage = format.Clear();
-
-            // If there are multiple lines, show each line as a separate message.
-            string[] lines = SplitStringOnNewLines(message);
-
-            for (int i = 0; i < lines.Length; i++)
-            {
-                formattedMessage.AppendFormat(
-                        CultureInfo.CurrentCulture, finalFormat,
-                        threadId, file,
-                        lineNumber, columnNumber, category, code,
-                        lines[i], endLineNumber, endColumnNumber,
-                        subcategory, projectFile, logOutputProperties);
-
-                if (i < (lines.Length - 1))
-                {
-                    formattedMessage.AppendLine();
-                }
-            }
-
-            return formattedMessage.ToString();
         }
-
-        /// <summary>
-        /// Splits strings on 'newLines' with tolerance for Everett and Dogfood builds.
-        /// </summary>
-        /// <param name="s">String to split.</param>
-        private static string[] SplitStringOnNewLines(string s)
-        {
-            string[] subStrings = s.Split(s_newLines, StringSplitOptions.None);
-            return subStrings;
-        }
-
-        /// <summary>
-        /// The kinds of newline breaks we expect.
-        /// </summary>
-        /// <remarks>Currently we're not supporting "\r".</remarks>
-        private static readonly string[] s_newLines = { "\r\n", "\n" };
     }
 }

@@ -118,6 +118,16 @@ namespace Microsoft.Build.Framework
             return this;
         }
 
+        /// <summary>
+        /// Append an integer, formatted using the current culture (matching <see cref="StringBuilder.Append(int)"/>).
+        /// </summary>
+        internal ReuseableStringBuilder Append(int value)
+        {
+            LazyPrepare();
+            _borrowedBuilder.Append(value);
+            return this;
+        }
+
         /// <inheritdoc cref="StringBuilder.AppendFormat(IFormatProvider, string, object[])"/>
         internal ReuseableStringBuilder AppendFormat(
             CultureInfo currentCulture,
