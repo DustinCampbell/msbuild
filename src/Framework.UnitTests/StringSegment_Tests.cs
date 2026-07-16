@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Text;
 using Shouldly;
@@ -216,6 +217,77 @@ public class StringSegment_Tests
         segment[..2].Value.ShouldBe("he");
         segment[2..].Value.ShouldBe("llo");
         segment[^2..].Value.ShouldBe("lo");
+    }
+
+    [Fact]
+    public void Enumerator_IteratesSegmentRelativeCharacters()
+    {
+        StringSegment segment = HelloWorld;
+
+        List<char> chars = new();
+        foreach (char c in segment)
+        {
+            chars.Add(c);
+        }
+
+        chars.ToArray().ShouldBe("hello world".ToCharArray());
+    }
+
+    [Fact]
+    public void Enumerator_EmptySegment_YieldsNothing()
+    {
+        StringSegment segment = StringSegment.Empty;
+
+        int count = 0;
+        foreach (char _ in segment)
+        {
+            count++;
+        }
+
+        count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Enumerator_NullSegment_YieldsNothing()
+    {
+        StringSegment segment = default;
+
+        int count = 0;
+        foreach (char _ in segment)
+        {
+            count++;
+        }
+
+        count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Enumerator_MoveNextAndCurrent_Work()
+    {
+        StringSegment.Enumerator enumerator = new StringSegment("abc").GetEnumerator();
+
+        enumerator.MoveNext().ShouldBeTrue();
+        enumerator.Current.ShouldBe('a');
+        enumerator.MoveNext().ShouldBeTrue();
+        enumerator.Current.ShouldBe('b');
+        enumerator.MoveNext().ShouldBeTrue();
+        enumerator.Current.ShouldBe('c');
+        enumerator.MoveNext().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Enumerator_Reset_RestartsIteration()
+    {
+        StringSegment.Enumerator enumerator = new StringSegment("ab").GetEnumerator();
+
+        enumerator.MoveNext().ShouldBeTrue();
+        enumerator.MoveNext().ShouldBeTrue();
+        enumerator.MoveNext().ShouldBeFalse();
+
+        enumerator.Reset();
+
+        enumerator.MoveNext().ShouldBeTrue();
+        enumerator.Current.ShouldBe('a');
     }
 
     [Fact]
