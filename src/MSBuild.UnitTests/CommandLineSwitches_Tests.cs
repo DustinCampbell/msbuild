@@ -1611,7 +1611,7 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void HelpMessagesAreValid()
         {
-            ResourceManager resourceManager = new ResourceManager("MSBuild.Strings", typeof(AssemblyResources).Assembly);
+            ResourceManager resourceManager = CommandLine.Resources.SR.ResourceManager;
 
             const string switchLeadingSpaces = "  ";
             const string otherLineLeadingSpaces = "                     ";

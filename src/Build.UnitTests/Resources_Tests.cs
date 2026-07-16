@@ -90,7 +90,7 @@ namespace Microsoft.Build.UnitTests
             VerifyResourcesForAssembly(
                 "MSBuild",
                 Path.Combine(GetRepoRoot(), "src", "MSBuild"),
-                new[] { "Resources/Strings.resx" },
+                new[] { "Resources/SR.resx" },
                 new[] { "../Framework/Resources/SR.resx" });
         }
 

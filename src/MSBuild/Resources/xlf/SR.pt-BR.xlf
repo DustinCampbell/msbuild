@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="es" original="../Strings.resx">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../SR.resx">
     <body>
       <trans-unit id="AmbiguousProjectError">
         <source>MSBUILD : error MSB1011: Specify which project or solution file to use because this folder contains more than one project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1011: Especifique el archivo de proyecto o de solución que se va a utilizar ya que esta carpeta contiene más de un archivo de proyecto o de solución.</target>
+        <target state="translated">MSBUILD : error MSB1011: Especifique o arquivo de solução ou de projeto a usar porque esta pasta contém mais de um arquivo de solução ou de projeto.</target>
         <note>{StrBegin="MSBUILD : error MSB1011: "}UE: If no project or solution file is explicitly specified on the MSBuild.exe command-line, then the engine searches for a
       project or solution file in the current directory by looking for *.*PROJ and *.SLN. If more than one file is found that matches this wildcard, we
       fire this error.
@@ -12,17 +12,17 @@
       </trans-unit>
       <trans-unit id="BuildFailedWithPropertiesItemsOrTargetResultsRequested">
         <source>Build failed. Properties, Items, and Target results cannot be obtained. See details in stderr above.</source>
-        <target state="translated">Error de compilación. No se pueden obtener los resultados de propiedades, elementos y destinos. Vea los detalles en stderr anterior.</target>
+        <target state="translated">Falha na compilação. Não foi possível obter os resultados de Propriedades, Itens e Destino. Veja os detalhes no stderr acima.</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandLine">
         <source>Command line arguments = "{0}"</source>
-        <target state="translated">Argumentos de la línea de comandos: "{0}"</target>
+        <target state="translated">Argumentos de linha de comando = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationFailurePrefixNoErrorCode">
         <source>MSBUILD : Configuration error {0}: {1}</source>
-        <target state="translated">MSBUILD : Error de configuración; error {0}: {1}</target>
+        <target state="translated">MSBUILD : Configuration error {0}: {1}</target>
         <note>{SubString="Configuration"}UE: This prefixes any error from reading the toolset definitions in msbuild.exe.config or the registry.
       There's no error code because one was included in the error message.
       LOCALIZATION: The word "Configuration" should be localized, the words "MSBuild" and "error" should NOT be localized.
@@ -30,12 +30,12 @@
       </trans-unit>
       <trans-unit id="CannotAutoDisableAutoResponseFile">
         <source>MSBUILD : error MSB1027: The -noAutoResponse switch cannot be specified in the MSBuild.rsp auto-response file, nor in any response file that is referenced by the auto-response file.</source>
-        <target state="translated">MSBUILD : error MSB1027: El modificador -noAutoResponse no puede especificarse en el archivo de respuesta automática MSBuild.rsp ni en ningún archivo de respuesta al que el archivo de respuesta automática haga referencia.</target>
+        <target state="translated">MSBUILD : error MSB1027: A opção /noAutoResponse não pode ser especificada no arquivo de resposta automática MSBuild.rsp nem em qualquer arquivo de resposta usado como referência para o arquivo de resposta automática.</target>
         <note>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</note>
       </trans-unit>
       <trans-unit id="DuplicateBinaryLoggerPathsIgnored">
         <source>Duplicate binary log path(s) specified and ignored: {0}</source>
-        <target state="translated">Rutas de registro binarias duplicadas especificadas y omitidas: {0}</target>
+        <target state="translated">Caminhos de log binários duplicados especificados e ignorados: {0}</target>
         <note>{0} is the list of duplicate paths that were filtered out</note>
       </trans-unit>
       <trans-unit id="HelpMessage_41_QuestionSwitch">
@@ -46,12 +46,12 @@
                      but isn't up to date.
                      (Short form: -q)
     </source>
-        <target state="translated">  -question
-                     (Experimental) Pregunta si hay algún trabajo de compilación.
-                     MSBuild generará un error cuando detecte un destino o tarea
-                     que puede ser incremental (tiene entradas y salidas),
-                     pero no está actualizado.
-                     (Forma corta: -q)
+        <target state="translated">  -pergunta
+                     (Experimental) Questione se há algum trabalho de construção.
+                     O MSBuild apresentará um erro ao detectar um destino ou tarefa
+                     que pode ser incremental (possui entradas e saídas),
+                     não está atualizado.
+                     (forma abreviada: -q)
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -66,11 +66,11 @@
 
                      This flag is experimental and may not work as intended.
     </source>
-        <target state="translated">  -reportFileAccesses[:True|Falso]
-                     Hace que MSBuild informe de los accesos a los archivos a cualquier
-                     complemento de caché de proyectos.
+        <target state="translated">  -reportFileAccesses[:True|False]
+                     Faz com que o MSBuild relate acessos a arquivos para qualquer plug-in
+                     de cache de projeto configurado.
 
-Esta marca es experimental y puede que no funcione según lo previsto.
+                     Este sinalizador é experimental e pode não funcionar conforme o esperado.
     </target>
         <note>
       LOCALIZATION: "-reportFileAccesses" should not be localized.
@@ -85,10 +85,10 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      used, write out the values after the build.
     </source>
         <target state="translated">  -getProperty:propertyName,...
-                     Escriba el valor de una o varias propiedades especificadas
-                     después de la evaluación, sin ejecutar la compilación, o si se usa
-                     la opción -targets o la opción -getTargetResult,
-                     escriba los valores después de la compilación.
+                     Grava o valor de uma ou mais propriedades especificadas
+                     após a avaliação, sem executar a compilação, ou se
+                     a opção -targets ou a opção -getTargetResult for
+                     for usada, escreva os valores após a compilação.
     </target>
         <note>
       LOCALIZATION: "-getProperty", "-targets" and "-getTargetResult" should not be localized.
@@ -104,11 +104,11 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      the values after the build.
     </source>
         <target state="translated">  -getItem:itemName,...
-                     Escriba el valor de uno o varios elementos especificados y
-                     sus metadatos asociados después de la evaluación sin
-                     ejecutar la compilación, o si se usa la opción -targets
-                     o la opción -getTargetResult, escriba
-                     los valores después de la compilación.
+                     Escreve o valor de um ou mais itens especificados e
+                     seus metadados associados após a avaliação sem
+                     executar a compilação, ou se a opção -targets
+                     ou a opção -getTargetResult for usada, escreva
+                     os valores após a compilação.
     </target>
         <note>
       LOCALIZATION: "-getItem", "targets" and "getTargetResult" should not be localized.
@@ -121,8 +121,8 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      the specified targets will be executed.
     </source>
         <target state="translated">  -getTargetResult:targetName,...
-                     Escriba el valor de salida de uno o varios destinos y
-                     los destinos especificados se ejecutarán.
+                     Escreve o valor da saída de um ou mais destinos e
+                     os destinos especificados serão executados.
     </target>
         <note>
       LOCALIZATION: "-getTargetResult" should not be localized.
@@ -146,19 +146,19 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      (Short form: -fa)
     </source>
         <target state="translated">  -featureAvailability:featureName,...
-                     Compruebe la disponibilidad de la característica. El resultado es una de las
-                     cadenas "Undefined", "Available", "NotAvailable" y
-                     "Preview".
-                     - Undefined: la disponibilidad de la característica no está definida
-                     (el nombre de la característica es desconocido para el comprobador de disponibilidad
-                     de características)
-                     - NotAvailable: la característica no está disponible (a diferencia de
-                     Undefined, el nombre de la característica es conocido para el comprobador
-                     de disponibilidad de características y sabe que la característica no
-                     se admite en el motor de MSBuild actual)
-                     - Available: la característica está disponible
-                     - Preview: la característica está en versión preliminar (no estable)
-                     (Forma corta: -fa)
+                     Verifica a disponibilidade do recurso. O resultado é uma das 
+                     cadeias de caracteres "Indefinido", "Disponível", "Não Disponível" e
+                     "Visualizar".
+                     - Indefinido - a disponibilidade do recurso é indefinida
+                     (o nome do recurso é desconhecido para o verificador de disponibilidade do recurso
+                     verificador)
+                     - NotAvailable - o recurso não está disponível (ao contrário de
+                     Indefinido, o nome do recurso é conhecido pelo verificador de disponibilidade do recurso
+                     verificador de disponibilidade e ele sabe que o recurso não
+                     tem suporte pelo mecanismo MSBuild atual)
+                     - Disponível - o recurso está disponível
+                     - Visualização - o recurso está em pré-visualização (não é estável)
+                     (Forma abreviada: -fa)
     </target>
         <note>
       LOCALIZATION: "-featureAvailability", "-fa", "Undefined", "Available" "NotAvailable" and "Preview"should not be localized.
@@ -179,16 +179,16 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      (Short form: -tl)
     </source>
         <target state="translated">  -terminalLogger[:auto,on,off]
-                     Habilite o deshabilite el registrador de terminal. El registrador de terminal
-                     proporciona una salida de compilación mejorada en la consola en tiempo real,
-                     organizada lógicamente por proyecto y diseñada para resaltar
-                     la información accionable. Especifique auto (o use la opción
-                     sin argumentos) para utilizar el registrador de terminal solo si la
-                     salida estándar no se redirige. No analice la salida
-                     ni confíe en que permanezca sin cambios en versiones
-                     futuras. Esta opción está disponible en MSBuild 17.8 y
-                     posteriores.
-                     (Forma corta: -tl)
+                     Habilitar ou desabilitar o registrador de terminal. O agente do terminal
+                     fornece saída de compilação aprimorada no console em tempo real,
+                     organizada logicamente por projeto e projetada para destacar
+                     informações acionáveis. Especificar automaticamente (ou use a opção
+                     sem argumentos) para usar o registrador de terminal somente se a
+                     a saída padrão não for redirecionada. Não analise a saída
+                     nem confie que ela permanecerá inalterada em futuras
+                     versões. Essa opção está disponível no MSBuild 17.8 e
+                     posterior.
+                     (Forma abreviada: -tl)
     </target>
         <note>
       LOCALIZATION: "-terminalLogger", "-tl", and "auto" should not be localized.
@@ -216,22 +216,22 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                         -tlp:default=auto;verbosity=diag;shownCommandLine
     </source>
         <target state="translated">  -terminalLoggerParameters: &lt;parameters&gt;
-                     Parámetros para el registrador de terminal. (Forma corta: -tlp)
-                     Los parámetros disponibles.
-                        default--Especifica el comportamiento predeterminado del registrador
-                        de terminal. Requiere uno de los siguientes valores:
-                           - `on`, `true` fuerza el uso de TerminalLogger aunque
-                            esté deshabilitado.
-                           - `off`, `false` fuerza que no se utilice TerminalLogger
-                            aunque esté habilitado.
-                           - `auto` habilita TerminalLogger cuando el terminal
-                            lo admite y la sesión no ha redirigido
+                     Parâmetros para o registrador de terminal. (Forma abreviada: -tlp)
+                     Os parâmetros disponíveis.
+                        default--Especifica o comportamento padrão do agente de
+                        terminal. Requer um dos seguintes valores:
+                           - `on`, `true` força o TerminalLogger a ser usado mesmo
+                            quando ele estiver desabilitado.
+                           - `off`, `false` força o TerminalLogger a não ser usado
+                            mesmo quando estiver habilitado.
+                           - `auto` ativa o TerminalLogger quando o terminal
+                            der suporte e a sessão não tiver redirecionado
                             stdout/stderr
-                        verbosity--Reemplaza el valor -verbosity de este
-                        registrador
-                        showCommandLine--Muestra los mensajes de TaskCommandLineEvent
+                        verbosidade--Substitui a configuração de -verbosidade para esse
+                        agente
+                        showCommandLine--Mostra mensagens de TaskCommandLineEvent
 
-                      Ejemplo:
+                      Exemplo:
                         -tlp:default=auto;verbosity=diag;shownCommandLine
     </target>
         <note>
@@ -254,17 +254,17 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      (Short form: -mt)
     </source>
         <target state="translated">  -multithreaded
-                     Habilita el modo multiproceso EXPERIMENTAL en MSBuild.
-                     Esto significa que MSBuild usará varios subprocesos
-                     para compilar proyectos en paralelo,
-                     en lugar de varios procesos.
-                     Esta opción no se admite.
-                     El número máximo de subprocesos usados viene determinado por el
-                     modificador -maxCpuCount.
-                     En caso de modo multiproceso habilitado
-                     y MSBUILDFORCEALLTASKSOUTOFPROC=1
-                     maxCpuCount no puede ser mayor que 256.
-                     (Forma corta: -mt)
+                     Habilita o modo multithread EXPERIMENTAL no MSBuild.
+                     Isso significa que o MSBuild usará vários threads
+                     para criar projetos em paralelo,
+                     em vez de vários processos.
+                     Essa opção não tem suporte.
+                     O número máximo de threads usados é determinado pela
+                     opção -maxCpuCount.
+                     No caso do modo multithread em
+                     e MSBUILDFORCEALLTASKSOUTOFPROC=1
+                     maxCpuCount não pode ser maior que 256.
+                     (Forma abreviada: -mt)
     </target>
         <note />
       </trans-unit>
@@ -277,11 +277,11 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      This writes the value of property Bar into Biz.txt.
     </source>
         <target state="translated">  -getResultOutputFile:file
-                     Redirija la salida de get* a un archivo.
+                     Redirecionar a saída de get* para um arquivo.
 
-                     Ejemplo:
+                     Exemplo:
                      -getProperty:Bar -getResultOutputFile:Biz.txt
-                     Esto escribe el valor de la propiedad Bar en Biz.txt.
+                     Isso grava o valor da propriedade Bar em Biz.txt.
     </target>
         <note>
       LOCALIZATION: "-getResultOutputFile", "get*" and "-getProperty" should not be localized.
@@ -295,9 +295,9 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      of the build. For more info see https://aka.ms/buildcheck
 	</source>
         <target state="translated">  -check
-                     Habilita BuildChecks durante la compilación.
-                     BuildCheck permite evaluar reglas para garantizar que las propiedades
-                     de la compilación. Para más información, consulte https://aka.ms/buildcheck
+                     Habilita BuildChecks durante o build.
+                     BuildCheck habilita a avaliação de regras para garantir as propriedades
+                     do build. Para obter mais informações, confira https://aka.ms/buildcheck
 	</target>
         <note>
     {Locked="-check"}{Locked="BuildChecks"}{Locked="BuildCheck"}
@@ -306,7 +306,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidLowPriorityValue">
         <source>MSBUILD : error MSB1064: Low priority value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1064: El valor de prioridad baja no es válido. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1064: o valor de baixa prioridade não é válido. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1064: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -316,7 +316,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidNoLogoValue">
         <source>MSBUILD : error MSB1071: NoLogo value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1071: el valor NoLogo no es válido. {0}</target>
+        <target state="translated">MSBUILD : error MSB1071: O valor NoLogo não é válido. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1071: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -326,7 +326,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidTerminalLoggerValue">
         <source>MSBUILD : error MSB1065: Terminal logger value is not valid. It should be one of 'auto', 'true', or 'false'. {0}</source>
-        <target state="translated">MSBUILD : error MSB1065: El valor del registrador de terminales no es válido. Debe ser uno de "auto", "true", o "false".{0}</target>
+        <target state="translated">MSBUILD : error MSB1065: o valor do agente de terminal não é válido. O valor deve ser "auto", "true" ou "false". {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1065: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -336,7 +336,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidReportFileAccessesValue">
         <source>MSBUILD : error MSB1063: Report file accesses value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1063: el valor de acceso al archivo de informe no es válido. {0}</target>
+        <target state="translated">MSBUILD : error MSB1063: o valor de acesso ao arquivo de relatório não é válido. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1063: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -346,52 +346,52 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarError">
         <source>MSB1071: Error processing MSBUILD_LOGGING_ARGS environment variable: {0}</source>
-        <target state="translated">MSB1071: error al procesar MSBUILD_LOGGING_ARGS variable de entorno: {0}</target>
+        <target state="translated">MSB1071: erro ao processar MSBUILD_LOGGING_ARGS de ambiente: {0}</target>
         <note>{StrBegin="MSB1071: "}LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is the error message.</note>
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarUnsupportedArgument">
         <source>MSB1070: MSBUILD_LOGGING_ARGS: Ignoring unsupported argument '{0}'. Only -bl and -check arguments are allowed.</source>
-        <target state="translated">MSB1070: MSBUILD_LOGGING_ARGS: se omite el argumento no admitido ''{0}''. Solo se permiten los argumentos -bl y -check.</target>
+        <target state="translated">MSB1070: MSBUILD_LOGGING_ARGS: ignorando argumento sem suporte "{0}". Somente os argumentos -bl e -check são permitidos.</target>
         <note>{StrBegin="MSB1070: "}LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is the unsupported argument.</note>
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarUsing">
         <source>Using arguments from MSBUILD_LOGGING_ARGS environment variable: {0}</source>
-        <target state="translated">Uso de argumentos de MSBUILD_LOGGING_ARGS variable de entorno: {0}</target>
+        <target state="translated">Usando argumentos de uma MSBUILD_LOGGING_ARGS de ambiente: {0}</target>
         <note>LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is a string with the command-line arguments from the environment variable.</note>
       </trans-unit>
       <trans-unit id="LongPaths">
         <source>Based on the Windows registry key LongPathsEnabled, the LongPaths feature is {0}.</source>
-        <target state="translated">De acuerdo con la clave del Registro de Windows LongPathsEnabled, la característica LongPaths está {0}.</target>
+        <target state="translated">Com base na chave do Registro do Windows LongPathsEnabled, o recurso LongPaths é {0}.</target>
         <note>"Windows" is the OS, "LongPathsEnabled" should not be localized, and {0} will be "enabled"/"disabled"/"not set"</note>
       </trans-unit>
       <trans-unit id="LongPaths_Disabled">
         <source>disabled</source>
-        <target state="translated">deshabilitada</target>
+        <target state="translated">desabilitado</target>
         <note />
       </trans-unit>
       <trans-unit id="LongPaths_Enabled">
         <source>enabled</source>
-        <target state="translated">habilitada</target>
+        <target state="translated">habilitado</target>
         <note />
       </trans-unit>
       <trans-unit id="LongPaths_Missing">
         <source>not set</source>
-        <target state="translated">sin establecer</target>
+        <target state="translated">não definido</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBuildServerConnectFailed">
         <source>could not connect to the server within the timeout window; the server may have failed to start</source>
-        <target state="needs-review-translation">no se pudo conectar con el servidor dentro de la ventana de tiempo de espera; es posible que el servidor no se haya iniciado</target>
+        <target state="needs-review-translation">não foi possível se conectar ao servidor dentro do período de tempo limite; o servidor pode ter falhado ao iniciar</target>
         <note>LOCALIZATION: No format arguments. Used for any connect failure when the server's exit code is not known — covers both pipe-connect timeouts and non-timeout I/O errors during the connect attempt. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerCrashedOnLaunch">
         <source>the server process exited with code {0} immediately after launch</source>
-        <target state="needs-review-translation">el proceso de servidor se cerró con código {0} inmediatamente después del inicio</target>
+        <target state="needs-review-translation">o processo do servidor foi encerrado com o código {0} imediatamente após o início</target>
         <note>LOCALIZATION: {0} is the integer process exit code; rendered with InvariantCulture as a decimal integer, do not localize the digits. This message is concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerLaunchError">
         <source>the server process could not be launched</source>
-        <target state="needs-review-translation">no se pudo iniciar el proceso del servidor</target>
+        <target state="needs-review-translation">o processo do servidor não pôde ser iniciado</target>
         <note>LOCALIZATION: No format arguments. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerNodeReused">
@@ -436,32 +436,32 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MSBuildServerStateUnknown">
         <source>the current server state could not be determined</source>
-        <target state="needs-review-translation">no se pudo determinar el estado actual del servidor</target>
+        <target state="needs-review-translation">o estado atual do servidor não pode ser determinado</target>
         <note>LOCALIZATION: No format arguments. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerUnavailable">
         <source>MSBuild server unavailable: {0}. Falling back to an in-process build.</source>
-        <target state="translated">Servidor de MSBuild no disponible: {0}. Revirtiendo a una compilación en proceso.</target>
+        <target state="translated">Servidor MSBuild indisponível: {0}. Voltando para uma compilação em processo.</target>
         <note>LOCALIZATION: {0} is a sub-message describing why the MSBuild server could not be used. It is one of MSBuildServerCrashedOnLaunch / MSBuildServerLaunchError / MSBuildServerStateUnknown / MSBuildServerConnectFailed. The outer template supplies the trailing period after {0}; sub-messages must NOT end with a period or other sentence-final punctuation.</note>
       </trans-unit>
       <trans-unit id="MSBuildVersionMessage">
         <source>MSBuild version {0} for {1}</source>
-        <target state="translated">Versión de MSBuild {0} para {1}</target>
+        <target state="translated">Versão do MSBuild {0} para {1}</target>
         <note>LOCALIZATION: {0} contains the DLL version number. {1} contains the name of a runtime, like ".NET Framework" or ".NET Core"</note>
       </trans-unit>
       <trans-unit id="CurrentDirectory">
         <source>Current directory = "{0}"</source>
-        <target state="translated">Directorio actual: "{0}"</target>
+        <target state="translated">Diretório atual = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="DuplicateOutputResultsCache">
         <source>MSBUILD : error MSB1058: Only one output results cache can be specified.</source>
-        <target state="translated">MSBUILD : error MSB1058: Solo se puede especificar una memoria caché de resultados de salida.</target>
+        <target state="translated">MSBUILD : error MSB1058: somente um cache de resultados de saída pode ser especificado.</target>
         <note>{StrBegin="MSBUILD : error MSB1058: "}</note>
       </trans-unit>
       <trans-unit id="DuplicateProjectSwitchError">
         <source>MSBUILD : error MSB1008: Only one project can be specified.</source>
-        <target state="translated">MSBUILD : error MSB1008: Sólo puede especificarse un proyecto.</target>
+        <target state="translated">MSBUILD : error MSB1008: Somente um projeto pode ser especificado.</target>
         <note>{StrBegin="MSBUILD : error MSB1008: "}UE: This happens if the user does something like "msbuild.exe myapp.proj myapp2.proj". This is not allowed.
     MSBuild.exe will only build a single project. The help topic may link to an article about how to author an MSBuild project
     that itself launches MSBuild on a number of other projects.
@@ -469,7 +469,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="EnvironmentVariableAsSwitch">
         <source>MSBUILD : error MSB1060: Undefined environment variable passed in as switch.</source>
-        <target state="translated">MSBUILD : error MSB1060: Variable de entorno no definida pasada como modificador.</target>
+        <target state="translated">MSBUILD : error MSB1060: variável de ambiente indefinida passada como comutador.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1060: "}
       UE: This error is shown when a user passes in an environment variable (including from a response file)
@@ -478,7 +478,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="FatalError">
         <source>MSBUILD : error MSB1025: An internal failure occurred while running MSBuild.</source>
-        <target state="translated">MSBUILD : error MSB1025: Error interno al ejecutar MSBuild.</target>
+        <target state="translated">MSBUILD : error MSB1025: Falha interna durante a execução do MSBuild.</target>
         <note>{StrBegin="MSBUILD : error MSB1025: "}UE: This message is shown when the application has to terminate either because of a bug in the code, or because some
       FX/CLR method threw an unexpected exception.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" and "MSBuild" should not be localized.</note>
@@ -486,7 +486,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       <trans-unit id="HelpMessage_1_Syntax">
         <source>Syntax:              MSBuild.exe [options] [project file | directory]
 </source>
-        <target state="translated">Sintaxis:              MSBuild.exe [opciones] [archivo de proyecto | directorio]
+        <target state="translated">Sintaxe:              MSBuild.exe [opções] [arquivo de projeto| diretório]
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -505,12 +505,12 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      a directory is specified, MSBuild searches that
                      directory for a project file.
 </source>
-        <target state="translated">Descripción:         Crea los destinos especificados en el archivo del proyecto. Si
-                     no se especifica un archivo de proyecto, MSBuild busca en el
-                     directorio de trabajo actual un archivo con una extensión
-                     de archivo que termine en "proj" y usa ese archivo. Si
-                     se especifica un directorio, MSBuild busca en ese directorio
-                     un archivo de proyecto.
+        <target state="translated">Descrição:         Compila os destinos especificados no arquivo de projeto. Se
+                     não houver arquivo de projeto especificado, o MSBuild pesquisará no
+                     diretório de trabalho atual um arquivo que contenha uma extensão de
+                     arquivo que termine em "proj" e usa esse arquivo.  Se
+                     um diretório for especificado, o MSBuild pesquisará esse
+                     diretório para um arquivo de projeto.
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -532,13 +532,14 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      value that comes from a response file.
     </source>
         <target state="translated">  -interactive[:True|False]
-                     Indica que las acciones de la compilación se permiten para
-                     interactuar con el usuario. No use este argumento
-                     en un escenario automatizado donde no se espera
-                     interactividad.
-                     Especificar -interactive es lo mismo que especificar
-                     -interactive:true. Use el parámetro para invalidar un
-                     valor que procede de un archivo de respuesta.
+                    Indica que as ações no build podem
+                    interagir com o usuário. Não use este argumento
+                    em um cenário automatizado no qual não se espera
+                    interatividade.
+                    Especificar -interactive é o mesmo que especificar
+                    -interactive:true. Use o parâmetro para substituir um
+                    valor proveniente de um
+arquivo de resposta.
     </target>
         <note>
       LOCALIZATION: "-interactive" should not be localized.
@@ -566,25 +567,25 @@ Esta marca es experimental y puede que no funcione según lo previsto.
 
                      This flag is experimental and may not work as intended.
     </source>
-        <target state="translated">  -isolateProjects[:True| MessageUponIsolationViolation| Falso]
-                     Hace que MSBuild compile cada proyecto de forma aislada.
+        <target state="translated">  -isolarProjects[:True|MessageUponIsolationViolation|False]
+                     Faz com que o MSBuild crie cada projeto isoladamente.
 
-                     Cuando se establece en "MessageUponIsolationViolation" (o su valor corto
-                     forma "Mensaje"), solo los resultados de los destinos de nivel superior
-                     se serializan si el modificador -outputResultsCache es
-                     Suministrado. Esto es para mitigar las posibilidades de un
-                     destino que infringe el aislamiento en un proyecto de dependencia mediante
-                     un estado incorrecto debido a su dependencia en un destino almacenado en caché
-                     cuyos efectos secundarios no se tendrán en cuenta.
-                     (Por ejemplo, la definición de una propiedad.)
+                     Quando definido como "MessageUponIsolationViolation" (ou sua abreviação
+                     formulário "Mensagem"), apenas os resultados dos alvos de nível superior
+                     são serializados se a opção -outputResultsCache for
+                     fornecido. Isso é para mitigar as chances de um
+                     alvo de violação de isolamento em um projeto de dependência usando
+                     estado incorreto devido à sua dependência de um destino armazenado em cache
+                     cujos efeitos colaterais não seriam levados em consideração.
+                     (Por exemplo, a definição de uma propriedade.)
 
-                     Este es un modo más restrictivo de MSBuild, ya que requiere
-                     que el gráfico del proyecto se pueda detectar estáticamente en
-                     tiempo de evaluación, pero puede mejorar la programación y reducir
-                     la sobrecarga de memoria al compilar un gran conjunto de proyectos.
-                     (Forma corta: -isolate)
+                     Este é um modo mais restritivo do MSBuild, pois requer
+                     que o gráfico do projeto seja descoberto estaticamente em
+                     tempo de avaliação, mas pode melhorar o agendamento e reduzir
+                     sobrecarga de memória ao criar um grande conjunto de projetos.
+                     (forma abreviada: -isolar)
 
-                     Esta marca es experimental y puede que no funcione según lo previsto.
+                     Este sinalizador é experimental e pode não funcionar conforme o esperado.
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -605,16 +606,16 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -graphBuild[:True|False]
-                     Hace que MSBuild construya y compile un grafo de proyecto.
+                     Faz o MSBuild construir e compilar um gráfico de projeto.
 
-                     Construir un grafo supone identificar las referencias
-                     del proyecto para formar dependencias. Compilar ese grafo
-                     supone intentar compilar las referencias del proyecto antes de
-                     los proyectos que hacen referencia a ellas. Esto se diferencia de
-                     la programación tradicional de MSBuild.
-                     (Forma corta: -graph)
+                     Construir um gráfico envolve identificar as referências
+                     do projeto para formar dependências. Compilar tal gráfico
+                     envolve tentar compilar referências de projetos anteriores
+                     ao atual para diferenciá-lo do agendamento
+                     tradicional do MSBuild.
+                     (Forma abreviada: -graph)
 
-                     Este indicador es experimental y podría no funcionar según lo esperado.
+                  Esse sinalizador é experimental e pode não funcionar como pretendido.
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -624,7 +625,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="HelpMessage_37_DocsLink">
         <source>For more detailed information, see https://aka.ms/msbuild/docs</source>
-        <target state="translated">Para obtener información más detallada, vea https://aka.ms/msbuild/docs</target>
+        <target state="translated">Para obter informações detalhadas, consulte https://aka.ms/msbuild/docs</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpMessage_38_TargetsSwitch">
@@ -637,13 +638,13 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -ts:out.txt
     </source>
-        <target state="translated">  -targets[:archivo]
-                     Imprime una lista de los destinos disponibles sin ejecutar el
-                     proceso de compilación en sí. De forma predeterminada, la salida se escribe en
-                     la ventana de la consola. Si se proporciona la ruta de acceso a un
-                     archivo de salida, se usará este en su lugar.
-                     (Forma corta: -ts)
-                     Ejemplo:
+        <target state="translated">  -targets [:arquivo]
+                     Imprime uma lista de destinos disponíveis sem executar o
+                     processo de compilação real. Por padrão, a saída é gravada na
+                     janela do console. Se o caminho para um arquivo de saída
+                     for fornecido, isso será usado.
+                     (Forma abreviada:-ts)
+                     Exemplo:
                        -ts:out.txt
     </target>
         <note>
@@ -661,11 +662,11 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      (Short form: -low)
     </source>
         <target state="translated">  -lowPriority[:True|False]
-                     Hace que MSBuild se ejecute con prioridad de proceso baja.
+                     Faz com que o MSBuild seja executado a uma prioridade baixa de processo.
 
-                     Especificar -lowPriority es igual que especificar
+                     A especificação de -lowPriority é igual à especificação de
                      -lowPriority:True.
-                     (Forma corta: -low)
+                     (Forma abreviada: -low)
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -677,8 +678,8 @@ Esta marca es experimental y puede que no funcione según lo previsto.
         <source>Switches:            Note that you can specify switches using
                      "-switch", "/switch" and "--switch".
 </source>
-        <target state="translated">Modificadores:            Observe que puede especificar modificadores mediante
-                     "-switch", "/switch" y "--switch".
+        <target state="translated">Opções:            Observe que você pode especificar as opções usando
+                     "-switch", "/switch" e "--switch".
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -699,13 +700,13 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -warnNotAsError:MSB3026
     </source>
-        <target state="translated">  -warnNotAsError[:code[;code2]]
-                     Lista de códigos de advertencia para que no se traten como errores.
-                     Use un punto y coma o una coma para separar
-                     varios códigos de advertencia. No tiene efecto si el modificador -warnaserror
-                     no se ha establecido.
+        <target state="translated">  -warningNotAsError[:code[;code2]]
+                     Lista de códigos de aviso para tratar e não tratar como erros.
+                     Use ponto e vírgula ou vírgula para separar
+                     vários códigos de advertência. Não tem efeito se o -warnaserror
+                     interruptor não está definido.
 
-                     Ejemplo:
+                     Exemplo:
                        -warnNotAsError:MSB3026
     </target>
         <note>
@@ -716,7 +717,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       <trans-unit id="HelpMessage_4_HelpSwitch">
         <source>  -help              Display this usage message. (Short form: -? or -h)
 </source>
-        <target state="translated">  help              Mostrar este mensaje de uso. (Forma corta: /? o /h)
+        <target state="translated">  -help              Exibe essa mensagem de uso. (Forma abreviada: -? ou -h)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -731,8 +732,8 @@ Esta marca es experimental y puede que no funcione según lo previsto.
         <source>  -noLogo[:true|false] Do not display the startup banner and copyright message.
                        Specify -nologo:false to explicitly show the logo.
 </source>
-        <target state="translated">  -noLogo[:true|false] No mostrar el banner de inicio ni el mensaje de copyright.
-                       Especifique -nologo:false para mostrar explícitamente el logotipo.
+        <target state="translated">  -noLogo[:true|false] Não exibir a barra de notificação e a mensagem de direitos autorais.
+                       Especifique -nologo:false para mostrar explicitamente o logotipo.
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -746,7 +747,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       <trans-unit id="HelpMessage_6_VersionSwitch">
         <source>  -version           Display version information only. (Short form: -ver)
 </source>
-        <target state="translated">  version           Mostrar solo la información de versión. (Forma corta: /ver)
+        <target state="translated">  -version           Exibe somente informações sobre versão. (Forma abreviada: -ver)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -767,14 +768,14 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      (1) the directory of msbuild.exe
                      (2) the directory of the first project or solution built
 </source>
-        <target state="translated">  @&lt;archivo&gt;            Inserta la configuración de la línea de comandos de un archivo de texto. Para incluir
-                     varios archivos de respuesta, especifique cada uno de ellos
-                     por separado.
+        <target state="translated">  @&lt;file&gt;            Inserir as configurações de linha de comando por meio de um arquivo de texto. Para especificar
+                     vários arquivos de resposta, especifique cada arquivo de resposta
+                     separadamente.
 
-                     Todo archivo de respuesta denominado "msbuild.rsp" se consume
-                     automáticamente desde las ubicaciones siguientes:
-                     (1) el directorio de msbuild.exe
-                     (2) el directorio del primer proyecto o solución compilada
+                     Todos os arquivos de resposta chamados "msbuild.rsp" são consumidos
+                     automaticamente dos seguintes locais:
+                     (1) o diretório do msbuild.exe
+                     (2) o diretório do primeiro projeto ou solução compilada
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -789,8 +790,8 @@ Esta marca es experimental y puede que no funcione según lo previsto.
         <source>  -noAutoResponse    Do not auto-include any MSBuild.rsp files. (Short form:
                      -noAutoRsp)
 </source>
-        <target state="translated">  noAutoResponse    No incluir automáticamente ningún archivo MSBuild.rsp. (Forma corta:
-                     noAutoRsp)
+        <target state="translated">  -noAutoResponse    Não inclui nenhum arquivo MSBuild.rsp automaticamente. (Forma abreviada:
+                     -noAutoRsp)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -808,10 +809,10 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -target:Resources;Compile
 </source>
-        <target state="translated">  -target:&lt;destinos&gt;  Compila estos destinos en el proyecto. Use el carácter de punto y coma o
-                     coma para separar varios destinos o especifique cada uno
-                     de ellos por separado. (Forma corta: -t)
-                     Ejemplo:
+        <target state="translated">  -target:&lt;targets&gt;  Criar esses destinos neste projeto. Use um ponto e vírgula ou uma
+                     vírgula para separar vários destinos ou especifique cada
+                     destino separadamente. (Forma abreviada: -t)
+                     Exemplo:
                        -target:Resources;Compile
 </target>
         <note>
@@ -831,11 +832,11 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -property:WarningLevel=2;OutDir=bin\Debug\
 </source>
-        <target state="translated">  -property:&lt;n&gt;=&lt;v&gt;  Define o invalida estas propiedades de nivel de proyecto. &lt;n&gt; es
-                     el nombre de la propiedad y &lt;v&gt; es el valor de la propiedad. Use un
-                     punto y coma o una coma para separar varias propiedades, o
-                     especifique cada propiedad por separado. (Forma corta: -p)
-                     Ejemplo:
+        <target state="translated">  -property:&lt;n&gt;=&lt;v&gt;  Definir ou substituir essas propriedades no nível do projeto. &lt;n&gt; é
+                     o nome da propriedade e &lt;v&gt; é o valor da propriedade. Use um
+                     ponto e vírgula ou uma vírgula para separar várias propriedades ou
+                     especifique cada propriedade separadamente. (Forma abreviada: -p)
+                     Exemplo:
                        -property:WarningLevel=2;OutDir=bin\Debug\
 </target>
         <note>
@@ -863,22 +864,18 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                        -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -logger:XMLLogger,C:\Loggers\MyLogger.dll;OutputAsHTML
 </source>
-        <target state="translated">  -logger:&lt;registrador&gt;   Use este registrador para registrar eventos
-                     de MSBuild. Para especificar varios registradores, especifique
-                     cada uno de ellos por separado.
-                     La sintaxis de &lt;registrador&gt; es:
-                       [&lt;clase&gt;,]&lt;ensamblado&gt;[,&lt;opciones&gt;][;&lt;parámetros&gt;]
-                     La sintaxis de &lt;clase del registrador&gt; es:
-                       [&lt;espacio de nombres parcial o completo&gt;.]&lt;nombre de
-                       clase del registrador&gt;
-                     La sintaxis de &lt;ensamblado del registrador&gt; es:
-                       {&lt;nombre del ensamblado&gt;[,&lt;strong name&gt;] | &lt;archivo
-                       de ensamblado&gt;}
-                     Las opciones del registrador especifican cómo crea MSBuild
-                     el registrador.
-                     Los &lt;parámetros del registrador&gt; son opcionales y se pasan
-                     al registrador tal como se escriben. (Forma corta: -l)
-                     Ejemplos:
+        <target state="translated">  -logger:&lt;logger&gt;   Use este agente para registrar os eventos do MSBuild. Para especificar
+                     vários agentes, especifique cada um separadamente.
+                     A sintaxe de &lt;logger&gt; é:
+                       [&lt;class&gt;,]&lt;assembly&gt;[,&lt;options&gt;][;&lt;parameters&gt;]
+                     A sintaxe de &lt;logger class&gt; é:
+                       [&lt;partial or full namespace&gt;.]&lt;logger class name&gt;
+                     A sintaxe de &lt;logger assembly&gt; é:
+                       {&lt;assembly name&gt;[,&lt;strong name&gt;] | &lt;assembly file&gt;}
+                     As opções de agente especificam como o MSBuild cria o agente.
+                     Os &lt;logger parameters&gt; são opcionais e são passados
+                     ao agente exatamente como são digitados. (Forma abreviada: -l)
+                     Exemplos:
                        -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -logger:XMLLogger,C:\Loggers\MyLogger.dll;OutputAsHTML
 </target>
@@ -902,14 +899,14 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                            is set separately by
                            -fileloggerparameters.
 </source>
-        <target state="translated">  -verbosity:&lt;level&gt; Muestra esta cantidad de información en el registro de eventos.
-                     Los niveles de detalle disponibles son: q[uiet], m[inimal],
-                     n[ormal], d[etailed] y diag[nostic]. (Forma corta: -v)
-                     Ejemplo:
-                       -verbosity:quiet
+        <target state="translated">  -verbosidade:&lt;level&gt; Exibe essa quantidade de informações no log de eventos.
+                     Os níveis de verbosidade disponíveis são: q[uiet], m[inimal],
+                     n[ormal], d[detalhado] e diag[nóstico]. (forma abreviada: -v)
+                     Exemplo:
+                       - verbosidade: quieto
 
-                     Nota: nivel de detalle de los registradores de archivos
-                           se establece por separado por
+                     Nota: verbosidade dos registradores de arquivos
+                           é definido separadamente por
                            -fileloggerparameters.
 </target>
         <note>
@@ -957,36 +954,36 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                                                  Verbosity=minimal
 </source>
         <target state="translated">  -consoleLoggerParameters:&lt;parameters&gt;
-                     Parámetros del registrador de consola. (Forma corta: -clp)
-                     Los parámetros disponibles son:
-                        PerformanceSummary: muestra el tiempo empleado en tareas, destinos
-                            y proyectos.
-                        Summary: muestra un resumen de errores y advertencias al final.
-                        NoSummary: no muestra el resumen de errores y advertencias al
+                     Parâmetros para o registrador de console. (Forma abreviada: -clp)
+                     Os parâmetros disponíveis são:
+                        PerformanceSummary–Mostrar tempo gasto em tarefas, destinos
+                            e nos projetos.
+                        Summary--Mostrar resumo de erros e avisos no final.
+                        NoSummary – Não mostrar resumo de erros e avisos no
                             final.
-                        ErrorsOnly: muestra solo errores.
-                        WarningsOnly: muestra solo advertencias.
-                        NoItemAndPropertyList: no muestra la lista de elementos y
-                            propiedades al principio de cada compilación del proyecto.
-                        ShowCommandLine: muestra los mensajes de TaskCommandLineEvent
-                        ShowTimestamp: muestra la marca de tiempo como un prefijo en los
-                            mensajes.
-                        ShowEventId: muestra el identificador de evento para los eventos iniciados, los eventos 
-                            finalizados y los mensajes
-                        ForceNoAlign: no alinea el texto al tamaño del
-                            búfer de la consola
-                        DisableConsoleColor: usa los colores de consola predeterminados
-                            para todos los mensajes de registro.
-                        EnableMPLogging: habilita el estilo de registro de
-                            multiprocesador aunque se ejecute en el modo de
-                            no multiprocesador. Este estilo de registro está habilitado de forma predeterminada.
-                        ForceConsoleColor: usa los colores de consola ANSI incluso si
-                            la consola no lo admite
-                        PreferConsoleColor: usa colores de consola ANSI solo si
-                            la consola de destino sí lo admite
-                     Verbosity: invalida el valor -verbosity para este
-                            registrador.
-                     Ejemplo:
+                        ErrorsOnly – Mostrar somente os erros.
+                        WarningsOnly – mostrar somente os avisos.
+                        NoItemAndPropertyList--Não mostrar lista de itens e
+                            propriedades no início de cada compilação de projeto.
+                        ShowCommandLine--Mostrar mensagens do TaskCommandLineEvent
+                        ShowTimestamp--Exibir o Timestamp como prefixo de qualquer
+                            mensagem.
+                        ShowEventId--Mostrar eventId para eventos iniciados,
+                            eventos concluídos e mensagens
+                        ForceNoAlign--Não alinha o texto ao tamanho do
+                            buffer do console
+                        DisableConsoleColor--Usar as cores padrão do console
+                            para todas as mensagens de log.
+                        EnableMPLogging--Habilitar o registro multiprocessador
+                            estilo mesmo ao executar em modo não multiprocessador
+                            modo. Este estilo de registro está habilitado por padrão.
+                        ForceConsoleColor--Usar cores ANSI do console mesmo se
+                            o console não for compatível com elas
+                        PreferConsoleColor--Usar cores ANSI do console somente se
+                            o console de destino suportar
+                     Verbosity--substitui a configuração -verbosity para este
+                            agente.
+                     Exemplo:
                         -consoleLoggerParameters:PerformanceSummary;NoSummary;
                                                  Verbosity=minimal
 </target>
@@ -1003,8 +1000,8 @@ Esta marca es experimental y puede que no funcione según lo previsto.
         <source>  -noConsoleLogger   Disable the default console logger and do not log events
                      to the console. (Short form: -noConLog)
 </source>
-        <target state="translated">  -noConsoleLogger   Deshabilitar el registrador de la consola predeterminada y no registrar eventos
-                     en la consola. (Forma corta: -noConLog)
+        <target state="translated">  -noConsoleLogger Desabilita o agente de console padrão e não registra os eventos
+                     no console. (Forma abreviada: -noConLog)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1024,12 +1021,12 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -validate:MyExtendedBuildSchema.xsd
 </source>
-        <target state="translated">  -validate          Valida el proyecto comparándolo con el esquema predeterminado. (Forma
-                     corta: -val)
+        <target state="translated">  -validate          Valida o projeto em relação a um esquema padrão. (Forma
+                     abreviada: -val)
 
-  -validate:&lt;esquema&gt; Valida el proyecto comparándolo con el esquema especificado. (Forma
-                     corta: -val)
-                     Ejemplo:
+  -validate:&lt;schema&gt; Valida o projeto em relação a um esquema especificado. (Forma
+                     abreviada: -val)
+                     Exemplo:
                        -validate:MyExtendedBuildSchema.xsd
 </target>
         <note>
@@ -1048,11 +1045,11 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      MSBuild will use up to the number of processors on the
                      computer. (Short form: -m[:n])
       </source>
-        <target state="translated">  -maxCpuCount[:n]   Especifica el número máximo de procesos simultáneos utilizados en
-                     la compilación. Si no se usa el modificador, se usa el valor
-                     predeterminado 1. Si se usa el modificador sin un valor,
-                     MSBuild usará hasta el número de procesadores que tenga el
-                     equipo. (Forma corta: -m[:n])
+        <target state="translated">  -maxCpuCount[:n] Especifica o número máximo de processos simultâneos a serem 
+                     compilados. Se a opção não for usada, o valor padrão
+                     usado será 1. Se a opção for usada sem um valor, o
+                     MSBuild usará o número de processadores do 
+                     computador. (Forma abreviada: -m[:n])
       </target>
         <note>
           LOCALIZATION: "maxCpuCount" should not be localized.
@@ -1066,10 +1063,10 @@ Esta marca es experimental y puede que no funcione según lo previsto.
         MSBuild MyApp.csproj -t:Clean
                              -p:Configuration=Debug;TargetFrameworkVersion=v3.5
     </source>
-        <target state="translated">Ejemplos:
+        <target state="translated">Exemplos:
 
         MSBuild MyApp.sln -t:Rebuild -p:Configuration=Release
-        MSBuild MyApp.csproj -t:Clean
+        MSBuild MyApp.csproj -t:Clean 
                              -p:Configuration=Debug;TargetFrameworkVersion=v3.5
     </target>
         <note>
@@ -1088,9 +1085,9 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      to False, this sets it to True. (short form: -irc)
    </source>
         <target state="translated">  -inputResultsCaches:&lt;cacheFile&gt;...
-                     Lista separada por punto y coma de los archivos de caché de entrada que MSBuild
-                     leerá los resultados de la compilación. Si se establece -isolateProjects
-                     en False, esta se establece en True. (forma corta: -irc)
+                     Lista separada por ponto-e-vírgula de arquivos de cache de entrada que o MSBuild
+                     irá ler os resultados da compilação. Se -isolateProjects estiver definido
+                     para Falso, isso o define como Verdadeiro. (forma abreviada: -irc)
    </target>
         <note>
       LOCALIZATION: The following should not be localized: MSBuild, -isolate
@@ -1104,11 +1101,11 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      If -isolateProjects is set to False, this sets it to True.
                      (short form: -orc)
    </source>
-        <target state="translated">  -outputResultsCache:[archivo-de-caché]
-                     Archivo de caché de salida donde MSBuild escribe el contenido de
-                     las memorias caché de resultados de compilación cuando esta acaba.
-                     Si se establece -isolateProjects en False, esta se establece en True.
-                     (forma corta: -orc)
+        <target state="translated">  -outputResultsCache:[cacheFile]
+                     Arquivo de cache de saída onde o MSBuild gravará o conteúdo de
+                     seu resultado de compilação é armazenado em cache no final da compilação.
+                     Se -isolateProjects for definido como False, isso o definirá como True.
+                     (forma abreviada: -orc)
    </target>
         <note>
       LOCALIZATION: The following should not be localized: MSBuild, -isolate
@@ -1117,7 +1114,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="HelpPrompt">
         <source>For switch syntax, type "MSBuild -help"</source>
-        <target state="translated">Para modificar la sintaxis, escriba "MSBuild -help"</target>
+        <target state="translated">Para obter a sintaxe da opção, digite "MSBuild -help"</target>
         <note>UE: this message is shown when the user makes a syntax error on the command-line for a switch.
     LOCALIZATION: "MSBuild -help" should not be localized.</note>
       </trans-unit>
@@ -1140,24 +1137,21 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                        -dl:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -dl:MyLogger,C:\My.dll*ForwardingLogger,C:\Logger.dll
 </source>
-        <target state="translated">  -distributedLogger:&lt;registrador central&gt;*&lt;registrador de reenvío&gt;
-                     Use este registrador para registrar eventos de MSBuild,
-                     asociando una interfaz de registrador diferente a cada nodo.
-                     Para especificar varios registradores, especifique cada uno
-                     de ellos por separado. (Forma corta: -dl)
-                     La sintaxis de &lt;registrador&gt; es:
-                       [&lt;clase&gt;,]&lt;ensamblado&gt;[,&lt;opciones&gt;][;&lt;parámetros&gt;]
-                     La sintaxis de &lt;clase del registrador&gt; es:
-                       [&lt;espacio de nombres parcial o completo&gt;.]&lt;nombre
-                       de la clase del registrador&gt;
-                     La sintaxis de &lt;ensamblado del registrador&gt; es:
-                       {&lt;nombre del ensamblado&gt;[,&lt;strong name&gt;] | &lt;archivo
-                      de ensamblado&gt;}
-                     Las opciones del registrador especifican cómo crea MSBuild
-                     el registrador.
-                     Los &lt;parámetros del registrador&gt; son opcionales y se pasan
-                     al registrador tal como se escriben. (Forma corta: -l)
-                     Ejemplos:
+        <target state="translated">  -distributedLogger:&lt;central logger&gt;*&lt;forwarding logger&gt;
+                     Use este agente para registrar eventos do MSBuild anexando uma
+                     instância de agente diferente a cada nó. Para especificar
+                     vários agentes, especifique cada um separadamente.
+                     (Forma abreviada -dl)
+                     A sintaxe de &lt;logger&gt; é:
+                       [&lt;class&gt;,]&lt;assembly&gt;[,&lt;options&gt;][;&lt;parameters&gt;]
+                     A sintaxe de &lt;logger class&gt; é:
+                       [&lt;partial or full namespace&gt;.]&lt;logger class name&gt;
+                     A sintaxe de &lt;logger assembly&gt; é:
+                       {&lt;assembly name&gt;[,&lt;strong name&gt;] | &lt;assembly file&gt;}
+                     As opções de agente especificam como o MSBuild cria o agente.
+                     Os &lt;logger parameters&gt; são opcionais e são passados
+                     ao agente exatamente como são digitados. (Forma abreviada: -l)
+                     Exemplos:
                        -dl:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -dl:MyLogger,C:\My.dll*ForwardingLogger,C:\Logger.dll
 </target>
@@ -1179,13 +1173,13 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -ignoreProjectExtensions:.sln
     </source>
-        <target state="translated">  -ignoreProjectExtensions:&lt;extensiones&gt;
-                     Lista de extensiones que se omiten al determinar el 
-                     archivo del proyecto que se va a compilar. Use el carácter de 
-                     punto y coma o coma para separar varias extensiones.
-                    (Forma corta: -ignore)
-                     Ejemplo:
-                       -ignoreProjectExtensions:.sln
+        <target state="translated">  -ignoreProjectExtensions:&lt;extensions&gt;
+                     Lista de extensões a serem ignoradas ao determinar qual
+                     arquivo de projeto será compilado. Use um ponto e vírgula ou uma vírgula
+                     para separar várias extensões.
+                     (Forma abreviada: -ignore)
+                     Exemplo:
+                       -ignoreprojectextensions:.sln
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1205,13 +1199,13 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -toolsVersion:3.5
    </source>
-        <target state="translated">  -toolsVersion:&lt;versión&gt;
-                     La versión del conjunto de herramientas de MSBuild (tareas, destinos, etc.)
-                     que se usa durante la compilación. Esta versión invalidará las
-                     versiones especificadas por los distintos proyectos. (Forma corta:
+        <target state="translated">  -toolsVersion:&lt;version&gt;
+                     A versão do MSBuild Toolset (tarefas, destinos, etc.)
+                     a ser usada durante ao build. Essa versão substituirá as
+                     versões especificadas por projetos individuais. (Forma abreviada:
                      -tv)
-                     Ejemplo:
-                       -toolsVersion:3.5
+                     Exemplo:
+                       -toolsversion:3.5
    </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1232,14 +1226,14 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      "n" if present can be a digit from 1-9, allowing up to
                      10 file loggers to be attached. (Short form: -fl[n])
     </source>
-        <target state="translated">  -fileLogger[n]     Registra el resultado de la compilación en un archivo. De forma predeterminada
-                     el archivo está en el directorio actual y se denomina
-                     "msbuild[n].log". Los eventos de todos los nodos se combinan en
-                     un solo registro. La ubicación del archivo y otros
-                     parámetros del registrador de archivos se pueden especificar
-                     agregando el modificador "-fileLoggerParameters[n]".
-                     Si está presente "n" puede ser un dígito de 1 a 9, lo que permite adjuntar hasta
-                     10 registradores de archivos. (Forma corta: -fl[n])
+        <target state="translated">  -fileLogger[n] Registra a saída do build em um arquivo. Por padrão,
+                     o arquivo está no diretório atual e tem o nome 
+                     "msbuild[n].log". Os eventos de todos os nós são combinados em
+                     um único log. A localização do arquivo e outros
+                     parâmetros do fileLogger pode ser especificada por meio 
+                     do acréscimo da opção "-fileLoggerParameters[n]".
+                     "n", se presente, pode ser um dígito de 1 a 9, permitindo que até 
+                     10 agentes de arquivo sejam anexados. (Forma abreviada: -fl[n])
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1265,17 +1259,17 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      create a log file for each node.
     </source>
         <target state="translated">  -distributedFileLogger
-                     Registra los resultados de la compilación en varios archivos de registro, uno para
-                     cada nodo de MSBuild. La ubicación inicial de estos archivos es
-                     el directorio actual. De forma predeterminada, estos archivos se denominan
-                     "MSBuild&lt;idNodo&gt;.log". La ubicación de estos archivos y
-                     otros parámetros de fileLogger se pueden especificar
-                    agregando el modificador "-fileLoggerParameters".
+                     Registra a saída do build em vários arquivos de log, com um arquivo de log
+                     para cada nó do MSBuild. O local inicial desses arquivos é
+                     o diretório atual. Por padrão, os arquivos são chamados
+                     "MSBuild&lt;nodeid&gt;.log". O local dos arquivos e
+                     de outros parâmetros do fileLogger podem ser especificados
+                     com a adição da opção "-fileLoggerParameters".
 
-                     Si se define un nombre de archivo de registro mediante el modificador fileLoggerParameters,
-                     el registrador distribuido usará el nombre de archivo como
-                     plantilla y agregará el identificador de nodo a ese nombre de archivo para
-                     crear un archivo de registro para cada nodo.
+                     Se um nome de arquivo de log for definido por meio da opção fileLoggerParameters,
+                     o agente distribuído usará o fileName como um
+                     modelo e acrescentará a ID do nó a esse fileName para
+                     criar um arquivo de log para cada nó.
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1316,28 +1310,28 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                        -flp1:warningsonly;logfile=msbuild.wrn
                        -flp2:errorsonly;logfile=msbuild.err
     </source>
-        <target state="translated">  -fileLoggerParameters[n]:&lt;parámetros&gt;
-                     Proporciona parámetros adicionales de los registradores de archivos.
-                     La presencia de este modificador implica el modificador
-                     -fileLogger[n] correspondiente.
-                     "n", si está presente, puede ser un dígito de 1 a 9.
-                     Los registradores de archivos distribuidos usan también
-                     -fileLoggerParameters, vea la descripción de -distributedFileLogger.
-                     (Forma corta: -flp[n])
-                     Están disponibles los mismos parámetros enumerados para el registrador
-                     de la consola. Otros parámetros disponibles son:
-                        LogFile: ruta de acceso al archivo de registro en el que se escribirá
-                            el registro de compilación.
-                        Append: determina si el registro de compilación se adjuntará o
-                            sobrescribirá el archivo de registro. Si se establece el
-                            modificador, se adjunta el registro de compilación al archivo de registro;
-                            Si no se especifica el modificador, se sobrescribe
-                            el contenido del archivo de registro existente. 
-                            El valor predeterminado es adjuntar el archivo de registro.
-                        Encoding: especifica la codificación del archivo, 
-                            por ejemplo, UTF-8, Unicode o ASCII
-                     El nivel de detalle predeterminado es Detailed.
-                     Ejemplos:
+        <target state="translated">  -fileLoggerParameters[n]:&lt;parameters&gt;
+                     Fornece parâmetros adicionais para agentes de arquivo.
+                     A presença dessa opção implica a
+                     opção -fileLogger[n] correspondente.
+                     "n", se estiver presente, poderá ser um dígito de 1 a 9.
+                     -fileLoggerParameters também é usado por um agente de arquivo
+                     distribuído, confira a descrição de -distributedFileLogger.
+                     (Forma abreviada: -flp[n])
+                     Os mesmos parâmetros listados para o agente do console estão
+                     disponíveis. Alguns parâmetros disponíveis adicionais são:
+                        LogFile – caminho para o arquivo de log no qual o
+                            log de build será gravado.
+                        Append – determina se o log de build será acrescentado
+                            ao arquivo de log ou o substituirá. A configuração da
+                            opção acrescenta o log de build ao arquivo de log;
+                            Se a opção não for configurada, o conteúdo de um
+                            arquivo de log existente será substituído.
+                            O padrão é não acrescentar ao arquivo de log.
+                        Encoding – especifica a codificação do arquivo,
+                            por exemplo, UTF-8, Unicode ou ASCII
+                     O nível de detalhamento padrão é Detalhado.
+                     Exemplos:
                        -fileLoggerParameters:LogFile=MyLog.log;Append;
                                            Verbosity=diagnostic;Encoding=UTF-8
 
@@ -1365,14 +1359,14 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -nr:true
     </source>
-        <target state="translated">  -nodeReuse:&lt;parámetros&gt;
-                     Habilita o deshabilita la reutilización de nodos MSBuild.
-                     Los parámetros son:
-                     True: los nodos se conservarán una vez completada la compilación
-                            y se volverán a usar en las compilaciones siguientes (predeterminado)
-                     False: los nodos no se conservarán cuando finalice la compilación
-                     (Forma corta: -nr)
-                     Ejemplo:
+        <target state="translated">  -nodeReuse:&lt;parameters&gt;
+                     Habilita ou Desabilita a reutilização dos nós do MSBuild.
+                     Os parâmetros são:
+                     True – os nós permanecerão após o término do build
+                            e serão reutilizados pelos próximos builds (padrão)
+                     False – os nós não permanecerão após o término do build
+                     (Forma abreviada: -nr)
+                     Exemplo:
                        -nr:true
     </target>
         <note />
@@ -1391,17 +1385,17 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      Example:
                        -pp:out.txt
     </source>
-        <target state="translated">  -preprocess[:archivo]
-                     Crea un solo archivo de proyecto agregado
-                     alineando todos los archivos que se importarían durante una
-                     compilación, con sus límites marcados. Puede resultar
-                     útil para saber qué archivos se van a importar,
-                     desde dónde y qué aportarán a
-                     la compilación. De forma predeterminada, la salida se escribe en
-                     la ventana de la consola. Si se proporciona la ruta de acceso a un archivo de salida,
-                     se utilizará en su lugar.
-                     (Forma corta: -pp)
-                     Ejemplo:
+        <target state="translated">  -preprocess[:arquivo] 
+                     Cria um arquivo de projeto único e agregado
+                     embutindo todos os arquivos que poderiam ser importados durante um
+                     build, com seus limites marcados. Isso pode ser
+                     útil para descobrir quais arquivos são importados,
+                     de qual localização e como contribuirão para
+                     o build. Por padrão, a saída é gravada na
+                     janela do console. Se o caminho de um arquivo de saída 
+                     for fornecido, ele será usado.
+                     (Forma abreviada: -pp)
+                     Exemplo:
                        -pp:out.txt
     </target>
         <note />
@@ -1414,10 +1408,10 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      (Short form: -ds)
     </source>
         <target state="translated">  -detailedSummary[:True|False]
-                     Muestra información detallada al final de la compilación
-                     sobre las configuraciones compiladas y el modo en que
-                     se programaron en los nodos.
-                     (Forma corta: -ds)
+                     Mostra informações detalhadas no final da compilação
+                     sobre as configurações compiladas e como elas foram
+                     agendadas para os nós.
+                     (Forma abreviada: -ds)
     </target>
         <note>
       LOCALIZATION: "detailedSummary", "True" and "False" should not be localized.
@@ -1426,7 +1420,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidConfigurationFile">
         <source>MSBUILD : Configuration error MSB1043: The application could not start. {0}</source>
-        <target state="translated">MSBUILD : Configuration error MSB1043: No se pudo iniciar la aplicación. {0}</target>
+        <target state="translated">MSBUILD : Configuration error MSB1043: Não foi possível iniciar o aplicativo. {0}</target>
         <note>
       {StrBegin="MSBUILD : Configuration error MSB1043: "}
       UE: This error is shown when the msbuild.exe.config file had invalid content.
@@ -1435,7 +1429,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidDetailedSummaryValue">
         <source>MSBUILD : error MSB1061: Detailed summary value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1061: El valor de resumen detallado no es válido. {0}</target>
+        <target state="translated">MSBUILD : error MSB1061: O valor do resumo detalhado é inválido. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1061: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1445,7 +1439,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidGraphBuildValue">
         <source>MSBUILD : error MSB1057: Graph build value is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1057: El valor de compilación del grafo no es válido.</target>
+        <target state="translated">MSBUILD : error MSB1057: O valor de build do gráfico não é válido.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1057: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1455,7 +1449,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidInteractiveValue">
         <source>MSBUILD : error MSB1055: Interactive value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1055: El valor interactivo no es válido. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1055: O valor interativo não é válido. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1055: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1465,7 +1459,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidIsolateProjectsValue">
         <source>MSBUILD : error MSB1056: Isolate projects value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1056: El valor de los proyectos aislados no es válido. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1056: O valor de projetos isolados não é válido. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1056: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1476,7 +1470,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidLoggerError">
         <source>MSBUILD : error MSB1019: Logger switch was not correctly formed.</source>
-        <target state="translated">MSBUILD : error MSB1019: El modificador del registrador no está formado correctamente.</target>
+        <target state="translated">MSBUILD : error MSB1019: Opção de agente de log não foi construída corretamente.</target>
         <note>{StrBegin="MSBUILD : error MSB1019: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user does any of the following:
       msbuild.exe -logger:;"logger parameters"                    (missing logger class and assembly)
@@ -1488,7 +1482,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidMaxCPUCountValue">
         <source>MSBUILD : error MSB1030: Maximum CPU count is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1030: El número máximo de CPU no es válido. {0}</target>
+        <target state="translated">MSBUILD : error MSB1030: Contagem máxima de CPU inválida. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1030: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1498,7 +1492,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidMaxCPUCountValueOutsideRange">
         <source>MSBUILD : error MSB1032: Maximum CPU count is not valid. Value must be an integer greater than zero and no more than 1024.</source>
-        <target state="translated">MSBUILD : error MSB1032: El número máximo de CPU no es válido. El valor debe ser un entero mayor que cero y no superior a 1024.</target>
+        <target state="translated">MSBUILD : error MSB1032: Contagem máxima de CPU inválida. O valor deve ser um número inteiro maior que zero e menor que 1.024.</target>
         <note>{StrBegin="MSBUILD : error MSB1032: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies a CPU value that is zero or less. For example, -m:0 instead of -m:2.
@@ -1507,7 +1501,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidNodeNumberValue">
         <source>MSBUILD : error MSB1033: Node number is not valid. {0}.</source>
-        <target state="translated">MSBUILD : error MSB1033: El número de nodos no es válido. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1033: Número de nó inválido. {0}.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1033: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1517,7 +1511,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidNodeNumberValueIsNegative">
         <source>MSBUILD : error MSB1034: Node number is not valid. Value must be an integer greater than zero.</source>
-        <target state="translated">MSBUILD : error MSB1034: El número de nodo no es válido. El valor debe ser un entero mayor que cero.</target>
+        <target state="translated">MSBUILD : error MSB1034: Número de nó inválido. O valor deve ser um número inteiro maior que zero.</target>
         <note>{StrBegin="MSBUILD : error MSB1034: "}
         UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
         This error is shown when a user specifies a CPU value that is zero or less. For example, -nodeMode:0 instead of -nodeMode:2.
@@ -1526,7 +1520,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidPropertyError">
         <source>MSBUILD : error MSB1006: Property is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1006: La propiedad no es válida.</target>
+        <target state="translated">MSBUILD : error MSB1006: Propriedade inválida.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1006: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown if the user does any of the following:
@@ -1538,13 +1532,13 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidSchemaFile">
         <source>MSBUILD : MSB1046: The schema "{0}" is not valid. {1}</source>
-        <target state="translated">MSBUILD : MSB1046: El esquema "{0}" no es válido. {1}</target>
+        <target state="translated">MSBUILD : MSB1046: O esquema "{0}" não é válido. {1}</target>
         <note>{StrBegin="MSBUILD : MSB1046: "}UE: This message is shown when the schema file provided for the validation of a project is itself not valid.
     LOCALIZATION: "{0}" is the schema file path. "{1}" is a message from an FX exception that describes why the schema file is bad.</note>
       </trans-unit>
       <trans-unit id="InvalidSwitchIndicator">
         <source>Switch: {0}</source>
-        <target state="translated">Modificador: {0}</target>
+        <target state="translated">Opção: {0}</target>
         <note>
       UE: This is attached to error messages caused by an invalid switch. This message indicates what the invalid arg was.
       For example, if an unknown switch is passed to MSBuild.exe, the error message will look like this:
@@ -1555,7 +1549,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidToolsVersionError">
         <source>MSBUILD : error MSB1040: ToolsVersion is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1040: El valor de ToolsVersion no es válido. {0}</target>
+        <target state="translated">MSBUILD : error MSB1040: ToolsVersion inválido. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1040: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1565,7 +1559,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidVerbosityError">
         <source>MSBUILD : error MSB1018: Verbosity level is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1018: El nivel de detalle no es válido.</target>
+        <target state="translated">MSBUILD : error MSB1018: Nível de detalhamento não é válido.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1018: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies an unknown verbosity level e.g. "msbuild -verbosity:foo". The only valid verbosities
@@ -1575,7 +1569,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="LoggerFatalError">
         <source>MSBUILD : error MSB1028: The logger failed unexpectedly.</source>
-        <target state="translated">MSBUILD : error MSB1028: Error inesperado del registrador.</target>
+        <target state="translated">MSBUILD : error MSB1028: Falha inesperada do agente de log.</target>
         <note>{StrBegin="MSBUILD : error MSB1028: "}
       UE: This error is shown when a logger specified with the -logger switch throws an exception while being
       initialized. This message is followed by the exception text including the stack trace.
@@ -1583,7 +1577,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="LoggerFailurePrefixNoErrorCode">
         <source>MSBUILD : Logger error {0}: {1}</source>
-        <target state="translated">MSBUILD : error del registrador; error {0}: {1}</target>
+        <target state="translated">MSBUILD : Erro de agente {0}: {1}</target>
         <note>UE: This prefixes the error message emitted by a logger, when a logger fails in a controlled way using a LoggerException.
       For example, the logger is indicating that it could not create its output file.
       There's no error code because one was supplied by the logger.
@@ -1592,7 +1586,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="LoggerFailurePrefixWithErrorCode">
         <source>MSBUILD : Logger error MSB1029: {0}</source>
-        <target state="translated">MSBUILD : error del registrador: error MSB1029: {0}</target>
+        <target state="translated">MSBUILD : Logger error MSB1029: {0}</target>
         <note>{SubString="Logger", "{0}"}{StrBegin="MSBUILD : "}
         UE: This prefixes the error message emitted by a logger, when a logger fails in a controlled way using a LoggerException.
         For example, the logger is indicating that it could not create its output file.
@@ -1602,22 +1596,22 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MSBExePath">
         <source>MSBuild executable path = "{0}"</source>
-        <target state="translated">Ruta de acceso al ejecutable de MSBuild: "{0}"</target>
+        <target state="translated">Caminho executável do MSBuild = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBVersion">
         <source>MSBuild version = "{0}"</source>
-        <target state="translated">Versión de MSBuild: "{0}"</target>
+        <target state="translated">Versão do MSBuild = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBuildDebugPath">
         <source>MSBuild logs and debug information will be at "{0}"</source>
-        <target state="translated">Los registros de MSBuild y la información de depuración estarán en "{0}"</target>
+        <target state="translated">Os logs e as informações de depuração do MSBuild estarão no "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingFeatureAvailabilityError">
         <source>MSBUILD : error MSB1067: Must provide a feature name for the featureAvailability switch.</source>
-        <target state="translated">MSBUILD : error MSB1067: debe proporcionar un nombre de característica para el conmutador featureAvailability.</target>
+        <target state="translated">MSBUILD : error MSB1067: É necessário fornecer um nome de recurso para a chave featureAvailability.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1067: "}UE: This happens if the user does something like "msbuild.exe -featureAvailability". The user must pass in an actual feature name
       following the switch, as in "msbuild.exe -featureAvailability:blah".
@@ -1626,7 +1620,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingGetItemError">
         <source>MSBUILD : error MSB1014: Must provide an item name for the getItem switch.</source>
-        <target state="translated">MSBUILD : error MSB1014: debe proporcionar un nombre de elemento para el modificador getItem.</target>
+        <target state="translated">MSBUILD : error MSB1014: É preciso fornecer um nome de item para a chave getItem.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1014: "}UE: This happens if the user does something like "msbuild.exe -getItem". The user must pass in an actual item name
       following the switch, as in "msbuild.exe -getItem:blah".
@@ -1635,7 +1629,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingGetPropertyError">
         <source>MSBUILD : error MSB1010: Must provide a property name for the getProperty switch.</source>
-        <target state="translated">MSBUILD : error MSB1010: debe proporcionar un nombre de propiedad para el modificador getProperty.</target>
+        <target state="translated">MSBUILD : error MSB1010: É preciso fornecer um nome de propriedade para a chave getProperty.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1010: "}UE: This happens if the user does something like "msbuild.exe -getProperty". The user must pass in an actual property name
       following the switch, as in "msbuild.exe -getProperty:blah".
@@ -1644,7 +1638,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingGetResultFileError">
         <source>MSBUILD : error MSB1068: Must provide a file for the getResultOutputFile switch.</source>
-        <target state="translated">MSBUILD : error MSB1068: debe proporcionar un archivo para el modificador getResultOutputFile.</target>
+        <target state="translated">MSBUILD : error MSB1068: deve ser fornecido um arquivo para a opção getResultOutputFile.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1068: "}UE: This happens if the user does something like "msbuild.exe -getResultOutputFile". The user must pass in an actual file
       following the switch, as in "msbuild.exe -getTargetResult:blah -getResultOutputFile:blah.txt".
@@ -1653,7 +1647,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingGetTargetResultError">
         <source>MSBUILD : error MSB1017: Must provide a target name for the getTargetResult switch.</source>
-        <target state="translated">MSBUILD : error MSB1017: debe proporcionar un nombre de destino para el modificador getTargetResult.</target>
+        <target state="translated">MSBUILD : error MSB1017: É preciso fornecer um nome de destino para a chave getTargetResult.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1017: "}UE: This happens if the user does something like "msbuild.exe -getTargetResult". The user must pass in an actual target name
       following the switch, as in "msbuild.exe -getTargetResult:blah".
@@ -1662,7 +1656,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingLoggerError">
         <source>MSBUILD : error MSB1007: Specify a logger.</source>
-        <target state="translated">MSBUILD : error MSB1007: Especifique un registrador.</target>
+        <target state="translated">MSBUILD : error MSB1007: Especificar um agente de log.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1007: "}UE: This happens if the user does something like "msbuild.exe -logger". The user must pass in an actual logger class
       following the switch, as in "msbuild.exe -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral".
@@ -1671,7 +1665,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingMaxCPUCountError">
         <source>MSBUILD : error MSB1031: Specify the maximum number of CPUs.</source>
-        <target state="translated">MSBUILD : error MSB1031: Especifique el número máximo de CPU.</target>
+        <target state="translated">MSBUILD : error MSB1031: Especifique o número máximo de CPUs.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1031: "}UE: This happens if the user does something like "msbuild.exe -m". The user must pass in an actual number like -m:4.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1679,7 +1673,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingProjectError">
         <source>MSBUILD : error MSB1003: Specify a project or solution file. The current working directory does not contain a project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1003: Especifique un archivo de proyecto o de solución. El directorio de trabajo actual no contiene un archivo de proyecto ni de solución.</target>
+        <target state="translated">MSBUILD : error MSB1003: Especifique um arquivo de solução ou de projeto. O diretório de trabalho atual não contém um arquivo de solução ou de projeto.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1003: "}UE: The user must either specify a project or solution file to build, or there must be a project file in the current directory
       with a file extension ending in "proj" (e.g., foo.csproj), or a solution file ending in "sln".
@@ -1688,7 +1682,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingPropertyError">
         <source>MSBUILD : error MSB1005: Specify a property and its value.</source>
-        <target state="translated">MSBUILD : error MSB1005: Especifique una propiedad y su valor.</target>
+        <target state="translated">MSBUILD : error MSB1005: Especifique uma propriedade e seu valor.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1005: "}UE: This happens if the user does something like "msbuild.exe -property". The user must pass in an actual property
       name and value following the switch, as in "msbuild.exe -property:Configuration=Debug".
@@ -1697,7 +1691,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingResponseFileError">
         <source>MSBUILD : error MSB1012: Specify a response file.</source>
-        <target state="translated">MSBUILD : error MSB1012: Especifique un archivo de respuesta.</target>
+        <target state="translated">MSBUILD : error MSB1012: Especifique um arquivo de resposta.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1012: "}UE: This error would occur if the user did something like "msbuild.exe @ foo.proj". The at-sign must be followed by a
       response file.
@@ -1706,7 +1700,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingTargetError">
         <source>MSBUILD : error MSB1004: Specify the name of the target.</source>
-        <target state="translated">MSBUILD : error MSB1004: Especifique el nombre del destino.</target>
+        <target state="translated">MSBUILD : error MSB1004: Especifique o nome do destino.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1004: "}UE: This happens if the user does something like "msbuild.exe -target". The user must pass in an actual target name
       following the switch, as in "msbuild.exe -target:blah".
@@ -1715,7 +1709,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingTerminalLoggerParameterError">
         <source>MSBUILD : error MSB1066: Specify one or more parameters for the terminal logger if using the -terminalLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1066: Especifique uno o más parámetros para el registrador de terminales si utiliza la opción -terminalLoggerParameters</target>
+        <target state="translated">MSBUILD : error MSB1066: Especifique um ou mais parâmetros para o agente de terminal se estiver usando a opção -terminalLoggerParameters</target>
         <note>
       {StrBegin="MSBUILD : error MSB1066: "}
       UE: This happens if the user does something like "msbuild.exe -terminalLoggerParameters:". The user must pass in one or more parameters
@@ -1725,7 +1719,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingToolsVersionError">
         <source>MSBUILD : error MSB1039: Specify the version of the toolset.</source>
-        <target state="translated">MSBUILD : error MSB1039: Especifique la versión del conjunto de herramientas.</target>
+        <target state="translated">MSBUILD : error MSB1039: Especifique a versão do conjunto de ferramentas.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1039: "}
       UE: This happens if the user does something like "msbuild.exe -toolsVersion". The user must pass in an actual toolsversion
@@ -1735,7 +1729,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingVerbosityError">
         <source>MSBUILD : error MSB1016: Specify the verbosity level.</source>
-        <target state="translated">MSBUILD : error MSB1016: Especifique el nivel de detalle.</target>
+        <target state="translated">MSBUILD : error MSB1016: Especifique o nível de detalhamento.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1016: "}UE: This happens if the user does something like "msbuild.exe -verbosity". The user must pass in a verbosity level
       after the switch e.g. "msbuild.exe -verbosity:detailed".
@@ -1744,7 +1738,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingWarnNotAsErrorParameterError">
         <source>MSBUILD : error MSB1060: Specify one or more warning codes when using the -warnNotAsError switch.</source>
-        <target state="translated">MSBUILD : error MSB1060: Especifique uno o varios códigos de advertencia al usar el modificador -warnNotAsError.</target>
+        <target state="translated">MSBUILD : error MSB1060: especifique um ou mais códigos de aviso ao usar a opção -warnNotAsError.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1060: "}
       UE: This happens if the user does something like "msbuild.exe -warnNotAsError:" without any codes.
@@ -1753,7 +1747,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MultipleSchemasError">
         <source>MSBUILD : error MSB1024: Only one schema can be specified for validation of the project.</source>
-        <target state="translated">MSBUILD : error MSB1024: Sólo puede especificarse un esquema para la validación del proyecto.</target>
+        <target state="translated">MSBUILD : error MSB1024: Somente um esquema pode ser especificado para validação do projeto.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1024: "}UE: The user did something like msbuild -validate:foo.xsd -validate:bar.xsd. We only allow one schema to be specified.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1761,19 +1755,19 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="NameInvalid">
         <source>MSBUILD : error MSB5016: The name "{0}" contains an invalid character "{1}".</source>
-        <target state="translated">MSBUILD : error MSB5016: El nombre "{0}" contiene un carácter no válido "{1}".</target>
+        <target state="translated">MSBUILD : error MSB5016: O nome "{0}" contém um caractere inválido "{1}".</target>
         <note>
       {StrBegin="MSBUILD : error MSB5016: "}
     </note>
       </trans-unit>
       <trans-unit id="NotWarnAsErrorWithoutWarnAsError">
         <source>MSBUILD : error MSB1062: The -warnnotaserror switch cannot be specified unless the -warnaserror switch is also specified and left empty.</source>
-        <target state="translated">MSBUILD : error MSB1062: No se puede especificar el modificador -warnnotaserror a menos que también se especifique el modificador -warnaserror y se deje vacío.</target>
+        <target state="translated">MSBUILD : error MSB1062: A opção -warnnotaserror não pode ser especificada, a menos que a opção -warnaserror também seja especificada e deixada em branco.</target>
         <note>{StrBegin="MSBUILD : error MSB1062: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-warnnotaserror" and "-warnaserror" should not be localized.</note>
       </trans-unit>
       <trans-unit id="OptionalLoggerCreationMessage">
         <source>The specified logger "{0}" could not be created and will not be used. {1}</source>
-        <target state="translated">No se pudo crear el registrador especificado por "{0}" y no se usará. {1}</target>
+        <target state="translated">O agente especificado "{0}" não pôde ser criado e não será usado. {1}</target>
         <note>
       UE: This error is shown when a logger cannot be loaded and instantiated from its assembly.
       LOCALIZATION: {0} contains the logger description passed on the command line or in a
@@ -1783,7 +1777,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromAutoResponse">
         <source>Some command line switches were read from the auto-response file "{0}". To disable this file, use the "-noAutoResponse" switch.</source>
-        <target state="translated">Algunos modificadores de la línea de comandos se leyeron del archivo de respuesta automática "{0}". Para deshabilitar este archivo, use el modificador "-noAutoResponse".</target>
+        <target state="translated">Algumas opções de linha de comando foram lidas do arquivo de resposta automática "{0}". Para desabilitar esse arquivo, use a opção "-noAutoResponse".</target>
         <note>
       UE: This message appears in high verbosity modes when we used some
       switches from the auto-response file msbuild.rsp: otherwise the user may be unaware
@@ -1792,7 +1786,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromResponseFile">
         <source>Some command line switches were read from this response file:</source>
-        <target state="translated">Se leyeron algunos modificadores de línea de comandos de este archivo de respuesta:</target>
+        <target state="translated">Algumas opções de linha de comando foram lidas deste arquivo de resposta:</target>
         <note>
       UE: This message appears before a command-line parsing error when switches were read from a response file: otherwise the user may be unaware where the switches are coming from.
       LOCALIZATION: The response file path is printed on a separate line after this message.
@@ -1800,7 +1794,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromResponseFiles">
         <source>Some command line switches were read from these response files:</source>
-        <target state="translated">Algunos modificadores de línea de comandos se leyeron de estos archivos de respuesta:</target>
+        <target state="translated">Algumas opções de linha de comando foram lidas destes arquivos de resposta:</target>
         <note>
       UE: This message appears before a command-line parsing error when switches were read from response files: otherwise the user may be unaware where the switches are coming from.
       LOCALIZATION: The response file paths are printed on separate lines after this message.
@@ -1808,35 +1802,35 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="Process">
         <source>Process = "{0}"</source>
-        <target state="translated">Proceso: "{0}"</target>
+        <target state="translated">Processo = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectNotFoundError">
         <source>MSBUILD : error MSB1009: Project file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1009: El archivo de proyecto no existe.</target>
+        <target state="translated">MSBUILD : error MSB1009: Arquivo de projeto não existe.</target>
         <note>{StrBegin="MSBUILD : error MSB1009: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="PossiblyOmittedMaxCPUSwitch">
         <source>Building the projects in this solution one at a time. To enable parallel build, please add the "-m" switch.</source>
-        <target state="translated">Los proyectos de esta solución se van a compilar de uno en uno. Para habilitar la compilación en paralelo, agregue el modificador "-m".</target>
+        <target state="translated">Compilando os projetos desta solução um por vez. Para habilitar o build paralelo, adicione a opção "-m".</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectSchemaErrorHalt">
         <source>MSBUILD : MSB1045: Stopping because of syntax errors in project file.</source>
-        <target state="translated">MSBUILD : MSB1045: Se detendrá porque hay errores de sintaxis en el archivo del proyecto.</target>
+        <target state="translated">MSBUILD : MSB1045: Parando devido a erros de sintaxe no arquivo de projeto.</target>
         <note>{StrBegin="MSBUILD : MSB1045: "}</note>
       </trans-unit>
       <trans-unit id="ReadResponseFileError">
         <source>MSBUILD : error MSB1023: Cannot read the response file. {0}</source>
-        <target state="translated">MSBUILD : error MSB1023: No se puede leer el archivo de respuesta. {0}</target>
+        <target state="translated">MSBUILD : error MSB1023: Não é possível ler arquivo de resposta. {0}</target>
         <note>{StrBegin="MSBUILD : error MSB1023: "}UE: This error is shown when the response file cannot be read off disk.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a localized message explaining
     why the response file could not be read -- this message comes from the CLR/FX.</note>
       </trans-unit>
       <trans-unit id="RepeatedResponseFileError">
         <source>MSBUILD : error MSB1013: The response file was specified twice. A response file can be specified only once. Any files named "msbuild.rsp" in the directory of MSBuild.exe or in the directory of the first project or solution built (which if no project or solution is specified is the current working directory) were automatically used as response files.</source>
-        <target state="translated">MSBUILD : error MSB1013: El archivo de respuesta se especificó dos veces. Un archivo de respuesta solo se puede especificar una vez. Todos los archivos denominados "msbuild.rsp" en el directorio de MSBuild.exe o en el directorio de la primera compilación del proyecto o solución (que, en caso de que no se especifique ningún proyecto o solución, es el directorio de trabajo actual) se usaron automáticamente como archivos de respuesta.</target>
+        <target state="translated">MSBUILD : error MSB1013: O arquivo de resposta foi especificado duas vezes. Um arquivo de resposta pode ser especificado somente uma vez. Quaisquer arquivos com o nome "msbuild.rsp" no diretório de MSBuild.exe ou no diretório do primeiro projeto ou da primeira solução compilada (que, se não for especificado nenhum projeto ou solução, será o diretório de trabalho atual) foram automaticamente usados como arquivos de resposta.</target>
         <note>{StrBegin="MSBUILD : error MSB1013: "}UE: Response files are just text files that contain a bunch of command-line switches to be passed to MSBuild.exe. The
     purpose is so you don't have to type the same switches over and over again ... you can just pass in the response file instead.
     Response files can include the @ switch in order to further include other response files. In order to prevent a circular
@@ -1846,53 +1840,53 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="ResponseFileNotFoundError">
         <source>MSBUILD : error MSB1022: Response file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1022: El archivo de respuesta no existe.</target>
+        <target state="translated">MSBUILD : error MSB1022: Arquivo de resposta não existe.</target>
         <note>{StrBegin="MSBUILD : error MSB1022: "}UE: This message would show if the user did something like "msbuild @bogus.rsp" where bogus.rsp doesn't exist. This
     message does not need in-line parameters because the exception takes care of displaying the invalid arg.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="ResponseFileSwitchFromLocation">
         <source>'{0}' came from '{1}'</source>
-        <target state="translated">'{0}' procedía de '{1}'</target>
+        <target state="translated">'{0}' proveniente de '{1}'</target>
         <note>
       These are response file switches with the location of the response file on disk.
     </note>
       </trans-unit>
       <trans-unit id="SAC">
         <source>Based on the Windows registry key VerifiedAndReputablePolicyState, SAC state = {0}.</source>
-        <target state="translated">Según la clave del Registro de Windows VerifiedAndReputablePolicyState, estado SAC = {0}.</target>
+        <target state="translated">Com base na chave do Registro do Windows, VerifiedAndReputablePolicyState, estado SAC = {0}.</target>
         <note>"Windows" is the OS, SAC is the Smart App Control, "VerifiedAndReputablePolicyState" should not be localized</note>
       </trans-unit>
       <trans-unit id="SAC_Enforcement">
         <source>1: in enforcement</source>
-        <target state="translated">1: en cumplimiento</target>
+        <target state="translated">1: em imposição</target>
         <note />
       </trans-unit>
       <trans-unit id="SAC_Evaluation">
         <source>2: in evaluation. It is recommended to turn off Smart App Control in development environemnt as otherwise performance might be impacted</source>
-        <target state="translated">2: en evaluación. Se recomienda desactivar el Control Inteligente de Aplicaciones en el entorno de desarrollo ya que, de lo contrario, el rendimiento podría verse afectado.</target>
+        <target state="translated">2: em avaliação. É recomendável desativar o Controle Inteligente de Aplicativos no ambiente de desenvolvimento, pois, caso contrário, o desempenho poderá ser afetado</target>
         <note>Smart App Control, "VerifiedAndReputablePolicyState" should not be localized</note>
       </trans-unit>
       <trans-unit id="SAC_Off">
         <source>0: turned off</source>
-        <target state="translated">0: desactivado</target>
+        <target state="translated">0: desativado</target>
         <note />
       </trans-unit>
       <trans-unit id="SchemaFileLocation">
         <source>Validating project using schema file "{0}".</source>
-        <target state="translated">Validando el proyecto con el archivo de esquema "{0}".</target>
+        <target state="translated">Validando o projeto com o arquivo de esquema "{0}".</target>
         <note>LOCALIZATION: "{0}" is the location of the schema file.</note>
       </trans-unit>
       <trans-unit id="SchemaValidationError">
         <source>MSBUILD : MSB1044: Project is not valid. {0}</source>
-        <target state="translated">MSBUILD : MSB1044: El proyecto no es válido. {0}</target>
+        <target state="translated">MSBUILD : MSB1044: Projeto inválido. {0}</target>
         <note>{StrBegin="MSBUILD : MSB1044: "}UE: This error is shown when the user asks his project to be validated against a schema (-val switch for
     MSBuild.exe), and the project has errors. "{0}" contains a message explaining the problem.
     LOCALIZATION: "{0}" is a message from the System.XML schema validator and is already localized.</note>
       </trans-unit>
       <trans-unit id="SchemaNotFoundError">
         <source>MSBUILD : error MSB1026: Schema file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1026: El archivo de esquema no existe.</target>
+        <target state="translated">MSBUILD : error MSB1026: Arquivo de esquema não existe.</target>
         <note>{StrBegin="MSBUILD : error MSB1026: "}UE: This error is shown when the user specifies a schema file using the -validate:&lt;schema&gt; switch, and the file
     does not exist on disk. This message does not need in-line parameters because the exception takes care of displaying the
     invalid arg.
@@ -1900,14 +1894,14 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="SchemaNotFoundErrorWithFile">
         <source>MSBUILD : error MSB1026: Schema file '{0}' does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1026: El archivo de esquema '{0}' no existe.</target>
+        <target state="translated">MSBUILD : error MSB1026: O arquivo de esquema "{0}" não existe.</target>
         <note>{StrBegin="MSBUILD : error MSB1026: "}UE: This error is printed if the default schema does not exist or in the extremely unlikely event
     that an explicit schema file was passed and existed when the command line parameters were checked but was deleted from disk before this check was made.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="SolutionBuildInvalidForCommandLineEvaluation">
         <source>MSBUILD : error MSB1063: Cannot access properties or items when building solution files or solution filter files. This feature is only available when building individual projects.</source>
-        <target state="translated">MSBUILD : error MSB1063: no se puede tener acceso a propiedades o elementos al compilar archivos de solución o archivos de filtro de soluciones. Esta característica solo está disponible al compilar proyectos individuales.</target>
+        <target state="translated">MSBUILD : error MSB1063: Não foi possível acessar propriedades ou itens ao compilar arquivos de solução ou arquivos de filtro de solução. Esse recurso só está disponível para a compilação de projetos individuais.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1063: "}UE: This happens if the user passes in a solution file when trying to access individual properties or items. The user must pass in a project file.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1918,71 +1912,71 @@ Esta marca es experimental y puede que no funcione según lo previsto.
     Full command line: '{1}'
   Switches appended by response files:{2}</source>
         <target state="translated">{0}
-    Línea de comandos completa: '{1}'
-  Modificadores anexados por archivos de respuesta: {2}</target>
+    Linha de comando completa: '{1}'
+  Comutadores acrescentados por arquivos de resposta:{2}</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetsCouldNotBePrinted">
         <source>MSBUILD : error MSB1059: Targets could not be printed. {0}</source>
-        <target state="translated">MSBUILD : error MSB1059: No se pudieron imprimir los destinos. {0}</target>
+        <target state="translated">MSBUILD : error MSB1059: não foi possível imprimir destinos. {0}</target>
         <note>{StrBegin="MSBUILD : error MSB1059: "}</note>
       </trans-unit>
       <trans-unit id="TaskHostAcquired_NullsFiltered">
         <source>Task output parameter "{0}" contained {1} null element(s) which have been filtered out.</source>
-        <target state="translated">El parámetro de salida de tarea "{0}" contenía {1} elementos NULL que se han filtrado.</target>
+        <target state="translated">O parâmetro de saída "{0}" continha {1} elemento(s) nulo(s) que foram filtrados.</target>
         <note>LOCALIZATION: {0} is the name of the task output parameter, {1} is the count of null elements filtered.</note>
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedAutomated">
         <source>Terminal Logger was not used because it was detected that the build is running in an automated environment.</source>
-        <target state="translated">No se usó el registrador de terminal porque se detectó que la compilación se está ejecutando en un entorno automatizado.</target>
+        <target state="translated">O Agente de Terminal não foi usado porque foi detectado que a compilação está em execução em um ambiente automatizado.</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedDisabled">
         <source>Terminal Logger was not used because build is run in context of a process (e.g. 'dotnet test') that requests direct access to stdout stream.</source>
-        <target state="translated">No se usó el terminal de Logger porque la compilación se ejecuta en el contexto de un proceso (por ejemplo, "dotnet test") que solicita acceso directo a la secuencia stdout.</target>
+        <target state="translated">O Agente de Terminal não foi usado porque a compilação é executada no contexto de um processo (por exemplo, 'dotnet test') que solicita acesso direto ao fluxo stdout.</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedNotSupported">
         <source>Terminal Logger was not used because the output is not supported.</source>
-        <target state="translated">No se usó el terminal de Logger porque no se admite la salida.</target>
+        <target state="translated">O Agente de Terminal não foi usado porque não há suporte para a saída.</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedRedirected">
         <source>Terminal Logger was not used because the output is being redirected to a file.</source>
-        <target state="translated">No se usó el terminal de Logger porque la salida se está redirigiendo a un archivo.</target>
+        <target state="translated">O Agente de Terminal não foi usado porque a saída está sendo redirecionada para um arquivo.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedParametersError">
         <source>MSBUILD : error MSB1002: This switch does not take any parameters.</source>
-        <target state="translated">MSBUILD : error MSB1002: Este modificador no tiene ningún parámetro.</target>
+        <target state="translated">MSBUILD : error MSB1002: Esta opção não aceita parâmetros.</target>
         <note>{StrBegin="MSBUILD : error MSB1002: "}UE: For example, if somebody types "msbuild.exe -noLogo:1", they would get this error because the -noLogo switch
     should not be followed by any parameters ... it stands alone.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnknownSwitchError">
         <source>MSBUILD : error MSB1001: Unknown switch.</source>
-        <target state="translated">MSBUILD : error MSB1001: Modificador desconocido.</target>
+        <target state="translated">MSBUILD : error MSB1001: Opção desconhecida.</target>
         <note>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnsupportedOS">
         <source>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</source>
-        <target state="translated">MSBUILD : error MSB1015: MSBuild no se ha podido ejecutar en esta versión del sistema operativo. Solo se admite en Windows 7 y versiones posteriores.</target>
+        <target state="translated">MSBUILD : error MSB1015: O MSBuild não é executado nesta versão do sistema operacional. É suportado apenas no Windows 7 e em versões posteriores.</target>
         <note>{StrBegin="MSBUILD : error MSB1015: "}LOCALIZATION: The error prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnsupportedSwitchForSolutionFiles">
         <source>The '{0}' switch is not supported for solution files.</source>
-        <target state="translated">El modificador '{0}' no es compatible con los archivos de solución.</target>
+        <target state="translated">A opção '{0}' não é suportada para arquivos de solução.</target>
         <note />
       </trans-unit>
       <trans-unit id="Using35Engine">
         <source>Forcing load of Microsoft.Build.Engine because MSBUILDOLDOM=1...</source>
-        <target state="translated">Forzando la carga de Microsoft.Build.Engine porque MSBUILDOLDOM=1...</target>
+        <target state="translated">Forçando carregamento do Microsoft.Build.Engine porque MSBUILDOLDOM=1...</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingIgnoreProjectExtensionsError">
         <source>MSBUILD : error MSB1035: Specify the project extensions to ignore.</source>
-        <target state="translated">MSBUILD : error MSB1035: Especifique las extensiones de proyecto que se van a omitir.</target>
+        <target state="translated">MSBUILD : error MSB1035: Especifique as extensões do projeto a serem ignoradas.</target>
         <note>{StrBegin="MSBUILD : error MSB1035: "}
       UE: This happens if the user does something like "msbuild.exe -ignoreProjectExtensions". The user must pass in one or more
       project extensions to ignore e.g. "msbuild.exe -ignoreProjectExtensions:.sln".
@@ -1991,12 +1985,12 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidExtensionToIgnore">
         <source>MSBUILD : error MSB1036: There is an invalid extension in the -ignoreProjectExtensions list. Extensions must start with a period ".", have one or more characters after the period and not contain any invalid path characters or wildcards.</source>
-        <target state="translated">MSBUILD : error MSB1036: Hay una extensión no válida en la lista -ignoreProjectExtensions. Las extensiones deben comenzar con un punto ".", deben tener uno o varios caracteres detrás del punto y no deben contener caracteres o comodines de ruta de acceso que no sean válidos.</target>
+        <target state="translated">MSBUILD : error MSB1036: Há uma extensão inválida na lista -ignoreProjectExtensions. As extensões devem começar com um ponto ".", ter um ou mais caracteres depois do ponto e não conter nenhum caractere de caminho nem curingas inválidos.</target>
         <note>{StrBegin="MSBUILD : error MSB1036: "}LOCALIZATION: The error prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="MissingConsoleLoggerParameterError">
         <source>MSBUILD : error MSB1037: Specify one or more parameters for the console logger if using the -consoleLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1037: Especifique uno o varios parámetros para el registrador de consola si utiliza el modificador -consoleLoggerParameters</target>
+        <target state="translated">MSBUILD : error MSB1037: Especifique um ou mais parâmetros para cada agente de console se estiver usando a opção -consoleLoggerParameters</target>
         <note>{StrBegin="MSBUILD : error MSB1037: "}
       UE: This happens if the user does something like "msbuild.exe -consoleLoggerParameters:". The user must pass in one or more parameters
       after the switch e.g. "msbuild.exe -consoleLoggerParameters:ErrorSummary".
@@ -2005,7 +1999,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingFileLoggerParameterError">
         <source>MSBUILD : error MSB1038: Specify one or more parameters for the file logger if using the -fileLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1038: Especifique uno o varios parámetros para el registrador de archivos si utiliza el modificador -fileLoggerParameters</target>
+        <target state="translated">MSBUILD : error MSB1038: Especifique um ou mais parâmetros para o agente de arquivo se estiver usando a opção -fileLoggerParameters</target>
         <note>{StrBegin="MSBUILD : error MSB1038: "}
       UE: This happens if the user does something like "msbuild.exe -fileLoggerParameters:". The user must pass in one or more parameters
       after the switch e.g. "msbuild.exe -fileLoggerParameters:logfile=c:\temp\logfile".
@@ -2014,7 +2008,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="MissingNodeReuseParameterError">
         <source>MSBUILD : error MSB1041: Specify one or more parameters for node reuse if using the -nodeReuse switch</source>
-        <target state="translated">MSBUILD : error MSB1041: Especifique uno o varios parámetros para la reutilización de nodos si utiliza el modificador -nodeReuse</target>
+        <target state="translated">MSBUILD : error MSB1041: Especifique um ou mais parâmetros para reutilização de nó se estiver usando a opção -nodeReuse</target>
         <note>{StrBegin="MSBUILD : error MSB1041: "}
       UE: This happens if the user does something like "msbuild.exe -nodeReuse:" without a true or false
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -2022,7 +2016,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidNodeReuseValue">
         <source>MSBUILD : error MSB1042: Node reuse value is not valid. {0}.</source>
-        <target state="translated">MSBUILD : error MSB1042: El valor de reutilización de nodos no es válido. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1042: Valor de reutilização de nó inválido. {0}.</target>
         <note>{StrBegin="MSBUILD : error MSB1042: "}
      UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
      This error is shown when a user specifies a node reuse value that is not equivilant to Boolean.TrueString or Boolean.FalseString.
@@ -2031,22 +2025,22 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidPreprocessPath">
         <source>MSBUILD : error MSB1047: File to preprocess to is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1047: El archivo en el que se preprocesará no es válido. {0}</target>
+        <target state="translated">MSBUILD : error MSB1047: O arquivo a ser pré-processado é inválido. {0}</target>
         <note>{StrBegin="MSBUILD : error MSB1047: "}</note>
       </trans-unit>
       <trans-unit id="NeedJustMyCode">
         <source>If MSBuild debugging does not work correctly, please verify that the "Just My Code" feature is enabled in Visual Studio, and that you have selected the managed debugger.</source>
-        <target state="translated">Si la depuración de MSBuild no funciona correctamente, compruebe que la funcionalidad "Solo mi código" está habilitada en Visual Studio y que ha seleccionado el depurador administrado.</target>
+        <target state="translated">Se a depuração do MSBuild não funcionar corretamente, verifique se o recurso "Apenas Meu Código" está habilitado no Visual Studio e se o depurador gerenciado foi selecionado.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebuggingSolutionFiles">
         <source>MSBUILD : error MSB1048: Solution files cannot be debugged directly. Run MSBuild first with an environment variable MSBUILDEMITSOLUTION=1 to create a corresponding ".sln.metaproj" file. Then debug that.</source>
-        <target state="translated">MSBUILD : error MSB1048: los archivos de solución no se pueden depurar directamente. Ejecute primero MSBuild con una variable de entorno MSBUILDEMITSOLUTION=1 para crear el archivo ".sln.metaproj" correspondiente. Después depure ese archivo.</target>
+        <target state="translated">MSBUILD : error MSB1048: Não é possível depurar os arquivos de solução diretamente. Execute o MSBuild primeiro com uma variável de ambiente MSBUILDEMITSOLUTION=1 para criar um arquivo ".sln.metaproj" correspondente. Em seguida, realize a depuração.</target>
         <note>{StrBegin="MSBUILD : error MSB1048: "} LOC: ".SLN" should not be localized</note>
       </trans-unit>
       <trans-unit id="AmbiguousProjectDirectoryError">
         <source>MSBUILD : error MSB1050: Specify which project or solution file to use because the folder "{0}" contains more than one project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1050: Especifique el archivo de proyecto o de solución que se va a utilizar ya que la carpeta "{0}" contiene más de un archivo de proyecto o de solución.</target>
+        <target state="translated">MSBUILD : error MSB1050: especifique qual arquivo de projeto ou de solução será usado, pois a pasta "{0}" contém mais de um projeto ou arquivo de solução.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1050: "}UE: If no project or solution file is explicitly specified on the MSBuild.exe command-line, then the engine searches for a
       project or solution file in the current directory by looking for *.*PROJ and *.SLN. If more than one file is found that matches this wildcard, we
@@ -2068,18 +2062,18 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      continue to execute as if it was a warning but the overall
                      build will fail.
     </source>
-        <target state="translated">  -warnaserror[:code[;code2]]
-                     Lista de códigos de advertencia para tratar como errores. Use un punto y coma
-                     o una coma para separar varios códigos de advertencia. Para tratar todas
-                     las advertencias como errores, use el modificador sin valores.
-                     (Forma corta: -err[:c;[c2]])
+        <target state="translated">  -warnAsError[:code[;code2]]
+                     Lista de códigos de aviso a serem tratados como erros. Use um ponto e vírgula
+                     ou uma vírgula para separar vários códigos de aviso. Para tratar todos os
+                     avisos como erros, use a opção sem valores.
+                     (Forma abreviada: -err[:c;[c2]])
 
-                     Ejemplo:
-                       -warnaserror:MSB4130
+                     Exemplo:
+                       -warnAsError:MSB4130
 
-                     Cuando una advertencia se trata como error, el destino
-                     seguirá ejecutándose como se fuera una advertencia pero la compilación
-                     global dará error.
+                     Quando um aviso for tratado como um erro, o destino continuará
+                     a ser executado como se ele fosse um aviso, mas o 
+                     build geral falhará.
     </target>
         <note>
       LOCALIZATION: "-warnAsError" and "-err" should not be localized.
@@ -2097,12 +2091,12 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                        -warnAsMessage:MSB3026
     </source>
         <target state="translated">  -warnAsMessage[:code[;code2]]
-                     Lista de códigos de advertencia para tratar como mensajes de baja
-                     importancia. Use un punto y coma o una coma para separar
-                     varios códigos de advertencia.
-                     (Forma corta: -noWarn[:c;[c2]])
+                     Lista de códigos de aviso a serem tratados como mensagens de baixa
+                     importância. Use um ponto e vírgula ou uma vírgula para separar
+                     vários códigos de aviso.
+                     (Forma abreviada: -noWarn[:c;[c2]])
 
-                     Ejemplo:
+                     Exemplo:
                        -warnAsMessage:MSB3026
     </target>
         <note>
@@ -2112,12 +2106,12 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="ParameterRequiredError">
         <source>MSBUILD : error MSB1049: The {0} parameter must be specified</source>
-        <target state="translated">MSBUILD : error MSB1049: Debe especificarse el parámetro {0}</target>
+        <target state="translated">MSBUILD : error MSB1049: o parâmetro {0} deve ser especificado</target>
         <note>{StrBegin="MSBUILD : error MSB1049: "}</note>
       </trans-unit>
       <trans-unit id="MissingWarnAsMessageParameterError">
         <source>MSBUILD : error MSB1051: Specify one or more warning codes to treat as low importance messages when using the -warnAsMessage switch.</source>
-        <target state="translated">MSBUILD : error MSB1051: Especifique uno o varios códigos de advertencia para tratarlos como mensajes de baja importancia al utilizar el modificador -warnAsMessage.</target>
+        <target state="translated">MSBUILD : error MSB1051: especifique um ou mais códigos de aviso a serem tratados como mensagens de baixa importância ao usar a opção -warnAsMessage.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1051: "}
       UE: This happens if the user does something like "msbuild.exe -warnAsMessage:" without any codes.
@@ -2177,49 +2171,49 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                        -binaryLogger
     </source>
         <target state="translated">  -binaryLogger[:[LogFile=]output.binlog[;ProjectImports={None,Embed,ZipFile}]]
-                     Serializa todos los eventos de compilación en un archivo binario comprimido.
-                     De forma predeterminada, el archivo está en el directorio actual y se denomina
-                     "msbuild.binlog". El registro binario es una descripción detallada
-                     del proceso de compilación que se puede usar más adelante para reconstruir
-                     registros de texto y ser usado por otras herramientas de análisis. Un registro binario
-                     suele ser 10-20 veces menor que el registro de nivel de diagnóstico
-                     de texto más detallado, pero contiene más información.
-                     (Forma corta: -bl)
+                     Serializa todos os eventos da compilação em um arquivo binário compactado.
+                     Por padrão, o arquivo está no diretório atual e é chamado de
+                     "msbuild.binlog". O log binário é uma descrição detalhada
+                     do processo de compilação que pode mais tarde ser usado para reconstruir
+                     logs de texto e usados por outras ferramentas de análise. Um log binário
+                     normalmente é 10 a 20x menor do que os log de nível
+                     de diagnóstico do texto mais detalhado, mas contém mais informações.
+                     (Forma abreviada: -bl)
 
-                     El archivo de registro opcional especifica la ruta de acceso donde el
-                     se guarda el registro binario. Para generar un archivo de registro distinto
-                     para cada compilación, el token "{}" se puede agregar a la
-                     ruta de acceso, por ejemplo: LogFile=output-{}-log.binlog. Cada 
-                     "{}" en la ruta de acceso del registro se reemplaza por una cadena única
-                     mediante la marca de tiempo, el identificador de proceso en ejecución y los id.
-                     y sellos de cadena aleatorios.
+                     O LogFile opcional especifica o caminho em que o
+                     log binário é salvo. Para gerar um arquivo de log distinto
+                     para cada compilação, o token "{}" pode ser adicionado ao
+                     caminho, por exemplo: LogFile=output-{}-log.binlog. Cada 
+                     "{}" no caminho de log é substituído por uma cadeia de caracteres exclusiva
+                     usando o carimbo de data/hora, executando a ID do processo e aleatoriamente
+                     o aplicar selo de cadeia de caracteres.
 
-                     De forma predeterminada, el registrador binario recopila el texto de origen de
-                     archivos de proyecto, incluidos todos los proyectos importados y archivos
-                     de destino encontrados durante la compilación. El conmutador opcional
-                     ProjectImports controla este comportamiento:
+                     O agente binário, por padrão, coleta o texto fonte dos
+                     arquivos de projeto, incluindo todos os projetos importados e arquivos
+                     de destino encontrados durante a compilação. A opção
+                     ProjectImports controla este comportamento:
 
-                      ProjectImports=None     - No recopilar las importaciones
-                                                del proyecto.
-                      ProjectImports=Embed    - Inserción de importaciones de proyecto en el
-                                                archivo de registro.
-                      ProjectImports=ZipFile  - Guardar archivos de proyecto en
+                      ProjectImports=None     – Não coletar as importações
+                                                do projeto.
+                      ProjectImports=Embed    – Inserir as importações do projeto no
+                                                arquivo de log.
+                      ProjectImports=ZipFile  – Salvar os arquivos de projeto em
                                                 output.projectimports.zip
-                                                donde la salida tiene el mismo nombre
-                                                que el nombre del archivo de registro binario.
+                                                em que a saída tem o mesmo nome que o
+                                                nome do arquivo de log binário.
 
-                     El valor predeterminado de ProjectImports es Inserción.
-                     Nota: el registrador no recopila archivos de código fuente que no son de MSBuild
-                     como .cs, .cpp, etc.
+                     A configuração padrão para ProjectImports é Embed.
+                     Observação: o agente não coleta arquivos de origem não MSBuild
+                     tais como .cs, .cpp etc.
 
-                     Un archivo .binlog se puede "reproducir" pasándolo a
-                     msbuild.exe como argumento en lugar de como proyecto o solución.
-                     Otros registradores recibirán la información contenida en el
-                     archivo de registro como si se estuviera produciendo la compilación original.
-                     Puede obtener más información sobre el registro binario y sus usos en:
+                     Um arquivo .binlog pode ser "reproduzido novamente", passando-o para
+                     msbuild.exe como um argumento em vez de um projeto/solução.
+                     Outros agentes receberão as informações contidas
+                     no arquivo de log como se a compilação original estivesse acontecendo.
+                     Você pode ler mais sobre o log binário e seus usos em:
                      https://aka.ms/msbuild/binlog
 
-                     Ejemplos:
+                     Exemplos:
                        -bl
                        -bl:output.binlog
                        -bl:output.binlog;ProjectImports=None
@@ -2248,13 +2242,15 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      (Short form: -r)
     </source>
         <target state="translated">  -restore[:True|False]
-                     Ejecuta un destino denominado Restore antes de compilar
-                     otros destino. Esto resulta útil si el árbol de proyectos
-                     requiere que los paquetes se restauren antes de que se puedan
-                     compilar. La especificación de -restore es lo mismo que
-                     especificar -restore:True. Use el parámetro para
-                     invalidar un valor procedente de un archivo de respuesta.
-                     (Forma corta: -r)
+                     Executa um destino chamado Restore antes de compilar
+                     outros destinos e garante o build desses
+                     destinos usando uma lógica de build restaurada.
+                     Isso é útil quando sua árvore de  projeto precisar
+                     que pacotes sejam restaurados antes de serem compilados.
+                     Especificar -restore é o mesmo que
+                     -restore:True. Use o parâmetro para
+                     substituir um valor originado de um arquivo de resposta.
+                     (Forma abreviada: -r)
     </target>
         <note>
       LOCALIZATION: "-restore" and "-r" should not be localized.
@@ -2263,7 +2259,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidNodeReuseTrueValue">
         <source>MSBUILD : error MSB1042: Node reuse value is not valid. This version of MSBuild does not support node reuse. If specified, the node reuse switch value must be false.</source>
-        <target state="translated">MSBUILD : error MSB1042: El valor de reutilización de nodos no es válido. Esta versión de MSBuild no admite la reutilización de nodos. Si se especifica, el valor de conmutación de reutilización de nodos debe ser falso.</target>
+        <target state="translated">MSBUILD : error MSB1042: o valor de reutilização do nó não é válido. Essa versão do MSBuild não dá suporte à reutilização de nó. Se especificado, o valor da opção de reutilização de nó deve ser falso.</target>
         <note>{StrBegin="MSBUILD : error MSB1042: "}
      UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
      This error is shown when a user specifies a node reuse value that is not equivalent to Boolean.TrueString or Boolean.FalseString.
@@ -2272,7 +2268,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidRestoreValue">
         <source>MSBUILD : error MSB1052: Restore value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1052: El valor de restauración no es válido. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1052: o valor de restauração não é válido. {0}</target>
         <note>{StrBegin="MSBUILD : error MSB1052: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies a restore value that is not equivalent to Boolean.TrueString or Boolean.FalseString.
@@ -2286,11 +2282,11 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                      file is '.md', the result is generated in markdown
                      format. Otherwise, a tab separated file is produced.
     </source>
-        <target state="translated">  -profileEvaluation:&lt;archivo&gt;
-                     Genera un perfil de la evaluación de MSBuild y escribe el resultado
-                     en el archivo especificado. Si la extensión del archivo
-                     especificado es ".md", el resultado se genera en formato
-                     Markdown. De lo contrario, se genera un archivo separado por tabuladores.
+        <target state="translated">  -profileEvaluation:&lt;file&gt;
+                     Cria um perfil de avaliação do MSBuild e grava o resultado
+                     no arquivo especificado. Se a extensão do arquivo
+                     especificado for '.md', o resultado será gerado no formato
+                     markdown. Caso contrário, um arquivo separado por tabulação será gerado.
     </target>
         <note />
       </trans-unit>
@@ -2307,14 +2303,14 @@ Esta marca es experimental y puede que no funcione según lo previsto.
                        -restoreProperty:IsRestore=true;MyProperty=value
     </source>
         <target state="translated">  -restoreProperty:&lt;n&gt;=&lt;v&gt;
-                     Establezca o invalide estas propiedades de nivel de proyecto solo
-                     durante la restauración y no use las propiedades especificadas
-                     con el argumento -property. &lt;n&gt; es el nombre de
-                     la propiedad y &lt;v&gt; es el valor de la propiedad. Use un
-                     punto y coma o una coma para separar varias propiedades,
-                     o especifique cada propiedad por separado.
-                     (Forma corta: -rp)
-                     Ejemplo:
+                     Definir ou substituir somente essas propriedades no nível do projeto
+                     durante a restauração e não usar as propriedades especificadas
+                     com o argumento -property. &lt;n&gt; é o nome da propriedade
+                     e &lt;v&gt; é o valor da propriedade. Use um
+                     ponto e vírgula ou uma vírgula para separar várias propriedades,
+                     ou especifique cada propriedade separadamente.
+                     (Forma abreviada: -rp)
+                     Exemplo:
                        -restoreProperty:IsRestore=true;MyProperty=value
     </target>
         <note>
@@ -2324,17 +2320,17 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="InvalidProfilerValue">
         <source>MSBUILD : error MSB1053: Provided filename is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1053: El nombre de archivo proporcionado no es válido. {0}</target>
+        <target state="translated">MSBUILD : error MSB1053: o nome de arquivo fornecido é inválido. {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingProfileParameterError">
         <source>MSBUILD :error MSB1054: A filename must be specified to generate the profiler result.</source>
-        <target state="translated">MSBUILD :error MSB1054: Es necesario especificar un nombre de archivo para generar el resultado del generador de perfiles.</target>
+        <target state="translated">MSBUILD :erro MSB1054: um nome de arquivo deve ser especificado para gerar o resultado do criador de perfil.</target>
         <note />
       </trans-unit>
       <trans-unit id="XMake_LoggerCreationError">
         <source>MSBUILD : error MSB1021: Cannot create an instance of the logger {0}. {1}</source>
-        <target state="translated">MSBUILD : error MSB1021: no se puede crear una instancia del registrador {0}. {1}</target>
+        <target state="translated">MSBUILD : error MSB1021: Não é possível criar uma instância do agente {0}. {1}</target>
         <note>{StrBegin="MSBUILD : error MSB1021: "}
       UE: This error is shown when a logger cannot be loaded and instantiated from its assembly.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a message explaining why the
@@ -2342,7 +2338,7 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="XMake_LoggerNotFoundError">
         <source>MSBUILD : error MSB1020: The logger was not found. Check the following: 1.) The logger name specified is the same as the name of the logger class. 2.) The logger class is "public" and implements the Microsoft.Build.Framework.ILogger interface. 3.) The path to the logger assembly is correct, or the logger can be loaded using only the assembly name provided.</source>
-        <target state="translated">MSBUILD : error MSB1020: No se encontró el registrador. Compruebe lo siguiente: 1.) El nombre del registrador especificado es el mismo que el nombre de la clase de registrador. 2.) La clase de registrador es "public" e implementa la interfaz Microsoft.Build.Framework.ILogger. 3.) La ruta de acceso del ensamblado del registrador es correcta o el registrador puede cargarse usando solo el nombre del ensamblado especificado.</target>
+        <target state="translated">MSBUILD : error MSB1020: O agente não foi encontrado. Verifique se: 1.) O nome do agente especificado é igual ao nome da classe de agente. 2.) A classe de agente é "public" e implementa a interface Microsoft.Build.Framework.ILogger. 3.) O caminho para o assembly de agente está correto ou o agente pode ser carregado somente com o nome do assembly fornecido.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1020: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies an logger that does not exist e.g. "msbuild -logger:FooLoggerClass,FooAssembly". The
@@ -2352,32 +2348,32 @@ Esta marca es experimental y puede que no funcione según lo previsto.
       </trans-unit>
       <trans-unit id="XMake_ProjectUpgradeNeededToVcxProj">
         <source>MSBUILD : error MSB4192: The project file "{0}" is in the ".vcproj" or ".dsp" file format, which MSBuild cannot build directly. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or, for ".vcproj", use MSBuild to build the solution file containing the project instead.</source>
-        <target state="translated">MSBUILD : error MSB4192: El formato de archivo del proyecto "{0}" es ".vcproj" o ".dsp", que MSBuild no puede compilar directamente. Convierta el proyecto abriéndolo en el IDE de Visual Studio o ejecutando la herramienta de conversión; o bien, para ".vcproj", use MSBuild para compilar el archivo de solución que contiene el proyecto.</target>
+        <target state="translated">MSBUILD : error MSB4192: O arquivo de projeto "{0}" está no formato de arquivo ".vcproj" ou ".dsp", o qual não pode ser compilado diretamente pelo MSBuild. Converta o projeto abrindo-o no IDE do Visual Studio ou executando uma ferramenta de conversão ou, para ".vcproj", use o MSBuild para compilar o arquivo de solução que contém o projeto.</target>
         <note>{StrBegin="MSBUILD : error MSB4192: "} LOC: ".vcproj" and ".dsp" should not be localized</note>
       </trans-unit>
       <trans-unit id="BuildEngineCallbacksInTaskHostUnsupported">
         <source>MSB5022: The MSBuild task host does not support running tasks that perform IBuildEngine callbacks. If you wish to perform these operations, please run your task in the core MSBuild process instead.  A task will automatically execute in the task host if the UsingTask has been attributed with a "Runtime" or "Architecture" value, or the task invocation has been attributed with an "MSBuildRuntime" or "MSBuildArchitecture" value, that does not match the current runtime or architecture of MSBuild.</source>
-        <target state="translated">MSB5022: El host de tareas de MSBuild no admite la ejecución de tareas que realizan devoluciones de llamadas de IBuildEngine. Si desea realizar estas operaciones, ejecute la tarea en el proceso de MSBuild principal en su lugar.  Se ejecutará una tarea automáticamente en el host de tareas si a UsingTask se le ha agregado un atributo con un valor "Runtime" o "Arquitectura", o bien a la invocación de tareas se le ha agregado un atributo con un valor "MSBuildRuntime" o "MSBuildArchitecture", que no coincide con el runtime o la arquitectura actual de MSBuild.</target>
+        <target state="translated">MSB5022: O host de tarefas MSBuild não dá suporte a tarefas em execução que executam chamadas de retorno de IBuildEngine. Se desejar executar essas operações, execute sua tarefa no processo MSBuild principal.  Uma tarefa será automaticamente executada no host de tarefas se UsingTask tiver como atributo um valor "Runtime" ou "Architecture" ou se a invocação da tarefa tiver como atributo um valor "MSBuildRuntime" ou "MSBuildArchitecture", que não coincida com o tempo de execução ou arquitetura atual do MSBuild.</target>
         <note>{StrBegin="MSB5022: "} "Runtime", "Architecture", "MSBuildRuntime", and "MSBuildArchitecture" are all attributes in the project file, and thus should not be localized.</note>
       </trans-unit>
       <trans-unit id="InvalidLogFileFormat">
         <source>MSB4233: There was an exception while reading the log file: {0}</source>
-        <target state="translated">MSB4233: Excepción al leer el archivo de registro: {0}</target>
+        <target state="translated">MSB4233: houve uma exceção durante a leitura do arquivo de log: {0}</target>
         <note>{StrBegin="MSB4233: "}This is shown when the Binary Logger can't read the log file.</note>
       </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentHeader">
         <source>Making the following modifications to the environment received from the parent node before applying it to the task host:</source>
-        <target state="translated">Se están realizando las siguientes modificaciones en el entorno recibido del nodo primario antes de aplicarlo al host de tareas:</target>
+        <target state="translated">Fazendo as seguintes modificações no ambiente recebido do nó pai antes de aplicá-lo ao host de tarefas:</target>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentVariable">
         <source>  Setting '{0}' to '{1}' rather than the parent environment's value, '{2}'.</source>
-        <target state="translated">  Estableciendo '{0}' en '{1}' en lugar del valor del entorno primario, '{2}'.</target>
+        <target state="translated">  Definindo "{0}" como "{1}" em vez do valor do ambiente pai, "{2}".</target>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="SubCategoryForSchemaValidationErrors">
         <source>Schema validation</source>
-        <target state="translated">Validación de esquemas</target>
+        <target state="translated">Validação de esquema</target>
         <note>
       UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
       displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:

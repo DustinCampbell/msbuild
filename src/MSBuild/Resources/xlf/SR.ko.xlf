@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="tr" original="../Strings.resx">
+  <file datatype="xml" source-language="en" target-language="ko" original="../SR.resx">
     <body>
       <trans-unit id="AmbiguousProjectError">
         <source>MSBUILD : error MSB1011: Specify which project or solution file to use because this folder contains more than one project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1011: Bu klasör birden fazla proje veya çözüm dosyası içerdiğinden hangi projenin veya çözüm dosyasının kullanılacağını belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1011: 사용할 프로젝트 또는 솔루션 파일을 지정하십시오. 이 폴더에 프로젝트 또는 솔루션 파일이 두 개 이상 있습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1011: "}UE: If no project or solution file is explicitly specified on the MSBuild.exe command-line, then the engine searches for a
       project or solution file in the current directory by looking for *.*PROJ and *.SLN. If more than one file is found that matches this wildcard, we
       fire this error.
@@ -12,17 +12,17 @@
       </trans-unit>
       <trans-unit id="BuildFailedWithPropertiesItemsOrTargetResultsRequested">
         <source>Build failed. Properties, Items, and Target results cannot be obtained. See details in stderr above.</source>
-        <target state="translated">Derleme başarısız oldu. Özellikler, Öğeler ve Hedef sonuçları alınamıyor. Yukarıda stderr'de ayrıntılara bakın.</target>
+        <target state="translated">빌드하지 못했습니다. 속성, 항목 및 대상 결과를 가져올 수 없습니다. 위의 stderr에서 세부 정보를 참조하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandLine">
         <source>Command line arguments = "{0}"</source>
-        <target state="translated">Komut satırı bağımsız değişkenleri = "{0}"</target>
+        <target state="translated">명령줄 인수 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationFailurePrefixNoErrorCode">
         <source>MSBUILD : Configuration error {0}: {1}</source>
-        <target state="translated">MSBUILD : Yapılandırma error {0}: {1}</target>
+        <target state="translated">MSBUILD : 구성 error {0}: {1}</target>
         <note>{SubString="Configuration"}UE: This prefixes any error from reading the toolset definitions in msbuild.exe.config or the registry.
       There's no error code because one was included in the error message.
       LOCALIZATION: The word "Configuration" should be localized, the words "MSBuild" and "error" should NOT be localized.
@@ -30,12 +30,12 @@
       </trans-unit>
       <trans-unit id="CannotAutoDisableAutoResponseFile">
         <source>MSBUILD : error MSB1027: The -noAutoResponse switch cannot be specified in the MSBuild.rsp auto-response file, nor in any response file that is referenced by the auto-response file.</source>
-        <target state="translated">MSBUILD : error MSB1027: -noAutoResponse anahtarı, MSBuild.rsp otomatik yanıt dosyasında ve bu dosyanın başvuruda bulunduğu herhangi bir yanıt dosyasında belirtilemez.</target>
+        <target state="translated">MSBUILD : error MSB1027: MSBuild.rsp 자동 지시 파일과 자동 지시 파일에서 참조하는 모든 지시 파일에는 -noAutoResponse 스위치를 지정할 수 없습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</note>
       </trans-unit>
       <trans-unit id="DuplicateBinaryLoggerPathsIgnored">
         <source>Duplicate binary log path(s) specified and ignored: {0}</source>
-        <target state="translated">Belirtilen ve yok sayılan yinelenen ikili günlük yolları: {0}</target>
+        <target state="translated">중복된 이진 로그 경로가 지정되어 무시되었습니다. {0}</target>
         <note>{0} is the list of duplicate paths that were filtered out</note>
       </trans-unit>
       <trans-unit id="HelpMessage_41_QuestionSwitch">
@@ -46,12 +46,12 @@
                      but isn't up to date.
                      (Short form: -q)
     </source>
-        <target state="translated">  -soru
-                     (Deneysel) Derleme çalışması olup olmadığını sorgulayın.
-                     MSBuild bir hedef veya görev algılandığında hataya neden olacak
-                     artımlı (girişler ve çıkışlar içeren),
-                     ancak güncel değil.
-                     (Kısa biçim: -q)
+        <target state="translated">  -question
+                     (실험) 빌드 작업이 있는지 질문합니다.
+                     증분할 수 있지만(입력 및 출력이 있음)
+                     최신 상태가 아닌 대상 또는 작업을 감지하면
+                     MSBuild에서 오류가 발생합니다.
+                     (약식: -q)
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -67,10 +67,10 @@
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -reportFileAccesses[:True|False]
-                     MSBuild’in yapılandırılmış proje önbelleği eklentilerine dosya
-                     erişimlerini bildirmesine neden olur.
+                     MSBuild에서 모든 구성된 프로젝트 캐시 플러그 인에 대한
+                     파일 액세스를 보고하도록 합니다.
 
-                     Bu bayrak deneme amaçlıdır ve istendiği gibi çalışmayabilir.
+                     이 플래그는 실험적이며 예상대로 작동하지 않을 수 있습니다.
     </target>
         <note>
       LOCALIZATION: "-reportFileAccesses" should not be localized.
@@ -85,10 +85,10 @@
                      used, write out the values after the build.
     </source>
         <target state="translated">  -getProperty:propertyName,...
-                     Belirtilen bir veya daha fazla özelliğin değerini
-                     değerlendirmeden sonra, derlemeyi yürütmeden yaz veya
-                     -targets ya da -getTargetResult seçeneklerinden biri
-                     kullanıldıysa, değerleri derlemeden sonra yaz.
+                     빌드를 실행하지 않고 평가 후
+                     지정된 속성 중 하나 이상의 값을 작성하거나,
+                     -targets 옵션 또는 -getTargetResult 옵션을 사용하는 경우
+                     빌드 후 값을 작성합니다.
     </target>
         <note>
       LOCALIZATION: "-getProperty", "-targets" and "-getTargetResult" should not be localized.
@@ -104,11 +104,11 @@
                      the values after the build.
     </source>
         <target state="translated">  -getItem:itemName,...
-                     Belirtilen bir veya daha fazla öğenin değerini ve
-                     değerlendirmeden sonraki ilişkili meta değerini derlemeyi
-                     yürütmeden yaz veya -targets ya da -getTargetResult
-                     seçeneklerinden biri kullanıldıysa, değerleri
-                     derlemeden sonra yaz.
+                     빌드를 실행하지 않고 평가 후
+                     지정된 항목 중 하나 이상의 값 및
+                     연결된 해당 메타데이터를 작성하거나,
+                     -targets 옵션 또는 -getTargetResult 옵션을 사용하는 경우
+                     빌드 후 값을 작성합니다.
     </target>
         <note>
       LOCALIZATION: "-getItem", "targets" and "getTargetResult" should not be localized.
@@ -121,8 +121,8 @@
                      the specified targets will be executed.
     </source>
         <target state="translated">  -getTargetResult:targetName,...
-                     Bir veya daha fazla hedefin çıktı değerini yazın,
-                     belirtilen hedefler yürütülür.
+                     대상 하나 이상의 출력 값을 작성하면
+                     지정된 대상이 실행됩니다.
     </target>
         <note>
       LOCALIZATION: "-getTargetResult" should not be localized.
@@ -146,19 +146,19 @@
                      (Short form: -fa)
     </source>
         <target state="translated">  -featureAvailability:featureName,...
-                     Özellik kullanılabilirliğini denetle. Sonuç "Undefined",
-                     "Available", "NotAvailable" ve "Preview" dizelerinden
-                     biridir.
-                     - Undefined - özelliğin kullanılabilirliği tanımlanmamış
-                     (özelliğin adı özellik kullanılabilirliği tarafından
-                     bilinmiyor)
-                     - NotAvailable - özellik kullanılamıyor (Undefined’dan
-                     farklı olarak, özellik kullanılabilirliği denetleyicisi özelliğin adını
-                     biliyor ancak özelliğin geçerli MSBuild altyapısı tarafından
-                     desteklenmediğini de biliyor)
-                     - Available - özellik kullanılabilir
-                     - Önizleme - özellik önizleme aşamasında (kararlı değil)
-                     (Kısa biçimi: -fa)
+                     기능 가용성을 확인합니다. 결과는
+                     문자열 "Undefined", "Available", "NotAvailable" 및
+                     "Preview" 중 하나입니다.
+                     - 정의되지 않음 - 기능의 가용성이 정의되지 않았습니다
+                     (기능 가용성 검사기에서 기능 이름을 인식할 수
+                     없음).
+                     - NotAvailable - 기능을 사용할 수 없습니다(
+                     정의되지 않음과는 달리, 기능 가용성 검사가에서 기능 이름을
+                     인식할 수 있으며 기능이 현재 MSBuild 엔진에서 지원되지
+                     않는 것으로 인식하고 있음).
+                     - Available - 기능을 사용할 수 있습니다.
+                     - Preview - 기능이 미리 보기 상태로 제공됩니다(안정적이지 않음).
+                     (약식: -fa)
     </target>
         <note>
       LOCALIZATION: "-featureAvailability", "-fa", "Undefined", "Available" "NotAvailable" and "Preview"should not be localized.
@@ -179,16 +179,16 @@
                      (Short form: -tl)
     </source>
         <target state="translated">  -terminalLogger[:auto,on,off]
-                     Terminal günlükçüsünü etkinleştir veya devre dışı bırak. Terminal günlükçüsü
-                     konsolda gerçek zamanlı olarak gelişmiş derleme çıktısı sağlar,
-                     projeye göre mantıksal olarak düzenler ve eyleme
-                     dönüştürülebilir bilgileri vurgular. Sadece standart çıktı yeniden yönlendirilmiyorsa
-                     terminal günlükçüsünü kullanmak için otomatik olarak ayarlayın
-                     (veya bu seçeneği bağımsız değişken olmadan kullanın). Çıktı verilerini ayrıştırmayın
-                     veya gelecek sürümlerde değişmeden kalacak şekilde
-                     kullanın. Bu seçenek MSBuild 17.8 ve sonraki sürümlerde
-                     kullanılabilir.
-                     (Kısa biçimi: -tl)
+                     터미널 로거를 사용하거나 사용하지 않도록 설정합니다. 터미널 로거
+                     는 콘솔에서 향상된 빌드 출력을 실시간으로 제공합니다.
+                     이러한 출력은 프로젝트별로 논리적으로 구성되고 실행 가능한 정보를
+                     강조 표시하도록 설계되어 있습니다. 자동을 지정(또는 인수 없이 옵션
+                     사용)하여 터미널 로거를 사용합니다. 단, 이 경우
+                     표준 출력이 리디렉션되지 않아야 합니다. 출력을 구문 분석하지 않습니다.
+                     그렇지 않을 경우 이후 버전에서 변경되지 않은 상태로
+                     유지됩니다. 이 옵션은 MSBuild 17.8 이상 버전에서
+                     제공됩니다.
+                     (약식: -tl)
     </target>
         <note>
       LOCALIZATION: "-terminalLogger", "-tl", and "auto" should not be localized.
@@ -216,22 +216,23 @@
                         -tlp:default=auto;verbosity=diag;shownCommandLine
     </source>
         <target state="translated">  -terminalLoggerParameters: &lt;parameters&gt;
-                     Terminal günlükçüsü için parametreler. (Kısa biçimi: -tlp)
-                     Mevcut parametreler.
-                        default--Terminalin davranışını varsayılan olarak ayarlar
-                        günlükçü. Şu değerlerden birini gerektirir: 
-                           - `on`, `true` TerminalLogger’ı devre dışı olsa bile
-                            kullanılmaya zorlar.
-                           - `on`, `true` TerminalLogger’ı etkinleştirilmiş olsa bile
-                            kullanılmamaya zorlar.
-                           - 'auto' terminal desteklediğinde ve oturumda
-                            yeniden yönlendirilmiş stdout/stderr bulunmadığında
-                            TerminalLogger’ı etkinleştirir
-                        verbosity--Bu günlükçü için -verbosity ayarını
-                        geçersiz kıl
-                        showCommandLine--TaskCommandLineEvent iletilerini göster
+                     터미널 로거에 대한 매개 변수입니다. (약식: -tlp)
+                     사용 가능한 매개 변수입니다.
+                        default--터미널의 기본 동작을 지정합니다.
+                        로거입니다. 다음 값 중 하나가 필요합니다.
+                           - 'on', 'true'는 terminalLogger를 사용하도록 강제하며,
+                            이는 사용하지 않도록 설정된 경우에도 마찬가지입니다.
+                           - 'off', 'false'는 terminalLogger를 사용하지 않도록 강제하며,
+                            이는 사용하도록 설정된 경우에도 마찬가지입니다.
+                           - 'auto'는 터미널이
+                            지원하고 세션이 리디렉션되지 않을 때 TerminalLogger를 사용하도록 설정합니다.
+                            stdout/stderr
+                        verbosity--이
+로거에 대한 -verbosity 설정을
+                        재정의합니다.
+                        showCommandLine--TaskCommandLineEvent 메시지를 표시합니다.
 
-                      Örnek:
+                      예:
                         -tlp:default=auto;verbosity=diag;shownCommandLine
     </target>
         <note>
@@ -253,18 +254,19 @@
                      maxCpuCount cannot be greater than 256.
                      (Short form: -mt)
     </source>
-        <target state="translated">  -çok iş parçacıklı
-                     MSBuild’de DENEYSEL çok iş parçacıklı modu etkinleştirir.
-                     Bu, MSBuild’in
-                     projeleri işlemek için birden çok iş parçacığı kullanacağı,
-                     birden çok işlem kullanmayacağı anlamına gelir.
-                     Bu seçenek desteklenmiyor.
-                     Kullanılan maksimum iş parçacığı sayısı
-                     -maxCpuCount anahtarı ile belirlenir.
-                     Çok iş parçacıklı modun açık
-                     ve MSBUILDFORCEALLTASKSOUTOFPROC=1 olması durumunda,
-                     maxCpuCount değeri 256’dan büyük olamaz.
-                     (Kısa form: -mt)
+        <target state="translated">  -multithreaded
+                     MSBuild에서 실험적 다중 스레드 모드를 활성화합니다.
+                     즉, MSBuild는 여러 스레드를 사용하여
+                     프로젝트를 병렬로 빌드합니다.
+                     여러 프로세스 대신에 말이죠.
+                     이 옵션은 지원되지 않습니다.
+                     사용되는 최대 스레드 수는 
+에 의해 결정됩니다.
+                     -maxCpuCount 스위치에 의해 결정됩니다.
+                     다중 스레드 모드가 켜져 있고
+                     MSBUILDFORCEALLTASKSOUTOFPROC=1인 경우
+                     maxCpuCount는 256보다 클 수 없습니다.
+                     (약식: -mt)
     </target>
         <note />
       </trans-unit>
@@ -277,11 +279,11 @@
                      This writes the value of property Bar into Biz.txt.
     </source>
         <target state="translated">  -getResultOutputFile:file
-                     get* çıktısını bir dosyaya yeniden yönlendir.
+                     get*에서 파일로 출력을 리디렉션합니다.
 
-                     Örnek:
+                     예:
                      -getProperty:Bar -getResultOutputFile:Biz.txt
-                     Bu, Bar özelliğinin değerini Biz.txt dosyasına yazar.
+                     그러면 속성 Bar의 값이 Biz.txt에 기록됩니다.
     </target>
         <note>
       LOCALIZATION: "-getResultOutputFile", "get*" and "-getProperty" should not be localized.
@@ -295,9 +297,9 @@
                      of the build. For more info see https://aka.ms/buildcheck
 	</source>
         <target state="translated">  -check
-                     Derleme sırasında BuildChecks'i sağlar.
-                     BuildCheck, özelliklerin güvenliğini sağlamak için kuralların değerlendirilmesini sağlar
-                     kuralların değerlendirilmesini sağlar. Daha fazla bilgi için bkz. https://aka.ms/buildcheck
+                     빌드하는 동안 BuildChecks를 사용하도록 설정합니다.
+                     BuildCheck를 사용하면 규칙을 평가하여 빌드의 속성을
+                     확인할 수 있습니다. 자세한 내용은 https://aka.ms/buildcheck 참조
 	</target>
         <note>
     {Locked="-check"}{Locked="BuildChecks"}{Locked="BuildCheck"}
@@ -306,7 +308,7 @@
       </trans-unit>
       <trans-unit id="InvalidLowPriorityValue">
         <source>MSBUILD : error MSB1064: Low priority value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1064: Düşük öncelikli değer geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1064: 낮은 우선 순위 값이 유효하지 않습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1064: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -316,7 +318,7 @@
       </trans-unit>
       <trans-unit id="InvalidNoLogoValue">
         <source>MSBUILD : error MSB1071: NoLogo value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1071: NoLogo değeri geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1071: NoLogo 값이 유효하지 않습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1071: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -326,7 +328,7 @@
       </trans-unit>
       <trans-unit id="InvalidTerminalLoggerValue">
         <source>MSBUILD : error MSB1065: Terminal logger value is not valid. It should be one of 'auto', 'true', or 'false'. {0}</source>
-        <target state="translated">MSBUILD : error MSB1065: Terminal günlükçüsü değeri geçerli değil. Değer şunlardan biri olmalıdır: 'otomatik', 'doğru' veya 'yanlış'. {0}</target>
+        <target state="translated">MSBUILD : error MSB1065: 터미널 로거 값이 잘못되었습니다. 'auto', 'true' 또는 'false' 중 하나여야 합니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1065: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -336,7 +338,7 @@
       </trans-unit>
       <trans-unit id="InvalidReportFileAccessesValue">
         <source>MSBUILD : error MSB1063: Report file accesses value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1063: Dosya erişimleri değerinin geçerli olmadığını bildirir. {0}</target>
+        <target state="translated">MSBUILD : error MSB1063: 보고서 파일 액세스 값이 잘못되었습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1063: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -346,52 +348,52 @@
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarError">
         <source>MSB1071: Error processing MSBUILD_LOGGING_ARGS environment variable: {0}</source>
-        <target state="translated">MSB1071: MSBUILD_LOGGING_ARGS ortam değişkeni işlenirken hata oluştu: {0}</target>
+        <target state="translated">MSB1071: MSBUILD_LOGGING_ARGS 환경 변수를 처리하는 중 오류가 발생했습니다. {0}</target>
         <note>{StrBegin="MSB1071: "}LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is the error message.</note>
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarUnsupportedArgument">
         <source>MSB1070: MSBUILD_LOGGING_ARGS: Ignoring unsupported argument '{0}'. Only -bl and -check arguments are allowed.</source>
-        <target state="translated">MSB1070: MSBUILD_LOGGING_ARGS: Desteklenmeyen '{0}' bağımsız değişkeni yoksayılıyor. Yalnızca -bl ve -check bağımsız değişkenlerine izin verilir.</target>
+        <target state="translated">MSB1070: MSBUILD_LOGGING_ARGS: 지원되지 않는 인수 '{0}'을(를) 무시합니다. -bl과 -check 인수만 허용됩니다.</target>
         <note>{StrBegin="MSB1070: "}LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is the unsupported argument.</note>
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarUsing">
         <source>Using arguments from MSBUILD_LOGGING_ARGS environment variable: {0}</source>
-        <target state="translated">MSBUILD_LOGGING_ARGS ortam değişkeninden alınan bağımsız değişkenler kullanılıyor: {0}</target>
+        <target state="translated">MSBUILD_LOGGING_ARGS 환경 변수에서 다음 인수를 사용합니다. {0}</target>
         <note>LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is a string with the command-line arguments from the environment variable.</note>
       </trans-unit>
       <trans-unit id="LongPaths">
         <source>Based on the Windows registry key LongPathsEnabled, the LongPaths feature is {0}.</source>
-        <target state="translated">Windows kayıt defteri anahtarı LongPathsEnabled ayarına bağlı olarak LongPaths özelliği {0}.</target>
+        <target state="translated">Windows 레지스트리 키 LongPathsEnabled에 따라 LongPaths 기능이 {0}입니다.</target>
         <note>"Windows" is the OS, "LongPathsEnabled" should not be localized, and {0} will be "enabled"/"disabled"/"not set"</note>
       </trans-unit>
       <trans-unit id="LongPaths_Disabled">
         <source>disabled</source>
-        <target state="translated">devre dışı</target>
+        <target state="translated">사용 안 함</target>
         <note />
       </trans-unit>
       <trans-unit id="LongPaths_Enabled">
         <source>enabled</source>
-        <target state="translated">etkin</target>
+        <target state="translated">사용</target>
         <note />
       </trans-unit>
       <trans-unit id="LongPaths_Missing">
         <source>not set</source>
-        <target state="translated">ayarlanmadı</target>
+        <target state="translated">설정 안 함</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBuildServerConnectFailed">
         <source>could not connect to the server within the timeout window; the server may have failed to start</source>
-        <target state="needs-review-translation">zaman aşımı süresi içinde sunucuya bağlanılamadı; sunucu başlatılamamış olabilir</target>
+        <target state="needs-review-translation">제한 시간 내에 서버에 연결할 수 없었습니다. 서버가 시작되지 못했을 수 있습니다</target>
         <note>LOCALIZATION: No format arguments. Used for any connect failure when the server's exit code is not known — covers both pipe-connect timeouts and non-timeout I/O errors during the connect attempt. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerCrashedOnLaunch">
         <source>the server process exited with code {0} immediately after launch</source>
-        <target state="needs-review-translation">sunucu işlemi başlatıldıktan hemen sonra {0} koduyla çıktı</target>
+        <target state="needs-review-translation">서버 프로세스가 시작 직후 코드 {0}(으)로 종료되었습니다</target>
         <note>LOCALIZATION: {0} is the integer process exit code; rendered with InvariantCulture as a decimal integer, do not localize the digits. This message is concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerLaunchError">
         <source>the server process could not be launched</source>
-        <target state="needs-review-translation">sunucu işlemi başlatılamadı</target>
+        <target state="needs-review-translation">서버 프로세스를 시작할 수 없습니다</target>
         <note>LOCALIZATION: No format arguments. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerNodeReused">
@@ -436,32 +438,32 @@
       </trans-unit>
       <trans-unit id="MSBuildServerStateUnknown">
         <source>the current server state could not be determined</source>
-        <target state="needs-review-translation">geçerli sunucu durumu belirlenemedi</target>
+        <target state="needs-review-translation">현재 서버 상태를 확인할 수 없습니다</target>
         <note>LOCALIZATION: No format arguments. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerUnavailable">
         <source>MSBuild server unavailable: {0}. Falling back to an in-process build.</source>
-        <target state="translated">MSBuild sunucusu kullanılamıyor: {0}. İşlem içi derlemeye geri dönülüyor.</target>
+        <target state="translated">MSBuild 서버를 사용할 수 없습니다. {0}. 프로세스 내 빌드로 대체합니다.</target>
         <note>LOCALIZATION: {0} is a sub-message describing why the MSBuild server could not be used. It is one of MSBuildServerCrashedOnLaunch / MSBuildServerLaunchError / MSBuildServerStateUnknown / MSBuildServerConnectFailed. The outer template supplies the trailing period after {0}; sub-messages must NOT end with a period or other sentence-final punctuation.</note>
       </trans-unit>
       <trans-unit id="MSBuildVersionMessage">
         <source>MSBuild version {0} for {1}</source>
-        <target state="translated">{1} için MSBuild sürüm {0}</target>
+        <target state="translated">msbuild 버전 {0}({1}용)</target>
         <note>LOCALIZATION: {0} contains the DLL version number. {1} contains the name of a runtime, like ".NET Framework" or ".NET Core"</note>
       </trans-unit>
       <trans-unit id="CurrentDirectory">
         <source>Current directory = "{0}"</source>
-        <target state="translated">Geçerli dizin = "{0}"</target>
+        <target state="translated">현재 디렉터리 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="DuplicateOutputResultsCache">
         <source>MSBUILD : error MSB1058: Only one output results cache can be specified.</source>
-        <target state="translated">MSBUILD : error MSB1058: Yalnızca bir çıkış sonuçları önbelleği belirtilebilir.</target>
+        <target state="translated">MSBUILD : error MSB1058: 출력 결과 캐시는 하나만 지정할 수 있습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1058: "}</note>
       </trans-unit>
       <trans-unit id="DuplicateProjectSwitchError">
         <source>MSBUILD : error MSB1008: Only one project can be specified.</source>
-        <target state="translated">MSBUILD : error MSB1008: Yalnızca bir proje belirtilebilir.</target>
+        <target state="translated">MSBUILD : error MSB1008: 프로젝트를 하나만 지정할 수 있습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1008: "}UE: This happens if the user does something like "msbuild.exe myapp.proj myapp2.proj". This is not allowed.
     MSBuild.exe will only build a single project. The help topic may link to an article about how to author an MSBuild project
     that itself launches MSBuild on a number of other projects.
@@ -469,7 +471,7 @@
       </trans-unit>
       <trans-unit id="EnvironmentVariableAsSwitch">
         <source>MSBUILD : error MSB1060: Undefined environment variable passed in as switch.</source>
-        <target state="translated">MSBUILD : error MSB1060: Tanımlanmamış ortam değişkeni anahtar olarak geçirildi.</target>
+        <target state="translated">MSBUILD : error MSB1060: 정의되지 않은 환경 변수가 스위치로 전달되었습니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1060: "}
       UE: This error is shown when a user passes in an environment variable (including from a response file)
@@ -478,7 +480,7 @@
       </trans-unit>
       <trans-unit id="FatalError">
         <source>MSBUILD : error MSB1025: An internal failure occurred while running MSBuild.</source>
-        <target state="translated">MSBUILD : error MSB1025: MSBuild çalıştırılırken bir iç hata oluştu.</target>
+        <target state="translated">MSBUILD : error MSB1025: MSBuild를 실행하는 동안 내부 오류가 발생했습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1025: "}UE: This message is shown when the application has to terminate either because of a bug in the code, or because some
       FX/CLR method threw an unexpected exception.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" and "MSBuild" should not be localized.</note>
@@ -486,7 +488,7 @@
       <trans-unit id="HelpMessage_1_Syntax">
         <source>Syntax:              MSBuild.exe [options] [project file | directory]
 </source>
-        <target state="translated">Söz dizimi:              MSBuild.exe [seçenekler] [proje dosyası | dizin]
+        <target state="translated">구문:              MSBuild.exe [options] [project file | directory]
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -505,12 +507,12 @@
                      a directory is specified, MSBuild searches that
                      directory for a project file.
 </source>
-        <target state="translated">Açıklama:         Proje dosyasında belirtilen hedefleri oluşturur. Proje
-                     dosyası belirtilmezse MSBuild, geçerli çalışma dizininde
-                     dosya uzantısının sonu "proj" olan bir dosya arar ve
-                     bu dosyayı kullanır.
-                     Dizin belirtilirse MSBuild,
-                     proje dosyasını söz konusu dizinde arar.
+        <target state="translated">설명:         지정한 대상을 프로젝트 파일에 빌드합니다. 프로젝트
+                     파일을 지정하지 않으면 MSBuild는 현재
+                     작업 디렉터리에서 파일 확장명이 "proj"로 끝나는
+                     파일을 찾아서 사용합니다. 디렉터리를
+                     지정하면 MSBuild는 해당 디렉터리에서 프로젝트 파일을
+                     검색합니다.
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -532,13 +534,13 @@
                      value that comes from a response file.
     </source>
         <target state="translated">  -interactive[:True|False]
-                     Derlemedeki eylemlerin kullanıcıyla etkileşim kurmasına
-                     izin verildiğini gösterir.  Etkileşimin beklenmediği
-                     otomatik bir senaryoda bu bağımsız değişkeni
-                     kullanmayın.
-                     -interactive değerinin belirtilmesi, -interactive:true 
-                     değerinin belirtilmesiyle aynıdır.  Parametreyi, yanıt
-                     dosyasından gelen bir değeri geçersiz kılmak için kullanın.
+                     빌드의 작업이 사용자와 상호 작용할 수 
+                     있음을 나타냅니다. 상호 작용이 필요하지 
+                     않은 자동화된 시나리오에서는 이 인수를 
+                     사용하지 마세요.
+                     -interactive를 지정하는 것은 -interactive:true를
+                     지정하는 것과 같습니다. 매개 변수를 
+                     사용하여 지시 파일에서 가져오는 값을 재정의합니다.
     </target>
         <note>
       LOCALIZATION: "-interactive" should not be localized.
@@ -566,25 +568,25 @@
 
                      This flag is experimental and may not work as intended.
     </source>
-        <target state="translated">  -isolateProjects[:True| MessageUponIsolationViolation| False]
-                     MSBuild'in her projeyi yalıtımda derlemesini sağlar.
+        <target state="translated">  -isolateProjects[:True|MessageUponIsolationViolation|False]
+                     MSBuild가 각 프로젝트를 격리 모드로 빌드하도록 합니다.
 
-                     "MessageUponIsolationViolation" olarak ayarlandığında (veya kısa
-                     form "İleti"), yalnızca üst düzey hedeflerden gelen sonuçlar
-                     -outputResultsCache anahtarı şu olduğunda seri hale getirilebilir:
-                     Sağlanan. Bu, bir
-                     yalıtım ihlal eden hedef, bir bağımlılık projesini kullanan
-                     önbelleğe alınmış bir hedefte bağımlılığı nedeniyle hatalı durum
-                     yan etkileri hesaplanmadı.
-                     (Örneğin, bir özelliğin tanımı.)
+                     "MessageUponIsolationViolation"(또는 약식 "Message")으로
+                     설정하면 -outputResultsCache 스위치가 제공되는
+                     경우 최상위 수준 대상의 결과만 직렬화됩니다.
+                     이는 부작용이 고려되지 않는 캐시된 대상에 대한
+                     종속성으로 인해 잘못된 상태를 사용하는 종속성
+                     프로젝트의 격리 위반 대상 존재 가능성을
+                     완화하기 위한 것입니다.
+                     (예: 속성 정의)
 
-                     Bu, gerektirdiği şekilde daha kısıtlayıcı bir MSBuild modu
-                     proje grafiği statik olarak bulunabilir
-                     ancak zamanlamanın geliştirilmesine ve daha az
-                     büyük bir proje kümesi oluşturulurken bellek ek yükü.
-                     (Kısa form: -isolate)
+                     이 모드는 평가 시 프로젝트 그래프를 정적으로
+                     검색할 수 있어야 하므로 보다 제한적인 MSBuild
+                     모드이지만 대규모 프로젝트 집합을 빌드할 때 예약
+                     기능을 개선하고 메모리 오버헤드를 줄일 수 있습니다.
+                     (약식: -isolate)
 
-                     Bu bayrak deneyseldir ve amaçlandık şekilde çalışmayabilir.
+                     이 플래그는 실험적이며 의도한 대로 작동하지 않을 수 있습니다.
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -605,16 +607,16 @@
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -graphBuild[:True|False]
-                     MSBuild tarafından bir proje grafiği oluşturulup derlenmesine yol açar.
+                     MSBuild가 프로젝트 그래프를 생성 및 빌드하도록 합니다.
 
-                     Grafik oluşturulması için projenin form bağımlılıklarına
-                     yönelik başvurularının belirlenmesi gerekir. Bu grafiğin
-                     oluşturulması için geleneksel MSBuild zamanlamasından
-                     farklı olarak derleme projelerine başvuran projelerden
-                     önce bunların oluşturulması gerekir.
-                     (Kısa biçim: -graph)
+                     그래프 생성에는 종속성을 형성하기 위한 프로젝트 
+                     참조 식별이 관련됩니다. 해당 그래프 빌드에는 프로젝트 
+                     참조를 참조하는 프로젝트 전에 프로젝트 참조를 
+                     빌드하는 시도가 관련되며, 이는 기존 MSBuild
+                     예약과 다릅니다.
+                     (약식: -graph)
 
-                     Bu bayrak deneme amaçlıdır ve amaçlandığı gibi çalışmayabilir.
+                     이 플래그는 실험적이며 예상대로 작동하지 않을 수 있습니다.
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -624,7 +626,7 @@
       </trans-unit>
       <trans-unit id="HelpMessage_37_DocsLink">
         <source>For more detailed information, see https://aka.ms/msbuild/docs</source>
-        <target state="translated">Ayrıntılı bilgi için bkz. https://aka.ms/msbuild/docs</target>
+        <target state="translated">자세한 내용은 https://aka.ms/msbuild/docs를 참조하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpMessage_38_TargetsSwitch">
@@ -637,14 +639,14 @@
                      Example:
                        -ts:out.txt
     </source>
-        <target state="translated">  -targets[:dosya]
-                     Gerçek derleme işlemini yürütmeden
-                     kullanılabilir hedeflerin bir listesini yazdırır. Varsayılan olarak çıkış, konsol penceresine
-                     yazdırılır. Çıkış dosyasının yolu sağlanmışsa
-                     konsol penceresi yerine bu dosya kullanılır.
-                     (Kısa biçim:-ts)
-                     Örnek:
-                       -ts:çıkış.txt
+        <target state="translated">  -targets [: file]
+                     실제 빌드 프로세스를 실행하지 않고
+                     사용 가능한 대상 목록을 출력합니다. 출력은 기본적으로
+                     콘솔 창에 기록됩니다. 출력 파일의 경로를 제공하면
+                     해당 경로가 대신 사용됩니다.
+                     (약식: -ts)
+                     예
+                       -ts: out .txt
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -661,11 +663,11 @@
                      (Short form: -low)
     </source>
         <target state="translated">  -lowPriority[:True|False]
-                     MSBuild'ın düşük işlem önceliğinde çalışmasına neden olur.
+                     MSBuild가 낮은 프로세스 우선 순위로 실행됩니다.
 
-                     -lowPriority belirtilmesi -lowPriority:True belirtilmesiyle
-                     aynıdır.
-                     (Kısa biçim: -low)
+                     -lowPriority를 지정하는 것은 
+                     -lowPriority:True를 지정하는 것과 같습니다.
+                     (약식: -low)
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -677,8 +679,8 @@
         <source>Switches:            Note that you can specify switches using
                      "-switch", "/switch" and "--switch".
 </source>
-        <target state="translated">Anahtarlar:            Hem "-switch" hem de "/switch" ve "--switch" değerini kullanarak
-                     anahtar belirtebileceğinizi unutmayın.
+        <target state="translated">스위치:            스위치를 지정하는 데 "-switch", "/switch" 및 "--switch"를
+                     사용할 수 있습니다.
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -700,12 +702,12 @@
                        -warnNotAsError:MSB3026
     </source>
         <target state="translated">  -warnNotAsError[:code[;code2]]
-                     Hata olarak değerlendirilmeyecek uyarı kodlarının listesi.
-                     Birden çok uyarı kodunu ayırmak için noktalı virgül
-                     veya virgül kullanın. -warnaserror anahtarı ayarlanmamışsa
-                     hiçbir etkisi yoktur.
+                     오류로 처리하지 않을 경고 코드 목록입니다.
+                     세미콜론이나 쉼표를 사용하여 여러 경고 코드를
+                     구분합니다. -warnaserror 스위치가 설정되어 있지
+                     않으면 효과가 없습니다.
 
-                     Örnek:
+                     예:
                        -warnNotAsError:MSB3026
     </target>
         <note>
@@ -716,7 +718,7 @@
       <trans-unit id="HelpMessage_4_HelpSwitch">
         <source>  -help              Display this usage message. (Short form: -? or -h)
 </source>
-        <target state="translated">  -help              Bu kullanım iletisini görüntüle. (Kısa biçim: -? veya -h)
+        <target state="translated">  -help              사용법 메시지를 표시합니다. (약식: -? 또는 -h)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -731,8 +733,8 @@
         <source>  -noLogo[:true|false] Do not display the startup banner and copyright message.
                        Specify -nologo:false to explicitly show the logo.
 </source>
-        <target state="translated">  -noLogo[:true|false] Başlangıç başlığını ve telif hakkı iletisini görüntüleme.
-                       Logoyu açıkça göstermek için -nologo:false değerini belirtin.
+        <target state="translated">  -noLogo[:true|false] 시작 배너 및 저작권 메시지를 표시하지 않습니다.
+                       -nologo:false를 지정하여 로고를 명시적으로 표시합니다.
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -746,7 +748,7 @@
       <trans-unit id="HelpMessage_6_VersionSwitch">
         <source>  -version           Display version information only. (Short form: -ver)
 </source>
-        <target state="translated">  -version           Yalnızca sürüm bilgilerini görüntüle. (Kısa biçim: -ver)
+        <target state="translated">  -version           버전 정보만 표시합니다. (약식: -ver)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -767,14 +769,14 @@
                      (1) the directory of msbuild.exe
                      (2) the directory of the first project or solution built
 </source>
-        <target state="translated">  @&lt;dosya&gt;            Komut satırı ayarlarını bir metin dosyasından ekler.
-                     Birden çok yanıt dosyası belirtmek için her
-                     yanıt dosyasını ayrı ayrı belirtin.
+        <target state="translated">  @&lt;file&gt;            텍스트 파일에서 명령줄 설정을 삽입합니다. 
+                     여러 지시 파일을 지정하려면 각 지시 파일을 개별적으로 
+                     지정합니다.
 
-                     Aşağıdaki konumlardaki "msbuild.rsp" adlı yanıt
-                     dosyaları otomatik olarak kullanılır:
-                     (1) msbuild.exe dosyasının dizini
-                     (2) derlenen ilk projenin veya çözümün dizini
+                     "msbuild.rsp"라는 지시 파일이 다음 위치에서 
+                     자동으로 사용됩니다.
+                     (1) msbuild.exe의 디렉터리
+                     (2) 빌드된 첫 번째 프로젝트 또는 솔루션의 디렉터리
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -789,8 +791,8 @@
         <source>  -noAutoResponse    Do not auto-include any MSBuild.rsp files. (Short form:
                      -noAutoRsp)
 </source>
-        <target state="translated">  -noAutoResponse    Hiçbir MSBuild.rsp dosyasını otomatik olarak ekleme. (Kısa biçim:
-                     -noAutoRsp)
+        <target state="translated">  -noAutoResponse    MSBuild.rsp 파일을 자동으로 포함하지 않습니다. (약식:
+                     -noAutoRsp).
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -808,10 +810,10 @@
                      Example:
                        -target:Resources;Compile
 </source>
-        <target state="translated">  -target:&lt;hedefler&gt;  Bu projede bu hedefleri oluşturur. Birden çok hedefi
-                     ayırmak için noktalı virgül veya virgül kullanın
-                     ya da her hedefi ayrı ayrı belirtin. (Kısa biçim: -t)
-                     Örnek:
+        <target state="translated">  -target:&lt;targets&gt;  이 프로젝트에서 대상을 빌드합니다. 세미콜론 또는 쉼표를 사용하여 
+                     여러 대상을 구분하거나, 각 대상을 
+                     개별적으로 지정합니다. (약식: -t)
+                     예:
                        -target:Resources;Compile
 </target>
         <note>
@@ -831,11 +833,11 @@
                      Example:
                        -property:WarningLevel=2;OutDir=bin\Debug\
 </source>
-        <target state="translated">  -property:&lt;n&gt;=&lt;v&gt;  Bu proje düzeyi özellikleri ayarlayın veya geçersiz kılın. &lt;n&gt; 
-                     özelliğin adı ve &lt;v&gt; özelliğin değeridir. Birden çok
-                     özelliği birbirinden ayırmak için noktalı virgül veya virgül
-                     kullanın veya her özelliği ayrı ayrı belirtin. (Kısa biçim: -p)
-                     Örnek:
+        <target state="translated">  -property:&lt;n&gt;=&lt;v&gt;  프로젝트 수준 속성을 설정하거나 재정의합니다. &lt;n&gt;은 
+                     속성 이름이고 &lt;v&gt;는 속성 값입니다. 
+                     세미콜론 또는 쉼표를 사용하여 여러 속성을 구분하거나, 
+                     각 속성을 개별적으로 지정합니다. (약식: -p)
+                     예:
                        -property:WarningLevel=2;OutDir=bin\Debug\
 </target>
         <note>
@@ -863,18 +865,18 @@
                        -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -logger:XMLLogger,C:\Loggers\MyLogger.dll;OutputAsHTML
 </source>
-        <target state="translated">  -logger:&lt;günlükçü&gt;   MSBuild'deki olayları günlüğe almak için bu günlükçüyü kullanın. Birden fazla
-                     günlükçü belirtmek için her günlükçüyü ayrı ayrı belirtin.
-                     &lt;günlükçü&gt; söz dizimi şöyledir:
-                       [&lt;sınıf&gt;,]&lt;derleme&gt;[,&lt;seçenekler&gt;][;&lt;parametreler&gt;]
-                     &lt;günlükçü sınıfı &gt; söz dizimi şöyledir:
-                       [&lt;kısmi veya tam ad alanı &gt;.]&lt;günlükçü sınıfı adı&gt;
-                     &lt;günlükçü derlemesi&gt; söz dizimi şöyledir:
-                       {&lt;derleme adı&gt;[,&lt;strong name&gt;] | &lt;derleme dosyası&gt;}
-                     Günlükçü seçenekleri, MSBuild'in günlükçüyü oluşturma biçimini belirtir.
-                     &lt;günlükçü parametreleri &gt; isteğe bağlıdır ve tam olarak 
-                     yazdığınız şekliyle günlükçüye geçirilir. (Kısa biçim: -l)
-                     Örnekler:
+        <target state="translated">  -logger:&lt;로거&gt;   이 로거를 사용하여 MSBuild의 이벤트를 기록합니다. 여러
+                     로거를 지정하려면 각 로거를 개별적으로 지정합니다.
+                     &lt;로거&gt; 구문은 다음과 같습니다.
+                       [&lt;클래스&gt;,]&lt;어셈블리&gt;[,&lt;옵션&gt;][;&lt;매개 변수&gt;]
+                     &lt;로거 클래스&gt; 구문은 다음과 같습니다.
+                       [&lt;부분 또는 전체 네임스페이스&gt;.]&lt;로거 클래스 이름&gt;
+                     &lt;로거 어셈블리&gt; 구문은 다음과 같습니다.
+                       {&lt;어셈블리 이름&gt;[,&lt;strong name&gt;] | &lt;어셈블리 파일&gt;}
+                     로거 옵션은 MSBuild가 로거를 만드는 방법을 지정합니다.
+                     &lt;로거 매개 변수&gt;는 선택 사항이고 입력한 대로 정확히
+                     로거에 전달됩니다. (약식: -l)
+                     예:
                        -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -logger:XMLLogger,C:\Loggers\MyLogger.dll;OutputAsHTML
 </target>
@@ -898,15 +900,15 @@
                            is set separately by
                            -fileloggerparameters.
 </source>
-        <target state="translated">  -verbosity:&lt;level&gt; Bu miktarda bilgiyi olay günlüğünde görüntüle.
-                     Kullanılabilir verbosity seviyeleri şunlardır: q[uiet], m[inimal],
-                     n[ormal], d[etailed], and diag[nostic]. (Kısa biçim: -v)
-                     Örnek:
+        <target state="translated">  -verbosity:&lt;level&gt; 이벤트 로그에 이 정도 양의 정보를 표시합니다.
+                     사용 가능한 세부 정보 표시 수준에는 q[uiet], m[inimal],
+                     n[ormal], d[etailed], diag[nostic]이 있습니다. (약식: -v)
+                     예:
                        -verbosity:quiet
 
-                     Not: Dosya kaydedicilerin verbosity’si
-                           -fileloggerparameters tarafından
-                           ayrı olarak ayarlanır.
+                     참고: 파일 로거의 세부 정보 표시는
+                           -fileloggerparameters에 의해
+                           별도로 설정됩니다.
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -953,36 +955,36 @@
                                                  Verbosity=minimal
 </source>
         <target state="translated">  -consoleLoggerParameters:&lt;parameters&gt;
-                     Konsol günlüğüne parametreler. (Kısa form: -clp)
-                     Kullanılabilir parametreler şunlardır:
-                        PerformanceSummary--Harcanan süreyi göster, görevler
-                            ve projeler.
-                        Summary--Sonunda hata ve uyarı özetini göster.
-                        NoSummary--Hata ve uyarı özetini
-                            sonunda gösterme.
-                        ErrorsOnly--Yalnızca hataları göster.
-                        WarningsOnly--Yalnızca uyarıları göster.
-                        NoItemAndPropertyList--Öğe ve özelliklerin listesini
-                            her proje derlemesinin başında gösterme.
-                        ShowCommandLine--TaskCommandLineEvent mesajlarını göster
-                        ShowTimestamp--Zaman damgasını herhangi bir
-                            mesajın başına önek olarak göster.
-                        ShowEventId--Başlatılan olaylar, tamamlanan olaylar
-                            ve mesajlar için olay kimliğini göster
-                        ForceNoAlign--Metni konsol arabelleğinin
-                            boyutuna hizalama yapmaz
-                        DisableConsoleColor--Tüm günlük mesajları için
-                            varsayılan konsol renklerini kullanın.
-                        EnableMPLogging--Çok işlemcili modda olmayan sistemlerde bile
-                            çok işlemcili günlük kaydı stilini
-                            etkinleştirir. Bu günlük kaydı stili varsayılan olarak açıktır.
-                        ForceConsoleColor--Konsol desteklemiyor olsa bile
-                            ANSI konsol renklerini kullan
-                        PreferConsoleColor--Hedef konsol destekliyorsa
-                            yalnızca ANSI konsol renklerini kullan
-                     Verbosity--Bu kaydedici için -verbosity ayarını
-                            geçersiz kılar.
-                     Örnek:
+                     콘솔 로거의 매개 변수. (약식: -clp)
+                     사용 가능한 매개 변수는 다음과 같습니다.
+                        PerformanceSummary--작업, 목표, 프로젝트에
+                            소요된 시간을 표시합니다.
+                        Summary--끝에 오류 및 경고 요약을 표시합니다.
+                        NoSummary--끝에 오류 및 경고 요약을 표시하지
+                            않습니다.
+                        ErrorsOnly--오류만 표시합니다.
+                        WarningsOnly--경고만 표시합니다.
+                        NoItemAndPropertyList--각 프로젝트 빌드를 시작할 때
+                            항목 및 속성 목록을 표시하지 않습니다.
+                        showCommandLine--TaskCommandLineEvent 메시지 표시
+                        ShowTimestamp--모든 메시지 앞에 타임스탬프를 접두사로
+                            표시합니다.
+                        ShowEventId--시작된 이벤트, 완료된 이벤트 및 메시지의
+                            이벤트 ID 표시
+                        ForceNoAlign--콘솔 버퍼 크기에 맞게 텍스트를
+                            정렬하지 않습니다.
+                        DisableConsoleColor--모든 로깅 메시지에 대해
+                            기본 콘솔 색상을 사용합니다.
+                        EnableMPLogging--다중 프로세서가 아닌 모드에서
+                            실행되는 경우에도 다중 프로세서 로깅 스타일을
+                            활성화합니다. 이 로깅 스타일은 기본적으로 켜져 있습니다.
+                        ForceConsoleColor--콘솔이 지원하지 않더라도
+                            ANSI 콘솔 색상 사용
+                        PreferConsoleColor--대상 콘솔에서 지원하는 경우에만
+                            ANSI 콘솔 색상 사용
+                     Verbosity--이 로거에 대한 -verbosity 설정을
+                            재정의합니다.
+                     예: 
                         -consoleLoggerParameters:PerformanceSummary;NoSummary;
                                                  Verbosity=minimal
 </target>
@@ -999,8 +1001,8 @@
         <source>  -noConsoleLogger   Disable the default console logger and do not log events
                      to the console. (Short form: -noConLog)
 </source>
-        <target state="translated">  -noConsoleLogger   Varsayılan konsol günlükçüsünü devre dışı bırakır ve olayları
-                     konsolda günlüğe almaz. (Kısa biçim: -noConLog)
+        <target state="translated">  -noConsoleLogger   기본 콘솔 로거를 사용하지 않고 콘솔에 이벤트를
+                     로깅하지 않습니다. (약식: -noConLog)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1020,12 +1022,12 @@
                      Example:
                        -validate:MyExtendedBuildSchema.xsd
 </source>
-        <target state="translated">  -validate          Varsayılan şemaya göre projeyi doğrular. (Kısa
-                     biçim: -val)
+        <target state="translated">  -validate          기본 스키마를 기준으로 프로젝트의 유효성을 검사합니다. 
+                     (약식: -val)
 
-  -validate:&lt;şema&gt; Belirtilen şemaya göre projeyi doğrular. (Kısa
-                     biçim: -val)
-                     Örnek:
+  -validate:&lt;schema&gt; 지정된 스키마를 기준으로 프로젝트의 유효성을 검사합니다. 
+                     (약식: -val)
+                     예:
                        -validate:MyExtendedBuildSchema.xsd
 </target>
         <note>
@@ -1044,11 +1046,11 @@
                      MSBuild will use up to the number of processors on the
                      computer. (Short form: -m[:n])
       </source>
-        <target state="translated">  -maxCpuCount[:n]   Birlikte oluşturulacak en fazla eşzamanlı işlem
-                     sayısını belirtir. Düğme kullanılmazsa kullanılan
-                     varsayılan değer 1’dir. Düğme bir değer olmadan kullanılırsa
-                     MSBuild en fazla bilgisayardaki sayı kadar işlemci
-                     kullanır. (Kısa biçim: -m[:n])
+        <target state="translated">  -maxCpuCount[:n]   빌드에 사용할 최대 동시 프로세스 수를
+                     지정합니다. 스위치가 사용되지 않으면 기본값
+                     1이 사용됩니다. 값없이 스위치가 사용되면
+                     MSBuild에서 컴퓨터에 있는 프로세서 수 이하로
+                     사용됩니다. (약식: -m[:n])
       </target>
         <note>
           LOCALIZATION: "maxCpuCount" should not be localized.
@@ -1062,7 +1064,7 @@
         MSBuild MyApp.csproj -t:Clean
                              -p:Configuration=Debug;TargetFrameworkVersion=v3.5
     </source>
-        <target state="translated">Örnekler:
+        <target state="translated">예:
 
         MSBuild MyApp.sln -t:Rebuild -p:Configuration=Release
         MSBuild MyApp.csproj -t:Clean
@@ -1084,9 +1086,9 @@
                      to False, this sets it to True. (short form: -irc)
    </source>
         <target state="translated">  -inputResultsCaches:&lt;cacheFile&gt;...
-                     MSBuild tarafından sağlanan giriş önbelleği dosyalarının noktalı virgülle ayrılmış listesi
-                     derleme sonuçlarını okuyacak. -isolateProjects False olarak
-                      ayarlanırsa bunu True olarak ayarlar. (kısa biçim: -irc)
+                     MSBuild가 빌드 결과를 읽을 입력 캐시 파일의
+                     세미콜론으로 구분된 목록입니다. -isolateProjects가
+                     False로 설정된 경우 이로 인해 True로 설정됩니다. (약식: -irc)
    </target>
         <note>
       LOCALIZATION: The following should not be localized: MSBuild, -isolate
@@ -1101,10 +1103,10 @@
                      (short form: -orc)
    </source>
         <target state="translated">  -outputResultsCache:[cacheFile]
-                     MSBuild'in içeriklerini yazacağı çıktı önbellek dosyası
-                     derlemenin sonundaki derleme sonucu önbellekleri.
-                     -isolateProjects False olarak ayarlanırsa, bunu True olarak ayarlar.
-                     (kısa biçim: -orc)
+                     빌드가 끝날 때 MSBuild에서 빌드 결과 캐시의
+                     콘텐츠를 쓸 출력 캐시 파일입니다.
+                     -isolateProjects가 False로 설정된 경우 이로 인해 True로 설정됩니다.
+                     (약식: -orc)
    </target>
         <note>
       LOCALIZATION: The following should not be localized: MSBuild, -isolate
@@ -1113,7 +1115,7 @@
       </trans-unit>
       <trans-unit id="HelpPrompt">
         <source>For switch syntax, type "MSBuild -help"</source>
-        <target state="translated">Anahtar sözdizimi için "MSBuild -help" yazın</target>
+        <target state="translated">스위치 구문을 보려면 "MSBuild -help"를 입력하세요.</target>
         <note>UE: this message is shown when the user makes a syntax error on the command-line for a switch.
     LOCALIZATION: "MSBuild -help" should not be localized.</note>
       </trans-unit>
@@ -1136,21 +1138,21 @@
                        -dl:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -dl:MyLogger,C:\My.dll*ForwardingLogger,C:\Logger.dll
 </source>
-        <target state="translated">  -distributedLogger:&lt;merkezi günlükçü&gt;*&lt;iletilen günlükçü&gt;
-                     MSBuild'den gelen olayları her düğüme farklı bir günlükçü
-                     örneği iliştirerek günlüğe almak için bu günlükçüyü kullanın. Birden fazla
-                     günlükçü belirtmek için her günlükçüyü ayrı ayrı belirtin.
-                     (Kısa biçim -dl)
-                     &lt;günlükçü&gt; söz dizimi şöyledir:
-                       [&lt;sınıf&gt;,]&lt;derleme&gt;[,&lt;seçenekler&gt;][;&lt;parametreler&gt;]
-                     &lt;günlükçü sınıfı&gt; söz dizimi şöyledir:
-                       [&lt;kısmi veya tam ad alanı&gt;.]&lt;günlükçü sınıfı adı&gt;
-                     &lt;günlükçü derlemesi&gt; söz dizimi şöyledir:
-                       {&lt;derleme adı&gt;[,&lt;strong name&gt;] | &lt;derleme dosyası&gt;}
-                     Günlükçü seçenekleri, MSBuild'in günlükçüyü oluşturma biçimini belirtir.
-                     &lt;günlükçü parametreleri&gt; isteğe bağlıdır ve tam olarak
-                     yazdığınız şekliyle günlükçüye geçirilir. (Kısa biçim: -l)
-                     Örnekler:
+        <target state="translated">  -distributedLogger:&lt;중앙 로거&gt;*&lt;전달 로거&gt;
+                     이 로거를 사용해 MSBuild의 이벤트를 기록하여
+                     각 노드에 다른 로거 인스턴스를 연결합니다. 여러
+                     로거를 지정하려면 각 로거를 개별적으로 지정합니다.
+                     (약식 -dl)
+                     &lt;로거&gt; 구문은 다음과 같습니다.
+                       [&lt;클래스&gt;,]&lt;어셈블리&gt;[,&lt;옵션&gt;][;&lt;매개 변수&gt;]
+                     &lt;로거 클래스&gt; 구문은 다음과 같습니다.
+                       [&lt;부분 또는 전체 네임스페이스&gt;.]&lt;로거 클래스 이름&gt;
+                     &lt;로거 어셈블리&gt; 구문은 다음과 같습니다.
+                       {&lt;어셈블리 이름&gt;[,&lt;strong name&gt;] | &lt;어셈블리 파일&gt;}
+                     로거 옵션은 MSBuild가 로거를 만드는 방법을 지정합니다.
+                      &lt;로거 매개 변수&gt;는 선택 사항이고
+                     입력한 대로 정확히 로거에 전달됩니다. (약식: -l)
+                     예:
                        -dl:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -dl:MyLogger,C:\My.dll*ForwardingLogger,C:\Logger.dll
 </target>
@@ -1172,13 +1174,12 @@
                      Example:
                        -ignoreProjectExtensions:.sln
     </source>
-        <target state="translated">  -ignoreProjectExtensions:&lt;uzantılar&gt;
-                     Hangi proje dosyasının oluşturulacağı belirlenirken 
-                     yoksayılacak uzantıların listesi. Birden çok uzantıyı 
-                     birbirinden ayırmak için noktalı virgül veya 
-                     virgül kullanın.
-                     (Kısa biçim: -ignore)
-                     Örnek:
+        <target state="translated">  -ignoreProjectExtensions:&lt;extensions&gt;
+                     빌드할 프로젝트 파일을 결정할 때 
+                     무시할 확장 목록입니다. 여러 확장을 구분하는 데는 
+                     세미콜론 또는 쉼표를 사용합니다.
+                     (약식: -ignore)
+                     예:
                        -ignoreProjectExtensions:.sln
     </target>
         <note>
@@ -1199,12 +1200,12 @@
                      Example:
                        -toolsVersion:3.5
    </source>
-        <target state="translated">  -toolsVersion:&lt;sürüm&gt;
-                     Derleme sırasında kullanılacak MSBuild Araç Kümesinin
-                     (görevler, hedefler vb.) sürümü. Bu sürüm, tek tek projelerde 
-                     belirtilen sürümleri geçersiz kılar. (Kısa biçim: 
+        <target state="translated">  -toolsVersion:&lt;version&gt;
+                     빌드 중에 사용할 MSBuild 도구 세트(작업, 대상 등)의 버전입니다.
+                     이 버전은 개별 프로젝트에서 지정한 버전을 
+                     재정의합니다. (약식:
                      -tv)
-                     Örnek:
+                     예:
                        -toolsVersion:3.5
    </target>
         <note>
@@ -1226,14 +1227,14 @@
                      "n" if present can be a digit from 1-9, allowing up to
                      10 file loggers to be attached. (Short form: -fl[n])
     </source>
-        <target state="translated">  -fileLogger[n]     Derleme çıktısını bir dosyaya kaydeder. Dosya,
-                     varsayılan olarak geçerli dizindedir ve
-                     "msbuild[n].log" olarak adlandırılır. Tüm düğümlerdeki olaylar
-                     tek bir günlükte birleştirilir. Dosyanın konumu ve
-                     diğer fileLogger parametreleri
-                     "-fileLoggerParameters[n]" anahtarı eklenerek belirtilebilir.
-                     “n” varsa, 1-9 arasında bir rakam olabilir ve 10’a
-                     kadar dosya günlükçüsünün eklenmesine izin verir. (Kısa biçim: -fl[n])
+        <target state="translated">  -fileLogger[n]     빌드 출력을 파일에 로깅합니다. 기본적으로
+                     파일은 현재 디렉터리에 있고
+                     "msbuild[n].log"로 이름이 지정되어 있습니다. 모든 노드의 이벤트는 단일 로그로
+                     결합됩니다. 파일의 위치 및 fileLogger의
+                     다른 매개 변수는 "-fileLoggerParameters[n]" 스위치를 
+                     추가하여 지정할 수 있습니다.
+                     "n"은 1-9 사이의 숫자일 수 있으며 최대 10개의 
+                     파일 로거가 추가될 수 있습니다. (약식: -fl[n])
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1259,18 +1260,17 @@
                      create a log file for each node.
     </source>
         <target state="translated">  -distributedFileLogger
-                     Derleme çıkışını, her MSBuild düğümü için bir günlük
-                     dosyası olmak üzere birden çok günlük dosyasına kaydeder. Bu
-                     dosyaların ilk konumu geçerli dizindir. Dosyaların 
-                     varsayılan adı "MSBuild&lt;düğümkimliği&gt;.log"dur. 
-                     Dosyaların konumu ve fileLogger'ın diğer parametreleri 
-                     "/fileLoggerParameters" anahtarının eklenmesi yoluyla
-                     belirtilebilir.
+                     MSBuild 노드당 로그 파일 하나씩, 여러 로그 파일에 빌드 출력을 
+                     기록합니다. 해당 파일의 초기 위치는 
+                     현재 디렉터리입니다. 기본적으로 해당 파일을 
+                     "MSBuild&lt;nodeid&gt;.log"라고 합니다. 파일 위치 및 fileLogger의 기타 매개 변수는 
+                     "-fileLoggerParameters" 스위치를 추가해서 
+                     지정할 수 있습니다.
 
-                     Günlük dosyası adı fileLoggerParameters anahtarı
-                     aracılığıyla ayarlanırsa dağıtılmış günlükçü fileName 
-                     değerini şablon olarak kullanıp her düğümün günlük dosyasını
-                     oluşturmak için bu fileName değerine düğüm kimliğini ekler.
+                     로그 파일 이름이 fileLoggerParameters 스위치를 통해 설정되면 
+                     배포된 로거가 fileName을 템플릿으로 사용하고 
+                     노드 ID를 이 fileName에 추가하여 
+                     각 노드의 로그 파일을 만듭니다.
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1311,34 +1311,33 @@
                        -flp1:warningsonly;logfile=msbuild.wrn
                        -flp2:errorsonly;logfile=msbuild.err
     </source>
-        <target state="translated">  -fileLoggerParameters[n]:&lt;parametreler&gt;
-                     Dosya günlükçüleri için ek parametreler sağlar.
-                     Bu anahtarın olması karşılık gelen -fileLogger[n] 
-                     anahtarının olduğu anlamına gelir.
-                     "n" varsa, 1-9 arasında bir rakam olabilir.
-                     Dağıtılmış dosya günlükçüleri varsa -fileLoggerParameters 
-                     bunlar tarafından da kullanılır; -distributedFileLogger 
-                     açıklamasına bakın.
-                     (Kısa biçim: -flp[n])
-                     Konsol günlükçüsü için listelenenlerle aynı parametreler 
-                     kullanılabilir. Kullanılabilecek bazı ek parametreler:
-                        LogFile--Oluşturma günlüğünün yazılacağı günlük 
-                            dosyasının yolu.
-                        Append--Derleme günlüğünün gün dosyasının sonuna mı 
-                            ekleneceğini yoksa üzerine mi yazılacağını 
-                            belirler. Anahtar ayarlandığında oluşturma günlüğü 
-                            dosyanın sonuna eklenir. Anahtar ayarlanmadığında 
-                            varolan günlük dosyasının üzerine yazılır. 
-                            Varsayılan: günlük dosyasının sonuna eklenmez.
-                        Encoding--Dosyanın kodlamasını belirtir; örneğin, 
-                            UTF-8, Unicode veya ASCII
-                     Varsayılan ayrıntı düzeyi ayarı Detailed'dır.
-                     Örnekler:
+        <target state="translated">  -fileLoggerParameters[n]:&lt;parameters&gt;
+                     파일 로거의 추가 매개 변수를 제공합니다.
+                     이 스위치가 있다는 것은 
+                     해당 fileLogger[n] 스위치를 의미합니다.
+                     "n"(있는 경우)은 1~9의 숫자일 수 있습니다.
+                     -fileLoggerParameters는 배포된 파일 로거에서도 
+                     사용됩니다. -distributedFileLogger에 대한 설명을 참조하세요.
+                     (약식: -flp[n])
+                     콘솔 로거용으로 나열된 동일한 매개 변수를 사용할 수 있습니다.
+                     다음과 같은 몇 가지 추가 매개 변수를 사용할 수 있습니다.
+                        LogFile--빌드 로그가 기록되는 
+                            로그 파일의 경로입니다.
+                        Append--빌드 로그가 로그 파일에 추가되는지, 
+                            아니면 로그 파일을 덮어쓰는지 여부를 결정합니다. 
+                            스위치를 설정하면 빌드 로그가 로그 파일에 추가됩니다.
+                            스위치를 설정하지 않으면 기존 로그 파일의 
+                            콘텐츠를 덮어씁니다.
+                            기본값은 로그 파일에 추가하지 않는 것입니다.
+                        Encoding--파일의 인코딩을 지정합니다
+                            (예: UTF-8, 유니코드 또는 ASCII).
+                     기본 세부 정보 표시는 Detailed입니다.
+                     예:
                        -fileLoggerParameters:LogFile=MyLog.log;Append;
                                            Verbosity=diagnostic;Encoding=UTF-8
 
-                       -flp:Summary;Verbosity=minimal;LogFile=msbuild.sum 
-                       -flp1:warningsonly;logfile=msbuild.wrn 
+                       -flp:Summary;Verbosity=minimal;LogFile=msbuild.sum
+                       -flp1:warningsonly;logfile=msbuild.wrn
                        -flp2:errorsonly;logfile=msbuild.err
     </target>
         <note>
@@ -1361,15 +1360,14 @@
                      Example:
                        -nr:true
     </source>
-        <target state="translated">  -nodeReuse:&lt;parametreler&gt;
-                     MSBuild düğümlerinin yeniden kullanımını etkinleştirir
-                     veya devre dışı bırakır.
-                     Parametreler:
-                     True --Derleme tamamlandıktan sonra düğümler kalır ve
-                            izleyen derlemelerde yeniden kullanılır (varsayılan)
-                     False--Derleme tamamlandıktan sonra düğümler kalmaz
-                     (Kısa biçim: -nr)
-                     Örnek:
+        <target state="translated">  -nodeReuse:&lt;parameters&gt;
+                     MSBuild 노드를 다시 사용하거나 다시 사용하지 않도록 설정합니다.
+                     매개 변수는 다음가 같습니다.
+                     True --빌드 완료 후 노드가 유지되고 
+                            후속 빌드에서 다시 사용됩니다(기본값).
+                     False--빌드 완료 후 노드가 유지되지 않습니다.
+                     (약식: -nr)
+                     예:
                        -nr:true
     </target>
         <note />
@@ -1389,16 +1387,16 @@
                        -pp:out.txt
     </source>
         <target state="translated">  -preprocess[:file]
-                     Bir derleme sırasında içeri aktarılacak tüm dosyaları
-                     satır içinde kullanarak ve sınırlarını belirleyerek
-                    tek bir kümelenmiş proje dosyası oluşturur. Bu, hangi
-                     dosyaların nereden içeri aktarılacağını ve derlemeye
-                     nasıl katkıda bulunacağını belirlemede yararlı
-                     olabilir. Çıkış, varsayılan olarak
-                     konsol penceresine yazılır. Bir çıkış dosyası yolu
-                     belirtildiyse o dosya kullanılır.
-                     (Kısa biçim: -pp)
-                     Örnek:
+                     빌드 중에 가져온 모든 파일에
+                     해당 경계를 표시하여 인라인 처리하면 집계된
+                     단일 프로젝트 파일을 만들 수 있습니다. 이렇게 하면
+                     가져오고 있는 파일, 파일을 가져온 위치
+                     및 해당 파일이 빌드에 어떤 영향을 주는지를 파악하는 데
+                     도움이 됩니다. 기본적으로 출력은
+                     콘솔 창에 기록됩니다. 출력 파일에 대한 경로가
+                     제공되면 해당 경로가 대신 사용됩니다.
+                     (약식: -pp)
+                     예:
                        -pp:out.txt
     </target>
         <note />
@@ -1411,10 +1409,10 @@
                      (Short form: -ds)
     </source>
         <target state="translated">  -detailedSummary[:True|False]
-                     Derleme sonunda, derlenen yapılandırmalar ve
-                     bu yapılandırmaların düğümlere nasıl zamanlandıkları
-                     ile ilgili ayrıntılı bilgileri gösterir.
-                     (Kısa biçim: -ds)
+                     빌드가 끝날 때 자세한 정보 표시
+                     구성 및 노드 예약 방법에 대해
+                     설명합니다.
+                     (Short form: -ds)
     </target>
         <note>
       LOCALIZATION: "detailedSummary", "True" and "False" should not be localized.
@@ -1423,7 +1421,7 @@
       </trans-unit>
       <trans-unit id="InvalidConfigurationFile">
         <source>MSBUILD : Configuration error MSB1043: The application could not start. {0}</source>
-        <target state="translated">MSBUILD : Configuration error MSB1043: Uygulama başlatılamadı. {0}</target>
+        <target state="translated">MSBUILD : Configuration error MSB1043: 애플리케이션을 시작할 수 없습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : Configuration error MSB1043: "}
       UE: This error is shown when the msbuild.exe.config file had invalid content.
@@ -1432,7 +1430,7 @@
       </trans-unit>
       <trans-unit id="InvalidDetailedSummaryValue">
         <source>MSBUILD : error MSB1061: Detailed summary value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1061: Ayrıntılı özet değeri geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1061: 자세한 요약 값이 잘못되었습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1061: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1442,7 +1440,7 @@
       </trans-unit>
       <trans-unit id="InvalidGraphBuildValue">
         <source>MSBUILD : error MSB1057: Graph build value is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1057: Grafik derleme değeri geçerli değil.</target>
+        <target state="translated">MSBUILD : error MSB1057: 그래프 빌드 값이 잘못되었습니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1057: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1452,7 +1450,7 @@
       </trans-unit>
       <trans-unit id="InvalidInteractiveValue">
         <source>MSBUILD : error MSB1055: Interactive value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1055: Etkileşimli değer geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1055: 대화형 값이 유효하지 않습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1055: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1462,7 +1460,7 @@
       </trans-unit>
       <trans-unit id="InvalidIsolateProjectsValue">
         <source>MSBUILD : error MSB1056: Isolate projects value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1056: Projeleri yalıtma değeri geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1056: 프로젝트 격리 값이 유효하지 않습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1056: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1473,7 +1471,7 @@
       </trans-unit>
       <trans-unit id="InvalidLoggerError">
         <source>MSBUILD : error MSB1019: Logger switch was not correctly formed.</source>
-        <target state="translated">MSBUILD : error MSB1019: Günlükçü anahtarı doğru biçimlendirilmemiş.</target>
+        <target state="translated">MSBUILD : error MSB1019: 로거 스위치의 형식이 잘못되었습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1019: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user does any of the following:
       msbuild.exe -logger:;"logger parameters"                    (missing logger class and assembly)
@@ -1485,7 +1483,7 @@
       </trans-unit>
       <trans-unit id="InvalidMaxCPUCountValue">
         <source>MSBUILD : error MSB1030: Maximum CPU count is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1030: En yüksek CPU sayısı geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1030: 최대 CPU 수가 잘못되었습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1030: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1495,7 +1493,7 @@
       </trans-unit>
       <trans-unit id="InvalidMaxCPUCountValueOutsideRange">
         <source>MSBUILD : error MSB1032: Maximum CPU count is not valid. Value must be an integer greater than zero and no more than 1024.</source>
-        <target state="translated">MSBUILD : error MSB1032: En yüksek CPU sayısı geçerli değil. Değer sıfırdan büyük ve 1024’ten küçük bir tamsayı olmalıdır.</target>
+        <target state="translated">MSBUILD : error MSB1032: 최대 CPU 수가 잘못되었습니다. 값은 0보다 크고 1024 이하인 정수여야 합니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1032: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies a CPU value that is zero or less. For example, -m:0 instead of -m:2.
@@ -1504,7 +1502,7 @@
       </trans-unit>
       <trans-unit id="InvalidNodeNumberValue">
         <source>MSBUILD : error MSB1033: Node number is not valid. {0}.</source>
-        <target state="translated">MSBUILD : error MSB1033: Düğüm sayısı geçerli değil. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1033: 노드 번호가 잘못되었습니다. {0}.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1033: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1514,7 +1512,7 @@
       </trans-unit>
       <trans-unit id="InvalidNodeNumberValueIsNegative">
         <source>MSBUILD : error MSB1034: Node number is not valid. Value must be an integer greater than zero.</source>
-        <target state="translated">MSBUILD : error MSB1034: Düğüm sayısı geçerli değil. Değer sıfırdan büyük bir tamsayı olmalıdır.</target>
+        <target state="translated">MSBUILD : error MSB1034: 노드 번호가 잘못되었습니다. 값은 0보다 큰 정수여야 합니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1034: "}
         UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
         This error is shown when a user specifies a CPU value that is zero or less. For example, -nodeMode:0 instead of -nodeMode:2.
@@ -1523,7 +1521,7 @@
       </trans-unit>
       <trans-unit id="InvalidPropertyError">
         <source>MSBUILD : error MSB1006: Property is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1006: Özellik geçerli değil.</target>
+        <target state="translated">MSBUILD : error MSB1006: 속성이 잘못되었습니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1006: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown if the user does any of the following:
@@ -1535,13 +1533,13 @@
       </trans-unit>
       <trans-unit id="InvalidSchemaFile">
         <source>MSBUILD : MSB1046: The schema "{0}" is not valid. {1}</source>
-        <target state="translated">MSBUILD : MSB1046: "{0}" şeması geçerli değil. {1}</target>
+        <target state="translated">MSBUILD : MSB1046: "{0}" 스키마가 잘못되었습니다. {1}</target>
         <note>{StrBegin="MSBUILD : MSB1046: "}UE: This message is shown when the schema file provided for the validation of a project is itself not valid.
     LOCALIZATION: "{0}" is the schema file path. "{1}" is a message from an FX exception that describes why the schema file is bad.</note>
       </trans-unit>
       <trans-unit id="InvalidSwitchIndicator">
         <source>Switch: {0}</source>
-        <target state="translated">Anahtar: {0}</target>
+        <target state="translated">스위치: {0}</target>
         <note>
       UE: This is attached to error messages caused by an invalid switch. This message indicates what the invalid arg was.
       For example, if an unknown switch is passed to MSBuild.exe, the error message will look like this:
@@ -1552,7 +1550,7 @@
       </trans-unit>
       <trans-unit id="InvalidToolsVersionError">
         <source>MSBUILD : error MSB1040: ToolsVersion is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1040: ToolsVersion geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1040: ToolsVersion이 잘못되었습니다. {0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1040: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1562,7 +1560,7 @@
       </trans-unit>
       <trans-unit id="InvalidVerbosityError">
         <source>MSBUILD : error MSB1018: Verbosity level is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1018: Ayrıntı düzeyi geçerli değil.</target>
+        <target state="translated">MSBUILD : error MSB1018: 세부 정보 표시 수준이 잘못되었습니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1018: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies an unknown verbosity level e.g. "msbuild -verbosity:foo". The only valid verbosities
@@ -1572,7 +1570,7 @@
       </trans-unit>
       <trans-unit id="LoggerFatalError">
         <source>MSBUILD : error MSB1028: The logger failed unexpectedly.</source>
-        <target state="translated">MSBUILD : error MSB1028: Günlükçü beklenmedik biçimde başarısız oldu.</target>
+        <target state="translated">MSBUILD : error MSB1028: 로거에서 예기치 않은 오류가 발생했습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1028: "}
       UE: This error is shown when a logger specified with the -logger switch throws an exception while being
       initialized. This message is followed by the exception text including the stack trace.
@@ -1580,7 +1578,7 @@
       </trans-unit>
       <trans-unit id="LoggerFailurePrefixNoErrorCode">
         <source>MSBUILD : Logger error {0}: {1}</source>
-        <target state="translated">MSBUILD : Günlükçü error {0}: {1}</target>
+        <target state="translated">MSBUILD : 로거 error {0}: {1}</target>
         <note>UE: This prefixes the error message emitted by a logger, when a logger fails in a controlled way using a LoggerException.
       For example, the logger is indicating that it could not create its output file.
       There's no error code because one was supplied by the logger.
@@ -1589,7 +1587,7 @@
       </trans-unit>
       <trans-unit id="LoggerFailurePrefixWithErrorCode">
         <source>MSBUILD : Logger error MSB1029: {0}</source>
-        <target state="translated">MSBUILD : Günlükçü error MSB1029: {0}</target>
+        <target state="translated">MSBUILD : 로거 error MSB1029: {0}</target>
         <note>{SubString="Logger", "{0}"}{StrBegin="MSBUILD : "}
         UE: This prefixes the error message emitted by a logger, when a logger fails in a controlled way using a LoggerException.
         For example, the logger is indicating that it could not create its output file.
@@ -1599,22 +1597,22 @@
       </trans-unit>
       <trans-unit id="MSBExePath">
         <source>MSBuild executable path = "{0}"</source>
-        <target state="translated">MSBuild yürütülebilir yolu = "{0}"</target>
+        <target state="translated">MSBuild 실행 파일 경로 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBVersion">
         <source>MSBuild version = "{0}"</source>
-        <target state="translated">MSBuild sürümü = "{0}"</target>
+        <target state="translated">MSBuild 버전 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBuildDebugPath">
         <source>MSBuild logs and debug information will be at "{0}"</source>
-        <target state="translated">MSBuild günlükleri ve hata ayıklama bilgileri "{0}" yolunda olacak</target>
+        <target state="translated">MSBuild 로그 및 디버그 정보는 "{0}"에 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingFeatureAvailabilityError">
         <source>MSBUILD : error MSB1067: Must provide a feature name for the featureAvailability switch.</source>
-        <target state="translated">MSBUILD : error MSB1067: featureAvailability anahtarı için özellik adı belirtilmelidir.</target>
+        <target state="translated">MSBUILD : error MSB1067: featureAvailability 스위치에 대한 기능 이름을 제공해야 합니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1067: "}UE: This happens if the user does something like "msbuild.exe -featureAvailability". The user must pass in an actual feature name
       following the switch, as in "msbuild.exe -featureAvailability:blah".
@@ -1623,7 +1621,7 @@
       </trans-unit>
       <trans-unit id="MissingGetItemError">
         <source>MSBUILD : error MSB1014: Must provide an item name for the getItem switch.</source>
-        <target state="translated">MSBUILD : error MSB1014: getItem anahtarı için bir öğe adı sağlanması gerekiyor.</target>
+        <target state="translated">MSBUILD : error MSB1014: getItem 스위치의 항목 이름을 제공해야 합니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1014: "}UE: This happens if the user does something like "msbuild.exe -getItem". The user must pass in an actual item name
       following the switch, as in "msbuild.exe -getItem:blah".
@@ -1632,7 +1630,7 @@
       </trans-unit>
       <trans-unit id="MissingGetPropertyError">
         <source>MSBUILD : error MSB1010: Must provide a property name for the getProperty switch.</source>
-        <target state="translated">MSBUILD : error MSB1010: getProperty anahtarı için bir özellik adı belirtilmelidir.</target>
+        <target state="translated">MSBUILD : error MSB1010: getProperty 스위치의 속성 이름을 제공해야 합니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1010: "}UE: This happens if the user does something like "msbuild.exe -getProperty". The user must pass in an actual property name
       following the switch, as in "msbuild.exe -getProperty:blah".
@@ -1641,7 +1639,7 @@
       </trans-unit>
       <trans-unit id="MissingGetResultFileError">
         <source>MSBUILD : error MSB1068: Must provide a file for the getResultOutputFile switch.</source>
-        <target state="translated">MSBUILD : error MSB1068: getResultOutputFile anahtarı için bir dosya sağlanmalıdır.</target>
+        <target state="translated">MSBUILD : error MSB1068: getResultOutputFile 스위치에 대한 파일을 제공해야 합니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1068: "}UE: This happens if the user does something like "msbuild.exe -getResultOutputFile". The user must pass in an actual file
       following the switch, as in "msbuild.exe -getTargetResult:blah -getResultOutputFile:blah.txt".
@@ -1650,7 +1648,7 @@
       </trans-unit>
       <trans-unit id="MissingGetTargetResultError">
         <source>MSBUILD : error MSB1017: Must provide a target name for the getTargetResult switch.</source>
-        <target state="translated">MSBUILD : error MSB1017: getTargetResult anahtarı için bir hedef adı sağlanması gerekiyor.</target>
+        <target state="translated">MSBUILD : error MSB1017: getTargetResult 스위치의 대상 이름을 제공해야 합니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1017: "}UE: This happens if the user does something like "msbuild.exe -getTargetResult". The user must pass in an actual target name
       following the switch, as in "msbuild.exe -getTargetResult:blah".
@@ -1659,7 +1657,7 @@
       </trans-unit>
       <trans-unit id="MissingLoggerError">
         <source>MSBUILD : error MSB1007: Specify a logger.</source>
-        <target state="translated">MSBUILD : error MSB1007: Günlükçü belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1007: 로거를 지정하십시오.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1007: "}UE: This happens if the user does something like "msbuild.exe -logger". The user must pass in an actual logger class
       following the switch, as in "msbuild.exe -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral".
@@ -1668,7 +1666,7 @@
       </trans-unit>
       <trans-unit id="MissingMaxCPUCountError">
         <source>MSBUILD : error MSB1031: Specify the maximum number of CPUs.</source>
-        <target state="translated">MSBUILD : error MSB1031: En yüksek CPU sayısını belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1031: 최대 CPU 수를 지정하십시오.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1031: "}UE: This happens if the user does something like "msbuild.exe -m". The user must pass in an actual number like -m:4.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1676,7 +1674,7 @@
       </trans-unit>
       <trans-unit id="MissingProjectError">
         <source>MSBUILD : error MSB1003: Specify a project or solution file. The current working directory does not contain a project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1003: Bir proje veya çözüm dosyası belirtin. Geçerli çalışma dizini bir proje veya çözüm dosyası içermiyor.</target>
+        <target state="translated">MSBUILD : error MSB1003: 프로젝트 또는 솔루션 파일을 지정하세요. 현재 작업 디렉터리에 프로젝트 또는 솔루션 파일이 없습니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1003: "}UE: The user must either specify a project or solution file to build, or there must be a project file in the current directory
       with a file extension ending in "proj" (e.g., foo.csproj), or a solution file ending in "sln".
@@ -1685,7 +1683,7 @@
       </trans-unit>
       <trans-unit id="MissingPropertyError">
         <source>MSBUILD : error MSB1005: Specify a property and its value.</source>
-        <target state="translated">MSBUILD : error MSB1005: Bir özellik ve bunun değerini belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1005: 속성과 해당 속성 값을 지정하십시오.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1005: "}UE: This happens if the user does something like "msbuild.exe -property". The user must pass in an actual property
       name and value following the switch, as in "msbuild.exe -property:Configuration=Debug".
@@ -1694,7 +1692,7 @@
       </trans-unit>
       <trans-unit id="MissingResponseFileError">
         <source>MSBUILD : error MSB1012: Specify a response file.</source>
-        <target state="translated">MSBUILD : error MSB1012: Bir yanıt dosyası belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1012: 지시 파일을 지정하십시오.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1012: "}UE: This error would occur if the user did something like "msbuild.exe @ foo.proj". The at-sign must be followed by a
       response file.
@@ -1703,7 +1701,7 @@
       </trans-unit>
       <trans-unit id="MissingTargetError">
         <source>MSBUILD : error MSB1004: Specify the name of the target.</source>
-        <target state="translated">MSBUILD : error MSB1004: Hedefin adını belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1004: 대상의 이름을 지정하십시오.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1004: "}UE: This happens if the user does something like "msbuild.exe -target". The user must pass in an actual target name
       following the switch, as in "msbuild.exe -target:blah".
@@ -1712,7 +1710,7 @@
       </trans-unit>
       <trans-unit id="MissingTerminalLoggerParameterError">
         <source>MSBUILD : error MSB1066: Specify one or more parameters for the terminal logger if using the -terminalLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1066: -terminalLoggerParameters anahtarı kullanılıyorsa terminal günlükçüsü için bir veya birden çok parametre belirtin</target>
+        <target state="translated">MSBUILD : error MSB1066: -terminalLoggerParameters 스위치를 사용하는 경우 터미널 로거에 대해 하나 이상의 매개 변수를 지정하세요.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1066: "}
       UE: This happens if the user does something like "msbuild.exe -terminalLoggerParameters:". The user must pass in one or more parameters
@@ -1722,7 +1720,7 @@
       </trans-unit>
       <trans-unit id="MissingToolsVersionError">
         <source>MSBUILD : error MSB1039: Specify the version of the toolset.</source>
-        <target state="translated">MSBUILD : error MSB1039: Araç takımının sürümünü belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1039: 도구 집합의 버전을 지정하십시오.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1039: "}
       UE: This happens if the user does something like "msbuild.exe -toolsVersion". The user must pass in an actual toolsversion
@@ -1732,7 +1730,7 @@
       </trans-unit>
       <trans-unit id="MissingVerbosityError">
         <source>MSBUILD : error MSB1016: Specify the verbosity level.</source>
-        <target state="translated">MSBUILD : error MSB1016: Ayrıntı düzeyini belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1016: 세부 정보 표시 수준을 지정하십시오.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1016: "}UE: This happens if the user does something like "msbuild.exe -verbosity". The user must pass in a verbosity level
       after the switch e.g. "msbuild.exe -verbosity:detailed".
@@ -1741,7 +1739,7 @@
       </trans-unit>
       <trans-unit id="MissingWarnNotAsErrorParameterError">
         <source>MSBUILD : error MSB1060: Specify one or more warning codes when using the -warnNotAsError switch.</source>
-        <target state="translated">MSBUILD : error MSB1060: -warnNotAsError anahtarını kullanırken bir veya daha fazla uyarı kodu belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1060: -warnNotAsError 스위치를 사용할 때 하나 이상의 경고 코드를 지정하세요.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1060: "}
       UE: This happens if the user does something like "msbuild.exe -warnNotAsError:" without any codes.
@@ -1750,7 +1748,7 @@
       </trans-unit>
       <trans-unit id="MultipleSchemasError">
         <source>MSBUILD : error MSB1024: Only one schema can be specified for validation of the project.</source>
-        <target state="translated">MSBUILD : error MSB1024: Projenin doğrulanması için yalnızca bir şema belirtilebilir.</target>
+        <target state="translated">MSBUILD : error MSB1024: 프로젝트의 유효성을 검사하는 데 사용할 스키마를 하나만 지정할 수 있습니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1024: "}UE: The user did something like msbuild -validate:foo.xsd -validate:bar.xsd. We only allow one schema to be specified.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1758,19 +1756,19 @@
       </trans-unit>
       <trans-unit id="NameInvalid">
         <source>MSBUILD : error MSB5016: The name "{0}" contains an invalid character "{1}".</source>
-        <target state="translated">MSBUILD : error MSB5016: "{0}" adı "{1}" geçersiz karakterini içeriyor.</target>
+        <target state="translated">MSBUILD : error MSB5016: "{0}" 이름에 잘못된 문자 "{1}"이(가) 사용되었습니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB5016: "}
     </note>
       </trans-unit>
       <trans-unit id="NotWarnAsErrorWithoutWarnAsError">
         <source>MSBUILD : error MSB1062: The -warnnotaserror switch cannot be specified unless the -warnaserror switch is also specified and left empty.</source>
-        <target state="translated">MSBUILD : error MSB1062: -warnnotaserror anahtarı, -warnaserror anahtarı da belirtilmedikçe ve boş bırakılmadıkça belirtilemez.</target>
+        <target state="translated">MSBUILD : error MSB1062: -warnaserror 스위치도 지정하고 비어 있지 않으면 -warnnotaserror 스위치를 지정할 수 없습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1062: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-warnnotaserror" and "-warnaserror" should not be localized.</note>
       </trans-unit>
       <trans-unit id="OptionalLoggerCreationMessage">
         <source>The specified logger "{0}" could not be created and will not be used. {1}</source>
-        <target state="translated">Belirtilen "{0}" günlükçüsü oluşturulamadı ve kullanılmayacak. {1}</target>
+        <target state="translated">지정한 로거 "{0}"을(를) 만들 수 없으므로 사용할 수 없습니다. {1}</target>
         <note>
       UE: This error is shown when a logger cannot be loaded and instantiated from its assembly.
       LOCALIZATION: {0} contains the logger description passed on the command line or in a
@@ -1780,7 +1778,7 @@
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromAutoResponse">
         <source>Some command line switches were read from the auto-response file "{0}". To disable this file, use the "-noAutoResponse" switch.</source>
-        <target state="translated">Bazı komut satırı anahtarları "{0}" otomatik yanıt dosyasından okundu. Bu dosyayı devre dışı bırakmak için "-noAutoResponse" anahtarını kullanın.</target>
+        <target state="translated">자동 지시 파일 "{0}"에서 일부 명령줄 스위치를 읽어왔습니다. 이 파일을 사용하지 않도록 설정하려면 "-noAutoResponse" 스위치를 사용하세요.</target>
         <note>
       UE: This message appears in high verbosity modes when we used some
       switches from the auto-response file msbuild.rsp: otherwise the user may be unaware
@@ -1789,7 +1787,7 @@
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromResponseFile">
         <source>Some command line switches were read from this response file:</source>
-        <target state="translated">Bazı komut satırı anahtarları şu yanıt dosyasından okundu:</target>
+        <target state="translated">이 응답 파일에서 일부 명령줄 스위치를 읽었습니다.</target>
         <note>
       UE: This message appears before a command-line parsing error when switches were read from a response file: otherwise the user may be unaware where the switches are coming from.
       LOCALIZATION: The response file path is printed on a separate line after this message.
@@ -1797,7 +1795,7 @@
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromResponseFiles">
         <source>Some command line switches were read from these response files:</source>
-        <target state="translated">Bazı komut satırı anahtarları şu yanıt dosyalarından okundu:</target>
+        <target state="translated">이 응답 파일들에서 일부 명령줄 스위치를 읽었습니다:</target>
         <note>
       UE: This message appears before a command-line parsing error when switches were read from response files: otherwise the user may be unaware where the switches are coming from.
       LOCALIZATION: The response file paths are printed on separate lines after this message.
@@ -1805,35 +1803,35 @@
       </trans-unit>
       <trans-unit id="Process">
         <source>Process = "{0}"</source>
-        <target state="translated">İşlem = "{0}"</target>
+        <target state="translated">프로세스 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectNotFoundError">
         <source>MSBUILD : error MSB1009: Project file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1009: Proje dosyası yok.</target>
+        <target state="translated">MSBUILD : error MSB1009: 프로젝트 파일이 없습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1009: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="PossiblyOmittedMaxCPUSwitch">
         <source>Building the projects in this solution one at a time. To enable parallel build, please add the "-m" switch.</source>
-        <target state="translated">Bu çözümde projeler tek tek derlenir. Paralel bir derlemeyi etkinleştirmek için lütfen "-m" anahtarını ekleyin.</target>
+        <target state="translated">이 솔루션의 프로젝트를 한 번에 하나씩 빌드합니다. 병렬 빌드를 사용하려면 "-m" 스위치를 추가하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectSchemaErrorHalt">
         <source>MSBUILD : MSB1045: Stopping because of syntax errors in project file.</source>
-        <target state="translated">MSBUILD : MSB1045: Proje dosyasındaki sözdizimi hataları nedeniyle durduruluyor.</target>
+        <target state="translated">MSBUILD : MSB1045: 프로젝트 파일에서 구문 오류가 발생했으므로 작업을 중단합니다.</target>
         <note>{StrBegin="MSBUILD : MSB1045: "}</note>
       </trans-unit>
       <trans-unit id="ReadResponseFileError">
         <source>MSBUILD : error MSB1023: Cannot read the response file. {0}</source>
-        <target state="translated">MSBUILD : error MSB1023: Yanıt dosyası okunamıyor. {0}</target>
+        <target state="translated">MSBUILD : error MSB1023: 지시 파일을 읽을 수 없습니다. {0}</target>
         <note>{StrBegin="MSBUILD : error MSB1023: "}UE: This error is shown when the response file cannot be read off disk.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a localized message explaining
     why the response file could not be read -- this message comes from the CLR/FX.</note>
       </trans-unit>
       <trans-unit id="RepeatedResponseFileError">
         <source>MSBUILD : error MSB1013: The response file was specified twice. A response file can be specified only once. Any files named "msbuild.rsp" in the directory of MSBuild.exe or in the directory of the first project or solution built (which if no project or solution is specified is the current working directory) were automatically used as response files.</source>
-        <target state="translated">MSBUILD : error MSB1013: Yanıt dosyası iki kez belirtildi. Bir yanıt dosyası yalnızca bir kez belirtilebilir. MSBuild.exe dosyasının dizininde veya derlenen ilk projenin veya çözümün dizininde (hiçbir proje veya çözüm belirtilmemiş bu geçerli çalışma dizinidir) bulunan "msbuild.rsp" adlı dosyalar otomatik olarak yanıt dosyası olarak kullanıldı.</target>
+        <target state="translated">MSBUILD : error MSB1013: 지시 파일을 두 번 지정했습니다. 지시 파일은 한 번만 지정할 수 있습니다. MSBuild.exe의 디렉터리 또는 첫 번째 프로젝트의 디렉터리 또는 빌드된 솔루션(프로젝트 또는 솔루션이 지정되지 않은 경우 현재 작업 디렉터리)에서 이름이 "msbuild.rsp"인 파일은 자동으로 지시 파일로 사용됩니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1013: "}UE: Response files are just text files that contain a bunch of command-line switches to be passed to MSBuild.exe. The
     purpose is so you don't have to type the same switches over and over again ... you can just pass in the response file instead.
     Response files can include the @ switch in order to further include other response files. In order to prevent a circular
@@ -1843,53 +1841,53 @@
       </trans-unit>
       <trans-unit id="ResponseFileNotFoundError">
         <source>MSBUILD : error MSB1022: Response file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1022: Yanıt dosyası yok.</target>
+        <target state="translated">MSBUILD : error MSB1022: 지시 파일이 없습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1022: "}UE: This message would show if the user did something like "msbuild @bogus.rsp" where bogus.rsp doesn't exist. This
     message does not need in-line parameters because the exception takes care of displaying the invalid arg.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="ResponseFileSwitchFromLocation">
         <source>'{0}' came from '{1}'</source>
-        <target state="translated">'{0}', '{1}' kaynağından geldi</target>
+        <target state="translated">'{0}'은(는) '{1}'에서 제공되었습니다.</target>
         <note>
       These are response file switches with the location of the response file on disk.
     </note>
       </trans-unit>
       <trans-unit id="SAC">
         <source>Based on the Windows registry key VerifiedAndReputablePolicyState, SAC state = {0}.</source>
-        <target state="translated">Windows kayıt defteri anahtarı VerifiedAndReputablePolicyState'e göre SAC durumu = {0}.</target>
+        <target state="translated">Windows 레지스트리 키 VerifiedAndReputablePolicyState에 따른 SAC 상태 = {0}.</target>
         <note>"Windows" is the OS, SAC is the Smart App Control, "VerifiedAndReputablePolicyState" should not be localized</note>
       </trans-unit>
       <trans-unit id="SAC_Enforcement">
         <source>1: in enforcement</source>
-        <target state="translated">1: zorlamada</target>
+        <target state="translated">1: 적용 중</target>
         <note />
       </trans-unit>
       <trans-unit id="SAC_Evaluation">
         <source>2: in evaluation. It is recommended to turn off Smart App Control in development environemnt as otherwise performance might be impacted</source>
-        <target state="translated">2: değerlendirmede. Aksi takdirde performansın etkilenebileceği için geliştirme ortamında Akıllı Uygulama Denetimi’nin kapatılması önerilir</target>
+        <target state="translated">2: 평가 중. 성능에 영향을 미칠 수 있으므로 개발 환경에서는 스마트 앱 컨트롤을 끄는 것이 좋습니다.</target>
         <note>Smart App Control, "VerifiedAndReputablePolicyState" should not be localized</note>
       </trans-unit>
       <trans-unit id="SAC_Off">
         <source>0: turned off</source>
-        <target state="translated">0: kapalı</target>
+        <target state="translated">0: 꺼짐</target>
         <note />
       </trans-unit>
       <trans-unit id="SchemaFileLocation">
         <source>Validating project using schema file "{0}".</source>
-        <target state="translated">"{0}" şema dosyası kullanılarak proje doğrulanıyor.</target>
+        <target state="translated">"{0}" 스키마 파일을 사용하여 프로젝트의 유효성을 검사하고 있습니다.</target>
         <note>LOCALIZATION: "{0}" is the location of the schema file.</note>
       </trans-unit>
       <trans-unit id="SchemaValidationError">
         <source>MSBUILD : MSB1044: Project is not valid. {0}</source>
-        <target state="translated">MSBUILD : MSB1044: Proje geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : MSB1044: 프로젝트가 잘못되었습니다. {0}</target>
         <note>{StrBegin="MSBUILD : MSB1044: "}UE: This error is shown when the user asks his project to be validated against a schema (-val switch for
     MSBuild.exe), and the project has errors. "{0}" contains a message explaining the problem.
     LOCALIZATION: "{0}" is a message from the System.XML schema validator and is already localized.</note>
       </trans-unit>
       <trans-unit id="SchemaNotFoundError">
         <source>MSBUILD : error MSB1026: Schema file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1026: Şema dosyası yok.</target>
+        <target state="translated">MSBUILD : error MSB1026: 스키마 파일이 없습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1026: "}UE: This error is shown when the user specifies a schema file using the -validate:&lt;schema&gt; switch, and the file
     does not exist on disk. This message does not need in-line parameters because the exception takes care of displaying the
     invalid arg.
@@ -1897,14 +1895,14 @@
       </trans-unit>
       <trans-unit id="SchemaNotFoundErrorWithFile">
         <source>MSBUILD : error MSB1026: Schema file '{0}' does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1026: '{0}' şema dosyası yok.</target>
+        <target state="translated">MSBUILD : error MSB1026: 스키마 파일 '{0}'이(가) 없습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1026: "}UE: This error is printed if the default schema does not exist or in the extremely unlikely event
     that an explicit schema file was passed and existed when the command line parameters were checked but was deleted from disk before this check was made.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="SolutionBuildInvalidForCommandLineEvaluation">
         <source>MSBUILD : error MSB1063: Cannot access properties or items when building solution files or solution filter files. This feature is only available when building individual projects.</source>
-        <target state="translated">MSBUILD : error MSB1063: Çözüm dosyaları veya çözüm filtresi dosyaları oluşturulurken özelliklere veya öğelere erişilemiyor. Bu özellik yalnızca tek tek projeler oluşturulurken kullanılabilir.</target>
+        <target state="translated">MSBUILD : error MSB1063: 솔루션 파일 또는 솔루션 필터 파일을 빌드할 때 속성 또는 항목에 액세스할 수 없습니다. 이 기능은 개별 프로젝트를 빌드할 때만 사용할 수 있습니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1063: "}UE: This happens if the user passes in a solution file when trying to access individual properties or items. The user must pass in a project file.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1915,71 +1913,71 @@
     Full command line: '{1}'
   Switches appended by response files:{2}</source>
         <target state="translated">{0}
-    Tam komut satırı: '{1}'
-  Yanıt dosyaları tarafından eklenen anahtarlar:{2}</target>
+   전체 명령줄: '{1}'
+  응답 파일에 의해 추가된 스위치:{2}</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetsCouldNotBePrinted">
         <source>MSBUILD : error MSB1059: Targets could not be printed. {0}</source>
-        <target state="translated">MSBUILD : error MSB1059: Hedefler yazdırılamadı. {0}</target>
+        <target state="translated">MSBUILD : error MSB1059: 대상을 출력할 수 없습니다. {0}</target>
         <note>{StrBegin="MSBUILD : error MSB1059: "}</note>
       </trans-unit>
       <trans-unit id="TaskHostAcquired_NullsFiltered">
         <source>Task output parameter "{0}" contained {1} null element(s) which have been filtered out.</source>
-        <target state="translated">Görev çıkış parametresi "{0}" {1} null öğe içeriyordu ve bunlar filtrelendi.</target>
+        <target state="translated">작업 출력 매개 변수 "{0}"에 필터링된 {1}개의 null 요소가 포함되어 있습니다.</target>
         <note>LOCALIZATION: {0} is the name of the task output parameter, {1} is the count of null elements filtered.</note>
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedAutomated">
         <source>Terminal Logger was not used because it was detected that the build is running in an automated environment.</source>
-        <target state="translated">Terminal Günlükçüsü, derlemenin otomatik bir ortamda çalıştığı tespit edildiğinden kullanılmadı.</target>
+        <target state="translated">자동화된 환경에서 빌드가 실행 중임을 감지하여 터미널 로거를 사용하지 않았습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedDisabled">
         <source>Terminal Logger was not used because build is run in context of a process (e.g. 'dotnet test') that requests direct access to stdout stream.</source>
-        <target state="translated">Derleme StdOut akışına doğrudan erişim isteyen bir işlem (ör. 'dotnet test') bağlamında çalıştığı için Terminal Günlükçüsü kullanılmadı.</target>
+        <target state="translated">빌드가 stdout 스트림에 대한 직접 액세스를 요청하는 프로세스(예: 'dotnet test')의 컨텍스트에서 실행되기 때문에 터미널 로거는 사용되지 않았습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedNotSupported">
         <source>Terminal Logger was not used because the output is not supported.</source>
-        <target state="translated">Çıkış desteklenmediğinden Terminal Günlükçüsü kullanılmadı.</target>
+        <target state="translated">출력이 지원되지 않아 터미널 로거를 사용하지 않았습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedRedirected">
         <source>Terminal Logger was not used because the output is being redirected to a file.</source>
-        <target state="translated">Çıkış bir dosyaya yeniden yönlendirildiği için Terminal Günlükçüsü kullanılmadı.</target>
+        <target state="translated">출력이 파일로 리디렉션되기 때문에 터미널 로거가 사용되지 않았습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedParametersError">
         <source>MSBUILD : error MSB1002: This switch does not take any parameters.</source>
-        <target state="translated">MSBUILD : error MSB1002: Bu anahtar parametreyle kullanılmaz.</target>
+        <target state="translated">MSBUILD : error MSB1002: 이 스위치에는 매개 변수를 지정할 수 없습니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1002: "}UE: For example, if somebody types "msbuild.exe -noLogo:1", they would get this error because the -noLogo switch
     should not be followed by any parameters ... it stands alone.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnknownSwitchError">
         <source>MSBUILD : error MSB1001: Unknown switch.</source>
-        <target state="translated">MSBUILD : error MSB1001: Bilinmeyen anahtar.</target>
+        <target state="translated">MSBUILD : error MSB1001: 알 수 없는 스위치입니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnsupportedOS">
         <source>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</source>
-        <target state="translated">MSBUILD : error MSB1015: MSBuild işletim sisteminin bu sürümünde çalışmaz. Yalnızca Windows 7 ve üzeri sürümlerde desteklenir.</target>
+        <target state="translated">MSBUILD : error MSB1015: 이 운영 체제 버전에서는 MSBuild를 실행할 수 없습니다. MSBuild는 Windows 7 이상의 버전에서만 지원됩니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1015: "}LOCALIZATION: The error prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnsupportedSwitchForSolutionFiles">
         <source>The '{0}' switch is not supported for solution files.</source>
-        <target state="translated">Çözüm dosyaları için '{0}' anahtarı desteklenmez.</target>
+        <target state="translated">솔루션 파일에는 '{0}' 스위치가 지원되지 않습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="Using35Engine">
         <source>Forcing load of Microsoft.Build.Engine because MSBUILDOLDOM=1...</source>
-        <target state="translated">MSBUILDOLDOM=1 olduğundan Microsoft.Build.Engine yükleme zorlanıyor...</target>
+        <target state="translated">MSBUILDOLDOM=1이므로 Microsoft.Build.Engine을 강제로 로드하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingIgnoreProjectExtensionsError">
         <source>MSBUILD : error MSB1035: Specify the project extensions to ignore.</source>
-        <target state="translated">MSBUILD : error MSB1035: Yoksayılacak proje uzantılarını belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1035: 무시할 프로젝트 확장명을 지정하십시오.</target>
         <note>{StrBegin="MSBUILD : error MSB1035: "}
       UE: This happens if the user does something like "msbuild.exe -ignoreProjectExtensions". The user must pass in one or more
       project extensions to ignore e.g. "msbuild.exe -ignoreProjectExtensions:.sln".
@@ -1988,12 +1986,12 @@
       </trans-unit>
       <trans-unit id="InvalidExtensionToIgnore">
         <source>MSBUILD : error MSB1036: There is an invalid extension in the -ignoreProjectExtensions list. Extensions must start with a period ".", have one or more characters after the period and not contain any invalid path characters or wildcards.</source>
-        <target state="translated">MSBUILD : error MSB1036: -ignoreProjectExtensions listesinde geçersiz bir uzantı var. Uzantılar noktayla "." başlamalı, noktadan sonra bir veya daha fazla karakter içermeli ve uzantılarda geçersiz yol karakterleri veya joker karakterler bulunmamalıdır.</target>
+        <target state="translated">MSBUILD : error MSB1036: -ignoreProjectExtensions 목록에 잘못된 확장명이 있습니다. 확장명은 마침표(".")로 시작되고 마침표 뒤에 하나 이상의 문자가 있어야 하며 잘못된 경로 문자 또는 와일드카드를 포함해서는 안 됩니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1036: "}LOCALIZATION: The error prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="MissingConsoleLoggerParameterError">
         <source>MSBUILD : error MSB1037: Specify one or more parameters for the console logger if using the -consoleLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1037: -consoleLoggerParameters anahtarı kullanılıyorsa konsol günlükçüsü için bir veya birden çok parametre belirtin</target>
+        <target state="translated">MSBUILD : error MSB1037: -consoleLoggerParameters 스위치를 사용하는 경우 콘솔 로거의 매개 변수를 하나 이상 지정하세요.</target>
         <note>{StrBegin="MSBUILD : error MSB1037: "}
       UE: This happens if the user does something like "msbuild.exe -consoleLoggerParameters:". The user must pass in one or more parameters
       after the switch e.g. "msbuild.exe -consoleLoggerParameters:ErrorSummary".
@@ -2002,7 +2000,7 @@
       </trans-unit>
       <trans-unit id="MissingFileLoggerParameterError">
         <source>MSBUILD : error MSB1038: Specify one or more parameters for the file logger if using the -fileLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1038: -fileLoggerParameters anahtarı kullanılıyorsa dosya günlükçüsü için bir veya birden çok parametre belirtin</target>
+        <target state="translated">MSBUILD : error MSB1038: -fileLoggerParameters 스위치를 사용하는 경우 파일 로거에 대한 매개 변수를 하나 이상 지정하세요.</target>
         <note>{StrBegin="MSBUILD : error MSB1038: "}
       UE: This happens if the user does something like "msbuild.exe -fileLoggerParameters:". The user must pass in one or more parameters
       after the switch e.g. "msbuild.exe -fileLoggerParameters:logfile=c:\temp\logfile".
@@ -2011,7 +2009,7 @@
       </trans-unit>
       <trans-unit id="MissingNodeReuseParameterError">
         <source>MSBUILD : error MSB1041: Specify one or more parameters for node reuse if using the -nodeReuse switch</source>
-        <target state="translated">MSBUILD : error MSB1041: -nodeReuse anahtarı kullanılıyorsa düğüm yeniden kullanımı için bir veya birden çok parametre belirtin</target>
+        <target state="translated">MSBUILD : error MSB1041: -nodeReuse 스위치를 사용하는 경우 노드 다시 사용에 대한 매개 변수를 하나 이상 지정하세요.</target>
         <note>{StrBegin="MSBUILD : error MSB1041: "}
       UE: This happens if the user does something like "msbuild.exe -nodeReuse:" without a true or false
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -2019,7 +2017,7 @@
       </trans-unit>
       <trans-unit id="InvalidNodeReuseValue">
         <source>MSBUILD : error MSB1042: Node reuse value is not valid. {0}.</source>
-        <target state="translated">MSBUILD : error MSB1042: Düğüm yeniden kullanım değeri geçerli değil. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1042: 노드 다시 사용 값이 잘못되었습니다. {0}.</target>
         <note>{StrBegin="MSBUILD : error MSB1042: "}
      UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
      This error is shown when a user specifies a node reuse value that is not equivilant to Boolean.TrueString or Boolean.FalseString.
@@ -2028,22 +2026,22 @@
       </trans-unit>
       <trans-unit id="InvalidPreprocessPath">
         <source>MSBUILD : error MSB1047: File to preprocess to is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1047: Ön işlem uygulanacak dosya geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1047: 전처리할 파일이 잘못되었습니다. {0}</target>
         <note>{StrBegin="MSBUILD : error MSB1047: "}</note>
       </trans-unit>
       <trans-unit id="NeedJustMyCode">
         <source>If MSBuild debugging does not work correctly, please verify that the "Just My Code" feature is enabled in Visual Studio, and that you have selected the managed debugger.</source>
-        <target state="translated">MSBuild hata ayıklaması düzgün çalışmıyorsa, lütfen Visual Studio'da "Yalnızca Kendi Kodum" özelliğinin etkinleştirildiğinden ve yönetilen hata ayıklayıcıyı seçtiğinizden emin olun.</target>
+        <target state="translated">MSBuild 디버깅이 제대로 작동하지 않을 경우, Visual Studio에서 "내 코드만" 기능이 설정되어 있는지와 관리되는 디버거를 선택했는지를 확인하십시오.</target>
         <note />
       </trans-unit>
       <trans-unit id="DebuggingSolutionFiles">
         <source>MSBUILD : error MSB1048: Solution files cannot be debugged directly. Run MSBuild first with an environment variable MSBUILDEMITSOLUTION=1 to create a corresponding ".sln.metaproj" file. Then debug that.</source>
-        <target state="translated">MSBUILD : error MSB1048: Çözüm dosyalarının hataları doğrudan ayıklanamıyor. Karşılık gelen bir “.sln.metaproj” dosyası oluşturmak için öncelikle MSBuild’i MSBUILDEMITSOLUTION=1 ortam değişkeni ile çalıştırın. Sonra, hatalarını ayıklayın.</target>
+        <target state="translated">MSBUILD : error MSB1048: 솔루션 파일을 직접 디버그할 수 없습니다. 우선 환경 변수 MSBUILDEMITSOLUTION=1과 함께 MSBuild를 실행하여 해당 ".sln.metaproj" 파일을 만드세요. 그런 다음 이를 디버그하세요.</target>
         <note>{StrBegin="MSBUILD : error MSB1048: "} LOC: ".SLN" should not be localized</note>
       </trans-unit>
       <trans-unit id="AmbiguousProjectDirectoryError">
         <source>MSBUILD : error MSB1050: Specify which project or solution file to use because the folder "{0}" contains more than one project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1050: "{0}" klasöründe birden fazla proje veya çözüm dosyası var. Lütfen hangi projenin veya çözüm dosyasının kullanılacağını belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1050: "{0}" 폴더에 프로젝트 또는 솔루션 파일이 두 개 이상 있으므로 사용할 프로젝트 또는 솔루션 파일을 지정하세요.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1050: "}UE: If no project or solution file is explicitly specified on the MSBuild.exe command-line, then the engine searches for a
       project or solution file in the current directory by looking for *.*PROJ and *.SLN. If more than one file is found that matches this wildcard, we
@@ -2066,17 +2064,17 @@
                      build will fail.
     </source>
         <target state="translated">  -warnAsError[:code[;code2]]
-                     Hata olarak işlenecek uyarı kodları listesi. Farklı uyarı kodlarını
-                     ayırmak için noktalı virgül veya virgül kullanın. Tüm uyarıları
-                     hata olarak işlemek için, değeri olmayan anahtarı kullanın.
-                     (Kısa biçim: -err[:c;[c2]])
+                     오류로 처리할 경고 코드 목록입니다. 여러 경고 코드를
+                     구분하려면 세미콜론이나 쉼표를 사용하세요. 모든 경고를
+                     오류로 처리하려면 값없이 스위치를 사용하세요.
+                     (약식: -err[:c;[c2]])
 
-                     Örnek:
+                     예:
                        -warnAsError:MSB4130
 
-                     Bir uyarı hata olarak işlendiğinde hedef
-                     bunu uyarı olarak çalıştırmaya devam eder, ancak genel
-                     derleme başarısız olur.
+                     경고를 오류로 처리하는 경우 대상이
+                     계속해서 경고인 것처럼 실행되지만 전체
+                     빌드는 실패합니다.
     </target>
         <note>
       LOCALIZATION: "-warnAsError" and "-err" should not be localized.
@@ -2094,12 +2092,12 @@
                        -warnAsMessage:MSB3026
     </source>
         <target state="translated">  -warnAsMessage[:code[;code2]]
-                     Düşük önemli iletiler olarak işlenecek uyarı kodlarının
-                     listesi. Birden fazla uyarı kodunu ayırmak için noktalı virgül
-                     veya virgül kullanın.
-                     (Kısa biçim: -noWarn[:c;[c2]])
+                     중요도가 낮은 메시지로 처리할 경고 코드
+                     목록입니다. 여러 경고 코드를 구분하려면 세미콜론이나
+                     쉼표를 사용하세요.
+                     (약식: -noWarn[:c;[c2]])
 
-                     Örnek:
+                     예:
                        -warnAsMessage:MSB3026
     </target>
         <note>
@@ -2109,12 +2107,12 @@
       </trans-unit>
       <trans-unit id="ParameterRequiredError">
         <source>MSBUILD : error MSB1049: The {0} parameter must be specified</source>
-        <target state="translated">MSBUILD : error MSB1049: {0} parametresi belirtilmelidir</target>
+        <target state="translated">MSBUILD : error MSB1049: {0} 매개 변수를 지정해야 합니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1049: "}</note>
       </trans-unit>
       <trans-unit id="MissingWarnAsMessageParameterError">
         <source>MSBUILD : error MSB1051: Specify one or more warning codes to treat as low importance messages when using the -warnAsMessage switch.</source>
-        <target state="translated">MSBUILD : error MSB1051: -warnAsMessage anahtarını kullanırken düşük önemli iletiler olarak işlenecek bir veya daha fazla uyarı kodu belirtin.</target>
+        <target state="translated">MSBUILD : error MSB1051: -warnAsMessage 스위치를 사용하는 경우 중요도가 낮은 메시지로 처리할 경고 코드를 하나 이상 지정하세요.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1051: "}
       UE: This happens if the user does something like "msbuild.exe -warnAsMessage:" without any codes.
@@ -2174,49 +2172,49 @@
                        -binaryLogger
     </source>
         <target state="translated">  -binaryLogger[:[LogFile=]output.binlog[;ProjectImports={None,Embed,ZipFile}]]
-                     Tüm derleme olaylarını sıkıştırılmış bir ikili dosyada seri hale getirir.
-                     Varsayılan olarak, dosya geçerli dizinde bulunur ve "msbuild.binlog"
-                     olarak adlandırılır. Daha sonra metin günlüklerini yeniden
-                     yapılandırmak için kullanılabilen ve diğer analiz araçları tarafından
-                     kullanılan ikili günlüğü, derleme işleminin ayrıntılı bir açıklamasıdır. İkili günlüğü genellikle, en ayrıntılı metin tanılama düzeyi günlüklerden
-                     10-20 kat küçüktür ancak daha fazla bilgi içerir.
-                     (Kısa biçim: -bl)
-                     
+                     모든 빌드 이벤트를 압축된 이진 파일로 직렬화합니다.
+                     기본적으로 파일은 현재 디렉터리에 있으며 이름은
+                     "msbuild.binlog"입니다. 이진 로그는 나중에 텍스트 로그를 재구성하는 데
+                     사용할 수 있고 다른 분석 도구에서 사용할 수 있는 빌드 프로세스의
+                     자세한 설명입니다. 이진 로그는
+                     일반적으로 가장 자세한 텍스트 진단 수준 로그보다 10~20배
+                     작지만 더 많은 정보를 담고 있습니다.
+                     (약식: -bl)
 
-                     İsteğe bağlı LogFile ikili günlüğün kaydedileceği yolu
-                     belirtir. Ayrı bir günlük dosyası oluşturmak için
-                     her derleme için "{}" belirteci
-                     yola eklenebilir, örneğin: LogFile=output-{}-log.binlog. Günlük 
-                     yolundaki her “{}” zaman damgası, çalışan işlem kimliği ve rastgele
-                     dize damgası kullanılarak benzersiz bir dize ile
-                     değiştirilir.
+                     선택적 LogFile은 이진 로그가 저장되는
+                     경로를 지정합니다. 각 빌드에 고유한 로그 파일을 생성하려면
+                     토큰 "{}"를 경로에 추가할 수 있습니다.
+                     예: LogFile=output-{}-log.binlog. 로그 경로의 
+                     각 "{}"는 타임스탬프, 실행 프로세스 ID 및 임이의 문자열
+                     스탬프를 사용하여 고유한 문자열로
+                     대체됩니다.
 
-                     İkili günlükçü varsayılan olarak, içe aktarılan
-                     tüm projeler ve derleme sırasında karşılaşılan hedef
-                     dosyalar da dahil olmak üzere proje dosyalarının kaynak metnini toplar. İsteğe bağlı
-                     ProjectImports anahtarı bu davranışı denetler:
+                     기본적으로 이진 로거는 빌드하는 동안 발견된
+                     가져온 모든 프로젝트 및 대상 파일을 포함한 프로젝트 파일의
+                     원본 텍스트를 수집합니다. 선택적
+                     ProjectImports 스위치는 다음 동작을 제어합니다.
 
-                      ProjectImports=None     - Proje içeri aktarmalarını
-                                                toplama.
-                      ProjectImports=Embed    - Proje içeri aktarmalarını
-                                                günlük dosyasına ekle.
-                      ProjectImports=ZipFile  - Proje dosyalarını
-                                                output.projectimports.zip dosyasına
-                                                çıkış, ikili günlük dosyası adıyla
-                                                aynı ada sahiptir kaydet.
+                      ProjectImports=None     - 프로젝트 가져오기를 수집하지
+                                                마세요.
+                      ProjectImports=Embed    - 로그 파일에 프로젝트 가져오기를
+                                                포함합니다.
+                      ProjectImports=ZipFile - 프로젝트 파일을
+                                                output.projectimports.zip에
+                                                저장하며 여기서 출력은 이진 로그 파일 이름과
+                                                같은 이름입니다.
 
-                     ProjectImports varsayılan ayarı Ekle’dir.
-                     Not: Günlükçü .cs, .cpp vb. gibi MSBuild olmayan kaynak dosyalarını
-                     toplamaz.
+                     ProjectImports의 기본 설정은 Embed입니다.
+                     참고: 로거는 MSBuild가 아닌 소스 파일을 수집하지 않습니다.
+                     예: .cs, .cpp 등
 
-                     Bir .binlog dosyası msbuild.exe’ye bir proje/çözüm
-                     yerine bağımsız değişken olarak geçirilerek “yeniden oynatılabilir”.
-                     Diğer günlükçüler, günlük dosyasındaki bilgileri özgün
-                     derleme gerçekleşiyormuş gibi alır.
-                     İkili günlük ve kullanımı hakkında daha fazla bilgiyi aşağıdaki adreste bulabilirsiniz:
+                     .binlog 파일은 프로젝트/솔루션 대신 인수로
+                     msbuild.exe에 전달하여 “재생”될 수 있습니다.
+                     다른 로거는 원래 빌드가 발생하는 것처럼 로그 파일에
+                     포함된 정보를 받습니다.
+                     이진 로그 및 해당 사용에 대한 자세한 내용은 다음에서 확인할 수 있습니다.
                      https://aka.ms/msbuild/binlog
 
-                     Örnekler:
+                     예:
                        -bl
                        -bl:output.binlog
                        -bl:output.binlog;ProjectImports=None
@@ -2245,15 +2243,15 @@
                      (Short form: -r)
     </source>
         <target state="translated">  -restore[:True|False]
-                     Diğer hedefleri derlemeden önce Restore adlı bir hedefi
-                     çalıştırır ve bu hedeflere yönelik derlemenin en son geri yüklenen
-                     derleme mantığını kullanmasını sağlar.
-                     Bu, proje ağacınızın paketlerin oluşturulabilmesi için
-                     önce geri yüklenmesini gerektirdiği durumlarda yararlıdır.
-                     -restore değerinin belirtilmesi, -restore:True değerinin
-                     belirtilmesiyle aynıdır. Yanıt dosyasından gelen bir değeri
-                     geçersiz kılmak için parametreyi kullanın.
-                     (Kısa biçim: -r)
+                     다른 대상을 빌드하기 전에 Restore라는 대상을
+                     실행하고 이러한 대상의 빌드에 최신 복원된 
+                     빌드 논리가 사용되는지 확인합니다. 
+                     프로젝트 트리를 빌드하기 전에 
+                     프로젝트 트리에서 패키지를 복원해야 하는 
+                     경우에 유용합니다. -restore를 지정하는 것은
+                     -restore:True를 지정하는 것과 동일합니다. 이 매개 변수를 사용하여
+                     지시 파일에서 가져오는 값을 재정의할 수 있습니다.
+                     (약식: -r)
     </target>
         <note>
       LOCALIZATION: "-restore" and "-r" should not be localized.
@@ -2262,7 +2260,7 @@
       </trans-unit>
       <trans-unit id="InvalidNodeReuseTrueValue">
         <source>MSBUILD : error MSB1042: Node reuse value is not valid. This version of MSBuild does not support node reuse. If specified, the node reuse switch value must be false.</source>
-        <target state="translated">MSBUILD : error MSB1042: Düğüm yeniden kullanım değeri geçerli değil. MSBuild’in bu sürümü düğüm yeniden kullanımını desteklemiyor. Belirtildiyse, düğüm yeniden kullanım anahtar değeri false olarak ayarlanmalıdır.</target>
+        <target state="translated">MSBUILD : error MSB1042: 노드 다시 사용 값이 유효하지 않습니다. 이 버전의 MSBuild에서는 노드 다시 사용을 지원하지 않습니다. 지정하는 경우 노드 다시 사용 스위치 값이 false여야 합니다.</target>
         <note>{StrBegin="MSBUILD : error MSB1042: "}
      UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
      This error is shown when a user specifies a node reuse value that is not equivalent to Boolean.TrueString or Boolean.FalseString.
@@ -2271,7 +2269,7 @@
       </trans-unit>
       <trans-unit id="InvalidRestoreValue">
         <source>MSBUILD : error MSB1052: Restore value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1052: Geri yükleme değeri geçerli değil. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1052: 복원 값이 유효하지 않습니다. {0}.</target>
         <note>{StrBegin="MSBUILD : error MSB1052: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies a restore value that is not equivalent to Boolean.TrueString or Boolean.FalseString.
@@ -2285,11 +2283,11 @@
                      file is '.md', the result is generated in markdown
                      format. Otherwise, a tab separated file is produced.
     </source>
-        <target state="translated">  -profileEvaluation:&lt;dosya&gt;
-                     MSBuild değerlendirmesinin profilini oluşturur ve sonucu
-                     belirtilen dosyaya yazar. Belirtilen dosyanın uzantısı
-                     '.md' ise, sonuç markdown biçiminde oluşturulur.
-                     Aksi halde, sekme ayrılmış bir dosya oluşturulur.
+        <target state="translated">  -profileEvaluation:&lt;file&gt;
+                     MSBuild 평가를 프로파일링하고 결과를 지정된 파일에 기록합니다.
+                     지정된 파일의 확장명이 '.md'이면 
+                     결과가 Markdown 형식으로 생성됩니다.
+                     그렇지 않으면 탭으로 구분된 파일이 생성됩니다.
     </target>
         <note />
       </trans-unit>
@@ -2305,15 +2303,15 @@
                      Example:
                        -restoreProperty:IsRestore=true;MyProperty=value
     </source>
-        <target state="translated">-restoreProperty:&lt;n&gt;=&lt;v&gt;
-                     Bu proje düzeyi özellikleri yalnızca geri yükleme sırasında
-                     ayarlayın veya geçersiz kılın, -property bağımsız değişkeni
-                     ile belirtilen özellikleri kullanmayın. &lt;n&gt; özellik
-                     adı ve &lt;v&gt; özellik değeri. Birden çok
-                     özelliği ayırmak için noktalı virgül veya virgül kullanın
-                     veya her özelliği ayrı ayrı belirtin.
-                     (Kısa biçim: -rp)
-                     Örnek:
+        <target state="translated">  -restoreProperty:&lt;n&gt;=&lt;v&gt;
+                     복원하는 동안 프로젝트 수준 속성만 설정하거나 
+                     재정의하고, -property 인수로 지정된 속성을 
+                     사용하지 않습니다. &lt;n&gt;은 속성 이름이고 
+                     &lt;v&gt;는 속성 값입니다.
+                     세미콜론 또는 쉼표를 사용하여 여러 속성을 구분하거나,
+                     각 속성을 개별적으로 지정합니다.
+                     (약식: -rp)
+                     예:
                        -restoreProperty:IsRestore=true;MyProperty=value
     </target>
         <note>
@@ -2323,17 +2321,17 @@
       </trans-unit>
       <trans-unit id="InvalidProfilerValue">
         <source>MSBUILD : error MSB1053: Provided filename is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1053: Sağlanan dosya adı geçerli değil. {0}</target>
+        <target state="translated">MSBUILD : error MSB1053: 지정한 파일 이름이 유효하지 않습니다. {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingProfileParameterError">
         <source>MSBUILD :error MSB1054: A filename must be specified to generate the profiler result.</source>
-        <target state="translated">MSBUILD: MSB1054 hatası: Profil oluşturucu sonucunun oluşturulması için bir dosya adı belirtilmelidir.</target>
+        <target state="translated">MSBUILD :오류 MSB1054: 프로파일러 결과를 생성하려면 파일 이름을 지정해야 합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="XMake_LoggerCreationError">
         <source>MSBUILD : error MSB1021: Cannot create an instance of the logger {0}. {1}</source>
-        <target state="translated">MSBUILD : error MSB1021: {0} günlük oluşturucusunun bir örneği oluşturulamıyor. {1}</target>
+        <target state="translated">MSBUILD : error MSB1021: 로거 {0}의 인스턴스를 만들 수 없습니다. {1}</target>
         <note>{StrBegin="MSBUILD : error MSB1021: "}
       UE: This error is shown when a logger cannot be loaded and instantiated from its assembly.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a message explaining why the
@@ -2341,7 +2339,7 @@
       </trans-unit>
       <trans-unit id="XMake_LoggerNotFoundError">
         <source>MSBUILD : error MSB1020: The logger was not found. Check the following: 1.) The logger name specified is the same as the name of the logger class. 2.) The logger class is "public" and implements the Microsoft.Build.Framework.ILogger interface. 3.) The path to the logger assembly is correct, or the logger can be loaded using only the assembly name provided.</source>
-        <target state="translated">MSBUILD : error MSB1020: Günlükçü bulunamadı. Aşağıdakileri denetleyin: 1.) Belirtilen günlükçü adı, günlükçü sınıfının adıyla aynıdır. 2.) Günlükçü sınıfı "geneldir" ve Microsoft.Build.Framework.ILogger arabirimini uygular. 3.) Günlükçü bütünleştirilmiş kodunun yolu doğrudur veya günlükçü yalnızca belirtilen günlükçü adı kullanılarak yüklenebilir.</target>
+        <target state="translated">MSBUILD : error MSB1020: 로거를 찾을 수 없습니다. 다음을 확인하세요. 1) 지정한 로거 이름이 로거 클래스 이름과 같은지 확인합니다. 2.) 로거 클래스가 "public"이고 Microsoft.Build.Framework.ILogger 인터페이스를 구현하는지 확인합니다. 3.) 로거 어셈블리의 경로가 올바른지 또는 지정한 어셈블리 이름만 사용하여 로거를 로드할 수 있는지 확인합니다.</target>
         <note>
       {StrBegin="MSBUILD : error MSB1020: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies an logger that does not exist e.g. "msbuild -logger:FooLoggerClass,FooAssembly". The
@@ -2351,32 +2349,32 @@
       </trans-unit>
       <trans-unit id="XMake_ProjectUpgradeNeededToVcxProj">
         <source>MSBUILD : error MSB4192: The project file "{0}" is in the ".vcproj" or ".dsp" file format, which MSBuild cannot build directly. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or, for ".vcproj", use MSBuild to build the solution file containing the project instead.</source>
-        <target state="translated">MSBUILD : error MSB4192: "{0}" proje dosyası, MSBuild’in doğrudan derleyemeyeceği ".vcproj" veya ".dsp" dosya biçiminde. Lütfen projeyi Visual Studio IDE içinde açarak veya dönüştürme aracını kullanarak dönüştürün ya da “.vcproj” için MSBuild kullanarak projeyi içeren çözüm dosyasını derleyin.</target>
+        <target state="translated">MSBUILD : error MSB4192: 프로젝트 파일 "{0}"이(가) MSBuild에서 직접 빌드할 수 없는 ".vcproj" 또는 ".dsp" 파일 형식입니다. 프로젝트를 Visual Studio IDE에서 열거나 변환 도구를 실행하여 프로젝트를 변환하거나, ".vcproj"의 경우 MSBuild를 사용하여 해당 프로젝트가 포함된 솔루션 파일을 대신 빌드하세요.</target>
         <note>{StrBegin="MSBUILD : error MSB4192: "} LOC: ".vcproj" and ".dsp" should not be localized</note>
       </trans-unit>
       <trans-unit id="BuildEngineCallbacksInTaskHostUnsupported">
         <source>MSB5022: The MSBuild task host does not support running tasks that perform IBuildEngine callbacks. If you wish to perform these operations, please run your task in the core MSBuild process instead.  A task will automatically execute in the task host if the UsingTask has been attributed with a "Runtime" or "Architecture" value, or the task invocation has been attributed with an "MSBuildRuntime" or "MSBuildArchitecture" value, that does not match the current runtime or architecture of MSBuild.</source>
-        <target state="translated">MSB5022: MSBuild görev konağı IBuildEngine geri çağırmaları gerçekleştiren görevleri çalıştırmayı desteklemez. Bu işlemleri gerçekleştirmek istiyorsanız lütfen bunun yerine görevinizi çekirdek MSBuild işleminde gerçekleştirin.  UsingTask öğesine bir "Runtime" veya "Architecture" değeri atfedilmişse veya görev çağrısına MSBuild’in geçerli çalışma zamanı ya da mimarisi ile eşleşmeyen bir "MSBuildRuntime" veya "MSBuildArchitecture" değeri atfedilmişse görev konağında bir görev otomatik olarak yürütülür.</target>
+        <target state="translated">MSB5022: MSBuild 작업 호스트는 IBuildEngine 콜백을 수행하는 작업의 실행을 지원하지 않습니다. 이러한 작업을 수행하려면 대신 코어 MSBuild 프로세스에서 작업을 실행하세요.  UsingTask에 "Runtime" 또는 "Architecture" 값이 사용되었거나 작업 호출에 MSBuild의 현재 런타임 또는 아키텍처와 일치하지 않는 "MSBuildRuntime" 또는 "MSBuildArchitecture" 값이 사용된 경우 작업 호스트에서 작업이 자동으로 실행됩니다.</target>
         <note>{StrBegin="MSB5022: "} "Runtime", "Architecture", "MSBuildRuntime", and "MSBuildArchitecture" are all attributes in the project file, and thus should not be localized.</note>
       </trans-unit>
       <trans-unit id="InvalidLogFileFormat">
         <source>MSB4233: There was an exception while reading the log file: {0}</source>
-        <target state="translated">MSB4233: Günlük dosyası okunurken bir özel durum oluştu: {0}</target>
+        <target state="translated">MSB4233: 로그 파일을 읽는 동안 예외가 발생했습니다. {0}</target>
         <note>{StrBegin="MSB4233: "}This is shown when the Binary Logger can't read the log file.</note>
       </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentHeader">
         <source>Making the following modifications to the environment received from the parent node before applying it to the task host:</source>
-        <target state="translated">Üst düğümden alınan ortam görev ana bilgisayarına uygulanmadan önce ortamda aşağıdaki değişiklikler yapılıyor:</target>
+        <target state="translated">작업 호스트에 적용하기 전에 부모 노드로부터 받은 환경을 다음과 같이 수정하고 있습니다.</target>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentVariable">
         <source>  Setting '{0}' to '{1}' rather than the parent environment's value, '{2}'.</source>
-        <target state="translated">  '{0}', üst ortamında değeri olan '{2}' yerine '{1}' değerine ayarlanıyor.</target>
+        <target state="translated">  '{0}'을(를) 부모 환경 값인 '{2}' 대신 '{1}'(으)로 설정하고 있습니다.</target>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="SubCategoryForSchemaValidationErrors">
         <source>Schema validation</source>
-        <target state="translated">Şema doğrulama</target>
+        <target state="translated">스키마 유효성 검사</target>
         <note>
       UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
       displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:

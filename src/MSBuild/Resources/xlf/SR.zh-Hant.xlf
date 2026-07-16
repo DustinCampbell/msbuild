@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="pl" original="../Strings.resx">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../SR.resx">
     <body>
       <trans-unit id="AmbiguousProjectError">
         <source>MSBUILD : error MSB1011: Specify which project or solution file to use because this folder contains more than one project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1011: określ plik projektu lub rozwiązania, który zostanie użyty, ponieważ ten folder zawiera więcej niż jeden plik projektu lub rozwiązania.</target>
+        <target state="translated">MSBUILD : error MSB1011: 請指定要使用哪個專案檔或方案檔，因為這個資料夾包含一個以上的專案檔或方案檔。</target>
         <note>{StrBegin="MSBUILD : error MSB1011: "}UE: If no project or solution file is explicitly specified on the MSBuild.exe command-line, then the engine searches for a
       project or solution file in the current directory by looking for *.*PROJ and *.SLN. If more than one file is found that matches this wildcard, we
       fire this error.
@@ -12,17 +12,17 @@
       </trans-unit>
       <trans-unit id="BuildFailedWithPropertiesItemsOrTargetResultsRequested">
         <source>Build failed. Properties, Items, and Target results cannot be obtained. See details in stderr above.</source>
-        <target state="translated">Kompilacja nie powiodła się. Nie można uzyskać wyników właściwości, elementów i celu. Zobacz szczegóły w sekcji stderr powyżej.</target>
+        <target state="translated">建置失敗。無法取得屬性、項目及目標結果。請參閱上述 stderr 中的詳細資料。</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandLine">
         <source>Command line arguments = "{0}"</source>
-        <target state="translated">Argumenty wiersza polecenia = „{0}”</target>
+        <target state="translated">命令列引數 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationFailurePrefixNoErrorCode">
         <source>MSBUILD : Configuration error {0}: {1}</source>
-        <target state="translated">MSBUILD : konfiguracja — error {0}: {1}</target>
+        <target state="translated">MSBUILD : 組態 error {0}: {1}</target>
         <note>{SubString="Configuration"}UE: This prefixes any error from reading the toolset definitions in msbuild.exe.config or the registry.
       There's no error code because one was included in the error message.
       LOCALIZATION: The word "Configuration" should be localized, the words "MSBuild" and "error" should NOT be localized.
@@ -30,12 +30,12 @@
       </trans-unit>
       <trans-unit id="CannotAutoDisableAutoResponseFile">
         <source>MSBUILD : error MSB1027: The -noAutoResponse switch cannot be specified in the MSBuild.rsp auto-response file, nor in any response file that is referenced by the auto-response file.</source>
-        <target state="translated">MSBUILD : error MSB1027: przełącznika -noAutoResponse nie można określić w pliku autoodpowiedzi MSBuild.rsp ani w żadnym pliku odpowiedzi, do którego odwołuje się plik autoodpowiedzi.</target>
+        <target state="translated">MSBUILD : error MSB1027: -noAutoResponse 參數不能在 MSBuild.rsp 自動回應檔中指定，也不能在自動回應檔所參考的任何回應檔中指定。</target>
         <note>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</note>
       </trans-unit>
       <trans-unit id="DuplicateBinaryLoggerPathsIgnored">
         <source>Duplicate binary log path(s) specified and ignored: {0}</source>
-        <target state="translated">Określono i zignorowano zduplikowane ścieżki dziennika binarnego: {0}</target>
+        <target state="translated">指定了重複的二進位記錄路徑，並已忽略: {0}</target>
         <note>{0} is the list of duplicate paths that were filtered out</note>
       </trans-unit>
       <trans-unit id="HelpMessage_41_QuestionSwitch">
@@ -47,11 +47,11 @@
                      (Short form: -q)
     </source>
         <target state="translated">  -question
-                     (Eksperymentalne) Pytanie, czy istnieje jakakolwiek kompilacja.
-                     Program MSBuild wyrzuci błąd, gdy wykryje element docelowy lub zadanie
-                     , które może być przyrostowe (ma dane wejściowe i wyjściowe),
-                     ale nie jest aktualne.
-                     (Skrócona forma: -q)
+                     (實驗性) 問題: 是否有任何組建可運作。
+                     MSBuild 偵測到可增量 (有輸入和輸出)
+                     但並非最新的目標或工作時，
+                     它會發生錯誤。
+                     (簡短形式: -q)
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -67,10 +67,10 @@
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -reportFileAccesses[:True|False]
-                     Powoduje, że program MSBuild zgłasza dostępy do wszystkich skonfigurowanych plików
-                     wtyczek pamięci podręcznej projektu.
+                     導致 MSBuild 報告任何已設定之專案快取外掛程式的
+                     檔案存取。
 
-Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
+                     此旗標為實驗性質，可能無法如預期般運作。
     </target>
         <note>
       LOCALIZATION: "-reportFileAccesses" should not be localized.
@@ -85,11 +85,11 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      used, write out the values after the build.
     </source>
         <target state="translated">  -getProperty:propertyName,...
-                     Zapisz wartość co najmniej jednej określonej właściwości
-                     po zakończeniu oceny, bez wykonywania kompilacji lub jeśli
-                     któraś z opcji -targets lub -getTargetResult jest
-                     użyta, zapisz wartości po kompilacji.
-    </target>
+                    於評估後，寫出一或多個指定屬性的值，以及
+                    但不執行建置；如有使用
+                    -targets 選項或 -getTargetResult 選項，
+                    便於建置之後，再寫出這些值。
+   </target>
         <note>
       LOCALIZATION: "-getProperty", "-targets" and "-getTargetResult" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -104,12 +104,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      the values after the build.
     </source>
         <target state="translated">  -getItem:itemName,...
-                     Zapisz wartość co najmniej jednego określonego elementu i
-                     ich skojarzonych metadanych po ocenie bez
-                     wykonywania kompilacji lub jeśli jest użyta któraś z opcji -targets
-                     lub -getTargetResult, zapisz
-                     wartości po kompilacji.
-    </target>
+                    於評估後，寫出一或多個指定項目的值，以及
+                    其相關的中繼資料，但不
+                    執行建置；如有使用 -targets 選項
+                    或 -getTargetResult 選項，
+                    便於建置之後，再寫出這些值。
+   </target>
         <note>
       LOCALIZATION: "-getItem", "targets" and "getTargetResult" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -121,9 +121,9 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      the specified targets will be executed.
     </source>
         <target state="translated">  -getTargetResult:targetName,...
-                     Zapisz wartość wyjściową co najmniej jednego elementu docelowego, a
-                     określone elementy docelowe zostaną wykonane.
-    </target>
+                    寫出一或多個目標的輸出值，然後
+                    執行指定的目標。
+   </target>
         <note>
       LOCALIZATION: "-getTargetResult" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -146,20 +146,20 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      (Short form: -fa)
     </source>
         <target state="translated">  -featureAvailability:featureName,...
-                     Sprawdź dostępność funkcji. Wynikiem jest jeden z
-                     ciągów „Undefined”, „Available”, „NotAvailable” i
-                     „Preview”.
-                     — Undefined — dostępność funkcji jest niezdefiniowana
-                     (nazwa funkcji jest nieznana dla dostępności funkcji
-                     kontroler)
-                     — NotAvailable — funkcja jest niedostępna (w przeciwieństwie do
-                     Undefined, nazwa funkcji jest znana kontrolerowi
-                     dostępności funkcji i wie on, że funkcja nie jest
-                     obsługiwana przez bieżący aparat MSBuild)
-                     — Available — funkcja jest dostępna
-                     — Preview — funkcja jest w wersji zapoznawczej (niestabilna)
-                     (Krótka forma: -fa)
-    </target>
+                    檢查功能可用性。結果會是下列其中一個字串:
+                    “Undefined”、“Available”、“NotAvailable” 和
+                    "Preview"。
+                    - Undefined - 功能的可用性未定義
+                    (功能可用性檢查程式不知道
+                    該功能名稱)
+                    - NotAvailable - 此功能無法使用 (不同於
+                    Undefined，功能可用性檢查程式知道該功能名稱，
+                    並知道功能目前的
+                    MSBuild 引擎不支援該功能)
+                    - Available - 此功能可以使用
+                    - Preview - 此功能目前為預覽狀態 (不穩定)
+                    (簡短形式: -fa)
+   </target>
         <note>
       LOCALIZATION: "-featureAvailability", "-fa", "Undefined", "Available" "NotAvailable" and "Preview"should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -179,17 +179,17 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      (Short form: -tl)
     </source>
         <target state="translated">  -terminalLogger[:auto,on,off]
-                     Włącz lub wyłącz rejestrator terminali. Rejestrator terminali
-                     udostępnia ulepszone dane wyjściowe kompilacji na konsoli w czasie rzeczywistym,
-                     uporządkowane logicznie według projektu i zaprojektowane do wyróżniania
-                     informacji umożliwiających podejmowanie działań. Określ auto (lub użyj opcji
-                     bez argumentów), aby używać rejestratora terminali tylko wtedy, gdy
-                     standardowe dane wyjściowe nie są przekierowywane. Nie analizowanie danych wyjściowych
-                     lub inaczej – poleganie na nich pozostanie niezmienione w przyszłych
-                     wersjach. Ta opcja jest dostępna w wersji MSBuild 17.8 i
-                     późniejszych.
-                     (Krótka forma: -tl)
-    </target>
+                    啟用或停用終端機記錄器。終端機記錄器
+                    會即時在主機上，提供更進一步的組建輸出，
+                    並依照專案的邏輯編排，並會醒目提示
+                    可採取動作的資訊。指定自動 (或只使用選項，
+                    不使用引數) 只在使用標準輸出
+                    未重新導向時，才使用終端機記錄器。不剖析輸出，
+                    或以其他方式據此在
+                    未來的版本中保持不變。此選項可在 MSBuild 17.8 和
+                    更新版本中使用。
+                    (簡短形式: -tl)
+   </target>
         <note>
       LOCALIZATION: "-terminalLogger", "-tl", and "auto" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -216,23 +216,24 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                         -tlp:default=auto;verbosity=diag;shownCommandLine
     </source>
         <target state="translated">  -terminalLoggerParameters: &lt;parameters&gt;
-                     Parametry rejestratora terminali. (Krótka forma: -tlp)
-                     Dostępne parametry.
-                        default-- określa domyślne zachowanie rejestratora
-                        terminalu. Wymaga jednej z następujących wartości:
-                           — „on”, „true” wymusza użycie elementu TerminalLogger nawet
-                            kiedy zostanie on wyłączony.
-                           — „off”, „false” wymusza nieużywanie elementu TerminalLogger
-                            nawet wtedy, gdy zostanie on włączony.
-                           — „auto” włącza element TerminalLogger, gdy terminal
-                            go obsługuje, a sesja nie została przekierowana
-                            stdout/stderr
-                        verbosity-- zastąp ustawienie -verbosity dla tego
-                        rejestratora
-                        showCommandLine-- pokaż komunikaty TaskCommandLineEvent
+                    終端機記錄器的參數。(簡短形式: -tlp)
+                    可用的參數。
+                       default -- 指定終端機記錄器的預設值。
+                       其需要下列其中一值: 
+。
+                          - 'on'、'true' 會強制使用 TerminalLogger，即使
+                           其之後可能會停用。
+                          - 'off'、'false' 會強制使用 TerminalLogger，即使
+                           其之後可能會啟用。
+                          - `auto` 會啟用 terminalLogger，但終端機必須能夠
+                           提供支援，且工作階段未經重新導向
+                           stdout/stderr
+                       verbosity -- 覆寫上記錄器的
+                       -verbosity
+                       showCommandLine -- 顯示 TaskCommandLineEvent 訊息
 
-                      Przykład:
-                        -tlp:default=auto;verbosity=diag;shownCommandLine
+                     範例: 
+                       -tlp:default=auto;verbosity=diag;shownCommandLine
     </target>
         <note>
       LOCALIZATION: "-terminalLoggerParameters", "-tlp", "default", "on", "true", "off", "false", "auto", "verbosity", "showCommandLine" should not be localized.
@@ -254,17 +255,17 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      (Short form: -mt)
     </source>
         <target state="translated">  -multithreaded
-                     Włącza tryb EKSPERYMENTALNY wielowątkowości w programie MSBuild.
-                     Oznacza to, że program MSBuild będzie używać wielu wątków
-                     do równoległego kompilowania projektów,
-                     zamiast wielu procesów.
-                     Ta opcja nie jest obsługiwana.
-                     Maksymalna liczba używanych wątków jest określana przez
-                     przełącznik -maxCpuCount.
-                     W przypadku trybu wielowątkowego włączonego
-                     i MSBUILDFORCEALLTASKSOUTOFPROC=1
-                     Wartość maxCpuCount nie może być większa niż 256.
-                     (Krótka forma: -mt)
+                     在 MSBuild 中啟用實驗性多執行緒模式。
+                     這表示 MSBuild 將使用多個執行緒
+                     來平行建置專案，
+                     而不是使用多個處理序。
+                     不支援此選項。
+                     使用的執行緒數量上限由
+                     -maxCpuCount 切換開關決定。
+                     若啟用多執行緒模式
+                     且 MSBUILDFORCEALLTASKSOUTOFPROC=1，
+                     maxCpuCount 不得超過 256。
+                     (簡短形式: -m)
     </target>
         <note />
       </trans-unit>
@@ -277,12 +278,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      This writes the value of property Bar into Biz.txt.
     </source>
         <target state="translated">  -getResultOutputFile:file
-                     Przekieruj dane wyjściowe z polecenia get* do pliku.
+                    將輸出從 get* 重新導向至檔案。
 
-                     Przykład:
-                     -getProperty:Bar -getResultOutputFile:Biz.txt
-                     Spowoduje to zapisywanie wartości paska właściwości w pliku Biz.txt.
-    </target>
+                    範例: 
+                    -getProperty:Bar -getResultOutputFile:Biz.txt
+                    這會將屬性列的值寫入 Biz.txt。
+   </target>
         <note>
       LOCALIZATION: "-getResultOutputFile", "get*" and "-getProperty" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -295,9 +296,9 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      of the build. For more info see https://aka.ms/buildcheck
 	</source>
         <target state="translated">  -check
-                     Włącza funkcję BuildChecks podczas kompilacji.
-                     Funkcja BuildCheck umożliwia ocenę reguł w celu zapewnienia właściwości
-                     kompilacji. Aby uzyskać więcej informacji, zobacz https://aka.ms/buildcheck
+                     在建置期間啟用 BuildChecks。
+                     BuildCheck 會啟用評估規則以確保組建的
+                     屬性。如需詳細資訊，請參閱 https://aka.ms/buildcheck
 	</target>
         <note>
     {Locked="-check"}{Locked="BuildChecks"}{Locked="BuildCheck"}
@@ -306,7 +307,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidLowPriorityValue">
         <source>MSBUILD : error MSB1064: Low priority value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1064: wartość niskiego priorytetu jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1064: 低優先順序值無效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1064: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -316,7 +317,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidNoLogoValue">
         <source>MSBUILD : error MSB1071: NoLogo value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1071: Wartość NoLogo jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1071: NoLogo 值無效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1071: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -326,7 +327,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidTerminalLoggerValue">
         <source>MSBUILD : error MSB1065: Terminal logger value is not valid. It should be one of 'auto', 'true', or 'false'. {0}</source>
-        <target state="translated">MSBUILD : error MSB1065: Wartość rejestratora terminali jest nieprawidłowa. Powinna to być wartość „auto”, „true” lub „false”. {0}</target>
+        <target state="translated">MSBUILD : error MSB1065: 終端機記錄器值無效。它應該是 'auto'、'true' 或 'false' 其中之一。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1065: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -336,7 +337,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidReportFileAccessesValue">
         <source>MSBUILD : error MSB1063: Report file accesses value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1063: wartość dostępów do pliku raportu jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1063: 報告檔案存取值無效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1063: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -346,52 +347,52 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarError">
         <source>MSB1071: Error processing MSBUILD_LOGGING_ARGS environment variable: {0}</source>
-        <target state="translated">MSB1071: błąd podczas przetwarzania zmiennej środowiskowej MSBUILD_LOGGING_ARGS: {0}</target>
+        <target state="translated">MSB1071: 處理 MSBUILD_LOGGING_ARGS 環境變數時發生錯誤: {0}</target>
         <note>{StrBegin="MSB1071: "}LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is the error message.</note>
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarUnsupportedArgument">
         <source>MSB1070: MSBUILD_LOGGING_ARGS: Ignoring unsupported argument '{0}'. Only -bl and -check arguments are allowed.</source>
-        <target state="translated">MSB1070: MSBUILD_LOGGING_ARGS: ignorowanie nieobsługiwanego argumentu „{0}”. Dozwolone są tylko argumenty -bl i -check.</target>
+        <target state="translated">MSB1070: MSBUILD_LOGGING_ARGS: 忽略不支援的引數 '{0}'。僅允許使用 -bl 和 -check 引數。</target>
         <note>{StrBegin="MSB1070: "}LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is the unsupported argument.</note>
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarUsing">
         <source>Using arguments from MSBUILD_LOGGING_ARGS environment variable: {0}</source>
-        <target state="translated">Używanie argumentów ze zmiennej środowiskowej MSBUILD_LOGGING_ARGS: {0}</target>
+        <target state="translated">正在使用 MSBUILD_LOGGING_ARGS 環境變數中的引數: {0}</target>
         <note>LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is a string with the command-line arguments from the environment variable.</note>
       </trans-unit>
       <trans-unit id="LongPaths">
         <source>Based on the Windows registry key LongPathsEnabled, the LongPaths feature is {0}.</source>
-        <target state="translated">Na podstawie klucza rejestru systemu Windows LongPathsEnabled funkcja LongPaths jest {0}.</target>
+        <target state="translated">根據 Windows 登錄機碼 LongPathsEnabled，LongPaths 功能為 {0}。</target>
         <note>"Windows" is the OS, "LongPathsEnabled" should not be localized, and {0} will be "enabled"/"disabled"/"not set"</note>
       </trans-unit>
       <trans-unit id="LongPaths_Disabled">
         <source>disabled</source>
-        <target state="translated">wyłączono</target>
+        <target state="translated">已停用</target>
         <note />
       </trans-unit>
       <trans-unit id="LongPaths_Enabled">
         <source>enabled</source>
-        <target state="translated">włączono</target>
+        <target state="translated">已啟用</target>
         <note />
       </trans-unit>
       <trans-unit id="LongPaths_Missing">
         <source>not set</source>
-        <target state="translated">nie ustawiono</target>
+        <target state="translated">未設定</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBuildServerConnectFailed">
         <source>could not connect to the server within the timeout window; the server may have failed to start</source>
-        <target state="needs-review-translation">nie można było połączyć się z serwerem w oknie limitu czasu; serwer mógł się nie uruchomić</target>
+        <target state="needs-review-translation">在逾時時段內無法連線至伺服器; 伺服器可能無法啟動</target>
         <note>LOCALIZATION: No format arguments. Used for any connect failure when the server's exit code is not known — covers both pipe-connect timeouts and non-timeout I/O errors during the connect attempt. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerCrashedOnLaunch">
         <source>the server process exited with code {0} immediately after launch</source>
-        <target state="needs-review-translation">proces serwera zakończył działanie z kodem {0} zaraz po uruchomieniu</target>
+        <target state="needs-review-translation">伺服器處理序在啟動後立即以代碼 {0} 結束</target>
         <note>LOCALIZATION: {0} is the integer process exit code; rendered with InvariantCulture as a decimal integer, do not localize the digits. This message is concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerLaunchError">
         <source>the server process could not be launched</source>
-        <target state="needs-review-translation">nie można uruchomić procesu serwera</target>
+        <target state="needs-review-translation">無法啟動伺服器處理序</target>
         <note>LOCALIZATION: No format arguments. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerNodeReused">
@@ -436,32 +437,32 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MSBuildServerStateUnknown">
         <source>the current server state could not be determined</source>
-        <target state="needs-review-translation">nie można określić bieżącego stanu serwera</target>
+        <target state="needs-review-translation">無法判斷目前的伺服器狀態</target>
         <note>LOCALIZATION: No format arguments. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerUnavailable">
         <source>MSBuild server unavailable: {0}. Falling back to an in-process build.</source>
-        <target state="translated">Serwer MSBuild jest niedostępny: {0}. Przechodzimy do kompilacji w procesie.</target>
+        <target state="translated">MSBuild 伺服器無法使用: {0}。回到同處理序組建。</target>
         <note>LOCALIZATION: {0} is a sub-message describing why the MSBuild server could not be used. It is one of MSBuildServerCrashedOnLaunch / MSBuildServerLaunchError / MSBuildServerStateUnknown / MSBuildServerConnectFailed. The outer template supplies the trailing period after {0}; sub-messages must NOT end with a period or other sentence-final punctuation.</note>
       </trans-unit>
       <trans-unit id="MSBuildVersionMessage">
         <source>MSBuild version {0} for {1}</source>
-        <target state="translated">Wersja programu MSBuild {0} dla {1}</target>
+        <target state="translated">{1} 的 MSBuild 版本 {0}</target>
         <note>LOCALIZATION: {0} contains the DLL version number. {1} contains the name of a runtime, like ".NET Framework" or ".NET Core"</note>
       </trans-unit>
       <trans-unit id="CurrentDirectory">
         <source>Current directory = "{0}"</source>
-        <target state="translated">Bieżący katalog = „{0}”</target>
+        <target state="translated">目前目錄 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="DuplicateOutputResultsCache">
         <source>MSBUILD : error MSB1058: Only one output results cache can be specified.</source>
-        <target state="translated">MSBUILD : error MSB1058: można określić tylko jedną wyjściową pamięć podręczną wyników.</target>
+        <target state="translated">MSBUILD : error MSB1058: 只能指定一個輸出結果快取。</target>
         <note>{StrBegin="MSBUILD : error MSB1058: "}</note>
       </trans-unit>
       <trans-unit id="DuplicateProjectSwitchError">
         <source>MSBUILD : error MSB1008: Only one project can be specified.</source>
-        <target state="translated">MSBUILD : error MSB1008: można określić tylko jeden projekt.</target>
+        <target state="translated">MSBUILD : error MSB1008: 只能指定一個專案。</target>
         <note>{StrBegin="MSBUILD : error MSB1008: "}UE: This happens if the user does something like "msbuild.exe myapp.proj myapp2.proj". This is not allowed.
     MSBuild.exe will only build a single project. The help topic may link to an article about how to author an MSBuild project
     that itself launches MSBuild on a number of other projects.
@@ -469,7 +470,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="EnvironmentVariableAsSwitch">
         <source>MSBUILD : error MSB1060: Undefined environment variable passed in as switch.</source>
-        <target state="translated">MSBUILD : error MSB1060: Niezdefiniowana zmienna środowiskowa przekazana jako przełącznik.</target>
+        <target state="translated">MSBUILD : error MSB1060: 以切換參數傳入未定義的環境變數。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1060: "}
       UE: This error is shown when a user passes in an environment variable (including from a response file)
@@ -478,7 +479,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="FatalError">
         <source>MSBUILD : error MSB1025: An internal failure occurred while running MSBuild.</source>
-        <target state="translated">MSBUILD : error MSB1025: podczas uruchamiania programu MSBuild wystąpił błąd wewnętrzny.</target>
+        <target state="translated">MSBUILD : error MSB1025: 執行 MSBuild 時發生內部錯誤。</target>
         <note>{StrBegin="MSBUILD : error MSB1025: "}UE: This message is shown when the application has to terminate either because of a bug in the code, or because some
       FX/CLR method threw an unexpected exception.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" and "MSBuild" should not be localized.</note>
@@ -486,7 +487,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       <trans-unit id="HelpMessage_1_Syntax">
         <source>Syntax:              MSBuild.exe [options] [project file | directory]
 </source>
-        <target state="translated">Składnia:              MSBuild.exe [opcje] [plik projektu | katalog]
+        <target state="translated">語法:              MSBuild.exe [選項] [專案檔 | 目錄]
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -505,12 +506,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      a directory is specified, MSBuild searches that
                      directory for a project file.
 </source>
-        <target state="translated">Opis:         Kompiluje określone elementy docelowe w pliku projektu. Jeśli
-                     nie określono pliku projektu, program MSBuild wyszukuje w
-                     bieżącym katalogu roboczym plik, którego rozszerzenie
-                     kończy się na „proj”, i używa tego pliku. Jeśli
-                     określono katalog, program MSBuild wyszuka
-                     plik projektu w tym katalogu.
+        <target state="translated">描述:         在專案檔中建置指定的目標。若未
+                    指定專案檔，MSBuild 會從目前的
+                    工作目錄中，搜尋副檔名結尾為
+                     "proj" 的檔案，並使用該檔案。
+                    如有指定目錄，MSBuild 會從該目錄
+                    搜尋專案檔。
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -532,14 +533,13 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      value that comes from a response file.
     </source>
         <target state="translated">  -interactive[:True|False]
-                     Wskazuje, że akcje w ramach kompilacji mogą wchodzić
-                     w interakcję z użytkownikiem. Nie należy używać tego
-                     argumentu w scenariuszu zautomatyzowanym, w którym
-                     interakcyjność nie jest oczekiwana.
-                     Podanie parametru -interactive jest równoznaczne
-                     z podaniem parametru -interactive:true. Użyj tego
-                     parametru, aby przesłonić wartość pochodzącą z pliku 
-                     odpowiedzi.
+                     指出不允許組建中的動作與使用者
+                     互動。請勿在自動化情節中使用此
+                     引數，因為在這個情節中不應出現
+                     功能。
+                     指定 -interactive 就等同於指定
+                     -interactive:true。這個參數可用來
+                     覆寫來自回應檔的值。
     </target>
         <note>
       LOCALIZATION: "-interactive" should not be localized.
@@ -568,25 +568,24 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -isolateProjects[:True|MessageUponIsolationViolation|False]
-                     Powoduje, że program MSBuild kompiluje każdy projekt osobno.
+                     導致 MSBuild 在隔離中建置每個專案。
 
-                     Po ustawieniu na wartość „MessageUponIsolationViolation” (lub jej skróconą
-                     formę „Message”), serializowane są tylko wyniki z celów najwyższego poziomu
-                     , jeśli przełącznik -outputResultsCache jest
-                     dostarczony. Ma to na celu zmniejszenie szans na to, że cel 
-                     naruszy izolację w projekcie zależnym przy użyciu
-                     nieprawidłowego stanu z powodu jego zależności od buforowanego celu
-                     którego efekty uboczne nie byłyby brane pod uwagę.
-                     (Na przykład definicja właściwości).
+                     設定為 "MessageUponIsolationViolation" 
+                     (或其簡短形式 "Message") 時，如果提供 
+                     -outputResultsCache 切換，則只會序列化來自
+                     頂層目標的結果。這是為了降低相依性專案上，
+                     由於其相依性位於快取目標上 (其副作用
+                     不會納入考量)，而使用不正確狀態
+                     造成違反隔離目標的機會。
+                     (例如，屬性的定義。)
 
-                     Jest to bardziej restrykcyjny tryb MSBuild, ponieważ wymaga
-,
-                     aby graf projektu był statycznie wykrywalny w
-                     czasie ewaluacji, ale może też poprawiać planowanie i zmniejszyć
-                     pamięć podczas budowania dużego zestawu projektów.
-                     (Skrócona forma: -isolate)
+                     這是 MSBuild 更具限制的模式，
+                     因為它要求專案圖形在評估階段可靜態探索，
+                     但可能會改善排程，並減少建置大量專案時
+                     的記憶體額外負荷。
+                     (簡短形式: -isolate)
 
-                     Ta flaga jest eksperymentalna i może nie działać zgodnie z przeznaczeniem.
+                     此旗標是實驗性，可能無法如預期運作。
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -607,19 +606,16 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -graphBuild[:True|False]
-                     Powoduje, że program MSBuild tworzy i kompiluje graf                 
-                     projektu.
+                     引發 MSBuild 建構及建置專案圖形。
 
-                     Tworzenie grafu obejmuje identyfikowanie odwołań do
-                     projektu w celu utworzenia zależności. Kompilowanie takiego
-                     grafu obejmuje próbę skompilowania odwołań do projektu
-                     przed skompilowaniem odwołujących się projektów, co
-                     stanowi różnicę względem tradycyjnego planowania programu
-                     MSBuild.
-                     (Krótka wersja: -graph)
+                     建構圖形會牽涉到識別專案參考
+                     以構成專案相依性。建置圖形
+                     會牽涉到嘗試在專案加以參考之前，
+                     先建置專案參考，而這與傳統的
+                     MSBuild 排程不同。
+                     (簡短形式: -graph)
 
-                     Ta flaga jest eksperymentalna i może nie działać w oczekiwany
-                     sposób.
+                     這是實驗性的旗標，運作情形可能不如預期。
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -629,7 +625,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="HelpMessage_37_DocsLink">
         <source>For more detailed information, see https://aka.ms/msbuild/docs</source>
-        <target state="translated"> Aby uzyskać więcej szczegółowych informacji, zobacz https://aka.ms/msbuild/docs</target>
+        <target state="translated">如需詳細資訊，請參閱 https://aka.ms/msbuild/docs</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpMessage_38_TargetsSwitch">
@@ -642,13 +638,13 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      Example:
                        -ts:out.txt
     </source>
-        <target state="translated">  -targets[:plik]
-                     Drukuje listę dostępnych elementów docelowych bez wykonywania
-                     rzeczywistego procesu kompilacji. Domyślnie dane wyjściowe są zapisywanie w
-                     oknie konsoli. Jeśli zostanie określona ścieżka
-                     do pliku wyjściowego, to zostanie on użyty zamiast okna konsoli.
-                     (Krótka wersja: -ts)
-                     Przykład:
+        <target state="translated">  -targets[:file]
+                     列印可用目標的清單，但不執行
+                     實際建置流程。根據預設，會將輸出寫入
+                     主控台視窗。若有提供輸出檔案的路徑
+                     則會改用該路徑。
+                     (簡短形式: -ts)
+                     例如
                        -ts:out.txt
     </target>
         <note>
@@ -666,11 +662,11 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      (Short form: -low)
     </source>
         <target state="translated">  -lowPriority[:True|False]
-                     Powoduje, że program MSBuild działa jako proces z niskim priorytetem.
+                     讓 MSBuild 以低處理序優先順序執行。
 
-                     Określenie opcji -lowPriority oznacza to samo co określenie opcji
-                     -lowPriority:True.
-                     (Krótka forma: -low)
+                     指定 -lowPriority 與指定
+                     -lowPriority:True 相同。
+                     (簡短形式: -low)
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -682,8 +678,8 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
         <source>Switches:            Note that you can specify switches using
                      "-switch", "/switch" and "--switch".
 </source>
-        <target state="translated">Przełączniki:            Należy pamiętać, że przełączniki można określać
-                     za pomocą składni „-przełącznik”, „/przełącznik” i „--przełącznik”.
+        <target state="translated">參數:            請注意，您可以同時使用 "-switch"、"/switch"，
+以及 "--switch"                     來指定參數。
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -705,12 +701,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                        -warnNotAsError:MSB3026
     </source>
         <target state="translated">  -warnNotAsError[:code[;code2]]
-                     Lista kodów ostrzeżeń, które nie są traktowane jako błędy.
-                     Użyj średnika lub przecinka, aby oddzielić
-                     wiele kodów ostrzeżeń. Nie ma wpływu, jeśli przełącznik -warnaserror
-                     nie jest ustawiony.
+                     要視為不視為錯誤的警告代碼清單。
+                     使用分號或逗號分隔
+                     多個警告代碼。如果未設定 -warnaserror
+                     切換，則沒有作用。
 
-                     Przykład:
+                     範例:
                        -warnNotAsError:MSB3026
     </target>
         <note>
@@ -721,7 +717,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       <trans-unit id="HelpMessage_4_HelpSwitch">
         <source>  -help              Display this usage message. (Short form: -? or -h)
 </source>
-        <target state="translated">  -help              Wyświetla ten komunikat dotyczący sposobu użycia. (Krótka wersja: -? lub -h)
+        <target state="translated">  -help              顯示此使用方式訊息。(簡短形式: -? 或 -h)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -736,8 +732,8 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
         <source>  -noLogo[:true|false] Do not display the startup banner and copyright message.
                        Specify -nologo:false to explicitly show the logo.
 </source>
-        <target state="translated">  -noLogo[:true|false] Nie wyświetlaj baneru startowego ani komunikatu o prawach autorskich.
-                       Użyj -nologo:false, aby wyraźnie pokazać logo.
+        <target state="translated">  -noLogo[:true|false] 不顯示啟動橫幅和著作權訊息。
+                       指定 -nologo:false 以明確顯示標誌。
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -751,7 +747,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       <trans-unit id="HelpMessage_6_VersionSwitch">
         <source>  -version           Display version information only. (Short form: -ver)
 </source>
-        <target state="translated">  -version           Wyświetla tylko informacje o wersji. (Krótka wersja: -ver)
+        <target state="translated">  -version           只顯示版本資訊。(簡短形式: -ver)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -772,14 +768,14 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      (1) the directory of msbuild.exe
                      (2) the directory of the first project or solution built
 </source>
-        <target state="translated">  @&lt;plik&gt;            Wstawianie ustawień wiersza polecenia z pliku tekstowego. Aby określić
-                     wiele plików odpowiedzi, określ każdy z tych plików
-                     osobno.
+        <target state="translated">  @&lt;file&gt;            從文字檔插入命令列設定。若要
+                     指定多個回應檔，請分開指定每一個
+                     回應檔。
 
-                     Wszelkie pliki odpowiedzi o nazwie „msbuild.rsp” będą automatycznie
-                     wykorzystywane z następujących lokalizacji: 
-                     (1) katalog programu msbuild.exe
-                     (2) katalog pierwszej kompilacji projektu lub rozwiązania
+                     所有名為 "msbuild.rsp" 的回應檔
+                     將會自動從下列位置取用:
+                     (1) msbuild.exe 的目錄
+                     (2) 建置第一個專案或解決方案的目錄
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -794,7 +790,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
         <source>  -noAutoResponse    Do not auto-include any MSBuild.rsp files. (Short form:
                      -noAutoRsp)
 </source>
-        <target state="translated">  -noAutoResponse    Automatycznie nie będą dołączane żadne pliki MSBuild.rsp. (Krótka wersja:
+        <target state="translated">  -noAutoResponse    不自動包含任何 MSBuild.rsp 檔案。(簡短形式:
                      -noAutoRsp)
 </target>
         <note>
@@ -813,10 +809,10 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      Example:
                        -target:Resources;Compile
 </source>
-        <target state="translated">  -target:&lt;elementy docelowe&gt;  Kompiluje podane elementy docelowe w tym projekcie.
-                     Przy użyciu średnika lub przecinka można rozdzielić wiele elementów docelowych,
-                      można również określić każdy z nich osobno. (Krótka wersja: -t)
-                     Przykład:
+        <target state="translated">  -target:&lt;目標&gt;  在此專案中建置這些目標。請用分號或
+                     逗號區隔多個目標，或是個別指定
+                     每一個目標。(簡短形式: -t)
+                     範例:
                        -target:Resources;Compile
 </target>
         <note>
@@ -836,11 +832,11 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      Example:
                        -property:WarningLevel=2;OutDir=bin\Debug\
 </source>
-        <target state="translated">  -property:&lt;n&gt;=&lt;v&gt;  Ustawia lub przesłania podane właściwości na poziomie projektu.
-                     &lt;n&gt; jest nazwą właściwości, a &lt;v&gt; jest jej wartością. Przy użyciu średnika
-                      lub przecinka można rozdzielać wiele właściwości,
-                      można również określić każdą właściwość osobno. (Krótka wersja: -p)
-                     Przykład:
+        <target state="translated">  -property:&lt;n&gt;=&lt;v&gt;  設定或覆寫這些專案層級的屬性。&lt;n&gt; 是
+                     屬性名稱，而 &lt;v&gt; 則是屬性值。請使用
+                     分號或逗號區隔多個屬性，
+                     或是個別指定每一個屬性。(簡短形式: -p)
+                     範例:
                        -property:WarningLevel=2;OutDir=bin\Debug\
 </target>
         <note>
@@ -868,21 +864,18 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                        -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -logger:XMLLogger,C:\Loggers\MyLogger.dll;OutputAsHTML
 </source>
-        <target state="translated">  -logger:&lt;rejestrator&gt;  Umożliwia użycie podanego rejestratora do rejestrowania
-                         zdarzeń pochodzących z programu MSBuild. Aby określić
-                     wiele rejestratorów, określ każdy z nich osobno.
-                     Składnia elementu &lt;rejestrator&gt;:
-                        [&lt;klasa rejestratora&gt;,]&lt;zestaw rejestratora&gt;
-                        [;&lt;parametry rejestratora&gt;]
-                     Składnia elementu &lt;klasa rejestratora&gt;:
-                        [&lt;częściowa lub pełna przestrzeń nazw&gt;.]
-                        &lt;nazwa klasy rejestratora&gt;
-                     Składnia elementu &lt;zestaw rejestratora&gt;:
-                        {&lt;nazwa zestawu&gt;[,&lt;strong name&gt;] | &lt;plik zestawu&gt;}
-                     Wartości &lt;parametry rejestratora&gt; są opcjonalne i są
-                     przekazywane do rejestratora dokładnie tak, jak zostały
-                     wpisane. (Krótka wersja: -l)
-                     Przykłady:
+        <target state="translated">  -logger:&lt;記錄器&gt;   使用此記錄器可記錄 MSBuild 的事件。
+                     若要指定多個記錄器，請各別指定每個記錄器。
+                     &lt;記錄器&gt; 語法為:
+                       [&lt;類別&gt;,]&lt;組件&gt;[,&lt;選項&gt;][;&lt;參數&gt;]
+                     &lt;記錄器類別&gt; 語法為:
+                       [&lt;一部分或完整的命名空間&gt;.]&lt;記錄器類別名稱&gt;
+                     &lt;記錄器組件&gt; 語法為:
+                       {&lt;組件名稱&gt;[,&lt;strong name&gt;] | &lt;組件檔案&gt;}
+                     記錄器選項會指定 MSBuild 建立記錄器的方式。
+                     &lt;記錄器參數&gt; 是選擇性參數，其會依您輸入的內容，
+                     完全一樣地傳遞到記錄器。(簡短形式: -l)
+                     範例:
                        -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -logger:XMLLogger,C:\Loggers\MyLogger.dll;OutputAsHTML
 </target>
@@ -906,15 +899,15 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                            is set separately by
                            -fileloggerparameters.
 </source>
-        <target state="translated">  -verbosity:&lt;level&gt; Wyświetl tę ilość informacji w dzienniku zdarzeń.
-                     Dostępne poziomy szczegółowości to: q[uiet], m[inimal],
-                     n[ormal], d[etailed], and diag[nostic]. (Skrócona forma: -v)
-                     Przykład:
-                       -verbosity:cichy
+        <target state="translated">  -verbosity:&lt;level&gt; 在事件記錄中顯示此數量的資訊。
+                    可用的詳細層級為: q[uiet]、m[inimal]、
+                     n[ormal]、d[etailed] 和 diag[nostic]。(簡短形式: -v)
+                    範例:
+                       -verbosity:quiet
 
-                     Note: szczegółowość rejestratorów plików
-                           jest ustawiana oddzielnie przez
-                           -fileloggerparameters.
+                     注意: 檔案記錄器的詳細層級
+                           是由 -fileloggerparameters
+                           個別設定。
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -961,36 +954,36 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                                                  Verbosity=minimal
 </source>
         <target state="translated">  -consoleLoggerParameters:&lt;parameters&gt;
-                     Parametry rejestratora konsoli. (Krótka forma: -clp)
-                     Dostępne parametry to:
-                        PerformanceSummary — pokaż czas poświęcony na zadania, cele
-                            i projekty.
-                        Summary — pokaż podsumowanie błędów i ostrzeżeń na końcu.
-                        NoSummary — nie pokazuj podsumowania błędów i ostrzeżeń na
-                            końcu.
-                        ErrorsOnly — pokaż tylko błędy.
-                        WarningsOnly — pokaż tylko ostrzeżenia.
-                        NoItemAndPropertyList — nie pokazuj listy elementów i
-                            właściwości na początku każdej kompilacji projektu.
-                        ShowCommandLine--Show TaskCommandLineEvent wiadomości
-                        ShowTimestamp — wyświetl sygnaturę czasową jako prefiks dowolnej
-                            wiadomości.
-                        ShowEventId — pokaż identyfikator zdarzenia dla rozpoczętych zdarzeń, zakończonych
-                            zdarzeń i komunikatów
-                        ForceNoAlign — nie powoduje wyrównania tekstu do rozmiaru
-                            bufora konsoli
-                        DisableConsoleColor — użyj domyślnych kolorów konsoli
-                            dla wszystkich komunikatów rejestrowania.
-                        EnableMPLogging — włącz styl rejestrowania wieloprocesorowego
-                            nawet w przypadku uruchamiania w środowisku innym niż wieloprocesorowe
-                            tryb. Ten styl rejestrowania jest domyślnie włączony.
-                        ForceConsoleColor — użyj kolorów konsoli ANSI, nawet jeśli
-                            konsola nie obsługuje tej funkcji
-                        PreferConsoleColor — użyj kolorów konsoli ANSI tylko wtedy, gdy
-                            konsola docelowa ją obsługuje
-                     Szczegółowość — nadpisuje ustawienie -verbosity dla tego
-                            rejestratora.
-                     Przykład:
+                     主控台記錄器的參數。(簡短形式: -clp)
+                     可用的參數為:
+                        PerformanceSummary--顯示工作、目標
+                            及專案所花費的時間。
+                        Summary--結束時顯示錯誤與警告摘要。
+                        NoSummary--結束時不顯示錯誤
+                            與警告摘要。
+                        ErrorsOnly--只顯示錯誤。
+                        WarningsOnly--只顯示警告。
+                        NoItemAndPropertyList--不在每個專案開始建置時，
+                            顯示專案與屬性清單。
+                        ShowCommandLine--顯示 TaskCommandLineEvent 訊息
+                        ShowTimestamp--在所有訊息開頭顯示
+                            時間戳記。
+                        ShowEventId--顯示已開始之事件、已完成之事件
+                            以及訊息的事件識別碼
+                        ForceNoAlign--不將文字調整成主控台
+                            緩衝區的大小
+                        DisableConsoleColor--為所有記錄訊息使用預設的
+                            主控台色彩。
+                        EnableMPLogging--在非多處理器模式下執行時，
+                            啟用多處理器記錄樣式。
+                            此記錄樣式預設為啟用。
+                        ForceConsoleColor--即使主控台不支援 ANSI 主控台色彩，
+                            也一律使用該色彩
+                        PreferConsoleColor--僅在目標主控台目標確實支援 ANSI 主控台色彩時
+                            才使用它
+                     Verbosity--覆寫此記錄器的 -verbosity
+                             設定。
+                     範例:
                         -consoleLoggerParameters:PerformanceSummary;NoSummary;
                                                  Verbosity=minimal
 </target>
@@ -1007,8 +1000,8 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
         <source>  -noConsoleLogger   Disable the default console logger and do not log events
                      to the console. (Short form: -noConLog)
 </source>
-        <target state="translated">  -noConsoleLogger   Wyłącza domyślnego rejestratora konsoli i nie rejestruje
-                     zdarzeń w konsoli. (Krótka wersja: -noConLog)
+        <target state="translated">  -noConsoleLogger   停用預設主控台記錄器，而且不將事件記錄
+                    到主控台。(簡短形式: -noConLog)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1028,12 +1021,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      Example:
                        -validate:MyExtendedBuildSchema.xsd
 </source>
-        <target state="translated">  -validate           Weryfikuje projekt na podstawie schematu domyślnego. (Krótka
-                     wersja: -val)
+        <target state="translated">  -validate          依據預設的結構描述驗證專案。(簡短
+                     形式: -val)
 
-  -validate:&lt;schemat&gt; Weryfikuje projekt na podstawie określonego
-                     schematu. (Krótka wersja: -val)
-                     Przykład:
+  -validate:&lt;結構描述&gt; 依據指定的結構描述驗證專案。(簡短
+                     形式: -val)
+                     範例:
                        -validate:MyExtendedBuildSchema.xsd
 </target>
         <note>
@@ -1052,11 +1045,11 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      MSBuild will use up to the number of processors on the
                      computer. (Short form: -m[:n])
       </source>
-        <target state="translated">  -maxCpuCount[:n]    Określa maksymalną liczbę równoczesnych procesów używanych
-                     podczas kompilacji. Jeżeli przełącznik nie jest używany, wartość domyślna
-                     wynosi 1. Jeżeli przełącznik jest używany bez wartości,
-                     program MSBuild używa liczby procesorów
-                     w komputerze. (Krótka wersja: -m[:n])
+        <target state="translated">  -maxCpuCount[:n]   指定要一同建置的並行處理序
+                    最大數目。如果未使用參數，會使用
+                    預設值 1。如果使用了參數但未提供值，
+                    MSBuild 會使用電腦上的最大
+                    處理器數目。(簡短形式: -m[:n])
       </target>
         <note>
           LOCALIZATION: "maxCpuCount" should not be localized.
@@ -1070,7 +1063,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
         MSBuild MyApp.csproj -t:Clean
                              -p:Configuration=Debug;TargetFrameworkVersion=v3.5
     </source>
-        <target state="translated">Przykłady:
+        <target state="translated">範例:
 
         MSBuild MyApp.sln -t:Rebuild -p:Configuration=Release
         MSBuild MyApp.csproj -t:Clean
@@ -1092,9 +1085,9 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      to False, this sets it to True. (short form: -irc)
    </source>
         <target state="translated">  -inputResultsCaches:&lt;cacheFile&gt;...
-                     Rozdzielona średnikami lista wejściowych plików pamięci podręcznej, z których MSBuild 
-                     odczyta wyniki kompilacji. Jeśli jest ustawione -isolateProjects
-                     na wartość Fałsz, ta opcja ustawia ją na wartość Prawda. (skrócona forma: -irc)
+                     MSBuild 會從中讀取建置結果的輸入快取檔案
+                     以分號分隔的清單。如果已將 -isolateProjects
+                     設為 False，則這會將它設為 True。(簡短形式: -irc)
    </target>
         <note>
       LOCALIZATION: The following should not be localized: MSBuild, -isolate
@@ -1109,10 +1102,10 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      (short form: -orc)
    </source>
         <target state="translated">  -outputResultsCache:[cacheFile]
-                     Wyjściowy plik pamięci podręcznej, w którym program MSBuild zapisze zawartość
-                     pamięci podręcznej wyników kompilacji na końcu kompilacji.
-                     Jeśli -isolateProjects jest ustawiona na wartość Fałsz, to ustawia je na wartość Prawda.
-                     (skrócona forma: -orc)
+                     MSBuild 將在建置結束時寫入其建置結果快取內容
+                     所在的輸出快取檔案。
+                     如果已將 -isolateProjects 設為 False，則這會將它設為 True。
+                     (簡短形式: -orc)
    </target>
         <note>
       LOCALIZATION: The following should not be localized: MSBuild, -isolate
@@ -1121,7 +1114,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="HelpPrompt">
         <source>For switch syntax, type "MSBuild -help"</source>
-        <target state="translated">Aby wyświetlić składnię przełączników, wpisz polecenie „MSBuild -help”</target>
+        <target state="translated">如需參數語法，請鍵入 "MSBuild -help"</target>
         <note>UE: this message is shown when the user makes a syntax error on the command-line for a switch.
     LOCALIZATION: "MSBuild -help" should not be localized.</note>
       </trans-unit>
@@ -1144,21 +1137,21 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                        -dl:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -dl:MyLogger,C:\My.dll*ForwardingLogger,C:\Logger.dll
 </source>
-        <target state="translated">  -distributedLogger:&lt;centralny rejestrator&gt;*&lt;rejestrator przekazujący&gt;
-                     Umożliwia użycie podanego rejestratora do rejestrowania
-                     zdarzeń pochodzących z programu MSBuild. Aby określić
-                     wiele rejestratorów, określ każdy z nich osobno.
-                     (Krótka wersja: -dl)
-                     Składnia elementu &lt;rejestrator&gt;:
-                       [&lt;klasa rejestratora&gt;,]&lt;zestaw rejestratora&gt;[;&lt;parametry rejestratora&gt;]
-                     Składnia elementu &lt;klasa rejestratora&gt;:
-                       [&lt;częściowa lub pełna przestrzeń nazw&gt;.]&lt;nazwa klasy rejestratora&gt;
-                     Składnia elementu &lt;zestaw rejestratora&gt;:
-                       {&lt;nazwa zestawu&gt;[,&lt;strong name&gt;] | &lt;plik zestawu&gt;}
-                     Wartości &lt;parametry rejestratora&gt; są opcjonalne i są
-                     przekazywane do rejestratora dokładnie tak, jak zostały
-                     wpisane. (Krótka wersja: -l)
-                     Przykłady:
+        <target state="translated">  -distributedLogger:&lt;中央記錄器&gt;*&lt;轉寄記錄器&gt;
+                     使用此記錄器可記錄 MSBuild 的事件，
+                     同時為每個節點附加一個不同的記錄器執行個體。
+                     若要指定多個記錄器，請各別指定每個記錄器。
+                     (簡短形式 -dl)
+                     &lt;記錄器&gt; 語法為:
+                       [&lt;類別&gt;,]&lt;組件&gt;[,&lt;選項&gt;][;&lt;參數&gt;]
+                     &lt;記錄器類別&gt; 語法為:
+                       [&lt;一部分或完整的命名空間&gt;.]&lt;記錄器類別名稱&gt;
+                     &lt;記錄器組件&gt; 語法為:
+                       {&lt;組件名稱&gt;[,&lt;strong name&gt;] | &lt;組件檔案&gt;}
+                     記錄器選項會指定 MSBuild 建立記錄器的方式。
+                     &lt;記錄器參數&gt; 是選擇性參數，其會依您輸入的內容，
+                     完全一樣地傳遞到記錄器。(簡短形式: -l)
+                     範例:
                        -dl:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -dl:MyLogger,C:\My.dll*ForwardingLogger,C:\Logger.dll
 </target>
@@ -1180,12 +1173,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      Example:
                        -ignoreProjectExtensions:.sln
     </source>
-        <target state="translated">  -ignoreProjectExtensions:&lt;rozszerzenia&gt;
-                     Lista rozszerzeń, które mają zostać zignorowane podczas
-                     ustalania pliku projektu do kompilacji. Przy użyciu średnika lub przecinka
-                     można rozdzielać wiele rozszerzeń.
-                     (Krótka wersja: -ignore)
-                     Przykład:
+        <target state="translated">  -ignoreProjectExtensions:&lt;副檔名&gt;
+                     決定要建置哪些專案檔時，會忽略的
+                     副檔名清單。請用分號或逗號
+                     分隔多個副檔名。
+                     (簡短形式: -ignore)
+                     範例:
                        -ignoreProjectExtensions:.sln
     </target>
         <note>
@@ -1206,12 +1199,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      Example:
                        -toolsVersion:3.5
    </source>
-        <target state="translated">  -toolsVersion:&lt;wersja&gt;
-                     Wersja zestawu narzędzi programu MSBuild (zadania, elementy docelowe itp.),
-                     która ma być używana podczas kompilacji. Ta wersja przesłania wersje
-                     określone w poszczególnych projektach. (Krótka wersja:
+        <target state="translated">  -toolsversion:&lt;版本&gt;
+                     建置期間所使用的 MSBuild 工具組 (工作、目標等)
+                      版本。此版本將會覆寫 
+                     個別專案所指定的版本。(簡短形式: 
                      -tv)
-                     Przykład:
+                     範例:
                        -toolsVersion:3.5
    </target>
         <note>
@@ -1233,14 +1226,14 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      "n" if present can be a digit from 1-9, allowing up to
                      10 file loggers to be attached. (Short form: -fl[n])
     </source>
-        <target state="translated">  -fileLogger[n]        Rejestruje dane wyjściowe kompilacji w pliku. Domyślnie
-                     plik jest umieszczany w bieżącym katalogu i ma nazwę
-                     „msbuild[n].log”. Zdarzenia ze wszystkich węzłów są łączone
-                     w jednym dzienniku. Lokalizację pliku i inne
-                     parametry rejestratora plików można określić przez
-                     dodanie przełącznika „-fileLoggerParameters[n]”.
-                     Parametr „n”, jeżeli jest określony, może być cyfrą od 1 do 9,
-                     umożliwiając dołączenie maksymalnie 10 rejestratorów plików. (Krótka wersja: -fl[n])
+        <target state="translated">  -fileLogger[n]     將建置輸出記錄到檔案。
+                     根據預設，此檔案位於目前的目錄中，
+                     且名為 "msbuild[n].log"。來自所有節點的事件會合併成
+                     單一記錄。透過新增 "-fileLoggerParameters[n]" 參數，
+                     可以指定 fileLogger 的檔案位置及
+                     其他參數。
+                     如果 "n" 存在，可以是 1-9 之間的數字，
+                     最多允許連結 10 個檔案記錄器。(簡短形式: -fl[n])
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1266,19 +1259,17 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      create a log file for each node.
     </source>
         <target state="translated">  -distributedFileLogger
-                     Rejestruje dane wyjściowe kompilacji w wielu plikach
-                     dziennika, po jednym pliku na węzeł programu MSBuild.
-                     Początkową lokalizacją tych plików jest bieżący katalog.
-                     Domyślnie pliki mają nazwę
-                     „MSBuild&lt;identyfikator węzła&gt;.log”. Lokalizację plików
-                     i inne parametry rejestratora plików można określić
+                     將組建輸出記錄到多個記錄檔，每個 MSBuild
+                     節點一個記錄檔。這些檔案的初始位置，就是目前
+                     的目錄。根據預設，這些檔案稱為
+                     "MSBuild&lt;節點識別碼&gt;.log"。檔案的位置和 fileLogger 的
+                     其他參數可以用加入 "-fileLoggerParameters"
+                     參數的方式指定。如果記錄檔名稱透過
 
-                     przez dodanie przełącznika „-fileLoggerParameters”.
-
-                     Jeśli nazwa pliku zostanie ustawiona za pomocą przełącznika
-                     fileLoggerParameters, rejestrator rozproszony użyje nazwy
-                     pliku jako szablonu i dołączy identyfikator węzła do tej
-                     nazwy pliku, aby utworzyć plik dziennika dla każdego węzła.
+                     fileLoggerParameters 參數設定，則分散式記錄器
+                     將會使用 fileName 做為範本，
+                     並對此 fileName 附加
+                     節點識別碼，來建立每個節點的記錄檔。
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1319,33 +1310,33 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                        -flp1:warningsonly;logfile=msbuild.wrn
                        -flp2:errorsonly;logfile=msbuild.err
     </source>
-        <target state="translated">  -fileLoggerParameters[n]:&lt;parametry&gt;
-                     Dodatkowe parametry dla rejestratorów plików.
-                     Występowanie tego przełącznika implikuje
-                     odpowiedni przełącznik -fileLogger[n].
-                     „n”, jeżeli jest używane, może być cyfrą od 1 do 9.
-                     Przełącznik -fileLoggerParameters jest również używany przez
-                     rozproszony rejestrator plików; zobacz opis przełącznika -distributedFileLogger.
-                     (Krótka wersja: -flp[n])
-                     Dostępne są parametry takie same, jak podane dla rejestratora
-                     konsoli. Dostępne są również dodatkowe parametry:
-                       LogFile — ścieżka do pliku dziennika, w którym będzie
-                                 zapisywany dziennik kompilacji. 
-                       Append — określa, czy plik dziennika kompilacji zostanie
-                                dołączony do pliku dziennika, czy go zastąpi.
-                                Ustawienie tego przełącznika powoduje dołączenie dziennika kompilacji
-                                do pliku dziennika; brak ustawienia przełącznika
-                                powoduje zastąpienie zawartości istniejącego
-                                pliku dziennika. Wartość domyślna to niedołączanie do pliku dziennika.
-                       Encoding — określa kodowanie pliku,
-                            na przykład UTF-8, Unicode lub ASCII.
-                       Domyślnie przyjmowany jest wysoki (Detailed) poziom szczegółowości.
-                     Przykłady:
+        <target state="translated">  -fileLoggerParameters[n]:&lt;參數&gt;
+                     為檔案記錄器提供任何額外的參數。
+                     有這個參數意味著有
+                     相對應的 -fileLogger[n] 參數。
+                     若出現 "n"，可以是 1 到 9 的數字。
+                     所有分散式檔案記錄器也都會使用 -fileLoggerParameters，
+                     請參閱 -distributedFileLogger 的說明。
+                     (簡短形式: -flp[n])
+                     也有針對主控台記錄器列出的相同參數。
+                     一些其他的可用參數為:
+                        LogFile--寫入建置記錄的
+                            記錄檔路徑。
+                        Append--決定是否要將建置記錄附加到
+                            記錄檔或是覆寫記錄檔。
+                            設定此參數會將建置記錄附加到記錄檔;
+                            不設定此參數則會覆寫
+                            現有記錄檔的內容。
+                            預設不會附加到記錄檔。
+                        Encoding--指定檔案的編碼方式，
+                            例如 UTF-8、Unicode 或 ASCII
+                     預設詳細程度為「詳細」。
+                     範例:
                        -fileLoggerParameters:LogFile=MyLog.log;Append;
                                            Verbosity=diagnostic;Encoding=UTF-8
 
-                       -flp:Summary;Verbosity=minimal;LogFile=msbuild.sum 
-                       -flp1:warningsonly;logfile=msbuild.wrn 
+                       -flp:Summary;Verbosity=minimal;LogFile=msbuild.sum
+                       -flp1:warningsonly;logfile=msbuild.wrn
                        -flp2:errorsonly;logfile=msbuild.err
     </target>
         <note>
@@ -1368,14 +1359,14 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      Example:
                        -nr:true
     </source>
-        <target state="translated">  -nodeReuse:&lt;parametry&gt;
-                     Włącza lub wyłącza ponowne używanie węzłów programu MSBuild.
-                     Parametry:
-                     True — węzły będą pozostawiane po ukończeniu kompilacji
-                            i będą ponownie używane przez kolejne kompilacje (domyślnie).
-                     False — węzły nie będą pozostawiane po ukończeniu kompilacji.
-                     (Krótka wersja: -nr)
-                     Przykład:
+        <target state="translated">  -nodeReuse:&lt;參數&gt;
+                     啟用或停用 MSBuild 節點的重複使用。
+                     參數為:
+                     True --節點在建置完成後將會保留，
+                            並且將由後續的建置重複使用 (預設)
+                     False--節點在建置完成後將不會保留
+                     (簡短形式: -nr)
+                     範例:
                        -nr:true
     </target>
         <note />
@@ -1394,17 +1385,17 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      Example:
                        -pp:out.txt
     </source>
-        <target state="translated">  -preprocess[:plik]
-                     Tworzy jeden zagregowany plik projektu przez
-                     wbudowanie wszystkich plików, które zostałyby zaimportowane podczas
-                     kompilacji, z oznaczeniem ich granic. Może to być
-                     przydatne do ustalenia, które pliki są importowane
-                     i skąd oraz jaki jest ich wkład
-                     w kompilację. Domyślnie dane wyjściowe są zapisywane
-                     w oknie konsoli. W przypadku podania ścieżki do pliku wyjściowego
-                     jest ona używana zamiast lokalizacji domyślnej.
-                     (Krótka wersja: -pp)
-                     Przykład:
+        <target state="translated">  -preprocess[:file]
+                     藉由內嵌所有會在建置期間匯入的檔案
+                     建立單一的彙總專案檔，
+                     並標記這些檔案的界限。要找出匯入的檔案有哪些、
+                     來自何處，
+                     以及檔案將對建置有哪些貢獻時，
+                     這會很實用。根據預設，輸出會寫入
+                     主控台視窗。如有提供輸出檔的路徑，
+                     則會改用該路徑。
+                     (簡短形式: -pp)
+                     範例:
                        -pp:out.txt
     </target>
         <note />
@@ -1416,11 +1407,11 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      scheduled to nodes.
                      (Short form: -ds)
     </source>
-        <target state="translated">  -detailedSummary
-                     Pokazuje szczegółowe informacje na zakończenie kompilacji
-                     o utworzonych konfiguracjach i jak zostały one
-                     zaplanowane dla węzłów.
-                     (Krótka forma: -ds)
+        <target state="translated">  -detailedSummary[:True|False]
+                     在建置結束時顯示詳細資訊，
+                     內容為建置的組態，
+                     以及將組態排程到節點的方式。
+                     (簡短形式: -ds)
     </target>
         <note>
       LOCALIZATION: "detailedSummary", "True" and "False" should not be localized.
@@ -1429,7 +1420,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidConfigurationFile">
         <source>MSBUILD : Configuration error MSB1043: The application could not start. {0}</source>
-        <target state="translated">MSBUILD : Configuration error MSB1043: nie można uruchomić aplikacji. {0}</target>
+        <target state="translated">MSBUILD : Configuration error MSB1043: 應用程式無法啟動。{0}</target>
         <note>
       {StrBegin="MSBUILD : Configuration error MSB1043: "}
       UE: This error is shown when the msbuild.exe.config file had invalid content.
@@ -1438,7 +1429,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidDetailedSummaryValue">
         <source>MSBUILD : error MSB1061: Detailed summary value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1061: wartość szczegółowego podsumowania jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1061: 詳細摘要值無效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1061: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1448,7 +1439,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidGraphBuildValue">
         <source>MSBUILD : error MSB1057: Graph build value is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1057: Wartość kompilacji grafu jest nieprawidłowa.</target>
+        <target state="translated">MSBUILD : error MSB1057: 圖形組建值無效。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1057: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1458,7 +1449,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidInteractiveValue">
         <source>MSBUILD : error MSB1055: Interactive value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1055: Wartość interakcyjna jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1055: 互動值無效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1055: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1468,7 +1459,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidIsolateProjectsValue">
         <source>MSBUILD : error MSB1056: Isolate projects value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1056: Wartość projektów izolacji jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1056: 獨立式專案值無效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1056: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1479,7 +1470,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidLoggerError">
         <source>MSBUILD : error MSB1019: Logger switch was not correctly formed.</source>
-        <target state="translated">MSBUILD : error MSB1019: przełącznik rejestratora został nieprawidłowo sformułowany.</target>
+        <target state="translated">MSBUILD : error MSB1019: 記錄器參數的格式不正確。</target>
         <note>{StrBegin="MSBUILD : error MSB1019: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user does any of the following:
       msbuild.exe -logger:;"logger parameters"                    (missing logger class and assembly)
@@ -1491,7 +1482,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidMaxCPUCountValue">
         <source>MSBUILD : error MSB1030: Maximum CPU count is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1030: maksymalna liczba procesorów CPU jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1030: 最大 CPU 計數無效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1030: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1501,7 +1492,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidMaxCPUCountValueOutsideRange">
         <source>MSBUILD : error MSB1032: Maximum CPU count is not valid. Value must be an integer greater than zero and no more than 1024.</source>
-        <target state="translated">MSBUILD : error MSB1032: Maksymalna liczba procesorów CPU jest nieprawidłowa. Wartość musi być liczbą całkowitą z przedziału od 0 do 1024.</target>
+        <target state="translated">MSBUILD : error MSB1032: 最大 CPU 計數無效。值必須為大於零且不超過 1024 的整數。</target>
         <note>{StrBegin="MSBUILD : error MSB1032: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies a CPU value that is zero or less. For example, -m:0 instead of -m:2.
@@ -1510,7 +1501,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidNodeNumberValue">
         <source>MSBUILD : error MSB1033: Node number is not valid. {0}.</source>
-        <target state="translated">MSBUILD : error MSB1033: numer węzła jest nieprawidłowy. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1033: 節點數目無效。{0}。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1033: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1520,7 +1511,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidNodeNumberValueIsNegative">
         <source>MSBUILD : error MSB1034: Node number is not valid. Value must be an integer greater than zero.</source>
-        <target state="translated">MSBUILD : error MSB1034: Numer węzła jest nieprawidłowy. Wartość musi być liczbą całkowitą większą od zera.</target>
+        <target state="translated">MSBUILD : error MSB1034: 節點數目無效。值必須為大於零的整數。</target>
         <note>{StrBegin="MSBUILD : error MSB1034: "}
         UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
         This error is shown when a user specifies a CPU value that is zero or less. For example, -nodeMode:0 instead of -nodeMode:2.
@@ -1529,7 +1520,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidPropertyError">
         <source>MSBUILD : error MSB1006: Property is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1006: właściwość jest nieprawidłowa.</target>
+        <target state="translated">MSBUILD : error MSB1006: 屬性無效。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1006: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown if the user does any of the following:
@@ -1541,13 +1532,13 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidSchemaFile">
         <source>MSBUILD : MSB1046: The schema "{0}" is not valid. {1}</source>
-        <target state="translated">MSBUILD : MSB1046: Schemat {0} jest nieprawidłowy. {1}</target>
+        <target state="translated">MSBUILD : MSB1046: 結構描述 "{0}" 無效。{1}</target>
         <note>{StrBegin="MSBUILD : MSB1046: "}UE: This message is shown when the schema file provided for the validation of a project is itself not valid.
     LOCALIZATION: "{0}" is the schema file path. "{1}" is a message from an FX exception that describes why the schema file is bad.</note>
       </trans-unit>
       <trans-unit id="InvalidSwitchIndicator">
         <source>Switch: {0}</source>
-        <target state="translated">Przełącznik: {0}</target>
+        <target state="translated">參數: {0}</target>
         <note>
       UE: This is attached to error messages caused by an invalid switch. This message indicates what the invalid arg was.
       For example, if an unknown switch is passed to MSBuild.exe, the error message will look like this:
@@ -1558,7 +1549,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidToolsVersionError">
         <source>MSBUILD : error MSB1040: ToolsVersion is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1040: wartość ToolsVersion jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1040: ToolsVersion 無效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1040: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1568,7 +1559,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidVerbosityError">
         <source>MSBUILD : error MSB1018: Verbosity level is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1018: poziom szczegółowości jest nieprawidłowy.</target>
+        <target state="translated">MSBUILD : error MSB1018: 詳細程度等級無效。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1018: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies an unknown verbosity level e.g. "msbuild -verbosity:foo". The only valid verbosities
@@ -1578,7 +1569,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="LoggerFatalError">
         <source>MSBUILD : error MSB1028: The logger failed unexpectedly.</source>
-        <target state="translated">MSBUILD : error MSB1028: wystąpiła nieoczekiwana awaria rejestratora.</target>
+        <target state="translated">MSBUILD : error MSB1028: 記錄器發生未預期的失敗。</target>
         <note>{StrBegin="MSBUILD : error MSB1028: "}
       UE: This error is shown when a logger specified with the -logger switch throws an exception while being
       initialized. This message is followed by the exception text including the stack trace.
@@ -1586,7 +1577,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="LoggerFailurePrefixNoErrorCode">
         <source>MSBUILD : Logger error {0}: {1}</source>
-        <target state="translated">MSBUILD : rejestrator — error {0}: {1}</target>
+        <target state="translated">MSBUILD : 記錄器 error {0}: {1}</target>
         <note>UE: This prefixes the error message emitted by a logger, when a logger fails in a controlled way using a LoggerException.
       For example, the logger is indicating that it could not create its output file.
       There's no error code because one was supplied by the logger.
@@ -1595,7 +1586,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="LoggerFailurePrefixWithErrorCode">
         <source>MSBUILD : Logger error MSB1029: {0}</source>
-        <target state="translated">MSBUILD : rejestrator — error MSB1029: {0}</target>
+        <target state="translated">MSBUILD : 記錄器 error MSB1029: {0}</target>
         <note>{SubString="Logger", "{0}"}{StrBegin="MSBUILD : "}
         UE: This prefixes the error message emitted by a logger, when a logger fails in a controlled way using a LoggerException.
         For example, the logger is indicating that it could not create its output file.
@@ -1605,22 +1596,22 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MSBExePath">
         <source>MSBuild executable path = "{0}"</source>
-        <target state="translated">Ścieżka do pliku wykonywalnego programu MSBuild = „{0}”</target>
+        <target state="translated">MSBuild 可執行檔路徑 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBVersion">
         <source>MSBuild version = "{0}"</source>
-        <target state="translated">Wersja programu MSBuild = „{0}”</target>
+        <target state="translated">MSBuild 版本 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBuildDebugPath">
         <source>MSBuild logs and debug information will be at "{0}"</source>
-        <target state="translated">Dzienniki i informacje debugowania programu MSBuild będą znajdować się w lokalizacji „{0}”</target>
+        <target state="translated">MSBuild 記錄和偵錯工具資訊將位於 "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingFeatureAvailabilityError">
         <source>MSBUILD : error MSB1067: Must provide a feature name for the featureAvailability switch.</source>
-        <target state="translated">MSBUILD : error MSB1067: należy podać nazwę funkcji dla przełącznika dostępności funkcji.</target>
+        <target state="translated">MSBUILD : error MSB1067: 必須提供 featureAvailability 切換的功能名稱。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1067: "}UE: This happens if the user does something like "msbuild.exe -featureAvailability". The user must pass in an actual feature name
       following the switch, as in "msbuild.exe -featureAvailability:blah".
@@ -1629,7 +1620,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingGetItemError">
         <source>MSBUILD : error MSB1014: Must provide an item name for the getItem switch.</source>
-        <target state="translated">MSBUILD : error MSB1014: Musi podać nazwę elementu dla przełącznika getItem.</target>
+        <target state="translated">MSBUILD : error MSB1014: 必須提供 getItem 切換的項目名稱。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1014: "}UE: This happens if the user does something like "msbuild.exe -getItem". The user must pass in an actual item name
       following the switch, as in "msbuild.exe -getItem:blah".
@@ -1638,7 +1629,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingGetPropertyError">
         <source>MSBUILD : error MSB1010: Must provide a property name for the getProperty switch.</source>
-        <target state="translated">MSBUILD : error MSB1010: Musi podać nazwę właściwości dla przełącznika getProperty.</target>
+        <target state="translated">MSBUILD : error MSB1010: 必須提供 getProperty 切換的屬性名稱。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1010: "}UE: This happens if the user does something like "msbuild.exe -getProperty". The user must pass in an actual property name
       following the switch, as in "msbuild.exe -getProperty:blah".
@@ -1647,7 +1638,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingGetResultFileError">
         <source>MSBUILD : error MSB1068: Must provide a file for the getResultOutputFile switch.</source>
-        <target state="translated">MSBUILD : error MSB1068: należy podać plik przełącznika getResultOutputFile.</target>
+        <target state="translated">MSBUILD : error MSB1068: 必須提供 getResultOutputFile 切換的檔案。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1068: "}UE: This happens if the user does something like "msbuild.exe -getResultOutputFile". The user must pass in an actual file
       following the switch, as in "msbuild.exe -getTargetResult:blah -getResultOutputFile:blah.txt".
@@ -1656,7 +1647,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingGetTargetResultError">
         <source>MSBUILD : error MSB1017: Must provide a target name for the getTargetResult switch.</source>
-        <target state="translated">MSBUILD : error MSB1017: Musi podać nazwę celu dla przełącznika getTargetResult.</target>
+        <target state="translated">MSBUILD : error MSB1017: 必須提供 getTargetResult 切換的目標名稱。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1017: "}UE: This happens if the user does something like "msbuild.exe -getTargetResult". The user must pass in an actual target name
       following the switch, as in "msbuild.exe -getTargetResult:blah".
@@ -1665,7 +1656,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingLoggerError">
         <source>MSBUILD : error MSB1007: Specify a logger.</source>
-        <target state="translated">MSBUILD : error MSB1007: określ rejestrator.</target>
+        <target state="translated">MSBUILD : error MSB1007: 指定記錄器。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1007: "}UE: This happens if the user does something like "msbuild.exe -logger". The user must pass in an actual logger class
       following the switch, as in "msbuild.exe -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral".
@@ -1674,7 +1665,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingMaxCPUCountError">
         <source>MSBUILD : error MSB1031: Specify the maximum number of CPUs.</source>
-        <target state="translated">MSBUILD : error MSB1031: określ maksymalną liczbę procesorów CPU.</target>
+        <target state="translated">MSBUILD : error MSB1031: 指定 CPU 的最大數目。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1031: "}UE: This happens if the user does something like "msbuild.exe -m". The user must pass in an actual number like -m:4.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1682,7 +1673,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingProjectError">
         <source>MSBUILD : error MSB1003: Specify a project or solution file. The current working directory does not contain a project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1003: Określ plik projektu lub rozwiązania. Bieżący katalog roboczy nie zawiera pliku projektu ani pliku rozwiązania.</target>
+        <target state="translated">MSBUILD : error MSB1003: 指定專案或方案檔。目前工作目錄未包含專案或方案檔。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1003: "}UE: The user must either specify a project or solution file to build, or there must be a project file in the current directory
       with a file extension ending in "proj" (e.g., foo.csproj), or a solution file ending in "sln".
@@ -1691,7 +1682,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingPropertyError">
         <source>MSBUILD : error MSB1005: Specify a property and its value.</source>
-        <target state="translated">MSBUILD : error MSB1005: określ właściwość i jej wartość.</target>
+        <target state="translated">MSBUILD : error MSB1005: 請指定屬性和屬性值。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1005: "}UE: This happens if the user does something like "msbuild.exe -property". The user must pass in an actual property
       name and value following the switch, as in "msbuild.exe -property:Configuration=Debug".
@@ -1700,7 +1691,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingResponseFileError">
         <source>MSBUILD : error MSB1012: Specify a response file.</source>
-        <target state="translated">MSBUILD : error MSB1012: określ plik odpowiedzi.</target>
+        <target state="translated">MSBUILD : error MSB1012: 請指定回應檔。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1012: "}UE: This error would occur if the user did something like "msbuild.exe @ foo.proj". The at-sign must be followed by a
       response file.
@@ -1709,7 +1700,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingTargetError">
         <source>MSBUILD : error MSB1004: Specify the name of the target.</source>
-        <target state="translated">MSBUILD : error MSB1004: określ nazwę elementu docelowego.</target>
+        <target state="translated">MSBUILD : error MSB1004: 請指定目標的名稱。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1004: "}UE: This happens if the user does something like "msbuild.exe -target". The user must pass in an actual target name
       following the switch, as in "msbuild.exe -target:blah".
@@ -1718,7 +1709,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingTerminalLoggerParameterError">
         <source>MSBUILD : error MSB1066: Specify one or more parameters for the terminal logger if using the -terminalLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1066: W przypadku korzystania z przełącznika -terminalLoggerParameters określ co najmniej jeden parametr dla rejestratora terminalu</target>
+        <target state="translated">MSBUILD : error MSB1066: 如果使用 -terminalLoggerParameters 參數，請為終端機記錄器指定一或多個參數</target>
         <note>
       {StrBegin="MSBUILD : error MSB1066: "}
       UE: This happens if the user does something like "msbuild.exe -terminalLoggerParameters:". The user must pass in one or more parameters
@@ -1728,7 +1719,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingToolsVersionError">
         <source>MSBUILD : error MSB1039: Specify the version of the toolset.</source>
-        <target state="translated">MSBUILD : error MSB1039: określ wersję zestawu narzędzi.</target>
+        <target state="translated">MSBUILD : error MSB1039: 指定工具組的版本。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1039: "}
       UE: This happens if the user does something like "msbuild.exe -toolsVersion". The user must pass in an actual toolsversion
@@ -1738,7 +1729,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingVerbosityError">
         <source>MSBUILD : error MSB1016: Specify the verbosity level.</source>
-        <target state="translated">MSBUILD : error MSB1016: określ poziom szczegółowości.</target>
+        <target state="translated">MSBUILD : error MSB1016: 請指定詳細程度等級。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1016: "}UE: This happens if the user does something like "msbuild.exe -verbosity". The user must pass in a verbosity level
       after the switch e.g. "msbuild.exe -verbosity:detailed".
@@ -1747,7 +1738,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingWarnNotAsErrorParameterError">
         <source>MSBUILD : error MSB1060: Specify one or more warning codes when using the -warnNotAsError switch.</source>
-        <target state="translated">MSBUILD : error MSB1060: Określ co najmniej jeden kod ostrzeżenia podczas korzystania z przełącznika –warnNotAsError.</target>
+        <target state="translated">MSBUILD : error MSB1060: 使用 -warnNotAsError 切換參數時，請指定一或多個警告碼。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1060: "}
       UE: This happens if the user does something like "msbuild.exe -warnNotAsError:" without any codes.
@@ -1756,7 +1747,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MultipleSchemasError">
         <source>MSBUILD : error MSB1024: Only one schema can be specified for validation of the project.</source>
-        <target state="translated">MSBUILD : error MSB1024: do walidacji projektu można określić tylko jeden schemat.</target>
+        <target state="translated">MSBUILD : error MSB1024: 專案的驗證只能指定一個結構描述。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1024: "}UE: The user did something like msbuild -validate:foo.xsd -validate:bar.xsd. We only allow one schema to be specified.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1764,19 +1755,19 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="NameInvalid">
         <source>MSBUILD : error MSB5016: The name "{0}" contains an invalid character "{1}".</source>
-        <target state="translated">MSBUILD : error MSB5016: nazwa „{0}” zawiera nieprawidłowy znak „{1}”.</target>
+        <target state="translated">MSBUILD : error MSB5016: 名稱 "{0}" 包含無效字元 "{1}"。</target>
         <note>
       {StrBegin="MSBUILD : error MSB5016: "}
     </note>
       </trans-unit>
       <trans-unit id="NotWarnAsErrorWithoutWarnAsError">
         <source>MSBUILD : error MSB1062: The -warnnotaserror switch cannot be specified unless the -warnaserror switch is also specified and left empty.</source>
-        <target state="translated">MSBUILD : error MSB1062: Nie można określić przełącznika –warnnotaserror, chyba że przełącznik –warnaserror również jest określony i pozostanie pusty.</target>
+        <target state="translated">MSBUILD : error MSB1062: 除非同時指定 -warnaserror 切換參數且保留空白，否則無法指定 -warnnotaserror 切換參數。</target>
         <note>{StrBegin="MSBUILD : error MSB1062: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-warnnotaserror" and "-warnaserror" should not be localized.</note>
       </trans-unit>
       <trans-unit id="OptionalLoggerCreationMessage">
         <source>The specified logger "{0}" could not be created and will not be used. {1}</source>
-        <target state="translated">Nie można utworzyć określonego rejestratora „{0}” i nie zostanie on użyty. {1}</target>
+        <target state="translated">無法建立指定的記錄器 "{0}"，因此將不會使用它。{1}</target>
         <note>
       UE: This error is shown when a logger cannot be loaded and instantiated from its assembly.
       LOCALIZATION: {0} contains the logger description passed on the command line or in a
@@ -1786,7 +1777,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromAutoResponse">
         <source>Some command line switches were read from the auto-response file "{0}". To disable this file, use the "-noAutoResponse" switch.</source>
-        <target state="translated">Odczytano pewne przełączniki wiersza polecenia z pliku autoodpowiedzi „{0}”. Aby wyłączyć ten plik, użyj przełącznika „-noAutoResponse”.</target>
+        <target state="translated">有些命令列參數讀取自自動回應檔 "{0}"。若要停用此檔案，請使用 "-noAutoResponse" 參數。</target>
         <note>
       UE: This message appears in high verbosity modes when we used some
       switches from the auto-response file msbuild.rsp: otherwise the user may be unaware
@@ -1795,7 +1786,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromResponseFile">
         <source>Some command line switches were read from this response file:</source>
-        <target state="translated">Niektóre przełączniki wiersza polecenia zostały odczytane z tego pliku odpowiedzi:</target>
+        <target state="translated">已從此回應檔案中讀取一些命令列參數:</target>
         <note>
       UE: This message appears before a command-line parsing error when switches were read from a response file: otherwise the user may be unaware where the switches are coming from.
       LOCALIZATION: The response file path is printed on a separate line after this message.
@@ -1803,7 +1794,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromResponseFiles">
         <source>Some command line switches were read from these response files:</source>
-        <target state="translated">Niektóre przełączniki wiersza polecenia zostały odczytane z tych plików odpowiedzi:</target>
+        <target state="translated">已從這些回應檔案中讀取一些命令列參數:</target>
         <note>
       UE: This message appears before a command-line parsing error when switches were read from response files: otherwise the user may be unaware where the switches are coming from.
       LOCALIZATION: The response file paths are printed on separate lines after this message.
@@ -1811,35 +1802,35 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="Process">
         <source>Process = "{0}"</source>
-        <target state="translated">Proces = „{0}”</target>
+        <target state="translated">流程 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectNotFoundError">
         <source>MSBUILD : error MSB1009: Project file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1009: plik projektu nie istnieje.</target>
+        <target state="translated">MSBUILD : error MSB1009: 專案檔不存在。</target>
         <note>{StrBegin="MSBUILD : error MSB1009: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="PossiblyOmittedMaxCPUSwitch">
         <source>Building the projects in this solution one at a time. To enable parallel build, please add the "-m" switch.</source>
-        <target state="translated">Projekty w tym rozwiązaniu są kompilowane pojedynczo. Aby umożliwić kompilację równoległą, dodaj przełącznik „-m”.</target>
+        <target state="translated">在此解決方案中一次建置一個專案。若要啟用平行建置，請新增 "-m" 參數。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectSchemaErrorHalt">
         <source>MSBUILD : MSB1045: Stopping because of syntax errors in project file.</source>
-        <target state="translated">MSBUILD : MSB1045: Zatrzymywanie z powodu błędów składni w pliku projektu.</target>
+        <target state="translated">MSBUILD : MSB1045: 正在停止，因為專案檔中有語法錯誤。</target>
         <note>{StrBegin="MSBUILD : MSB1045: "}</note>
       </trans-unit>
       <trans-unit id="ReadResponseFileError">
         <source>MSBUILD : error MSB1023: Cannot read the response file. {0}</source>
-        <target state="translated">MSBUILD : error MSB1023: nie można odczytać pliku odpowiedzi. {0}</target>
+        <target state="translated">MSBUILD : error MSB1023: 無法讀取回應檔。{0}</target>
         <note>{StrBegin="MSBUILD : error MSB1023: "}UE: This error is shown when the response file cannot be read off disk.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a localized message explaining
     why the response file could not be read -- this message comes from the CLR/FX.</note>
       </trans-unit>
       <trans-unit id="RepeatedResponseFileError">
         <source>MSBUILD : error MSB1013: The response file was specified twice. A response file can be specified only once. Any files named "msbuild.rsp" in the directory of MSBuild.exe or in the directory of the first project or solution built (which if no project or solution is specified is the current working directory) were automatically used as response files.</source>
-        <target state="translated">MSBUILD : error MSB1013: Plik odpowiedzi został określony dwukrotnie. Ten plik można określić tylko raz. Wszelkie pliki z nazwą „msbuild.rsp” w katalogu pliku MSBuild.exe lub w katalogu pierwszej wersji projektu albo rozwiązania (który jest katalogiem roboczym, jeśli nie jest określony żaden projekt czy rozwiązanie) zostały użyte automatycznie jako pliki odpowiedzi.</target>
+        <target state="translated">MSBUILD : error MSB1013: 回應檔指定了兩次。回應檔只能指定一次。已自動將 MSBuild.exe 目錄或所建置的第一個專案或解決方案的目錄 (如果未指定專案或解決方案，則為目前的工作目錄) 中任何名為 "msbuild.rsp" 的檔案，當作回應檔使用。</target>
         <note>{StrBegin="MSBUILD : error MSB1013: "}UE: Response files are just text files that contain a bunch of command-line switches to be passed to MSBuild.exe. The
     purpose is so you don't have to type the same switches over and over again ... you can just pass in the response file instead.
     Response files can include the @ switch in order to further include other response files. In order to prevent a circular
@@ -1849,53 +1840,53 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="ResponseFileNotFoundError">
         <source>MSBUILD : error MSB1022: Response file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1022: plik odpowiedzi nie istnieje.</target>
+        <target state="translated">MSBUILD : error MSB1022: 回應檔不存在。</target>
         <note>{StrBegin="MSBUILD : error MSB1022: "}UE: This message would show if the user did something like "msbuild @bogus.rsp" where bogus.rsp doesn't exist. This
     message does not need in-line parameters because the exception takes care of displaying the invalid arg.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="ResponseFileSwitchFromLocation">
         <source>'{0}' came from '{1}'</source>
-        <target state="translated">Element „{0}“ pochodzi z „{1}“</target>
+        <target state="translated">'{0}' 來自 '{1}'</target>
         <note>
       These are response file switches with the location of the response file on disk.
     </note>
       </trans-unit>
       <trans-unit id="SAC">
         <source>Based on the Windows registry key VerifiedAndReputablePolicyState, SAC state = {0}.</source>
-        <target state="translated">Na podstawie klucza rejestru systemu Windows VerifiedAndReputablePolicyState, stan SAC = {0}.</target>
+        <target state="translated">根據 Windows 登錄機碼 VerifiedAndReputablePolicyState，SAC 狀態 = {0}。</target>
         <note>"Windows" is the OS, SAC is the Smart App Control, "VerifiedAndReputablePolicyState" should not be localized</note>
       </trans-unit>
       <trans-unit id="SAC_Enforcement">
         <source>1: in enforcement</source>
-        <target state="translated">1: w ramach wymuszania</target>
+        <target state="translated">1: 強制</target>
         <note />
       </trans-unit>
       <trans-unit id="SAC_Evaluation">
         <source>2: in evaluation. It is recommended to turn off Smart App Control in development environemnt as otherwise performance might be impacted</source>
-        <target state="translated">2: w ocenie. Zaleca się wyłączenie usługi Inteligentna kontrola aplikacji w środowisku deweloperskim, ponieważ w przeciwnym razie może to wpłynąć na wydajność</target>
+        <target state="translated">2: 評估中。建議關閉開發環境中的智慧型手機應用程式控制件，否則效能可能會受到影響</target>
         <note>Smart App Control, "VerifiedAndReputablePolicyState" should not be localized</note>
       </trans-unit>
       <trans-unit id="SAC_Off">
         <source>0: turned off</source>
-        <target state="translated">0: wyłączone</target>
+        <target state="translated">0: 關閉</target>
         <note />
       </trans-unit>
       <trans-unit id="SchemaFileLocation">
         <source>Validating project using schema file "{0}".</source>
-        <target state="translated">Walidacja projektu za pomocą pliku schematu „{0}”.</target>
+        <target state="translated">正在使用結構描述檔 "{0}" 驗證專案。</target>
         <note>LOCALIZATION: "{0}" is the location of the schema file.</note>
       </trans-unit>
       <trans-unit id="SchemaValidationError">
         <source>MSBUILD : MSB1044: Project is not valid. {0}</source>
-        <target state="translated">MSBUILD : MSB1044: Projekt jest nieprawidłowy. {0}</target>
+        <target state="translated">MSBUILD : MSB1044: 專案無效。{0}</target>
         <note>{StrBegin="MSBUILD : MSB1044: "}UE: This error is shown when the user asks his project to be validated against a schema (-val switch for
     MSBuild.exe), and the project has errors. "{0}" contains a message explaining the problem.
     LOCALIZATION: "{0}" is a message from the System.XML schema validator and is already localized.</note>
       </trans-unit>
       <trans-unit id="SchemaNotFoundError">
         <source>MSBUILD : error MSB1026: Schema file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1026: plik schematu nie istnieje.</target>
+        <target state="translated">MSBUILD : error MSB1026: 結構描述檔不存在。</target>
         <note>{StrBegin="MSBUILD : error MSB1026: "}UE: This error is shown when the user specifies a schema file using the -validate:&lt;schema&gt; switch, and the file
     does not exist on disk. This message does not need in-line parameters because the exception takes care of displaying the
     invalid arg.
@@ -1903,14 +1894,14 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="SchemaNotFoundErrorWithFile">
         <source>MSBUILD : error MSB1026: Schema file '{0}' does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1026: Plik schematu {0} nie istnieje.</target>
+        <target state="translated">MSBUILD : error MSB1026: 結構描述檔 '{0}' 不存在。</target>
         <note>{StrBegin="MSBUILD : error MSB1026: "}UE: This error is printed if the default schema does not exist or in the extremely unlikely event
     that an explicit schema file was passed and existed when the command line parameters were checked but was deleted from disk before this check was made.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="SolutionBuildInvalidForCommandLineEvaluation">
         <source>MSBUILD : error MSB1063: Cannot access properties or items when building solution files or solution filter files. This feature is only available when building individual projects.</source>
-        <target state="translated">MSBUILD : error MSB1063: Nie można uzyskać dostępu do właściwości lub elementów podczas tworzenia plików rozwiązań lub plików filtrów rozwiązań. Ta funkcja jest dostępna tylko podczas tworzenia pojedynczych projektów.</target>
+        <target state="translated">MSBUILD : error MSB1063: 建置方案檔案或方案篩選檔案時，無法存取屬性或項目。此功能僅於建置個別專案時可用。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1063: "}UE: This happens if the user passes in a solution file when trying to access individual properties or items. The user must pass in a project file.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1921,71 +1912,71 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
     Full command line: '{1}'
   Switches appended by response files:{2}</source>
         <target state="translated">{0}
- Pełny wiersz polecenia: „{1}“
- Przełączniki dołączane przez pliki odpowiedzi: {2}</target>
+    完整命令列: '{1}'
+  回應檔案附加的切換參數:{2}</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetsCouldNotBePrinted">
         <source>MSBUILD : error MSB1059: Targets could not be printed. {0}</source>
-        <target state="translated">MSBUILD : error MSB1059: Nie można wydrukować elementów docelowych. {0}</target>
+        <target state="translated">MSBUILD : error MSB1059: 無法列印目標。{0}</target>
         <note>{StrBegin="MSBUILD : error MSB1059: "}</note>
       </trans-unit>
       <trans-unit id="TaskHostAcquired_NullsFiltered">
         <source>Task output parameter "{0}" contained {1} null element(s) which have been filtered out.</source>
-        <target state="translated">Parametr wyjściowy zadania „{0}” zawierał elementy o wartości null ({1}), które zostały odfiltrowane.</target>
+        <target state="translated">工作輸出參數 "{0}" 包含 {1} 個空元素，已遭篩選。</target>
         <note>LOCALIZATION: {0} is the name of the task output parameter, {1} is the count of null elements filtered.</note>
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedAutomated">
         <source>Terminal Logger was not used because it was detected that the build is running in an automated environment.</source>
-        <target state="translated">Rejestrator terminali nie został użyty, ponieważ wykryto, że kompilacja jest uruchomiona w zautomatyzowanym środowisku.</target>
+        <target state="translated">檢測到此組建正在自動化環境中執行，因此未使用終端機記錄器。</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedDisabled">
         <source>Terminal Logger was not used because build is run in context of a process (e.g. 'dotnet test') that requests direct access to stdout stream.</source>
-        <target state="translated">Rejestrator terminali nie został użyty, ponieważ kompilacja jest uruchamiana w kontekście procesu (np. „dotnet test”), który żąda bezpośredniego dostępu do strumienia StdOut.</target>
+        <target state="translated">因為組建是在要求直接存取 stdout 資料流的處理常式 (例如 'dotnet test') 內容中執行，所以未使用終端記錄器。</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedNotSupported">
         <source>Terminal Logger was not used because the output is not supported.</source>
-        <target state="translated">Rejestrator terminali nie został użyty, ponieważ dane wyjściowe nie są obsługiwane.</target>
+        <target state="translated">因為不支援輸出，所以未使用終端記錄器。</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedRedirected">
         <source>Terminal Logger was not used because the output is being redirected to a file.</source>
-        <target state="translated">Rejestrator terminali nie został użyty, ponieważ dane wyjściowe są przekierowywane do pliku.</target>
+        <target state="translated">因為輸出正重新導向至檔案，所以未使用終端記錄器。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedParametersError">
         <source>MSBUILD : error MSB1002: This switch does not take any parameters.</source>
-        <target state="translated">MSBUILD : error MSB1002: ten przełącznik nie ma żadnych parametrów.</target>
+        <target state="translated">MSBUILD : error MSB1002: 這個參數不使用任何參數。</target>
         <note>{StrBegin="MSBUILD : error MSB1002: "}UE: For example, if somebody types "msbuild.exe -noLogo:1", they would get this error because the -noLogo switch
     should not be followed by any parameters ... it stands alone.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnknownSwitchError">
         <source>MSBUILD : error MSB1001: Unknown switch.</source>
-        <target state="translated">MSBUILD : error MSB1001: nieznany przełącznik.</target>
+        <target state="translated">MSBUILD : error MSB1001: 未知的參數。</target>
         <note>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnsupportedOS">
         <source>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</source>
-        <target state="translated">MSBUILD : error MSB1015: Program MSBuild nie działa w tej wersji systemu operacyjnego. Jest obsługiwany tylko w systemie Windows 7 i nowszych wersjach.</target>
+        <target state="translated">MSBUILD : error MSB1015: MSBuild 不會在此版本的作業系統上執行。只有在 Windows 7 及更新版本才受支援。</target>
         <note>{StrBegin="MSBUILD : error MSB1015: "}LOCALIZATION: The error prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnsupportedSwitchForSolutionFiles">
         <source>The '{0}' switch is not supported for solution files.</source>
-        <target state="translated">Przełącznik „{0}” nie jest obsługiwany dla plików rozwiązań.</target>
+        <target state="translated">解決方案檔案不支援 '{0}' 切換。</target>
         <note />
       </trans-unit>
       <trans-unit id="Using35Engine">
         <source>Forcing load of Microsoft.Build.Engine because MSBUILDOLDOM=1...</source>
-        <target state="translated">Wymuszanie załadowania aparatu Microsoft.Build.Engine, ponieważ MSBUILDOLDOM=1...</target>
+        <target state="translated">正在強制載入 Microsoft.Build.Engine，因為 MSBUILDOLDOM=1...</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingIgnoreProjectExtensionsError">
         <source>MSBUILD : error MSB1035: Specify the project extensions to ignore.</source>
-        <target state="translated">MSBUILD : error MSB1035: określ rozszerzenia projektu, które mają być ignorowane.</target>
+        <target state="translated">MSBUILD : error MSB1035: 指定要忽略的專案副檔名。</target>
         <note>{StrBegin="MSBUILD : error MSB1035: "}
       UE: This happens if the user does something like "msbuild.exe -ignoreProjectExtensions". The user must pass in one or more
       project extensions to ignore e.g. "msbuild.exe -ignoreProjectExtensions:.sln".
@@ -1994,12 +1985,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidExtensionToIgnore">
         <source>MSBUILD : error MSB1036: There is an invalid extension in the -ignoreProjectExtensions list. Extensions must start with a period ".", have one or more characters after the period and not contain any invalid path characters or wildcards.</source>
-        <target state="translated">MSBUILD : error MSB1036: Nieprawidłowe rozszerzenie na liście -ignoreProjectExtensions. Rozszerzenia muszą zaczynać się kropką („.”), muszą zawierać co najmniej jeden znak po kropce i nie mogą zawierać nieprawidłowych znaków ścieżki ani symboli wieloznacznych.</target>
+        <target state="translated">MSBUILD : error MSB1036: -ignoreProjectExtensions 清單中有無效的副檔名。副檔名必須以句點 "." 開頭、句點後面必須有一個 (含) 以上的字元，而且不可包含任何無效路徑字元或萬用字元。</target>
         <note>{StrBegin="MSBUILD : error MSB1036: "}LOCALIZATION: The error prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="MissingConsoleLoggerParameterError">
         <source>MSBUILD : error MSB1037: Specify one or more parameters for the console logger if using the -consoleLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1037: w przypadku korzystania z przełącznika -consoleLoggerParameters określ jeden lub więcej parametrów rejestratora konsoli</target>
+        <target state="translated">MSBUILD : error MSB1037: 如果使用 -consoleLoggerParameters 參數，請為主控台記錄器指定一或多個參數</target>
         <note>{StrBegin="MSBUILD : error MSB1037: "}
       UE: This happens if the user does something like "msbuild.exe -consoleLoggerParameters:". The user must pass in one or more parameters
       after the switch e.g. "msbuild.exe -consoleLoggerParameters:ErrorSummary".
@@ -2008,7 +1999,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingFileLoggerParameterError">
         <source>MSBUILD : error MSB1038: Specify one or more parameters for the file logger if using the -fileLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1038: w przypadku korzystania z przełącznika -fileLoggerParameters określ jeden lub więcej parametrów rejestratora plików</target>
+        <target state="translated">MSBUILD : error MSB1038: 如果使用 -fileLoggerParameters 參數，請為檔案記錄器指定一或多個參數</target>
         <note>{StrBegin="MSBUILD : error MSB1038: "}
       UE: This happens if the user does something like "msbuild.exe -fileLoggerParameters:". The user must pass in one or more parameters
       after the switch e.g. "msbuild.exe -fileLoggerParameters:logfile=c:\temp\logfile".
@@ -2017,7 +2008,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="MissingNodeReuseParameterError">
         <source>MSBUILD : error MSB1041: Specify one or more parameters for node reuse if using the -nodeReuse switch</source>
-        <target state="translated">MSBUILD : error MSB1041: w przypadku korzystania z przełącznika -nodeReuse określ jeden lub więcej parametrów ponownego używania węzła</target>
+        <target state="translated">MSBUILD : error MSB1041: 如果使用 -nodeReuse 參數，請為節點重複使用指定一或多個參數</target>
         <note>{StrBegin="MSBUILD : error MSB1041: "}
       UE: This happens if the user does something like "msbuild.exe -nodeReuse:" without a true or false
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -2025,7 +2016,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidNodeReuseValue">
         <source>MSBUILD : error MSB1042: Node reuse value is not valid. {0}.</source>
-        <target state="translated">MSBUILD : error MSB1042: wartość ponownego użycia węzła jest nieprawidłowa. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1042: 節點重複使用值無效。{0}。</target>
         <note>{StrBegin="MSBUILD : error MSB1042: "}
      UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
      This error is shown when a user specifies a node reuse value that is not equivilant to Boolean.TrueString or Boolean.FalseString.
@@ -2034,22 +2025,22 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidPreprocessPath">
         <source>MSBUILD : error MSB1047: File to preprocess to is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1047: Plik, który ma zostać wstępnie przetworzony, jest nieprawidłowy. {0}</target>
+        <target state="translated">MSBUILD : error MSB1047: 要前置處理的目地檔案無效。{0}</target>
         <note>{StrBegin="MSBUILD : error MSB1047: "}</note>
       </trans-unit>
       <trans-unit id="NeedJustMyCode">
         <source>If MSBuild debugging does not work correctly, please verify that the "Just My Code" feature is enabled in Visual Studio, and that you have selected the managed debugger.</source>
-        <target state="translated">Jeśli debugowanie w programie MSBuild nie działa poprawnie, sprawdź, czy w programie Visual Studio jest włączona funkcja „Just My Code” i czy został wybrany debuger zarządzany.</target>
+        <target state="translated">如果 MSBuild 偵錯無法正確運作，請確認是否已在 Visual Studio 中啟用 [Just My Code] 功能、以及是否已選取受控偵錯工具。</target>
         <note />
       </trans-unit>
       <trans-unit id="DebuggingSolutionFiles">
         <source>MSBUILD : error MSB1048: Solution files cannot be debugged directly. Run MSBuild first with an environment variable MSBUILDEMITSOLUTION=1 to create a corresponding ".sln.metaproj" file. Then debug that.</source>
-        <target state="translated">MSBUILD : error MSB1048: Plików rozwiązań nie można debugować bezpośrednio. Najpierw uruchom program MSBuild przy użyciu zmiennej środowiskowej MSBUILDEMITSOLUTION=1, aby utworzyć odpowiedni plik „.sln.metaproj”. Następnie debuguj ten plik.</target>
+        <target state="translated">MSBUILD : error MSB1048: 無法直接對方案檔偵錯。先使用環境變數 MSBUILDEMITSOLUTION=1 執行 MSBuild，以建立對應的 ".sln.metaproj" 檔案。然後對該檔案偵錯。</target>
         <note>{StrBegin="MSBUILD : error MSB1048: "} LOC: ".SLN" should not be localized</note>
       </trans-unit>
       <trans-unit id="AmbiguousProjectDirectoryError">
         <source>MSBUILD : error MSB1050: Specify which project or solution file to use because the folder "{0}" contains more than one project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1050: określ plik projektu lub rozwiązania, który zostanie użyty, ponieważ folder „{0}” zawiera więcej niż jeden plik projektu lub rozwiązania.</target>
+        <target state="translated">MSBUILD : error MSB1050: 因為資料夾 "{0}" 包含多個專案檔或解決方案檔，所以請指定所要使用的專案檔或解決方案檔。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1050: "}UE: If no project or solution file is explicitly specified on the MSBuild.exe command-line, then the engine searches for a
       project or solution file in the current directory by looking for *.*PROJ and *.SLN. If more than one file is found that matches this wildcard, we
@@ -2072,17 +2063,17 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      build will fail.
     </source>
         <target state="translated">  -warnAsError[:code[;code2]]
-                     Lista kodów ostrzeżeń traktowanych jak błędy. Oddziel
-                     kody ostrzeżeń średnikami lub przecinkami. Aby
-                     traktować wszystkie ostrzeżenia jak błędy, użyj przełącznika bez wartości.
-                     (Skrócona forma: -err[:c;[c2]])
+                     要視為錯誤的警告碼清單。如有多個警告碼，
+                     請使用分號或逗點加以分隔。若要將所有警告
+                     視為錯誤，請使用參數，但不要指定值。
+                     (簡短形式: -err[:c;[c2]])
 
-                     Przykład:
+                     範例:
                        -warnAsError:MSB4130
 
-                     Gdy ostrzeżenie zostanie potraktowane jak błąd, element
-                     docelowy będzie nadal wykonywany jak w przypadku
-                     ostrzeżenia, ale kompilacja nie powiedzie się.
+                     當警告視為錯誤時，目標會將其
+                     視為警告繼續執行，但整個建置
+                     作業會失敗。
     </target>
         <note>
       LOCALIZATION: "-warnAsError" and "-err" should not be localized.
@@ -2100,12 +2091,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                        -warnAsMessage:MSB3026
     </source>
         <target state="translated">  -warnAsMessage[:code[;code2]]
-                     Lista kodów ostrzeżeń traktowanych jak komunikaty o małej
-                     ważności. Oddziel kody ostrzeżeń średnikami
-                     lub przecinkami.
-                     (Skrócona forma: -noWarn[:c;[c2]])
+                     要視為低重要性訊息的警告碼清單。
+                     如有多個警告碼，請使用分號或逗點
+                     加以分隔。
+                     (Short form:-noWarn[:c;[c2]])
 
-                     Przykład:
+                     範例:
                        -warnAsMessage:MSB3026
     </target>
         <note>
@@ -2115,12 +2106,12 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="ParameterRequiredError">
         <source>MSBUILD : error MSB1049: The {0} parameter must be specified</source>
-        <target state="translated">MSBUILD : error MSB1049: konieczne jest określenie parametru {0}</target>
+        <target state="translated">MSBUILD : error MSB1049: 必須指定 {0} 參數。</target>
         <note>{StrBegin="MSBUILD : error MSB1049: "}</note>
       </trans-unit>
       <trans-unit id="MissingWarnAsMessageParameterError">
         <source>MSBUILD : error MSB1051: Specify one or more warning codes to treat as low importance messages when using the -warnAsMessage switch.</source>
-        <target state="translated">MSBUILD : error MSB1051: określ kody ostrzeżeń traktowane jak komunikaty o małej ważności podczas używania przełącznika -warnAsMessage.</target>
+        <target state="translated">MSBUILD : error MSB1051: 使用 -warnAsMessage 參數時，請指定一或多個要視為低重要性訊息的警告碼。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1051: "}
       UE: This happens if the user does something like "msbuild.exe -warnAsMessage:" without any codes.
@@ -2179,50 +2170,50 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                        -bl:..\..\custom.binlog
                        -binaryLogger
     </source>
-        <target state="translated">  -binaryLogger[:[LogFile=]wyjście.binlog[;ProjectImports={None,Embed,ZipFile}]]
-                     Serializuje wszystkie zdarzenia kompilacji do skompresowanego pliku binarnego.
-                     Domyślnie plik znajduje się w bieżącym katalogu i ma nazwę
-                     „msbuild.binlog”. Dziennik binarny to szczegółowy opis procesu
-                     kompilacji, którego można później użyć do odtworzenia
-                     dzienników tekstowych i wykorzystać w innych narzędziach do analizy. Dziennik binarny
-                     jest zwykle 10–20 razy mniejszy od najbardziej szczegółowych
-                     tekstowych dzienników na poziomie diagnostycznym, ale zawiera więcej informacji.
-                     (Krótka forma: -bl)
+        <target state="translated">  -binaryLogger[:[LogFile=]output.binlog[;ProjectImports={None,Embed,ZipFile}]]
+                     將所有組建活動序列化為壓縮的二進位檔案。
+                     根據預設，檔案位於目前的目錄中，且名為
+                     "msbuild.binlog"。二進位記錄檔是詳細描述
+                     說明建組程序，這稍後可用來重新建構
+                     文字記錄檔，並用於其他分析工具。二進位記錄檔
+                     通常比最詳細文字診斷層級記錄檔小 10-20x
+                     ，但它包含更多資訊。
+                     (簡短形式: -bl)
 
-                     Opcjonalny LogFile określa ścieżkę, w której
-                     zapisany jest dziennik binarny. Aby wygenerować osobny plik dziennika
-                     dla każdej kompilacji, można dodać token „{}” do
-                     ścieżki, na przykład: LogFile=output-{}-log.binlog. Każdy 
-                     „{}” w ścieżce dziennika zostanie zastąpiony unikalnym ciągiem
-                     utworzonym na podstawie znacznika czasu, identyfikatora procesu i losowego
-                     ciągu znaków.
+                     選擇性的 LogFile 會指定儲存
+                     二進位記錄檔位置的路徑。若要針對每個組建，產生不同的記錄檔
+                     ，可以將權杖 "{}" 新增至
+                     路徑，例如: LogFile=output-{}-log.binlog。記錄檔路徑中的
+                     每個 "{}" 會使用時間戳記，取代為唯一字串
+                     執行程序識別碼和隨機
+                     字串戳記。
 
-                     Rejestrator binarny domyślnie zbiera tekst źródłowy
-                     plików projektu, w tym wszystkie zaimportowane projekty i pliki
-                     docelowe napotkane podczas kompilowania. Tym zachowaniem
-                     steruje opcjonalny przełącznik ProjectImports:
+                     二進位記錄程式預設會收集專案檔案的來源文字
+                     ，包括組建期間所發生的所有匯入的專案和目標
+                     檔案。選擇性
+                     ProjectImports 切換可控制此行為:
 
-                      ProjectImports=None     — Nie zbieraj importów
-                                                projektu.
-                      ProjectImports=Embed    — Osadź importy projektu w
-                                                pliku dziennika.
-                      ProjectImports=ZipFile  — Zapisz pliki projektu w pliku
-                                                output.projectimports.zip,
-                                                gdzie wyjście to ciąg podany
-                                                dla nazwy pliku dziennika binarnego.
+                      ProjectImports=None     - 不要收集專案
+                                                匯入。
+                      ProjectImports=Embed    - 記錄檔中的
+                                                內嵌專案匯入。
+                      ProjectImports=ZipFile  - 將專案檔案儲存至
+                                                output.projectimports.zip
+                                                其中輸出與二進位檔案名稱具有
+                                                相同的名稱。
 
-                     Domyślne ustawienie przełącznika ProjectImports to Embed.
-                     Uwaga: rejestrator nie zbiera plików źródłowych
-                     niepochodzących z programu MSBuild, np. cs, cpp itd.
+                     ProjectImports 的預設設定為 [內嵌]。
+                     注意: 記錄程式不會收集非 MSBuild 來源檔案
+                     例如 .cs、.cpp 等。
 
-                     Plik binlog można „odtworzyć”, przekazując go do programu
-                     msbuild.exe jako argument zamiast projektu/rozwiązania.
-                     Inne rejestratory otrzymają informacje zawarte w pliku
-                     dziennika tak, jak podczas wykonywania pierwotnej kompilacji.
-                     Więcej informacji o dzienniku binarnym i jego zastosowaniach można uzyskać na stronie:
+                     .binlog 檔案可以藉由將其傳遞至
+                     msbuild.exe 作為引數 (而不是專案/解決方案) 來 "回放"。
+                     其他記錄程式將會收到記錄檔中包含的資訊，
+                     就像發生原始組建那樣。
+                     您可以在以下位置閱讀更多關於二進位記錄及其使用方式:
                      https://aka.ms/msbuild/binlog
 
-                     Przykłady:
+                     範例:
                        -bl
                        -bl:output.binlog
                        -bl:output.binlog;ProjectImports=None
@@ -2251,15 +2242,15 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      (Short form: -r)
     </source>
         <target state="translated">  -restore[:True|False]
-                     Uruchamia element docelowy o nazwie Restore przed skompilowaniem
-                     innych elementów docelowych i zapewnia, że kompilacja tych 
-                     elementów docelowych korzysta z najnowszej logiki przywróconej 
-                     kompilacji. Jest to przydatne, gdy drzewo projektu wymaga 
-                     przywrócenia pakietów przed ich skompilowaniem. Podanie parametru 
-                     -restore jest równoznaczne z podaniem parametru -restore:True.
-                     Za pomocą tego parametru można przesłonić wartość pochodzącą
-                     z pliku odpowiedzi.
-                     (Krótka forma: -r)
+                     在建置其他目標前，會先執行名為
+                     Restore 的目標，並確認這些目標的
+                     組建使用還原的最新組建邏輯。
+                     當您的專案樹狀結構要求套件必須
+                     才可加以建置時，這會很實用。
+                     指定 -restore 的方式與指定
+                     -restore:True 的方式相同。該參數
+                     可用來覆寫來自回應檔的值。
+                     (簡短形式: -r)
     </target>
         <note>
       LOCALIZATION: "-restore" and "-r" should not be localized.
@@ -2268,7 +2259,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidNodeReuseTrueValue">
         <source>MSBUILD : error MSB1042: Node reuse value is not valid. This version of MSBuild does not support node reuse. If specified, the node reuse switch value must be false.</source>
-        <target state="translated">MSBUILD : error MSB1042: Wartość ponownego użycia węzła jest nieprawidłowa. Ta wersja programu MSBuild nie obsługuje ponownego użycia węzła. W przypadku określenia przełącznik ponownego użycia węzła musi mieć wartość false.</target>
+        <target state="translated">MSBUILD : error MSB1042: 節點重複使用值無效。此版 MSBuild 不支援節點重複使用。若已指定，節點重複使用參數值必為 false。</target>
         <note>{StrBegin="MSBUILD : error MSB1042: "}
      UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
      This error is shown when a user specifies a node reuse value that is not equivalent to Boolean.TrueString or Boolean.FalseString.
@@ -2277,7 +2268,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidRestoreValue">
         <source>MSBUILD : error MSB1052: Restore value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1052: Wartość przywracania jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1052: 還原值無效。{0}</target>
         <note>{StrBegin="MSBUILD : error MSB1052: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies a restore value that is not equivalent to Boolean.TrueString or Boolean.FalseString.
@@ -2291,11 +2282,11 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                      file is '.md', the result is generated in markdown
                      format. Otherwise, a tab separated file is produced.
     </source>
-        <target state="translated">  -profileEvaluation:&lt;plik&gt;
-                     Profiluje oszacowanie programu MSBuild i zapisuje wynik
-                     w określonym pliku. Jeśli rozszerzenie określonego
-                     pliku to „md”, wynik jest generowany w formacie znaczników
-                     markdown. W przeciwnym razie jest tworzony plik rozdzielany tabulatorami.
+        <target state="translated">  -profileEvaluation:&lt;檔案&gt;
+                     設定檔 MSBuild 會進行評估，
+                     並將結果寫入指定的檔案。若指定檔案的延伸模組為 '.md'，
+                     則產生的結果格式將會是 Markdown 格式。
+                     否則，會產生以 Tab 字元分隔的檔案。
     </target>
         <note />
       </trans-unit>
@@ -2312,15 +2303,15 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
                        -restoreProperty:IsRestore=true;MyProperty=value
     </source>
         <target state="translated">  -restoreProperty:&lt;n&gt;=&lt;v&gt;
-                     Ustawia lub przesłania te właściwości na poziomie projektu tylko
-                     podczas przywracania i nie używa właściwości określonych
-                     za pomocą argumentu -property. &lt;n&gt; to nazwa
-                     właściwości, a &lt;v&gt; to wartość właściwości. Użyj
-                     średnika lub przecinka do rozdzielenia wielu właściwości
-                     albo określ każdą właściwość osobno.
-                     (Krótka wersja: -rp)
-                     Przykład:
-                       -restoreProperty:IsRestore=true;MyProperty=wartość
+                     請只有在還原期間設定或覆寫這些專案層級的屬性，
+                     而不要使用以 -property 引數所指定的
+                     屬性。&lt;n&gt; 為屬性名稱，
+                     而 &lt;v&gt; 則為屬性值。
+                     請使用分號或逗號分開多個屬性，
+                     或是個別指定每個屬性。
+                     (簡短形式: -rp)
+                     範例:
+                       -restoreProperty:IsRestore=true;MyProperty=value
     </target>
         <note>
       LOCALIZATION: "-restoreProperty" and "-rp" should not be localized.
@@ -2329,17 +2320,17 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="InvalidProfilerValue">
         <source>MSBUILD : error MSB1053: Provided filename is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1053: Podana nazwa pliku jest nieprawidłowa. {0}</target>
+        <target state="translated">MSBUILD : error MSB1053: 提供的檔案名稱無效。{0}</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingProfileParameterError">
         <source>MSBUILD :error MSB1054: A filename must be specified to generate the profiler result.</source>
-        <target state="translated">MSBUILD : błąd MSB1054: Należy określić nazwę pliku, aby wygenerować wynik profilera.</target>
+        <target state="translated">MSBUILD :錯誤 MSB1054: 必須指定檔案名稱才能產生分析工具結果。</target>
         <note />
       </trans-unit>
       <trans-unit id="XMake_LoggerCreationError">
         <source>MSBUILD : error MSB1021: Cannot create an instance of the logger {0}. {1}</source>
-        <target state="translated">MSBUILD : error MSB1021: nie można utworzyć wystąpienia rejestratora {0}. {1}</target>
+        <target state="translated">MSBUILD : error MSB1021: 無法建立記錄器 {0} 的執行個體。{1}</target>
         <note>{StrBegin="MSBUILD : error MSB1021: "}
       UE: This error is shown when a logger cannot be loaded and instantiated from its assembly.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a message explaining why the
@@ -2347,7 +2338,7 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="XMake_LoggerNotFoundError">
         <source>MSBUILD : error MSB1020: The logger was not found. Check the following: 1.) The logger name specified is the same as the name of the logger class. 2.) The logger class is "public" and implements the Microsoft.Build.Framework.ILogger interface. 3.) The path to the logger assembly is correct, or the logger can be loaded using only the assembly name provided.</source>
-        <target state="translated">MSBUILD : error MSB1020: Nie można odnaleźć rejestratora. Sprawdź, czy: 1.) Określona nazwa rejestratora jest taka sama jak nazwa klasy rejestratora. 2.) Klasą rejestratora jest klasa „public”, która implementuje interfejs Microsoft.Build.Framework.ILogger. 3.) Ścieżka do zestawu rejestratora jest prawidłowa lub rejestrator można załadować wyłącznie przy użyciu podanej nazwy zestawu.</target>
+        <target state="translated">MSBUILD : error MSB1020: 找不到記錄器。請檢查下列事項: 1.) 指定的記錄器名稱與記錄器類別的名稱相同。2.) 記錄器類別為 "public" 且實作 Microsoft.Build.Framework.ILogger 介面。3.) 記錄器組件的路徑為正確，或記錄器只能使用所提供的組件名稱載入。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1020: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies an logger that does not exist e.g. "msbuild -logger:FooLoggerClass,FooAssembly". The
@@ -2357,32 +2348,32 @@ Ta flaga jest eksperymentalna i może nie działać zgodnie z oczekiwaniami.
       </trans-unit>
       <trans-unit id="XMake_ProjectUpgradeNeededToVcxProj">
         <source>MSBUILD : error MSB4192: The project file "{0}" is in the ".vcproj" or ".dsp" file format, which MSBuild cannot build directly. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or, for ".vcproj", use MSBuild to build the solution file containing the project instead.</source>
-        <target state="translated">MSBUILD : error MSB4192: Plik projektu „{0}” ma format „.vcproj” lub „.dsp”, którego program MSBuild nie może skompilować bezpośrednio. Przekonwertuj projekt, otwierając go w programie Visual Studio IDE lub uruchamiając narzędzie konwersji, albo (w przypadku pliku „.vcproj”) użyj programu MSBuild, aby utworzyć plik rozwiązania zawierający ten projekt.</target>
+        <target state="translated">MSBUILD : error MSB4192: 專案檔 "{0}" 的檔案格式為 ".vcproj" 或 ".dsp"，MSBuild 無法直接加以建置。請在 Visual Studio IDE 中開啟此專案或執行轉換工具加以轉換，若是 ".vcproj"，則改為使用 MSBuild 建置包含專案的方案檔。</target>
         <note>{StrBegin="MSBUILD : error MSB4192: "} LOC: ".vcproj" and ".dsp" should not be localized</note>
       </trans-unit>
       <trans-unit id="BuildEngineCallbacksInTaskHostUnsupported">
         <source>MSB5022: The MSBuild task host does not support running tasks that perform IBuildEngine callbacks. If you wish to perform these operations, please run your task in the core MSBuild process instead.  A task will automatically execute in the task host if the UsingTask has been attributed with a "Runtime" or "Architecture" value, or the task invocation has been attributed with an "MSBuildRuntime" or "MSBuildArchitecture" value, that does not match the current runtime or architecture of MSBuild.</source>
-        <target state="translated">MSB5022: Host zadań programu MSBuild nie obsługuje zadań wykonujących wywołania zwrotne do aparatu IBuildEngine. Jeśli chcesz wykonywać te operacje, uruchom zadanie w podstawowym procesie programu MSBuild.  Zadanie będzie automatycznie wykonywane na hoście zadań, jeśli w deklaracji UsingTask ustawiono wartość „Runtime” lub „Architecture” albo w wywołaniu zadania ustawiono wartość „MSBuildRuntime” lub „MSBuildArchitecture”, która nie odpowiada bieżącemu środowisku uruchomieniowemu lub architekturze programu MSBuild.</target>
+        <target state="translated">MSB5022: MSBuild 工作主機不支援會執行 IBuildEngine 回撥的工作。若您想要執行這些作業，請改為在核心 MSBuild 處理序執行您的工作。若 UsingTask 已由 "Runtime" 或 "Architecture" 值賦予屬性，或工作引動過程已由 "MSBuildRuntime" 或 "MSBuildArchitecture" 值賦予屬性 (不符合 MSBuild 的目前執行階段或結構)，則工作將自動在工作主機中執行。</target>
         <note>{StrBegin="MSB5022: "} "Runtime", "Architecture", "MSBuildRuntime", and "MSBuildArchitecture" are all attributes in the project file, and thus should not be localized.</note>
       </trans-unit>
       <trans-unit id="InvalidLogFileFormat">
         <source>MSB4233: There was an exception while reading the log file: {0}</source>
-        <target state="translated">MSB4233: Wystąpił wyjątek podczas odczytywania pliku dziennika: {0}</target>
+        <target state="translated">MSB4233: 讀取記錄檔時發生錯誤: {0}</target>
         <note>{StrBegin="MSB4233: "}This is shown when the Binary Logger can't read the log file.</note>
       </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentHeader">
         <source>Making the following modifications to the environment received from the parent node before applying it to the task host:</source>
-        <target state="translated">Wymienione zmiany otrzymane z węzła nadrzędnego zostaną wprowadzone w środowisku, a po sprawdzeniu działania zastosowane do hosta zadań:</target>
+        <target state="translated">在套用到工作主機之前，對從父節點接收的環境進行下列修改:</target>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentVariable">
         <source>  Setting '{0}' to '{1}' rather than the parent environment's value, '{2}'.</source>
-        <target state="translated">  Ustawienie dla elementu „{0}” wartości „{1}” zamiast wartości „{2}” obowiązującej w środowisku nadrzędnym.</target>
+        <target state="translated">  將 '{0}' 設定為 '{1}' 而非父環境的值 '{2}。</target>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="SubCategoryForSchemaValidationErrors">
         <source>Schema validation</source>
-        <target state="translated">Walidacja schematu</target>
+        <target state="translated">結構描述驗證</target>
         <note>
       UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
       displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:

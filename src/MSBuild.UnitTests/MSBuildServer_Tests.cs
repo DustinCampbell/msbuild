@@ -776,7 +776,7 @@ namespace Microsoft.Build.Engine.UnitTests
         /// </summary>
         private static string GetServerStatusMessage(string resourceName, params object[] args)
         {
-            ResourceManager resourceManager = new("MSBuild.Strings", typeof(MSBuildApp).Assembly);
+            ResourceManager resourceManager = CommandLine.Resources.SR.ResourceManager;
             string format = resourceManager.GetString(resourceName, CultureInfo.CurrentUICulture)
                 ?? throw new InvalidOperationException($"Resource '{resourceName}' was not found in the MSBuild executable resources.");
             return args.Length == 0 ? format : string.Format(CultureInfo.CurrentCulture, format, args);

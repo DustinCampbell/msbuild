@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="ko" original="../Strings.resx">
+  <file datatype="xml" source-language="en" target-language="zh-Hans" original="../SR.resx">
     <body>
       <trans-unit id="AmbiguousProjectError">
         <source>MSBUILD : error MSB1011: Specify which project or solution file to use because this folder contains more than one project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1011: 사용할 프로젝트 또는 솔루션 파일을 지정하십시오. 이 폴더에 프로젝트 또는 솔루션 파일이 두 개 이상 있습니다.</target>
+        <target state="translated">MSBUILD : error MSB1011: 此文件夹中包含多个项目或解决方案文件，请指定要使用的项目或解决方案文件。</target>
         <note>{StrBegin="MSBUILD : error MSB1011: "}UE: If no project or solution file is explicitly specified on the MSBuild.exe command-line, then the engine searches for a
       project or solution file in the current directory by looking for *.*PROJ and *.SLN. If more than one file is found that matches this wildcard, we
       fire this error.
@@ -12,17 +12,17 @@
       </trans-unit>
       <trans-unit id="BuildFailedWithPropertiesItemsOrTargetResultsRequested">
         <source>Build failed. Properties, Items, and Target results cannot be obtained. See details in stderr above.</source>
-        <target state="translated">빌드하지 못했습니다. 속성, 항목 및 대상 결과를 가져올 수 없습니다. 위의 stderr에서 세부 정보를 참조하세요.</target>
+        <target state="translated">生成失败。无法获取属性、项目和目标结果。在上面的 stderr 中查看详细信息。</target>
         <note />
       </trans-unit>
       <trans-unit id="CommandLine">
         <source>Command line arguments = "{0}"</source>
-        <target state="translated">명령줄 인수 = "{0}"</target>
+        <target state="translated">命令行参数 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationFailurePrefixNoErrorCode">
         <source>MSBUILD : Configuration error {0}: {1}</source>
-        <target state="translated">MSBUILD : 구성 error {0}: {1}</target>
+        <target state="translated">MSBUILD : 配置 error {0}: {1}</target>
         <note>{SubString="Configuration"}UE: This prefixes any error from reading the toolset definitions in msbuild.exe.config or the registry.
       There's no error code because one was included in the error message.
       LOCALIZATION: The word "Configuration" should be localized, the words "MSBuild" and "error" should NOT be localized.
@@ -30,12 +30,12 @@
       </trans-unit>
       <trans-unit id="CannotAutoDisableAutoResponseFile">
         <source>MSBUILD : error MSB1027: The -noAutoResponse switch cannot be specified in the MSBuild.rsp auto-response file, nor in any response file that is referenced by the auto-response file.</source>
-        <target state="translated">MSBUILD : error MSB1027: MSBuild.rsp 자동 지시 파일과 자동 지시 파일에서 참조하는 모든 지시 파일에는 -noAutoResponse 스위치를 지정할 수 없습니다.</target>
+        <target state="translated">MSBUILD : error MSB1027: 不能在 MSBuild.rsp 自动响应文件中或由该自动响应文件引用的任何响应文件中指定 -noAutoResponse 开关。</target>
         <note>{StrBegin="MSBUILD : error MSB1027: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-noAutoResponse" and "MSBuild.rsp" should not be localized.</note>
       </trans-unit>
       <trans-unit id="DuplicateBinaryLoggerPathsIgnored">
         <source>Duplicate binary log path(s) specified and ignored: {0}</source>
-        <target state="translated">중복된 이진 로그 경로가 지정되어 무시되었습니다. {0}</target>
+        <target state="translated">指定且忽略的重复二进制日志路径: {0}</target>
         <note>{0} is the list of duplicate paths that were filtered out</note>
       </trans-unit>
       <trans-unit id="HelpMessage_41_QuestionSwitch">
@@ -47,11 +47,11 @@
                      (Short form: -q)
     </source>
         <target state="translated">  -question
-                     (실험) 빌드 작업이 있는지 질문합니다.
-                     증분할 수 있지만(입력 및 출력이 있음)
-                     최신 상태가 아닌 대상 또는 작업을 감지하면
-                     MSBuild에서 오류가 발생합니다.
-                     (약식: -q)
+                     (实验性)问题，是否存在任何生成工作。
+                     当MSBuild检测到一个可以增量执行的
+                     目标或任务，但不是最新
+                     版本时，将会报错。
+                     (缩写: -q)
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -67,10 +67,10 @@
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -reportFileAccesses[:True|False]
-                     MSBuild에서 모든 구성된 프로젝트 캐시 플러그 인에 대한
-                     파일 액세스를 보고하도록 합니다.
+                     导致 MSBuild 报告对任何已配置
+                     项目缓存插件的文件访问。
 
-                     이 플래그는 실험적이며 예상대로 작동하지 않을 수 있습니다.
+                     此标志是实验性的，可能无法按预期工作。
     </target>
         <note>
       LOCALIZATION: "-reportFileAccesses" should not be localized.
@@ -85,11 +85,11 @@
                      used, write out the values after the build.
     </source>
         <target state="translated">  -getProperty:propertyName,...
-                     빌드를 실행하지 않고 평가 후
-                     지정된 속성 중 하나 이상의 값을 작성하거나,
-                     -targets 옵션 또는 -getTargetResult 옵션을 사용하는 경우
-                     빌드 후 값을 작성합니다.
-    </target>
+                    在计算后写出一个或多个指定属性的值，
+                    但不执行生成，或者如果使用的是
+                    -targets 选项或 -getTargetResult 选项，
+                    则在生成后写出这些值。
+   </target>
         <note>
       LOCALIZATION: "-getProperty", "-targets" and "-getTargetResult" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -104,12 +104,12 @@
                      the values after the build.
     </source>
         <target state="translated">  -getItem:itemName,...
-                     빌드를 실행하지 않고 평가 후
-                     지정된 항목 중 하나 이상의 값 및
-                     연결된 해당 메타데이터를 작성하거나,
-                     -targets 옵션 또는 -getTargetResult 옵션을 사용하는 경우
-                     빌드 후 값을 작성합니다.
-    </target>
+                    在计算后写出一个或多个指定项的值及其
+                    关联的元数据，但不
+                    执行生成，或者如果使用的是 -targets 选项
+                    或 -getTargetResult 选项，则在生成后写出
+                    这些值。
+   </target>
         <note>
       LOCALIZATION: "-getItem", "targets" and "getTargetResult" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -121,9 +121,9 @@
                      the specified targets will be executed.
     </source>
         <target state="translated">  -getTargetResult:targetName,...
-                     대상 하나 이상의 출력 값을 작성하면
-                     지정된 대상이 실행됩니다.
-    </target>
+                    写出一个或多个目标的输出值，
+                    并且将执行指定的目标。
+   </target>
         <note>
       LOCALIZATION: "-getTargetResult" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -146,20 +146,20 @@
                      (Short form: -fa)
     </source>
         <target state="translated">  -featureAvailability:featureName,...
-                     기능 가용성을 확인합니다. 결과는
-                     문자열 "Undefined", "Available", "NotAvailable" 및
-                     "Preview" 중 하나입니다.
-                     - 정의되지 않음 - 기능의 가용성이 정의되지 않았습니다
-                     (기능 가용성 검사기에서 기능 이름을 인식할 수
-                     없음).
-                     - NotAvailable - 기능을 사용할 수 없습니다(
-                     정의되지 않음과는 달리, 기능 가용성 검사가에서 기능 이름을
-                     인식할 수 있으며 기능이 현재 MSBuild 엔진에서 지원되지
-                     않는 것으로 인식하고 있음).
-                     - Available - 기능을 사용할 수 있습니다.
-                     - Preview - 기능이 미리 보기 상태로 제공됩니다(안정적이지 않음).
-                     (약식: -fa)
-    </target>
+                    检查功能可用性。结果是以下字符串之一:
+                    "Undefined"、"Available"、"NotAvailable" 和
+                    "Preview"。
+                    - Undefined - 未定义功能的可用性
+                    (功能可用性检查器不知道
+                    该功能名称)
+                    - NotAvailable - 功能不可用(不同于
+                    Undefined，功能可用性检查器知道
+                    该功能名称，并且还知道该功能不
+                    受当前 MSBuild 引擎支持)
+                    - Available - 功能可用
+                    - Preview - 功能处于预览状态(不稳定)
+                    (缩写: -fa)
+   </target>
         <note>
       LOCALIZATION: "-featureAvailability", "-fa", "Undefined", "Available" "NotAvailable" and "Preview"should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -179,17 +179,17 @@
                      (Short form: -tl)
     </source>
         <target state="translated">  -terminalLogger[:auto,on,off]
-                     터미널 로거를 사용하거나 사용하지 않도록 설정합니다. 터미널 로거
-                     는 콘솔에서 향상된 빌드 출력을 실시간으로 제공합니다.
-                     이러한 출력은 프로젝트별로 논리적으로 구성되고 실행 가능한 정보를
-                     강조 표시하도록 설계되어 있습니다. 자동을 지정(또는 인수 없이 옵션
-                     사용)하여 터미널 로거를 사용합니다. 단, 이 경우
-                     표준 출력이 리디렉션되지 않아야 합니다. 출력을 구문 분석하지 않습니다.
-                     그렇지 않을 경우 이후 버전에서 변경되지 않은 상태로
-                     유지됩니다. 이 옵션은 MSBuild 17.8 이상 버전에서
-                     제공됩니다.
-                     (약식: -tl)
-    </target>
+                    启用或禁用终端记录器。终端记录器
+                    在控制台上实时提供增强的生成输出，
+                    这些输出在逻辑上按项目进行整理，旨在突出显示
+                    可操作信息。指定 auto (或使用
+                    不带参数的选项)，仅在标准输出未重定向的情况下
+                    使用终端记录器。不要分析输出，
+                    也不要依赖于它在将来的版本中保持
+                    不变。此选项在 MSBuild 17.8 和
+                    更高版本中提供。
+                    (缩写: -tl)
+   </target>
         <note>
       LOCALIZATION: "-terminalLogger", "-tl", and "auto" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -216,25 +216,24 @@
                         -tlp:default=auto;verbosity=diag;shownCommandLine
     </source>
         <target state="translated">  -terminalLoggerParameters: &lt;parameters&gt;
-                     터미널 로거에 대한 매개 변수입니다. (약식: -tlp)
-                     사용 가능한 매개 변수입니다.
-                        default--터미널의 기본 동작을 지정합니다.
-                        로거입니다. 다음 값 중 하나가 필요합니다.
-                           - 'on', 'true'는 terminalLogger를 사용하도록 강제하며,
-                            이는 사용하지 않도록 설정된 경우에도 마찬가지입니다.
-                           - 'off', 'false'는 terminalLogger를 사용하지 않도록 강제하며,
-                            이는 사용하도록 설정된 경우에도 마찬가지입니다.
-                           - 'auto'는 터미널이
-                            지원하고 세션이 리디렉션되지 않을 때 TerminalLogger를 사용하도록 설정합니다.
-                            stdout/stderr
-                        verbosity--이
-로거에 대한 -verbosity 설정을
-                        재정의합니다.
-                        showCommandLine--TaskCommandLineEvent 메시지를 표시합니다.
+                    终端记录器的参数。(缩写: -tlp)
+                    可用参数。
+                       default - 指定终端
+                       记录器的默认行为。它需要以下值之一:
+                          - `on`、`true` 可强制使用 TerminalLogger，
+                           即使它已禁用也是如此。
+                          - `off`、`false` 可强制不使用 TerminalLogger，
+                           即使它已启用也是如此。
+                          - `auto` 可在终端支持 TerminalLogger
+                           且会话没有重定向的 stdout/stderr 时
+                           启用 TerminalLogger
+                       verbosity - 替代此记录器的 -verbosity
+                       设置
+                       showCommandLine - 显示 TaskCommandLineEvent 消息
 
-                      예:
-                        -tlp:default=auto;verbosity=diag;shownCommandLine
-    </target>
+                     示例:
+                       -tlp:default=auto;verbosity=diag;shownCommandLine
+   </target>
         <note>
       LOCALIZATION: "-terminalLoggerParameters", "-tlp", "default", "on", "true", "off", "false", "auto", "verbosity", "showCommandLine" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -255,18 +254,18 @@
                      (Short form: -mt)
     </source>
         <target state="translated">  -multithreaded
-                     MSBuild에서 실험적 다중 스레드 모드를 활성화합니다.
-                     즉, MSBuild는 여러 스레드를 사용하여
-                     프로젝트를 병렬로 빌드합니다.
-                     여러 프로세스 대신에 말이죠.
-                     이 옵션은 지원되지 않습니다.
-                     사용되는 최대 스레드 수는 
-에 의해 결정됩니다.
-                     -maxCpuCount 스위치에 의해 결정됩니다.
-                     다중 스레드 모드가 켜져 있고
-                     MSBUILDFORCEALLTASKSOUTOFPROC=1인 경우
-                     maxCpuCount는 256보다 클 수 없습니다.
-                     (약식: -mt)
+                     在 MSBuild 中启用实验性多线程模式。
+                     这意味着 MSBuild 将使用多个线程
+                     并行构建项目，
+                     而不是使用多个进程。
+                     不支持此选项。
+                     使用的最大线程数
+                     由 -maxCpuCount 开关决定。
+                     如果开启多线程模式
+                     且 MSBUILDFORCEALLTASKSOUTOFPROC=1
+，
+                     maxCpuCount 不能大于 256。
+                     (缩写: -mt)
     </target>
         <note />
       </trans-unit>
@@ -279,12 +278,12 @@
                      This writes the value of property Bar into Biz.txt.
     </source>
         <target state="translated">  -getResultOutputFile:file
-                     get*에서 파일로 출력을 리디렉션합니다.
+                    将 get* 的输出重定向到文件中。
 
-                     예:
-                     -getProperty:Bar -getResultOutputFile:Biz.txt
-                     그러면 속성 Bar의 값이 Biz.txt에 기록됩니다.
-    </target>
+                    示例:
+                    -getProperty:Bar -getResultOutputFile:Biz.txt
+                    这会将属性 Bar 的值写入 Biz.txt。
+   </target>
         <note>
       LOCALIZATION: "-getResultOutputFile", "get*" and "-getProperty" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -297,9 +296,9 @@
                      of the build. For more info see https://aka.ms/buildcheck
 	</source>
         <target state="translated">  -check
-                     빌드하는 동안 BuildChecks를 사용하도록 설정합니다.
-                     BuildCheck를 사용하면 규칙을 평가하여 빌드의 속성을
-                     확인할 수 있습니다. 자세한 내용은 https://aka.ms/buildcheck 참조
+                     在生成期间用 BuildChecks。
+                     通过 BuildCheck，可以评估规则以确保生成的
+                     属性。有关详细信息，请参阅 https://aka.ms/buildcheck
 	</target>
         <note>
     {Locked="-check"}{Locked="BuildChecks"}{Locked="BuildCheck"}
@@ -308,7 +307,7 @@
       </trans-unit>
       <trans-unit id="InvalidLowPriorityValue">
         <source>MSBUILD : error MSB1064: Low priority value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1064: 낮은 우선 순위 값이 유효하지 않습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1064: 低优先级值无效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1064: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -318,7 +317,7 @@
       </trans-unit>
       <trans-unit id="InvalidNoLogoValue">
         <source>MSBUILD : error MSB1071: NoLogo value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1071: NoLogo 값이 유효하지 않습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1071: NoLogo 值无效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1071: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -328,7 +327,7 @@
       </trans-unit>
       <trans-unit id="InvalidTerminalLoggerValue">
         <source>MSBUILD : error MSB1065: Terminal logger value is not valid. It should be one of 'auto', 'true', or 'false'. {0}</source>
-        <target state="translated">MSBUILD : error MSB1065: 터미널 로거 값이 잘못되었습니다. 'auto', 'true' 또는 'false' 중 하나여야 합니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1065: 终端记录器值无效。它应为 "auto"、"true" 或 "false" 之一。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1065: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -338,7 +337,7 @@
       </trans-unit>
       <trans-unit id="InvalidReportFileAccessesValue">
         <source>MSBUILD : error MSB1063: Report file accesses value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1063: 보고서 파일 액세스 값이 잘못되었습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1063: 报表文件访问值无效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1063: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -348,52 +347,52 @@
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarError">
         <source>MSB1071: Error processing MSBUILD_LOGGING_ARGS environment variable: {0}</source>
-        <target state="translated">MSB1071: MSBUILD_LOGGING_ARGS 환경 변수를 처리하는 중 오류가 발생했습니다. {0}</target>
+        <target state="translated">MSB1071: 处理 MSBUILD_LOGGING_ARGS 环境变量时出错: {0}</target>
         <note>{StrBegin="MSB1071: "}LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is the error message.</note>
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarUnsupportedArgument">
         <source>MSB1070: MSBUILD_LOGGING_ARGS: Ignoring unsupported argument '{0}'. Only -bl and -check arguments are allowed.</source>
-        <target state="translated">MSB1070: MSBUILD_LOGGING_ARGS: 지원되지 않는 인수 '{0}'을(를) 무시합니다. -bl과 -check 인수만 허용됩니다.</target>
+        <target state="translated">MSB1070: MSBUILD_LOGGING_ARGS: 忽略不受支持的参数“{0}”。仅允许 -bl 和 -check 参数。</target>
         <note>{StrBegin="MSB1070: "}LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is the unsupported argument.</note>
       </trans-unit>
       <trans-unit id="LoggingArgsEnvVarUsing">
         <source>Using arguments from MSBUILD_LOGGING_ARGS environment variable: {0}</source>
-        <target state="translated">MSBUILD_LOGGING_ARGS 환경 변수에서 다음 인수를 사용합니다. {0}</target>
+        <target state="translated">正在使用 MSBUILD_LOGGING_ARGS 环境变量中的参数: {0}</target>
         <note>LOCALIZATION: "MSBUILD_LOGGING_ARGS" should not be localized. {0} is a string with the command-line arguments from the environment variable.</note>
       </trans-unit>
       <trans-unit id="LongPaths">
         <source>Based on the Windows registry key LongPathsEnabled, the LongPaths feature is {0}.</source>
-        <target state="translated">Windows 레지스트리 키 LongPathsEnabled에 따라 LongPaths 기능이 {0}입니다.</target>
+        <target state="translated">基于 Windows 注册表项 LongPathsEnabled，LongPaths 功能为 {0}。</target>
         <note>"Windows" is the OS, "LongPathsEnabled" should not be localized, and {0} will be "enabled"/"disabled"/"not set"</note>
       </trans-unit>
       <trans-unit id="LongPaths_Disabled">
         <source>disabled</source>
-        <target state="translated">사용 안 함</target>
+        <target state="translated">已禁用</target>
         <note />
       </trans-unit>
       <trans-unit id="LongPaths_Enabled">
         <source>enabled</source>
-        <target state="translated">사용</target>
+        <target state="translated">已启用</target>
         <note />
       </trans-unit>
       <trans-unit id="LongPaths_Missing">
         <source>not set</source>
-        <target state="translated">설정 안 함</target>
+        <target state="translated">未设置</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBuildServerConnectFailed">
         <source>could not connect to the server within the timeout window; the server may have failed to start</source>
-        <target state="needs-review-translation">제한 시간 내에 서버에 연결할 수 없었습니다. 서버가 시작되지 못했을 수 있습니다</target>
+        <target state="needs-review-translation">在超时时间内无法连接到服务器；服务器可能启动失败</target>
         <note>LOCALIZATION: No format arguments. Used for any connect failure when the server's exit code is not known — covers both pipe-connect timeouts and non-timeout I/O errors during the connect attempt. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerCrashedOnLaunch">
         <source>the server process exited with code {0} immediately after launch</source>
-        <target state="needs-review-translation">서버 프로세스가 시작 직후 코드 {0}(으)로 종료되었습니다</target>
+        <target state="needs-review-translation">服务器进程启动后立即退出，显示代码: {0}</target>
         <note>LOCALIZATION: {0} is the integer process exit code; rendered with InvariantCulture as a decimal integer, do not localize the digits. This message is concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerLaunchError">
         <source>the server process could not be launched</source>
-        <target state="needs-review-translation">서버 프로세스를 시작할 수 없습니다</target>
+        <target state="needs-review-translation">无法启动服务器进程</target>
         <note>LOCALIZATION: No format arguments. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerNodeReused">
@@ -438,32 +437,32 @@
       </trans-unit>
       <trans-unit id="MSBuildServerStateUnknown">
         <source>the current server state could not be determined</source>
-        <target state="needs-review-translation">현재 서버 상태를 확인할 수 없습니다</target>
+        <target state="needs-review-translation">无法确定当前服务器状态</target>
         <note>LOCALIZATION: No format arguments. Concatenated mid-sentence after a colon in MSBuildServerUnavailable: lower-case start in English is intentional and the message must NOT end with a period (the outer template adds it).</note>
       </trans-unit>
       <trans-unit id="MSBuildServerUnavailable">
         <source>MSBuild server unavailable: {0}. Falling back to an in-process build.</source>
-        <target state="translated">MSBuild 서버를 사용할 수 없습니다. {0}. 프로세스 내 빌드로 대체합니다.</target>
+        <target state="translated">MSBuild 服务器不可用: {0}。回退到进程内生成。</target>
         <note>LOCALIZATION: {0} is a sub-message describing why the MSBuild server could not be used. It is one of MSBuildServerCrashedOnLaunch / MSBuildServerLaunchError / MSBuildServerStateUnknown / MSBuildServerConnectFailed. The outer template supplies the trailing period after {0}; sub-messages must NOT end with a period or other sentence-final punctuation.</note>
       </trans-unit>
       <trans-unit id="MSBuildVersionMessage">
         <source>MSBuild version {0} for {1}</source>
-        <target state="translated">msbuild 버전 {0}({1}용)</target>
+        <target state="translated">适用于 {1} MSBuild 版本 {0}</target>
         <note>LOCALIZATION: {0} contains the DLL version number. {1} contains the name of a runtime, like ".NET Framework" or ".NET Core"</note>
       </trans-unit>
       <trans-unit id="CurrentDirectory">
         <source>Current directory = "{0}"</source>
-        <target state="translated">현재 디렉터리 = "{0}"</target>
+        <target state="translated">当前目录 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="DuplicateOutputResultsCache">
         <source>MSBUILD : error MSB1058: Only one output results cache can be specified.</source>
-        <target state="translated">MSBUILD : error MSB1058: 출력 결과 캐시는 하나만 지정할 수 있습니다.</target>
+        <target state="translated">MSBUILD : error MSB1058: 只能指定一个输出结果缓存。</target>
         <note>{StrBegin="MSBUILD : error MSB1058: "}</note>
       </trans-unit>
       <trans-unit id="DuplicateProjectSwitchError">
         <source>MSBUILD : error MSB1008: Only one project can be specified.</source>
-        <target state="translated">MSBUILD : error MSB1008: 프로젝트를 하나만 지정할 수 있습니다.</target>
+        <target state="translated">MSBUILD : error MSB1008: 只能指定一个项目。</target>
         <note>{StrBegin="MSBUILD : error MSB1008: "}UE: This happens if the user does something like "msbuild.exe myapp.proj myapp2.proj". This is not allowed.
     MSBuild.exe will only build a single project. The help topic may link to an article about how to author an MSBuild project
     that itself launches MSBuild on a number of other projects.
@@ -471,7 +470,7 @@
       </trans-unit>
       <trans-unit id="EnvironmentVariableAsSwitch">
         <source>MSBUILD : error MSB1060: Undefined environment variable passed in as switch.</source>
-        <target state="translated">MSBUILD : error MSB1060: 정의되지 않은 환경 변수가 스위치로 전달되었습니다.</target>
+        <target state="translated">MSBUILD : error MSB1060: 未定义的环境变量作为开关传入。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1060: "}
       UE: This error is shown when a user passes in an environment variable (including from a response file)
@@ -480,7 +479,7 @@
       </trans-unit>
       <trans-unit id="FatalError">
         <source>MSBUILD : error MSB1025: An internal failure occurred while running MSBuild.</source>
-        <target state="translated">MSBUILD : error MSB1025: MSBuild를 실행하는 동안 내부 오류가 발생했습니다.</target>
+        <target state="translated">MSBUILD : error MSB1025: 运行 MSBuild 时发生内部错误。</target>
         <note>{StrBegin="MSBUILD : error MSB1025: "}UE: This message is shown when the application has to terminate either because of a bug in the code, or because some
       FX/CLR method threw an unexpected exception.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" and "MSBuild" should not be localized.</note>
@@ -488,7 +487,7 @@
       <trans-unit id="HelpMessage_1_Syntax">
         <source>Syntax:              MSBuild.exe [options] [project file | directory]
 </source>
-        <target state="translated">구문:              MSBuild.exe [options] [project file | directory]
+        <target state="translated">语法:              MSBuild.exe [选项] [项目文件 | 目录]
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -507,12 +506,12 @@
                      a directory is specified, MSBuild searches that
                      directory for a project file.
 </source>
-        <target state="translated">설명:         지정한 대상을 프로젝트 파일에 빌드합니다. 프로젝트
-                     파일을 지정하지 않으면 MSBuild는 현재
-                     작업 디렉터리에서 파일 확장명이 "proj"로 끝나는
-                     파일을 찾아서 사용합니다. 디렉터리를
-                     지정하면 MSBuild는 해당 디렉터리에서 프로젝트 파일을
-                     검색합니다.
+        <target state="translated">描述:         在项目文件中生成指定的目标。如果
+                    未指定项目文件，MSBuild 将搜索
+                    当前工作目录来查找文件
+                    扩展名以“proj”结尾的文件并使用该文件。如果
+                     如果指定了目录，MSBuild 将搜索此
+                     目录来查找项目文件。
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -534,13 +533,13 @@
                      value that comes from a response file.
     </source>
         <target state="translated">  -interactive[:True|False]
-                     빌드의 작업이 사용자와 상호 작용할 수 
-                     있음을 나타냅니다. 상호 작용이 필요하지 
-                     않은 자동화된 시나리오에서는 이 인수를 
-                     사용하지 마세요.
-                     -interactive를 지정하는 것은 -interactive:true를
-                     지정하는 것과 같습니다. 매개 변수를 
-                     사용하여 지시 파일에서 가져오는 값을 재정의합니다.
+                     指示允许生成中的操作
+                     与用户互动。请勿在不需要
+                     互动的自动化场景中使用
+                     此参数。
+                     指定 -interactive 与指定
+                     -interactive:true 相同。使用此参数替代
+                     来自响应文件中的值。
     </target>
         <note>
       LOCALIZATION: "-interactive" should not be localized.
@@ -569,24 +568,24 @@
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -isolateProjects[:True|MessageUponIsolationViolation|False]
-                     MSBuild가 각 프로젝트를 격리 모드로 빌드하도록 합니다.
+                     使 MSBuild 以隔离方式生成每个项目。
 
-                     "MessageUponIsolationViolation"(또는 약식 "Message")으로
-                     설정하면 -outputResultsCache 스위치가 제공되는
-                     경우 최상위 수준 대상의 결과만 직렬화됩니다.
-                     이는 부작용이 고려되지 않는 캐시된 대상에 대한
-                     종속성으로 인해 잘못된 상태를 사용하는 종속성
-                     프로젝트의 격리 위반 대상 존재 가능성을
-                     완화하기 위한 것입니다.
-                     (예: 속성 정의)
+                     设置为 “MessageUponIsolationViolation” (或其缩写
+                     窗体“Message”)时，仅在提供了 -outputResultsCache 开关的情况下才会
+                     序列化来自顶级目标的
+                     结果。这是为了减少依赖项目上的孤立
+                     违规目标使用不正确状态的
+                     可能性，因为它依赖于一个缓存目标
+                     其副作用不会被考虑在内。
+                     (例如，属性的定义。)
 
-                     이 모드는 평가 시 프로젝트 그래프를 정적으로
-                     검색할 수 있어야 하므로 보다 제한적인 MSBuild
-                     모드이지만 대규모 프로젝트 집합을 빌드할 때 예약
-                     기능을 개선하고 메모리 오버헤드를 줄일 수 있습니다.
-                     (약식: -isolate)
+                     这是 MSBuild 的更严格的模式，因为它需要
+                     在评估时静态地发现项目图
+                     但可以改善调度并减少构建
+                     大量项目时的内存开销。
+                     (缩写: -isolate)
 
-                     이 플래그는 실험적이며 의도한 대로 작동하지 않을 수 있습니다.
+                     此标志是实验性的，可能无法按预期工作。
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -607,16 +606,16 @@
                      This flag is experimental and may not work as intended.
     </source>
         <target state="translated">  -graphBuild[:True|False]
-                     MSBuild가 프로젝트 그래프를 생성 및 빌드하도록 합니다.
+                     使 MSBuild 构造并生成项目关系图。
 
-                     그래프 생성에는 종속성을 형성하기 위한 프로젝트 
-                     참조 식별이 관련됩니다. 해당 그래프 빌드에는 프로젝트 
-                     참조를 참조하는 프로젝트 전에 프로젝트 참조를 
-                     빌드하는 시도가 관련되며, 이는 기존 MSBuild
-                     예약과 다릅니다.
-                     (약식: -graph)
+                     构造关系图涉及到识别对窗体依赖项
+                     的项目引用。生成项目关系图
+                     涉及到在引用项目引用前
+                     尝试生成这些引用，这与
+                     传统的 MSBuild 计划不同。
+                     (缩写: -graph)
 
-                     이 플래그는 실험적이며 예상대로 작동하지 않을 수 있습니다.
+                     此标记处于试验阶段，可能无法按预期工作。
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -626,7 +625,7 @@
       </trans-unit>
       <trans-unit id="HelpMessage_37_DocsLink">
         <source>For more detailed information, see https://aka.ms/msbuild/docs</source>
-        <target state="translated">자세한 내용은 https://aka.ms/msbuild/docs를 참조하세요.</target>
+        <target state="translated">有关更详细信息，请参阅 https://aka.ms/msbuild/docs</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpMessage_38_TargetsSwitch">
@@ -639,14 +638,14 @@
                      Example:
                        -ts:out.txt
     </source>
-        <target state="translated">  -targets [: file]
-                     실제 빌드 프로세스를 실행하지 않고
-                     사용 가능한 대상 목록을 출력합니다. 출력은 기본적으로
-                     콘솔 창에 기록됩니다. 출력 파일의 경로를 제공하면
-                     해당 경로가 대신 사용됩니다.
-                     (약식: -ts)
-                     예
-                       -ts: out .txt
+        <target state="translated">  -targets[:file]
+                     打印可用目标的列表，但不执行
+                     实际生成过程。默认情况下，输出写入到
+                     控制台窗口。如果输出文件的路径
+                     已提供，则改用该路径。
+                     (简写形式: -ts)
+                     示例:
+                       -ts:out.txt
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -663,11 +662,11 @@
                      (Short form: -low)
     </source>
         <target state="translated">  -lowPriority[:True|False]
-                     MSBuild가 낮은 프로세스 우선 순위로 실행됩니다.
+                     导致 MSBuild 在低进程优先级的情况下运行。
 
-                     -lowPriority를 지정하는 것은 
-                     -lowPriority:True를 지정하는 것과 같습니다.
-                     (약식: -low)
+                     指定 -lowPriority 与指定
+                     -lowPriority:True 相同。
+                     (缩写: -low)
     </target>
         <note>
       LOCALIZATION: "MSBuild" should not be localized.
@@ -679,8 +678,8 @@
         <source>Switches:            Note that you can specify switches using
                      "-switch", "/switch" and "--switch".
 </source>
-        <target state="translated">스위치:            스위치를 지정하는 데 "-switch", "/switch" 및 "--switch"를
-                     사용할 수 있습니다.
+        <target state="translated">开关:            请注意，使用 "-switch" 和 "/switch" 均可
+                     指定开关。
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -702,12 +701,12 @@
                        -warnNotAsError:MSB3026
     </source>
         <target state="translated">  -warnNotAsError[:code[;code2]]
-                     오류로 처리하지 않을 경고 코드 목록입니다.
-                     세미콜론이나 쉼표를 사용하여 여러 경고 코드를
-                     구분합니다. -warnaserror 스위치가 설정되어 있지
-                     않으면 효과가 없습니다.
+                     不视为错误的警告代码列表.
+                     使用分号或逗号分隔
+                     多个警告代码。如果未设置 -warnaserror
+                     开关，则不会产生任何影响。
 
-                     예:
+                     示例:
                        -warnNotAsError:MSB3026
     </target>
         <note>
@@ -718,7 +717,7 @@
       <trans-unit id="HelpMessage_4_HelpSwitch">
         <source>  -help              Display this usage message. (Short form: -? or -h)
 </source>
-        <target state="translated">  -help              사용법 메시지를 표시합니다. (약식: -? 또는 -h)
+        <target state="translated">  -help       显示此用法消息。(缩写: -? 或 -h)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -733,8 +732,8 @@
         <source>  -noLogo[:true|false] Do not display the startup banner and copyright message.
                        Specify -nologo:false to explicitly show the logo.
 </source>
-        <target state="translated">  -noLogo[:true|false] 시작 배너 및 저작권 메시지를 표시하지 않습니다.
-                       -nologo:false를 지정하여 로고를 명시적으로 표시합니다.
+        <target state="translated">  -noLogo[:true|false] 不显示启动横幅和版权消息。
+                       指定 -nologo:false 可显式显示徽标。
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -748,7 +747,7 @@
       <trans-unit id="HelpMessage_6_VersionSwitch">
         <source>  -version           Display version information only. (Short form: -ver)
 </source>
-        <target state="translated">  -version           버전 정보만 표시합니다. (약식: -ver)
+        <target state="translated">  -version      仅显示版本信息。(缩写: -ver)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -769,14 +768,14 @@
                      (1) the directory of msbuild.exe
                      (2) the directory of the first project or solution built
 </source>
-        <target state="translated">  @&lt;file&gt;            텍스트 파일에서 명령줄 설정을 삽입합니다. 
-                     여러 지시 파일을 지정하려면 각 지시 파일을 개별적으로 
-                     지정합니다.
+        <target state="translated"> @&lt;file&gt;      从文本文件插入命令行设置。若要指定
+           多个响应文件，请分别指定每个响应
+           文件。
 
-                     "msbuild.rsp"라는 지시 파일이 다음 위치에서 
-                     자동으로 사용됩니다.
-                     (1) msbuild.exe의 디렉터리
-                     (2) 빌드된 첫 번째 프로젝트 또는 솔루션의 디렉터리
+           自动从以下位置使用任何
+           名为 "msbuild.rsp" 的响应文件:
+           (1) msbuild.exe 的目录
+           (2) 生成的第一个项目或解决方案的目录
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -791,8 +790,8 @@
         <source>  -noAutoResponse    Do not auto-include any MSBuild.rsp files. (Short form:
                      -noAutoRsp)
 </source>
-        <target state="translated">  -noAutoResponse    MSBuild.rsp 파일을 자동으로 포함하지 않습니다. (약식:
-                     -noAutoRsp).
+        <target state="translated">  -noAutoResponse    不自动包括任何 MSBuild.rsp 文件。(缩写:
+                     -noAutoRsp)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -810,11 +809,11 @@
                      Example:
                        -target:Resources;Compile
 </source>
-        <target state="translated">  -target:&lt;targets&gt;  이 프로젝트에서 대상을 빌드합니다. 세미콜론 또는 쉼표를 사용하여 
-                     여러 대상을 구분하거나, 각 대상을 
-                     개별적으로 지정합니다. (약식: -t)
-                     예:
-                       -target:Resources;Compile
+        <target state="translated">  -target:&lt;targets&gt; 在此项目中生成这些目标。使用
+           分号或逗号分隔多个目标，或者分别指定
+           每个目标。(缩写: -t)
+           示例:
+            -target:Resources;Compile
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -833,11 +832,11 @@
                      Example:
                        -property:WarningLevel=2;OutDir=bin\Debug\
 </source>
-        <target state="translated">  -property:&lt;n&gt;=&lt;v&gt;  프로젝트 수준 속성을 설정하거나 재정의합니다. &lt;n&gt;은 
-                     속성 이름이고 &lt;v&gt;는 속성 값입니다. 
-                     세미콜론 또는 쉼표를 사용하여 여러 속성을 구분하거나, 
-                     각 속성을 개별적으로 지정합니다. (약식: -p)
-                     예:
+        <target state="translated">  -property:&lt;n&gt;=&lt;v&gt; 设置或重写这些项目级属性。&lt;n&gt; 是
+           属性名，&lt;v&gt; 为属性值。请使用
+           分号或逗号分隔多个属性，或者
+           分别指定每个属性。(缩写: -p)
+           示例:
                        -property:WarningLevel=2;OutDir=bin\Debug\
 </target>
         <note>
@@ -865,18 +864,18 @@
                        -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -logger:XMLLogger,C:\Loggers\MyLogger.dll;OutputAsHTML
 </source>
-        <target state="translated">  -logger:&lt;로거&gt;   이 로거를 사용하여 MSBuild의 이벤트를 기록합니다. 여러
-                     로거를 지정하려면 각 로거를 개별적으로 지정합니다.
-                     &lt;로거&gt; 구문은 다음과 같습니다.
-                       [&lt;클래스&gt;,]&lt;어셈블리&gt;[,&lt;옵션&gt;][;&lt;매개 변수&gt;]
-                     &lt;로거 클래스&gt; 구문은 다음과 같습니다.
-                       [&lt;부분 또는 전체 네임스페이스&gt;.]&lt;로거 클래스 이름&gt;
-                     &lt;로거 어셈블리&gt; 구문은 다음과 같습니다.
-                       {&lt;어셈블리 이름&gt;[,&lt;strong name&gt;] | &lt;어셈블리 파일&gt;}
-                     로거 옵션은 MSBuild가 로거를 만드는 방법을 지정합니다.
-                     &lt;로거 매개 변수&gt;는 선택 사항이고 입력한 대로 정확히
-                     로거에 전달됩니다. (약식: -l)
-                     예:
+        <target state="translated">  -logger:&lt;logger&gt;   使用此记录器来记录 MSBuild 中的事件。要指定
+                     多个记录器，请分别指定每个记录器。
+                     &lt;logger&gt; 语法为:
+                       [&lt;class&gt;,]&lt;assembly&gt;[,&lt;options&gt;][;&lt;parameters&gt;]
+                     &lt;logger class&gt; 语法为:
+                       [&lt;partial or full namespace&gt;.]&lt;logger class name&gt;
+                     &lt;logger assembly&gt; 语法为:
+                       {&lt;assembly name&gt;[,&lt;strong name&gt;] | &lt;assembly file&gt;}
+                     记录器选项指定 MSBuild 创建记录器的方式。
+                     &lt;logger parameters&gt; 是可选的，并按键入的
+                     形式原样传递给记录器。(缩写形式: -l)
+                     示例:
                        -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -logger:XMLLogger,C:\Loggers\MyLogger.dll;OutputAsHTML
 </target>
@@ -900,15 +899,15 @@
                            is set separately by
                            -fileloggerparameters.
 </source>
-        <target state="translated">  -verbosity:&lt;level&gt; 이벤트 로그에 이 정도 양의 정보를 표시합니다.
-                     사용 가능한 세부 정보 표시 수준에는 q[uiet], m[inimal],
-                     n[ormal], d[etailed], diag[nostic]이 있습니다. (약식: -v)
-                     예:
+        <target state="translated">  -verbosity:&lt;level&gt; 事件日志中显示此信息量。
+                     可用的详细级别为: q[uiet]、m[inimal]、
+                     n[ormal]、d[etailed] 和 diag[nostic]。(缩写: -v)
+                     示例:
                        -verbosity:quiet
 
-                     참고: 파일 로거의 세부 정보 표시는
-                           -fileloggerparameters에 의해
-                           별도로 설정됩니다.
+                     注意: 文件记录器的详细程度
+                           由 -fileloggerparameters
+                           单独设置。
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -955,36 +954,36 @@
                                                  Verbosity=minimal
 </source>
         <target state="translated">  -consoleLoggerParameters:&lt;parameters&gt;
-                     콘솔 로거의 매개 변수. (약식: -clp)
-                     사용 가능한 매개 변수는 다음과 같습니다.
-                        PerformanceSummary--작업, 목표, 프로젝트에
-                            소요된 시간을 표시합니다.
-                        Summary--끝에 오류 및 경고 요약을 표시합니다.
-                        NoSummary--끝에 오류 및 경고 요약을 표시하지
-                            않습니다.
-                        ErrorsOnly--오류만 표시합니다.
-                        WarningsOnly--경고만 표시합니다.
-                        NoItemAndPropertyList--각 프로젝트 빌드를 시작할 때
-                            항목 및 속성 목록을 표시하지 않습니다.
-                        showCommandLine--TaskCommandLineEvent 메시지 표시
-                        ShowTimestamp--모든 메시지 앞에 타임스탬프를 접두사로
-                            표시합니다.
-                        ShowEventId--시작된 이벤트, 완료된 이벤트 및 메시지의
-                            이벤트 ID 표시
-                        ForceNoAlign--콘솔 버퍼 크기에 맞게 텍스트를
-                            정렬하지 않습니다.
-                        DisableConsoleColor--모든 로깅 메시지에 대해
-                            기본 콘솔 색상을 사용합니다.
-                        EnableMPLogging--다중 프로세서가 아닌 모드에서
-                            실행되는 경우에도 다중 프로세서 로깅 스타일을
-                            활성화합니다. 이 로깅 스타일은 기본적으로 켜져 있습니다.
-                        ForceConsoleColor--콘솔이 지원하지 않더라도
-                            ANSI 콘솔 색상 사용
-                        PreferConsoleColor--대상 콘솔에서 지원하는 경우에만
-                            ANSI 콘솔 색상 사용
-                     Verbosity--이 로거에 대한 -verbosity 설정을
-                            재정의합니다.
-                     예: 
+                     控制台记录器的参数。(缩写: -clp)
+                     可用参数为: 
+                        PerformanceSummary--显示在任务、目标
+                            和项目上花费的时间。
+                        Summary--结束时显示错误和警告的摘要。
+                        NoSummary--
+                            结束时不显示错误和警告的摘要。
+                        ErrorsOnly--仅显示错误。
+                        WarningsOnly--仅显示警告。
+                        NoItemAndPropertyList--
+                            在开始生成每个项目时不显示内容和属性列表。
+                        ShowCommandLine--Show TaskCommandLineEvent messages
+                        ShowTimestamp--将时间戳显示为所有消息的
+                            前缀。
+                        ShowEventId--显示已开始事件、已完成事件和消息
+                            的事件 ID
+                        ForceNoAlign--不将文本与控制台缓冲区的大小
+                            对齐
+                        DisableConsoleColor--将默认控制台颜色
+                            用于所有记录消息。
+                        EnableMPLogging--启用多处理器日志记录样式，
+                            即使在非多处理器
+                            模式中也一样。默认情况下启用此日志记录样式。
+                        ForceConsoleColor--使用 ANSI 控制台颜色，即使
+                            控制台不支持它也一样
+                        ForceConsoleColor--尽在目标控制台支持的情况下使用 ANSI 控制台颜色
+                            
+                     verbosity - 替代此记录器的 -verbosity 
+                            设置。
+                     示例:
                         -consoleLoggerParameters:PerformanceSummary;NoSummary;
                                                  Verbosity=minimal
 </target>
@@ -1001,8 +1000,8 @@
         <source>  -noConsoleLogger   Disable the default console logger and do not log events
                      to the console. (Short form: -noConLog)
 </source>
-        <target state="translated">  -noConsoleLogger   기본 콘솔 로거를 사용하지 않고 콘솔에 이벤트를
-                     로깅하지 않습니다. (약식: -noConLog)
+        <target state="translated">  -noConsoleLogger  禁用默认控制台记录器，并且不将事件
+                    记录到控制台。(缩写: -noConLog)
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1022,13 +1021,13 @@
                      Example:
                        -validate:MyExtendedBuildSchema.xsd
 </source>
-        <target state="translated">  -validate          기본 스키마를 기준으로 프로젝트의 유효성을 검사합니다. 
-                     (약식: -val)
+        <target state="translated">  -validate     依据默认架构验证项目。(缩写: 
+           -val)
 
-  -validate:&lt;schema&gt; 지정된 스키마를 기준으로 프로젝트의 유효성을 검사합니다. 
-                     (약식: -val)
-                     예:
-                       -validate:MyExtendedBuildSchema.xsd
+ -validate:&lt;schema&gt; 依据指定的架构验证项目。(缩写: 
+           -val)
+           示例:
+            -validate:MyExtendedBuildSchema.xsd
 </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1046,11 +1045,11 @@
                      MSBuild will use up to the number of processors on the
                      computer. (Short form: -m[:n])
       </source>
-        <target state="translated">  -maxCpuCount[:n]   빌드에 사용할 최대 동시 프로세스 수를
-                     지정합니다. 스위치가 사용되지 않으면 기본값
-                     1이 사용됩니다. 값없이 스위치가 사용되면
-                     MSBuild에서 컴퓨터에 있는 프로세서 수 이하로
-                     사용됩니다. (약식: -m[:n])
+        <target state="translated">  -maxCpuCount[:n]   指定用于生成的最大
+                    并发进程数。如果未使用开关，则使用的默认值
+                    为 1。如果使用开关时不带值，
+                    MSBuild 将最多使用计算机上的
+                    处理器数。(缩写: -m[:n])
       </target>
         <note>
           LOCALIZATION: "maxCpuCount" should not be localized.
@@ -1064,7 +1063,7 @@
         MSBuild MyApp.csproj -t:Clean
                              -p:Configuration=Debug;TargetFrameworkVersion=v3.5
     </source>
-        <target state="translated">예:
+        <target state="translated">示例:
 
         MSBuild MyApp.sln -t:Rebuild -p:Configuration=Release
         MSBuild MyApp.csproj -t:Clean
@@ -1086,9 +1085,9 @@
                      to False, this sets it to True. (short form: -irc)
    </source>
         <target state="translated">  -inputResultsCaches:&lt;cacheFile&gt;...
-                     MSBuild가 빌드 결과를 읽을 입력 캐시 파일의
-                     세미콜론으로 구분된 목록입니다. -isolateProjects가
-                     False로 설정된 경우 이로 인해 True로 설정됩니다. (약식: -irc)
+                     分号分隔的输入缓存文件列表，MSBuild
+                     将从中读取构建结果。如果 -isolateProjects 设置
+                     为 False，则将其设置为 True。(缩写: -irc)
    </target>
         <note>
       LOCALIZATION: The following should not be localized: MSBuild, -isolate
@@ -1103,10 +1102,10 @@
                      (short form: -orc)
    </source>
         <target state="translated">  -outputResultsCache:[cacheFile]
-                     빌드가 끝날 때 MSBuild에서 빌드 결과 캐시의
-                     콘텐츠를 쓸 출력 캐시 파일입니다.
-                     -isolateProjects가 False로 설정된 경우 이로 인해 True로 설정됩니다.
-                     (약식: -orc)
+                     将构建结果缓存内容写入 MSBuild 将在
+                     构建结束时生成的输出缓存文件。
+                     如果 -isolateProjects 设置为 False，则将其设置为 True。
+                     (缩写: -orc)
    </target>
         <note>
       LOCALIZATION: The following should not be localized: MSBuild, -isolate
@@ -1115,7 +1114,7 @@
       </trans-unit>
       <trans-unit id="HelpPrompt">
         <source>For switch syntax, type "MSBuild -help"</source>
-        <target state="translated">스위치 구문을 보려면 "MSBuild -help"를 입력하세요.</target>
+        <target state="translated">若要显示开关的语法，请键入“MSBuild -help”</target>
         <note>UE: this message is shown when the user makes a syntax error on the command-line for a switch.
     LOCALIZATION: "MSBuild -help" should not be localized.</note>
       </trans-unit>
@@ -1138,21 +1137,21 @@
                        -dl:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -dl:MyLogger,C:\My.dll*ForwardingLogger,C:\Logger.dll
 </source>
-        <target state="translated">  -distributedLogger:&lt;중앙 로거&gt;*&lt;전달 로거&gt;
-                     이 로거를 사용해 MSBuild의 이벤트를 기록하여
-                     각 노드에 다른 로거 인스턴스를 연결합니다. 여러
-                     로거를 지정하려면 각 로거를 개별적으로 지정합니다.
-                     (약식 -dl)
-                     &lt;로거&gt; 구문은 다음과 같습니다.
-                       [&lt;클래스&gt;,]&lt;어셈블리&gt;[,&lt;옵션&gt;][;&lt;매개 변수&gt;]
-                     &lt;로거 클래스&gt; 구문은 다음과 같습니다.
-                       [&lt;부분 또는 전체 네임스페이스&gt;.]&lt;로거 클래스 이름&gt;
-                     &lt;로거 어셈블리&gt; 구문은 다음과 같습니다.
-                       {&lt;어셈블리 이름&gt;[,&lt;strong name&gt;] | &lt;어셈블리 파일&gt;}
-                     로거 옵션은 MSBuild가 로거를 만드는 방법을 지정합니다.
-                      &lt;로거 매개 변수&gt;는 선택 사항이고
-                     입력한 대로 정확히 로거에 전달됩니다. (약식: -l)
-                     예:
+        <target state="translated">  -distributedLogger:&lt;central logger&gt;*&lt;forwarding logger&gt;
+                     使用此记录器来记录 MSBuild 中的事件，向每个节点
+                     附加不同的记录器实例。要指定
+                     多个记录器，请分别指定每个记录器。
+                     (缩写形式 -dl)
+                     &lt;logger&gt; 语法为:
+                       [&lt;class&gt;,]&lt;assembly&gt;[,&lt;options&gt;][;&lt;parameters&gt;]
+                     &lt;logger class&gt; 语法为:
+                       [&lt;partial or full namespace&gt;.]&lt;logger class name&gt;
+                     &lt;logger assembly&gt; 语法为:
+                       {&lt;assembly name&gt;[,&lt;strong name&gt;] | &lt;assembly file&gt;}
+                     记录器选项指定 MSBuild 创建记录器的方式。
+                     &lt;logger parameters&gt; 是可选的，并且按键入的
+                     形式原样传递给记录器。(缩写形式: -l)
+                     示例:
                        -dl:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral
                        -dl:MyLogger,C:\My.dll*ForwardingLogger,C:\Logger.dll
 </target>
@@ -1174,14 +1173,14 @@
                      Example:
                        -ignoreProjectExtensions:.sln
     </source>
-        <target state="translated">  -ignoreProjectExtensions:&lt;extensions&gt;
-                     빌드할 프로젝트 파일을 결정할 때 
-                     무시할 확장 목록입니다. 여러 확장을 구분하는 데는 
-                     세미콜론 또는 쉼표를 사용합니다.
-                     (약식: -ignore)
-                     예:
-                       -ignoreProjectExtensions:.sln
-    </target>
+        <target state="translated">  -ignoreprojectextensions:&lt;extensions&gt;
+           确定要生成的项目文件时要忽略的
+           扩展名的列表。使用分号或逗号来分隔
+           多个扩展名。
+           (缩写: -ignore)
+           示例:
+            -ignoreprojectextensions:.sln
+  </target>
         <note>
       LOCALIZATION: The following should not be localized:
       1) "MSBuild", "MSBuild.exe" and "MSBuild.rsp"
@@ -1200,14 +1199,14 @@
                      Example:
                        -toolsVersion:3.5
    </source>
-        <target state="translated">  -toolsVersion:&lt;version&gt;
-                     빌드 중에 사용할 MSBuild 도구 세트(작업, 대상 등)의 버전입니다.
-                     이 버전은 개별 프로젝트에서 지정한 버전을 
-                     재정의합니다. (약식:
-                     -tv)
-                     예:
-                       -toolsVersion:3.5
-   </target>
+        <target state="translated">  -toolsversion:&lt;version&gt;
+           要在生成过程中使用的 MSBuild 工具集
+           (任务、目标等)的版本。此版本将重写
+           各个项目指定的版本。(缩写: 
+           -tv)
+           示例:
+            -toolsversion:3.5
+  </target>
         <note>
       LOCALIZATION: The following should not be localized:
       1) "MSBuild", "MSBuild.exe" and "MSBuild.rsp"
@@ -1227,14 +1226,14 @@
                      "n" if present can be a digit from 1-9, allowing up to
                      10 file loggers to be attached. (Short form: -fl[n])
     </source>
-        <target state="translated">  -fileLogger[n]     빌드 출력을 파일에 로깅합니다. 기본적으로
-                     파일은 현재 디렉터리에 있고
-                     "msbuild[n].log"로 이름이 지정되어 있습니다. 모든 노드의 이벤트는 단일 로그로
-                     결합됩니다. 파일의 위치 및 fileLogger의
-                     다른 매개 변수는 "-fileLoggerParameters[n]" 스위치를 
-                     추가하여 지정할 수 있습니다.
-                     "n"은 1-9 사이의 숫자일 수 있으며 최대 10개의 
-                     파일 로거가 추가될 수 있습니다. (약식: -fl[n])
+        <target state="translated">  -fileLogger[n]     将生成输出记录到文件中。默认情况下，
+                    该文件在当前目录中，名称为
+                    "msbuild[n].log"。所有节点中的事件合并到
+                    单个日志中。fileLogger 的文件和
+                    其他参数的位置可以通过添加
+                    "-fileLoggerParameters[n]" 开关来指定。
+                    "n" (如果存在)可以为 1-9 的数字，允许最多附加
+                    10 个文件记录器。(缩写: -fl[n])
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1259,18 +1258,18 @@
                      template and append the node id to this fileName to
                      create a log file for each node.
     </source>
-        <target state="translated">  -distributedFileLogger
-                     MSBuild 노드당 로그 파일 하나씩, 여러 로그 파일에 빌드 출력을 
-                     기록합니다. 해당 파일의 초기 위치는 
-                     현재 디렉터리입니다. 기본적으로 해당 파일을 
-                     "MSBuild&lt;nodeid&gt;.log"라고 합니다. 파일 위치 및 fileLogger의 기타 매개 변수는 
-                     "-fileLoggerParameters" 스위치를 추가해서 
-                     지정할 수 있습니다.
+        <target state="translated">  -distributedFileLogger                            
+           将生成输出记录到多个日志文件，每个 MSBuild 节点
+           一个日志文件。这些文件的初始位置为
+           当前目录。默认情况下，这些文件名为
+           “MSBuild&lt;nodeid&gt;.log”。可通过添加
+           “-fileLoggerParameters”开关来指定 
+           这些文件的位置和 fileLogger 的其他参数。
 
-                     로그 파일 이름이 fileLoggerParameters 스위치를 통해 설정되면 
-                     배포된 로거가 fileName을 템플릿으로 사용하고 
-                     노드 ID를 이 fileName에 추가하여 
-                     각 노드의 로그 파일을 만듭니다.
+           如果日志文件名是通过 fileLoggerParameters
+           开关设置的，分布式记录器将使用 fileName 作为
+           模板并将节点 ID 附加到此 fileName 
+           以便为每个节点创建一个日志文件。
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1311,34 +1310,34 @@
                        -flp1:warningsonly;logfile=msbuild.wrn
                        -flp2:errorsonly;logfile=msbuild.err
     </source>
-        <target state="translated">  -fileLoggerParameters[n]:&lt;parameters&gt;
-                     파일 로거의 추가 매개 변수를 제공합니다.
-                     이 스위치가 있다는 것은 
-                     해당 fileLogger[n] 스위치를 의미합니다.
-                     "n"(있는 경우)은 1~9의 숫자일 수 있습니다.
-                     -fileLoggerParameters는 배포된 파일 로거에서도 
-                     사용됩니다. -distributedFileLogger에 대한 설명을 참조하세요.
-                     (약식: -flp[n])
-                     콘솔 로거용으로 나열된 동일한 매개 변수를 사용할 수 있습니다.
-                     다음과 같은 몇 가지 추가 매개 변수를 사용할 수 있습니다.
-                        LogFile--빌드 로그가 기록되는 
-                            로그 파일의 경로입니다.
-                        Append--빌드 로그가 로그 파일에 추가되는지, 
-                            아니면 로그 파일을 덮어쓰는지 여부를 결정합니다. 
-                            스위치를 설정하면 빌드 로그가 로그 파일에 추가됩니다.
-                            스위치를 설정하지 않으면 기존 로그 파일의 
-                            콘텐츠를 덮어씁니다.
-                            기본값은 로그 파일에 추가하지 않는 것입니다.
-                        Encoding--파일의 인코딩을 지정합니다
-                            (예: UTF-8, 유니코드 또는 ASCII).
-                     기본 세부 정보 표시는 Detailed입니다.
-                     예:
-                       -fileLoggerParameters:LogFile=MyLog.log;Append;
-                                           Verbosity=diagnostic;Encoding=UTF-8
+        <target state="translated">  -fileloggerparameters[n]:&lt;parameters&gt;                
+           为文件记录器提供任何额外的参数。
+           存在此开关意味着
+           存在对应的 -filelogger[n] 开关。
+          “n”(如果存在)可以为 1-9 的数字。
+           任何分布式文件记录器也可以使用 
+           -fileloggerparameters，具体可参阅 -distributedFileLogger 的说明。
+           (缩写: -flp[n])
+           为控制台记录器列出的相同参数
+           可用。某些其他可用参数有:
+            LogFile -- 生成日志将写入其中的
+              日志文件的路径。
+            Append -- 确定是将生成日志附加到日志文件，
+              还是覆盖日志文件。如果设置此
+              开关，则会将生成日志附加到日志文件；
+              如果不设置此开关，则会覆盖
+              现有日志文件的内容。
+              默认值为不附加到日志文件。
+            Encoding -- 指定文件的编码，
+              例如，UTF-8、Unicode 或 ASCII
+           默认的详细程度为 Detailed。
+           示例:
+            -fileLoggerParameters:LogFile=MyLog.log;Append;
+                      Verbosity=diagnostic;Encoding=UTF-8
 
-                       -flp:Summary;Verbosity=minimal;LogFile=msbuild.sum
-                       -flp1:warningsonly;logfile=msbuild.wrn
-                       -flp2:errorsonly;logfile=msbuild.err
+            -flp:Summary;Verbosity=minimal;LogFile=msbuild.sum 
+            -flp1:warningsonly;logfile=msbuild.wrn 
+            -flp2:errorsonly;logfile=msbuild.err
     </target>
         <note>
       LOCALIZATION: The following should not be localized:
@@ -1361,15 +1360,15 @@
                        -nr:true
     </source>
         <target state="translated">  -nodeReuse:&lt;parameters&gt;
-                     MSBuild 노드를 다시 사용하거나 다시 사용하지 않도록 설정합니다.
-                     매개 변수는 다음가 같습니다.
-                     True --빌드 완료 후 노드가 유지되고 
-                            후속 빌드에서 다시 사용됩니다(기본값).
-                     False--빌드 완료 후 노드가 유지되지 않습니다.
-                     (약식: -nr)
-                     예:
-                       -nr:true
-    </target>
+           允许或禁止重复使用 MSBuild 节点。
+           参数包括:
+           True -- 生成完成后节点将保留，
+               并且将由后面的生成重复使用(默认)
+           False -- 生成完成后节点将不会保留
+           (缩写: -nr)
+           示例:
+            -nr:true
+  </target>
         <note />
       </trans-unit>
       <trans-unit id="HelpMessage_25_PreprocessSwitch">
@@ -1387,16 +1386,16 @@
                        -pp:out.txt
     </source>
         <target state="translated">  -preprocess[:file]
-                     빌드 중에 가져온 모든 파일에
-                     해당 경계를 표시하여 인라인 처리하면 집계된
-                     단일 프로젝트 파일을 만들 수 있습니다. 이렇게 하면
-                     가져오고 있는 파일, 파일을 가져온 위치
-                     및 해당 파일이 빌드에 어떤 영향을 주는지를 파악하는 데
-                     도움이 됩니다. 기본적으로 출력은
-                     콘솔 창에 기록됩니다. 출력 파일에 대한 경로가
-                     제공되면 해당 경로가 대신 사용됩니다.
-                     (약식: -pp)
-                     예:
+                    通过嵌入将在生成过程中导入的
+                    所有文件并标记其边界，
+                    创建一个聚合的项目文件。这对于
+                    了解导入什么文件、从何处导入以及
+                    这些文件在生成中的构成
+                    非常有用。默认情况下，输出将写入
+                    控制台窗口。如果提供输出文件的路径，
+                    则将改用该路径。
+                    (缩写: -pp)
+                    示例:
                        -pp:out.txt
     </target>
         <note />
@@ -1408,11 +1407,11 @@
                      scheduled to nodes.
                      (Short form: -ds)
     </source>
-        <target state="translated">  -detailedSummary[:True|False]
-                     빌드가 끝날 때 자세한 정보 표시
-                     구성 및 노드 예약 방법에 대해
-                     설명합니다.
-                     (Short form: -ds)
+        <target state="translated">  -detailedSummary
+                    在生成的结尾显示有关
+                    所生成配置的详细信息，以及如何向节点安排
+                    这些配置。
+                    (缩写: -ds)
     </target>
         <note>
       LOCALIZATION: "detailedSummary", "True" and "False" should not be localized.
@@ -1421,7 +1420,7 @@
       </trans-unit>
       <trans-unit id="InvalidConfigurationFile">
         <source>MSBUILD : Configuration error MSB1043: The application could not start. {0}</source>
-        <target state="translated">MSBUILD : Configuration error MSB1043: 애플리케이션을 시작할 수 없습니다. {0}</target>
+        <target state="translated">MSBUILD : Configuration error MSB1043: 应用程序未能启动。{0}</target>
         <note>
       {StrBegin="MSBUILD : Configuration error MSB1043: "}
       UE: This error is shown when the msbuild.exe.config file had invalid content.
@@ -1430,7 +1429,7 @@
       </trans-unit>
       <trans-unit id="InvalidDetailedSummaryValue">
         <source>MSBUILD : error MSB1061: Detailed summary value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1061: 자세한 요약 값이 잘못되었습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1061: 详细汇总值无效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1061: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1440,7 +1439,7 @@
       </trans-unit>
       <trans-unit id="InvalidGraphBuildValue">
         <source>MSBUILD : error MSB1057: Graph build value is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1057: 그래프 빌드 값이 잘못되었습니다.</target>
+        <target state="translated">MSBUILD : error MSB1057: 关系图生成值无效。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1057: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1450,7 +1449,7 @@
       </trans-unit>
       <trans-unit id="InvalidInteractiveValue">
         <source>MSBUILD : error MSB1055: Interactive value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1055: 대화형 값이 유효하지 않습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1055: 交互值无效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1055: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1460,7 +1459,7 @@
       </trans-unit>
       <trans-unit id="InvalidIsolateProjectsValue">
         <source>MSBUILD : error MSB1056: Isolate projects value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1056: 프로젝트 격리 값이 유효하지 않습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1056: 独立项目值无效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1056: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1471,7 +1470,7 @@
       </trans-unit>
       <trans-unit id="InvalidLoggerError">
         <source>MSBUILD : error MSB1019: Logger switch was not correctly formed.</source>
-        <target state="translated">MSBUILD : error MSB1019: 로거 스위치의 형식이 잘못되었습니다.</target>
+        <target state="translated">MSBUILD : error MSB1019: 记录器开关的格式不正确。</target>
         <note>{StrBegin="MSBUILD : error MSB1019: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user does any of the following:
       msbuild.exe -logger:;"logger parameters"                    (missing logger class and assembly)
@@ -1483,7 +1482,7 @@
       </trans-unit>
       <trans-unit id="InvalidMaxCPUCountValue">
         <source>MSBUILD : error MSB1030: Maximum CPU count is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1030: 최대 CPU 수가 잘못되었습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1030: 最大 CPU 计数无效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1030: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1493,7 +1492,7 @@
       </trans-unit>
       <trans-unit id="InvalidMaxCPUCountValueOutsideRange">
         <source>MSBUILD : error MSB1032: Maximum CPU count is not valid. Value must be an integer greater than zero and no more than 1024.</source>
-        <target state="translated">MSBUILD : error MSB1032: 최대 CPU 수가 잘못되었습니다. 값은 0보다 크고 1024 이하인 정수여야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1032: 最大 CPU 计数无效。值必须为大于 0 且小于 1024 的整数。</target>
         <note>{StrBegin="MSBUILD : error MSB1032: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies a CPU value that is zero or less. For example, -m:0 instead of -m:2.
@@ -1502,7 +1501,7 @@
       </trans-unit>
       <trans-unit id="InvalidNodeNumberValue">
         <source>MSBUILD : error MSB1033: Node number is not valid. {0}.</source>
-        <target state="translated">MSBUILD : error MSB1033: 노드 번호가 잘못되었습니다. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1033: 节点数无效。{0}。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1033: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1512,7 +1511,7 @@
       </trans-unit>
       <trans-unit id="InvalidNodeNumberValueIsNegative">
         <source>MSBUILD : error MSB1034: Node number is not valid. Value must be an integer greater than zero.</source>
-        <target state="translated">MSBUILD : error MSB1034: 노드 번호가 잘못되었습니다. 값은 0보다 큰 정수여야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1034: 节点数无效。值必须为大于 0 的整数。</target>
         <note>{StrBegin="MSBUILD : error MSB1034: "}
         UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
         This error is shown when a user specifies a CPU value that is zero or less. For example, -nodeMode:0 instead of -nodeMode:2.
@@ -1521,7 +1520,7 @@
       </trans-unit>
       <trans-unit id="InvalidPropertyError">
         <source>MSBUILD : error MSB1006: Property is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1006: 속성이 잘못되었습니다.</target>
+        <target state="translated">MSBUILD : error MSB1006: 属性无效。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1006: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown if the user does any of the following:
@@ -1533,13 +1532,13 @@
       </trans-unit>
       <trans-unit id="InvalidSchemaFile">
         <source>MSBUILD : MSB1046: The schema "{0}" is not valid. {1}</source>
-        <target state="translated">MSBUILD : MSB1046: "{0}" 스키마가 잘못되었습니다. {1}</target>
+        <target state="translated">MSBUILD : MSB1046: 架构“{0}”无效。{1}</target>
         <note>{StrBegin="MSBUILD : MSB1046: "}UE: This message is shown when the schema file provided for the validation of a project is itself not valid.
     LOCALIZATION: "{0}" is the schema file path. "{1}" is a message from an FX exception that describes why the schema file is bad.</note>
       </trans-unit>
       <trans-unit id="InvalidSwitchIndicator">
         <source>Switch: {0}</source>
-        <target state="translated">스위치: {0}</target>
+        <target state="translated">开关:{0}</target>
         <note>
       UE: This is attached to error messages caused by an invalid switch. This message indicates what the invalid arg was.
       For example, if an unknown switch is passed to MSBuild.exe, the error message will look like this:
@@ -1550,7 +1549,7 @@
       </trans-unit>
       <trans-unit id="InvalidToolsVersionError">
         <source>MSBUILD : error MSB1040: ToolsVersion is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1040: ToolsVersion이 잘못되었습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1040: ToolsVersion 无效。{0}</target>
         <note>
       {StrBegin="MSBUILD : error MSB1040: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
@@ -1560,7 +1559,7 @@
       </trans-unit>
       <trans-unit id="InvalidVerbosityError">
         <source>MSBUILD : error MSB1018: Verbosity level is not valid.</source>
-        <target state="translated">MSBUILD : error MSB1018: 세부 정보 표시 수준이 잘못되었습니다.</target>
+        <target state="translated">MSBUILD : error MSB1018: 详细程度无效。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1018: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies an unknown verbosity level e.g. "msbuild -verbosity:foo". The only valid verbosities
@@ -1570,7 +1569,7 @@
       </trans-unit>
       <trans-unit id="LoggerFatalError">
         <source>MSBUILD : error MSB1028: The logger failed unexpectedly.</source>
-        <target state="translated">MSBUILD : error MSB1028: 로거에서 예기치 않은 오류가 발생했습니다.</target>
+        <target state="translated">MSBUILD : error MSB1028: 记录器意外失败。</target>
         <note>{StrBegin="MSBUILD : error MSB1028: "}
       UE: This error is shown when a logger specified with the -logger switch throws an exception while being
       initialized. This message is followed by the exception text including the stack trace.
@@ -1578,7 +1577,7 @@
       </trans-unit>
       <trans-unit id="LoggerFailurePrefixNoErrorCode">
         <source>MSBUILD : Logger error {0}: {1}</source>
-        <target state="translated">MSBUILD : 로거 error {0}: {1}</target>
+        <target state="translated">MSBUILD: 记录器 error {0}: {1}</target>
         <note>UE: This prefixes the error message emitted by a logger, when a logger fails in a controlled way using a LoggerException.
       For example, the logger is indicating that it could not create its output file.
       There's no error code because one was supplied by the logger.
@@ -1587,7 +1586,7 @@
       </trans-unit>
       <trans-unit id="LoggerFailurePrefixWithErrorCode">
         <source>MSBUILD : Logger error MSB1029: {0}</source>
-        <target state="translated">MSBUILD : 로거 error MSB1029: {0}</target>
+        <target state="translated">MSBUILD : 记录器 error MSB1029: {0}</target>
         <note>{SubString="Logger", "{0}"}{StrBegin="MSBUILD : "}
         UE: This prefixes the error message emitted by a logger, when a logger fails in a controlled way using a LoggerException.
         For example, the logger is indicating that it could not create its output file.
@@ -1597,22 +1596,22 @@
       </trans-unit>
       <trans-unit id="MSBExePath">
         <source>MSBuild executable path = "{0}"</source>
-        <target state="translated">MSBuild 실행 파일 경로 = "{0}"</target>
+        <target state="translated">MSBuild 可执行文件路径 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBVersion">
         <source>MSBuild version = "{0}"</source>
-        <target state="translated">MSBuild 버전 = "{0}"</target>
+        <target state="translated">MSBuild 版本 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MSBuildDebugPath">
         <source>MSBuild logs and debug information will be at "{0}"</source>
-        <target state="translated">MSBuild 로그 및 디버그 정보는 "{0}"에 있습니다.</target>
+        <target state="translated">MSBuild 日志和调试信息将位于"{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingFeatureAvailabilityError">
         <source>MSBUILD : error MSB1067: Must provide a feature name for the featureAvailability switch.</source>
-        <target state="translated">MSBUILD : error MSB1067: featureAvailability 스위치에 대한 기능 이름을 제공해야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1067: 必须为 featureAvailability 开关提供功能名称。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1067: "}UE: This happens if the user does something like "msbuild.exe -featureAvailability". The user must pass in an actual feature name
       following the switch, as in "msbuild.exe -featureAvailability:blah".
@@ -1621,7 +1620,7 @@
       </trans-unit>
       <trans-unit id="MissingGetItemError">
         <source>MSBUILD : error MSB1014: Must provide an item name for the getItem switch.</source>
-        <target state="translated">MSBUILD : error MSB1014: getItem 스위치의 항목 이름을 제공해야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1014: 必须为 getItem 开关提供项名称。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1014: "}UE: This happens if the user does something like "msbuild.exe -getItem". The user must pass in an actual item name
       following the switch, as in "msbuild.exe -getItem:blah".
@@ -1630,7 +1629,7 @@
       </trans-unit>
       <trans-unit id="MissingGetPropertyError">
         <source>MSBUILD : error MSB1010: Must provide a property name for the getProperty switch.</source>
-        <target state="translated">MSBUILD : error MSB1010: getProperty 스위치의 속성 이름을 제공해야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1010: 必须为 getProperty 开关提供属性名称。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1010: "}UE: This happens if the user does something like "msbuild.exe -getProperty". The user must pass in an actual property name
       following the switch, as in "msbuild.exe -getProperty:blah".
@@ -1639,7 +1638,7 @@
       </trans-unit>
       <trans-unit id="MissingGetResultFileError">
         <source>MSBUILD : error MSB1068: Must provide a file for the getResultOutputFile switch.</source>
-        <target state="translated">MSBUILD : error MSB1068: getResultOutputFile 스위치에 대한 파일을 제공해야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1068: 必须为 getResultOutputFile 开关提供文件。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1068: "}UE: This happens if the user does something like "msbuild.exe -getResultOutputFile". The user must pass in an actual file
       following the switch, as in "msbuild.exe -getTargetResult:blah -getResultOutputFile:blah.txt".
@@ -1648,7 +1647,7 @@
       </trans-unit>
       <trans-unit id="MissingGetTargetResultError">
         <source>MSBUILD : error MSB1017: Must provide a target name for the getTargetResult switch.</source>
-        <target state="translated">MSBUILD : error MSB1017: getTargetResult 스위치의 대상 이름을 제공해야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1017: 必须为 getTargetResult 开关提供目标名称。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1017: "}UE: This happens if the user does something like "msbuild.exe -getTargetResult". The user must pass in an actual target name
       following the switch, as in "msbuild.exe -getTargetResult:blah".
@@ -1657,7 +1656,7 @@
       </trans-unit>
       <trans-unit id="MissingLoggerError">
         <source>MSBUILD : error MSB1007: Specify a logger.</source>
-        <target state="translated">MSBUILD : error MSB1007: 로거를 지정하십시오.</target>
+        <target state="translated">MSBUILD : error MSB1007: 请指定记录器。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1007: "}UE: This happens if the user does something like "msbuild.exe -logger". The user must pass in an actual logger class
       following the switch, as in "msbuild.exe -logger:XMLLogger,MyLogger,Version=1.0.2,Culture=neutral".
@@ -1666,7 +1665,7 @@
       </trans-unit>
       <trans-unit id="MissingMaxCPUCountError">
         <source>MSBUILD : error MSB1031: Specify the maximum number of CPUs.</source>
-        <target state="translated">MSBUILD : error MSB1031: 최대 CPU 수를 지정하십시오.</target>
+        <target state="translated">MSBUILD : error MSB1031: 指定最大 CPU 数。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1031: "}UE: This happens if the user does something like "msbuild.exe -m". The user must pass in an actual number like -m:4.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1674,7 +1673,7 @@
       </trans-unit>
       <trans-unit id="MissingProjectError">
         <source>MSBUILD : error MSB1003: Specify a project or solution file. The current working directory does not contain a project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1003: 프로젝트 또는 솔루션 파일을 지정하세요. 현재 작업 디렉터리에 프로젝트 또는 솔루션 파일이 없습니다.</target>
+        <target state="translated">MSBUILD : error MSB1003: 请指定项目或解决方案文件。当前工作目录中未包含项目或解决方案文件。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1003: "}UE: The user must either specify a project or solution file to build, or there must be a project file in the current directory
       with a file extension ending in "proj" (e.g., foo.csproj), or a solution file ending in "sln".
@@ -1683,7 +1682,7 @@
       </trans-unit>
       <trans-unit id="MissingPropertyError">
         <source>MSBUILD : error MSB1005: Specify a property and its value.</source>
-        <target state="translated">MSBUILD : error MSB1005: 속성과 해당 속성 값을 지정하십시오.</target>
+        <target state="translated">MSBUILD : error MSB1005: 请指定属性及其属性值。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1005: "}UE: This happens if the user does something like "msbuild.exe -property". The user must pass in an actual property
       name and value following the switch, as in "msbuild.exe -property:Configuration=Debug".
@@ -1692,7 +1691,7 @@
       </trans-unit>
       <trans-unit id="MissingResponseFileError">
         <source>MSBUILD : error MSB1012: Specify a response file.</source>
-        <target state="translated">MSBUILD : error MSB1012: 지시 파일을 지정하십시오.</target>
+        <target state="translated">MSBUILD : error MSB1012: 请指定响应文件。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1012: "}UE: This error would occur if the user did something like "msbuild.exe @ foo.proj". The at-sign must be followed by a
       response file.
@@ -1701,7 +1700,7 @@
       </trans-unit>
       <trans-unit id="MissingTargetError">
         <source>MSBUILD : error MSB1004: Specify the name of the target.</source>
-        <target state="translated">MSBUILD : error MSB1004: 대상의 이름을 지정하십시오.</target>
+        <target state="translated">MSBUILD : error MSB1004: 请指定目标的名称。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1004: "}UE: This happens if the user does something like "msbuild.exe -target". The user must pass in an actual target name
       following the switch, as in "msbuild.exe -target:blah".
@@ -1710,7 +1709,7 @@
       </trans-unit>
       <trans-unit id="MissingTerminalLoggerParameterError">
         <source>MSBUILD : error MSB1066: Specify one or more parameters for the terminal logger if using the -terminalLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1066: -terminalLoggerParameters 스위치를 사용하는 경우 터미널 로거에 대해 하나 이상의 매개 변수를 지정하세요.</target>
+        <target state="translated">MSBUILD : error MSB1066: 为终端记录器指定一个或多个参数 (如果使用 -terminalLoggerParameters 开关)</target>
         <note>
       {StrBegin="MSBUILD : error MSB1066: "}
       UE: This happens if the user does something like "msbuild.exe -terminalLoggerParameters:". The user must pass in one or more parameters
@@ -1720,7 +1719,7 @@
       </trans-unit>
       <trans-unit id="MissingToolsVersionError">
         <source>MSBUILD : error MSB1039: Specify the version of the toolset.</source>
-        <target state="translated">MSBUILD : error MSB1039: 도구 집합의 버전을 지정하십시오.</target>
+        <target state="translated">MSBUILD : error MSB1039: 指定工具集的版本。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1039: "}
       UE: This happens if the user does something like "msbuild.exe -toolsVersion". The user must pass in an actual toolsversion
@@ -1730,7 +1729,7 @@
       </trans-unit>
       <trans-unit id="MissingVerbosityError">
         <source>MSBUILD : error MSB1016: Specify the verbosity level.</source>
-        <target state="translated">MSBUILD : error MSB1016: 세부 정보 표시 수준을 지정하십시오.</target>
+        <target state="translated">MSBUILD : error MSB1016: 请指定详细程度。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1016: "}UE: This happens if the user does something like "msbuild.exe -verbosity". The user must pass in a verbosity level
       after the switch e.g. "msbuild.exe -verbosity:detailed".
@@ -1739,7 +1738,7 @@
       </trans-unit>
       <trans-unit id="MissingWarnNotAsErrorParameterError">
         <source>MSBUILD : error MSB1060: Specify one or more warning codes when using the -warnNotAsError switch.</source>
-        <target state="translated">MSBUILD : error MSB1060: -warnNotAsError 스위치를 사용할 때 하나 이상의 경고 코드를 지정하세요.</target>
+        <target state="translated">MSBUILD : error MSB1060: 使用 -warnNotAsError 开关时指定一个或多个警告代码。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1060: "}
       UE: This happens if the user does something like "msbuild.exe -warnNotAsError:" without any codes.
@@ -1748,7 +1747,7 @@
       </trans-unit>
       <trans-unit id="MultipleSchemasError">
         <source>MSBUILD : error MSB1024: Only one schema can be specified for validation of the project.</source>
-        <target state="translated">MSBUILD : error MSB1024: 프로젝트의 유효성을 검사하는 데 사용할 스키마를 하나만 지정할 수 있습니다.</target>
+        <target state="translated">MSBUILD : error MSB1024: 只能指定一个项目验证架构。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1024: "}UE: The user did something like msbuild -validate:foo.xsd -validate:bar.xsd. We only allow one schema to be specified.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1756,19 +1755,19 @@
       </trans-unit>
       <trans-unit id="NameInvalid">
         <source>MSBUILD : error MSB5016: The name "{0}" contains an invalid character "{1}".</source>
-        <target state="translated">MSBUILD : error MSB5016: "{0}" 이름에 잘못된 문자 "{1}"이(가) 사용되었습니다.</target>
+        <target state="translated">MSBUILD : error MSB5016: 名称“{0}”包含无效字符“{1}”。</target>
         <note>
       {StrBegin="MSBUILD : error MSB5016: "}
     </note>
       </trans-unit>
       <trans-unit id="NotWarnAsErrorWithoutWarnAsError">
         <source>MSBUILD : error MSB1062: The -warnnotaserror switch cannot be specified unless the -warnaserror switch is also specified and left empty.</source>
-        <target state="translated">MSBUILD : error MSB1062: -warnaserror 스위치도 지정하고 비어 있지 않으면 -warnnotaserror 스위치를 지정할 수 없습니다.</target>
+        <target state="translated">MSBUILD : error MSB1062: 除非还指定了 -warnaserror 开关并将其留空，否则无法指定 -warnnotaserror 开关。</target>
         <note>{StrBegin="MSBUILD : error MSB1062: "}LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:", "-warnnotaserror" and "-warnaserror" should not be localized.</note>
       </trans-unit>
       <trans-unit id="OptionalLoggerCreationMessage">
         <source>The specified logger "{0}" could not be created and will not be used. {1}</source>
-        <target state="translated">지정한 로거 "{0}"을(를) 만들 수 없으므로 사용할 수 없습니다. {1}</target>
+        <target state="translated">无法创建指定的记录器“{0}”，因此将不会使用它。{1}</target>
         <note>
       UE: This error is shown when a logger cannot be loaded and instantiated from its assembly.
       LOCALIZATION: {0} contains the logger description passed on the command line or in a
@@ -1778,7 +1777,7 @@
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromAutoResponse">
         <source>Some command line switches were read from the auto-response file "{0}". To disable this file, use the "-noAutoResponse" switch.</source>
-        <target state="translated">자동 지시 파일 "{0}"에서 일부 명령줄 스위치를 읽어왔습니다. 이 파일을 사용하지 않도록 설정하려면 "-noAutoResponse" 스위치를 사용하세요.</target>
+        <target state="translated">将从自动响应文件“{0}”中读取某些命令行开关。若要禁用此文件，请使用“-noAutoResponse”开关。</target>
         <note>
       UE: This message appears in high verbosity modes when we used some
       switches from the auto-response file msbuild.rsp: otherwise the user may be unaware
@@ -1787,7 +1786,7 @@
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromResponseFile">
         <source>Some command line switches were read from this response file:</source>
-        <target state="translated">이 응답 파일에서 일부 명령줄 스위치를 읽었습니다.</target>
+        <target state="translated">从此响应文件中读取了一些命令行开关:</target>
         <note>
       UE: This message appears before a command-line parsing error when switches were read from a response file: otherwise the user may be unaware where the switches are coming from.
       LOCALIZATION: The response file path is printed on a separate line after this message.
@@ -1795,7 +1794,7 @@
       </trans-unit>
       <trans-unit id="PickedUpSwitchesFromResponseFiles">
         <source>Some command line switches were read from these response files:</source>
-        <target state="translated">이 응답 파일들에서 일부 명령줄 스위치를 읽었습니다:</target>
+        <target state="translated">从以下响应文件中读取了一些命令行开关:</target>
         <note>
       UE: This message appears before a command-line parsing error when switches were read from response files: otherwise the user may be unaware where the switches are coming from.
       LOCALIZATION: The response file paths are printed on separate lines after this message.
@@ -1803,35 +1802,35 @@
       </trans-unit>
       <trans-unit id="Process">
         <source>Process = "{0}"</source>
-        <target state="translated">프로세스 = "{0}"</target>
+        <target state="translated">进程 = "{0}"</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectNotFoundError">
         <source>MSBUILD : error MSB1009: Project file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1009: 프로젝트 파일이 없습니다.</target>
+        <target state="translated">MSBUILD : error MSB1009: 项目文件不存在。</target>
         <note>{StrBegin="MSBUILD : error MSB1009: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="PossiblyOmittedMaxCPUSwitch">
         <source>Building the projects in this solution one at a time. To enable parallel build, please add the "-m" switch.</source>
-        <target state="translated">이 솔루션의 프로젝트를 한 번에 하나씩 빌드합니다. 병렬 빌드를 사용하려면 "-m" 스위치를 추가하세요.</target>
+        <target state="translated">在此解决方案中一次生成一个项目。若要启用并行生成，请添加“-m”开关。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectSchemaErrorHalt">
         <source>MSBUILD : MSB1045: Stopping because of syntax errors in project file.</source>
-        <target state="translated">MSBUILD : MSB1045: 프로젝트 파일에서 구문 오류가 발생했으므로 작업을 중단합니다.</target>
+        <target state="translated">MSBUILD : MSB1045: 由于项目文件中存在语法错误而正在停止。</target>
         <note>{StrBegin="MSBUILD : MSB1045: "}</note>
       </trans-unit>
       <trans-unit id="ReadResponseFileError">
         <source>MSBUILD : error MSB1023: Cannot read the response file. {0}</source>
-        <target state="translated">MSBUILD : error MSB1023: 지시 파일을 읽을 수 없습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1023: 无法读取响应文件。{0}</target>
         <note>{StrBegin="MSBUILD : error MSB1023: "}UE: This error is shown when the response file cannot be read off disk.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a localized message explaining
     why the response file could not be read -- this message comes from the CLR/FX.</note>
       </trans-unit>
       <trans-unit id="RepeatedResponseFileError">
         <source>MSBUILD : error MSB1013: The response file was specified twice. A response file can be specified only once. Any files named "msbuild.rsp" in the directory of MSBuild.exe or in the directory of the first project or solution built (which if no project or solution is specified is the current working directory) were automatically used as response files.</source>
-        <target state="translated">MSBUILD : error MSB1013: 지시 파일을 두 번 지정했습니다. 지시 파일은 한 번만 지정할 수 있습니다. MSBuild.exe의 디렉터리 또는 첫 번째 프로젝트의 디렉터리 또는 빌드된 솔루션(프로젝트 또는 솔루션이 지정되지 않은 경우 현재 작업 디렉터리)에서 이름이 "msbuild.rsp"인 파일은 자동으로 지시 파일로 사용됩니다.</target>
+        <target state="translated">MSBUILD : error MSB1013: 该响应文件被指定了两次。每个响应文件只能指定一次。MSBuild.exe 的目录中或生成的第一个项目或解决方案目录(如果未指定任何项目或解决方案，则为当前工作目录)中任何名为“msbuild.rsp”的文件自动用作响应文件。</target>
         <note>{StrBegin="MSBUILD : error MSB1013: "}UE: Response files are just text files that contain a bunch of command-line switches to be passed to MSBuild.exe. The
     purpose is so you don't have to type the same switches over and over again ... you can just pass in the response file instead.
     Response files can include the @ switch in order to further include other response files. In order to prevent a circular
@@ -1841,53 +1840,53 @@
       </trans-unit>
       <trans-unit id="ResponseFileNotFoundError">
         <source>MSBUILD : error MSB1022: Response file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1022: 지시 파일이 없습니다.</target>
+        <target state="translated">MSBUILD : error MSB1022: 响应文件不存在。</target>
         <note>{StrBegin="MSBUILD : error MSB1022: "}UE: This message would show if the user did something like "msbuild @bogus.rsp" where bogus.rsp doesn't exist. This
     message does not need in-line parameters because the exception takes care of displaying the invalid arg.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="ResponseFileSwitchFromLocation">
         <source>'{0}' came from '{1}'</source>
-        <target state="translated">'{0}'은(는) '{1}'에서 제공되었습니다.</target>
+        <target state="translated">“{0}”来自“{1}”</target>
         <note>
       These are response file switches with the location of the response file on disk.
     </note>
       </trans-unit>
       <trans-unit id="SAC">
         <source>Based on the Windows registry key VerifiedAndReputablePolicyState, SAC state = {0}.</source>
-        <target state="translated">Windows 레지스트리 키 VerifiedAndReputablePolicyState에 따른 SAC 상태 = {0}.</target>
+        <target state="translated">基于 Windows 注册表项 VerifiedAndReputablePolicyState，SAC 状态 = {0}。</target>
         <note>"Windows" is the OS, SAC is the Smart App Control, "VerifiedAndReputablePolicyState" should not be localized</note>
       </trans-unit>
       <trans-unit id="SAC_Enforcement">
         <source>1: in enforcement</source>
-        <target state="translated">1: 적용 중</target>
+        <target state="translated">1: 强制中</target>
         <note />
       </trans-unit>
       <trans-unit id="SAC_Evaluation">
         <source>2: in evaluation. It is recommended to turn off Smart App Control in development environemnt as otherwise performance might be impacted</source>
-        <target state="translated">2: 평가 중. 성능에 영향을 미칠 수 있으므로 개발 환경에서는 스마트 앱 컨트롤을 끄는 것이 좋습니다.</target>
+        <target state="translated">2: 评估中。建议关闭开发环境中的智能应用控制，否则性能可能会受到影响</target>
         <note>Smart App Control, "VerifiedAndReputablePolicyState" should not be localized</note>
       </trans-unit>
       <trans-unit id="SAC_Off">
         <source>0: turned off</source>
-        <target state="translated">0: 꺼짐</target>
+        <target state="translated">0: 已关闭</target>
         <note />
       </trans-unit>
       <trans-unit id="SchemaFileLocation">
         <source>Validating project using schema file "{0}".</source>
-        <target state="translated">"{0}" 스키마 파일을 사용하여 프로젝트의 유효성을 검사하고 있습니다.</target>
+        <target state="translated">正在使用架构文件“{0}”验证项目。</target>
         <note>LOCALIZATION: "{0}" is the location of the schema file.</note>
       </trans-unit>
       <trans-unit id="SchemaValidationError">
         <source>MSBUILD : MSB1044: Project is not valid. {0}</source>
-        <target state="translated">MSBUILD : MSB1044: 프로젝트가 잘못되었습니다. {0}</target>
+        <target state="translated">MSBUILD : MSB1044: 项目无效。{0}</target>
         <note>{StrBegin="MSBUILD : MSB1044: "}UE: This error is shown when the user asks his project to be validated against a schema (-val switch for
     MSBuild.exe), and the project has errors. "{0}" contains a message explaining the problem.
     LOCALIZATION: "{0}" is a message from the System.XML schema validator and is already localized.</note>
       </trans-unit>
       <trans-unit id="SchemaNotFoundError">
         <source>MSBUILD : error MSB1026: Schema file does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1026: 스키마 파일이 없습니다.</target>
+        <target state="translated">MSBUILD : error MSB1026: 架构文件不存在。</target>
         <note>{StrBegin="MSBUILD : error MSB1026: "}UE: This error is shown when the user specifies a schema file using the -validate:&lt;schema&gt; switch, and the file
     does not exist on disk. This message does not need in-line parameters because the exception takes care of displaying the
     invalid arg.
@@ -1895,14 +1894,14 @@
       </trans-unit>
       <trans-unit id="SchemaNotFoundErrorWithFile">
         <source>MSBUILD : error MSB1026: Schema file '{0}' does not exist.</source>
-        <target state="translated">MSBUILD : error MSB1026: 스키마 파일 '{0}'이(가) 없습니다.</target>
+        <target state="translated">MSBUILD : error MSB1026: 架构文件“{0}”不存在。</target>
         <note>{StrBegin="MSBUILD : error MSB1026: "}UE: This error is printed if the default schema does not exist or in the extremely unlikely event
     that an explicit schema file was passed and existed when the command line parameters were checked but was deleted from disk before this check was made.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="SolutionBuildInvalidForCommandLineEvaluation">
         <source>MSBUILD : error MSB1063: Cannot access properties or items when building solution files or solution filter files. This feature is only available when building individual projects.</source>
-        <target state="translated">MSBUILD : error MSB1063: 솔루션 파일 또는 솔루션 필터 파일을 빌드할 때 속성 또는 항목에 액세스할 수 없습니다. 이 기능은 개별 프로젝트를 빌드할 때만 사용할 수 있습니다.</target>
+        <target state="translated">MSBUILD : error MSB1063: 生成解决方案文件或解决方案筛选器文件时无法访问属性或项。此功能仅在生成单个项目时可用。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1063: "}UE: This happens if the user passes in a solution file when trying to access individual properties or items. The user must pass in a project file.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -1913,71 +1912,71 @@
     Full command line: '{1}'
   Switches appended by response files:{2}</source>
         <target state="translated">{0}
-   전체 명령줄: '{1}'
-  응답 파일에 의해 추가된 스위치:{2}</target>
+    完整命令行:“{1}”
+  响应文件追加的开关: {2}</target>
         <note />
       </trans-unit>
       <trans-unit id="TargetsCouldNotBePrinted">
         <source>MSBUILD : error MSB1059: Targets could not be printed. {0}</source>
-        <target state="translated">MSBUILD : error MSB1059: 대상을 출력할 수 없습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1059: 无法打印目标。{0}</target>
         <note>{StrBegin="MSBUILD : error MSB1059: "}</note>
       </trans-unit>
       <trans-unit id="TaskHostAcquired_NullsFiltered">
         <source>Task output parameter "{0}" contained {1} null element(s) which have been filtered out.</source>
-        <target state="translated">작업 출력 매개 변수 "{0}"에 필터링된 {1}개의 null 요소가 포함되어 있습니다.</target>
+        <target state="translated">任务输出参数 "{0}" 包含 {1} 个 null 元素，这些元素已被筛选掉。</target>
         <note>LOCALIZATION: {0} is the name of the task output parameter, {1} is the count of null elements filtered.</note>
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedAutomated">
         <source>Terminal Logger was not used because it was detected that the build is running in an automated environment.</source>
-        <target state="translated">자동화된 환경에서 빌드가 실행 중임을 감지하여 터미널 로거를 사용하지 않았습니다.</target>
+        <target state="translated">未使用终端记录器，因为检测到生成正在自动化环境中运行。</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedDisabled">
         <source>Terminal Logger was not used because build is run in context of a process (e.g. 'dotnet test') that requests direct access to stdout stream.</source>
-        <target state="translated">빌드가 stdout 스트림에 대한 직접 액세스를 요청하는 프로세스(예: 'dotnet test')의 컨텍스트에서 실행되기 때문에 터미널 로거는 사용되지 않았습니다.</target>
+        <target state="translated">未使用终端记录器，因为生成是在请求直接访问 stdout 流的进程的上下文中运行的(如“dotnet test”)。</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedNotSupported">
         <source>Terminal Logger was not used because the output is not supported.</source>
-        <target state="translated">출력이 지원되지 않아 터미널 로거를 사용하지 않았습니다.</target>
+        <target state="translated">未使用终端记录器，因为不支持输出。</target>
         <note />
       </trans-unit>
       <trans-unit id="TerminalLoggerNotUsedRedirected">
         <source>Terminal Logger was not used because the output is being redirected to a file.</source>
-        <target state="translated">출력이 파일로 리디렉션되기 때문에 터미널 로거가 사용되지 않았습니다.</target>
+        <target state="translated">未使用终端记录器，因为正在将输出重定向到文件。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedParametersError">
         <source>MSBUILD : error MSB1002: This switch does not take any parameters.</source>
-        <target state="translated">MSBUILD : error MSB1002: 이 스위치에는 매개 변수를 지정할 수 없습니다.</target>
+        <target state="translated">MSBUILD : error MSB1002: 此开关不采用任何参数。</target>
         <note>{StrBegin="MSBUILD : error MSB1002: "}UE: For example, if somebody types "msbuild.exe -noLogo:1", they would get this error because the -noLogo switch
     should not be followed by any parameters ... it stands alone.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnknownSwitchError">
         <source>MSBUILD : error MSB1001: Unknown switch.</source>
-        <target state="translated">MSBUILD : error MSB1001: 알 수 없는 스위치입니다.</target>
+        <target state="translated">MSBUILD : error MSB1001: 未知开关。</target>
         <note>{StrBegin="MSBUILD : error MSB1001: "}UE: This occurs when the user passes in an unrecognized switch on the MSBuild.exe command-line.
     LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnsupportedOS">
         <source>MSBUILD : error MSB1015: MSBuild does not run on this version of the operating system. It is only supported on Windows 7 and later versions.</source>
-        <target state="translated">MSBUILD : error MSB1015: 이 운영 체제 버전에서는 MSBuild를 실행할 수 없습니다. MSBuild는 Windows 7 이상의 버전에서만 지원됩니다.</target>
+        <target state="translated">MSBUILD : error MSB1015: MSBuild 不在此版本操作系统上运行，而仅在 Windows 7 及更高版本的操作系统上受支持。</target>
         <note>{StrBegin="MSBUILD : error MSB1015: "}LOCALIZATION: The error prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="UnsupportedSwitchForSolutionFiles">
         <source>The '{0}' switch is not supported for solution files.</source>
-        <target state="translated">솔루션 파일에는 '{0}' 스위치가 지원되지 않습니다.</target>
+        <target state="translated">解决方案文件不支持“{0}”开关。</target>
         <note />
       </trans-unit>
       <trans-unit id="Using35Engine">
         <source>Forcing load of Microsoft.Build.Engine because MSBUILDOLDOM=1...</source>
-        <target state="translated">MSBUILDOLDOM=1이므로 Microsoft.Build.Engine을 강제로 로드하는 중...</target>
+        <target state="translated">强制加载 Microsoft.Build.Engine，因为 MSBUILDOLDOM=1...</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingIgnoreProjectExtensionsError">
         <source>MSBUILD : error MSB1035: Specify the project extensions to ignore.</source>
-        <target state="translated">MSBUILD : error MSB1035: 무시할 프로젝트 확장명을 지정하십시오.</target>
+        <target state="translated">MSBUILD : error MSB1035: 指定要忽略的项目扩展名。</target>
         <note>{StrBegin="MSBUILD : error MSB1035: "}
       UE: This happens if the user does something like "msbuild.exe -ignoreProjectExtensions". The user must pass in one or more
       project extensions to ignore e.g. "msbuild.exe -ignoreProjectExtensions:.sln".
@@ -1986,12 +1985,12 @@
       </trans-unit>
       <trans-unit id="InvalidExtensionToIgnore">
         <source>MSBUILD : error MSB1036: There is an invalid extension in the -ignoreProjectExtensions list. Extensions must start with a period ".", have one or more characters after the period and not contain any invalid path characters or wildcards.</source>
-        <target state="translated">MSBUILD : error MSB1036: -ignoreProjectExtensions 목록에 잘못된 확장명이 있습니다. 확장명은 마침표(".")로 시작되고 마침표 뒤에 하나 이상의 문자가 있어야 하며 잘못된 경로 문자 또는 와일드카드를 포함해서는 안 됩니다.</target>
+        <target state="translated">MSBUILD : error MSB1036: -ignoreProjectExtensions 列表中存在无效扩展名。扩展名必须以句点“.”开头，句点后有一个或多个字符，并且不包含任何无效的路径字符或通配符。</target>
         <note>{StrBegin="MSBUILD : error MSB1036: "}LOCALIZATION: The error prefix "MSBUILD : error MSBxxxx:" should not be localized.</note>
       </trans-unit>
       <trans-unit id="MissingConsoleLoggerParameterError">
         <source>MSBUILD : error MSB1037: Specify one or more parameters for the console logger if using the -consoleLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1037: -consoleLoggerParameters 스위치를 사용하는 경우 콘솔 로거의 매개 변수를 하나 이상 지정하세요.</target>
+        <target state="translated">MSBUILD : error MSB1037: 为控制台记录器指定一个或多个参数(如果使用 -consoleLoggerParameters 开关)</target>
         <note>{StrBegin="MSBUILD : error MSB1037: "}
       UE: This happens if the user does something like "msbuild.exe -consoleLoggerParameters:". The user must pass in one or more parameters
       after the switch e.g. "msbuild.exe -consoleLoggerParameters:ErrorSummary".
@@ -2000,7 +1999,7 @@
       </trans-unit>
       <trans-unit id="MissingFileLoggerParameterError">
         <source>MSBUILD : error MSB1038: Specify one or more parameters for the file logger if using the -fileLoggerParameters switch</source>
-        <target state="translated">MSBUILD : error MSB1038: -fileLoggerParameters 스위치를 사용하는 경우 파일 로거에 대한 매개 변수를 하나 이상 지정하세요.</target>
+        <target state="translated">MSBUILD : error MSB1038: 为文件记录器指定一个或多个参数(如果使用 -fileLoggerParameters 开关)</target>
         <note>{StrBegin="MSBUILD : error MSB1038: "}
       UE: This happens if the user does something like "msbuild.exe -fileLoggerParameters:". The user must pass in one or more parameters
       after the switch e.g. "msbuild.exe -fileLoggerParameters:logfile=c:\temp\logfile".
@@ -2009,7 +2008,7 @@
       </trans-unit>
       <trans-unit id="MissingNodeReuseParameterError">
         <source>MSBUILD : error MSB1041: Specify one or more parameters for node reuse if using the -nodeReuse switch</source>
-        <target state="translated">MSBUILD : error MSB1041: -nodeReuse 스위치를 사용하는 경우 노드 다시 사용에 대한 매개 변수를 하나 이상 지정하세요.</target>
+        <target state="translated">MSBUILD : error MSB1041: 为节点重用指定一个或多个参数(如果使用 -nodeReuse 开关)</target>
         <note>{StrBegin="MSBUILD : error MSB1041: "}
       UE: This happens if the user does something like "msbuild.exe -nodeReuse:" without a true or false
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
@@ -2017,7 +2016,7 @@
       </trans-unit>
       <trans-unit id="InvalidNodeReuseValue">
         <source>MSBUILD : error MSB1042: Node reuse value is not valid. {0}.</source>
-        <target state="translated">MSBUILD : error MSB1042: 노드 다시 사용 값이 잘못되었습니다. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1042: 节点重用值无效。{0}。</target>
         <note>{StrBegin="MSBUILD : error MSB1042: "}
      UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
      This error is shown when a user specifies a node reuse value that is not equivilant to Boolean.TrueString or Boolean.FalseString.
@@ -2026,22 +2025,22 @@
       </trans-unit>
       <trans-unit id="InvalidPreprocessPath">
         <source>MSBUILD : error MSB1047: File to preprocess to is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1047: 전처리할 파일이 잘못되었습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1047: 要预处理的文件无效。{0}</target>
         <note>{StrBegin="MSBUILD : error MSB1047: "}</note>
       </trans-unit>
       <trans-unit id="NeedJustMyCode">
         <source>If MSBuild debugging does not work correctly, please verify that the "Just My Code" feature is enabled in Visual Studio, and that you have selected the managed debugger.</source>
-        <target state="translated">MSBuild 디버깅이 제대로 작동하지 않을 경우, Visual Studio에서 "내 코드만" 기능이 설정되어 있는지와 관리되는 디버거를 선택했는지를 확인하십시오.</target>
+        <target state="translated">如果 MSBuild 调试无法正常工作，请验证 Visual Studio 中是否已启用“仅我的代码”功能，以及您是否选择了托管调试器。</target>
         <note />
       </trans-unit>
       <trans-unit id="DebuggingSolutionFiles">
         <source>MSBUILD : error MSB1048: Solution files cannot be debugged directly. Run MSBuild first with an environment variable MSBUILDEMITSOLUTION=1 to create a corresponding ".sln.metaproj" file. Then debug that.</source>
-        <target state="translated">MSBUILD : error MSB1048: 솔루션 파일을 직접 디버그할 수 없습니다. 우선 환경 변수 MSBUILDEMITSOLUTION=1과 함께 MSBuild를 실행하여 해당 ".sln.metaproj" 파일을 만드세요. 그런 다음 이를 디버그하세요.</target>
+        <target state="translated">MSBUILD : error MSB1048: 无法直接调试解决方案文件。首先使用环境变量 MSBUILDEMITSOLUTION=1 运行 MSBuild 以创建对应的“.sln.metaproj”文件。然后进行调试。</target>
         <note>{StrBegin="MSBUILD : error MSB1048: "} LOC: ".SLN" should not be localized</note>
       </trans-unit>
       <trans-unit id="AmbiguousProjectDirectoryError">
         <source>MSBUILD : error MSB1050: Specify which project or solution file to use because the folder "{0}" contains more than one project or solution file.</source>
-        <target state="translated">MSBUILD : error MSB1050: "{0}" 폴더에 프로젝트 또는 솔루션 파일이 두 개 이상 있으므로 사용할 프로젝트 또는 솔루션 파일을 지정하세요.</target>
+        <target state="translated">MSBUILD : error MSB1050: “{0}”文件夹中包含多个项目或解决方案文件，请指定要使用的项目或解决方案文件。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1050: "}UE: If no project or solution file is explicitly specified on the MSBuild.exe command-line, then the engine searches for a
       project or solution file in the current directory by looking for *.*PROJ and *.SLN. If more than one file is found that matches this wildcard, we
@@ -2064,17 +2063,17 @@
                      build will fail.
     </source>
         <target state="translated">  -warnAsError[:code[;code2]]
-                     오류로 처리할 경고 코드 목록입니다. 여러 경고 코드를
-                     구분하려면 세미콜론이나 쉼표를 사용하세요. 모든 경고를
-                     오류로 처리하려면 값없이 스위치를 사용하세요.
-                     (약식: -err[:c;[c2]])
+                     视为错误的警告代码列表。使用分号
+                     或逗号分隔多个警告代码。将所有
+                     警告视为错误，使用没有值的开关
+                     (缩写: -err[:c;[c2]])
 
-                     예:
+                     示例:
                        -warnAsError:MSB4130
 
-                     경고를 오류로 처리하는 경우 대상이
-                     계속해서 경고인 것처럼 실행되지만 전체
-                     빌드는 실패합니다.
+                     当警告被视为错误时，目标将
+                     当作警告继续执行，但是整个
+                     生成将失败。
     </target>
         <note>
       LOCALIZATION: "-warnAsError" and "-err" should not be localized.
@@ -2092,12 +2091,12 @@
                        -warnAsMessage:MSB3026
     </source>
         <target state="translated">  -warnAsMessage[:code[;code2]]
-                     중요도가 낮은 메시지로 처리할 경고 코드
-                     목록입니다. 여러 경고 코드를 구분하려면 세미콜론이나
-                     쉼표를 사용하세요.
-                     (약식: -noWarn[:c;[c2]])
+                     视为低重要性消息的警告代码列表。
+                     使用分号或逗号分隔
+                     多个警告代码。
+                     (缩写: -noWarn[:c;[c2]])
 
-                     예:
+                     示例:
                        -warnAsMessage:MSB3026
     </target>
         <note>
@@ -2107,12 +2106,12 @@
       </trans-unit>
       <trans-unit id="ParameterRequiredError">
         <source>MSBUILD : error MSB1049: The {0} parameter must be specified</source>
-        <target state="translated">MSBUILD : error MSB1049: {0} 매개 변수를 지정해야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1049: 必须指定 {0} 参数</target>
         <note>{StrBegin="MSBUILD : error MSB1049: "}</note>
       </trans-unit>
       <trans-unit id="MissingWarnAsMessageParameterError">
         <source>MSBUILD : error MSB1051: Specify one or more warning codes to treat as low importance messages when using the -warnAsMessage switch.</source>
-        <target state="translated">MSBUILD : error MSB1051: -warnAsMessage 스위치를 사용하는 경우 중요도가 낮은 메시지로 처리할 경고 코드를 하나 이상 지정하세요.</target>
+        <target state="translated">MSBUILD : error MSB1051: 在使用 -warnAsMessage 开关时，指定一个或多个警告代码作为低重要性消息。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1051: "}
       UE: This happens if the user does something like "msbuild.exe -warnAsMessage:" without any codes.
@@ -2172,49 +2171,52 @@
                        -binaryLogger
     </source>
         <target state="translated">  -binaryLogger[:[LogFile=]output.binlog[;ProjectImports={None,Embed,ZipFile}]]
-                     모든 빌드 이벤트를 압축된 이진 파일로 직렬화합니다.
-                     기본적으로 파일은 현재 디렉터리에 있으며 이름은
-                     "msbuild.binlog"입니다. 이진 로그는 나중에 텍스트 로그를 재구성하는 데
-                     사용할 수 있고 다른 분석 도구에서 사용할 수 있는 빌드 프로세스의
-                     자세한 설명입니다. 이진 로그는
-                     일반적으로 가장 자세한 텍스트 진단 수준 로그보다 10~20배
-                     작지만 더 많은 정보를 담고 있습니다.
-                     (약식: -bl)
+                     将所有生成事件序列化为压缩的二进制文件。
+                     默认情况下，该文件位于当前目录中，名为
+                     "msbuild.binlog"。二进制日志是生成过程的详细描述
+，
+                     稍后可用于重新构造
+                     文本日志并供其他分析工具使用。二进制日志
+                     大小通常为最详细的文本诊断级别日志的 1/10 至 1/20，
+                     但它包含更多信息。
+                     (缩写: -bl)
 
-                     선택적 LogFile은 이진 로그가 저장되는
-                     경로를 지정합니다. 각 빌드에 고유한 로그 파일을 생성하려면
-                     토큰 "{}"를 경로에 추가할 수 있습니다.
-                     예: LogFile=output-{}-log.binlog. 로그 경로의 
-                     각 "{}"는 타임스탬프, 실행 프로세스 ID 및 임이의 문자열
-                     스탬프를 사용하여 고유한 문자열로
-                     대체됩니다.
+                     可选的 LogFile 指定保存二进制日志
+                     的路径。要为每个生成产生不同的日志文件
+，
+                     可以将令牌 "{}" 添加到
+                     路径中，例如: LogFile=output-{}-log.binlog。日志路径中的每个
+                     "{}" 都使用时间戳、正在运行的进程 ID 和
+                     随机字符串戳
+                     替换为唯一字符串。
 
-                     기본적으로 이진 로거는 빌드하는 동안 발견된
-                     가져온 모든 프로젝트 및 대상 파일을 포함한 프로젝트 파일의
-                     원본 텍스트를 수집합니다. 선택적
-                     ProjectImports 스위치는 다음 동작을 제어합니다.
+                     二进制记录器默认收集
+                     项目文件的源文本，包括生成期间遇到的
+                     所有导入项目和目标文件。可选
+                     ProjectImports 开关控制此行为:
 
-                      ProjectImports=None     - 프로젝트 가져오기를 수집하지
-                                                마세요.
-                      ProjectImports=Embed    - 로그 파일에 프로젝트 가져오기를
-                                                포함합니다.
-                      ProjectImports=ZipFile - 프로젝트 파일을
-                                                output.projectimports.zip에
-                                                저장하며 여기서 출력은 이진 로그 파일 이름과
-                                                같은 이름입니다.
+                      ProjectImports=None     - 不收集项目
+                                                导入。
+                      ProjectImports=Embed    - 将项目导入嵌入到
+                                                日志文件中。
+                      ProjectImports=ZipFile - 将项目文件保存到
+                                                output.projectimports.zip
+，
+                                                其中输出的名称与
+                                                二进制日志文件名相同。
 
-                     ProjectImports의 기본 설정은 Embed입니다.
-                     참고: 로거는 MSBuild가 아닌 소스 파일을 수집하지 않습니다.
-                     예: .cs, .cpp 등
+                     ProjectImports 的默认设置为 Embed。
+                     注意: 记录器不会收集非 MSBuild 源文件，
+                     例如 .cs、.cpp 等。
 
-                     .binlog 파일은 프로젝트/솔루션 대신 인수로
-                     msbuild.exe에 전달하여 “재생”될 수 있습니다.
-                     다른 로거는 원래 빌드가 발생하는 것처럼 로그 파일에
-                     포함된 정보를 받습니다.
-                     이진 로그 및 해당 사용에 대한 자세한 내용은 다음에서 확인할 수 있습니다.
+                     可以通过将 .binlog 文件(而不是项目/解决方案)作为自变量传递给
+                     msbuild.exe 来“回放”该文件。
+                     其他记录器将收到日志文件中包含的信息，
+                     就像原始生成正在发生一样。
+                     有关二进制日志及其用法的详细信息，请参阅:
                      https://aka.ms/msbuild/binlog
 
-                     예:
+                     示例:
                        -bl
                        -bl:output.binlog
                        -bl:output.binlog;ProjectImports=None
@@ -2243,15 +2245,15 @@
                      (Short form: -r)
     </source>
         <target state="translated">  -restore[:True|False]
-                     다른 대상을 빌드하기 전에 Restore라는 대상을
-                     실행하고 이러한 대상의 빌드에 최신 복원된 
-                     빌드 논리가 사용되는지 확인합니다. 
-                     프로젝트 트리를 빌드하기 전에 
-                     프로젝트 트리에서 패키지를 복원해야 하는 
-                     경우에 유용합니다. -restore를 지정하는 것은
-                     -restore:True를 지정하는 것과 동일합니다. 이 매개 변수를 사용하여
-                     지시 파일에서 가져오는 값을 재정의할 수 있습니다.
-                     (약식: -r)
+                     在生成其他目标前，运行名为 Restore 的
+                     目标，并确保这些模板的生成
+                     使用最新还原的生成逻辑。
+                     项目树需要先将包还原才能
+                     生成包时，将会用到此操作
+                     指定 -restore 与指定
+                     -restore:True 相同。请使用此参数
+                     替代来自响应文件的值。
+                     (缩写: -r)
     </target>
         <note>
       LOCALIZATION: "-restore" and "-r" should not be localized.
@@ -2260,7 +2262,7 @@
       </trans-unit>
       <trans-unit id="InvalidNodeReuseTrueValue">
         <source>MSBUILD : error MSB1042: Node reuse value is not valid. This version of MSBuild does not support node reuse. If specified, the node reuse switch value must be false.</source>
-        <target state="translated">MSBUILD : error MSB1042: 노드 다시 사용 값이 유효하지 않습니다. 이 버전의 MSBuild에서는 노드 다시 사용을 지원하지 않습니다. 지정하는 경우 노드 다시 사용 스위치 값이 false여야 합니다.</target>
+        <target state="translated">MSBUILD : error MSB1042: 节点重复使用值无效。此版本的 MSBuild 不支持节点重复使用。若已指定，则节点重复使用开关值必须为 false。</target>
         <note>{StrBegin="MSBUILD : error MSB1042: "}
      UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
      This error is shown when a user specifies a node reuse value that is not equivalent to Boolean.TrueString or Boolean.FalseString.
@@ -2269,7 +2271,7 @@
       </trans-unit>
       <trans-unit id="InvalidRestoreValue">
         <source>MSBUILD : error MSB1052: Restore value is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1052: 복원 값이 유효하지 않습니다. {0}.</target>
+        <target state="translated">MSBUILD : error MSB1052: 还原值无效。{0}</target>
         <note>{StrBegin="MSBUILD : error MSB1052: "}
       UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies a restore value that is not equivalent to Boolean.TrueString or Boolean.FalseString.
@@ -2284,11 +2286,11 @@
                      format. Otherwise, a tab separated file is produced.
     </source>
         <target state="translated">  -profileEvaluation:&lt;file&gt;
-                     MSBuild 평가를 프로파일링하고 결과를 지정된 파일에 기록합니다.
-                     지정된 파일의 확장명이 '.md'이면 
-                     결과가 Markdown 형식으로 생성됩니다.
-                     그렇지 않으면 탭으로 구분된 파일이 생성됩니다.
-    </target>
+                     配置文件 MSBuild 求值并将结果写入
+                     指定的文件。如果指定文件的扩展
+                     为 .md，将以 markdown 格式生成
+                     结果。否则，将生成制表符分隔文件。
+ </target>
         <note />
       </trans-unit>
       <trans-unit id="HelpMessage_33_RestorePropertySwitch">
@@ -2304,16 +2306,16 @@
                        -restoreProperty:IsRestore=true;MyProperty=value
     </source>
         <target state="translated">  -restoreProperty:&lt;n&gt;=&lt;v&gt;
-                     복원하는 동안 프로젝트 수준 속성만 설정하거나 
-                     재정의하고, -property 인수로 지정된 속성을 
-                     사용하지 않습니다. &lt;n&gt;은 속성 이름이고 
-                     &lt;v&gt;는 속성 값입니다.
-                     세미콜론 또는 쉼표를 사용하여 여러 속성을 구분하거나,
-                     각 속성을 개별적으로 지정합니다.
-                     (약식: -rp)
-                     예:
+                     在还原期间设置或重写这些项目级属性
+                     并且不使用 -property 参数
+                     指定的属性。&lt;n&gt; 为属性
+                     名称，&lt;v&gt; 为属性值。使用
+                     分号或逗号分隔多个属性，
+                     或者分别指定每个属性。
+                     (缩写: -rp)
+                     示例:
                        -restoreProperty:IsRestore=true;MyProperty=value
-    </target>
+  </target>
         <note>
       LOCALIZATION: "-restoreProperty" and "-rp" should not be localized.
       LOCALIZATION: None of the lines should be longer than a standard width console window, eg 80 chars.
@@ -2321,17 +2323,17 @@
       </trans-unit>
       <trans-unit id="InvalidProfilerValue">
         <source>MSBUILD : error MSB1053: Provided filename is not valid. {0}</source>
-        <target state="translated">MSBUILD : error MSB1053: 지정한 파일 이름이 유효하지 않습니다. {0}</target>
+        <target state="translated">MSBUILD : error MSB1053: 提供的文件名无效。{0}</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingProfileParameterError">
         <source>MSBUILD :error MSB1054: A filename must be specified to generate the profiler result.</source>
-        <target state="translated">MSBUILD :오류 MSB1054: 프로파일러 결과를 생성하려면 파일 이름을 지정해야 합니다.</target>
+        <target state="translated">MSBUILD :错误 MSB1054: 必须指定文件名才可生成探查器结果。</target>
         <note />
       </trans-unit>
       <trans-unit id="XMake_LoggerCreationError">
         <source>MSBUILD : error MSB1021: Cannot create an instance of the logger {0}. {1}</source>
-        <target state="translated">MSBUILD : error MSB1021: 로거 {0}의 인스턴스를 만들 수 없습니다. {1}</target>
+        <target state="translated">MSBUILD : error MSB1021: 无法创建记录器 {0} 的实例。{1}</target>
         <note>{StrBegin="MSBUILD : error MSB1021: "}
       UE: This error is shown when a logger cannot be loaded and instantiated from its assembly.
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a message explaining why the
@@ -2339,7 +2341,7 @@
       </trans-unit>
       <trans-unit id="XMake_LoggerNotFoundError">
         <source>MSBUILD : error MSB1020: The logger was not found. Check the following: 1.) The logger name specified is the same as the name of the logger class. 2.) The logger class is "public" and implements the Microsoft.Build.Framework.ILogger interface. 3.) The path to the logger assembly is correct, or the logger can be loaded using only the assembly name provided.</source>
-        <target state="translated">MSBUILD : error MSB1020: 로거를 찾을 수 없습니다. 다음을 확인하세요. 1) 지정한 로거 이름이 로거 클래스 이름과 같은지 확인합니다. 2.) 로거 클래스가 "public"이고 Microsoft.Build.Framework.ILogger 인터페이스를 구현하는지 확인합니다. 3.) 로거 어셈블리의 경로가 올바른지 또는 지정한 어셈블리 이름만 사용하여 로거를 로드할 수 있는지 확인합니다.</target>
+        <target state="translated">MSBUILD : error MSB1020: 找不到记录器。请检查下列各项: 1.)指定的记录器名称与记录器类的名称相同。2.)记录器类为“public”并且实现 Microsoft.Build.Framework.ILogger 接口。3.)记录器程序集的路径正确无误，或者只使用所提供的程序集名称就可以加载记录器。</target>
         <note>
       {StrBegin="MSBUILD : error MSB1020: "}UE: This message does not need in-line parameters because the exception takes care of displaying the invalid arg.
       This error is shown when a user specifies an logger that does not exist e.g. "msbuild -logger:FooLoggerClass,FooAssembly". The
@@ -2349,32 +2351,32 @@
       </trans-unit>
       <trans-unit id="XMake_ProjectUpgradeNeededToVcxProj">
         <source>MSBUILD : error MSB4192: The project file "{0}" is in the ".vcproj" or ".dsp" file format, which MSBuild cannot build directly. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or, for ".vcproj", use MSBuild to build the solution file containing the project instead.</source>
-        <target state="translated">MSBUILD : error MSB4192: 프로젝트 파일 "{0}"이(가) MSBuild에서 직접 빌드할 수 없는 ".vcproj" 또는 ".dsp" 파일 형식입니다. 프로젝트를 Visual Studio IDE에서 열거나 변환 도구를 실행하여 프로젝트를 변환하거나, ".vcproj"의 경우 MSBuild를 사용하여 해당 프로젝트가 포함된 솔루션 파일을 대신 빌드하세요.</target>
+        <target state="translated">MSBUILD : error MSB4192: 项目文件“{0}”为“.vcproj”或“.dsp”文件格式，而 MSBuild 无法直接生成这些文件格式。请通过在 Visual Studio IDE 中打开该项目或运行转换工具来转换该项目；对于“.vcproj”格式，还可以使用 MSBuild 来生成包含该项目的解决方案文件。</target>
         <note>{StrBegin="MSBUILD : error MSB4192: "} LOC: ".vcproj" and ".dsp" should not be localized</note>
       </trans-unit>
       <trans-unit id="BuildEngineCallbacksInTaskHostUnsupported">
         <source>MSB5022: The MSBuild task host does not support running tasks that perform IBuildEngine callbacks. If you wish to perform these operations, please run your task in the core MSBuild process instead.  A task will automatically execute in the task host if the UsingTask has been attributed with a "Runtime" or "Architecture" value, or the task invocation has been attributed with an "MSBuildRuntime" or "MSBuildArchitecture" value, that does not match the current runtime or architecture of MSBuild.</source>
-        <target state="translated">MSB5022: MSBuild 작업 호스트는 IBuildEngine 콜백을 수행하는 작업의 실행을 지원하지 않습니다. 이러한 작업을 수행하려면 대신 코어 MSBuild 프로세스에서 작업을 실행하세요.  UsingTask에 "Runtime" 또는 "Architecture" 값이 사용되었거나 작업 호출에 MSBuild의 현재 런타임 또는 아키텍처와 일치하지 않는 "MSBuildRuntime" 또는 "MSBuildArchitecture" 값이 사용된 경우 작업 호스트에서 작업이 자동으로 실행됩니다.</target>
+        <target state="translated">MSB5022: MSBuild 任务宿主不支持运行执行 IBuildEngine 回调的任务。如果需要执行这些操作，请改为在核心 MSBuild 进程中运行您的任务。如果 UsingTask 已用“Runtime”或“Architecture”值特性化，或者任务调用已用“MSBuildRuntime”或“MSBuildArchitecture”值(与 MSBuild 的当前运行时或体系结构不匹配)特性化，则将自动在任务宿主中执行任务。</target>
         <note>{StrBegin="MSB5022: "} "Runtime", "Architecture", "MSBuildRuntime", and "MSBuildArchitecture" are all attributes in the project file, and thus should not be localized.</note>
       </trans-unit>
       <trans-unit id="InvalidLogFileFormat">
         <source>MSB4233: There was an exception while reading the log file: {0}</source>
-        <target state="translated">MSB4233: 로그 파일을 읽는 동안 예외가 발생했습니다. {0}</target>
+        <target state="translated">MSB4233: 读取日志文件时出现异常: {0}</target>
         <note>{StrBegin="MSB4233: "}This is shown when the Binary Logger can't read the log file.</note>
       </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentHeader">
         <source>Making the following modifications to the environment received from the parent node before applying it to the task host:</source>
-        <target state="translated">작업 호스트에 적용하기 전에 부모 노드로부터 받은 환경을 다음과 같이 수정하고 있습니다.</target>
+        <target state="translated">先对从父节点收到的环境进行以下修改，然后再将其应用于任务宿主:</target>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="ModifyingTaskHostEnvironmentVariable">
         <source>  Setting '{0}' to '{1}' rather than the parent environment's value, '{2}'.</source>
-        <target state="translated">  '{0}'을(를) 부모 환경 값인 '{2}' 대신 '{1}'(으)로 설정하고 있습니다.</target>
+        <target state="translated">  将“{0}”设置为“{1}”，而不是父环境的值“{2}”。</target>
         <note>Only ever used when MSBuild is run under a "secret" environment variable switch, MSBuildTaskHostUpdateEnvironmentAndLog=1</note>
       </trans-unit>
       <trans-unit id="SubCategoryForSchemaValidationErrors">
         <source>Schema validation</source>
-        <target state="translated">스키마 유효성 검사</target>
+        <target state="translated">架构验证</target>
         <note>
       UE: this fragment is used to describe errors that are caused by schema validation. For example, if a normal error is
       displayed like this: "MSBUILD : error MSB0000: This is an error.", then an error from schema validation would look like this:
