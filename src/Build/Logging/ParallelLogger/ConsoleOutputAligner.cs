@@ -2,6 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.IO;
+#if !NET
+using System.Buffers;
+#endif
 using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -50,6 +54,39 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </remarks>
         public string AlignConsoleOutput(string message, bool prefixAlreadyWritten, int prefixWidth)
         {
+            StringBuilder sb = BuildAlignedOutput(message, prefixAlreadyWritten, prefixWidth);
+            return _stringBuilderProvider.GetStringAndRelease(sb);
+        }
+
+        /// <summary>
+        /// Same alignment as <see cref="AlignConsoleOutput(string, bool, int)"/> but streams the result
+        /// directly to <paramref name="writer"/> in chunks, avoiding the allocation of the fully-formatted
+        /// output string.
+        /// </summary>
+        /// <remarks>
+        /// For optimization purposes this method uses a single <see cref="StringBuilder"/> instance, which
+        /// makes it non thread safe (see <see cref="AlignConsoleOutput(string, bool, int)"/>).
+        /// </remarks>
+        public void AlignConsoleOutput(TextWriter writer, string message, bool prefixAlreadyWritten, int prefixWidth)
+        {
+            StringBuilder sb = BuildAlignedOutput(message, prefixAlreadyWritten, prefixWidth);
+            try
+            {
+                WriteStringBuilder(writer, sb);
+            }
+            finally
+            {
+                _stringBuilderProvider.Release(sb);
+            }
+        }
+
+        /// <summary>
+        /// Based on bufferWidth split message into multiple lines and indent if needed, appending the
+        /// result into a <see cref="StringBuilder"/> acquired from the provider.
+        /// TAB character are interpreted by standard Console logic.
+        /// </summary>
+        private StringBuilder BuildAlignedOutput(string message, bool prefixAlreadyWritten, int prefixWidth)
+        {
             int i = 0;
             int j = message.IndexOfAny(MSBuildConstants.CrLf);
 
@@ -70,7 +107,47 @@ namespace Microsoft.Build.BackEnd.Logging
             // Process rest of message
             AlignAndIndentLineOfMessage(sb, prefixAlreadyWritten, prefixWidth, message, i, message.Length - i);
 
-            return _stringBuilderProvider.GetStringAndRelease(sb);
+            return sb;
+        }
+
+        /// <summary>
+        /// Writes the contents of <paramref name="sb"/> to <paramref name="writer"/> without allocating an
+        /// intermediate string. On modern runtimes the builder's chunks are written as spans; on .NET
+        /// Framework (where the span/StringBuilder overloads are unavailable) the contents are copied into a
+        /// pooled <see cref="char"/> buffer in blocks.
+        /// </summary>
+        private static void WriteStringBuilder(TextWriter writer, StringBuilder sb)
+        {
+            int length = sb.Length;
+            if (length == 0)
+            {
+                return;
+            }
+
+#if NET
+            foreach (ReadOnlyMemory<char> chunk in sb.GetChunks())
+            {
+                writer.Write(chunk.Span);
+            }
+#else
+            const int maxBlock = 4096;
+            char[] buffer = ArrayPool<char>.Shared.Rent(Math.Min(length, maxBlock));
+            try
+            {
+                int index = 0;
+                while (index < length)
+                {
+                    int count = Math.Min(buffer.Length, length - index);
+                    sb.CopyTo(index, buffer, 0, count);
+                    writer.Write(buffer, 0, count);
+                    index += count;
+                }
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
+#endif
         }
 
         /// <summary>

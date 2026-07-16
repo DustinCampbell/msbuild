@@ -67,7 +67,45 @@ namespace Microsoft.Build.BackEnd.Logging
         /// Provide access to the write hander delegate so that it can be redirected
         /// if necessary (e.g. to a file)
         /// </summary>
-        protected internal WriteHandler WriteHandler { get; set; }
+        protected internal WriteHandler WriteHandler
+        {
+            get => _writeHandler;
+            set
+            {
+                _writeHandler = value;
+                _directOutputWriter = TryGetDirectOutputWriter(value);
+            }
+        }
+
+        private WriteHandler _writeHandler;
+
+        /// <summary>
+        /// When the <see cref="WriteHandler"/> is a plain <see cref="TextWriter.Write(string)"/> target,
+        /// this holds the underlying <see cref="TextWriter"/> so aligned output can be streamed to it in
+        /// chunks without allocating the fully-formatted string. Null when the handler is a custom
+        /// delegate (e.g. a test capture or a WriteLine-based redirect) that must receive a string.
+        /// </summary>
+        internal TextWriter DirectOutputWriter => _directOutputWriter;
+
+        private TextWriter _directOutputWriter;
+
+        /// <summary>
+        /// Determines whether a <see cref="WriteHandler"/> can be safely bypassed by writing characters
+        /// directly to an underlying <see cref="TextWriter"/>. This is only valid when the delegate is a
+        /// single, non-multicast <see cref="TextWriter.Write(string)"/> target, so that streaming the
+        /// characters produces output identical to calling the delegate with the whole string.
+        /// </summary>
+        private static TextWriter TryGetDirectOutputWriter(WriteHandler handler)
+        {
+            if (handler?.Target is TextWriter writer &&
+                handler.Method.Name == nameof(TextWriter.Write) &&
+                handler.GetInvocationList().Length == 1)
+            {
+                return writer;
+            }
+
+            return null;
+        }
 
         #endregion
 
@@ -1265,6 +1303,19 @@ namespace Microsoft.Build.BackEnd.Logging
             Debug.Assert(previous == null, "This is not supposed to be used in multiple threads or multiple time. One method is expected to return it before next acquire. Most probably it was double returned.");
 
             return builder.ToString();
+        }
+
+        /// <summary>
+        /// Return the shared builder to the cache without producing a string.
+        /// Used when the builder's contents have already been streamed to an output sink.
+        /// Unbalanced releases are not supported.
+        /// </summary>
+        void IStringBuilderProvider.Release(StringBuilder builder)
+        {
+            // This is not supposed to be used concurrently. One method is expected to return it before next acquire.
+            // But just for sure if _sharedBuilder was already returned, keep the former.
+            StringBuilder previous = Interlocked.CompareExchange(ref _sharedStringBuilder, builder, null);
+            Debug.Assert(previous == null, "This is not supposed to be used in multiple threads or multiple time. One method is expected to return it before next acquire. Most probably it was double returned.");
         }
     }
 }

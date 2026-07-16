@@ -35,4 +35,15 @@ internal interface IStringBuilderProvider
     /// The StringBuilder should not be used after it has been released.
     /// </remarks>
     string GetStringAndRelease(StringBuilder builder);
+
+    /// <summary>
+    /// Return a builder to the cache without materializing its contents into a <see langword="string"/>.
+    /// </summary>
+    /// <param name="builder">Builder to cache (if it's not too big).</param>
+    /// <remarks>
+    /// Use this when the builder's contents have already been consumed (e.g. streamed directly to
+    /// an output sink) so that the final <see cref="StringBuilder.ToString()"/> allocation is avoided.
+    /// The StringBuilder should not be used after it has been released.
+    /// </remarks>
+    void Release(StringBuilder builder);
 }

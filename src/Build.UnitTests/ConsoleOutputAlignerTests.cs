@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.IO;
 using System.Text;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
@@ -375,10 +376,30 @@ namespace Microsoft.Build.UnitTests
             output.ShouldBe(expected);
         }
 
+        [Theory]
+        [InlineData("a\t\tbc\ndef\t\tghi567890123456789", " ", 17, false)]
+        [InlineData("a\t\tbc\ndef\t\tghi567890123456789", "a\t\tb\n c\n def\t\tg", 17, true)]
+        [InlineData("12345678", "", 4, false)]
+        [InlineData("single line", "  ", 40, false)]
+        [InlineData("multi\r\nline\r\nwith crlf", "", 4, true)]
+        public void StreamingOverload_ProducesIdenticalOutputToStringOverload(string input, string prefix, int bufferWidth, bool prefixAlreadyWritten)
+        {
+            input = input.Replace("\n", Environment.NewLine);
+            var aligner = new ConsoleOutputAligner(bufferWidth: bufferWidth, alignMessages: true, stringBuilderProvider: new TestStringBuilderProvider());
+
+            string expected = aligner.AlignConsoleOutput(message: input, prefixAlreadyWritten: prefixAlreadyWritten, prefixWidth: prefix.Length);
+
+            using var writer = new StringWriter();
+            aligner.AlignConsoleOutput(writer, message: input, prefixAlreadyWritten: prefixAlreadyWritten, prefixWidth: prefix.Length);
+
+            writer.ToString().ShouldBe(expected);
+        }
+
         private sealed class TestStringBuilderProvider : IStringBuilderProvider
         {
             public StringBuilder Acquire(int capacity) => new StringBuilder(capacity);
             public string GetStringAndRelease(StringBuilder builder) => builder.ToString();
+            public void Release(StringBuilder builder) { }
         }
     }
 }

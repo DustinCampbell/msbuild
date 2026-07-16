@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
@@ -1419,7 +1420,16 @@ namespace Microsoft.Build.BackEnd.Logging
             lock (_lockObject)
             {
                 int adjustedPrefixWidth = _prefixWidth + prefixAdjustment;
-                WriteHandler(_consoleOutputAligner.AlignConsoleOutput(message, prefixAlreadyWritten, adjustedPrefixWidth));
+                TextWriter directWriter = DirectOutputWriter;
+                if (directWriter != null)
+                {
+                    // Stream the aligned output straight to the writer, avoiding the fully-formatted string allocation.
+                    _consoleOutputAligner.AlignConsoleOutput(directWriter, message, prefixAlreadyWritten, adjustedPrefixWidth);
+                }
+                else
+                {
+                    WriteHandler(_consoleOutputAligner.AlignConsoleOutput(message, prefixAlreadyWritten, adjustedPrefixWidth));
+                }
             }
         }
 
