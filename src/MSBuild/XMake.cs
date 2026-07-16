@@ -1580,7 +1580,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (FileUtilities.IsVCProjFilename(projectFile) || FileUtilities.IsDspFilename(projectFile))
             {
-                InitializationException.Throw(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("XMake.ProjectUpgradeNeededToVcxProj", projectFile), null);
+                InitializationException.Throw(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("XMake_ProjectUpgradeNeededToVcxProj", projectFile), null);
             }
 
             bool success = true;
@@ -4354,27 +4354,27 @@ namespace Microsoft.Build.CommandLine
             {
                 logger = loggerDescription.CreateLogger();
 
-                InitializationException.VerifyThrow(logger != null, "XMake.LoggerNotFoundError", unquotedParameter);
+                InitializationException.VerifyThrow(logger != null, "XMake_LoggerNotFoundError", unquotedParameter);
             }
             catch (IOException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw("XMake_LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
             }
             catch (BadImageFormatException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw("XMake_LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
             }
             catch (SecurityException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw("XMake_LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
             }
             catch (ReflectionTypeLoadException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw("XMake_LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
             }
             catch (MemberAccessException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw("XMake_LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
             }
             catch (TargetInvocationException e) when (!loggerDescription.IsOptional)
             {

@@ -2329,7 +2329,7 @@ Remarque : verbosité des enregistreurs d’événements de fichiers
         <target state="translated">MSBUILD : erreur MSB1054 : Un nom de fichier doit être spécifié pour générer le résultat du profileur.</target>
         <note />
       </trans-unit>
-      <trans-unit id="XMake.LoggerCreationError">
+      <trans-unit id="XMake_LoggerCreationError">
         <source>MSBUILD : error MSB1021: Cannot create an instance of the logger {0}. {1}</source>
         <target state="translated">MSBUILD : error MSB1021: Impossible de créer une instance du journal {0}. {1}</target>
         <note>{StrBegin="MSBUILD : error MSB1021: "}
@@ -2337,7 +2337,7 @@ Remarque : verbosité des enregistreurs d’événements de fichiers
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a message explaining why the
       logger could not be created -- this message comes from the CLR/FX and is localized.</note>
       </trans-unit>
-      <trans-unit id="XMake.LoggerNotFoundError">
+      <trans-unit id="XMake_LoggerNotFoundError">
         <source>MSBUILD : error MSB1020: The logger was not found. Check the following: 1.) The logger name specified is the same as the name of the logger class. 2.) The logger class is "public" and implements the Microsoft.Build.Framework.ILogger interface. 3.) The path to the logger assembly is correct, or the logger can be loaded using only the assembly name provided.</source>
         <target state="translated">MSBUILD : error MSB1020: Le journal est introuvable. Vérifiez les points suivants : 1.) Le nom du journal est le même que celui de la classe de journalisation. 2.) La classe de journalisation est "public" et implémente l'interface Microsoft.Build.Framework.ILogger. 3.) Le chemin de l'assembly de journalisation est correct ou le journal peut uniquement être chargé à l'aide du nom d'assembly fourni.</target>
         <note>
@@ -2347,7 +2347,7 @@ Remarque : verbosité des enregistreurs d’événements de fichiers
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
-      <trans-unit id="XMake.ProjectUpgradeNeededToVcxProj">
+      <trans-unit id="XMake_ProjectUpgradeNeededToVcxProj">
         <source>MSBUILD : error MSB4192: The project file "{0}" is in the ".vcproj" or ".dsp" file format, which MSBuild cannot build directly. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or, for ".vcproj", use MSBuild to build the solution file containing the project instead.</source>
         <target state="translated">MSBUILD : error MSB4192: Le fichier projet "{0}" utilise le format de fichier ".vcproj" ou ".dsp", que MSBuild ne peut pas générer directement. Convertissez le projet en l'ouvrant dans l'IDE de Visual Studio ou en exécutant l'outil de conversion. Pour ".vcproj", utilisez à la place MSBuild pour générer le fichier solution contenant le projet.</target>
         <note>{StrBegin="MSBUILD : error MSB4192: "} LOC: ".vcproj" and ".dsp" should not be localized</note>

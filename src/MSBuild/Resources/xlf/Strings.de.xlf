@@ -2328,7 +2328,7 @@ Hinweis: Ausführlichkeit der Dateiprotokollierungen
         <target state="translated">MSBUILD : error MSB1054: Ein Dateiname muss angegeben werden, um das Profilerergebnis zu generieren.</target>
         <note />
       </trans-unit>
-      <trans-unit id="XMake.LoggerCreationError">
+      <trans-unit id="XMake_LoggerCreationError">
         <source>MSBUILD : error MSB1021: Cannot create an instance of the logger {0}. {1}</source>
         <target state="translated">MSBUILD : error MSB1021: Eine Instanz der Protokollierung {0} kann nicht erstellt werden. {1}</target>
         <note>{StrBegin="MSBUILD : error MSB1021: "}
@@ -2336,7 +2336,7 @@ Hinweis: Ausführlichkeit der Dateiprotokollierungen
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a message explaining why the
       logger could not be created -- this message comes from the CLR/FX and is localized.</note>
       </trans-unit>
-      <trans-unit id="XMake.LoggerNotFoundError">
+      <trans-unit id="XMake_LoggerNotFoundError">
         <source>MSBUILD : error MSB1020: The logger was not found. Check the following: 1.) The logger name specified is the same as the name of the logger class. 2.) The logger class is "public" and implements the Microsoft.Build.Framework.ILogger interface. 3.) The path to the logger assembly is correct, or the logger can be loaded using only the assembly name provided.</source>
         <target state="translated">MSBUILD : error MSB1020: Die Protokollierung konnte nicht gefunden werden. Überprüfen Sie Folgendes: 1.) Der angegebene Protokollierungsname entspricht dem Namen der Protokollierungsklasse. 2.) Die Protokollierungsklasse ist "public" und implementiert die Microsoft.Build.Framework.ILogger-Schnittstelle. 3.) Der Pfad der Protokollierungsassembly ist richtig, oder die Protokollierung kann nur mit dem angegebenen Assemblynamen geladen werden.</target>
         <note>
@@ -2346,7 +2346,7 @@ Hinweis: Ausführlichkeit der Dateiprotokollierungen
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
-      <trans-unit id="XMake.ProjectUpgradeNeededToVcxProj">
+      <trans-unit id="XMake_ProjectUpgradeNeededToVcxProj">
         <source>MSBUILD : error MSB4192: The project file "{0}" is in the ".vcproj" or ".dsp" file format, which MSBuild cannot build directly. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or, for ".vcproj", use MSBuild to build the solution file containing the project instead.</source>
         <target state="translated">MSBUILD : error MSB4192: Die Projektdatei "{0}" weist das Dateiformat ".vcproj" oder ".dsp" auf, das von MSBuild nicht direkt erstellt werden kann. Konvertieren Sie das Projekt, indem Sie es in der Visual Studio IDE öffnen oder das Konvertierungstool ausführen. Für ".vcproj" verwenden Sie zum Erstellen der Projektmappendatei, die stattdessen das Projekt enthält, MSBuild.</target>
         <note>{StrBegin="MSBUILD : error MSB4192: "} LOC: ".vcproj" and ".dsp" should not be localized</note>

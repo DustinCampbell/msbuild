@@ -2328,7 +2328,7 @@
         <target state="translated">MSBUILD: ошибка MSB1054 — укажите имя файла, чтобы создать результат профилировщика.</target>
         <note />
       </trans-unit>
-      <trans-unit id="XMake.LoggerCreationError">
+      <trans-unit id="XMake_LoggerCreationError">
         <source>MSBUILD : error MSB1021: Cannot create an instance of the logger {0}. {1}</source>
         <target state="translated">MSBUILD : error MSB1021: не удается создать экземпляр регистратора {0}. {1}</target>
         <note>{StrBegin="MSBUILD : error MSB1021: "}
@@ -2336,7 +2336,7 @@
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized. {0} contains a message explaining why the
       logger could not be created -- this message comes from the CLR/FX and is localized.</note>
       </trans-unit>
-      <trans-unit id="XMake.LoggerNotFoundError">
+      <trans-unit id="XMake_LoggerNotFoundError">
         <source>MSBUILD : error MSB1020: The logger was not found. Check the following: 1.) The logger name specified is the same as the name of the logger class. 2.) The logger class is "public" and implements the Microsoft.Build.Framework.ILogger interface. 3.) The path to the logger assembly is correct, or the logger can be loaded using only the assembly name provided.</source>
         <target state="translated">MSBUILD : error MSB1020: не удалось найти средство ведения журнала. Убедитесь в следующем. 1. Имя средства ведения журнала совпадает с именем класса средства ведения журнала. 2. Класс средства ведения журнала является открытым и реализует интерфейс Microsoft.Build.Framework.ILogger. 3. Путь к сборке ведения журнала правильный или средство ведения журнала можно успешно загрузить, используя только указанное имя сборки.</target>
         <note>
@@ -2346,7 +2346,7 @@
       LOCALIZATION: The prefix "MSBUILD : error MSBxxxx:" should not be localized.
     </note>
       </trans-unit>
-      <trans-unit id="XMake.ProjectUpgradeNeededToVcxProj">
+      <trans-unit id="XMake_ProjectUpgradeNeededToVcxProj">
         <source>MSBUILD : error MSB4192: The project file "{0}" is in the ".vcproj" or ".dsp" file format, which MSBuild cannot build directly. Please convert the project by opening it in the Visual Studio IDE or running the conversion tool, or, for ".vcproj", use MSBuild to build the solution file containing the project instead.</source>
         <target state="translated">MSBUILD : error MSB4192: файл проекта "{0}" указан в формате "VCPROJ" или "DSP", непосредственная сборка которого с помощью MSBuild невозможна. Преобразуйте проект, открыв его в Visual Studio IDE или запустив инструмент преобразования, либо (в случае с "VCPROJ") используйте MSBuild для сборки файла решения, содержащего данный проект.</target>
         <note>{StrBegin="MSBUILD : error MSB4192: "} LOC: ".vcproj" and ".dsp" should not be localized</note>
