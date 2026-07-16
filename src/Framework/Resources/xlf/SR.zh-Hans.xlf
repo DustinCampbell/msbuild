@@ -162,6 +162,16 @@
         <target state="translated">MSB4008: 在“{1}”处发现了与任务程序集“{0}”冲突的程序集。</target>
         <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
       </trans-unit>
+      <trans-unit id="BuildFinishedFailure">
+        <source>Build FAILED.</source>
+        <target state="translated">生成失败。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildFinishedSuccess">
+        <source>Build succeeded.</source>
+        <target state="translated">已成功生成。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="BuildStarted">
         <source>Build started.</source>
         <target state="translated">已启动生成。</target>

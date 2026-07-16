@@ -1244,16 +1244,6 @@ Errors: {3}</source>
         <target state="translated">MSB4197: 建置已取消。{0}</target>
         <note>{StrBegin="MSB4197: "} Error when the build stops suddenly for some reason. For example, because a child node died.</note>
       </trans-unit>
-      <trans-unit id="BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <target state="translated">建置失敗。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <target state="translated">建置成功。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="BuildStartedWithTime">
         <source>Build started {0}.</source>
         <target state="translated">已經開始建置於 {0}。</target>

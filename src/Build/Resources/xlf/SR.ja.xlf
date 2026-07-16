@@ -1244,16 +1244,6 @@ Errors: {3}</source>
         <target state="translated">MSB4197: ビルドが取り消されました。{0}</target>
         <note>{StrBegin="MSB4197: "} Error when the build stops suddenly for some reason. For example, because a child node died.</note>
       </trans-unit>
-      <trans-unit id="BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <target state="translated">ビルドに失敗しました。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <target state="translated">ビルドに成功しました。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="BuildStartedWithTime">
         <source>Build started {0}.</source>
         <target state="translated">{0} にビルドを開始しました。</target>

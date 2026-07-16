@@ -272,16 +272,6 @@
         <target state="translated">MSB6009: "{0}" の内容が無効であるため、すべてのソース ファイルを強制的にリビルドしています。</target>
         <note>{StrBegin="MSB6009: "}</note>
       </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <target state="translated">ビルドに失敗しました。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <target state="translated">ビルドに成功しました。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="KillingProcess">
         <source>MSB5002: Terminating the task executable "{0}" because it did not finish within the specified limit of {1} milliseconds.</source>
         <target state="translated">MSB5002: 実行可能なタスク "{0}" は、指定された制限 ({1} ミリ秒) 内で完了しなかったため、終了しています。</target>

@@ -272,16 +272,6 @@
         <target state="translated">MSB6009: "{0}" içeriği geçersiz olduğundan tüm kaynaklar yeniden oluşturulmaya zorlanıyor.</target>
         <note>{StrBegin="MSB6009: "}</note>
       </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <target state="translated">Oluşturma BAŞARISIZ OLDU.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <target state="translated">Oluşturma başarılı oldu.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="KillingProcess">
         <source>MSB5002: Terminating the task executable "{0}" because it did not finish within the specified limit of {1} milliseconds.</source>
         <target state="translated">MSB5002: "{0}" görev yürütülebilir dosyası belirtilen {1} milisaniye sınırı içinde tamamlanmadığından sonlandırılıyor.</target>

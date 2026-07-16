@@ -270,12 +270,6 @@
     <value>MSB6009: Forcing a rebuild of all source files due to the contents of "{0}" being invalid.</value>
     <comment>{StrBegin="MSB6009: "}</comment>
   </data>
-  <data name="MuxLogger_BuildFinishedFailure">
-    <value xml:space="preserve">Build FAILED.</value>
-  </data>
-  <data name="MuxLogger_BuildFinishedSuccess">
-    <value xml:space="preserve">Build succeeded.</value>
-  </data>
   <data name="DebugPathTooLong" Visibility="Public">
     <value>MSB6012: The path "{0}" used for debug logs is too long. Set it to a shorter value using the MSBUILDDEBUGPATH environment variable or change your system configuration to allow long paths.</value>
     <comment>{StrBegin="MSB6012: "}</comment>

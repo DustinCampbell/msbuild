@@ -162,6 +162,16 @@
         <target state="translated">MSB4008: 已在 "{1}" 中發現工作組件 "{0}" 的衝突組件。</target>
         <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
       </trans-unit>
+      <trans-unit id="BuildFinishedFailure">
+        <source>Build FAILED.</source>
+        <target state="translated">建置失敗。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildFinishedSuccess">
+        <source>Build succeeded.</source>
+        <target state="translated">建置成功。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="BuildStarted">
         <source>Build started.</source>
         <target state="translated">已經開始建置。</target>

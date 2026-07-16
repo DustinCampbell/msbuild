@@ -216,6 +216,12 @@
     <value>MSB4008: A conflicting assembly for the task assembly "{0}" has been found at "{1}".</value>
     <comment>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</comment>
   </data>
+  <data name="BuildFinishedFailure" xml:space="preserve">
+    <value>Build FAILED.</value>
+  </data>
+  <data name="BuildFinishedSuccess" xml:space="preserve">
+    <value>Build succeeded.</value>
+  </data>
   <data name="BuildStarted" xml:space="preserve">
     <value>Build started.</value>
   </data>

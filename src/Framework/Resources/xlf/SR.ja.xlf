@@ -162,6 +162,16 @@
         <target state="translated">MSB4008: タスク アセンブリ "{0}" に対して競合しているアセンブリが "{1}" で見つかりました。</target>
         <note>{StrBegin="MSB4008: "}UE: This message is shown when the type/class of a task cannot be resolved uniquely from a single assembly.</note>
       </trans-unit>
+      <trans-unit id="BuildFinishedFailure">
+        <source>Build FAILED.</source>
+        <target state="translated">ビルドに失敗しました。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="BuildFinishedSuccess">
+        <source>Build succeeded.</source>
+        <target state="translated">ビルドに成功しました。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="BuildStarted">
         <source>Build started.</source>
         <target state="translated">ビルドを開始しました。</target>

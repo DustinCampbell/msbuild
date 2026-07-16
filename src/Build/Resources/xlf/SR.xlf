@@ -43,14 +43,6 @@
         <source>MSB4197: Build was canceled. {0}</source>
         <note>{StrBegin="MSB4197: "} Error when the build stops suddenly for some reason. For example, because a child node died.</note>
       </trans-unit>
-      <trans-unit id="BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <note />
-      </trans-unit>
-      <trans-unit id="BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <note />
-      </trans-unit>
       <trans-unit id="BuildStartedWithTime">
         <source>Build started {0}.</source>
         <note />

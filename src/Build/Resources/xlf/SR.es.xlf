@@ -1244,16 +1244,6 @@ Errores: {3}</target>
         <target state="translated">MSB4197: Se canceló la compilación. {0}</target>
         <note>{StrBegin="MSB4197: "} Error when the build stops suddenly for some reason. For example, because a child node died.</note>
       </trans-unit>
-      <trans-unit id="BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <target state="translated">ERROR al compilar.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <target state="translated">Compilación correcta.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="BuildStartedWithTime">
         <source>Build started {0}.</source>
         <target state="translated">Compilación iniciada a las {0}.</target>

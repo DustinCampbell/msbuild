@@ -272,16 +272,6 @@
         <target state="translated">MSB6009: Wymuszanie ponownej kompilacji wszystkich plików źródłowych z powodu nieprawidłowej zawartości dziennika {0}.</target>
         <note>{StrBegin="MSB6009: "}</note>
       </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <target state="translated">Kompilacja NIE POWIODŁA SIĘ.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <target state="translated">Kompilacja powiodła się.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="KillingProcess">
         <source>MSB5002: Terminating the task executable "{0}" because it did not finish within the specified limit of {1} milliseconds.</source>
         <target state="translated">MSB5002: plik wykonywalny zadania „{0}” zostanie zakończony, ponieważ nie ukończył działania przed określonym limitem czasu ({1} ms).</target>

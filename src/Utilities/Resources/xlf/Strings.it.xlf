@@ -272,16 +272,6 @@
         <target state="translated">MSB6009: verrà imposta una ricompilazione di tutti i file di origine perché i contenuti di "{0}" non sono validi.</target>
         <note>{StrBegin="MSB6009: "}</note>
       </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <target state="translated">Compilazione NON RIUSCITA.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <target state="translated">Compilazione completata.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="KillingProcess">
         <source>MSB5002: Terminating the task executable "{0}" because it did not finish within the specified limit of {1} milliseconds.</source>
         <target state="translated">MSB5002: l'eseguibile "{0}" dell'attività verrà terminato perché non è finito entro il limite specificato di {1} millisecondi.</target>

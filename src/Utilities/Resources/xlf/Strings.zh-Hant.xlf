@@ -272,16 +272,6 @@
         <target state="translated">MSB6009: 正在強制重建所有原始程式檔，因為 "{0}" 的內容無效。</target>
         <note>{StrBegin="MSB6009: "}</note>
       </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedFailure">
-        <source>Build FAILED.</source>
-        <target state="translated">建置失敗。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MuxLogger_BuildFinishedSuccess">
-        <source>Build succeeded.</source>
-        <target state="translated">建置成功。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="KillingProcess">
         <source>MSB5002: Terminating the task executable "{0}" because it did not finish within the specified limit of {1} milliseconds.</source>
         <target state="translated">MSB5002: 因為工作可執行檔 "{0}" 未於指定的 {1} 毫秒限制內完成，所以即將予以終止。</target>
