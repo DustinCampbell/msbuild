@@ -566,8 +566,6 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                                     string targetFrameworkIdentifier,
                                     bool disallowMansignTimestampFallback)
         {
-            System.Resources.ResourceManager resources = ManifestUtilitiesSR.ResourceManager;
-
             if (String.IsNullOrEmpty(certThumbprint))
             {
                 throw new ArgumentNullException(nameof(certThumbprint));
@@ -576,7 +574,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             X509Certificate2 cert = GetCert(certThumbprint);
             if (cert == null)
             {
-                throw new ArgumentException(resources.GetString("CertNotInStore"), nameof(certThumbprint));
+                throw new ArgumentException(Shared.AssemblyResources.GetString("SignFile.CertNotInStore"), nameof(certThumbprint));
             }
 
             if (!String.IsNullOrEmpty(targetFrameworkVersion))
@@ -600,7 +598,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                     // Use SHA-256 digest for .NET Core apps
                     isTargetFrameworkSha256Supported = true;
                 }
-                SignFileInternal(cert, timestampUrl, path, isTargetFrameworkSha256Supported, resources, disallowMansignTimestampFallback);
+                SignFileInternal(cert, timestampUrl, path, isTargetFrameworkSha256Supported, disallowMansignTimestampFallback);
             }
             else
             {
@@ -649,9 +647,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
         [RequiresDynamicCode(SignFileRequiresDynamicCodeMessage)]
         public static void SignFile(X509Certificate2 cert, Uri timestampUrl, string path)
         {
-            // setup resources
-            System.Resources.ResourceManager resources = ManifestUtilitiesSR.ResourceManager;
-            SignFileInternal(cert, timestampUrl, path, targetFrameworkSupportsSha256: true, resources);
+            SignFileInternal(cert, timestampUrl, path, targetFrameworkSupportsSha256: true);
         }
 
         [SupportedOSPlatform("windows")]
@@ -661,7 +657,6 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                                             Uri timestampUrl,
                                             string path,
                                             bool targetFrameworkSupportsSha256,
-                                            System.Resources.ResourceManager resources,
                                             bool disallowMansignTimestampFallback = false)
         {
             if (cert == null)
@@ -676,7 +671,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
 
             if (!FileSystems.Default.FileExists(path))
             {
-                throw new FileNotFoundException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil_SignTargetNotFound"), path), path);
+                throw new FileNotFoundException(String.Format(CultureInfo.InvariantCulture, ManifestUtilitiesSR.SecurityUtil_SignTargetNotFound, path), path);
             }
 
             bool useSha256 = UseSha256Algorithm(cert) && targetFrameworkSupportsSha256;
@@ -685,11 +680,11 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             {
                 if (IsCertInStore(cert))
                 {
-                    SignPEFile(cert, timestampUrl, path, resources, useSha256);
+                    SignPEFile(cert, timestampUrl, path, useSha256);
                 }
                 else
                 {
-                    throw new InvalidOperationException(resources.GetString("SignFile.CertNotInStore"));
+                    throw new InvalidOperationException(Shared.AssemblyResources.GetString("SignFile.CertNotInStore"));
                 }
             }
             else
@@ -706,7 +701,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 {
                     if (rsa == null)
                     {
-                        throw new ApplicationException(resources.GetString("SecurityUtil_OnlyRSACertsAreAllowed"));
+                        throw new ApplicationException(ManifestUtilitiesSR.SecurityUtil_OnlyRSACertsAreAllowed);
                     }
 
                     try
@@ -765,7 +760,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         int exceptionHR = Marshal.GetHRForException(ex);
                         if (exceptionHR == -2147012889 || exceptionHR == -2147012867)
                         {
-                            throw new ApplicationException(resources.GetString("SecurityUtil_TimestampUrlNotFound"), ex);
+                            throw new ApplicationException(ManifestUtilitiesSR.SecurityUtil_TimestampUrlNotFound, ex);
                         }
                         throw new ApplicationException(ex.Message, ex);
                     }
@@ -787,26 +782,26 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             }
         }
 
-        private static void SignPEFile(X509Certificate2 cert, Uri timestampUrl, string path, System.Resources.ResourceManager resources, bool useSha256)
+        private static void SignPEFile(X509Certificate2 cert, Uri timestampUrl, string path, bool useSha256)
         {
             try
             {
-                SignPEFileInternal(cert, timestampUrl, path, resources, useSha256, true);
+                SignPEFileInternal(cert, timestampUrl, path, useSha256, true);
             }
             catch (ApplicationException) when (timestampUrl != null)
             {
                 // error, retry with signtool /t if timestamp url was given
-                SignPEFileInternal(cert, timestampUrl, path, resources, useSha256, false);
+                SignPEFileInternal(cert, timestampUrl, path, useSha256, false);
                 return;
             }
         }
 
         private static void SignPEFileInternal(X509Certificate2 cert, Uri timestampUrl,
-                                               string path, System.Resources.ResourceManager resources,
+                                               string path,
                                                bool useSha256, bool useRFC3161Timestamp)
         {
             var startInfo = new ProcessStartInfo(
-                GetPathToTool(resources),
+                GetPathToTool(),
                 GetCommandLineParameters(cert.Thumbprint, timestampUrl, path, useSha256, useRFC3161Timestamp))
             {
                 CreateNoWindow = true,
@@ -833,13 +828,13 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         break;
                     case 1:
                         // error, report it
-                        throw new ApplicationException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil_SigntoolFail"), path, signTool.StandardError.ReadToEnd()));
+                        throw new ApplicationException(String.Format(CultureInfo.InvariantCulture, ManifestUtilitiesSR.SecurityUtil_SigntoolFail, path, signTool.StandardError.ReadToEnd()));
                     case 2:
                         // warning, report it
-                        throw new WarningException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil_SigntoolWarning"), path, signTool.StandardError.ReadToEnd()));
+                        throw new WarningException(String.Format(CultureInfo.InvariantCulture, ManifestUtilitiesSR.SecurityUtil_SigntoolWarning, path, signTool.StandardError.ReadToEnd()));
                     default:
                         // treat as error
-                        throw new ApplicationException(String.Format(CultureInfo.InvariantCulture, resources.GetString("SecurityUtil_SigntoolFail"), path, signTool.StandardError.ReadToEnd()));
+                        throw new ApplicationException(String.Format(CultureInfo.InvariantCulture, ManifestUtilitiesSR.SecurityUtil_SigntoolFail, path, signTool.StandardError.ReadToEnd()));
                 }
             }
             finally
@@ -872,7 +867,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             return commandLine.ToString();
         }
 
-        internal static string GetPathToTool(System.Resources.ResourceManager resources)
+        internal static string GetPathToTool()
         {
 #pragma warning disable 618 // Disabling warning on using internal ToolLocationHelper API. At some point we should migrate this.
             string toolPath = ToolLocationHelper.GetPathToWindowsSdkFile(ToolName, TargetDotNetFrameworkVersion.VersionLatest, VisualStudioVersion.VersionLatest);
@@ -900,7 +895,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             if (!FileSystems.Default.FileExists(toolPath))
             {
                 throw new ApplicationException(String.Format(CultureInfo.CurrentCulture,
-                    resources.GetString("SecurityUtil_SigntoolNotFound"), toolPath));
+                    ManifestUtilitiesSR.SecurityUtil_SigntoolNotFound, toolPath));
             }
 
             return toolPath;

@@ -244,8 +244,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 // load up a default comment string that we put in front of the requestedExecutionLevel node
                 //  here so we can allow the passed-in node to override it if there is a comment present
                 //
-                System.Resources.ResourceManager resources = ManifestUtilitiesSR.ResourceManager;
-                commentString = resources.GetString("TrustInfo_RequestedExecutionLevelComment");
+                commentString = ManifestUtilitiesSR.TrustInfo_RequestedExecutionLevelComment;
             }
             else
             {
