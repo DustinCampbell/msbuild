@@ -2057,7 +2057,7 @@ namespace Microsoft.Build.Utilities
                     return FrameworkLocationHelper.dotNetFrameworkVersion481;
 
                 default:
-                    ErrorUtilities.ThrowArgument("ToolLocationHelper.UnsupportedFrameworkVersion", version);
+                    ErrorUtilities.ThrowArgument("UnsupportedFrameworkVersion", version);
                     return null;
             }
         }
@@ -2079,7 +2079,7 @@ namespace Microsoft.Build.Utilities
 
             Version Unsupported()
             {
-                ErrorUtilities.ThrowArgument("ToolLocationHelper.UnsupportedVisualStudioVersion", version);
+                ErrorUtilities.ThrowArgument("UnsupportedVisualStudioVersion", version);
                 return null;
             }
         }
