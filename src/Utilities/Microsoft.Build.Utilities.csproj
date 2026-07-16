@@ -18,6 +18,8 @@
     <IncludeSatelliteOutputInPack>false</IncludeSatelliteOutputInPack>
     <ApplyNgenOptimization Condition="'$(TargetFramework)' == '$(FullFrameworkTFM)'">full</ApplyNgenOptimization>
     <EnablePackageValidation>true</EnablePackageValidation>
+    <GenerateResxSource>true</GenerateResxSource>
+    <GenerateResxSourceEmitFormatMethods>true</GenerateResxSourceEmitFormatMethods>
   </PropertyGroup>
 
   <ItemGroup>
@@ -81,10 +83,8 @@
     <!-- Win32 RC Files -->
     <RCResourceFile Include="native.rc" />
 
-    <EmbeddedResource Update="Resources\Strings.resx">
-      <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
-      <SubType>Designer</SubType>
-      <Generator></Generator>
+    <EmbeddedResource Update="Resources\SR.resx">
+      <GenerateSource>true</GenerateSource>
     </EmbeddedResource>
   </ItemGroup>
 </Project>

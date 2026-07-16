@@ -77,7 +77,7 @@ namespace Microsoft.Build.UnitTests
             VerifyResourcesForAssembly(
                 "Microsoft.Build.Utilities.Core",
                 Path.Combine(GetRepoRoot(), "src", "Utilities"),
-                new[] { "Resources/Strings.resx" },
+                new[] { "Resources/SR.resx" },
                 new[] { "../Framework/Resources/SR.resx" });
         }
 
