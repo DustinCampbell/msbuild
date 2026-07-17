@@ -361,11 +361,17 @@ namespace Microsoft.Build.Shared
                 {
                     if (endLineNumber == 0)
                     {
-                        sb.Append('(').Append(lineNumber).Append("): ");
+                        sb.Append('(');
+                        AppendInt(sb, lineNumber);
+                        sb.Append("): ");
                     }
                     else
                     {
-                        sb.Append('(').Append(lineNumber).Append('-').Append(endLineNumber).Append("): ");
+                        sb.Append('(');
+                        AppendInt(sb, lineNumber);
+                        sb.Append('-');
+                        AppendInt(sb, endLineNumber);
+                        sb.Append("): ");
                     }
                 }
                 else
@@ -374,22 +380,46 @@ namespace Microsoft.Build.Shared
                     {
                         if (endColumnNumber == 0)
                         {
-                            sb.Append('(').Append(lineNumber).Append(',').Append(columnNumber).Append("): ");
+                            sb.Append('(');
+                            AppendInt(sb, lineNumber);
+                            sb.Append(',');
+                            AppendInt(sb, columnNumber);
+                            sb.Append("): ");
                         }
                         else
                         {
-                            sb.Append('(').Append(lineNumber).Append(',').Append(columnNumber).Append('-').Append(endColumnNumber).Append("): ");
+                            sb.Append('(');
+                            AppendInt(sb, lineNumber);
+                            sb.Append(',');
+                            AppendInt(sb, columnNumber);
+                            sb.Append('-');
+                            AppendInt(sb, endColumnNumber);
+                            sb.Append("): ");
                         }
                     }
                     else
                     {
                         if (endColumnNumber == 0)
                         {
-                            sb.Append('(').Append(lineNumber).Append('-').Append(endLineNumber).Append(',').Append(columnNumber).Append("): ");
+                            sb.Append('(');
+                            AppendInt(sb, lineNumber);
+                            sb.Append('-');
+                            AppendInt(sb, endLineNumber);
+                            sb.Append(',');
+                            AppendInt(sb, columnNumber);
+                            sb.Append("): ");
                         }
                         else
                         {
-                            sb.Append('(').Append(lineNumber).Append(',').Append(columnNumber).Append(',').Append(endLineNumber).Append(',').Append(endColumnNumber).Append("): ");
+                            sb.Append('(');
+                            AppendInt(sb, lineNumber);
+                            sb.Append(',');
+                            AppendInt(sb, columnNumber);
+                            sb.Append(',');
+                            AppendInt(sb, endLineNumber);
+                            sb.Append(',');
+                            AppendInt(sb, endColumnNumber);
+                            sb.Append("): ");
                         }
                     }
                 }
@@ -440,6 +470,45 @@ namespace Microsoft.Build.Shared
                     sb.Append(" [").Append(logOutputProperties).Append(']');
                 }
             }
+        }
+
+        /// <summary>
+        /// Appends <paramref name="value"/> to <paramref name="sb"/> without allocating. On .NET Framework
+        /// <see cref="StringBuilder.Append(int)"/> formats via <see cref="int.ToString()"/>, which allocates a
+        /// throwaway string; for the non-negative line/column numbers formatted here we emit the decimal digits
+        /// directly instead. (Modern runtimes format integers into the builder without allocating.)
+        /// </summary>
+        private static void AppendInt(StringBuilder sb, int value)
+        {
+#if NET
+            sb.Append(value);
+#else
+            if (value < 0)
+            {
+                // Not expected for line/column numbers; fall back to the framework formatting for correctness.
+                sb.Append(value);
+                return;
+            }
+
+            if (value == 0)
+            {
+                sb.Append('0');
+                return;
+            }
+
+            // Emit most-significant digit first by finding the highest power-of-ten divisor.
+            int divisor = 1;
+            for (int remaining = value; remaining >= 10; remaining /= 10)
+            {
+                divisor *= 10;
+            }
+
+            while (divisor > 0)
+            {
+                sb.Append((char)('0' + (value / divisor) % 10));
+                divisor /= 10;
+            }
+#endif
         }
     }
 }
