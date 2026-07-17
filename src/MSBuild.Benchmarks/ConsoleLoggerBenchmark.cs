@@ -5,6 +5,7 @@ using System.Collections;
 using BenchmarkDotNet.Attributes;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
 
 namespace MSBuild.Benchmarks;
@@ -41,6 +42,8 @@ public class ConsoleLoggerBenchmark
     private ParallelConsoleLogger _prefixLogger = null!;
     private readonly DateTime _timestamp = new DateTime(2026, 7, 16, 14, 50, 10, 114);
 
+    private BuildWarningEventArgs _warningEvent = null!;
+
     [GlobalSetup]
     public void Setup()
     {
@@ -72,6 +75,20 @@ public class ConsoleLoggerBenchmark
         // means prefixes are emitted; Diagnostic verbosity means the timestamp is included in the prefix.
         _prefixLogger = new ParallelConsoleLogger(LoggerVerbosity.Diagnostic, _writer.Write, NoOpColor, NoOpReset);
         _prefixLogger.Initialize(null, 4);
+
+        // A representative warning event with a file location and a multi-word message, matching the shape
+        // the parallel logger formats through EventArgsFormatting for the error/warning summary and handlers.
+        _warningEvent = new BuildWarningEventArgs(
+            subcategory: null,
+            code: "CS0168",
+            file: "src/File3.cs",
+            lineNumber: 42,
+            columnNumber: 13,
+            endLineNumber: 0,
+            endColumnNumber: 0,
+            message: "The variable 'x' is declared but never used in a rather verbose diagnostic message.",
+            helpKeyword: null,
+            senderName: "Csc");
     }
 
     private static void NoOpColor(ConsoleColor color)
@@ -139,6 +156,29 @@ public class ConsoleLoggerBenchmark
     [Benchmark]
     public void WriteLinePrefix_IntKeyEvent()
         => _prefixLogger.WriteLinePrefixCore(3, 2, _timestamp, isMessagePrefix: false);
+
+    // --- error/warning formatting: FormatEventMessage string vs. AppendEventMessage into a builder ---
+
+    /// <summary>
+    /// Baseline: format the event into a string with <see cref="EventArgsFormatting.FormatEventMessage(BuildWarningEventArgs, bool, string)"/>
+    /// and then stream that string through the aligner (the pre-optimization logger path).
+    /// </summary>
+    [Benchmark]
+    public void FormatWarning_String()
+        => _aligner.AlignConsoleOutput(_writer, EventArgsFormatting.FormatEventMessage(_warningEvent, false, null), prefixAlreadyWritten: true, PrefixWidth);
+
+    /// <summary>
+    /// Optimized: append the formatted event straight into a pooled builder and stream that builder through
+    /// the aligner, so the formatted message string is never materialized (the new logger path).
+    /// </summary>
+    [Benchmark]
+    public void FormatWarning_Builder()
+    {
+        System.Text.StringBuilder sb = _provider.Acquire(128);
+        EventArgsFormatting.AppendEventMessage(sb, _warningEvent, false, null);
+        _aligner.AlignConsoleOutput(_writer, sb, prefixAlreadyWritten: true, PrefixWidth);
+        _provider.Release(sb);
+    }
 
     /// <summary>
     /// A reusable-single-instance <see cref="IStringBuilderProvider"/> matching the logger's own

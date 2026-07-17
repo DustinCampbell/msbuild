@@ -387,7 +387,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 setColor(ConsoleColor.Yellow);
                 foreach (BuildWarningEventArgs warning in warningList)
                 {
-                    WriteMessageAligned(EventArgsFormatting.FormatEventMessage(warning, showProjectFile, FindLogOutputProperties(warning)), true);
+                    WriteErrorWarningMessageAligned(warning, true, 0);
                 }
             }
 
@@ -396,7 +396,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 setColor(ConsoleColor.Red);
                 foreach (BuildErrorEventArgs error in errorList)
                 {
-                    WriteMessageAligned(EventArgsFormatting.FormatEventMessage(error, showProjectFile, FindLogOutputProperties(error)), true);
+                    WriteErrorWarningMessageAligned(error, true, 0);
                 }
             }
 
@@ -513,11 +513,11 @@ namespace Microsoft.Build.BackEnd.Logging
                 {
                     if (errorWarningEvent is BuildErrorEventArgs buildErrorEventArgs)
                     {
-                        WriteMessageAligned("  " + EventArgsFormatting.FormatEventMessage(buildErrorEventArgs, showProjectFile, FindLogOutputProperties(errorWarningEvent)), false);
+                        WriteErrorWarningMessageAligned(buildErrorEventArgs, false, 2);
                     }
                     else if (errorWarningEvent is BuildWarningEventArgs buildWarningEventArgs)
                     {
-                        WriteMessageAligned("  " + EventArgsFormatting.FormatEventMessage(buildWarningEventArgs, showProjectFile, FindLogOutputProperties(errorWarningEvent)), false);
+                        WriteErrorWarningMessageAligned(buildWarningEventArgs, false, 2);
                     }
                 }
                 WriteNewLine();
@@ -1101,7 +1101,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 }
 
                 setColor(ConsoleColor.Red);
-                WriteMessageAligned(EventArgsFormatting.FormatEventMessage(e, showProjectFile, FindLogOutputProperties(e)), true);
+                WriteErrorWarningMessageAligned(e, true, 0);
                 ShownBuildEventContext(e.BuildEventContext);
                 if (ShowSummary == true)
                 {
@@ -1147,7 +1147,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 }
 
                 setColor(ConsoleColor.Yellow);
-                WriteMessageAligned(EventArgsFormatting.FormatEventMessage(e, showProjectFile, FindLogOutputProperties(e)), true);
+                WriteErrorWarningMessageAligned(e, true, 0);
             }
 
             ShownBuildEventContext(e.BuildEventContext);
@@ -1502,6 +1502,41 @@ namespace Microsoft.Build.BackEnd.Logging
                 }
             }
         }
+
+        /// <summary>
+        /// Formats an error or warning event straight into the shared pooled <see cref="StringBuilder"/> and
+        /// writes it aligned to the console, so the formatted message string is never separately materialized
+        /// (see <see cref="EventArgsFormatting.AppendEventMessage(StringBuilder, BuildErrorEventArgs, bool, string)"/>).
+        /// </summary>
+        /// <param name="e">The error or warning event to format.</param>
+        /// <param name="prefixAlreadyWritten">Whether the prefix (timestamp or key) has already been written.</param>
+        /// <param name="indent">Number of leading spaces to indent the message by.</param>
+        private void WriteErrorWarningMessageAligned(BuildEventArgs e, bool prefixAlreadyWritten, int indent)
+        {
+            IStringBuilderProvider stringBuilderProvider = this;
+            StringBuilder builder = stringBuilderProvider.Acquire((e.Message?.Length ?? 0) + EventMessagePrefixCapacity + indent);
+            if (indent > 0)
+            {
+                builder.Append(' ', indent);
+            }
+
+            string logOutputProperties = FindLogOutputProperties(e);
+            switch (e)
+            {
+                case BuildErrorEventArgs error:
+                    EventArgsFormatting.AppendEventMessage(builder, error, showProjectFile, logOutputProperties);
+                    break;
+                case BuildWarningEventArgs warning:
+                    EventArgsFormatting.AppendEventMessage(builder, warning, showProjectFile, logOutputProperties);
+                    break;
+            }
+
+            WriteMessageAligned(builder, prefixAlreadyWritten);
+        }
+
+        // Rough length of the fixed location/category/code prefix that EventArgsFormatting adds around a message,
+        // used only to size the pooled StringBuilder up front (it grows as needed if the estimate is too small).
+        private const int EventMessagePrefixCapacity = 64;
 
         /// <summary>
         /// Will display the target started event which was deferred until the first visible message for the target is ready to be displayed

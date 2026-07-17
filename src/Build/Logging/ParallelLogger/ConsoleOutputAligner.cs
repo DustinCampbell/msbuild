@@ -2,10 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.IO;
-#if !NET
 using System.Buffers;
-#endif
+using System.IO;
 using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -94,15 +92,29 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </remarks>
         public void AlignConsoleOutput(TextWriter writer, StringBuilder message, bool prefixAlreadyWritten, int prefixWidth)
         {
-            StringBuilder sb = StringBuilderCache.Acquire(EstimateCapacity(message.Length, prefixAlreadyWritten, prefixWidth));
+            // Copy the message into a pooled char buffer once, then align over the array: random access,
+            // IndexOf and bulk Append are all fast on a char[] (and vectorized on modern runtimes), which a
+            // StringBuilder's chunked indexer is not. The rented buffer keeps this allocation-free.
+            int length = message.Length;
+            char[] chars = ArrayPool<char>.Shared.Rent(Math.Max(length, 1));
             try
             {
-                AppendAlignedOutput(sb, new BuilderCharSource(message), prefixAlreadyWritten, prefixWidth);
-                WriteStringBuilder(writer, sb);
+                message.CopyTo(0, chars, 0, length);
+
+                StringBuilder sb = StringBuilderCache.Acquire(EstimateCapacity(length, prefixAlreadyWritten, prefixWidth));
+                try
+                {
+                    AppendAlignedOutput(sb, new CharArrayCharSource(chars, length), prefixAlreadyWritten, prefixWidth);
+                    WriteStringBuilder(writer, sb);
+                }
+                finally
+                {
+                    StringBuilderCache.Release(sb);
+                }
             }
             finally
             {
-                StringBuilderCache.Release(sb);
+                ArrayPool<char>.Shared.Return(chars);
             }
         }
 
@@ -291,20 +303,25 @@ namespace Microsoft.Build.BackEnd.Logging
             public void AppendTo(StringBuilder dest, int start, int count) => dest.Append(_value, start, count);
         }
 
-        private readonly struct BuilderCharSource : ICharSource
+        private readonly struct CharArrayCharSource : ICharSource
         {
-            private readonly StringBuilder _value;
+            private readonly char[] _value;
+            private readonly int _length;
 
-            public BuilderCharSource(StringBuilder value) => _value = value;
+            public CharArrayCharSource(char[] value, int length)
+            {
+                _value = value;
+                _length = length;
+            }
 
-            public int Length => _value.Length;
+            public int Length => _length;
 
             public char this[int index] => _value[index];
 
             public int IndexOfCrLf(int start)
             {
-                StringBuilder value = _value;
-                int length = value.Length;
+                char[] value = _value;
+                int length = _length;
                 for (int i = start; i < length; i++)
                 {
                     char c = value[i];
@@ -317,31 +334,9 @@ namespace Microsoft.Build.BackEnd.Logging
                 return -1;
             }
 
-            public int IndexOf(char value, int start, int count)
-            {
-                StringBuilder source = _value;
-                int end = start + count;
-                for (int i = start; i < end; i++)
-                {
-                    if (source[i] == value)
-                    {
-                        return i;
-                    }
-                }
+            public int IndexOf(char value, int start, int count) => Array.IndexOf(_value, value, start, count);
 
-                return -1;
-            }
-
-            public void AppendTo(StringBuilder dest, int start, int count)
-            {
-                // dest and the source builder are always distinct instances (see the StringBuilder overload of
-                // AlignConsoleOutput), so appending from one into the other is safe.
-                StringBuilder source = _value;
-                for (int i = 0; i < count; i++)
-                {
-                    dest.Append(source[start + i]);
-                }
-            }
+            public void AppendTo(StringBuilder dest, int start, int count) => dest.Append(_value, start, count);
         }
     }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Text;
 
 using Microsoft.Build.Framework;
 
@@ -215,13 +216,71 @@ namespace Microsoft.Build.Shared
             int threadId,
             string logOutputProperties)
         {
-            // Build the formatted message directly rather than first constructing a positional format template
-            // string and running it through StringBuilder.AppendFormat. The old approach allocated the throwaway
-            // template string, an argument object[], and boxed all five integer arguments on every call; emitting
-            // the pieces in place avoids all of that (and is allocation-free for the structural parts on .NET).
-            // Capacity is the longest fixed prefix through the paths below, to avoid reallocating up front.
-            using ReuseableStringBuilder formattedMessage = new(51);
+            // Build the formatted message into a pooled StringBuilder. See AppendEventMessage for details.
+            StringBuilder formattedMessage = Microsoft.Build.Framework.StringBuilderCache.Acquire(51);
+            AppendEventMessage(
+                formattedMessage, category, subcategory, message, code, file, projectFile,
+                lineNumber, endLineNumber, columnNumber, endColumnNumber, threadId, logOutputProperties);
+            return Microsoft.Build.Framework.StringBuilderCache.GetStringAndRelease(formattedMessage);
+        }
 
+        /// <summary>
+        /// Appends the formatted <see cref="BuildErrorEventArgs"/> message directly into <paramref name="sb"/>,
+        /// so a caller that already has a pooled builder never has to materialize the message as a string.
+        /// </summary>
+        internal static void AppendEventMessage(StringBuilder sb, BuildErrorEventArgs e, bool showProjectFile, string projectConfigurationDescription)
+        {
+            AppendEventMessage(sb, "error", e.Subcategory, e.Message,
+                            e.Code, e.File, showProjectFile ? e.ProjectFile : null, e.LineNumber, e.EndLineNumber,
+                            e.ColumnNumber, e.EndColumnNumber, e.ThreadId, projectConfigurationDescription);
+        }
+
+        /// <summary>
+        /// Appends the formatted <see cref="BuildWarningEventArgs"/> message directly into <paramref name="sb"/>,
+        /// so a caller that already has a pooled builder never has to materialize the message as a string.
+        /// </summary>
+        internal static void AppendEventMessage(StringBuilder sb, BuildWarningEventArgs e, bool showProjectFile, string projectConfigurationDescription)
+        {
+            AppendEventMessage(sb, "warning", e.Subcategory, e.Message,
+                            e.Code, e.File, showProjectFile ? e.ProjectFile : null, e.LineNumber, e.EndLineNumber,
+                            e.ColumnNumber, e.EndColumnNumber, e.ThreadId, projectConfigurationDescription);
+        }
+
+        /// <summary>
+        /// Appends the formatted <see cref="BuildMessageEventArgs"/> message directly into <paramref name="sb"/>,
+        /// so a caller that already has a pooled builder never has to materialize the message as a string.
+        /// </summary>
+        internal static void AppendEventMessage(StringBuilder sb, BuildMessageEventArgs e, bool showProjectFile, string projectConfigurationDescription, string nonNullMessage = null)
+        {
+            AppendEventMessage(sb, "message", e.Subcategory, nonNullMessage ?? e.Message,
+                            e.Code, e.File, showProjectFile ? e.ProjectFile : null, e.LineNumber, e.EndLineNumber,
+                            e.ColumnNumber, e.EndColumnNumber, e.ThreadId, projectConfigurationDescription);
+        }
+
+        /// <summary>
+        /// Appends the formatted event message and all the other event data into <paramref name="formattedMessage"/>.
+        /// </summary>
+        /// <remarks>
+        /// The formatted message is built directly rather than first constructing a positional format template
+        /// string and running it through StringBuilder.AppendFormat. The old approach allocated the throwaway
+        /// template string, an argument object[], and boxed all five integer arguments on every call; emitting
+        /// the pieces in place avoids all of that (and is allocation-free for the structural parts on .NET).
+        /// </remarks>
+        internal static void AppendEventMessage(
+            StringBuilder formattedMessage,
+            string category,
+            string subcategory,
+            string message,
+            string code,
+            string file,
+            string projectFile,
+            int lineNumber,
+            int endLineNumber,
+            int columnNumber,
+            int endColumnNumber,
+            int threadId,
+            string logOutputProperties)
+        {
             // A null message is allowed and is to be treated as a blank line.
             string messageText = message ?? string.Empty;
 
@@ -261,8 +320,6 @@ namespace Microsoft.Build.Shared
 
                 lineStart = newlineIndex + 1;
             }
-
-            return formattedMessage.ToString();
         }
 
         /// <summary>
@@ -271,7 +328,7 @@ namespace Microsoft.Build.Shared
         /// template produced.
         /// </summary>
         private static void AppendFormattedLine(
-            ReuseableStringBuilder sb,
+            StringBuilder sb,
             string category,
             string subcategory,
             string code,
