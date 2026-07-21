@@ -390,7 +390,7 @@ namespace Microsoft.Build.Utilities
         {
             if (TaskProcessTerminationTimeout < -1)
             {
-                Log.LogWarningWithCodeFromResources("ToolTask.InvalidTerminationTimeout", TaskProcessTerminationTimeout);
+                LogPrivate.LogWarningWithCodeFromResources(AssemblyResources.ToolTask_InvalidTerminationTimeout, TaskProcessTerminationTimeout);
                 return false;
             }
 
@@ -448,12 +448,12 @@ namespace Microsoft.Build.Utilities
                 if (ExitCodeOverriddenToIndicateErrors)
                 {
                     // The tool finished with a zero exit code but errors were logged, causing ExitCode to be set to -1.
-                    LogPrivate.LogMessageFromResources(MessageImportance.Low, "ToolTask.ToolCommandExitedZeroWithErrors");
+                    LogPrivate.LogMessageFromResources(MessageImportance.Low, AssemblyResources.ToolTask_ToolCommandExitedZeroWithErrors);
                 }
                 else
                 {
                     // The tool failed with a non-zero exit code and already logged its own errors.
-                    LogPrivate.LogMessageFromResources(MessageImportance.Low, "General.ToolCommandFailedNoErrorCode", ExitCode);
+                    LogPrivate.LogMessageFromResources(MessageImportance.Low, AssemblyResources.General_ToolCommandFailedNoErrorCode, ExitCode);
                 }
             }
             else
@@ -461,7 +461,7 @@ namespace Microsoft.Build.Utilities
                 // If the tool itself did not log any errors on its own, then we log one now simply saying
                 // that the tool exited with a non-zero exit code.  This way, the customer nevers sees
                 // "Build failed" without at least one error being logged.
-                LogPrivate.LogErrorWithCodeFromResources("ToolTask.ToolCommandFailed", ToolExe, ExitCode);
+                LogPrivate.LogErrorWithCodeFromResources(AssemblyResources.ToolTask_ToolCommandFailed, ToolExe, ExitCode);
             }
 
             // by default, always fail the task
@@ -555,7 +555,7 @@ namespace Microsoft.Build.Utilities
                     bool isExistingFile = FileSystems.Default.FileExists(TaskEnvironment.GetAbsolutePath(pathToTool));
                     if (!isExistingFile)
                     {
-                        LogPrivate.LogErrorWithCodeFromResources("ToolTask.ToolExecutableNotFound", pathToTool);
+                        LogPrivate.LogErrorWithCodeFromResources(AssemblyResources.ToolTask_ToolExecutableNotFound, pathToTool);
                         return null;
                     }
                 }
@@ -656,7 +656,7 @@ namespace Microsoft.Build.Utilities
             // so we can go past 8K easily.
             if (commandLine.Length > 32000)
             {
-                LogPrivate.LogWarningWithCodeFromResources("ToolTask.CommandTooLong", GetType().Name);
+                LogPrivate.LogWarningWithCodeFromResources(AssemblyResources.ToolTask_CommandTooLong, GetType().Name);
             }
 
             ProcessStartInfo startInfo = TaskEnvironment.GetProcessStartInfo();
@@ -918,7 +918,7 @@ namespace Microsoft.Build.Utilities
 
                 // Warn only -- occasionally temp files fail to delete because of virus checkers; we
                 // don't want the build to fail in such cases
-                LogPrivate.LogWarningWithCodeFromResources("FailedDeletingTempFile", filePath.OriginalValue, e.Message, lockedFileMessage);
+                LogPrivate.LogWarningWithCodeFromResources(AssemblyResources.FailedDeletingTempFile, filePath.OriginalValue, e.Message, lockedFileMessage);
             }
         }
 
@@ -1051,11 +1051,11 @@ namespace Microsoft.Build.Utilities
                 {
                     Assumed.NotEqual(Timeout, System.Threading.Timeout.Infinite, "A time-out value must have been specified or the task must be cancelled.");
 
-                    LogPrivate.LogWarningWithCodeFromResources("KillingProcess", processName, Timeout);
+                    LogPrivate.LogWarningWithCodeFromResources(AssemblyResources.KillingProcess, processName, Timeout);
                 }
                 else
                 {
-                    LogPrivate.LogWarningWithCodeFromResources("KillingProcessByCancellation", processName);
+                    LogPrivate.LogWarningWithCodeFromResources(AssemblyResources.KillingProcessByCancellation, processName);
                 }
 
                 int timeout = TaskProcessTerminationTimeout >= -1 ? TaskProcessTerminationTimeout : 5000;
@@ -1141,7 +1141,7 @@ namespace Microsoft.Build.Utilities
                     // Drain whatever data has already arrived before returning.
                     LogMessagesFromStandardError();
                     LogMessagesFromStandardOutput();
-                    LogPrivate.LogMessageFromResources(MessageImportance.Low, "ToolTask.PipeEOFTimeout", eofTimeoutSec);
+                    LogPrivate.LogMessageFromResources(MessageImportance.Low, AssemblyResources.ToolTask_PipeEOFTimeout, eofTimeoutSec);
                 }
             }
             else
@@ -1381,7 +1381,7 @@ namespace Microsoft.Build.Utilities
                 }
                 catch (ArgumentException)
                 {
-                    LogShared.LogErrorWithCodeFromResources("Message_InvalidImportance", StandardErrorImportance);
+                    LogShared.LogErrorWithCodeFromResources(AssemblyResources.Message_InvalidImportance, StandardErrorImportance);
                     return false;
                 }
             }
@@ -1401,7 +1401,7 @@ namespace Microsoft.Build.Utilities
                 }
                 catch (ArgumentException)
                 {
-                    LogShared.LogErrorWithCodeFromResources("Message_InvalidImportance", StandardOutputImportance);
+                    LogShared.LogErrorWithCodeFromResources(AssemblyResources.Message_InvalidImportance, StandardOutputImportance);
                     return false;
                 }
             }
@@ -1457,7 +1457,7 @@ namespace Microsoft.Build.Utilities
                 // parameters; if it didn't, at least emit a generic message.
                 if (!Log.HasLoggedErrors)
                 {
-                    LogPrivate.LogErrorWithCodeFromResources("ToolTask.ValidateParametersFailed", this.GetType().FullName);
+                    LogPrivate.LogErrorWithCodeFromResources(AssemblyResources.ToolTask_ValidateParametersFailed, this.GetType().FullName);
                 }
                 return false;
             }
@@ -1472,7 +1472,7 @@ namespace Microsoft.Build.Utilities
 
                     if (nameValuePair.Length == 1 || (nameValuePair.Length == 2 && nameValuePair[0].Length == 0))
                     {
-                        LogPrivate.LogErrorWithCodeFromResources("ToolTask.InvalidEnvironmentParameter", nameValuePair[0]);
+                        LogPrivate.LogErrorWithCodeFromResources(AssemblyResources.ToolTask_InvalidEnvironmentParameter, nameValuePair[0]);
                         return false;
                     }
 
@@ -1497,7 +1497,7 @@ namespace Microsoft.Build.Utilities
                 }
                 else if (canBeIncremental && FailIfNotIncremental)
                 {
-                    LogPrivate.LogErrorWithCodeFromResources("ToolTask.NotUpToDate");
+                    LogPrivate.LogErrorWithCodeFromResources(AssemblyResources.ToolTask_NotUpToDate);
                     return false;
                 }
 
@@ -1704,7 +1704,7 @@ namespace Microsoft.Build.Utilities
             {
                 if (!_terminatedTool)
                 {
-                    LogPrivate.LogErrorWithCodeFromResources("General.InvalidToolSwitch", ToolExe, e.ToString());
+                    LogPrivate.LogErrorWithCodeFromResources(AssemblyResources.General_InvalidToolSwitch, ToolExe, e.ToString());
                 }
                 return false;
             }
@@ -1712,7 +1712,7 @@ namespace Microsoft.Build.Utilities
             {
                 if (!_terminatedTool)
                 {
-                    LogPrivate.LogErrorWithCodeFromResources("ToolTask.CouldNotStartToolExecutable", ToolExe, e.ToString());
+                    LogPrivate.LogErrorWithCodeFromResources(AssemblyResources.ToolTask_CouldNotStartToolExecutable, ToolExe, e.ToString());
                 }
                 return false;
             }
@@ -1773,7 +1773,7 @@ namespace Microsoft.Build.Utilities
         {
             if (!alreadyLoggedEnvironmentHeader)
             {
-                LogPrivate.LogMessageFromResources(MessageImportance.Low, "ToolTask.EnvironmentVariableHeader");
+                LogPrivate.LogMessageFromResources(MessageImportance.Low, AssemblyResources.ToolTask_EnvironmentVariableHeader);
                 alreadyLoggedEnvironmentHeader = true;
             }
 

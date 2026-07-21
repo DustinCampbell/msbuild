@@ -11,6 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 
@@ -746,17 +747,17 @@ namespace Microsoft.Build.Utilities
         /// <remarks>This method is not thread-safe.</remarks>
         /// <param name="Log">The Log to log to.</param>
         /// <param name="importance">The importance level of the message.</param>
-        /// <param name="messageResourceName">The name of the string resource to load.</param>
+        /// <param name="messageResource">The string resource to load.</param>
         /// <param name="messageArgs">Optional arguments for formatting the loaded string.</param>
         /// <exception cref="ArgumentNullException">Thrown when <c>messageResourceName</c> is null.</exception>
-        internal static void LogMessageFromResources(TaskLoggingHelper Log, MessageImportance importance, string messageResourceName, params object[] messageArgs)
+        internal static void LogMessageFromResources(TaskLoggingHelper Log, MessageImportance importance, ResourceString messageResource, params object[] messageArgs)
         {
             // Only log when we have been passed a TaskLoggingHelper
             if (Log != null)
             {
-                ArgumentNullException.ThrowIfNull(messageResourceName);
+                ArgumentNullException.ThrowIfNull(messageResource);
 
-                Log.LogMessage(importance, AssemblyResources.GetString(messageResourceName), messageArgs);
+                Log.LogMessage(importance, messageResource.Text, messageArgs);
             }
         }
 
@@ -774,18 +775,18 @@ namespace Microsoft.Build.Utilities
             // Only log when we have been passed a TaskLoggingHelper
             Log?.LogMessage(importance, message, messageArgs);
         }
-
+        
         /// <summary>
         /// Logs a warning using the specified resource string.
         /// </summary>
         /// <param name="Log">The Log to log to.</param>
-        /// <param name="messageResourceName">The name of the string resource to load.</param>
+        /// <param name="messageResource">The name of the string resource to load.</param>
         /// <param name="messageArgs">Optional arguments for formatting the loaded string.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <c>messageResourceName</c> is null.</exception>
-        internal static void LogWarningWithCodeFromResources(TaskLoggingHelper Log, string messageResourceName, params object[] messageArgs)
+        /// <exception cref="ArgumentNullException">Thrown when <c>messageResource</c> is null.</exception>
+        internal static void LogWarningWithCodeFromResources(TaskLoggingHelper Log, ResourceString messageResource, params object[] messageArgs)
         {
             // Only log when we have been passed a TaskLoggingHelper
-            Log?.LogWarningWithCodeFromResources(messageResourceName, messageArgs);
+            Log?.LogWarningWithCodeFromResources(messageResource, messageArgs);
         }
 
         #endregion

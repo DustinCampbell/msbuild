@@ -10,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -22,6 +23,17 @@ namespace Microsoft.Build.Utilities
     /// </summary>
     public class CanonicalTrackedInputFiles
     {
+        private static Dictionary<string, ResourceString> CompileReasonToResourceMap => field ??= new(StringComparer.Ordinal)
+        {
+            { AssemblyResources.Tracking_SourceNotInTrackingLog.Name, AssemblyResources.Tracking_SourceNotInTrackingLog },
+            { AssemblyResources.Tracking_SourceOutputsNotAvailable.Name, AssemblyResources.Tracking_SourceOutputsNotAvailable },
+            { AssemblyResources.Tracking_SourceWillBeCompiled.Name, AssemblyResources.Tracking_SourceWillBeCompiled },
+            { AssemblyResources.Tracking_SourceWillBeCompiledAsNoTrackingLog.Name, AssemblyResources.Tracking_SourceWillBeCompiledAsNoTrackingLog },
+            { AssemblyResources.Tracking_SourceWillBeCompiledDependencyWasModifiedAt.Name, AssemblyResources.Tracking_SourceWillBeCompiledDependencyWasModifiedAt },
+            { AssemblyResources.Tracking_SourceWillBeCompiledMissingDependency.Name, AssemblyResources.Tracking_SourceWillBeCompiledMissingDependency },
+            { AssemblyResources.Tracking_SourceWillBeCompiledOutputDoesNotExist.Name, AssemblyResources.Tracking_SourceWillBeCompiledOutputDoesNotExist },
+        };
+
 #pragma warning disable format // region formatting is different in net7.0 and net472, and cannot be fixed for both
         #region Member Data
         // The most recently modified output time
@@ -240,7 +252,7 @@ namespace Microsoft.Build.Utilities
 
             if (SourcesNeedingCompilation.Length == 0)
             {
-                FileTracker.LogMessageFromResources(_log, MessageImportance.Normal, "Tracking_AllOutputsAreUpToDate");
+                FileTracker.LogMessageFromResources(_log, MessageImportance.Normal, AssemblyResources.Tracking_AllOutputsAreUpToDate);
                 SourcesNeedingCompilation = Array.Empty<ITaskItem>();
             }
             else
@@ -253,21 +265,23 @@ namespace Microsoft.Build.Utilities
                     string outputFilePath = compileSource.GetMetadata("_trackerOutputFile");
                     string trackerCompileReason = compileSource.GetMetadata("_trackerCompileReason");
 
-                    if (string.Equals(trackerCompileReason, "Tracking_SourceWillBeCompiledDependencyWasModifiedAt", StringComparison.Ordinal))
+                    ResourceString trackerCompileReasonResource = CompileReasonToResourceMap[trackerCompileReason];
+
+                    if (string.Equals(trackerCompileReasonResource.Name, AssemblyResources.Tracking_SourceWillBeCompiledDependencyWasModifiedAt.Name, StringComparison.Ordinal))
                     {
-                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, trackerCompileReason, compileSource.ItemSpec, modifiedPath, modifiedTime);
+                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, trackerCompileReasonResource, compileSource.ItemSpec, modifiedPath, modifiedTime);
                     }
-                    else if (string.Equals(trackerCompileReason, "Tracking_SourceWillBeCompiledMissingDependency", StringComparison.Ordinal))
+                    else if (string.Equals(trackerCompileReasonResource.Name, AssemblyResources.Tracking_SourceWillBeCompiledMissingDependency.Name, StringComparison.Ordinal))
                     {
-                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, trackerCompileReason, compileSource.ItemSpec, modifiedPath);
+                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, trackerCompileReasonResource, compileSource.ItemSpec, modifiedPath);
                     }
-                    else if (string.Equals(trackerCompileReason, "Tracking_SourceWillBeCompiledOutputDoesNotExist", StringComparison.Ordinal))
+                    else if (string.Equals(trackerCompileReasonResource.Name, AssemblyResources.Tracking_SourceWillBeCompiledOutputDoesNotExist.Name, StringComparison.Ordinal))
                     {
-                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, trackerCompileReason, compileSource.ItemSpec, outputFilePath);
+                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, trackerCompileReasonResource, compileSource.ItemSpec, outputFilePath);
                     }
                     else
                     {
-                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, trackerCompileReason, compileSource.ItemSpec);
+                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, trackerCompileReasonResource, compileSource.ItemSpec);
                     }
 
                     // Now zero out the metadata that was set, so that it doesn't show up if these items
@@ -289,26 +303,26 @@ namespace Microsoft.Build.Utilities
         {
             if (!_tlogAvailable || _outputFileGroup == null)
             {
-                source.SetMetadata("_trackerCompileReason", "Tracking_SourceWillBeCompiledAsNoTrackingLog");
+                source.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceWillBeCompiledAsNoTrackingLog.Name);
                 sourcesNeedingCompilationList.Enqueue(source);
             }
             else if (!_useMinimalRebuildOptimization && !allOutputFilesExist)
             {
-                source.SetMetadata("_trackerCompileReason", "Tracking_SourceOutputsNotAvailable");
+                source.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceOutputsNotAvailable.Name);
                 sourcesNeedingCompilationList.Enqueue(source);
             }
             else if (!IsUpToDate(source))
             {
                 if (string.IsNullOrEmpty(source.GetMetadata("_trackerCompileReason")))
                 {
-                    source.SetMetadata("_trackerCompileReason", "Tracking_SourceWillBeCompiled");
+                    source.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceWillBeCompiled.Name);
                 }
 
                 sourcesNeedingCompilationList.Enqueue(source);
             }
             else if (!_useMinimalRebuildOptimization && _outputNewestTime == DateTime.MinValue)
             {
-                source.SetMetadata("_trackerCompileReason", "Tracking_SourceNotInTrackingLog");
+                source.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceNotInTrackingLog.Name);
                 sourcesNeedingCompilationList.Enqueue(source);
             }
         }
@@ -373,7 +387,7 @@ namespace Microsoft.Build.Utilities
             // There were no outputs for the requested root
             if (sourcesNeedingCompilation.Count == 0)
             {
-                FileTracker.LogMessageFromResources(_log, MessageImportance.Low, "Tracking_DependenciesForRootNotFound", upperSourcesRoot);
+                FileTracker.LogMessageFromResources(_log, MessageImportance.Low, AssemblyResources.Tracking_DependenciesForRootNotFound, upperSourcesRoot);
                 return _sourceFiles;
             }
 
@@ -393,7 +407,7 @@ namespace Microsoft.Build.Utilities
                 if (newestSourceDependencyTime <= oldestOutputTime)
                 {
                     // All sources and outputs exist, and the oldest output is newer than the newest input -- we're up to date!
-                    FileTracker.LogMessageFromResources(_log, MessageImportance.Normal, "Tracking_AllOutputsAreUpToDate");
+                    FileTracker.LogMessageFromResources(_log, MessageImportance.Normal, AssemblyResources.Tracking_AllOutputsAreUpToDate);
                     return Array.Empty<ITaskItem>();
                 }
             }
@@ -401,12 +415,12 @@ namespace Microsoft.Build.Utilities
             // Too much logging leads to poor performance
             if (sourcesNeedingCompilation.Count > CanonicalTrackedFilesHelper.MaxLogCount)
             {
-                FileTracker.LogMessageFromResources(_log, MessageImportance.Low, "Tracking_InputsNotShown", sourcesNeedingCompilation.Count);
+                FileTracker.LogMessageFromResources(_log, MessageImportance.Low, AssemblyResources.Tracking_InputsNotShown, sourcesNeedingCompilation.Count);
             }
             else
             {
                 // We have our set of outputs, log the details
-                FileTracker.LogMessageFromResources(_log, MessageImportance.Low, "Tracking_InputsFor", upperSourcesRoot);
+                FileTracker.LogMessageFromResources(_log, MessageImportance.Low, AssemblyResources.Tracking_InputsFor, upperSourcesRoot);
 
                 foreach (ITaskItem inputItem in sourcesNeedingCompilationList)
                 {
@@ -415,7 +429,7 @@ namespace Microsoft.Build.Utilities
             }
 
             // Log the reasons that we're not up to date
-            FileTracker.LogMessageFromResources(_log, MessageImportance.Low, "Tracking_InputNewerThanOutput", newestSourceDependencyFile, oldestOutputFile);
+            FileTracker.LogMessageFromResources(_log, MessageImportance.Low, AssemblyResources.Tracking_InputNewerThanOutput, newestSourceDependencyFile, oldestOutputFile);
 
             return _sourceFiles;
         }
@@ -485,7 +499,7 @@ namespace Microsoft.Build.Utilities
                         {
                             if (outputFileTime < sourceTime)
                             {
-                                sourceFile.SetMetadata("_trackerCompileReason", "Tracking_SourceWillBeCompiledDependencyWasModifiedAt");
+                                sourceFile.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceWillBeCompiledDependencyWasModifiedAt.Name);
                                 sourceFile.SetMetadata("_trackerModifiedPath", sourceFullPath);
                                 sourceFile.SetMetadata("_trackerModifiedTime", sourceTime.ToLocalTime().ToString());
                                 return false;
@@ -498,7 +512,7 @@ namespace Microsoft.Build.Utilities
                         }
                         else
                         {
-                            sourceFile.SetMetadata("_trackerCompileReason", "Tracking_SourceWillBeCompiledOutputDoesNotExist");
+                            sourceFile.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceWillBeCompiledOutputDoesNotExist.Name);
                             sourceFile.SetMetadata("_trackerOutputFile", outputFile);
                             return false;
                         }
@@ -506,7 +520,7 @@ namespace Microsoft.Build.Utilities
                 }
                 else
                 {
-                    sourceFile.SetMetadata("_trackerCompileReason", "Tracking_SourceOutputsNotAvailable");
+                    sourceFile.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceOutputsNotAvailable.Name);
                     return false;
                 }
             }
@@ -532,7 +546,7 @@ namespace Microsoft.Build.Utilities
                         {
                             if (dependeeTime > thisSourceOutputNewestTime)
                             {
-                                sourceFile.SetMetadata("_trackerCompileReason", "Tracking_SourceWillBeCompiledDependencyWasModifiedAt");
+                                sourceFile.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceWillBeCompiledDependencyWasModifiedAt.Name);
                                 sourceFile.SetMetadata("_trackerModifiedPath", file);
                                 sourceFile.SetMetadata("_trackerModifiedTime", dependeeTime.ToLocalTime().ToString());
                                 return false;
@@ -540,7 +554,7 @@ namespace Microsoft.Build.Utilities
                         }
                         else // if the file no longer exists, then assume we are out of date and cause a compile
                         {
-                            sourceFile.SetMetadata("_trackerCompileReason", "Tracking_SourceWillBeCompiledMissingDependency");
+                            sourceFile.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceWillBeCompiledMissingDependency.Name);
                             sourceFile.SetMetadata("_trackerModifiedPath", file);
                             return false;
                         }
@@ -549,7 +563,7 @@ namespace Microsoft.Build.Utilities
             }
             else
             {
-                sourceFile.SetMetadata("_trackerCompileReason", "Tracking_SourceNotInTrackingLog");
+                sourceFile.SetMetadata("_trackerCompileReason", AssemblyResources.Tracking_SourceNotInTrackingLog.Name);
                 return false;
             }
             // It appears that all our dependencies are earlier than the outputs
@@ -584,7 +598,7 @@ namespace Microsoft.Build.Utilities
             }
             catch (ArgumentException e)
             {
-                FileTracker.LogWarningWithCodeFromResources(_log, "Tracking_RebuildingDueToInvalidTLog", e.Message);
+                FileTracker.LogWarningWithCodeFromResources(_log, AssemblyResources.Tracking_RebuildingDueToInvalidTLog, e.Message);
                 return;
             }
 
@@ -598,7 +612,7 @@ namespace Microsoft.Build.Utilities
                 {
                     if (!FileUtilities.FileExistsNoThrow(tlogFileName.ItemSpec))
                     {
-                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, "Tracking_SingleLogFileNotAvailable", tlogFileName.ItemSpec);
+                        FileTracker.LogMessageFromResources(_log, MessageImportance.Low, AssemblyResources.Tracking_SingleLogFileNotAvailable, tlogFileName.ItemSpec);
                     }
                 }
 
@@ -623,7 +637,7 @@ namespace Microsoft.Build.Utilities
             {
                 DependencyTable = (Dictionary<string, Dictionary<string, string>>)cachedEntry.DependencyTable;
                 // Log information about what we're using
-                FileTracker.LogMessageFromResources(_log, MessageImportance.Low, "Tracking_ReadTrackingCached");
+                FileTracker.LogMessageFromResources(_log, MessageImportance.Low, AssemblyResources.Tracking_ReadTrackingCached);
                 foreach (ITaskItem tlogItem in cachedEntry.TlogFiles)
                 {
                     FileTracker.LogMessage(_log, MessageImportance.Low, "\t{0}", tlogItem.ItemSpec);
@@ -637,7 +651,7 @@ namespace Microsoft.Build.Utilities
             bool encounteredInvalidTLogContents = false;
             bool exceptionCaught = false;
             string invalidTLogName = null;
-            FileTracker.LogMessageFromResources(_log, MessageImportance.Low, "Tracking_ReadTrackingLogs");
+            FileTracker.LogMessageFromResources(_log, MessageImportance.Low, AssemblyResources.Tracking_ReadTrackingLogs);
             foreach (ITaskItem tlogFileName in _tlogFiles)
             {
                 try
@@ -813,13 +827,13 @@ namespace Microsoft.Build.Utilities
                 }
                 catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                 {
-                    FileTracker.LogWarningWithCodeFromResources(_log, "Tracking_RebuildingDueToInvalidTLog", e.Message);
+                    FileTracker.LogWarningWithCodeFromResources(_log, AssemblyResources.Tracking_RebuildingDueToInvalidTLog, e.Message);
                     break;
                 }
 
                 if (encounteredInvalidTLogContents)
                 {
-                    FileTracker.LogWarningWithCodeFromResources(_log, "Tracking_RebuildingDueToInvalidTLogContents", invalidTLogName);
+                    FileTracker.LogWarningWithCodeFromResources(_log, AssemblyResources.Tracking_RebuildingDueToInvalidTLogContents, invalidTLogName);
                     break;
                 }
             }
@@ -994,7 +1008,7 @@ namespace Microsoft.Build.Utilities
             }
             else
             {
-                FileTracker.LogMessageFromResources(_log, MessageImportance.Normal, "Tracking_ReadLogEntryNotFound", rootingMarker);
+                FileTracker.LogMessageFromResources(_log, MessageImportance.Normal, AssemblyResources.Tracking_ReadLogEntryNotFound, rootingMarker);
             }
         }
 
@@ -1027,9 +1041,9 @@ namespace Microsoft.Build.Utilities
             // Cache of files that have been checked and exist.
             Dictionary<string, bool> fileCache = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
-            if (correspondingOutputs != null)
+            if (correspondingOutputs != null && source.Length != correspondingOutputs.Length)
             {
-                ErrorUtilities.VerifyThrowArgument(source.Length == correspondingOutputs.Length, "Tracking_SourcesAndCorrespondingOutputMismatch");
+                throw new ArgumentException(AssemblyResources.Tracking_SourcesAndCorrespondingOutputMismatch.TextWithoutCode);
             }
 
             // construct a combined root marker for the sources and outputs to remove from the graph

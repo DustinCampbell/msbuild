@@ -113,8 +113,8 @@ namespace Microsoft.Build.Utilities
             {
                 var processes = GetProcessesLockingFile(filePath);
                 message = !string.IsNullOrEmpty(processes)
-                    ? ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("LockCheck.FileLocked", processes)
-                    : String.Empty;
+                    ? AssemblyResources.LockCheck_FileLocked.Format(processes)
+                    : string.Empty;
             }
             catch (Exception)
             {

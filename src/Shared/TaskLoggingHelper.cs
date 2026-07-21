@@ -208,11 +208,23 @@ namespace Microsoft.Build.Utilities
         public virtual string FormatResourceString(string resourceName, params object[] args)
         {
             ArgumentNullException.ThrowIfNull(resourceName);
+
+#if BUILD_ENGINE
             ErrorUtilities.VerifyThrowInvalidOperation(TaskResources != null, "TaskResourcesNotRegistered", TaskName);
+#else
+            InvalidOperationException.ThrowIfFalse(TaskResources != null, AssemblyResources.TaskResourcesNotRegistered, TaskName);
+#endif
 
             string resourceString = TaskResources.GetString(resourceName, CultureInfo.CurrentUICulture);
 
+#if BUILD_ENGINE
             ErrorUtilities.VerifyThrowArgument(resourceString != null, "TaskResourceNotFound", resourceName, TaskName);
+#else
+            if (resourceString is null)
+            {
+                throw new ArgumentException(AssemblyResources.TaskResourceNotFound.FormatStripCode(resourceName, TaskName));
+            }
+#endif
 
             return FormatString(resourceString, args);
         }
@@ -309,13 +321,13 @@ namespace Microsoft.Build.Utilities
                 return;
             }
 
-            BuildMessageEventArgs e = new BuildMessageEventArgs(
-                    message,
-                    helpKeyword: null,
-                    senderName: TaskName,
-                    importance,
-                    DateTime.UtcNow,
-                    messageArgs);
+            BuildMessageEventArgs e = new(
+                message,
+                helpKeyword: null,
+                senderName: TaskName,
+                importance,
+                DateTime.UtcNow,
+                messageArgs);
 
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
@@ -323,7 +335,11 @@ namespace Microsoft.Build.Utilities
             if (BuildEngine == null)
             {
                 // Do not use Verify[...] as it would read e.Message ahead of time
+#if BUILD_ENGINE
                 ErrorUtilities.ThrowInvalidOperation("LoggingBeforeTaskInitialization", e.Message);
+#else
+                InvalidOperationException.Throw(AssemblyResources.LoggingBeforeTaskInitialization, e.Message);
+#endif
             }
 
             BuildEngine.LogMessageEvent(e);
@@ -376,7 +392,11 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
+#if BUILD_ENGINE
             ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
+#else
+            InvalidOperationException.ThrowIfFalse(BuildEngine != null, AssemblyResources.LoggingBeforeTaskInitialization, message);
+#endif
 
             // If the task has missed out all location information, add the location of the task invocation;
             // that gives the user something.
@@ -433,7 +453,11 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
+#if BUILD_ENGINE
             ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
+#else
+            InvalidOperationException.ThrowIfFalse(BuildEngine != null, AssemblyResources.LoggingBeforeTaskInitialization, message);
+#endif
 
             // If the task has missed out all location information, add the location of the task invocation;
             // that gives the user something.
@@ -507,6 +531,36 @@ namespace Microsoft.Build.Utilities
             Assumed.False(
                 MessageParser.TryGetMSBuildCode(message, out string code),
                 $"This message contains an error code ({code}), yet it was logged as a regular message: {message}");
+#endif
+        }
+
+        /// <summary>
+        /// Logs a message of the given importance using the specified resource string.
+        /// Thread safe.
+        /// </summary>
+        /// <remarks>
+        /// Take care to order the parameters correctly or the other overload will be called inadvertently.
+        /// </remarks>
+        /// <param name="importance">The importance level of the message.</param>
+        /// <param name="messageResource">The resource string to load.</param>
+        /// <param name="messageArgs">Optional arguments for formatting the loaded string.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <c>messageResource</c> is null.</exception>
+        internal void LogMessageFromResources(MessageImportance importance, ResourceString messageResource, params object[] messageArgs)
+        {
+            // No lock needed, as the logging methods are thread safe and the rest does not modify global state.
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            if (!LogsMessagesOfImportance(importance))
+            {
+                return;
+            }
+
+            LogMessage(importance, messageResource.Text, messageArgs);
+
+#if DEBUG
+            // Assert that the message does not contain an error code.
+            // Only errors and warnings should have error codes.
+            Assumed.Null(messageResource.Code, $"Message has error code: {messageResource.Format(messageArgs)}");
 #endif
         }
 
@@ -622,7 +676,11 @@ namespace Microsoft.Build.Utilities
             if (BuildEngine == null)
             {
                 // Do not use Verify[...] as it would read e.Message ahead of time
+#if BUILD_ENGINE
                 ErrorUtilities.ThrowInvalidOperation("LoggingBeforeTaskInitialization", e.Message);
+#else
+                InvalidOperationException.Throw(AssemblyResources.LoggingBeforeTaskInitialization, e.Message);
+#endif
             }
 
             BuildEngine.LogMessageEvent(e);
@@ -709,7 +767,11 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
+#if BUILD_ENGINE
             ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
+#else
+            InvalidOperationException.ThrowIfFalse(BuildEngine != null, AssemblyResources.LoggingBeforeTaskInitialization, message);
+#endif
 
             // All of our errors should have an error code, so the user has something
             // to look up in the documentation. To help find errors without error codes,
@@ -834,6 +896,23 @@ namespace Microsoft.Build.Utilities
         }
 
         /// <summary>
+        /// Logs an error using the specified resource string.
+        /// If the message has an error code prefixed to it, the code is extracted and logged with the message. If a help keyword
+        /// prefix has been provided, a help keyword for the host IDE is also logged with the message. The help keyword is
+        /// composed by appending the string resource name to the prefix.
+        ///
+        /// A task can provide a help keyword prefix either via the Task (or TaskMarshalByRef) base class constructor, or the
+        /// Task.HelpKeywordPrefix (or AppDomainIsolatedTask.HelpKeywordPrefix) property.
+        ///
+        /// Thread safe.
+        /// </summary>
+        /// <param name="messageResource">The string resource to load.</param>
+        /// <param name="messageArgs">Optional arguments for formatting the loaded string.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <c>messageResource</c> is null.</exception>
+        internal void LogErrorWithCodeFromResources(ResourceString messageResource, params object[] messageArgs)
+            => LogErrorWithCodeFromResources(null, null, 0, 0, 0, 0, messageResource, messageArgs);
+
+        /// <summary>
         /// Logs an error using the specified resource string and other error details.
         /// If the message has an error code prefixed, the code is extracted and logged with the message. If a
         /// help keyword prefix has been provided, a help keyword for the host IDE is also logged with the message. The help
@@ -898,6 +977,56 @@ namespace Microsoft.Build.Utilities
                 endLineNumber,
                 endColumnNumber,
                 message);
+        }
+
+        /// <summary>
+        /// Logs an error using the specified resource string and other error details.
+        /// If the message has an error code prefixed, the code is extracted and logged with the message. If a
+        /// help keyword prefix has been provided, a help keyword for the host IDE is also logged with the message. The help
+        /// keyword is composed by appending the error message resource string name to the prefix.
+        ///
+        /// A task can provide a help keyword prefix either via the Task (or TaskMarshalByRef) base class constructor, or the
+        /// Task.HelpKeywordPrefix (or AppDomainIsolatedTask.HelpKeywordPrefix) property.
+        ///
+        /// Thread safe.
+        /// </summary>
+        /// <param name="subcategoryResourceName">The name of the string resource that describes the error type (can be null).</param>
+        /// <param name="file">The path to the file containing the error (can be null).</param>
+        /// <param name="lineNumber">The line in the file where the error occurs (set to zero if not available).</param>
+        /// <param name="columnNumber">The column in the file where the error occurs (set to zero if not available).</param>
+        /// <param name="endLineNumber">The last line of a range of lines in the file where the error occurs (set to zero if not available).</param>
+        /// <param name="endColumnNumber">The last column of a range of columns in the file where the error occurs (set to zero if not available).</param>
+        /// <param name="messageResource">The string resource containing the error message.</param>
+        /// <param name="messageArgs">Optional arguments for formatting the loaded string.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <c>messageResource</c> is null.</exception>
+        internal void LogErrorWithCodeFromResources(
+            string subcategoryResourceName,
+            string file,
+            int lineNumber,
+            int columnNumber,
+            int endLineNumber,
+            int endColumnNumber,
+            ResourceString messageResource,
+            params object[] messageArgs)
+        {
+            // No lock needed, as the logging methods are thread safe and the rest does not modify
+            // global state.
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            string subcategory = subcategoryResourceName != null
+                ? FormatResourceString(subcategoryResourceName)
+                : null;
+
+            LogError(
+                subcategory,
+                messageResource.Code,
+                messageResource.HelpKeyword,
+                file,
+                lineNumber,
+                columnNumber,
+                endLineNumber,
+                endColumnNumber,
+                messageResource.FormatStripCode(messageArgs));
         }
 
         /// <summary>
@@ -1037,7 +1166,11 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
+#if BUILD_ENGINE
             ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
+#else
+            InvalidOperationException.ThrowIfFalse(BuildEngine != null, AssemblyResources.LoggingBeforeTaskInitialization, message);
+#endif
 
             // All of our warnings should have an error code, so the user has something
             // to look up in the documentation. To help find warnings without error codes,
@@ -1176,9 +1309,24 @@ namespace Microsoft.Build.Utilities
         /// <param name="messageArgs">Optional arguments for formatting the loaded string.</param>
         /// <exception cref="ArgumentNullException">Thrown when <c>messageResourceName</c> is null.</exception>
         public void LogWarningWithCodeFromResources(string messageResourceName, params object[] messageArgs)
-        {
-            LogWarningWithCodeFromResources(null, null, 0, 0, 0, 0, messageResourceName, messageArgs);
-        }
+            => LogWarningWithCodeFromResources(subcategoryResourceName: null, file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0, messageResourceName, messageArgs);
+
+        /// <summary>
+        /// Logs a warning using the specified resource string.
+        /// If the message has a warning code prefixed to it, the code is extracted and logged with the message. If a help keyword
+        /// prefix has been provided, a help keyword for the host IDE is also logged with the message. The help keyword is
+        /// composed by appending the string resource name to the prefix.
+        ///
+        /// A task can provide a help keyword prefix either via the Task (or TaskMarshalByRef) base class constructor, or the
+        /// Task.HelpKeywordPrefix (or AppDomainIsolatedTask.HelpKeywordPrefix) property.
+        ///
+        /// Thread safe.
+        /// </summary>
+        /// <param name="messageResource">The name of the string resource to load.</param>
+        /// <param name="messageArgs">Optional arguments for formatting the loaded string.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <c>messageResource</c> is null.</exception>
+        internal void LogWarningWithCodeFromResources(ResourceString messageResource, params object[] messageArgs)
+            => LogWarningWithCodeFromResources(subcategoryResourceName: null, file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0, messageResource, messageArgs);
 
         /// <summary>
         /// Logs a warning using the specified resource string and other warning details.
@@ -1245,6 +1393,56 @@ namespace Microsoft.Build.Utilities
                 endLineNumber,
                 endColumnNumber,
                 message);
+        }
+
+        /// <summary>
+        /// Logs a warning using the specified resource string and other warning details.
+        /// If the message has a warning code, the code is extracted and logged with the message.
+        /// If a help keyword prefix has been provided, a help keyword for the host IDE is also logged with the message. The help
+        /// keyword is composed by appending the warning message resource string name to the prefix.
+        ///
+        /// A task can provide a help keyword prefix either via the Task (or TaskMarshalByRef) base class constructor, or the
+        /// Task.HelpKeywordPrefix (or AppDomainIsolatedTask.HelpKeywordPrefix) property.
+        ///
+        /// Thread safe.
+        /// </summary>
+        /// <param name="subcategoryResourceName">The name of the string resource that describes the warning type (can be null).</param>
+        /// <param name="file">The path to the file causing the warning (can be null).</param>
+        /// <param name="lineNumber">The line in the file causing the warning (set to zero if not available).</param>
+        /// <param name="columnNumber">The column in the file causing the warning (set to zero if not available).</param>
+        /// <param name="endLineNumber">The last line of a range of lines in the file causing the warning (set to zero if not available).</param>
+        /// <param name="endColumnNumber">The last column of a range of columns in the file causing the warning (set to zero if not available).</param>
+        /// <param name="messageResource">The string resource containing the warning message.</param>
+        /// <param name="messageArgs">Optional arguments for formatting the loaded string.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <c>messageResource</c> is null.</exception>
+        internal void LogWarningWithCodeFromResources(
+            string subcategoryResourceName,
+            string file,
+            int lineNumber,
+            int columnNumber,
+            int endLineNumber,
+            int endColumnNumber,
+            ResourceString messageResource,
+            params object[] messageArgs)
+        {
+            // No lock needed, as log methods are thread safe and the rest does not modify
+            // global state.
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            string subcategory = subcategoryResourceName != null
+                ? FormatResourceString(subcategoryResourceName)
+                : null;
+
+            LogWarning(
+                subcategory,
+                messageResource.Code,
+                messageResource.HelpKeyword,
+                file,
+                lineNumber,
+                columnNumber,
+                endLineNumber,
+                endColumnNumber,
+                messageResource.FormatStripCode(messageArgs));
         }
 
         /// <summary>

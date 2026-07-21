@@ -47,9 +47,6 @@ namespace Microsoft.Build.Utilities
     ///     The event source will be cleaned up.  This may be interesting because the unregister will come from a thread other than what is doing the logging.
     ///     This may create a Synchronization issue, if unregister is called while events are being logged.
     /// </summary>
-    //
-    // UNDONE: If we can use ErrorUtilities, replace all InvalidOperation and Argument exceptions with the appropriate calls.
-    //
     public class MuxLogger : INodeLogger
     {
         /// <summary>
@@ -1256,7 +1253,10 @@ namespace Microsoft.Build.Utilities
                     ProjectFinishedEventArgs projectFinishedEvent = buildEvent as ProjectFinishedEventArgs;
                     if (projectFinishedEvent != null && buildEvent.BuildEventContext?.Equals(_firstProjectStartedEventContext) == true)
                     {
-                        string message = projectFinishedEvent.Succeeded ? ResourceUtilities.GetResourceString("MuxLogger_BuildFinishedSuccess") : ResourceUtilities.GetResourceString("MuxLogger_BuildFinishedFailure");
+                        string message = projectFinishedEvent.Succeeded
+                            ? AssemblyResources.MuxLogger_BuildFinishedSuccess.Text
+                            : AssemblyResources.MuxLogger_BuildFinishedFailure.Text;
+
                         RaiseBuildFinishedEvent(sender, new BuildFinishedEventArgs(message, null, projectFinishedEvent.Succeeded));
                         Shutdown();
                     }

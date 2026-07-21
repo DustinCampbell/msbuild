@@ -518,22 +518,15 @@ namespace Microsoft.Build.Utilities
         /// <param name="parameter">Switch parameter to scan</param>
         protected virtual void VerifyThrowNoEmbeddedDoubleQuotes(string switchName, string parameter)
         {
-            if (parameter != null)
+            if (parameter?.IndexOf('"') >= 0)
             {
                 if (string.IsNullOrEmpty(switchName))
                 {
-                    ErrorUtilities.VerifyThrowArgument(
-                            -1 == parameter.IndexOf('"'),
-                            "General.QuotesNotAllowedInThisKindOfTaskParameterNoSwitchName",
-                            parameter);
+                    throw new ArgumentException(AssemblyResources.General_QuotesNotAllowedInThisKindOfTaskParameterNoSwitchName.FormatStripCode(parameter));
                 }
                 else
                 {
-                    ErrorUtilities.VerifyThrowArgument(
-                            -1 == parameter.IndexOf('"'),
-                            "General.QuotesNotAllowedInThisKindOfTaskParameter",
-                            switchName,
-                            parameter);
+                    throw new ArgumentException(AssemblyResources.General_QuotesNotAllowedInThisKindOfTaskParameter.FormatStripCode(switchName, parameter));
                 }
             }
         }

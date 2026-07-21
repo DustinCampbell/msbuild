@@ -2004,67 +2004,30 @@ namespace Microsoft.Build.Utilities
         }
 
         private static Version TargetDotNetFrameworkVersionToSystemVersion(TargetDotNetFrameworkVersion version)
-        {
-            switch (version)
+            => version switch
             {
-                case TargetDotNetFrameworkVersion.Version11:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion11;
+                TargetDotNetFrameworkVersion.Version11 => FrameworkLocationHelper.dotNetFrameworkVersion11,
+                TargetDotNetFrameworkVersion.Version20 => FrameworkLocationHelper.dotNetFrameworkVersion20,
+                TargetDotNetFrameworkVersion.Version30 => FrameworkLocationHelper.dotNetFrameworkVersion30,
+                TargetDotNetFrameworkVersion.Version35 => FrameworkLocationHelper.dotNetFrameworkVersion35,
+                TargetDotNetFrameworkVersion.Version40 => FrameworkLocationHelper.dotNetFrameworkVersion40,
+                TargetDotNetFrameworkVersion.Version45 => FrameworkLocationHelper.dotNetFrameworkVersion45,
+                TargetDotNetFrameworkVersion.Version451 => FrameworkLocationHelper.dotNetFrameworkVersion451,
+                TargetDotNetFrameworkVersion.Version452 => FrameworkLocationHelper.dotNetFrameworkVersion452,
+                TargetDotNetFrameworkVersion.Version46 => FrameworkLocationHelper.dotNetFrameworkVersion46,
+                TargetDotNetFrameworkVersion.Version461 => FrameworkLocationHelper.dotNetFrameworkVersion461,
+                TargetDotNetFrameworkVersion.Version462 => FrameworkLocationHelper.dotNetFrameworkVersion462,
+                TargetDotNetFrameworkVersion.Version47 => FrameworkLocationHelper.dotNetFrameworkVersion47,
+                TargetDotNetFrameworkVersion.Version471 => FrameworkLocationHelper.dotNetFrameworkVersion471,
+                TargetDotNetFrameworkVersion.Version472 => FrameworkLocationHelper.dotNetFrameworkVersion472,
+                TargetDotNetFrameworkVersion.Version48 => FrameworkLocationHelper.dotNetFrameworkVersion48,
+                TargetDotNetFrameworkVersion.Version481 or TargetDotNetFrameworkVersion.Latest => FrameworkLocationHelper.dotNetFrameworkVersion481,
 
-                case TargetDotNetFrameworkVersion.Version20:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion20;
-
-                case TargetDotNetFrameworkVersion.Version30:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion30;
-
-                case TargetDotNetFrameworkVersion.Version35:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion35;
-
-                case TargetDotNetFrameworkVersion.Version40:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion40;
-
-                case TargetDotNetFrameworkVersion.Version45:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion45;
-
-                case TargetDotNetFrameworkVersion.Version451:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion451;
-
-                case TargetDotNetFrameworkVersion.Version452:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion452;
-
-                case TargetDotNetFrameworkVersion.Version46:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion46;
-
-                case TargetDotNetFrameworkVersion.Version461:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion461;
-
-                case TargetDotNetFrameworkVersion.Version462:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion462;
-
-                case TargetDotNetFrameworkVersion.Version47:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion47;
-
-                case TargetDotNetFrameworkVersion.Version471:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion471;
-
-                case TargetDotNetFrameworkVersion.Version472:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion472;
-
-                case TargetDotNetFrameworkVersion.Version48:
-                    return FrameworkLocationHelper.dotNetFrameworkVersion48;
-
-                case TargetDotNetFrameworkVersion.Version481:
-                case TargetDotNetFrameworkVersion.Latest: // Latest is a special value to indicate the highest version we know about.
-                    return FrameworkLocationHelper.dotNetFrameworkVersion481;
-
-                default:
-                    ErrorUtilities.ThrowArgument("ToolLocationHelper.UnsupportedFrameworkVersion", version);
-                    return null;
-            }
-        }
+                _ => throw new ArgumentException(AssemblyResources.ToolLocationHelper_UnsupportedFrameworkVersion.FormatStripCode(version)),
+            };
 
         private static Version VisualStudioVersionToSystemVersion(VisualStudioVersion version)
-        {
-            return version switch
+            => version switch
             {
                 VisualStudioVersion.Version100 => FrameworkLocationHelper.visualStudioVersion100,
                 VisualStudioVersion.Version110 => FrameworkLocationHelper.visualStudioVersion110,
@@ -2074,15 +2037,9 @@ namespace Microsoft.Build.Utilities
                 VisualStudioVersion.Version160 => FrameworkLocationHelper.visualStudioVersion160,
                 VisualStudioVersion.Version170 => FrameworkLocationHelper.visualStudioVersion170,
                 VisualStudioVersion.Version180 => FrameworkLocationHelper.visualStudioVersion180,
-                _ => Unsupported()
-            };
 
-            Version Unsupported()
-            {
-                ErrorUtilities.ThrowArgument("ToolLocationHelper.UnsupportedVisualStudioVersion", version);
-                return null;
-            }
-        }
+                _ => throw new ArgumentException(AssemblyResources.ToolLocationHelper_UnsupportedVisualStudioVersion.FormatStripCode(version))
+            };
 
         /// <summary>
         /// Generate the key which will be used for the reference assembly cache so that multiple static methods will generate it in the same way.
@@ -3169,11 +3126,11 @@ namespace Microsoft.Build.Utilities
             }
             catch (XmlException ex)
             {
-                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper.InvalidRedistFile", redistFilePath, ex.Message);
+                InvalidOperationException.Throw(AssemblyResources.ToolsLocationHelper_InvalidRedistFile, redistFilePath, ex.Message);
             }
             catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
-                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper.InvalidRedistFile", redistFilePath, ex.Message);
+                InvalidOperationException.Throw(AssemblyResources.ToolsLocationHelper_InvalidRedistFile, redistFilePath, ex.Message);
             }
 
             // Cache the display name if we have one
@@ -3221,7 +3178,7 @@ namespace Microsoft.Build.Utilities
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
             {
-                ErrorUtilities.ThrowInvalidOperation("ToolsLocationHelper.CouldNotCreateChain", path, pathToReturn, e.Message);
+                InvalidOperationException.Throw(AssemblyResources.ToolsLocationHelper_CouldNotCreateChain, path, pathToReturn, e.Message);
             }
 
             return null;
@@ -3984,6 +3941,6 @@ namespace Microsoft.Build.Utilities
             }
         }
 
-#endregion
+        #endregion
     }
 }
