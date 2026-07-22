@@ -209,24 +209,13 @@ namespace Microsoft.Build.Utilities
         {
             ArgumentNullException.ThrowIfNull(resourceName);
 
-#if BUILD_ENGINE
-            ErrorUtilities.VerifyThrowInvalidOperation(TaskResources != null, "TaskResourcesNotRegistered", TaskName);
-#else
-            InvalidOperationException.ThrowIfFalse(TaskResources != null, AssemblyResources.TaskResourcesNotRegistered, TaskName);
-#endif
+            InvalidOperationException.ThrowIfTrue(TaskResources is null, AssemblyResources.TaskResourcesNotRegistered, TaskName);
 
             string resourceString = TaskResources.GetString(resourceName, CultureInfo.CurrentUICulture);
 
-#if BUILD_ENGINE
-            ErrorUtilities.VerifyThrowArgument(resourceString != null, "TaskResourceNotFound", resourceName, TaskName);
-#else
-            if (resourceString is null)
-            {
-                throw new ArgumentException(AssemblyResources.TaskResourceNotFound.FormatStripCode(resourceName, TaskName));
-            }
-#endif
-
-            return FormatString(resourceString, args);
+            return resourceString is not null
+                ? FormatString(resourceString, args)
+                : throw new ArgumentException(AssemblyResources.TaskResourceNotFound.FormatStripCode(resourceName, TaskName));
         }
 
         /// <summary>
@@ -335,11 +324,7 @@ namespace Microsoft.Build.Utilities
             if (BuildEngine == null)
             {
                 // Do not use Verify[...] as it would read e.Message ahead of time
-#if BUILD_ENGINE
-                ErrorUtilities.ThrowInvalidOperation("LoggingBeforeTaskInitialization", e.Message);
-#else
                 InvalidOperationException.Throw(AssemblyResources.LoggingBeforeTaskInitialization, e.Message);
-#endif
             }
 
             BuildEngine.LogMessageEvent(e);
@@ -392,11 +377,7 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
-#if BUILD_ENGINE
-            ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
-#else
-            InvalidOperationException.ThrowIfFalse(BuildEngine != null, AssemblyResources.LoggingBeforeTaskInitialization, message);
-#endif
+            InvalidOperationException.ThrowIfTrue(BuildEngine is null, AssemblyResources.LoggingBeforeTaskInitialization, message);
 
             // If the task has missed out all location information, add the location of the task invocation;
             // that gives the user something.
@@ -453,11 +434,7 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
-#if BUILD_ENGINE
-            ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
-#else
-            InvalidOperationException.ThrowIfFalse(BuildEngine != null, AssemblyResources.LoggingBeforeTaskInitialization, message);
-#endif
+            InvalidOperationException.ThrowIfTrue(BuildEngine is null, AssemblyResources.LoggingBeforeTaskInitialization, message);
 
             // If the task has missed out all location information, add the location of the task invocation;
             // that gives the user something.
@@ -676,11 +653,7 @@ namespace Microsoft.Build.Utilities
             if (BuildEngine == null)
             {
                 // Do not use Verify[...] as it would read e.Message ahead of time
-#if BUILD_ENGINE
-                ErrorUtilities.ThrowInvalidOperation("LoggingBeforeTaskInitialization", e.Message);
-#else
                 InvalidOperationException.Throw(AssemblyResources.LoggingBeforeTaskInitialization, e.Message);
-#endif
             }
 
             BuildEngine.LogMessageEvent(e);
@@ -767,11 +740,7 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
-#if BUILD_ENGINE
-            ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
-#else
-            InvalidOperationException.ThrowIfFalse(BuildEngine != null, AssemblyResources.LoggingBeforeTaskInitialization, message);
-#endif
+            InvalidOperationException.ThrowIfTrue(BuildEngine is null, AssemblyResources.LoggingBeforeTaskInitialization, message);
 
             // All of our errors should have an error code, so the user has something
             // to look up in the documentation. To help find errors without error codes,
@@ -1166,11 +1135,7 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
-#if BUILD_ENGINE
-            ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
-#else
-            InvalidOperationException.ThrowIfFalse(BuildEngine != null, AssemblyResources.LoggingBeforeTaskInitialization, message);
-#endif
+            InvalidOperationException.ThrowIfTrue(BuildEngine is null, AssemblyResources.LoggingBeforeTaskInitialization, message);
 
             // All of our warnings should have an error code, so the user has something
             // to look up in the documentation. To help find warnings without error codes,

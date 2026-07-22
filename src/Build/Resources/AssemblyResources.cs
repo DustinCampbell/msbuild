@@ -1,9 +1,12 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Resources;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Utilities;
 
 namespace Microsoft.Build.Shared;
 
@@ -12,6 +15,12 @@ namespace Microsoft.Build.Shared;
 /// </summary>
 internal static class AssemblyResources
 {
+    private const string PrimaryResourcesName = "Microsoft.Build.Strings";
+
+    private static readonly ResourceProvider s_provider = new(
+        primaryResources: new ResourceManager(PrimaryResourcesName, typeof(AssemblyResources).Assembly),
+        sharedResources: Framework.Resources.SR.ResourceManager);
+
     /// <summary>
     ///  Gets the assembly's primary resources, i.e. the resources exclusively owned by this assembly.
     /// </summary>
@@ -43,4 +52,14 @@ internal static class AssemblyResources
 
         return resource;
     }
+
+    private static ResourceString Create([NotNull] ref ResourceString? field, [CallerMemberName] string? name = null, CultureInfo? culture = null)
+    {
+        Assumed.NotNull(name);
+        return field ?? InterlockedOperations.Initialize(ref field, new ResourceString(s_provider, name, culture));
+    }
+
+    internal static ResourceString LoggingBeforeTaskInitialization => Create(ref field);
+    internal static ResourceString TaskResourceNotFound => Create(ref field);
+    internal static ResourceString TaskResourcesNotRegistered => Create(ref field);
 }
