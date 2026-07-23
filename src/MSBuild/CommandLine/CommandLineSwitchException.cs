@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Security.Permissions;
 #endif
 
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Shared;
 
 #nullable disable
@@ -23,9 +24,8 @@ namespace Microsoft.Build.CommandLine.Experimental
         /// This constructor initializes the exception message.
         /// </summary>
         /// <param name="message"></param>
-        private CommandLineSwitchException(
-            string message) :
-            base(message)
+        private CommandLineSwitchException(string message)
+            : base(message)
         {
             // do nothing
         }
@@ -35,10 +35,8 @@ namespace Microsoft.Build.CommandLine.Experimental
         /// </summary>
         /// <param name="message"></param>
         /// <param name="commandLineArg"></param>
-        private CommandLineSwitchException(
-            string message,
-            string commandLineArg) :
-            this(message)
+        private CommandLineSwitchException(string message, string commandLineArg)
+            : this(message)
         {
             this.commandLineArg = commandLineArg;
         }
@@ -49,10 +47,8 @@ namespace Microsoft.Build.CommandLine.Experimental
 #if NET8_0_OR_GREATER
         [Obsolete(DiagnosticId = "SYSLIB0051")]
 #endif
-        private CommandLineSwitchException(
-            SerializationInfo info,
-            StreamingContext context) :
-            base(info, context)
+        private CommandLineSwitchException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
         {
             ArgumentNullException.ThrowIfNull(info);
 
@@ -63,31 +59,15 @@ namespace Microsoft.Build.CommandLine.Experimental
         /// Gets the error message and the invalid switch, or only the error message if no invalid switch is set.
         /// </summary>
         public override string Message
-        {
-            get
-            {
-                if (commandLineArg == null)
-                {
-                    return base.Message;
-                }
-                else
-                {
-                    return base.Message + Environment.NewLine + ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidSwitchIndicator", commandLineArg);
-                }
-            }
-        }
+            => commandLineArg == null
+                ? base.Message
+                : base.Message + Environment.NewLine + AssemblyResources.InvalidSwitchIndicator.FormatStripCode(commandLineArg);
 
         /// <summary>
         /// Gets the invalid switch that caused the exception.
         /// </summary>
         /// <value>Can be null.</value>
-        internal string CommandLineArg
-        {
-            get
-            {
-                return commandLineArg;
-            }
-        }
+        internal string CommandLineArg => commandLineArg;
 
         // the invalid switch causing this exception
         private string commandLineArg;
@@ -112,18 +92,19 @@ namespace Microsoft.Build.CommandLine.Experimental
         /// Throws the exception if the specified condition is not met.
         /// </summary>
         /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="commandLineArg"></param>
-        internal static void VerifyThrow(bool condition, string messageResourceName, string commandLineArg)
+        internal static void VerifyThrow(bool condition, ResourceString messageResource, string commandLineArg)
         {
             if (!condition)
             {
-                Throw(messageResourceName, commandLineArg);
+                Throw(messageResource, commandLineArg);
             }
 #if DEBUG
             else
             {
-                ResourceUtilities.VerifyResourceStringExists(messageResourceName);
+                // Force ResourceString.Text to verify that the resource string exists.
+                _ = messageResource.Text;
             }
 #endif
         }
@@ -131,25 +112,19 @@ namespace Microsoft.Build.CommandLine.Experimental
         /// <summary>
         /// Throws the exception using the given message and the command line argument containing the switch error.
         /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="commandLineArg"></param>
-        internal static void Throw(string messageResourceName, string commandLineArg)
-        {
-            Throw(messageResourceName, commandLineArg, String.Empty);
-        }
+        internal static void Throw(ResourceString messageResource, string commandLineArg)
+            => throw new CommandLineSwitchException(messageResource.TextWithoutCode, commandLineArg);
 
         /// <summary>
         /// Throws the exception using the given message and the command line argument containing the switch error.
         /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="messageArgs"></param>
-        internal static void Throw(string messageResourceName, string commandLineArg, params string[] messageArgs)
+        internal static void Throw(ResourceString messageResource, string commandLineArg, params string[] messageArgs)
         {
-            string errorMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(messageResourceName, messageArgs);
-
-            Assumed.NotNull(errorMessage, "The resource string must exist.");
+            string errorMessage = messageResource.FormatStripCode(messageArgs);
 
             throw new CommandLineSwitchException(errorMessage, commandLineArg);
         }

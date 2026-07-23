@@ -13,11 +13,12 @@ using System.Threading.Tasks;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Experimental.FileAccess;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Utilities;
-using Microsoft.Build.Experimental.FileAccess;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+
 #if FEATURE_APPDOMAIN
 using System.Runtime.Remoting;
 #endif
@@ -345,7 +346,7 @@ namespace Microsoft.Build.CommandLine
             {
                 if (!CallbacksSupported)
                 {
-                    LogErrorFromResource("BuildEngineCallbacksInTaskHostUnsupported");
+                    LogErrorFromResource(AssemblyResources.BuildEngineCallbacksInTaskHostUnsupported);
                     return false;
                 }
 
@@ -488,7 +489,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (!CallbacksSupported)
             {
-                LogErrorFromResource("BuildEngineCallbacksInTaskHostUnsupported");
+                LogErrorFromResource(AssemblyResources.BuildEngineCallbacksInTaskHostUnsupported);
                 return false;
             }
 
@@ -506,7 +507,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (!CallbacksSupported)
             {
-                LogErrorFromResource("BuildEngineCallbacksInTaskHostUnsupported");
+                LogErrorFromResource(AssemblyResources.BuildEngineCallbacksInTaskHostUnsupported);
                 return false;
             }
 
@@ -527,7 +528,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (!CallbacksSupported)
             {
-                LogErrorFromResource("BuildEngineCallbacksInTaskHostUnsupported");
+                LogErrorFromResource(AssemblyResources.BuildEngineCallbacksInTaskHostUnsupported);
                 return false;
             }
 
@@ -571,7 +572,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (!CallbacksSupported)
             {
-                LogErrorFromResource("BuildEngineCallbacksInTaskHostUnsupported");
+                LogErrorFromResource(AssemblyResources.BuildEngineCallbacksInTaskHostUnsupported);
                 return new BuildEngineResult(false, null);
             }
 
@@ -1676,7 +1677,7 @@ namespace Microsoft.Build.CommandLine
                         {
                             if (_updateEnvironmentAndLog)
                             {
-                                LogMessageFromResource(MessageImportance.Low, "ModifyingTaskHostEnvironmentHeader");
+                                LogMessageFromResource(MessageImportance.Low, AssemblyResources.ModifyingTaskHostEnvironmentHeader);
                             }
 
                             updatedEnvironment = new Dictionary<string, string>(environment, StringComparer.OrdinalIgnoreCase);
@@ -1686,7 +1687,7 @@ namespace Microsoft.Build.CommandLine
                         {
                             if (_updateEnvironmentAndLog)
                             {
-                                LogMessageFromResource(MessageImportance.Low, "ModifyingTaskHostEnvironmentVariable", variable.Key, newValue, environmentValue ?? String.Empty);
+                                LogMessageFromResource(MessageImportance.Low, AssemblyResources.ModifyingTaskHostEnvironmentVariable, variable.Key, newValue, environmentValue ?? String.Empty);
                             }
 
                             updatedEnvironment[variable.Key] = newValue;
@@ -1831,7 +1832,7 @@ namespace Microsoft.Build.CommandLine
                 {
                     // log a warning and bail.  This will end up re-calling SendBuildEvent, but we know for a fact
                     // that the warning that we constructed is serializable, so everything should be good.
-                    LogWarningFromResource("ExpectedEventToBeSerializable", e.GetType().Name);
+                    LogWarningFromResource(AssemblyResources.ExpectedEventToBeSerializable, e.GetType().Name);
                     return;
                 }
 
@@ -1843,12 +1844,12 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Generates the message event corresponding to a particular resource string and set of args
         /// </summary>
-        private void LogMessageFromResource(MessageImportance importance, string messageResource, params object[] messageArgs)
+        private void LogMessageFromResource(MessageImportance importance, ResourceString messageResource, params object[] messageArgs)
         {
             Assumed.NotNull(EffectiveConfiguration, "We should never have a null configuration when we're trying to log messages!");
 
             BuildMessageEventArgs message = new(
-                message: MessageFormatter.Format(AssemblyResources.GetString(messageResource), messageArgs),
+                message: messageResource.Format(messageArgs),
                 helpKeyword: null,
                 senderName: EffectiveConfiguration.TaskName,
                 importance);
@@ -1859,7 +1860,7 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Generates the error event corresponding to a particular resource string and set of args
         /// </summary>
-        private void LogWarningFromResource(string messageResource, params object[] messageArgs)
+        private void LogWarningFromResource(ResourceString messageResource, params object[] messageArgs)
         {
             Assumed.NotNull(EffectiveConfiguration, "We should never have a null configuration when we're trying to log warnings!");
 
@@ -1871,7 +1872,7 @@ namespace Microsoft.Build.CommandLine
                 columnNumber: ColumnNumberOfTaskNode,
                 endLineNumber: 0,
                 endColumnNumber: 0,
-                message: MessageFormatter.Format(AssemblyResources.GetString(messageResource), messageArgs),
+                message: messageResource.Format(messageArgs),
                 helpKeyword: null,
                 senderName: EffectiveConfiguration.TaskName);
 
@@ -1881,7 +1882,7 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Generates the error event corresponding to a particular resource string and set of args
         /// </summary>
-        private void LogErrorFromResource(string messageResource)
+        private void LogErrorFromResource(ResourceString messageResource)
         {
             Assumed.NotNull(EffectiveConfiguration, "We should never have a null configuration when we're trying to log errors!");
 
@@ -1893,7 +1894,7 @@ namespace Microsoft.Build.CommandLine
                 columnNumber: ColumnNumberOfTaskNode,
                 endLineNumber: 0,
                 endColumnNumber: 0,
-                message: AssemblyResources.GetString(messageResource),
+                message: messageResource.Text,
                 helpKeyword: null,
                 senderName: EffectiveConfiguration.TaskName);
 

@@ -2,6 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Framework;
+
+#if !BUILD_ENGINE
+using Microsoft.Build.Framework.Utilities;
+#endif
+
 #if FEATURE_APPDOMAIN
 using System;
 using System.Reflection;
@@ -23,10 +28,17 @@ namespace Microsoft.Build.Shared
         private static LoadedType? s_resolverLoadedType;
 #endif
 
+#if BUILD_ENGINE
         /// <summary>
         /// Delegate for logging task loading errors.
         /// </summary>
         internal delegate void LogError(string taskLocation, int taskLine, int taskColumn, string message, params object[] messageArgs);
+#else
+        /// <summary>
+        /// Delegate for logging task loading errors.
+        /// </summary>
+        internal delegate void LogError(string taskLocation, int taskLine, int taskColumn, ResourceString message, params object[] messageArgs);
+#endif
 
         /// <summary>
         /// Creates an ITask instance and returns it.
@@ -69,7 +81,11 @@ namespace Microsoft.Build.Shared
                             taskLocation,
                             taskLine,
                             taskColumn,
+#if BUILD_ENGINE
                             "TaskNotMarshalByRef",
+#else
+                            AssemblyResources.TaskNotMarshalByRef,
+#endif
                             taskName);
 
                         return null;
@@ -141,7 +157,11 @@ namespace Microsoft.Build.Shared
                         taskLocation,
                         taskLine,
                         taskColumn,
+#if BUILD_ENGINE
                         "ConflictingTaskAssembly",
+#else
+                        AssemblyResources.ConflictingTaskAssembly,
+#endif
                         loadedType.Assembly.AssemblyFile,
                         loadedType.Type.Assembly.Location);
 
@@ -153,7 +173,7 @@ namespace Microsoft.Build.Shared
                     taskInstanceInOtherAppDomain = (ITask)taskAppDomain.CreateInstanceAndUnwrap(loadedType.Type.Assembly.FullName, loadedType.Type.FullName);
                 }
 
-                return  taskInstanceInOtherAppDomain;
+                return taskInstanceInOtherAppDomain;
 #endif
             }
             finally

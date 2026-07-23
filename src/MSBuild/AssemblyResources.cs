@@ -1,9 +1,11 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Resources;
-using Microsoft.Build.Framework;
+using System.Runtime.CompilerServices;
+using Microsoft.Build.Framework.Utilities;
 
 namespace Microsoft.Build.Shared;
 
@@ -12,35 +14,200 @@ namespace Microsoft.Build.Shared;
 /// </summary>
 internal static class AssemblyResources
 {
-    /// <summary>
-    ///  Gets the assembly's primary resources, i.e. the resources exclusively owned by this assembly.
-    /// </summary>
-    internal static ResourceManager PrimaryResources { get; } = new ResourceManager("MSBuild.Strings", typeof(AssemblyResources).Assembly);
+    private const string PrimaryResourcesName = "MSBuild.Strings";
 
-    /// <summary>
-    ///  Gets the assembly's shared resources, i.e. the resources this assembly shares with other assemblies.
-    /// </summary>
-    internal static ResourceManager SharedResources => Framework.Resources.SR.ResourceManager;
+    private static readonly ResourceProvider s_provider = new(
+        primaryResources: new ResourceManager(PrimaryResourcesName, typeof(AssemblyResources).Assembly),
+        sharedResources: Framework.Resources.SR.ResourceManager);
 
-    /// <summary>
-    ///  Loads the specified resource string, either from the assembly's primary resources, or its shared resources.
-    /// </summary>
-    /// <param name="name">The name of the resource to load.</param>
-    /// <param name="culture">
-    ///  The culture to use when looking up the resource. If <see langword="null"/>, the current UI culture is used.
-    /// </param>
-    /// <returns>
-    ///  The resource string.
-    /// </returns>
-    /// <exception cref="InternalErrorException">Thrown if the resource is not found.</exception>
-    internal static string GetString(string name, CultureInfo? culture = null)
+    private static ResourceString Create([NotNull] ref ResourceString? field, [CallerMemberName] string? name = null, CultureInfo? culture = null)
     {
-        culture ??= CultureInfo.CurrentUICulture;
-        string? resource = PrimaryResources.GetString(name, culture) ??
-                           SharedResources.GetString(name, culture);
-
-        Assumed.NotNull(resource, $"Missing resource '{name}'");
-
-        return resource;
+        Assumed.NotNull(name);
+        return field ?? InterlockedOperations.Initialize(ref field, new ResourceString(s_provider, name, culture));
     }
+
+    internal static ResourceString AmbiguousProjectError => Create(ref field);
+    internal static ResourceString AmbiguousProjectDirectoryError => Create(ref field);
+    internal static ResourceString BuildEngineCallbacksInTaskHostUnsupported => Create(ref field);
+    internal static ResourceString BuildFailedWithPropertiesItemsOrTargetResultsRequested => Create(ref field);
+    internal static ResourceString CannotAutoDisableAutoResponseFile => Create(ref field);
+    internal static ResourceString CannotChangeItemSpecModifiers => Create(ref field);
+    internal static ResourceString CommandLine => Create(ref field);
+    internal static ResourceString CurrentDirectory => Create(ref field);
+    internal static ResourceString ConfigurationFailurePrefixNoErrorCode => Create(ref field);
+    internal static ResourceString ConflictingTaskAssembly => Create(ref field);
+    internal static ResourceString DuplicateBinaryLoggerPathsIgnored => Create(ref field);
+    internal static ResourceString DuplicateOutputResultsCache => Create(ref field);
+    internal static ResourceString DuplicateProjectSwitchError => Create(ref field);
+    internal static ResourceString EnvironmentVariableAsSwitch => Create(ref field);
+    internal static ResourceString ExpectedEventToBeSerializable => Create(ref field);
+    internal static ResourceString FatalError => Create(ref field);
+    internal static ResourceString HelpMessage_1_Syntax => Create(ref field);
+    internal static ResourceString HelpMessage_2_Description => Create(ref field);
+    internal static ResourceString HelpMessage_3_SwitchesHeader => Create(ref field);
+    internal static ResourceString HelpMessage_4_HelpSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_5_NoLogoSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_6_VersionSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_7_ResponseFile => Create(ref field);
+    internal static ResourceString HelpMessage_8_NoAutoResponseSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_9_TargetSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_10_PropertySwitch => Create(ref field);
+    internal static ResourceString HelpMessage_11_LoggerSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_12_VerbositySwitch => Create(ref field);
+    internal static ResourceString HelpMessage_13_ConsoleLoggerParametersSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_14_NoConsoleLoggerSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_15_ValidateSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_16_Examples => Create(ref field);
+    internal static ResourceString HelpMessage_17_MaximumCPUSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_18_DistributedLoggerSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_19_IgnoreProjectExtensionsSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_20_FileLoggerSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_21_DistributedFileLoggerSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_22_FileLoggerParametersSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_23_ToolsVersionSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_24_NodeReuse => Create(ref field);
+    internal static ResourceString HelpMessage_25_PreprocessSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_26_DetailedSummarySwitch => Create(ref field);
+    internal static ResourceString HelpMessage_28_WarnAsErrorSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_29_WarnAsMessageSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_30_BinaryLoggerSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_31_RestoreSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_32_ProfilerSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_33_RestorePropertySwitch => Create(ref field);
+    internal static ResourceString HelpMessage_34_InteractiveSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_35_IsolateProjectsSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_36_GraphBuildSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_37_DocsLink => Create(ref field);
+    internal static ResourceString HelpMessage_38_TargetsSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_39_LowPrioritySwitch => Create(ref field);
+    internal static ResourceString HelpMessage_40_WarnNotAsErrorSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_41_QuestionSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_42_ReportFileAccessesSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_43_GetPropertySwitch => Create(ref field);
+    internal static ResourceString HelpMessage_44_GetItemSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_45_GetTargetResultSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_46_FeatureAvailabilitySwitch => Create(ref field);
+    internal static ResourceString HelpMessage_47_TerminalLoggerSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_48_TerminalLoggerParametersSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_49_MultiThreadedSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_51_GetResultOutputFileSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_52_BuildCheckSwitch => Create(ref field);
+    internal static ResourceString HelpMessage_InputCachesFiles => Create(ref field);
+    internal static ResourceString HelpMessage_OutputCacheFile => Create(ref field);
+    internal static ResourceString HelpPrompt => Create(ref field);
+    internal static ResourceString InvalidConfigurationFile => Create(ref field);
+    internal static ResourceString InvalidDetailedSummaryValue => Create(ref field);
+    internal static ResourceString InvalidExtensionToIgnore => Create(ref field);
+    internal static ResourceString InvalidGraphBuildValue => Create(ref field);
+    internal static ResourceString InvalidInteractiveValue => Create(ref field);
+    internal static ResourceString InvalidIsolateProjectsValue => Create(ref field);
+    internal static ResourceString InvalidLogFileFormat => Create(ref field);
+    internal static ResourceString InvalidLoggerError => Create(ref field);
+    internal static ResourceString InvalidLowPriorityValue => Create(ref field);
+    internal static ResourceString InvalidMaxCPUCountValue => Create(ref field);
+    internal static ResourceString InvalidMaxCPUCountValueOutsideRange => Create(ref field);
+    internal static ResourceString InvalidNodeNumberValue => Create(ref field);
+    internal static ResourceString InvalidNodeNumberValueIsNegative => Create(ref field);
+    internal static ResourceString InvalidNodeReuseValue => Create(ref field);
+    internal static ResourceString InvalidNoLogoValue => Create(ref field);
+    internal static ResourceString InvalidPreprocessPath => Create(ref field);
+    internal static ResourceString InvalidProfilerValue => Create(ref field);
+    internal static ResourceString InvalidPropertyError => Create(ref field);
+    internal static ResourceString InvalidRestoreValue => Create(ref field);
+    internal static ResourceString InvalidSchemaFile => Create(ref field);
+    internal static ResourceString InvalidSwitchIndicator => Create(ref field);
+    internal static ResourceString InvalidTerminalLoggerValue => Create(ref field);
+    internal static ResourceString InvalidToolsVersionError => Create(ref field);
+    internal static ResourceString InvalidVerbosityError => Create(ref field);
+    internal static ResourceString LoggingArgsEnvVarError => Create(ref field);
+    internal static ResourceString LoggingArgsEnvVarUnsupportedArgument => Create(ref field);
+    internal static ResourceString LoggingArgsEnvVarUsing => Create(ref field);
+    internal static ResourceString LoggerFailurePrefixNoErrorCode => Create(ref field);
+    internal static ResourceString LoggerFailurePrefixWithErrorCode => Create(ref field);
+    internal static ResourceString LoggerFatalError => Create(ref field);
+    internal static ResourceString LongPaths => Create(ref field);
+    internal static ResourceString LongPaths_Disabled => Create(ref field);
+    internal static ResourceString LongPaths_Enabled => Create(ref field);
+    internal static ResourceString LongPaths_Missing => Create(ref field);
+    internal static ResourceString MissingConsoleLoggerParameterError => Create(ref field);
+    internal static ResourceString MissingFeatureAvailabilityError => Create(ref field);
+    internal static ResourceString MissingFileLoggerParameterError => Create(ref field);
+    internal static ResourceString MissingGetItemError => Create(ref field);
+    internal static ResourceString MissingGetPropertyError => Create(ref field);
+    internal static ResourceString MissingGetResultFileError => Create(ref field);
+    internal static ResourceString MissingGetTargetResultError => Create(ref field);
+    internal static ResourceString MissingIgnoreProjectExtensionsError => Create(ref field);
+    internal static ResourceString MissingLoggerError => Create(ref field);
+    internal static ResourceString MissingMaxCPUCountError => Create(ref field);
+    internal static ResourceString MissingNodeReuseParameterError => Create(ref field);
+    internal static ResourceString MissingProfileParameterError => Create(ref field);
+    internal static ResourceString MissingProjectError => Create(ref field);
+    internal static ResourceString MissingPropertyError => Create(ref field);
+    internal static ResourceString MissingResponseFileError => Create(ref field);
+    internal static ResourceString MissingTargetError => Create(ref field);
+    internal static ResourceString MissingTerminalLoggerParameterError => Create(ref field);
+    internal static ResourceString MissingToolsVersionError => Create(ref field);
+    internal static ResourceString MissingVerbosityError => Create(ref field);
+    internal static ResourceString MissingWarnAsMessageParameterError => Create(ref field);
+    internal static ResourceString MissingWarnNotAsErrorParameterError => Create(ref field);
+    internal static ResourceString ModifyingTaskHostEnvironmentHeader => Create(ref field);
+    internal static ResourceString ModifyingTaskHostEnvironmentVariable => Create(ref field);
+    internal static ResourceString MSBExePath => Create(ref field);
+    internal static ResourceString MSBuildDebugPath => Create(ref field);
+    internal static ResourceString MSBuildServerConnectFailed => Create(ref field);
+    internal static ResourceString MSBuildServerCrashedOnLaunch => Create(ref field);
+    internal static ResourceString MSBuildServerLaunchError => Create(ref field);
+    internal static ResourceString MSBuildServerNodeSpawned => Create(ref field);
+    internal static ResourceString MSBuildServerNodeSpawnedShortLived => Create(ref field);
+    internal static ResourceString MSBuildServerNotUsedForBuild => Create(ref field);
+    internal static ResourceString MSBuildServerNodeReused => Create(ref field);
+    internal static ResourceString MSBuildServerReasonBusy => Create(ref field);
+    internal static ResourceString MSBuildServerReasonIncompatibleInvocation => Create(ref field);
+    internal static ResourceString MSBuildServerReasonNodeReuseDisabled => Create(ref field);
+    internal static ResourceString MSBuildServerReasonStdOutForChildNodes => Create(ref field);
+    internal static ResourceString MSBuildServerStateUnknown => Create(ref field);
+    internal static ResourceString MSBuildServerUnavailable => Create(ref field);
+    internal static ResourceString MSBuildVersionMessage => Create(ref field);
+    internal static ResourceString MSBVersion => Create(ref field);
+    internal static ResourceString MultipleSchemasError => Create(ref field);
+    internal static ResourceString NameInvalid => Create(ref field);
+    internal static ResourceString NotWarnAsErrorWithoutWarnAsError => Create(ref field);
+    internal static ResourceString OptionalLoggerCreationMessage => Create(ref field);
+    internal static ResourceString PickedUpSwitchesFromAutoResponse => Create(ref field);
+    internal static ResourceString PickedUpSwitchesFromResponseFile => Create(ref field);
+    internal static ResourceString PickedUpSwitchesFromResponseFiles => Create(ref field);
+    internal static ResourceString PossiblyOmittedMaxCPUSwitch => Create(ref field);
+    internal static ResourceString Process => Create(ref field);
+    internal static ResourceString ProjectNotFoundError => Create(ref field);
+    internal static ResourceString ProjectSchemaErrorHalt => Create(ref field);
+    internal static ResourceString ReadResponseFileError => Create(ref field);
+    internal static ResourceString RepeatedResponseFileError => Create(ref field);
+    internal static ResourceString ResponseFileNotFoundError => Create(ref field);
+    internal static ResourceString ResponseFileSwitchFromLocation => Create(ref field);
+    internal static ResourceString SAC => Create(ref field);
+    internal static ResourceString SAC_Enforcement => Create(ref field);
+    internal static ResourceString SAC_Evaluation => Create(ref field);
+    internal static ResourceString SAC_Off => Create(ref field);
+    internal static ResourceString SchemaFileLocation => Create(ref field);
+    internal static ResourceString SchemaNotFoundError => Create(ref field);
+    internal static ResourceString SchemaNotFoundErrorWithFile => Create(ref field);
+    internal static ResourceString SchemaValidationError => Create(ref field);
+    internal static ResourceString SolutionBuildInvalidForCommandLineEvaluation => Create(ref field);
+    internal static ResourceString SubCategoryForSchemaValidationErrors => Create(ref field);
+    internal static ResourceString SwitchErrorWithArguments => Create(ref field);
+    internal static ResourceString TargetsCouldNotBePrinted => Create(ref field);
+    internal static ResourceString TaskHostAcquired_NullsFiltered => Create(ref field);
+    internal static ResourceString TaskNotMarshalByRef => Create(ref field);
+    internal static ResourceString TerminalLoggerNotUsedAutomated => Create(ref field);
+    internal static ResourceString TerminalLoggerNotUsedDisabled => Create(ref field);
+    internal static ResourceString TerminalLoggerNotUsedRedirected => Create(ref field);
+    internal static ResourceString TerminalLoggerNotUsedNotSupported => Create(ref field);
+    internal static ResourceString UnexpectedParametersError => Create(ref field);
+    internal static ResourceString UnknownSwitchError => Create(ref field);
+    internal static ResourceString UnrecognizedToolsVersion => Create(ref field);
+    internal static ResourceString UnsupportedOS => Create(ref field);
+    internal static ResourceString UnsupportedSwitchForSolutionFiles => Create(ref field);
+    internal static ResourceString XMake_LoggerCreationError => Create(ref field, "XMake.LoggerCreationError");
+    internal static ResourceString XMake_LoggerNotFoundError => Create(ref field, "XMake.LoggerNotFoundError");
+    internal static ResourceString XMake_ProjectUpgradeNeededToVcxProj => Create(ref field, "XMake.ProjectUpgradeNeededToVcxProj");
 }

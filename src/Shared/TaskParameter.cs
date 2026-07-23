@@ -751,7 +751,14 @@ namespace Microsoft.Build.BackEnd
 
                 // Non-derivable metadata can only be set at construction time.
                 // That's why this is IsItemSpecModifier and not IsDerivableItemSpecModifier.
+#if !MSBUILDENTRYPOINTEXE
                 ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsDerivableItemSpecModifier(metadataName), "CannotChangeItemSpecModifiers", metadataName);
+#else
+                if (ItemSpecModifiers.IsDerivableItemSpecModifier(metadataName))
+                {
+                    throw new ArgumentException(AssemblyResources.CannotChangeItemSpecModifiers.FormatStripCode(metadataName), paramName: nameof(metadataName));
+                }
+#endif
 
                 _customEscapedMetadata ??= new Dictionary<string, string>(MSBuildNameIgnoreCaseComparer.Default);
 
@@ -765,7 +772,15 @@ namespace Microsoft.Build.BackEnd
             public void RemoveMetadata(string metadataName)
             {
                 ArgumentNullException.ThrowIfNull(metadataName);
+
+#if !MSBUILDENTRYPOINTEXE
                 ErrorUtilities.VerifyThrowArgument(!ItemSpecModifiers.IsItemSpecModifier(metadataName), "CannotChangeItemSpecModifiers", metadataName);
+#else
+                if (ItemSpecModifiers.IsItemSpecModifier(metadataName))
+                {
+                    throw new ArgumentException(AssemblyResources.CannotChangeItemSpecModifiers.FormatStripCode(metadataName), paramName: nameof(metadataName));
+                }
+#endif
 
                 if (_customEscapedMetadata == null)
                 {

@@ -1,9 +1,8 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Runtime.Serialization;
-
 #if FEATURE_SECURITY_PERMISSIONS
 using System.Security.Permissions;
 #endif
@@ -29,9 +28,8 @@ namespace Microsoft.Build.CommandLine
         /// This constructor initializes the exception message.
         /// </summary>
         /// <param name="message"></param>
-        private InitializationException(
-            string message) :
-            base(message)
+        private InitializationException(string message)
+            : base(message)
         {
             // do nothing
         }
@@ -41,10 +39,8 @@ namespace Microsoft.Build.CommandLine
         /// </summary>
         /// <param name="message"></param>
         /// <param name="invalidSwitch">Can be null.</param>
-        private InitializationException(
-            string message,
-            string invalidSwitch) :
-            this(message)
+        private InitializationException(string message, string invalidSwitch)
+            : this(message)
         {
             this.invalidSwitch = invalidSwitch;
         }
@@ -55,10 +51,8 @@ namespace Microsoft.Build.CommandLine
 #if NET8_0_OR_GREATER
         [Obsolete(DiagnosticId = "SYSLIB0051")]
 #endif
-        private InitializationException(
-            SerializationInfo info,
-            StreamingContext context) :
-            base(info, context)
+        private InitializationException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
         {
             ArgumentNullException.ThrowIfNull(info);
 
@@ -69,19 +63,9 @@ namespace Microsoft.Build.CommandLine
         /// Gets the error message and the invalid switch, or only the error message if no invalid switch is set.
         /// </summary>
         public override string Message
-        {
-            get
-            {
-                if (invalidSwitch == null)
-                {
-                    return base.Message;
-                }
-                else
-                {
-                    return base.Message + Environment.NewLine + ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidSwitchIndicator", invalidSwitch);
-                }
-            }
-        }
+            => invalidSwitch != null
+                ? base.Message + Environment.NewLine + AssemblyResources.InvalidSwitchIndicator.FormatStripCode(invalidSwitch)
+                : base.Message;
 
         // the invalid switch causing this exception (can be null)
         private string invalidSwitch;
@@ -106,28 +90,27 @@ namespace Microsoft.Build.CommandLine
         /// Throws the exception if the specified condition is not met.
         /// </summary>
         /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
-        internal static void VerifyThrow(bool condition, string messageResourceName)
-        {
-            VerifyThrow(condition, messageResourceName, null);
-        }
+        /// <param name="messageResource"></param>
+        internal static void VerifyThrow(bool condition, ResourceString messageResource)
+            => VerifyThrow(condition, messageResource, invalidSwitch: null);
 
         /// <summary>
         /// Throws the exception if the specified condition is not met.
         /// </summary>
         /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="invalidSwitch"></param>
-        internal static void VerifyThrow(bool condition, string messageResourceName, string invalidSwitch)
+        internal static void VerifyThrow(bool condition, ResourceString messageResource, string invalidSwitch)
         {
             if (!condition)
             {
-                Throw(messageResourceName, invalidSwitch, null, false);
+                Throw(messageResource, invalidSwitch, e: null, showStackTrace: false);
             }
 #if DEBUG
             else
             {
-                ResourceUtilities.VerifyResourceStringExists(messageResourceName);
+                // Force ResourceString.Text to verify that the resource string exists.
+                _ = messageResource.Text;
             }
 #endif
         }
@@ -135,65 +118,48 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Throws the exception using the given exception context.
         /// </summary>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="invalidSwitch"></param>
         /// <param name="e"></param>
         /// <param name="showStackTrace"></param>
-        internal static void Throw(string messageResourceName, string invalidSwitch, Exception e, bool showStackTrace)
+        internal static void Throw(ResourceString messageResource, string invalidSwitch, Exception e, bool showStackTrace)
         {
-            string errorMessage = AssemblyResources.GetString(messageResourceName);
-
-            Assumed.NotNull(errorMessage, "The resource string must exist.");
-
-            if (showStackTrace && e != null)
-            {
-                errorMessage += Environment.NewLine + e.ToString();
-            }
-            else
-            {
+            string errorMessage = showStackTrace && e != null
+                ? messageResource.Text + Environment.NewLine + e.ToString()
                 // the exception message can contain a format item i.e. "{0}" to hold the given exception's message
-                errorMessage = MessageFormatter.Format(errorMessage, e?.Message ?? string.Empty);
-            }
+                : messageResource.Format(e?.Message ?? string.Empty);
 
-            InitializationException.Throw(errorMessage, invalidSwitch);
+            Throw(errorMessage, invalidSwitch);
         }
 
         /// <summary>
         /// Throws the exception using the given exception context and can include the logger name.
         /// </summary>
-        internal static void Throw(string messageResourceName, string invalidSwitch, Exception e, bool showStackTrace, params object[] formatArgs)
+        internal static void Throw(ResourceString messageResource, string invalidSwitch, Exception e, bool showStackTrace, params object[] formatArgs)
         {
-            string errorMessage = AssemblyResources.GetString(messageResourceName);
-
-            Assumed.NotNull(errorMessage, "The resource string must exist.");
-
             // the exception message can contain a format item i.e.
             // "{0}" to hold the logger name
             // "{1}" to hold the given exception's message
-            errorMessage = MessageFormatter.Format(errorMessage, formatArgs);
+            string errorMessage = messageResource.Format(formatArgs);
 
             if (showStackTrace && e != null)
             {
                 errorMessage += Environment.NewLine + e.ToString();
             }
 
-            InitializationException.Throw(errorMessage, invalidSwitch);
+            Throw(errorMessage, invalidSwitch);
         }
 
         /// <summary>
         /// Throws the exception if the specified condition is not met.
         /// </summary>
-        internal static void VerifyThrow(bool condition, string messageResourceName, string invalidSwitch, params object[] args)
+        internal static void VerifyThrow(bool condition, ResourceString messageResource, string invalidSwitch, params object[] args)
         {
             if (!condition)
             {
-                string errorMessage = AssemblyResources.GetString(messageResourceName);
+                string errorMessage = messageResource.Format(args);
 
-                Assumed.NotNull(errorMessage, "The resource string must exist.");
-
-                errorMessage = MessageFormatter.Format(errorMessage, args);
-
-                InitializationException.Throw(errorMessage, invalidSwitch);
+                Throw(errorMessage, invalidSwitch);
             }
         }
 

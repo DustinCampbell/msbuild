@@ -20,6 +20,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Build.Collections;
+using Microsoft.Build.CommandLine.Experimental;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Eventing;
@@ -30,6 +31,7 @@ using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.ProjectCache;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Telemetry;
+using Microsoft.Build.Framework.Utilities;
 using Microsoft.Build.Graph;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Logging;
@@ -37,7 +39,6 @@ using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.Debugging;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Tasks.AssemblyDependency;
-using Microsoft.Build.CommandLine.Experimental;
 using BinaryLogger = Microsoft.Build.Logging.BinaryLogger;
 using ConsoleLogger = Microsoft.Build.Logging.ConsoleLogger;
 using FileLogger = Microsoft.Build.Logging.FileLogger;
@@ -216,7 +217,7 @@ namespace Microsoft.Build.CommandLine
                 builder.Append(message);
 
                 // One of the exceptions is missing a period!
-                if (message[message.Length - 1] != '.')
+                if (message[^1] != '.')
                 {
                     builder.Append('.');
                 }
@@ -226,7 +227,7 @@ namespace Microsoft.Build.CommandLine
             }
             while (exception != null);
 
-            Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidConfigurationFile", builder.ToString()));
+            Console.WriteLine(AssemblyResources.InvalidConfigurationFile.FormatStripCode(builder.ToString()));
 
             s_initialized = false;
         }
@@ -355,7 +356,7 @@ namespace Microsoft.Build.CommandLine
                     // switches disabled it and serverDisabled carries the reason.
                     s_serverNotUsed = canRunServer
                         ? new ServerNotUsedReason(
-                            ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerReasonStdOutForChildNodes"),
+                            AssemblyResources.MSBuildServerReasonStdOutForChildNodes.TextWithoutCode,
                             ServerNotUsedReasonCodeStdOutRedirected)
                         : serverDisabled;
                 }
@@ -467,8 +468,9 @@ namespace Microsoft.Build.CommandLine
                 {
                     canRunServer = false;
                     serverDisabled = new ServerNotUsedReason(
-                        ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerReasonIncompatibleInvocation"),
+                        AssemblyResources.MSBuildServerReasonIncompatibleInvocation.TextWithoutCode,
                         ServerNotUsedReasonCodeIncompatibleInvocation);
+
                     if (KnownTelemetry.PartialBuildTelemetry is not null)
                     {
                         KnownTelemetry.PartialBuildTelemetry.ServerFallbackReason = "Arguments";
@@ -478,8 +480,9 @@ namespace Microsoft.Build.CommandLine
                 {
                     canRunServer = false;
                     serverDisabled = new ServerNotUsedReason(
-                        ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerReasonNodeReuseDisabled"),
+                        AssemblyResources.MSBuildServerReasonNodeReuseDisabled.TextWithoutCode,
                         ServerNotUsedReasonCodeNodeReuseDisabled);
+
                     if (KnownTelemetry.PartialBuildTelemetry is not null)
                     {
                         KnownTelemetry.PartialBuildTelemetry.ServerFallbackReason = "Arguments";
@@ -494,12 +497,14 @@ namespace Microsoft.Build.CommandLine
             {
                 CommunicationsUtilities.Trace($"Unexpected exception during command line parsing. Can not determine if it is allowed to use Server. Fall back to old behavior. Exception: {ex}");
                 serverDisabled = new ServerNotUsedReason(
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerReasonIncompatibleInvocation"),
+                    AssemblyResources.MSBuildServerReasonIncompatibleInvocation.TextWithoutCode,
                     ServerNotUsedReasonCodeCommandLineParseError);
+
                 if (KnownTelemetry.PartialBuildTelemetry is not null)
                 {
                     KnownTelemetry.PartialBuildTelemetry.ServerFallbackReason = "ErrorParsingCommandLine";
                 }
+
                 canRunServer = false;
 
                 if (!switchesFullyGathered)
@@ -1014,7 +1019,7 @@ namespace Microsoft.Build.CommandLine
                         && preprocessWriter != null
                         && targetsWriter != null)
                     {
-                        Console.WriteLine(ResourceUtilities.GetResourceString("PossiblyOmittedMaxCPUSwitch"));
+                        Console.WriteLine(AssemblyResources.PossiblyOmittedMaxCPUSwitch.Text);
                     }
 
                     if (preprocessWriter != null && !BuildEnvironmentHelper.Instance.RunningTests)
@@ -1037,10 +1042,13 @@ namespace Microsoft.Build.CommandLine
                     else if (outputPropertiesItemsOrTargetResults && FileUtilities.IsSolutionFilename(projectFile))
                     {
                         exitType = ExitType.BuildError;
-                        CommandLineSwitchException.Throw("SolutionBuildInvalidForCommandLineEvaluation",
-                            getProperty.Length > 0 ? "getProperty" :
-                            getItem.Length > 0 ? "getItem" :
-                            "getTargetResult");
+                        CommandLineSwitchException.Throw(
+                            AssemblyResources.SolutionBuildInvalidForCommandLineEvaluation,
+                            getProperty.Length > 0
+                                ? "getProperty"
+                                : getItem.Length > 0
+                                    ? "getItem"
+                                    : "getTargetResult");
                     }
                     else if ((getProperty.Length > 0 || getItem.Length > 0) && (targets is null || targets.Length == 0))
                     {
@@ -1207,7 +1215,7 @@ namespace Microsoft.Build.CommandLine
             catch (InvalidToolsetDefinitionException e)
             {
                 // Brief prefix to indicate that it's a configuration failure, and provide the "error" indication
-                Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ConfigurationFailurePrefixNoErrorCode", e.ErrorCode, e.Message));
+                Console.WriteLine(AssemblyResources.ConfigurationFailurePrefixNoErrorCode.FormatStripCode(e.ErrorCode, e.Message));
 
                 exitType = ExitType.InitializationError;
             }
@@ -1225,13 +1233,13 @@ namespace Microsoft.Build.CommandLine
                 if (e.ErrorCode != null)
                 {
                     // Brief prefix to indicate that it's a logger failure, and provide the "error" indication
-                    Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("LoggerFailurePrefixNoErrorCode", e.ErrorCode, e.Message));
+                    Console.WriteLine(AssemblyResources.LoggerFailurePrefixNoErrorCode.FormatStripCode(e.ErrorCode, e.Message));
                 }
                 else
                 {
                     // Brief prefix to indicate that it's a logger failure, adding a generic error code to make sure
                     // there's something for the user to look up in the documentation
-                    Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("LoggerFailurePrefixWithErrorCode", e.Message));
+                    Console.WriteLine(AssemblyResources.LoggerFailurePrefixWithErrorCode.FormatStripCode(e.Message));
                 }
 
                 if (e.InnerException != null)
@@ -1314,7 +1322,7 @@ namespace Microsoft.Build.CommandLine
             catch (Exception e)
             {
                 // display a generic localized message for the user
-                Console.WriteLine("{0}\r\n{1}", AssemblyResources.GetString("FatalError"), e.ToString());
+                Console.WriteLine("{0}\r\n{1}", AssemblyResources.FatalError, e.ToString());
 #if DEBUG
                 Console.WriteLine("This is an unhandled exception in MSBuild Engine -- PLEASE OPEN A BUG AGAINST THE MSBUILD TEAM.\r\n{0}", e.ToString());
 #endif
@@ -1411,7 +1419,7 @@ namespace Microsoft.Build.CommandLine
             if (builtProject is null)
             {
                 // Build failed; do not proceed
-                Console.Error.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("BuildFailedWithPropertiesItemsOrTargetResultsRequested"));
+                Console.Error.WriteLine(AssemblyResources.BuildFailedWithPropertiesItemsOrTargetResultsRequested.TextWithoutCode);
             }
             // Special case if the user requests exactly one property: skip the json formatting
             else if (getProperty.Length == 1 && getItem.Length == 0 && getTargetResult.Length == 0)
@@ -1589,7 +1597,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (FileUtilities.IsVCProjFilename(projectFile) || FileUtilities.IsDspFilename(projectFile))
             {
-                InitializationException.Throw(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("XMake.ProjectUpgradeNeededToVcxProj", projectFile), null);
+                InitializationException.Throw(AssemblyResources.XMake_ProjectUpgradeNeededToVcxProj.FormatStripCode(projectFile), invalidSwitch: null);
             }
 
             bool success = true;
@@ -1724,7 +1732,7 @@ namespace Microsoft.Build.CommandLine
                     // TODO: Support /preprocess for solution files. https://github.com/dotnet/msbuild/issues/7697
                     if (isSolution)
                     {
-                        Console.WriteLine(ResourceUtilities.GetResourceString("UnsupportedSwitchForSolutionFiles"), CommandLineSwitches.ParameterizedSwitch.Preprocess);
+                        Console.WriteLine(AssemblyResources.UnsupportedSwitchForSolutionFiles.Text, CommandLineSwitches.ParameterizedSwitch.Preprocess);
                     }
                     else
                     {
@@ -1745,7 +1753,7 @@ namespace Microsoft.Build.CommandLine
                     // TODO: Support /targets for solution files. https://github.com/dotnet/msbuild/issues/7697
                     if (isSolution)
                     {
-                        Console.WriteLine(ResourceUtilities.GetResourceString("UnsupportedSwitchForSolutionFiles"), CommandLineSwitches.ParameterizedSwitch.Targets);
+                        Console.WriteLine(AssemblyResources.UnsupportedSwitchForSolutionFiles.Text, CommandLineSwitches.ParameterizedSwitch.Targets);
                     }
                     else
                     {
@@ -1839,9 +1847,7 @@ namespace Microsoft.Build.CommandLine
                         {
                             messagesToLogInBuildLoggers.Add(
                                 new BuildManager.DeferredBuildMessage(
-                                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                        "PickedUpSwitchesFromAutoResponse",
-                                        responseFilePath),
+                                    AssemblyResources.PickedUpSwitchesFromAutoResponse.Format(responseFilePath),
                                     MessageImportance.Low,
                                     responseFilePath));
                         }
@@ -1966,7 +1972,7 @@ namespace Microsoft.Build.CommandLine
                             {
                                 // After throwing again below the stack will be reset. Make certain we log everything we
                                 // can now
-                                Console.WriteLine(AssemblyResources.GetString("FatalError"));
+                                Console.WriteLine(AssemblyResources.FatalError);
 #if DEBUG
                                 Console.WriteLine("This is an unhandled exception in MSBuild -- PLEASE OPEN A BUG AGAINST THE MSBUILD TEAM.");
 #endif
@@ -2020,7 +2026,7 @@ namespace Microsoft.Build.CommandLine
             }
             catch (Exception ex)
             {
-                var message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetsCouldNotBePrinted", ex);
+                var message = AssemblyResources.TargetsCouldNotBePrinted.FormatStripCode(ex);
                 Console.Error.WriteLine(message);
                 return false;
             }
@@ -2031,29 +2037,19 @@ namespace Microsoft.Build.CommandLine
             List<BuildManager.DeferredBuildMessage> messages = new(s_globalMessagesToLogInBuildLoggers)
             {
                 new BuildManager.DeferredBuildMessage(
-                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "Process",
-                        EnvironmentUtilities.ProcessPath ?? string.Empty),
+                    AssemblyResources.Process.Format(EnvironmentUtilities.ProcessPath ?? string.Empty),
                     MessageImportance.Low),
                 new BuildManager.DeferredBuildMessage(
-                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "MSBExePath",
-                        BuildEnvironmentHelper.Instance.CurrentMSBuildExePath),
+                    AssemblyResources.MSBExePath.Format(BuildEnvironmentHelper.Instance.CurrentMSBuildExePath),
                     MessageImportance.Low),
                 new BuildManager.DeferredBuildMessage(
-                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "CommandLine",
-                        commandLineString),
+                    AssemblyResources.CommandLine.Format(commandLineString),
                     MessageImportance.Low),
                 new BuildManager.DeferredBuildMessage(
-                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "CurrentDirectory",
-                        Environment.CurrentDirectory),
+                    AssemblyResources.CurrentDirectory.Format(Environment.CurrentDirectory),
                     MessageImportance.Low),
                 new BuildManager.DeferredBuildMessage(
-                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "MSBVersion",
-                        ProjectCollection.DisplayVersion),
+                    AssemblyResources.MSBVersion.Format(ProjectCollection.DisplayVersion),
                     MessageImportance.Low),
             };
 
@@ -2067,24 +2063,34 @@ namespace Microsoft.Build.CommandLine
             NativeMethodsShared.LongPathsStatus longPaths = NativeMethodsShared.IsLongPathsEnabled();
             if (longPaths != NativeMethodsShared.LongPathsStatus.NotApplicable)
             {
+                ResourceString longPathsArg = longPaths switch
+                {
+                    NativeMethodsShared.LongPathsStatus.Disabled => AssemblyResources.LongPaths_Disabled,
+                    NativeMethodsShared.LongPathsStatus.Enabled => AssemblyResources.LongPaths_Enabled,
+                    NativeMethodsShared.LongPathsStatus.Missing => AssemblyResources.LongPaths_Missing,
+                    _ => Assumed.Unreachable<ResourceString>(),
+                };
+
                 messages.Add(
                     new BuildManager.DeferredBuildMessage(
-                        ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                            "LongPaths",
-                            ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                $"LongPaths_{longPaths}")),
+                        AssemblyResources.LongPaths.Format(longPathsArg.Text),
                         MessageImportance.Low));
             }
 
             NativeMethodsShared.SAC_State SAC_State = NativeMethodsShared.GetSACState();
             if (SAC_State != NativeMethodsShared.SAC_State.NotApplicable && SAC_State != NativeMethodsShared.SAC_State.Missing)
             {
+                ResourceString sacArg = SAC_State switch
+                {
+                    NativeMethodsShared.SAC_State.Enforcement => AssemblyResources.SAC_Enforcement,
+                    NativeMethodsShared.SAC_State.Evaluation => AssemblyResources.SAC_Evaluation,
+                    NativeMethodsShared.SAC_State.Off => AssemblyResources.SAC_Off,
+                    _ => Assumed.Unreachable<ResourceString>(),
+                };
+
                 messages.Add(
                     new BuildManager.DeferredBuildMessage(
-                        ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                            "SAC",
-                            ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                $"SAC_{SAC_State}")),
+                        AssemblyResources.SAC.Format(sacArg.Text),
                         MessageImportance.Low));
             }
 
@@ -2092,9 +2098,7 @@ namespace Microsoft.Build.CommandLine
             {
                 messages.Add(
                     new BuildManager.DeferredBuildMessage(
-                        ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "MSBuildDebugPath",
-                        FrameworkDebugUtils.DebugPath),
+                        AssemblyResources.MSBuildDebugPath.Format(FrameworkDebugUtils.DebugPath),
                         MessageImportance.High));
             }
 
@@ -2117,11 +2121,11 @@ namespace Microsoft.Build.CommandLine
                 // reuse off) reports a distinct short-lived status.
                 bool spawned = s_serverBuildCounter == 1;
                 bool shortLived = spawned && OutOfProcServerNode.CurrentBuildShutsDownServerNode;
-                string statusResource = (spawned, shortLived) switch
+                ResourceString statusResource = (spawned, shortLived) switch
                 {
-                    (true, true) => "MSBuildServerNodeSpawnedShortLived",
-                    (true, false) => "MSBuildServerNodeSpawned",
-                    _ => "MSBuildServerNodeReused",
+                    (true, true) => AssemblyResources.MSBuildServerNodeSpawnedShortLived,
+                    (true, false) => AssemblyResources.MSBuildServerNodeSpawned,
+                    _ => AssemblyResources.MSBuildServerNodeReused,
                 };
 
                 return CreateLifecycleEvent(
@@ -2129,7 +2133,7 @@ namespace Microsoft.Build.CommandLine
                     processId: EnvironmentUtilities.CurrentProcessId,
                     reason: null,
                     reasonCode: null,
-                    message: ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(statusResource, EnvironmentUtilities.CurrentProcessId),
+                    message: statusResource.Format(EnvironmentUtilities.CurrentProcessId),
                     shortLived: shortLived);
             }
 
@@ -2143,7 +2147,7 @@ namespace Microsoft.Build.CommandLine
                     processId: 0,
                     reason: serverNotUsed.Message,
                     reasonCode: serverNotUsed.Code,
-                    message: ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("MSBuildServerNotUsedForBuild", serverNotUsed.Message));
+                    message: AssemblyResources.MSBuildServerNotUsedForBuild.Format(serverNotUsed.Message));
             }
 
             return null;
@@ -2256,7 +2260,7 @@ namespace Microsoft.Build.CommandLine
             {
                 // If we're running on any of the unsupported OS's, fail immediately.  This way,
                 // we don't run into some obscure error down the line, totally confusing the user.
-                InitializationException.Throw("UnsupportedOS", null, null, false);
+                InitializationException.Throw(AssemblyResources.UnsupportedOS, invalidSwitch: null, e: null, showStackTrace: false);
             }
         }
 
@@ -2459,7 +2463,7 @@ namespace Microsoft.Build.CommandLine
             bool noLogo = false;
             if (commandLineSwitches.IsParameterizedSwitchSet(CommandLineSwitches.ParameterizedSwitch.NoLogo))
             {
-                noLogo = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.NoLogo], defaultValue: true, resourceName: "InvalidNoLogoValue");
+                noLogo = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.NoLogo], defaultValue: true, resource: AssemblyResources.InvalidNoLogoValue);
             }
 
             // This is temporary until we can remove the need for the environment variable.
@@ -2474,7 +2478,7 @@ namespace Microsoft.Build.CommandLine
             // at normal priority (not through XMake.cs) but worker nodes still need to honor this switch.
             if (commandLineSwitches.IsParameterizedSwitchSet(CommandLineSwitches.ParameterizedSwitch.LowPriority))
             {
-                lowPriority = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.LowPriority], defaultValue: true, resourceName: "InvalidLowPriorityValue");
+                lowPriority = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.LowPriority], defaultValue: true, resource: AssemblyResources.InvalidLowPriorityValue);
             }
             try
             {
@@ -2495,7 +2499,7 @@ namespace Microsoft.Build.CommandLine
 #if FEATURE_REPORTFILEACCESSES
             if (commandLineSwitches.IsParameterizedSwitchSet(CommandLineSwitches.ParameterizedSwitch.ReportFileAccesses))
             {
-                reportFileAccesses = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.ReportFileAccesses], defaultValue: true, resourceName: "");
+                reportFileAccesses = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.ReportFileAccesses], defaultValue: true, resource: null);
             }
 #endif
 
@@ -2654,12 +2658,12 @@ namespace Microsoft.Build.CommandLine
 
                     if (commandLineSwitches.IsParameterizedSwitchSet(CommandLineSwitches.ParameterizedSwitch.Restore))
                     {
-                        enableRestore = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.Restore], defaultValue: true, resourceName: "InvalidRestoreValue");
+                        enableRestore = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.Restore], defaultValue: true, resource: AssemblyResources.InvalidRestoreValue);
                     }
 
                     if (commandLineSwitches.IsParameterizedSwitchSet(CommandLineSwitches.ParameterizedSwitch.Interactive))
                     {
-                        interactive = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.Interactive], defaultValue: true, resourceName: "InvalidInteractiveValue");
+                        interactive = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.Interactive], defaultValue: true, resource: AssemblyResources.InvalidInteractiveValue);
                     }
 
                     if (commandLineSwitches.IsParameterizedSwitchSet(CommandLineSwitches.ParameterizedSwitch.IsolateProjects))
@@ -2721,9 +2725,10 @@ namespace Microsoft.Build.CommandLine
                     if (commandLineSwitches.IsParameterizedSwitchSet(CommandLineSwitches.ParameterizedSwitch.WarningsNotAsErrors) &&
                         !WarningsAsErrorsSwitchIsEmpty(commandLineSwitches)!)
                     {
-                        commandLineSwitches.SetSwitchError("NotWarnAsErrorWithoutWarnAsError",
-                        commandLineSwitches.GetParameterizedSwitchCommandLineArg(CommandLineSwitches.ParameterizedSwitch.WarningsNotAsErrors),
-                        commandLine);
+                        commandLineSwitches.SetSwitchError(
+                            AssemblyResources.NotWarnAsErrorWithoutWarnAsError,
+                            commandLineSwitches.GetParameterizedSwitchCommandLineArg(CommandLineSwitches.ParameterizedSwitch.WarningsNotAsErrors),
+                            commandLine);
                         commandLineSwitches.ThrowErrors();
                     }
                 }
@@ -2780,7 +2785,7 @@ namespace Microsoft.Build.CommandLine
                 if (IsAutomatedEnvironment())
                 {
                     s_globalMessagesToLogInBuildLoggers.Add(
-                        new BuildManager.DeferredBuildMessage(ResourceUtilities.GetResourceString("TerminalLoggerNotUsedAutomated"), MessageImportance.Low));
+                        new BuildManager.DeferredBuildMessage(AssemblyResources.TerminalLoggerNotUsedAutomated.Text, MessageImportance.Low));
                     return false;
                 }
 
@@ -2789,7 +2794,7 @@ namespace Microsoft.Build.CommandLine
                 if (!outputIsScreen)
                 {
                     s_globalMessagesToLogInBuildLoggers.Add(
-                        new BuildManager.DeferredBuildMessage(ResourceUtilities.GetResourceString("TerminalLoggerNotUsedRedirected"), MessageImportance.Low));
+                        new BuildManager.DeferredBuildMessage(AssemblyResources.TerminalLoggerNotUsedRedirected.Text, MessageImportance.Low));
                     return false;
                 }
 
@@ -2797,14 +2802,14 @@ namespace Microsoft.Build.CommandLine
                 if (!acceptAnsiColorCodes)
                 {
                     s_globalMessagesToLogInBuildLoggers.Add(
-                        new BuildManager.DeferredBuildMessage(ResourceUtilities.GetResourceString("TerminalLoggerNotUsedNotSupported"), MessageImportance.Low));
+                        new BuildManager.DeferredBuildMessage(AssemblyResources.TerminalLoggerNotUsedNotSupported.Text, MessageImportance.Low));
                     return false;
                 }
 
                 if (Traits.Instance.EscapeHatches.EnsureStdOutForChildNodesIsPrimaryStdout)
                 {
                     s_globalMessagesToLogInBuildLoggers.Add(
-                        new BuildManager.DeferredBuildMessage(ResourceUtilities.GetResourceString("TerminalLoggerNotUsedDisabled"), MessageImportance.Low));
+                        new BuildManager.DeferredBuildMessage(AssemblyResources.TerminalLoggerNotUsedDisabled.Text, MessageImportance.Low));
                     return false;
                 }
 
@@ -2857,7 +2862,7 @@ namespace Microsoft.Build.CommandLine
                 // There's a switch set, but there might be more than one
                 string[] switches = commandLineSwitches1[CommandLineSwitches.ParameterizedSwitch.TerminalLogger];
 
-                terminalLoggerArg = switches[switches.Length - 1];
+                terminalLoggerArg = switches[^1];
 
                 // if the switch was set but not to an explicit value, the value is "auto"
                 if (string.IsNullOrEmpty(terminalLoggerArg))
@@ -2951,7 +2956,7 @@ namespace Microsoft.Build.CommandLine
                 // or it can be "auto", meaning "enable if we can"
                 if (!terminalLoggerArg.Equals("auto", StringComparison.OrdinalIgnoreCase))
                 {
-                    CommandLineSwitchException.Throw("InvalidTerminalLoggerValue", terminalLoggerArg);
+                    CommandLineSwitchException.Throw(AssemblyResources.InvalidTerminalLoggerValue, terminalLoggerArg);
                 }
 
                 useTerminalLogger = CheckIfTerminalIsSupportedAndTryEnableAnsiColorCodes();
@@ -3042,7 +3047,7 @@ namespace Microsoft.Build.CommandLine
                 }
                 else
                 {
-                    CommandLineSwitchException.Throw("InvalidIsolateProjectsValue", parameter);
+                    CommandLineSwitchException.Throw(AssemblyResources.InvalidIsolateProjectsValue, parameter);
                 }
             }
 
@@ -3073,7 +3078,7 @@ namespace Microsoft.Build.CommandLine
                 }
                 else
                 {
-                    CommandLineSwitchException.Throw("InvalidGraphBuildValue", parameter);
+                    CommandLineSwitchException.Throw(AssemblyResources.InvalidGraphBuildValue, parameter);
                 }
             }
 
@@ -3109,16 +3114,16 @@ namespace Microsoft.Build.CommandLine
             {
                 try
                 {
-                    parentPacketVersion = byte.Parse(parameters[parameters.Length - 1], CultureInfo.InvariantCulture);
+                    parentPacketVersion = byte.Parse(parameters[^1], CultureInfo.InvariantCulture);
                 }
                 catch (FormatException ex)
                 {
-                    CommunicationsUtilities.Trace($"Invalid node packet version value '{parameters[parameters.Length - 1]}': {ex.Message}");
+                    CommunicationsUtilities.Trace($"Invalid node packet version value '{parameters[^1]}': {ex.Message}");
                 }
                 catch (OverflowException ex)
                 {
                     // Value too large for byte - log and continue with default
-                    CommunicationsUtilities.Trace($"Node packet version value '{parameters[parameters.Length - 1]}' out of range: {ex.Message}");
+                    CommunicationsUtilities.Trace($"Node packet version value '{parameters[^1]}' out of range: {ex.Message}");
                 }
             }
 
@@ -3144,15 +3149,15 @@ namespace Microsoft.Build.CommandLine
                 try
                 {
                     // There does not seem to be a localizable function for this
-                    enableNodeReuse = bool.Parse(parameters[parameters.Length - 1]);
+                    enableNodeReuse = bool.Parse(parameters[^1]);
                 }
                 catch (FormatException ex)
                 {
-                    CommandLineSwitchException.Throw("InvalidNodeReuseValue", parameters[parameters.Length - 1], ex.Message);
+                    CommandLineSwitchException.Throw(AssemblyResources.InvalidNodeReuseValue, parameters[^1], ex.Message);
                 }
                 catch (ArgumentNullException ex)
                 {
-                    CommandLineSwitchException.Throw("InvalidNodeReuseValue", parameters[parameters.Length - 1], ex.Message);
+                    CommandLineSwitchException.Throw(AssemblyResources.InvalidNodeReuseValue, parameters[^1], ex.Message);
                 }
             }
 
@@ -3171,11 +3176,11 @@ namespace Microsoft.Build.CommandLine
             {
                 try
                 {
-                    writer = FileUtilities.OpenWrite(parameters[parameters.Length - 1], append: false);
+                    writer = FileUtilities.OpenWrite(parameters[^1], append: false);
                 }
                 catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
                 {
-                    CommandLineSwitchException.Throw("InvalidPreprocessPath", parameters[parameters.Length - 1], ex.Message);
+                    CommandLineSwitchException.Throw(AssemblyResources.InvalidPreprocessPath, parameters[^1], ex.Message);
                 }
             }
 
@@ -3190,11 +3195,11 @@ namespace Microsoft.Build.CommandLine
             {
                 try
                 {
-                    writer = FileUtilities.OpenWrite(parameters[parameters.Length - 1], append: false);
+                    writer = FileUtilities.OpenWrite(parameters[^1], append: false);
                 }
                 catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
                 {
-                    CommandLineSwitchException.Throw("TargetsCouldNotBePrinted", parameters[parameters.Length - 1], ex.Message);
+                    CommandLineSwitchException.Throw(AssemblyResources.TargetsCouldNotBePrinted, parameters[^1], ex.Message);
                 }
             }
 
@@ -3245,7 +3250,7 @@ namespace Microsoft.Build.CommandLine
             return ProcessWarningRelatedSwitch(commandLineSwitches, CommandLineSwitches.ParameterizedSwitch.WarningsNotAsErrors);
         }
 
-        internal static bool ProcessBooleanSwitch(string[] parameters, bool defaultValue, string resourceName)
+        internal static bool ProcessBooleanSwitch(string[] parameters, bool defaultValue, ResourceString resource)
         {
             bool value = defaultValue;
 
@@ -3253,15 +3258,15 @@ namespace Microsoft.Build.CommandLine
             {
                 try
                 {
-                    value = bool.Parse(parameters[parameters.Length - 1]);
+                    value = bool.Parse(parameters[^1]);
                 }
                 catch (FormatException ex)
                 {
-                    CommandLineSwitchException.Throw(resourceName, parameters[parameters.Length - 1], ex.Message);
+                    CommandLineSwitchException.Throw(resource, parameters[^1], ex.Message);
                 }
                 catch (ArgumentNullException ex)
                 {
-                    CommandLineSwitchException.Throw(resourceName, parameters[parameters.Length - 1], ex.Message);
+                    CommandLineSwitchException.Throw(resource, parameters[^1], ex.Message);
                 }
             }
 
@@ -3285,7 +3290,7 @@ namespace Microsoft.Build.CommandLine
             }
 
             enableProfiler = true;
-            var profilerFile = parameters[parameters.Length - 1];
+            var profilerFile = parameters[^1];
 
             // /prof was specified, but don't attach a logger to write a file
             if (profilerFile == "no-file")
@@ -3300,18 +3305,15 @@ namespace Microsoft.Build.CommandLine
             }
             catch (ArgumentException ex)
             {
-                CommandLineSwitchException.Throw("InvalidProfilerValue", parameters[parameters.Length - 1],
-                    ex.Message);
+                CommandLineSwitchException.Throw(AssemblyResources.InvalidProfilerValue, parameters[^1], ex.Message);
             }
             catch (PathTooLongException ex)
             {
-                CommandLineSwitchException.Throw("InvalidProfilerValue", parameters[parameters.Length - 1],
-                    ex.Message);
+                CommandLineSwitchException.Throw(AssemblyResources.InvalidProfilerValue, parameters[^1], ex.Message);
             }
             catch (NotSupportedException ex)
             {
-                CommandLineSwitchException.Throw("InvalidProfilerValue", parameters[parameters.Length - 1],
-                    ex.Message);
+                CommandLineSwitchException.Throw(AssemblyResources.InvalidProfilerValue, parameters[^1], ex.Message);
             }
 
             var logger = new ProfilerLogger(profilerFile);
@@ -3329,7 +3331,7 @@ namespace Microsoft.Build.CommandLine
         {
             if (!NodeModeHelper.TryParse(value, out NodeMode? nodeMode))
             {
-                CommandLineSwitchException.Throw("InvalidNodeNumberValue", value);
+                CommandLineSwitchException.Throw(AssemblyResources.InvalidNodeNumberValue, value);
             }
 
             return nodeMode.Value;
@@ -3424,7 +3426,7 @@ namespace Microsoft.Build.CommandLine
                         break;
 
                     default:
-                        CommandLineSwitchException.Throw("InvalidNodeNumberValue", nodeMode.ToString());
+                        CommandLineSwitchException.Throw(AssemblyResources.InvalidNodeNumberValue, nodeMode.ToString());
                         break;
                 }
 
@@ -3455,18 +3457,18 @@ namespace Microsoft.Build.CommandLine
             {
                 try
                 {
-                    cpuCount = int.Parse(parameters[parameters.Length - 1], CultureInfo.InvariantCulture);
+                    cpuCount = int.Parse(parameters[^1], CultureInfo.InvariantCulture);
                 }
                 catch (FormatException ex)
                 {
-                    CommandLineSwitchException.Throw("InvalidMaxCPUCountValue", parameters[parameters.Length - 1], ex.Message);
+                    CommandLineSwitchException.Throw(AssemblyResources.InvalidMaxCPUCountValue, parameters[^1], ex.Message);
                 }
                 catch (OverflowException ex)
                 {
-                    CommandLineSwitchException.Throw("InvalidMaxCPUCountValue", parameters[parameters.Length - 1], ex.Message);
+                    CommandLineSwitchException.Throw(AssemblyResources.InvalidMaxCPUCountValue, parameters[^1], ex.Message);
                 }
 
-                CommandLineSwitchException.VerifyThrow(cpuCount > 0 && cpuCount <= 1024, "InvalidMaxCPUCountValueOutsideRange", parameters[parameters.Length - 1]);
+                CommandLineSwitchException.VerifyThrow(cpuCount is > 0 and <= 1024, AssemblyResources.InvalidMaxCPUCountValueOutsideRange, parameters[^1]);
             }
 
             return cpuCount;
@@ -3502,7 +3504,7 @@ namespace Microsoft.Build.CommandLine
                 }
                 else
                 {
-                    InitializationException.VerifyThrow(FileSystems.Default.FileExists(projectFile), "ProjectNotFoundError", projectFile);
+                    InitializationException.VerifyThrow(FileSystems.Default.FileExists(projectFile), AssemblyResources.ProjectNotFoundError, projectFile);
                 }
             }
 
@@ -3554,13 +3556,22 @@ namespace Microsoft.Build.CommandLine
                     string solutionName = Path.GetFileNameWithoutExtension(actualSolutionFiles[0]);
                     string projectName = Path.GetFileNameWithoutExtension(actualProjectFiles[0]);
                     // Compare the names and error if they are not identical
-                    InitializationException.VerifyThrow(string.Equals(solutionName, projectName, StringComparison.OrdinalIgnoreCase), projectDirectory == null ? "AmbiguousProjectError" : "AmbiguousProjectDirectoryError", null, projectDirectory);
+                    InitializationException.VerifyThrow(
+                        string.Equals(solutionName, projectName, StringComparison.OrdinalIgnoreCase),
+                        projectDirectory == null ? AssemblyResources.AmbiguousProjectError : AssemblyResources.AmbiguousProjectDirectoryError,
+                        null,
+                        projectDirectory);
                     projectFile = actualSolutionFiles[0];
                 }
                 // If there is more than one solution file in the current directory we have no idea which one to use
                 else if (actualSolutionFiles.Count > 1)
                 {
-                    InitializationException.VerifyThrow(false, projectDirectory == null ? "AmbiguousProjectError" : "AmbiguousProjectDirectoryError", null, projectDirectory, false);
+                    InitializationException.VerifyThrow(
+                        false,
+                        projectDirectory == null ? AssemblyResources.AmbiguousProjectError : AssemblyResources.AmbiguousProjectDirectoryError,
+                        null,
+                        projectDirectory,
+                        false);
                 }
                 // If there is more than one project file in the current directory we may be able to figure it out
                 else if (actualProjectFiles.Count > 1)
@@ -3593,21 +3604,30 @@ namespace Microsoft.Build.CommandLine
                             }
                         }
                     }
-                    InitializationException.VerifyThrow(!isAmbiguousProject, projectDirectory == null ? "AmbiguousProjectError" : "AmbiguousProjectDirectoryError", null, projectDirectory);
+
+                    InitializationException.VerifyThrow(
+                        !isAmbiguousProject,
+                        projectDirectory == null ? AssemblyResources.AmbiguousProjectError : AssemblyResources.AmbiguousProjectDirectoryError,
+                        null,
+                        projectDirectory);
                 }
                 // if there are no project, solution filter, or solution files in the directory, we can't build
                 else if (actualProjectFiles.Count == 0 &&
                          actualSolutionFiles.Count == 0 &&
                          solutionFilterFiles.Count == 0)
                 {
-                    InitializationException.Throw("MissingProjectError", null, null, false);
+                    InitializationException.Throw(AssemblyResources.MissingProjectError, invalidSwitch: null, e: null, showStackTrace: false);
                 }
                 else
                 {
                     // We are down to only one project, solution, or solution filter.
                     // If only 1 solution build the solution.  If only 1 project build the project. Otherwise, build the solution filter.
                     projectFile = actualSolutionFiles.Count == 1 ? actualSolutionFiles[0] : actualProjectFiles.Count == 1 ? actualProjectFiles[0] : solutionFilterFiles[0];
-                    InitializationException.VerifyThrow(actualSolutionFiles.Count == 1 || actualProjectFiles.Count == 1 || solutionFilterFiles.Count == 1, projectDirectory == null ? "AmbiguousProjectError" : "AmbiguousProjectDirectoryError", null, projectDirectory);
+                    InitializationException.VerifyThrow(
+                        actualSolutionFiles.Count == 1 || actualProjectFiles.Count == 1 || solutionFilterFiles.Count == 1,
+                        projectDirectory == null ? AssemblyResources.AmbiguousProjectError : AssemblyResources.AmbiguousProjectDirectoryError,
+                        null,
+                        projectDirectory);
                 }
             }
 
@@ -3667,16 +3687,16 @@ namespace Microsoft.Build.CommandLine
                 foreach (string extension in projectExtensionsToIgnore)
                 {
                     // There has to be more than a . passed in as the extension.
-                    InitializationException.VerifyThrow(extension?.Length >= 2, "InvalidExtensionToIgnore", extension);
+                    InitializationException.VerifyThrow(extension?.Length >= 2, AssemblyResources.InvalidExtensionToIgnore, extension);
 
                     // There is an invalid char in the extensionToIgnore.
-                    InitializationException.VerifyThrow(extension.AsSpan().IndexOfAny(MSBuildConstants.InvalidPathChars) < 0, "InvalidExtensionToIgnore", extension, null, false);
+                    InitializationException.VerifyThrow(extension.AsSpan().IndexOfAny(MSBuildConstants.InvalidPathChars) < 0, AssemblyResources.InvalidExtensionToIgnore, extension, null, false);
 
                     // There were characters before the extension.
-                    InitializationException.VerifyThrow(string.Equals(extension, Path.GetExtension(extension), StringComparison.OrdinalIgnoreCase), "InvalidExtensionToIgnore", extension, null, false);
+                    InitializationException.VerifyThrow(string.Equals(extension, Path.GetExtension(extension), StringComparison.OrdinalIgnoreCase), AssemblyResources.InvalidExtensionToIgnore, extension, null, false);
 
                     // Make sure that no wild cards are in the string because for now we don't allow wild card extensions.
-                    InitializationException.VerifyThrow(extension.IndexOfAny(MSBuildConstants.WildcardChars) == -1, "InvalidExtensionToIgnore", extension, null, false);
+                    InitializationException.VerifyThrow(extension.IndexOfAny(MSBuildConstants.WildcardChars) == -1, AssemblyResources.InvalidExtensionToIgnore, extension, null, false);
                 }
             }
         }
@@ -3693,7 +3713,7 @@ namespace Microsoft.Build.CommandLine
                 int indexOfSpecialCharacter = parameter.AsSpan().IndexOfAny(XMakeElements.InvalidTargetNameCharacters);
                 if (indexOfSpecialCharacter >= 0)
                 {
-                    CommandLineSwitchException.Throw("NameInvalid", nameof(XMakeElements.target), parameter, parameter[indexOfSpecialCharacter].ToString());
+                    CommandLineSwitchException.Throw(AssemblyResources.NameInvalid, nameof(XMakeElements.target), parameter, parameter[indexOfSpecialCharacter].ToString());
                 }
             }
             return parameters;
@@ -3716,7 +3736,7 @@ namespace Microsoft.Build.CommandLine
             {
                 // We don't do any validation on the value of the ToolsVersion here, since we don't
                 // know what a valid value looks like.  The engine will take care of this later.
-                return parameters[parameters.Length - 1];
+                return parameters[^1];
             }
 
             return null;
@@ -3741,8 +3761,10 @@ namespace Microsoft.Build.CommandLine
                     "String.Split() will return at least one string, and no more than two.");
 
                 // check that the property name is not blank, and the property has a value
-                CommandLineSwitchException.VerifyThrow((parameterSections[0].Length > 0) && (parameterSections.Length == 2),
-                    "InvalidPropertyError", parameter);
+                CommandLineSwitchException.VerifyThrow(
+                    parameterSections[0].Length > 0 && parameterSections.Length == 2,
+                    AssemblyResources.InvalidPropertyError,
+                    parameter);
 
                 // Validation of whether the property has a reserved name will occur when
                 // we start to build: and it will be logged then, too.
@@ -3788,13 +3810,13 @@ namespace Microsoft.Build.CommandLine
 
             if (commandLineSwitches.IsParameterizedSwitchSet(CommandLineSwitches.ParameterizedSwitch.DetailedSummary))
             {
-                detailedSummary = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.DetailedSummary], defaultValue: true, resourceName: "InvalidDetailedSummaryValue");
+                detailedSummary = ProcessBooleanSwitch(commandLineSwitches[CommandLineSwitches.ParameterizedSwitch.DetailedSummary], defaultValue: true, resource: AssemblyResources.InvalidDetailedSummaryValue);
             }
 
             if (verbositySwitchParameters.Length > 0)
             {
                 // Read the last verbosity switch found
-                originalVerbosity = ProcessVerbositySwitch(verbositySwitchParameters[verbositySwitchParameters.Length - 1]);
+                originalVerbosity = ProcessVerbositySwitch(verbositySwitchParameters[^1]);
                 verbosity = originalVerbosity;
             }
 
@@ -3862,7 +3884,7 @@ namespace Microsoft.Build.CommandLine
             string result = anyPrefixingParameter ?? string.Empty;
 
             // Ensure trailing ';' so parametersToAggregate are properly separated
-            if (!string.IsNullOrEmpty(result) && result[result.Length - 1] != ';')
+            if (!string.IsNullOrEmpty(result) && result[^1] != ';')
             {
                 result += ';';
             }
@@ -3954,7 +3976,7 @@ namespace Microsoft.Build.CommandLine
             // Log a message if duplicate paths were filtered out
             if (processedParams.DuplicateFilePaths.Count > 0)
             {
-                Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("DuplicateBinaryLoggerPathsIgnored", string.Join(", ", processedParams.DuplicateFilePaths)));
+                Console.WriteLine(AssemblyResources.DuplicateBinaryLoggerPathsIgnored.FormatStripCode(string.Join(", ", processedParams.DuplicateFilePaths)));
             }
 
             if (processedParams.AllConfigurationsIdentical && processedParams.AdditionalFilePaths.Count > 0)
@@ -4247,7 +4269,7 @@ namespace Microsoft.Build.CommandLine
             }
             else
             {
-                CommandLineSwitchException.Throw("InvalidVerbosityError", value);
+                CommandLineSwitchException.Throw(AssemblyResources.InvalidVerbosityError, value);
             }
 
             return verbosity;
@@ -4333,8 +4355,7 @@ namespace Microsoft.Build.CommandLine
             Assumed.InRange(loggerSpec.Count, 1, 2, "SplitUnquoted() must return at least one string, and no more than two.");
 
             // check that the logger is specified
-            CommandLineSwitchException.VerifyThrow(loggerSpec[0].Length > 0,
-                "InvalidLoggerError", unquotedParameter);
+            CommandLineSwitchException.VerifyThrow(loggerSpec[0].Length > 0, AssemblyResources.InvalidLoggerError, unquotedParameter);
 
             // extract logger parameters if present
             if (loggerSpec.Count == 2)
@@ -4370,8 +4391,7 @@ namespace Microsoft.Build.CommandLine
                 }
             }
 
-            CommandLineSwitchException.VerifyThrow(loggerAssemblySpec.Length > 0,
-                "InvalidLoggerError", unquotedParameter);
+            CommandLineSwitchException.VerifyThrow(loggerAssemblySpec.Length > 0, AssemblyResources.InvalidLoggerError, unquotedParameter);
 
             string loggerAssemblyName = null;
             string loggerAssemblyFile = null;
@@ -4413,35 +4433,35 @@ namespace Microsoft.Build.CommandLine
             {
                 logger = loggerDescription.CreateLogger();
 
-                InitializationException.VerifyThrow(logger != null, "XMake.LoggerNotFoundError", unquotedParameter);
+                InitializationException.VerifyThrow(logger != null, AssemblyResources.XMake_LoggerNotFoundError, unquotedParameter);
             }
             catch (IOException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw(AssemblyResources.XMake_LoggerCreationError, unquotedParameter, e, false, [loggerDescription.Name, e?.Message ?? string.Empty]);
             }
             catch (BadImageFormatException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw(AssemblyResources.XMake_LoggerCreationError, unquotedParameter, e, false, [loggerDescription.Name, e?.Message ?? string.Empty]);
             }
             catch (SecurityException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw(AssemblyResources.XMake_LoggerCreationError, unquotedParameter, e, false, [loggerDescription.Name, e?.Message ?? string.Empty]);
             }
             catch (ReflectionTypeLoadException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw(AssemblyResources.XMake_LoggerCreationError, unquotedParameter, e, false, [loggerDescription.Name, e?.Message ?? string.Empty]);
             }
             catch (MemberAccessException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("XMake.LoggerCreationError", unquotedParameter, e, false, [loggerDescription.Name, (e == null) ? String.Empty : e.Message]);
+                InitializationException.Throw(AssemblyResources.XMake_LoggerCreationError, unquotedParameter, e, false, [loggerDescription.Name, e?.Message ?? string.Empty]);
             }
             catch (TargetInvocationException e) when (!loggerDescription.IsOptional)
             {
-                InitializationException.Throw("LoggerFatalError", unquotedParameter, e.InnerException, true);
+                InitializationException.Throw(AssemblyResources.LoggerFatalError, unquotedParameter, e.InnerException, showStackTrace: true);
             }
             catch (Exception e) when (loggerDescription.IsOptional)
             {
-                Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OptionalLoggerCreationMessage", loggerDescription.Name, e.Message));
+                Console.WriteLine(AssemblyResources.OptionalLoggerCreationMessage.FormatStripCode(loggerDescription.Name, e.Message));
                 return false;
             }
 
@@ -4464,7 +4484,7 @@ namespace Microsoft.Build.CommandLine
             }
             catch (Exception e)
             {
-                InitializationException.Throw("LoggerFatalError", unquotedParameter, e, true);
+                InitializationException.Throw(AssemblyResources.LoggerFatalError, unquotedParameter, e, showStackTrace: true);
             }
 
             return true;
@@ -4525,7 +4545,7 @@ namespace Microsoft.Build.CommandLine
             }
             catch (Exception ex)
             {
-                var message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidLogFileFormat", ex.Message);
+                var message = AssemblyResources.InvalidLogFileFormat.FormatStripCode(ex.Message);
                 Console.WriteLine(message);
             }
 
@@ -4552,9 +4572,9 @@ namespace Microsoft.Build.CommandLine
 
             foreach (string parameter in parameters)
             {
-                InitializationException.VerifyThrow(schemaFile == null, "MultipleSchemasError", parameter);
+                InitializationException.VerifyThrow(schemaFile == null, AssemblyResources.MultipleSchemasError, parameter);
                 string fileName = FileUtilities.FixFilePath(parameter);
-                InitializationException.VerifyThrow(FileSystems.Default.FileExists(fileName), "SchemaNotFoundError", fileName);
+                InitializationException.VerifyThrow(FileSystems.Default.FileExists(fileName), AssemblyResources.SchemaNotFoundError, fileName);
 
                 schemaFile = Path.Combine(Directory.GetCurrentDirectory(), fileName);
             }
@@ -4581,11 +4601,8 @@ namespace Microsoft.Build.CommandLine
                 toolsVersionList = toolsVersionList.Substring(0, toolsVersionList.Length - 2);
             }
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                "UnrecognizedToolsVersion",
-                toolsVersion,
-                toolsVersionList);
-            message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidToolsVersionError", message);
+            string message = AssemblyResources.UnrecognizedToolsVersion.FormatStripCode(toolsVersion, toolsVersionList);
+            message = AssemblyResources.InvalidToolsVersionError.FormatStripCode(message);
 
             InitializationException.Throw(message, toolsVersion);
         }
@@ -4614,7 +4631,7 @@ namespace Microsoft.Build.CommandLine
 
             if (shouldShowLogo)
             {
-                Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildVersionMessage", ProjectCollection.DisplayVersion, NativeMethods.FrameworkName));
+                Console.WriteLine(AssemblyResources.MSBuildVersionMessage.Format(ProjectCollection.DisplayVersion, NativeMethods.FrameworkName));
             }
         }
 
@@ -4626,20 +4643,23 @@ namespace Microsoft.Build.CommandLine
             // NOTE: the help message is broken into pieces because localization
             // prefers it that way -- see VSW #482758 "Entire command line help
             // message is stored in a single resource"
-            Console.WriteLine(AssemblyResources.GetString("HelpMessage_1_Syntax"));
-            Console.WriteLine(AssemblyResources.GetString("HelpMessage_2_Description"));
-            Console.WriteLine(AssemblyResources.GetString("HelpMessage_3_SwitchesHeader"));
-            foreach (string parameterizedSwitchRsouceId in CommandLineSwitches.GetParameterizedSwitchResourceIds())
+            Console.WriteLine(AssemblyResources.HelpMessage_1_Syntax.Text);
+            Console.WriteLine(AssemblyResources.HelpMessage_2_Description.Text);
+            Console.WriteLine(AssemblyResources.HelpMessage_3_SwitchesHeader.Text);
+
+            foreach (ResourceString resourceId in CommandLineSwitches.GetParameterizedSwitchResourceIds())
             {
-                Console.WriteLine(AssemblyResources.GetString(parameterizedSwitchRsouceId));
+                Console.WriteLine(resourceId.Text);
             }
-            foreach (string parameterlessSwitchRsouceId in CommandLineSwitches.GetParameterlessSwitchResourceIds())
+
+            foreach (ResourceString resourceId in CommandLineSwitches.GetParameterlessSwitchResourceIds())
             {
-                Console.WriteLine(AssemblyResources.GetString(parameterlessSwitchRsouceId));
+                Console.WriteLine(resourceId.Text);
             }
-            Console.WriteLine(AssemblyResources.GetString("HelpMessage_7_ResponseFile"));
-            Console.WriteLine(AssemblyResources.GetString("HelpMessage_16_Examples"));
-            Console.WriteLine(AssemblyResources.GetString("HelpMessage_37_DocsLink"));
+
+            Console.WriteLine(AssemblyResources.HelpMessage_7_ResponseFile.Text);
+            Console.WriteLine(AssemblyResources.HelpMessage_16_Examples.Text);
+            Console.WriteLine(AssemblyResources.HelpMessage_37_DocsLink.Text);
         }
 
         /// <summary>
@@ -4647,16 +4667,15 @@ namespace Microsoft.Build.CommandLine
         /// </summary>
         private static void ShowHelpPrompt()
         {
-            Console.WriteLine(AssemblyResources.GetString("HelpPrompt"));
+            Console.WriteLine(AssemblyResources.HelpPrompt.Text);
         }
 
         private static void PrintResponseFileNotices()
         {
             Console.WriteLine(
-                AssemblyResources.GetString(
-                    commandLineParser.IncludedResponseFiles.Count == 1
-                        ? "PickedUpSwitchesFromResponseFile"
-                        : "PickedUpSwitchesFromResponseFiles"));
+                commandLineParser.IncludedResponseFiles.Count == 1
+                    ? AssemblyResources.PickedUpSwitchesFromResponseFile.Text
+                    : AssemblyResources.PickedUpSwitchesFromResponseFiles.Text);
 
             foreach (string responseFilePath in commandLineParser.IncludedResponseFiles)
             {

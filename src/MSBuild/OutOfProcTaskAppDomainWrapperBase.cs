@@ -3,10 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 #if FEATURE_APPDOMAIN
 using System.Threading;
 #endif
-using System.Reflection;
 
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Eventing;
@@ -455,7 +455,7 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Logs errors from TaskLoader
         /// </summary>
-        private void LogErrorDelegate(string taskLocation, int taskLine, int taskColumn, string message, params object[] messageArgs)
+        private void LogErrorDelegate(string taskLocation, int taskLine, int taskColumn, ResourceString message, params object[] messageArgs)
             => buildEngine.LogErrorEvent(new BuildErrorEventArgs(
                 subcategory: null,
                 code: null,
@@ -464,7 +464,7 @@ namespace Microsoft.Build.CommandLine
                 columnNumber: taskColumn,
                 endLineNumber: 0,
                 endColumnNumber: 0,
-                message: MessageFormatter.Format(AssemblyResources.GetString(message), messageArgs),
+                message: message.Format(messageArgs),
                 helpKeyword: null,
                 senderName: taskName));
 
@@ -501,7 +501,7 @@ namespace Microsoft.Build.CommandLine
             }
 
             buildEngine.LogMessageEvent(new BuildMessageEventArgs(
-                message: ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TaskHostAcquired_NullsFiltered", parameterName, nullCount),
+                message: AssemblyResources.TaskHostAcquired_NullsFiltered.Format(parameterName, nullCount),
                 helpKeyword: null,
                 senderName: taskName,
                 importance: MessageImportance.Normal));
