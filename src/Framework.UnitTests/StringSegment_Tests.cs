@@ -524,6 +524,47 @@ public class StringSegment_Tests
     }
 
     [Fact]
+    public void StringSegmentComparer_Ordinal_ComparesCaseSensitively()
+    {
+        StringSegmentComparer comparer = StringSegmentComparer.Ordinal;
+
+        comparer.Equals("abc", "abc").ShouldBeTrue();
+        comparer.Equals("abc", "ABC").ShouldBeFalse();
+        comparer.Compare("a", "b").ShouldBeLessThan(0);
+        comparer.Compare("b", "a").ShouldBeGreaterThan(0);
+        comparer.Compare("a", "a").ShouldBe(0);
+        comparer.GetHashCode("abc").ShouldBe(((StringSegment)"abc").GetHashCode());
+
+        StringSegmentComparer.FromComparison(StringComparison.Ordinal).ShouldBeSameAs(comparer);
+    }
+
+    [Fact]
+    public void StringSegmentComparer_OrdinalIgnoreCase_ComparesCaseInsensitively()
+    {
+        StringSegmentComparer comparer = StringSegmentComparer.OrdinalIgnoreCase;
+
+        comparer.Equals("abc", "ABC").ShouldBeTrue();
+        comparer.Equals("abc", "abd").ShouldBeFalse();
+        comparer.GetHashCode("abc").ShouldBe(comparer.GetHashCode("ABC"));
+
+        StringSegmentComparer.FromComparison(StringComparison.OrdinalIgnoreCase).ShouldBeSameAs(comparer);
+        Should.Throw<ArgumentOutOfRangeException>(
+            () => StringSegmentComparer.FromComparison(StringComparison.CurrentCulture));
+    }
+
+    [Fact]
+    public void StringSegmentComparer_UsableAsDictionaryKey()
+    {
+        Dictionary<StringSegment, int> map = new(StringSegmentComparer.OrdinalIgnoreCase)
+        {
+            [(StringSegment)"Key"] = 1,
+        };
+
+        map.ContainsKey((StringSegment)"KEY").ShouldBeTrue();
+        map[(StringSegment)"key"].ShouldBe(1);
+    }
+
+    [Fact]
     public void ImplicitToReadOnlySpan()
     {
         ReadOnlySpan<char> span = HelloWorld;
