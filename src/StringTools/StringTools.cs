@@ -19,6 +19,15 @@ namespace Microsoft.NET.StringTools
         [ThreadStatic]
         private static SpanBasedStringBuilder? _spanBasedStringBuilder;
 
+        /// <summary>
+        /// When true, the <see cref="WeakIntern(string)"/> overloads bypass the intern cache entirely:
+        /// the string overload returns its argument unchanged and the span overload allocates a fresh
+        /// string, with no cache probe or update in either case. Intended only for tests and benchmarks
+        /// that need to observe the allocation pressure interning normally hides. Not thread-safe to
+        /// toggle while interning is in flight.
+        /// </summary>
+        internal static bool DisableInterning { get; set; }
+
         #endregion
 
         #region Public methods
@@ -34,6 +43,11 @@ namespace Microsoft.NET.StringTools
         /// </remarks>
         public static string WeakIntern(string str)
         {
+            if (DisableInterning)
+            {
+                return str;
+            }
+
             InternableString internableString = new InternableString(str);
             return WeakStringCacheInterner.Instance.InternableToString(ref internableString);
         }
@@ -50,6 +64,11 @@ namespace Microsoft.NET.StringTools
         /// </remarks>
         public static string WeakIntern(ReadOnlySpan<char> str)
         {
+            if (DisableInterning)
+            {
+                return str.ToString();
+            }
+
             InternableString internableString = new InternableString(str);
             return WeakStringCacheInterner.Instance.InternableToString(ref internableString);
         }
