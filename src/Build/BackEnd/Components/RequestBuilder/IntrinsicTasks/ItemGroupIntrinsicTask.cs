@@ -65,10 +65,12 @@ namespace Microsoft.Build.BackEnd
                     // "Execute" each bucket
                     foreach (ItemBucket bucket in buckets)
                     {
+                        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = bucket.Expander;
+
                         bool condition = ConditionEvaluator.EvaluateCondition(
                             child.Condition,
                             ParserOptions.AllowAll,
-                            bucket.Expander,
+                            expander,
                             ExpanderOptions.ExpandAll,
                             Project.Directory,
                             child.ConditionLocation,
@@ -77,39 +79,13 @@ namespace Microsoft.Build.BackEnd
 
                         if (condition)
                         {
-                            HashSet<string> keepMetadata = null;
-                            HashSet<string> removeMetadata = null;
-                            HashSet<string> matchOnMetadata = null;
-                            MatchOnMetadataOptions matchOnMetadataOptions = MatchOnMetadataConstants.MatchOnMetadataOptionsDefaultValue;
+                            HashSet<string> keepMetadata = ExpandMetadata(child.KeepMetadata, expander, child.KeepMetadataLocation);
+                            HashSet<string> removeMetadata = ExpandMetadata(child.RemoveMetadata, expander, child.RemoveMetadataLocation);
+                            HashSet<string> matchOnMetadata = ExpandMetadata(child.MatchOnMetadata, expander, child.MatchOnMetadataLocation);
 
-                            if (!String.IsNullOrEmpty(child.KeepMetadata))
-                            {
-                                var keepMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.KeepMetadata, ExpanderOptions.ExpandAll, child.KeepMetadataLocation).ToList();
-                                if (keepMetadataEvaluated.Count > 0)
-                                {
-                                    keepMetadata = new HashSet<string>(keepMetadataEvaluated);
-                                }
-                            }
-
-                            if (!String.IsNullOrEmpty(child.RemoveMetadata))
-                            {
-                                var removeMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.RemoveMetadata, ExpanderOptions.ExpandAll, child.RemoveMetadataLocation).ToList();
-                                if (removeMetadataEvaluated.Count > 0)
-                                {
-                                    removeMetadata = new HashSet<string>(removeMetadataEvaluated);
-                                }
-                            }
-
-                            if (!String.IsNullOrEmpty(child.MatchOnMetadata))
-                            {
-                                var matchOnMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.MatchOnMetadata, ExpanderOptions.ExpandAll, child.MatchOnMetadataLocation).ToList();
-                                if (matchOnMetadataEvaluated.Count > 0)
-                                {
-                                    matchOnMetadata = new HashSet<string>(matchOnMetadataEvaluated);
-                                }
-
-                                Enum.TryParse(child.MatchOnMetadataOptions, out matchOnMetadataOptions);
-                            }
+                            MatchOnMetadataOptions matchOnMetadataOptions = !child.MatchOnMetadata.IsNullOrEmpty() && Enum.TryParse(child.MatchOnMetadataOptions, out MatchOnMetadataOptions options)
+                                ? options
+                                : MatchOnMetadataConstants.MatchOnMetadataOptionsDefaultValue;
 
                             if ((child.Include.Length != 0) ||
                                 (child.Exclude.Length != 0))
@@ -140,8 +116,27 @@ namespace Microsoft.Build.BackEnd
                             bucket.LeaveScope();
                         }
                     }
+
                     parameterValues.Clear();
                 }
+            }
+
+            static HashSet<string> ExpandMetadata(string metadata, Expander<ProjectPropertyInstance, ProjectItemInstance> expander, ElementLocation location)
+            {
+                if (metadata.IsNullOrEmpty())
+                {
+                    return null;
+                }
+
+                HashSet<string> result = null;
+
+                foreach (string segment in expander.ExpandIntoStringListLeaveEscaped(metadata, ExpanderOptions.ExpandAll, location))
+                {
+                    result ??= [];
+                    result.Add(segment);
+                }
+
+                return result;
             }
         }
 
@@ -511,7 +506,7 @@ namespace Microsoft.Build.BackEnd
                         }
                     }
 
-                    foreach(string metadataName in metadataToRemove)
+                    foreach (string metadataName in metadataToRemove)
                     {
                         item.RemoveMetadata(metadataName);
                     }
@@ -599,9 +594,7 @@ namespace Microsoft.Build.BackEnd
             HashSet<string> specificationsToFind = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // Split by semicolons
-            var specificationPieces = expander.ExpandIntoStringListLeaveEscaped(specification, ExpanderOptions.ExpandAll, specificationLocation);
-
-            foreach (string piece in specificationPieces)
+            foreach (string piece in expander.ExpandIntoStringListLeaveEscaped(specification, ExpanderOptions.ExpandAll, specificationLocation))
             {
                 // Take each individual path or file expression, and expand any
                 // wildcards.  Then loop through each file returned, and add it

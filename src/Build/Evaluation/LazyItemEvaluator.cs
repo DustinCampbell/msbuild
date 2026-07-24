@@ -597,8 +597,10 @@ namespace Microsoft.Build.Evaluation
                     {
                         AddItemReferences(matchOnMetadataSplit, operationBuilder, itemElement.MatchOnMetadataLocation);
                         string metadataExpanded = _expander.ExpandIntoStringLeaveEscaped(matchOnMetadataSplit, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
-                        var metadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded);
-                        operationBuilder.MatchOnMetadata.AddRange(metadataSplits);
+                        foreach (string metadataSplit in ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded))
+                        {
+                            operationBuilder.MatchOnMetadata.Add(metadataSplit);
+                        }
                     }
                 }
             }
