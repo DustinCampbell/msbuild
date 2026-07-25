@@ -871,7 +871,7 @@ namespace Microsoft.Build.BackEnd
                     List<MSBuildGlob> globs = [];
                     foreach (var item in items)
                     {
-                        foreach (string fragment in ExpressionShredder.SplitSemiColonSeparatedList(item.EvaluatedInclude))
+                        foreach (string fragment in ExpressionShredder.Split(item.EvaluatedInclude))
                         {
                             globs.Add(MSBuildGlob.Parse(Project.Directory, fragment));
                         }

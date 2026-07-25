@@ -136,7 +136,7 @@ public class ExpressionShredderBenchmark
     }
 
     // =========================================================================
-    // SplitSemiColonSeparatedList
+    // Split
     // =========================================================================
 
     public static IEnumerable<object> SplitCases()
@@ -150,7 +150,7 @@ public class ExpressionShredderBenchmark
     public int Split(string scenario)
     {
         int count = 0;
-        foreach (string _ in ExpressionShredder.SplitSemiColonSeparatedList(_expressions[scenario]))
+        foreach (string _ in ExpressionShredder.Split(_expressions[scenario]))
         {
             count++;
         }

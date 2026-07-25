@@ -402,9 +402,7 @@ namespace Microsoft.Build.Evaluation
             // STEP 2: Split Include on any semicolons, and take each split in turn
             if (evaluatedIncludeEscaped.Length > 0)
             {
-                var includeSplitsEscaped = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedIncludeEscaped);
-
-                foreach (string includeSplitEscaped in includeSplitsEscaped)
+                foreach (string includeSplitEscaped in ExpressionShredder.Split(evaluatedIncludeEscaped))
                 {
                     // STEP 3: If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
                     bool throwaway;
@@ -2104,7 +2102,7 @@ namespace Microsoft.Build.Evaluation
             bool atleastOneImportIgnored = false;
             bool atleastOneImportEmpty = false;
 
-            foreach (string importExpressionEscapedItem in ExpressionShredder.SplitSemiColonSeparatedList(importExpressionEscaped))
+            foreach (string importExpressionEscapedItem in ExpressionShredder.Split(importExpressionEscaped))
             {
                 string[] importFilesEscaped = null;
 

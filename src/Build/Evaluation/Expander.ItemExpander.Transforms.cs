@@ -421,9 +421,7 @@ internal partial class Expander<P, I>
                             // that case.
                             if (metadataValue.Contains(';'))
                             {
-                                var splits = ExpressionShredder.SplitSemiColonSeparatedList(metadataValue);
-
-                                foreach (string itemSpec in splits)
+                                foreach (string itemSpec in ExpressionShredder.Split(metadataValue))
                                 {
                                     // return a result through the enumerator
                                     output.Add(new TransformEntry(itemSpec, item.Item));

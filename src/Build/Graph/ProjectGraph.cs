@@ -926,7 +926,7 @@ namespace Microsoft.Build.Graph
                     }
                     else
                     {
-                        foreach (string expandedTarget in ExpressionShredder.SplitSemiColonSeparatedList(targetsString))
+                        foreach (string expandedTarget in ExpressionShredder.Split(targetsString))
                         {
                             if (seen.Add(expandedTarget))
                             {

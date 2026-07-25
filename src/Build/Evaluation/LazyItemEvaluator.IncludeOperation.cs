@@ -45,8 +45,7 @@ namespace Microsoft.Build.Evaluation
                     // STEP 4: Evaluate, split, expand and subtract any Exclude
                     foreach (string exclude in _excludes)
                     {
-                        string excludeExpanded = _expander.ExpandIntoStringLeaveEscaped(exclude, ExpanderOptions.ExpandPropertiesAndItems, _itemElement.ExcludeLocation);
-                        foreach (string excludeSplit in ExpressionShredder.SplitSemiColonSeparatedList(excludeExpanded))
+                        foreach (string excludeSplit in _expander.ExpandAndSplitLeaveEscaped(exclude, ExpanderOptions.ExpandPropertiesAndItems, _itemElement.ExcludeLocation))
                         {
                             excludePatterns.Add(excludeSplit);
                         }

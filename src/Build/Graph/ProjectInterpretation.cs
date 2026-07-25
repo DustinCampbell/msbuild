@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -326,15 +326,19 @@ namespace Microsoft.Build.Graph
             Assumed.False(string.IsNullOrWhiteSpace(globalPropertyName), "Must have an inner build property");
             Assumed.False(string.IsNullOrWhiteSpace(globalPropertyValues), "Must have values for the inner build property");
 
-            foreach (var globalPropertyValue in ExpressionShredder.SplitSemiColonSeparatedList(globalPropertyValues))
+            var result = new List<ProjectItemInstance>();
+
+            foreach (var globalPropertyValue in ExpressionShredder.Split(globalPropertyValues))
             {
-                yield return new ProjectItemInstance(
+                result.Add(new ProjectItemInstance(
                     project: outerBuild,
                     itemType: InnerBuildReferenceItemName,
                     includeEscaped: outerBuild.FullPath,
                     directMetadata: [new KeyValuePair<string, string>(ItemMetadataNames.PropertiesMetadataName, $"{globalPropertyName}={globalPropertyValue}")],
-                    definingFileEscaped: outerBuild.FullPath);
+                    definingFileEscaped: outerBuild.FullPath));
             }
+
+            return result;
         }
 
         /// <summary>
@@ -564,13 +568,13 @@ namespace Microsoft.Build.Graph
                             bool skipNonexistentTargets = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue("SkipNonexistentTargets"));
                             bool targetsAreForOuterBuild = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue(ProjectReferenceTargetIsOuterBuildMetadataName));
 
-                            // Append directly into the destination list. SemiColonTokenizer is a
+                            // Append directly into the destination list. ExpressionSplitEnumerator is a
                             // struct enumerator, so foreach avoids boxing it through IEnumerable<string>.
                             // This skips the LINQ Select state machine, its captured-locals closure,
                             // and an intermediate TargetSpecification[] vs the previous
                             // .Select(...).ToArray() + AddRange pattern.
                             ref List<TargetSpecification> dest = ref targetsAreForOuterBuild ? ref targetsForOuterBuild : ref targetsForInnerBuild;
-                            foreach (string target in ExpressionShredder.SplitSemiColonSeparatedList(targetsMetadataValue))
+                            foreach (string target in ExpressionShredder.Split(targetsMetadataValue))
                             {
                                 dest ??= [];
                                 dest.Add(new TargetSpecification(target, skipNonexistentTargets));

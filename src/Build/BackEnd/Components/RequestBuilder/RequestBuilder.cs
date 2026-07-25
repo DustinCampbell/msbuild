@@ -1552,7 +1552,7 @@ namespace Microsoft.Build.BackEnd
             }
 
             HashSet<string> warningCodes = new(StringComparer.OrdinalIgnoreCase);
-            foreach (string warning in ExpressionShredder.SplitSemiColonSeparatedList(warnings))
+            foreach (string warning in ExpressionShredder.Split(warnings))
             {
                 foreach (string code in warning.Split([','], StringSplitOptions.RemoveEmptyEntries))
                 {

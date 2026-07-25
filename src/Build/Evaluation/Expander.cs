@@ -288,11 +288,11 @@ internal partial class Expander<P, I>
     /// Use this form when the result is going to be processed further, for example by matching against the file system,
     /// so literals must be distinguished, and you promise to unescape after that.
     /// </summary>
-    internal SemiColonTokenizer ExpandAndSplitLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
+    internal ExpressionSplitter ExpandAndSplitLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
     {
         Assumed.True((options & ExpanderOptions.BreakOnNotEmpty) == 0, "not supported");
 
-        return ExpressionShredder.SplitSemiColonSeparatedList(ExpandIntoStringLeaveEscaped(expression, options, elementLocation));
+        return ExpressionShredder.Split(ExpandIntoStringLeaveEscaped(expression, options, elementLocation));
     }
 
     /// <summary>
@@ -337,8 +337,7 @@ internal partial class Expander<P, I>
             return result;
         }
 
-        var splits = ExpressionShredder.SplitSemiColonSeparatedList(expression);
-        foreach (string split in splits)
+        foreach (string split in ExpressionShredder.Split(expression))
         {
             bool isTransformExpression;
             IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, split, _items, itemFactory, options, false /* do not include null items */, out isTransformExpression, elementLocation);

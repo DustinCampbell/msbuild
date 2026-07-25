@@ -63,7 +63,7 @@ public class ExpressionShredderAllocationBenchmark
     public int Split()
     {
         int count = 0;
-        foreach (string _ in ExpressionShredder.SplitSemiColonSeparatedList(SplitExpression))
+        foreach (string _ in ExpressionShredder.Split(SplitExpression))
         {
             count++;
         }

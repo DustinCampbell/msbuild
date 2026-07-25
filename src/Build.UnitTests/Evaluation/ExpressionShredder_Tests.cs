@@ -344,7 +344,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
         "@(CustomAdditionalCompileInputs)"
     ];
 
-    public static TheoryData<string, string[]> SplitSemiColonSeparatedListCases => new(
+    public static TheoryData<string, string[]> SplitCases => new(
         ("a", ["a"]),
         ("a;b", ["a", "b"]),
         ("", []),
@@ -393,12 +393,12 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
         ("@(   foo  \n ->  \t  ';abc;def;'   , \t  'ghi;jkl'   )", ["@(   foo  \n ->  \t  ';abc;def;'   , \t  'ghi;jkl'   )"]));
 
     [Theory]
-    [MemberData(nameof(SplitSemiColonSeparatedListCases))]
-    public void SplitSemiColonSeparatedList(string input, string[] expected)
+    [MemberData(nameof(SplitCases))]
+    public void Split(string input, string[] expected)
     {
         _output.WriteLine(input);
 
-        string[] actual = [.. ExpressionShredder.SplitSemiColonSeparatedList(input)];
+        string[] actual = [.. ExpressionShredder.Split(input)];
 
         actual.ShouldBe(expected);
     }
