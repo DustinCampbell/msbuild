@@ -562,9 +562,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (evaluatedExclude.Length > 0)
                 {
-                    var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude);
-
-                    foreach (var excludeSplit in excludeSplits)
+                    foreach (var excludeSplit in ExpressionShredder.Split(evaluatedExclude))
                     {
                         operationBuilder.Excludes.Add(excludeSplit);
                         AddItemReferences(excludeSplit, operationBuilder, itemElement.ExcludeLocation);
@@ -587,20 +585,13 @@ namespace Microsoft.Build.Evaluation
             // Process MatchOnMetadata
             if (itemElement.MatchOnMetadata.Length > 0)
             {
-                string evaluatedmatchOnMetadata = _expander.ExpandIntoStringLeaveEscaped(itemElement.MatchOnMetadata, ExpanderOptions.ExpandProperties, itemElement.MatchOnMetadataLocation);
-
-                if (evaluatedmatchOnMetadata.Length > 0)
+                foreach (string matchOnMetadataSplit in _expander.ExpandAndSplitLeaveEscaped(itemElement.MatchOnMetadata, ExpanderOptions.ExpandProperties, itemElement.MatchOnMetadataLocation))
                 {
-                    var matchOnMetadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedmatchOnMetadata);
+                    AddItemReferences(matchOnMetadataSplit, operationBuilder, itemElement.MatchOnMetadataLocation);
 
-                    foreach (var matchOnMetadataSplit in matchOnMetadataSplits)
+                    foreach (string metadataSplit in _expander.ExpandAndSplitLeaveEscaped(matchOnMetadataSplit, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation))
                     {
-                        AddItemReferences(matchOnMetadataSplit, operationBuilder, itemElement.MatchOnMetadataLocation);
-                        string metadataExpanded = _expander.ExpandIntoStringLeaveEscaped(matchOnMetadataSplit, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
-                        foreach (string metadataSplit in ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded))
-                        {
-                            operationBuilder.MatchOnMetadata.Add(metadataSplit);
-                        }
+                        operationBuilder.MatchOnMetadata.Add(metadataSplit);
                     }
                 }
             }

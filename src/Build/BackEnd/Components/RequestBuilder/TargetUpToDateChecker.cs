@@ -789,7 +789,7 @@ namespace Microsoft.Build.BackEnd
         /// <param name="discreteItems"></param>
         /// <param name="elementLocation"></param>
         private void SeparateItemVectorsFromDiscreteItems(
-            SemiColonTokenizer items,
+            ExpressionSplitEnumerator items,
             ItemBucket bucket,
             out ItemVectorPartitionCollection itemVectors,
             ItemVectorPartitionCollection itemVectorTransforms,

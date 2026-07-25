@@ -44,19 +44,18 @@ namespace Microsoft.Build.Evaluation
     internal static class ExpressionShredder
     {
         /// <summary>
-        /// Splits an expression into fragments at semi-colons, except where the
-        /// semi-colons are in a macro or separator expression.
-        /// Fragments are trimmed and empty fragments discarded.
+        ///  Splits an expression into fragments at semicolons, except where the semicolons are inside a
+        ///  macro or separator expression. Fragments are trimmed and empty fragments are discarded.
         /// </summary>
-        /// <remarks>
-        /// See <see cref="SemiColonTokenizer"/> for rules.
-        /// </remarks>
-        /// <param name="expression">List expression to split</param>
-        /// <returns>Array of non-empty strings from split list.</returns>
-        internal static SemiColonTokenizer SplitSemiColonSeparatedList(string expression)
-        {
-            return new SemiColonTokenizer(expression);
-        }
+        /// <param name="expression">The list expression to split.</param>
+        /// <returns>
+        ///  An <see cref="ExpressionSplitEnumerator"/> over the fragments. It is a struct that is its own
+        ///  enumerator, so it can be consumed with <c>foreach</c> or a collection-expression spread
+        ///  (<c>[.. ...]</c>) without any heap allocation. See <see cref="ExpressionSplitEnumerator"/> for
+        ///  the full splitting rules.
+        /// </returns>
+        internal static ExpressionSplitEnumerator Split(string expression)
+            => new(expression);
 
         /// <summary>
         /// Given a list of expressions that may contain item list expressions,

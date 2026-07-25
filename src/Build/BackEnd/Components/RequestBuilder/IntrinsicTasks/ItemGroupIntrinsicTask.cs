@@ -410,24 +410,21 @@ namespace Microsoft.Build.BackEnd
 
                 if (evaluatedExclude.Length > 0)
                 {
-                    var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude);
-
-                    foreach (string excludeSplit in excludeSplits)
+                    foreach (string excludeSplit in ExpressionShredder.Split(evaluatedExclude))
                     {
                         excludes.Add(excludeSplit);
                     }
                 }
             }
 
-            // Split Include on any semicolons, and take each split in turn
-            var includeSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedInclude);
             ProjectItemInstanceFactory itemFactory = new ProjectItemInstanceFactory(Project, originalItem.ItemType);
 
             // EngineFileUtilities.GetFileListEscaped api invocation evaluates excludes by default.
             // If the code process any expression like "@(x)", we need to handle excludes explicitly using EvaluateExcludePaths().
             bool anyTransformExprProceeded = false;
 
-            foreach (string includeSplit in includeSplits)
+            // Split Include on any semicolons, and take each split in turn
+            foreach (string includeSplit in ExpressionShredder.Split(evaluatedInclude))
             {
                 // If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
                 IList<ProjectItemInstance> itemsFromSplit = expander.ExpandSingleItemVectorExpressionIntoItems(

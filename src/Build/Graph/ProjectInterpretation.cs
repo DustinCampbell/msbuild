@@ -326,7 +326,7 @@ namespace Microsoft.Build.Graph
             Assumed.False(string.IsNullOrWhiteSpace(globalPropertyName), "Must have an inner build property");
             Assumed.False(string.IsNullOrWhiteSpace(globalPropertyValues), "Must have values for the inner build property");
 
-            foreach (var globalPropertyValue in ExpressionShredder.SplitSemiColonSeparatedList(globalPropertyValues))
+            foreach (var globalPropertyValue in ExpressionShredder.Split(globalPropertyValues))
             {
                 yield return new ProjectItemInstance(
                     project: outerBuild,
@@ -564,13 +564,13 @@ namespace Microsoft.Build.Graph
                             bool skipNonexistentTargets = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue("SkipNonexistentTargets"));
                             bool targetsAreForOuterBuild = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue(ProjectReferenceTargetIsOuterBuildMetadataName));
 
-                            // Append directly into the destination list. SemiColonTokenizer is a
+                            // Append directly into the destination list. ExpressionSplitEnumerator is a
                             // struct enumerator, so foreach avoids boxing it through IEnumerable<string>.
                             // This skips the LINQ Select state machine, its captured-locals closure,
                             // and an intermediate TargetSpecification[] vs the previous
                             // .Select(...).ToArray() + AddRange pattern.
                             ref List<TargetSpecification> dest = ref targetsAreForOuterBuild ? ref targetsForOuterBuild : ref targetsForInnerBuild;
-                            foreach (string target in ExpressionShredder.SplitSemiColonSeparatedList(targetsMetadataValue))
+                            foreach (string target in ExpressionShredder.Split(targetsMetadataValue))
                             {
                                 dest ??= [];
                                 dest.Add(new TargetSpecification(target, skipNonexistentTargets));
