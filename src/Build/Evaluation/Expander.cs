@@ -284,11 +284,11 @@ internal partial class Expander<P, I>
 
     /// <summary>
     /// Expands embedded item metadata, properties, and embedded item lists (in that order) as specified in the provided options,
-    /// then splits on semi-colons into a list of strings.
+    /// then splits on semi-colons into individual string fragments.
     /// Use this form when the result is going to be processed further, for example by matching against the file system,
     /// so literals must be distinguished, and you promise to unescape after that.
     /// </summary>
-    internal SemiColonTokenizer ExpandIntoStringListLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
+    internal SemiColonTokenizer ExpandAndSplitLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
     {
         Assumed.True((options & ExpanderOptions.BreakOnNotEmpty) == 0, "not supported");
 
