@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -399,7 +399,7 @@ namespace Microsoft.Build.BackEnd
             }
 
             List<TargetSpecification> dependencyTargets = new List<TargetSpecification>();
-            foreach (string escapedDependency in _expander.ExpandIntoStringListLeaveEscaped(_target.DependsOnTargets, ExpanderOptions.ExpandPropertiesAndItems, _target.DependsOnTargetsLocation))
+            foreach (string escapedDependency in _expander.ExpandAndSplitLeaveEscaped(_target.DependsOnTargets, ExpanderOptions.ExpandPropertiesAndItems, _target.DependsOnTargetsLocation))
             {
                 string dependencyTargetName = EscapingUtilities.UnescapeAll(escapedDependency);
                 dependencyTargets.Add(new TargetSpecification(dependencyTargetName, _target.DependsOnTargetsLocation));
@@ -714,7 +714,7 @@ namespace Microsoft.Build.BackEnd
 
                 if (condition)
                 {
-                    foreach (string escapedErrorTarget in _expander.ExpandIntoStringListLeaveEscaped(errorTargetInstance.ExecuteTargets, ExpanderOptions.ExpandPropertiesAndItems, errorTargetInstance.ExecuteTargetsLocation))
+                    foreach (string escapedErrorTarget in _expander.ExpandAndSplitLeaveEscaped(errorTargetInstance.ExecuteTargets, ExpanderOptions.ExpandPropertiesAndItems, errorTargetInstance.ExecuteTargetsLocation))
                     {
                         string errorTargetName = EscapingUtilities.UnescapeAll(escapedErrorTarget);
                         allErrorTargets.Add(new TargetSpecification(errorTargetName, errorTargetInstance.ExecuteTargetsLocation));

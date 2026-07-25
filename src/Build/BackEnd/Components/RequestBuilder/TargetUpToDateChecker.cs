@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -410,8 +410,8 @@ namespace Microsoft.Build.BackEnd
         {
             // break down the input/output specifications along the standard separator, after expanding all embedded properties
             // and item metadata
-            var targetInputs = bucket.Expander.ExpandIntoStringListLeaveEscaped(TargetInputSpecification, ExpanderOptions.ExpandPropertiesAndMetadata, _targetToAnalyze.InputsLocation);
-            var targetOutputs = bucket.Expander.ExpandIntoStringListLeaveEscaped(TargetOutputSpecification, ExpanderOptions.ExpandPropertiesAndMetadata, _targetToAnalyze.OutputsLocation);
+            var targetInputs = bucket.Expander.ExpandAndSplitLeaveEscaped(TargetInputSpecification, ExpanderOptions.ExpandPropertiesAndMetadata, _targetToAnalyze.InputsLocation);
+            var targetOutputs = bucket.Expander.ExpandAndSplitLeaveEscaped(TargetOutputSpecification, ExpanderOptions.ExpandPropertiesAndMetadata, _targetToAnalyze.OutputsLocation);
 
             itemVectorTransformsInTargetInputs = new ItemVectorPartitionCollection(MSBuildNameIgnoreCaseComparer.Default);
 

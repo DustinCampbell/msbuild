@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -130,7 +130,7 @@ namespace Microsoft.Build.BackEnd
 
                 HashSet<string> result = null;
 
-                foreach (string segment in expander.ExpandIntoStringListLeaveEscaped(metadata, ExpanderOptions.ExpandAll, location))
+                foreach (string segment in expander.ExpandAndSplitLeaveEscaped(metadata, ExpanderOptions.ExpandAll, location))
                 {
                     result ??= [];
                     result.Add(segment);
@@ -594,7 +594,7 @@ namespace Microsoft.Build.BackEnd
             HashSet<string> specificationsToFind = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // Split by semicolons
-            foreach (string piece in expander.ExpandIntoStringListLeaveEscaped(specification, ExpanderOptions.ExpandAll, specificationLocation))
+            foreach (string piece in expander.ExpandAndSplitLeaveEscaped(specification, ExpanderOptions.ExpandAll, specificationLocation))
             {
                 // Take each individual path or file expression, and expand any
                 // wildcards.  Then loop through each file returned, and add it
