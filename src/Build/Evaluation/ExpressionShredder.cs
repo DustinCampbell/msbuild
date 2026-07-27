@@ -15,6 +15,8 @@ namespace Microsoft.Build.Evaluation;
 /// </summary>
 internal static class ExpressionShredder
 {
+    private static readonly char[] s_markers = ['@', '%'];
+
     /// <summary>
     ///  Splits an expression into fragments at semicolons, except where the semicolons are inside a
     ///  macro or separator expression. Fragments are trimmed and empty fragments are discarded.
@@ -218,54 +220,70 @@ internal static class ExpressionShredder
     /// </remarks>
     private static void GetReferencedItemNamesAndMetadata(string expression, int start, int end, ref ItemsAndMetadataPair pair, bool includeItemTypes, bool includeMetadataOutsideTransforms)
     {
-        for (int i = start; i < end; i++)
+        int index = start;
+
+        while (index < end)
         {
-            int restartPoint;
-
-            if (Sink(expression, ref i, end, '@', '('))
+            // Find the next '@' or '%'; bail out if there's no room for a '(' after it.
+            index = expression.IndexOfAny(s_markers, index, end - index);
+            if (index < 0 || index + 1 >= end)
             {
-                // Start of a possible item list expression
+                return;
+            }
 
-                // Store the index to backtrack to if this doesn't turn out to be a well
-                // formed metadata expression. (Subtract one for the increment when we loop around.)
-                restartPoint = i - 1;
+            // Only '@(' and '%(' are markers; skip a bare '@' or '%'.
+            if (expression[index + 1] != '(')
+            {
+                index++;
+                continue;
+            }
 
-                SinkWhitespace(expression, ref i);
+            char marker = expression[index];
 
-                int startOfName = i;
+            // Skip past the marker's two opening characters. If the expression turns out to be
+            // malformed, scanning resumes here.
+            index += 2;
+            int restartPoint = index;
 
-                if (!SinkValidName(expression, ref i, end))
+            if (marker == '@')
+            {
+                // Start of a possible item list expression.
+                SinkWhitespace(expression, ref index, end);
+
+                int startOfName = index;
+
+                if (!SinkValidName(expression, ref index, end))
                 {
-                    i = restartPoint;
+                    index = restartPoint;
                     continue;
                 }
 
                 // Grab the name boundaries, but continue to verify it's a well-formed expression
                 // before we store it.
-                int nameLength = i - startOfName;
+                int nameLength = index - startOfName;
 
-                SinkWhitespace(expression, ref i);
+                SinkWhitespace(expression, ref index, end);
 
                 bool transformOrFunctionFound = true;
 
                 // If there's an '->' eat it and the subsequent quoted expression or transform function
-                while (Sink(expression, ref i, end, '-', '>') && transformOrFunctionFound)
+                while (Sink(expression, ref index, end, '-', '>') && transformOrFunctionFound)
                 {
-                    SinkWhitespace(expression, ref i);
+                    SinkWhitespace(expression, ref index, end);
 
-                    if (SinkSingleQuotedExpression(expression, ref i))
+                    if (SinkSingleQuotedExpression(expression, ref index, end))
                     {
-                        SinkWhitespace(expression, ref i);
+                        SinkWhitespace(expression, ref index, end);
                         continue;
                     }
 
-                    if (SinkFunctionTransform(expression, ref i, end))
+                    if (SinkFunctionTransform(expression, ref index, end))
                     {
-                        SinkWhitespace(expression, ref i);
+                        SinkWhitespace(expression, ref index, end);
                         continue;
                     }
 
-                    i = restartPoint;
+                    index = restartPoint;
                     transformOrFunctionFound = false;
                 }
 
@@ -274,38 +292,38 @@ internal static class ExpressionShredder
                     continue;
                 }
 
-                SinkWhitespace(expression, ref i);
+                SinkWhitespace(expression, ref index, end);
 
                 // If there's a ',', eat it and the subsequent quoted expression
-                if (Sink(expression, ref i, ','))
+                if (Sink(expression, ref index, end, ','))
                 {
-                    SinkWhitespace(expression, ref i);
+                    SinkWhitespace(expression, ref index, end);
 
-                    if (!Sink(expression, ref i, '\''))
+                    if (!Sink(expression, ref index, end, '\''))
                     {
-                        i = restartPoint;
+                        index = restartPoint;
                         continue;
                     }
 
-                    int closingQuote = expression.IndexOf('\'', i);
+                    int closingQuote = expression.IndexOf('\'', index, end - index);
                     if (closingQuote == -1)
                     {
-                        i = restartPoint;
+                        index = restartPoint;
                         continue;
                     }
 
                     // Look for metadata in the separator expression
                     // e.g., @(foo, '%(bar)') contains batchable metadata 'bar'
-                    GetReferencedItemNamesAndMetadata(expression, start: i, end: closingQuote, ref pair, includeItemTypes: false, includeMetadataOutsideTransforms: true);
+                    GetReferencedItemNamesAndMetadata(expression, start: index, end: closingQuote, ref pair, includeItemTypes: false, includeMetadataOutsideTransforms: true);
 
-                    i = closingQuote + 1;
+                    index = closingQuote + 1;
                 }
 
-                SinkWhitespace(expression, ref i);
+                SinkWhitespace(expression, ref index, end);
 
-                if (!Sink(expression, ref i, ')'))
+                if (!Sink(expression, ref index, end, ')'))
                 {
-                    i = restartPoint;
+                    index = restartPoint;
                     continue;
                 }
 
@@ -316,23 +334,13 @@ internal static class ExpressionShredder
                     pair.Items ??= new HashSet<string>(MSBuildNameIgnoreCaseComparer.Default);
                     pair.Items.Add(expression.Substring(startOfName, nameLength));
                 }
-
-                i--;
-
-                continue;
             }
-
-            if (Sink(expression, ref i, end, '%', '('))
+            else
             {
-                // Start of a possible metadata expression
-
-                // Store the index to backtrack to if this doesn't turn out to be a well
-                // formed metadata expression. (Subtract one for the increment when we loop around.)
-                restartPoint = i - 1;
-
-                if (!TryParseMetadataExpression(expression, ref i, end, out string? itemName, out string? metadataName))
+                // Start of a possible metadata expression.
+                if (!TryParseMetadataExpression(expression, ref index, end, out string? itemName, out string? metadataName))
                 {
-                    i = restartPoint;
+                    index = restartPoint;
                     continue;
                 }
 
@@ -342,10 +350,6 @@ internal static class ExpressionShredder
                     pair.Metadata ??= new Dictionary<string, MetadataReference>(MSBuildNameIgnoreCaseComparer.Default);
                     pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, metadataName);
                 }
-
-                // Compensate for the for-loop's i++ since TryParseMetadataExpression
-                // already advanced i past the closing ')'.
-                i--;
             }
         }
     }
@@ -419,25 +423,26 @@ internal static class ExpressionShredder
     /// </summary>
     /// <param name="expression">The expression being scanned.</param>
     /// <param name="i">Current scan position. Advanced past the closing quote on success.</param>
+    /// <param name="end">Exclusive end index of the scan range; no character at or beyond this index is read.</param>
     /// <returns>
     ///  <see langword="true"/> if a single-quoted subexpression was found.
     /// </returns>
-    private static bool SinkSingleQuotedExpression(string expression, ref int i)
+    private static bool SinkSingleQuotedExpression(string expression, ref int i, int end)
     {
-        if (!Sink(expression, ref i, '\''))
+        if (!Sink(expression, ref i, end, '\''))
         {
             return false;
         }
 
-        int start = i;
-        int end = expression.IndexOf('\'', start);
+        int startIndex = i;
+        int endIndex = expression.IndexOf('\'', startIndex, end - startIndex);
 
-        if (end < 0)
+        if (endIndex < 0)
         {
             return false;
         }
 
-        i = end + 1;
+        i = endIndex + 1;
         return true;
     }
 
