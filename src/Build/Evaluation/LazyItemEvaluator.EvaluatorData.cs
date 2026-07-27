@@ -9,6 +9,7 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.BackEnd.SdkResolution;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Text;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Execution;
@@ -204,6 +205,11 @@ namespace Microsoft.Build.Evaluation
             public P GetProperty(string name, int startIndex, int endIndex)
             {
                 return _wrappedData.GetProperty(name, startIndex, endIndex);
+            }
+
+            public P GetProperty(StringSegment name)
+            {
+                return _wrappedData.GetProperty(name);
             }
 
             public ProjectTargetInstance GetTarget(string targetName)

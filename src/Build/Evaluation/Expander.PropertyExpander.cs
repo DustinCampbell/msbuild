@@ -15,6 +15,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 using Microsoft.Win32;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
@@ -464,14 +465,18 @@ internal partial class Expander<P, I>
         /// </summary>
         private static object LookupProperty(IPropertyProvider<P> properties, string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
         {
-            P property = properties.GetProperty(propertyName, startIndex, endIndex);
+            // A single segment view of the requested name threads through the whole lookup pipeline,
+            // so no substring is allocated to look up, hash, or compare the property name.
+            StringSegment name = new(propertyName, startIndex, endIndex - startIndex + 1);
+
+            P property = properties.GetProperty(name);
 
             object propertyValue;
 
             bool isArtificial = property == null && ((endIndex - startIndex) >= 7) &&
-                               MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7);
+                               MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", name.Slice(0, 7));
 
-            propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, elementLocation, property == null, isArtificial);
+            propertiesUseTracker.TrackRead(name, elementLocation, property == null, isArtificial);
 
             if (isArtificial)
             {

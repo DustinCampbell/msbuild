@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Instance
 {
@@ -74,6 +75,8 @@ namespace Microsoft.Build.Instance
         public T Get(string key) => _values.Get(key);
 
         public T Get(string key, int index, int length) => _values.Get(key, index, length);
+
+        public T Get(StringSegment key) => _values.Get(key.Buffer, key.Offset, key.Length);
 
         public IEnumerator<T> GetEnumerator() => _values.GetEnumerator();
 

@@ -3,6 +3,8 @@
 
 #nullable disable
 
+using Microsoft.Build.Text;
+
 namespace Microsoft.Build.Evaluation
 {
     /// <summary>
@@ -23,5 +25,12 @@ namespace Microsoft.Build.Evaluation
         /// Name is the segment of the provided string with the provided start and end indexes.
         /// </summary>
         T GetProperty(string name, int startIndex, int endIndex);
+
+        /// <summary>
+        /// Returns a property whose name is represented by <paramref name="name"/>, or null if it was
+        /// not found. The segment allows the caller to look up a property by a view into a larger
+        /// buffer without allocating a substring.
+        /// </summary>
+        T GetProperty(StringSegment name);
     }
 }

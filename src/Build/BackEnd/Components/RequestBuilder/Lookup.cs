@@ -7,6 +7,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Text;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
@@ -453,6 +454,42 @@ namespace Microsoft.Build.BackEnd
             Assumed.NotNullOrEmpty(name);
 
             return GetProperty(name, 0, name.Length - 1);
+        }
+
+        /// <summary>
+        /// Gets the effective property for the current scope, taking the name from <paramref name="name"/>.
+        /// If no match is found, returns null.
+        /// Caller must not modify the property returned.
+        /// </summary>
+        public ProjectPropertyInstance GetProperty(StringSegment name)
+        {
+            // Walk down the tables and stop when the first
+            // property with this name is found
+            Scope scope = _lookupScopes;
+            while (scope != null)
+            {
+                if (scope.PropertySets != null)
+                {
+                    ProjectPropertyInstance property = scope.PropertySets.GetProperty(name);
+                    if (property != null)
+                    {
+                        return property;
+                    }
+                }
+
+                if (scope.Properties != null)
+                {
+                    ProjectPropertyInstance property = scope.Properties.GetProperty(name);
+                    if (property != null)
+                    {
+                        return property;
+                    }
+                }
+
+                scope = scope.Parent;
+            }
+
+            return null;
         }
 
         /// <summary>

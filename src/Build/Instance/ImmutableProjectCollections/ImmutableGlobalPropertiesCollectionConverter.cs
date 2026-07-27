@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -110,6 +111,20 @@ namespace Microsoft.Build.Instance.ImmutableProjectCollections
             // look up the requested property while honoring the specific index and length
             // constraints. We then just have to verify that it's one of the global properties.
             ProjectPropertyInstance actualProperty = _allProperties.Get(key, index, length);
+            if (actualProperty != null && _globalProperties.ContainsKey(actualProperty.Name))
+            {
+                return actualProperty;
+            }
+
+            return null;
+        }
+
+        public ProjectPropertyInstance Get(StringSegment key)
+        {
+            // The PropertyDictionary containing all of the properties can efficiently
+            // look up the requested property view. We then just have to verify that it's
+            // one of the global properties.
+            ProjectPropertyInstance actualProperty = _allProperties.Get(key);
             if (actualProperty != null && _globalProperties.ContainsKey(actualProperty.Name))
             {
                 return actualProperty;

@@ -10,6 +10,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable enable
 
@@ -36,6 +37,18 @@ internal sealed class PropertiesUseTracker
     /// Lazily allocated collection of properties and the element which used them.
     /// </summary>
     private Dictionary<string, IElementLocation>? _properties;
+
+    /// <summary>
+    /// Tracks a read of the property whose name is represented by <paramref name="name"/>. This segment
+    /// overload lets the caller avoid allocating a substring for the name on the read path.
+    /// </summary>
+    internal void TrackRead(StringSegment name, IElementLocation elementLocation, bool isUninitialized, bool isArtificial)
+    {
+        // PropertyReadInfo and the currently-evaluating-element comparison are expressed in terms of a
+        // (buffer, startIndex, endIndex) triple; a StringSegment is exactly that triple, so unpack it.
+        // A tracked read always carries a real name, so the backing buffer is non-null.
+        TrackRead(name.Buffer!, name.Offset, name.Offset + name.Length - 1, elementLocation, isUninitialized, isArtificial);
+    }
 
     internal void TrackRead(string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, bool isUninitialized, bool isArtificial)
     {

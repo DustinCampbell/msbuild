@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Collections
 {
@@ -27,5 +28,12 @@ namespace Microsoft.Build.Collections
         /// <param name="endIndex">The end index of the substring of <paramref name="keyString"/> that contains the key.</param>
         /// <returns>If it's found, the item whose key matches the calculated substring. Null otherwise.</returns>
         TValue? Get(string keyString, int startIndex, int endIndex);
+
+        /// <summary>
+        /// Get the value with the key represented by <paramref name="key"/>, or null if it is not present.
+        /// </summary>
+        /// <param name="key">A segment view of the key to look up, without allocating a substring.</param>
+        /// <returns>The matching item if found; otherwise null.</returns>
+        TValue? Get(StringSegment key);
     }
 }

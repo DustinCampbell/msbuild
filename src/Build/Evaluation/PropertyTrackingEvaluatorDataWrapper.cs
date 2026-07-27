@@ -7,6 +7,7 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Components.Logging;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Text;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Execution;
@@ -79,6 +80,20 @@ namespace Microsoft.Build.Evaluation
             if (IsPropertyReadTrackingRequested)
             {
                 this.TrackPropertyRead(name.Substring(startIndex, endIndex - startIndex + 1), prop);
+            }
+
+            return prop;
+        }
+
+        /// <summary>
+        /// Returns a property whose name is represented by <paramref name="name"/>, or null if it was not found.
+        /// </summary>
+        public P GetProperty(StringSegment name)
+        {
+            P prop = _wrapped.GetProperty(name);
+            if (IsPropertyReadTrackingRequested)
+            {
+                this.TrackPropertyRead(name.Value!, prop);
             }
 
             return prop;

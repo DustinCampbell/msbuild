@@ -16,6 +16,7 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.BackEnd.SdkResolution;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Text;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
@@ -2017,6 +2018,16 @@ namespace Microsoft.Build.Execution
         ProjectPropertyInstance IPropertyProvider<ProjectPropertyInstance>.GetProperty(string name, int startIndex, int endIndex)
         {
             return _properties.GetProperty(name, startIndex, endIndex);
+        }
+
+        /// <summary>
+        /// Get any property in the item whose name is represented by <paramref name="name"/>,
+        /// otherwise returns null.
+        /// </summary>
+        [DebuggerStepThrough]
+        ProjectPropertyInstance IPropertyProvider<ProjectPropertyInstance>.GetProperty(StringSegment name)
+        {
+            return _properties.GetProperty(name);
         }
 
         /// <summary>

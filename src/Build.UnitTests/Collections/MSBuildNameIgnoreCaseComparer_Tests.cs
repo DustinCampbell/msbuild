@@ -5,6 +5,8 @@ using System;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
+using Shouldly;
 using Xunit;
 
 #nullable disable
@@ -198,6 +200,73 @@ namespace Microsoft.Build.UnitTests.OM.Collections
             MSBuildNameIgnoreCaseComparer comparer = MSBuildNameIgnoreCaseComparer.Default;
 
             Assert.Equal(comparer.GetHashCode("abcd", 0, 3), comparer.GetHashCode("abc"));
+        }
+
+        /// <summary>
+        /// The StringSegment Equals overload must produce the same result as the (buffer, start, length)
+        /// triple it encapsulates, since a segment view of a name is meant to replace that triple.
+        /// </summary>
+        [Fact]
+        public void EqualsStringSegmentMatchesTriple()
+        {
+            MSBuildNameIgnoreCaseComparer comparer = MSBuildNameIgnoreCaseComparer.Default;
+
+            // "$(foo)" -> the inner "foo" is offset 2, length 3.
+            StringSegment fooSegment = new StringSegment("$(foo)", 2, 3);
+
+            comparer.Equals("foo", fooSegment).ShouldBeTrue();
+            comparer.Equals("FOO", fooSegment).ShouldBeTrue();
+            comparer.Equals("food", fooSegment).ShouldBeFalse();
+            comparer.Equals("fo", fooSegment).ShouldBeFalse();
+
+            // Equivalent to the triple overload.
+            comparer.Equals("foo", fooSegment).ShouldBe(comparer.Equals("foo", "$(foo)", 2, 3));
+        }
+
+        /// <summary>
+        /// The StringSegment GetHashCode overload must produce the same hash as the (buffer, start, length)
+        /// triple and the same hash as the whole equivalent string. This is the correctness crux: a name
+        /// stored as a whole string must be retrievable by a segment view of a larger buffer.
+        /// </summary>
+        [Fact]
+        public void GetHashCodeStringSegmentMatchesTriple()
+        {
+            MSBuildNameIgnoreCaseComparer comparer = MSBuildNameIgnoreCaseComparer.Default;
+
+            StringSegment fooSegment = new StringSegment("$(foo)", 2, 3);
+
+            comparer.GetHashCode(fooSegment).ShouldBe(comparer.GetHashCode("$(foo)", 2, 3));
+            comparer.GetHashCode(fooSegment).ShouldBe(comparer.GetHashCode("foo"));
+
+            // Case-insensitivity is preserved through the segment overload.
+            comparer.GetHashCode(new StringSegment("FOO")).ShouldBe(comparer.GetHashCode("foo"));
+
+            // A default (null) segment hashes to 0, matching the null-string convention.
+            comparer.GetHashCode(default(StringSegment)).ShouldBe(0);
+        }
+
+        /// <summary>
+        /// End-to-end proof that a property stored by whole-string key can be retrieved by a
+        /// StringSegment view of a larger buffer, using the same dictionary and comparer. If the
+        /// segment hash did not match the stored-string hash, this lookup would miss.
+        /// </summary>
+        [Fact]
+        public void PropertyDictionaryGetPropertyByStringSegment()
+        {
+            MSBuildNameIgnoreCaseComparer comparer = MSBuildNameIgnoreCaseComparer.Default;
+            PropertyDictionary<ProjectPropertyInstance> dictionary = new PropertyDictionary<ProjectPropertyInstance>(comparer);
+
+            ProjectPropertyInstance p = ProjectPropertyInstance.Create("foo", "bar");
+            dictionary.Set(p);
+
+            // "$(foo)" -> inner name "foo" is offset 2, length 3.
+            StringSegment nameSegment = new StringSegment("$(foo)", 2, 3);
+            ProjectPropertyInstance value = dictionary.GetProperty(nameSegment);
+
+            value.ShouldBeSameAs(p);
+
+            // A segment that does not match any stored key returns null.
+            dictionary.GetProperty(new StringSegment("$(bar)", 2, 3)).ShouldBeNull();
         }
     }
 }

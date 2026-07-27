@@ -10,6 +10,7 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -335,6 +336,24 @@ namespace Microsoft.Build.Collections
         public T Get(string keyString, int startIndex, int endIndex)
         {
             return GetProperty(keyString, startIndex, endIndex);
+        }
+
+        /// <summary>
+        /// Get the property with the name represented by <paramref name="name"/> or null if it is not present,
+        /// without allocating a substring for the lookup.
+        /// </summary>
+        public T GetProperty(StringSegment name)
+        {
+            using (_lock.EnterDisposableReadLock())
+            {
+                return _properties.Get(name);
+            }
+        }
+
+        /// <inheritdoc />
+        public T Get(StringSegment key)
+        {
+            return GetProperty(key);
         }
 
         /// <summary>

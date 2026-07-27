@@ -11,6 +11,7 @@ using System.Runtime.Serialization;
 using System.Security;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 /*
     ==================================================================================================================
@@ -348,6 +349,19 @@ namespace Microsoft.Build.Collections
             }
 
             return GetCore(key, index, length);
+        }
+
+        /// <summary>
+        /// Gets the item if any with the name represented by <paramref name="key"/>, without allocating a substring.
+        /// </summary>
+        public T Get(StringSegment key)
+        {
+            if (_constrainedComparer == null)
+            {
+                throw new InvalidOperationException("Cannot do a constrained lookup on this collection.");
+            }
+
+            return GetCore(key.Buffer, key.Offset, key.Length);
         }
 
         /// <summary>

@@ -15,6 +15,7 @@ using System.Xml;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Text;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation.Context;
@@ -4648,6 +4649,15 @@ namespace Microsoft.Build.Evaluation
             public ProjectProperty GetProperty(string name, int startIndex, int endIndex)
             {
                 return Properties.GetProperty(name, startIndex, endIndex);
+            }
+
+            /// <summary>
+            /// Returns the property whose name is represented by <paramref name="name"/> or null if it
+            /// was not present.
+            /// </summary>
+            public ProjectProperty GetProperty(StringSegment name)
+            {
+                return Properties.GetProperty(name);
             }
 
             #endregion

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -37,6 +38,24 @@ namespace Microsoft.Build.Collections
         public int GetHashCode(string obj)
         {
             return GetHashCode(obj, 0, obj?.Length ?? 0);
+        }
+
+        /// <summary>
+        /// Performs the "Equals" operation, comparing <paramref name="compareToString"/> against the text
+        /// represented by <paramref name="constrained"/>.
+        /// </summary>
+        public bool Equals(string compareToString, StringSegment constrained)
+        {
+            return Equals(compareToString, constrained.Buffer, constrained.Offset, constrained.Length);
+        }
+
+        /// <summary>
+        /// Getting a case insensitive hash code for the msbuild property, item or metadata name
+        /// represented by <paramref name="obj"/>. Consistent with <see cref="GetHashCode(string, int, int)"/>.
+        /// </summary>
+        public int GetHashCode(StringSegment obj)
+        {
+            return GetHashCode(obj.Buffer, obj.Offset, obj.Length);
         }
 
         /// <summary>

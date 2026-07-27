@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -38,6 +39,13 @@ namespace Microsoft.Build.Collections
         /// <returns>The item (if contained).</returns>
         /// <exception cref="KeyNotFoundException">Thrown if no item with the given name is present in the collection.</exception>
         T Get(string key, int index, int length);
+
+        /// <summary>
+        /// Gets the item if any with the name represented by <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">A segment view of the key to look up, without allocating a substring.</param>
+        /// <returns>The item (if contained); otherwise <see langword="null"/>.</returns>
+        T Get(StringSegment key);
 
         /// <summary>
         /// Copies the contents of this HashSet into the provided array.
