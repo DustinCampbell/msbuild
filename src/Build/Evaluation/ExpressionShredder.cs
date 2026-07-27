@@ -141,13 +141,12 @@ internal static class ExpressionShredder
                 continue;
             }
 
-            startTransform = index;
-            ItemVector? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref index, end);
-            if (functionCapture != null)
+            if (TryParseFunctionTransform(expression, ref index, end, out ItemVector functionCapture))
             {
                 // PERF: Almost all expressions have only one capture, so optimize for that case
                 transformExpressions ??= new List<ItemVector>(1);
-                transformExpressions.Add(functionCapture.Value);
+                transformExpressions.Add(functionCapture);
+
                 SinkWhitespace(expression, ref index);
                 continue;
             }
@@ -261,7 +260,6 @@ internal static class ExpressionShredder
                 while (Sink(expression, ref i, end, '-', '>') && transformOrFunctionFound)
                 {
                     SinkWhitespace(expression, ref i);
-                    int startTransform = i;
 
                     bool isQuotedTransform = SinkSingleQuotedExpression(expression, ref i, end);
                     if (isQuotedTransform)
@@ -270,14 +268,13 @@ internal static class ExpressionShredder
                         continue;
                     }
 
-                    ItemVector? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref i, end);
-                    if (functionCapture != null)
+                    if (SinkFunctionTransform(expression, ref i, end))
                     {
                         SinkWhitespace(expression, ref i);
                         continue;
                     }
 
-                    if (!isQuotedTransform && functionCapture == null)
+                    if (!isQuotedTransform)
                     {
                         i = restartPoint;
                         transformOrFunctionFound = false;
@@ -552,8 +549,37 @@ internal static class ExpressionShredder
     /// and ends before the specified end index.
     /// Leaves index one past the end of the closing paren.
     /// </summary>
-    private static ItemVector? SinkItemFunctionExpression(string expression, int startTransform, ref int i, int end)
+    private static bool SinkFunctionTransform(string expression, ref int i, int end)
     {
+        if (SinkValidName(expression, ref i, end))
+        {
+            // Eat any whitespace between the function name and its arguments
+            SinkWhitespace(expression, ref i);
+
+            if (SinkArgumentsInParentheses(expression, ref i, end))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///  Attempts to parse an item function transform (e.g. <c>Distinct()</c>) beginning at
+    ///  <paramref name="i"/>, capturing it into <paramref name="result"/>.
+    /// </summary>
+    /// <param name="expression">The expression being scanned.</param>
+    /// <param name="i">Current scan position. Advanced past the closing <c>)</c> on success.</param>
+    /// <param name="end">Exclusive end index of the scan range; no character at or beyond this index is read.</param>
+    /// <param name="result">The parsed transform if one was found; otherwise <see langword="default"/>.</param>
+    /// <returns>
+    ///  <see langword="true"/> if an item function transform was parsed.
+    /// </returns>
+    private static bool TryParseFunctionTransform(string expression, ref int i, int end, out ItemVector result)
+    {
+        int start = i;
+
         if (SinkValidName(expression, ref i, end))
         {
             int endFunctionName = i;
@@ -566,31 +592,26 @@ internal static class ExpressionShredder
             {
                 int endFunctionArguments = i - 1;
 
-                string functionName = expression.Substring(startTransform, endFunctionName - startTransform);
+                string functionName = expression.Substring(start, endFunctionName - start);
                 string? functionArguments = null;
                 if (endFunctionArguments > startFunctionArguments)
                 {
                     functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                 }
 
-                return new ItemVector(
-                    text: expression.Substring(startTransform, i - startTransform),
-                    index: startTransform,
-                    length: i - startTransform,
-                    itemType: null,
-                    separator: null,
-                    separatorStart: -1,
-                    captures: null,
+                result = new ItemVector(
+                    text: expression.Substring(start, i - start),
+                    index: start,
+                    length: i - start,
                     functionName: functionName,
                     functionArguments: functionArguments);
-            }
 
-            return null;
+                return true;
+            }
         }
-        else
-        {
-            return null;
-        }
+
+        result = default;
+        return false;
     }
 
     /// <summary>
