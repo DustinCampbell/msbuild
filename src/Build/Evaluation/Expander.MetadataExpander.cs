@@ -208,7 +208,7 @@ internal partial class Expander<P, I>
             {
                 int pos = i + 2;
 
-                if (!ExpressionShredder.TryParseMetadataExpression(input, ref pos, endIndex, out string itemType, out string metadataName))
+                if (!ExpressionShredder.TryParseMetadataExpression(input, ref pos, endIndex, out string? itemType, out string? metadataName))
                 {
                     // Not a valid metadata reference — skip past '%(' and keep scanning.
                     i = input.IndexOf("%(", i + 2, StringComparison.Ordinal);
