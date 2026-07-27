@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -96,7 +96,7 @@ internal partial class Expander<P, I>
             }
             else
             {
-                ExpressionShredder.ReferencedItemExpressionsEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+                ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
                 if (!enumerator.MoveNext())
                 {
@@ -131,11 +131,11 @@ internal partial class Expander<P, I>
         /// </summary>
         /// <remarks>
         ///  The supplied enumerator must already be positioned at the first capture (i.e. a successful
-        ///  <see cref="ExpressionShredder.ReferencedItemExpressionsEnumerator.MoveNext"/> has been called).
+        ///  <see cref="ItemVectorEnumerator.MoveNext"/> has been called).
         ///  Passing the already-advanced enumerator lets the caller's shred be reused instead of
         ///  re-scanning the expression from scratch.
         /// </remarks>
-        private void ScanAndExpandMetadataInGaps(string expression, ref ExpressionShredder.ReferencedItemExpressionsEnumerator enumerator)
+        private void ScanAndExpandMetadataInGaps(string expression, ref ItemVectorEnumerator enumerator)
         {
             int start = 0;
 

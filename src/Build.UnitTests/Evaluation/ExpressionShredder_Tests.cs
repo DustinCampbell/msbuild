@@ -278,7 +278,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     [MemberData(nameof(MedleyExpressions))]
     public void ItemExpressionMedleyRegressionTestAgainstOldRegex(string expression)
     {
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         MatchCollection matches = s_itemVectorPattern.Matches(expression);
         int expressionCount = 0;
 
@@ -407,7 +407,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorTransform1()
     {
         string expression = "@(i->'%(Meta0)'->'%(Filename)'->Substring($(Val)))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
 
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
@@ -424,7 +424,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpressionInvalid1()
     {
         string expression = "@(type-&gt;'%($(a)), '%'')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeFalse();
     }
 
@@ -432,7 +432,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression1()
     {
         string expression = "@(Foo)";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -445,7 +445,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression2()
     {
         string expression = "@(Foo, ';')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -458,7 +458,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression3()
     {
         string expression = "@(Foo->'%(Fullpath)')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -472,7 +472,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression4()
     {
         string expression = "@(Foo->'%(Fullpath)',';')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -486,7 +486,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression5()
     {
         string expression = "@(Foo->Bar(a,b))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -502,7 +502,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression6()
     {
         string expression = "@(Foo->Bar(a,b),';')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -518,7 +518,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression7()
     {
         string expression = "@(Foo->Metadata('Meta0')->Directory())";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -537,7 +537,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression8()
     {
         string expression = "@(Foo->Metadata('Meta0')->Directory(),';')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -556,7 +556,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression9()
     {
         string expression = "@(Foo->'%(Fullpath)'->Directory(), '|')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -575,7 +575,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression10()
     {
         string expression = "@(Foo->'%(Fullpath)'->Directory(),';')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -594,7 +594,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression11()
     {
         string expression = "@(Foo->'$(SOMEPROP)%(Fullpath)')";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -610,7 +610,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression12()
     {
         string expression = "@(Foo->'%(Filename)'->Substring($(Val), $(Boo)))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -629,7 +629,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression13()
     {
         string expression = "@(Foo->'%(Filename)'->Substring(\"AA\", 'BB', `cc`))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -648,7 +648,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression14()
     {
         string expression = "@(Foo->'%(Filename)'->Substring('()', $(Boo), ')('))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -667,7 +667,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression15()
     {
         string expression = "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \"AA\"))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -686,7 +686,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression16()
     {
         string expression = "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \")(\"))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -705,7 +705,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsSingleExpression17()
     {
         string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeFalse();
@@ -724,7 +724,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsMultipleExpression1()
     {
         string expression = "@(Bar);@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture firstCapture = expressions.Current;
         expressions.MoveNext().ShouldBeTrue();
@@ -747,7 +747,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsMultipleExpression2()
     {
         string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`));@(Bar)";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture firstCapture = expressions.Current;
         expressions.MoveNext().ShouldBeTrue();
@@ -770,7 +770,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsMultipleExpression3()
     {
         string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`));AAAAAA;@(Bar)";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeTrue();
@@ -793,7 +793,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsMultipleExpression4()
     {
         string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(\"`));@(;);@(aaa->;b);@(bbb->'d);@(`Foo->'%(Filename)'->Distinct());@(Bar)";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
         expressions.MoveNext().ShouldBeTrue();
         ExpressionShredder.ItemExpressionCapture capture = expressions.Current;
         expressions.MoveNext().ShouldBeTrue();
@@ -816,7 +816,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsMultipleExpression5()
     {
         string expression = "@(foo);@(foo,'-');@(foo);@(foo,',');@(foo)";
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions(expression);
 
         expressions.MoveNext().ShouldBeTrue();
         expressions.Current.ItemType.ShouldBe("foo");
@@ -847,7 +847,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     [Fact]
     public void ExtractItemVectorExpressionsChainedFunctionsWithWhitespace()
     {
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions;
+        ItemVectorEnumerator expressions;
         ExpressionShredder.ItemExpressionCapture capture;
 
         // Test with space before second arrow: ") ->"
@@ -912,7 +912,7 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     public void ExtractItemVectorExpressionsInvalidSyntaxAfterWhitespace()
     {
         // Invalid syntax after whitespace - should not be parsed as item expression.
-        ExpressionShredder.ReferencedItemExpressionsEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions("@(I -> Count() invalid)");
+        ItemVectorEnumerator expressions = ExpressionShredder.GetReferencedItemExpressions("@(I -> Count() invalid)");
         expressions.MoveNext().ShouldBeFalse();
     }
 

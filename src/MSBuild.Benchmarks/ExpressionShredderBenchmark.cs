@@ -126,7 +126,7 @@ public class ExpressionShredderBenchmark
     public int ItemExpressions(string scenario)
     {
         int count = 0;
-        ExpressionShredder.ReferencedItemExpressionsEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(_expressions[scenario]);
+        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(_expressions[scenario]);
         while (enumerator.MoveNext())
         {
             count++;

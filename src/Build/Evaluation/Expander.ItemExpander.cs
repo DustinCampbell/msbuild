@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -311,7 +311,7 @@ internal partial class Expander<P, I>
                 return null;
             }
 
-            ExpressionShredder.ReferencedItemExpressionsEnumerator matchesEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+            ItemVectorEnumerator matchesEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
             if (!matchesEnumerator.MoveNext())
             {
@@ -529,7 +529,7 @@ internal partial class Expander<P, I>
 
             Assumed.NotNull(items, "Cannot expand items without providing items");
 
-            ExpressionShredder.ReferencedItemExpressionsEnumerator matchesEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+            ItemVectorEnumerator matchesEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
             if (!matchesEnumerator.MoveNext())
             {

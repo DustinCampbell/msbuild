@@ -50,7 +50,7 @@ public class ExpressionShredderAllocationBenchmark
     public int ItemExpressions()
     {
         int count = 0;
-        ExpressionShredder.ReferencedItemExpressionsEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(ItemExpressionsExpression);
+        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(ItemExpressionsExpression);
         while (enumerator.MoveNext())
         {
             count++;

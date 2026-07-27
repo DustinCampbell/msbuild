@@ -223,7 +223,7 @@ internal partial class Expander<P, I>
     /// </summary>
     internal static bool ExpressionContainsItemVector(string expression)
     {
-        ExpressionShredder.ReferencedItemExpressionsEnumerator transformsEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator transformsEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
         return transformsEnumerator.MoveNext();
     }
