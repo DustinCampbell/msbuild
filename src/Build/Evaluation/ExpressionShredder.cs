@@ -122,21 +122,13 @@ internal static class ExpressionShredder
         while (Sink(expression, ref index, end, '-', '>'))
         {
             SinkWhitespace(expression, ref index);
-            int startTransform = index;
 
-            bool isQuotedTransform = SinkSingleQuotedExpression(expression, ref index, end);
-            if (isQuotedTransform)
+            if (TryParseQuotedTransform(expression, ref index, out ItemVector quotedTransform))
             {
-                int startQuoted = startTransform + 1;
-                int endQuoted = index - 1;
-
                 // PERF: Almost all expressions have only one capture, so optimize for that case
                 transformExpressions ??= new List<ItemVector>(1);
-                transformExpressions.Add(
-                    new ItemVector(
-                        text: expression.Substring(startQuoted, endQuoted - startQuoted),
-                        index: startQuoted,
-                        length: endQuoted - startQuoted));
+                transformExpressions.Add(quotedTransform);
+
                 SinkWhitespace(expression, ref index);
                 continue;
             }
@@ -261,8 +253,7 @@ internal static class ExpressionShredder
                 {
                     SinkWhitespace(expression, ref i);
 
-                    bool isQuotedTransform = SinkSingleQuotedExpression(expression, ref i, end);
-                    if (isQuotedTransform)
+                    if (SinkSingleQuotedExpression(expression, ref i))
                     {
                         SinkWhitespace(expression, ref i);
                         continue;
@@ -274,11 +265,8 @@ internal static class ExpressionShredder
                         continue;
                     }
 
-                    if (!isQuotedTransform)
-                    {
-                        i = restartPoint;
-                        transformOrFunctionFound = false;
-                    }
+                    i = restartPoint;
+                    transformOrFunctionFound = false;
                 }
 
                 if (!transformOrFunctionFound)
@@ -426,29 +414,66 @@ internal static class ExpressionShredder
     }
 
     /// <summary>
-    /// Returns true if a single quoted subexpression begins at the specified index
-    /// and ends before the specified end index.
-    /// Leaves index one past the end of the second quote.
+    ///  Returns <see langword="true"/> if a single-quoted subexpression (e.g. <c>'foo'</c>) begins at
+    ///  <paramref name="i"/>, advancing past the closing quote.
     /// </summary>
-    private static bool SinkSingleQuotedExpression(string expression, ref int i, int end)
+    /// <param name="expression">The expression being scanned.</param>
+    /// <param name="i">Current scan position. Advanced past the closing quote on success.</param>
+    /// <returns>
+    ///  <see langword="true"/> if a single-quoted subexpression was found.
+    /// </returns>
+    private static bool SinkSingleQuotedExpression(string expression, ref int i)
     {
         if (!Sink(expression, ref i, '\''))
         {
             return false;
         }
 
-        while (i < end && expression[i] != '\'')
-        {
-            i++;
-        }
+        int start = i;
+        int end = expression.IndexOf('\'', start);
 
-        i++;
-
-        if (end <= i)
+        if (end < 0)
         {
             return false;
         }
 
+        i = end + 1;
+        return true;
+    }
+
+    /// <summary>
+    ///  Attempts to parse a single-quoted transform (e.g. <c>'foo'</c>) beginning at <paramref name="i"/>,
+    ///  capturing its quoted contents into <paramref name="result"/>.
+    /// </summary>
+    /// <param name="expression">The expression being scanned.</param>
+    /// <param name="i">Current scan position. Advanced past the closing quote on success.</param>
+    /// <param name="result">The parsed transform if one was found; otherwise <see langword="default"/>.</param>
+    /// <returns>
+    ///  <see langword="true"/> if a single-quoted transform was parsed.
+    /// </returns>
+    private static bool TryParseQuotedTransform(string expression, ref int i, out ItemVector result)
+    {
+        if (!Sink(expression, ref i, '\''))
+        {
+            result = default;
+            return false;
+        }
+
+        int startQuoted = i;
+        int endQuoted = expression.IndexOf('\'', startQuoted);
+
+        if (endQuoted < 0)
+        {
+            result = default;
+            return false;
+        }
+
+        result = new ItemVector(
+            text: expression.Substring(startQuoted, endQuoted - startQuoted),
+            index: startQuoted,
+            length: endQuoted - startQuoted);
+
+        i = endQuoted + 1;
         return true;
     }
 
