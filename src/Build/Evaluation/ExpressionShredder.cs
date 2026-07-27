@@ -111,14 +111,6 @@ internal static class ExpressionShredder
             return false;
         }
 
-        // '-' is a legitimate char in an item name, but we should match '->' as an arrow
-        // in '@(foo->'x')' rather than as the last char of the item name.
-        // The old regex accomplished this by being "greedy"
-        if (end > index && expression[index - 1] == '-' && expression[index] == '>')
-        {
-            index--;
-        }
-
         // Grab the name, but continue to verify it's a well-formed expression
         // before we store it.
         string itemName = Strings.WeakIntern(expression.AsSpan(startOfName, index - startOfName));
@@ -255,14 +247,6 @@ internal static class ExpressionShredder
                 {
                     i = restartPoint;
                     continue;
-                }
-
-                // '-' is a legitimate char in an item name, but we should match '->' as an arrow
-                // in '@(foo->'x')' rather than as the last char of the item name.
-                // The old regex accomplished this by being "greedy"
-                if (end > i && expression[i - 1] == '-' && expression[i] == '>')
-                {
-                    i--;
                 }
 
                 // Grab the name boundaries, but continue to verify it's a well-formed expression
@@ -634,6 +618,14 @@ internal static class ExpressionShredder
         while (end > i && XmlUtilities.IsValidSubsequentElementNameCharacter(expression[i]))
         {
             i++;
+        }
+
+        // '-' is a legitimate char in an item name, but we should match '->' as an arrow
+        // in '@(foo->'x')' rather than as the last char of the item name.
+        // The old regex accomplished this by being "greedy"
+        if (end > i && expression[i - 1] == '-' && expression[i] == '>')
+        {
+            i--;
         }
 
         return true;
