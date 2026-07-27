@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -104,8 +104,8 @@ internal partial class Expander<P, I>
                     // scan the entire string for metadata references.
                     ScanAndExpandMetadata(expression);
                 }
-                else if (enumerator.Current.Value == expression
-                    && enumerator.Current.Separator == null
+                else if (enumerator.Current.Text == expression
+                    && !enumerator.Current.HasSeparator
                     && !enumerator.MoveNext())
                 {
                     // The entire expression is a single item vector with no separator, so there are
@@ -152,7 +152,7 @@ internal partial class Expander<P, I>
             }
         }
 
-        private int ProcessItemExpressionCapture(string expression, int start, ExpressionShredder.ItemExpressionCapture itemExpressionCapture)
+        private int ProcessItemExpressionCapture(string expression, int start, ItemVector itemExpressionCapture)
         {
             // Expand metadata in the gap before this item vector expression.
             if (itemExpressionCapture.Index > start)
@@ -161,10 +161,10 @@ internal partial class Expander<P, I>
             }
 
             // Expand metadata that appears in the item vector expression's separator.
-            if (itemExpressionCapture.Separator != null)
+            if (itemExpressionCapture.HasSeparator)
             {
                 // Append the portion before the separator verbatim, then expand within the separator portion.
-                string value = itemExpressionCapture.Value;
+                string value = itemExpressionCapture.Text;
                 int separatorStart = itemExpressionCapture.SeparatorStart;
 
                 _builder.Append(value, 0, separatorStart);
@@ -173,7 +173,7 @@ internal partial class Expander<P, I>
             else
             {
                 // Append the item vector expression as-is.
-                _builder.Append(itemExpressionCapture.Value);
+                _builder.Append(itemExpressionCapture.Text);
             }
 
             // Advance past this item vector expression.

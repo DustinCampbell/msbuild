@@ -97,9 +97,7 @@ namespace Microsoft.Build.Evaluation
         /// <c>@(Foo->'%(Bar)')</c>).
         /// </summary>
         internal static ItemVectorEnumerator GetReferencedItemExpressions(string expression)
-        {
-            return new ItemVectorEnumerator(expression);
-        }
+            => new(expression);
 
         /// <summary>
         ///  Attempts to scan a single <c>@(...)</c> item vector expression starting at <paramref name="i"/>.
@@ -115,7 +113,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="end">Exclusive end index of the scan range; no character at or beyond this index is read.</param>
         /// <param name="capture">The scanned expression if one was found; otherwise <see langword="default"/>.</param>
         /// <returns><see langword="true"/> if a well-formed item vector expression was scanned.</returns>
-        internal static bool TryScanItemExpressionCapture(string expression, ref int i, int end, out ItemExpressionCapture capture)
+        internal static bool TryScanItemExpressionCapture(string expression, ref int i, int end, out ItemVector capture)
         {
             capture = default;
 
@@ -157,7 +155,7 @@ namespace Microsoft.Build.Evaluation
 
             SinkWhitespace(expression, ref i);
             bool transformOrFunctionFound = true;
-            List<ItemExpressionCapture> transformExpressions = null;
+            List<ItemVector> transformExpressions = null;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
             while (Sink(expression, ref i, end, '-', '>') && transformOrFunctionFound)
@@ -173,22 +171,26 @@ namespace Microsoft.Build.Evaluation
                     if (transformExpressions == null)
                     {
                         // PERF: Almost all expressions have only one capture, so optimize for that case
-                        transformExpressions = new List<ItemExpressionCapture>(1);
+                        transformExpressions = new List<ItemVector>(1);
                     }
 
-                    transformExpressions.Add(new ItemExpressionCapture(startQuoted, endQuoted - startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
+                    transformExpressions.Add(
+                        new ItemVector(
+                            text: expression.Substring(startQuoted, endQuoted - startQuoted),
+                            index: startQuoted,
+                            length: endQuoted - startQuoted));
                     SinkWhitespace(expression, ref i);
                     continue;
                 }
 
                 startTransform = i;
-                ItemExpressionCapture? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref i, end);
+                ItemVector? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref i, end);
                 if (functionCapture != null)
                 {
                     if (transformExpressions == null)
                     {
                         // PERF: Almost all expressions have only one capture, so optimize for that case
-                        transformExpressions = new List<ItemExpressionCapture>(1);
+                        transformExpressions = new List<ItemVector>(1);
                     }
 
                     transformExpressions.Add(functionCapture.Value);
@@ -250,7 +252,14 @@ namespace Microsoft.Build.Evaluation
             // Create an expression capture that encompasses the entire expression between the @( and the )
             // with the item name and any separator contained within it
             // and each transform expression contained within it (i.e. each ->XYZ)
-            capture = new ItemExpressionCapture(startPoint, endPoint - startPoint, Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)), itemName, separator, separatorStart, transformExpressions);
+            capture = new ItemVector(
+                text: Strings.WeakIntern(expression.AsSpan(startPoint, endPoint - startPoint)),
+                index: startPoint,
+                length: endPoint - startPoint,
+                itemName,
+                separator,
+                separatorStart,
+                transformExpressions);
 
             return true;
         }
@@ -315,7 +324,7 @@ namespace Microsoft.Build.Evaluation
                             continue;
                         }
 
-                        ItemExpressionCapture? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref i, end);
+                        ItemVector? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref i, end);
                         if (functionCapture != null)
                         {
                             SinkWhitespace(expression, ref i);
@@ -597,7 +606,7 @@ namespace Microsoft.Build.Evaluation
         /// and ends before the specified end index.
         /// Leaves index one past the end of the closing paren.
         /// </summary>
-        private static ItemExpressionCapture? SinkItemFunctionExpression(string expression, int startTransform, ref int i, int end)
+        private static ItemVector? SinkItemFunctionExpression(string expression, int startTransform, ref int i, int end)
         {
             if (SinkValidName(expression, ref i, end))
             {
@@ -618,9 +627,16 @@ namespace Microsoft.Build.Evaluation
                         functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                     }
 
-                    ItemExpressionCapture capture = new ItemExpressionCapture(startTransform, i - startTransform, expression.Substring(startTransform, i - startTransform), null, null, -1, null, functionName, functionArguments);
-
-                    return capture;
+                    return new ItemVector(
+                        text: expression.Substring(startTransform, i - startTransform),
+                        index: startTransform,
+                        length: i - startTransform,
+                        itemType: null,
+                        separator: null,
+                        separatorStart: -1,
+                        captures: null,
+                        functionName: functionName,
+                        functionArguments: functionArguments);
                 }
 
                 return null;
@@ -729,97 +745,6 @@ namespace Microsoft.Build.Evaluation
             while (i < end && char.IsWhiteSpace(expression[i]))
             {
                 i++;
-            }
-        }
-
-        /// <summary>
-        /// Represents one substring for a single successful capture.
-        /// </summary>
-        internal struct ItemExpressionCapture
-        {
-            /// <summary>
-            /// Create an Expression Capture instance
-            /// Represents a sub expression, shredded from a larger expression
-            /// </summary>
-            public ItemExpressionCapture(int index, int length, string subExpression)
-                : this(index, length, subExpression, null, null, -1, null, null, null)
-            {
-            }
-
-            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures)
-                : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
-            {
-            }
-
-            /// <summary>
-            /// Create an Expression Capture instance
-            /// Represents a sub expression, shredded from a larger expression
-            /// </summary>
-            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures, string functionName, string functionArguments)
-            {
-                Index = index;
-                Length = length;
-                Value = subExpression;
-                ItemType = itemType;
-                Separator = separator;
-                SeparatorStart = separatorStart;
-                Captures = captures;
-                FunctionName = functionName;
-                FunctionArguments = functionArguments;
-            }
-
-            /// <summary>
-            /// Captures within this capture
-            /// </summary>
-            public List<ItemExpressionCapture> Captures { get; }
-
-            /// <summary>
-            /// The position in the original string where the first character of the captured
-            /// substring was found.
-            /// </summary>
-            public int Index { get; }
-
-            /// <summary>
-            /// The length of the captured substring.
-            /// </summary>
-            public int Length { get; }
-
-            /// <summary>
-            /// Gets the captured substring from the input string.
-            /// </summary>
-            public string Value { get; }
-
-            /// <summary>
-            /// Gets the captured itemtype.
-            /// </summary>
-            public string ItemType { get; }
-
-            /// <summary>
-            /// Gets the captured itemtype.
-            /// </summary>
-            public string Separator { get; }
-
-            /// <summary>
-            /// The starting character of the separator.
-            /// </summary>
-            public int SeparatorStart { get; }
-
-            /// <summary>
-            /// The function name, if any, within this expression
-            /// </summary>
-            public string FunctionName { get; }
-
-            /// <summary>
-            /// The function arguments, if any, within this expression
-            /// </summary>
-            public string FunctionArguments { get; }
-
-            /// <summary>
-            /// Gets the captured substring from the input string.
-            /// </summary>
-            public override string ToString()
-            {
-                return Value;
             }
         }
     }

@@ -665,7 +665,7 @@ namespace Microsoft.Build.Evaluation
             }
             else
             {
-                ExpressionShredder.ItemExpressionCapture? match = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
+                ItemVector? match = Expander<P, I>.ExpandSingleItemVectorExpressionIntoExpressionCapture(
                     expression, ExpanderOptions.ExpandItems, elementLocation);
 
                 if (match == null)
@@ -677,13 +677,14 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private void AddReferencedItemLists(OperationBuilder operationBuilder, ExpressionShredder.ItemExpressionCapture match)
+        private void AddReferencedItemLists(OperationBuilder operationBuilder, ItemVector match)
         {
             if (match.ItemType != null)
             {
                 AddReferencedItemList(match.ItemType, operationBuilder.ReferencedItemLists);
             }
-            if (match.Captures != null)
+
+            if (match.HasCaptures)
             {
                 foreach (var subMatch in match.Captures)
                 {

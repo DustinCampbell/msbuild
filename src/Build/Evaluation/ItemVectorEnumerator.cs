@@ -14,7 +14,7 @@ internal struct ItemVectorEnumerator
 {
     private readonly string _expression;
     private int _index;
-    private ExpressionShredder.ItemExpressionCapture _current;
+    private ItemVector _current;
 
     /// <summary>
     ///  Initializes a new instance of the <see cref="ItemVectorEnumerator"/> struct that scans
@@ -37,7 +37,7 @@ internal struct ItemVectorEnumerator
     /// <summary>
     ///  Gets the item vector expression found by the most recent successful call to <see cref="MoveNext"/>.
     /// </summary>
-    public readonly ExpressionShredder.ItemExpressionCapture Current => _current;
+    public readonly ItemVector Current => _current;
 
     /// <summary>
     ///  Advances the enumerator to the next item vector expression within the expression.

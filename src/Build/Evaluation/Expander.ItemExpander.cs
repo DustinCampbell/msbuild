@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -106,7 +106,7 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             ExpanderOptions options,
             bool includeNullEntries,
-            List<ExpressionShredder.ItemExpressionCapture> captures,
+            List<ItemVector> captures,
             ICollection<I> itemsOfType,
             out List<TransformEntry> result)
         {
@@ -119,8 +119,8 @@ internal partial class Expander<P, I>
             // from the regex parsing results
             for (int i = 0; i < captures.Count; i++)
             {
-                ExpressionShredder.ItemExpressionCapture capture = captures[i];
-                string function = capture.Value;
+                ItemVector capture = captures[i];
+                string function = capture.Text;
                 string functionName = capture.FunctionName;
                 string argumentsExpression = capture.FunctionArguments;
 
@@ -298,7 +298,7 @@ internal partial class Expander<P, I>
                 out isTransformExpression, elementLocation);
         }
 
-        internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
+        internal static ItemVector? ExpandSingleItemVectorExpressionIntoExpressionCapture(
             string expression, ExpanderOptions options, IElementLocation elementLocation)
         {
             if (((options & ExpanderOptions.ExpandItems) == 0) || (expression.Length == 0))
@@ -311,27 +311,27 @@ internal partial class Expander<P, I>
                 return null;
             }
 
-            ItemVectorEnumerator matchesEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+            ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
-            if (!matchesEnumerator.MoveNext())
+            if (!enumerator.MoveNext())
             {
                 return null;
             }
 
-            ExpressionShredder.ItemExpressionCapture match = matchesEnumerator.Current;
+            ItemVector match = enumerator.Current;
 
             // We have a single valid @(itemlist) reference in the given expression.
             // If the passed-in expression contains exactly one item list reference,
             // with nothing else concatenated to the beginning or end, then proceed
             // with itemizing it, otherwise error.
-            ProjectErrorUtilities.VerifyThrowInvalidProject(match.Value == expression, elementLocation, "EmbeddedItemVectorCannotBeItemized", expression);
-            Assumed.False(matchesEnumerator.MoveNext(), "Expected just one item vector");
+            ProjectErrorUtilities.VerifyThrowInvalidProject(match.Text == expression, elementLocation, "EmbeddedItemVectorCannotBeItemized", expression);
+            Assumed.False(enumerator.MoveNext(), "Expected just one item vector");
 
             return match;
         }
 
         internal static IList<T> ExpandExpressionCaptureIntoItems<T>(
-            ExpressionShredder.ItemExpressionCapture expressionCapture, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
+            ItemVector expressionCapture, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
             ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
             where T : class, IItem
         {
@@ -349,7 +349,7 @@ internal partial class Expander<P, I>
             }
 
             IList<T> result;
-            if (expressionCapture.Separator != null)
+            if (expressionCapture.HasSeparator)
             {
                 // Reference contains a separator, for example @(Compile, ';').
                 // We need to flatten the list into
@@ -440,7 +440,7 @@ internal partial class Expander<P, I>
         /// <param name="includeNullEntries">Wether to include items that evaluated to empty / null.</param>
         internal static bool ExpandExpressionCapture(
             Expander<P, I> expander,
-            ExpressionShredder.ItemExpressionCapture expressionCapture,
+            ItemVector expressionCapture,
             IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             ExpanderOptions options,
@@ -455,7 +455,7 @@ internal partial class Expander<P, I>
             isTransformExpression = false;
 
             ICollection<I> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
-            List<ExpressionShredder.ItemExpressionCapture> captures = expressionCapture.Captures;
+            List<ItemVector> captures = expressionCapture.Captures;
 
             // If there are no items of the given type, then bail out early
             if (itemsOfType.Count == 0)
@@ -505,7 +505,7 @@ internal partial class Expander<P, I>
                 }
             }
 
-            if (expressionCapture.Separator != null)
+            if (expressionCapture.HasSeparator)
             {
                 var joinedItems = string.Join(expressionCapture.Separator, entries.Select(i => i.Value));
                 entries.Clear();
@@ -529,9 +529,9 @@ internal partial class Expander<P, I>
 
             Assumed.NotNull(items, "Cannot expand items without providing items");
 
-            ItemVectorEnumerator matchesEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+            ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
-            if (!matchesEnumerator.MoveNext())
+            if (!enumerator.MoveNext())
             {
                 return expression;
             }
@@ -544,7 +544,7 @@ internal partial class Expander<P, I>
             int lastStringIndex = 0;
             do
             {
-                ExpressionShredder.ItemExpressionCapture currentItem = matchesEnumerator.Current;
+                ItemVector currentItem = enumerator.Current;
                 if (currentItem.Index > lastStringIndex)
                 {
                     if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
@@ -564,7 +564,7 @@ internal partial class Expander<P, I>
 
                 lastStringIndex = currentItem.Index + currentItem.Length;
             }
-            while (matchesEnumerator.MoveNext());
+            while (enumerator.MoveNext());
 
             builder.Append(expression, lastStringIndex, expression.Length - lastStringIndex);
 
@@ -577,7 +577,7 @@ internal partial class Expander<P, I>
         /// </summary>
         private static bool ExpandExpressionCaptureIntoStringBuilder(
             Expander<P, I> expander,
-            ExpressionShredder.ItemExpressionCapture capture,
+            ItemVector capture,
             IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             SpanBasedStringBuilder builder,

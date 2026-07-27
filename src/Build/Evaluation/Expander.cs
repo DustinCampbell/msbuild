@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -223,9 +223,9 @@ internal partial class Expander<P, I>
     /// </summary>
     internal static bool ExpressionContainsItemVector(string expression)
     {
-        ItemVectorEnumerator transformsEnumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
 
-        return transformsEnumerator.MoveNext();
+        return enumerator.MoveNext();
     }
 
     /// <summary>
@@ -402,14 +402,14 @@ internal partial class Expander<P, I>
         return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, expression, _items, itemFactory, options, includeNullItems, out isTransformExpression, elementLocation);
     }
 
-    internal static ExpressionShredder.ItemExpressionCapture? ExpandSingleItemVectorExpressionIntoExpressionCapture(
+    internal static ItemVector? ExpandSingleItemVectorExpressionIntoExpressionCapture(
             string expression, ExpanderOptions options, IElementLocation elementLocation)
     {
         return ItemExpander.ExpandSingleItemVectorExpressionIntoExpressionCapture(expression, options, elementLocation);
     }
 
     internal IList<T> ExpandExpressionCaptureIntoItems<T>(
-        ExpressionShredder.ItemExpressionCapture expressionCapture, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
+        ItemVector expressionCapture, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
         ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
         where T : class, IItem
     {
@@ -418,7 +418,7 @@ internal partial class Expander<P, I>
     }
 
     internal bool ExpandExpressionCapture(
-        ExpressionShredder.ItemExpressionCapture expressionCapture,
+        ItemVector expressionCapture,
         IElementLocation elementLocation,
         ExpanderOptions options,
         bool includeNullEntries,
