@@ -74,152 +74,131 @@ internal static class ExpressionShredder
     /// <summary>
     ///  Attempts to scan a single <c>@(...)</c> item vector expression starting at <paramref name="i"/>.
     /// </summary>
-    /// <remarks>
-    ///  On success, <paramref name="i"/> is left one past the closing <c>)</c> and <paramref name="capture"/>
-    ///  contains the scanned expression. On failure, <paramref name="i"/> is left either unchanged (when there
-    ///  was no <c>@(</c> at the start) or at the restart point (when the expression was malformed), and the
-    ///  caller should advance past it before scanning again.
-    /// </remarks>
     /// <param name="expression">The expression being scanned.</param>
     /// <param name="i">Current scan position. Advanced past the expression on success.</param>
     /// <param name="end">Exclusive end index of the scan range; no character at or beyond this index is read.</param>
     /// <param name="capture">The scanned expression if one was found; otherwise <see langword="default"/>.</param>
-    /// <returns><see langword="true"/> if a well-formed item vector expression was scanned.</returns>
+    /// <returns>
+    ///  <see langword="true"/> if a well-formed item vector expression was scanned.
+    /// </returns>
+    /// <remarks>
+    ///  On success, <paramref name="i"/> is advanced to one past the closing <c>)</c> and
+    ///  <paramref name="capture"/> contains the scanned expression. On failure, <paramref name="i"/> is
+    ///  left unchanged and the caller should advance past the opening <c>@(</c> before scanning again.
+    /// </remarks>
     internal static bool TryScanItemExpressionCapture(string expression, ref int i, int end, out ItemVector capture)
     {
         capture = default;
 
-        if (!Sink(expression, ref i, end, '@', '('))
+        // Work on a local scan position that is only committed back to i on success, so a failed
+        // scan leaves the caller's position unchanged.
+        int index = i;
+
+        if (!Sink(expression, ref index, end, '@', '('))
         {
             return false;
         }
 
-        // Start of a possible item list expression
+        // Start of a possible item list expression. Store the expression's start point (the '@').
+        int startPoint = index - 2;
 
-        // Store the index to backtrack to if this doesn't turn out to be a well
-        // formed expression.
-        int restartPoint = i - 1;
+        SinkWhitespace(expression, ref index);
 
-        // Store the expression's start point
-        int startPoint = i - 2;
+        int startOfName = index;
 
-        SinkWhitespace(expression, ref i);
-
-        int startOfName = i;
-
-        if (!SinkValidName(expression, ref i, end))
+        if (!SinkValidName(expression, ref index, end))
         {
-            i = restartPoint;
             return false;
         }
 
         // '-' is a legitimate char in an item name, but we should match '->' as an arrow
         // in '@(foo->'x')' rather than as the last char of the item name.
         // The old regex accomplished this by being "greedy"
-        if (end > i && expression[i - 1] == '-' && expression[i] == '>')
+        if (end > index && expression[index - 1] == '-' && expression[index] == '>')
         {
-            i--;
+            index--;
         }
 
         // Grab the name, but continue to verify it's a well-formed expression
         // before we store it.
-        string itemName = Strings.WeakIntern(expression.AsSpan(startOfName, i - startOfName));
+        string itemName = Strings.WeakIntern(expression.AsSpan(startOfName, index - startOfName));
 
-        SinkWhitespace(expression, ref i);
-        bool transformOrFunctionFound = true;
+        SinkWhitespace(expression, ref index);
         List<ItemVector>? transformExpressions = null;
 
         // If there's an '->' eat it and the subsequent quoted expression or transform function
-        while (Sink(expression, ref i, end, '-', '>') && transformOrFunctionFound)
+        while (Sink(expression, ref index, end, '-', '>'))
         {
-            SinkWhitespace(expression, ref i);
-            int startTransform = i;
+            SinkWhitespace(expression, ref index);
+            int startTransform = index;
 
-            bool isQuotedTransform = SinkSingleQuotedExpression(expression, ref i, end);
+            bool isQuotedTransform = SinkSingleQuotedExpression(expression, ref index, end);
             if (isQuotedTransform)
             {
                 int startQuoted = startTransform + 1;
-                int endQuoted = i - 1;
-                if (transformExpressions == null)
-                {
-                    // PERF: Almost all expressions have only one capture, so optimize for that case
-                    transformExpressions = new List<ItemVector>(1);
-                }
+                int endQuoted = index - 1;
 
+                // PERF: Almost all expressions have only one capture, so optimize for that case
+                transformExpressions ??= new List<ItemVector>(1);
                 transformExpressions.Add(
                     new ItemVector(
                         text: expression.Substring(startQuoted, endQuoted - startQuoted),
                         index: startQuoted,
                         length: endQuoted - startQuoted));
-                SinkWhitespace(expression, ref i);
+                SinkWhitespace(expression, ref index);
                 continue;
             }
 
-            startTransform = i;
-            ItemVector? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref i, end);
+            startTransform = index;
+            ItemVector? functionCapture = SinkItemFunctionExpression(expression, startTransform, ref index, end);
             if (functionCapture != null)
             {
-                if (transformExpressions == null)
-                {
-                    // PERF: Almost all expressions have only one capture, so optimize for that case
-                    transformExpressions = new List<ItemVector>(1);
-                }
-
+                // PERF: Almost all expressions have only one capture, so optimize for that case
+                transformExpressions ??= new List<ItemVector>(1);
                 transformExpressions.Add(functionCapture.Value);
-                SinkWhitespace(expression, ref i);
+                SinkWhitespace(expression, ref index);
                 continue;
             }
 
-            if (!isQuotedTransform && functionCapture == null)
-            {
-                i = restartPoint;
-                transformOrFunctionFound = false;
-            }
-        }
-
-        if (!transformOrFunctionFound)
-        {
+            // Saw '->' but neither a quoted transform nor a transform function followed: malformed.
             return false;
         }
 
-        SinkWhitespace(expression, ref i);
+        SinkWhitespace(expression, ref index);
 
         string? separator = null;
         int separatorStart = -1;
 
         // If there's a ',', eat it and the subsequent quoted expression
-        if (Sink(expression, ref i, ','))
+        if (Sink(expression, ref index, ','))
         {
-            SinkWhitespace(expression, ref i);
+            SinkWhitespace(expression, ref index);
 
-            if (!Sink(expression, ref i, '\''))
+            if (!Sink(expression, ref index, '\''))
             {
-                i = restartPoint;
                 return false;
             }
 
-            int closingQuote = expression.IndexOf('\'', i);
+            int closingQuote = expression.IndexOf('\'', index);
             if (closingQuote == -1)
             {
-                i = restartPoint;
                 return false;
             }
 
-            separatorStart = i - startPoint;
-            separator = expression.Substring(i, closingQuote - i);
+            separatorStart = index - startPoint;
+            separator = expression.Substring(index, closingQuote - index);
 
-            i = closingQuote + 1;
+            index = closingQuote + 1;
         }
 
-        SinkWhitespace(expression, ref i);
+        SinkWhitespace(expression, ref index);
 
-        if (!Sink(expression, ref i, ')'))
+        if (!Sink(expression, ref index, ')'))
         {
-            i = restartPoint;
             return false;
         }
 
-        int endPoint = i;
+        int endPoint = index;
 
         // Create an expression capture that encompasses the entire expression between the @( and the )
         // with the item name and any separator contained within it
@@ -233,6 +212,7 @@ internal static class ExpressionShredder
             separatorStart,
             transformExpressions);
 
+        i = index;
         return true;
     }
 
