@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
@@ -106,7 +107,7 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             ExpanderOptions options,
             bool includeNullEntries,
-            List<ItemVector> captures,
+            ImmutableArray<ItemTransform> transforms,
             ICollection<I> itemsOfType,
             out List<TransformEntry> result)
         {
@@ -117,12 +118,12 @@ internal partial class Expander<P, I>
 
             // Create a TransformFunction for each transform in the chain by extracting the relevant information
             // from the regex parsing results
-            for (int i = 0; i < captures.Count; i++)
+            for (int i = 0; i < transforms.Length; i++)
             {
-                ItemVector capture = captures[i];
-                string function = capture.Text;
-                string functionName = capture.FunctionName;
-                string argumentsExpression = capture.FunctionArguments;
+                ItemTransform transform = transforms[i];
+                string function = transform.Text;
+                string functionName = transform.FunctionName;
+                string argumentsExpression = transform.FunctionArguments;
 
                 string[] arguments = null;
 
@@ -206,7 +207,7 @@ internal partial class Expander<P, I>
                 }
 
                 // If we have another transform, swap the source and transform lists.
-                if (i < captures.Count - 1)
+                if (i < transforms.Length - 1)
                 {
                     (output, input) = (input, output);
                     output.Clear();
@@ -455,16 +456,16 @@ internal partial class Expander<P, I>
             isTransformExpression = false;
 
             ICollection<I> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
-            List<ItemVector> captures = expressionCapture.Captures;
+            ImmutableArray<ItemTransform> transforms = expressionCapture.Transforms;
 
             // If there are no items of the given type, then bail out early
             if (itemsOfType.Count == 0)
             {
                 // ... but only if there isn't a function "Count", since that will want to return something (zero) for an empty list
-                if (captures?.Any(capture => string.Equals(capture.FunctionName, "Count", StringComparison.OrdinalIgnoreCase)) != true)
+                if (!transforms.Any(capture => string.Equals(capture.FunctionName, "Count", StringComparison.OrdinalIgnoreCase)))
                 {
                     // ...or a function "AnyHaveMetadataValue", since that will want to return false for an empty list.
-                    if (captures?.Any(capture => string.Equals(capture.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)) != true)
+                    if (!transforms.Any(capture => string.Equals(capture.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
                     {
                         entries = null;
                         return false;
@@ -472,7 +473,7 @@ internal partial class Expander<P, I>
                 }
             }
 
-            if (captures != null)
+            if (!transforms.IsEmpty)
             {
                 isTransformExpression = true;
             }
@@ -497,9 +498,9 @@ internal partial class Expander<P, I>
             else
             {
                 // There's something wrong with the expression, and we ended up with no function names
-                ProjectErrorUtilities.VerifyThrowInvalidProject(captures.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
+                ProjectErrorUtilities.VerifyThrowInvalidProject(transforms.Length > 0, elementLocation, "InvalidFunctionPropertyExpression");
 
-                if (!TryTransform(expander, elementLocation, options, includeNullEntries, captures, itemsOfType, out entries))
+                if (!TryTransform(expander, elementLocation, options, includeNullEntries, transforms, itemsOfType, out entries))
                 {
                     return true;
                 }

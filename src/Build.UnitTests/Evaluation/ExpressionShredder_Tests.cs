@@ -1,8 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Evaluation;
@@ -291,11 +292,11 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
 
             Group transformGroup = match.Groups["TRANSFORM"];
 
-            if (itemVector.HasCaptures)
+            if (!itemVector.Transforms.IsEmpty)
             {
                 for (int i = 0; i < transformGroup.Captures.Count; i++)
                 {
-                    itemVector.Captures[i].Text.ShouldBe(transformGroup.Captures[i].Value);
+                    itemVector.Transforms[i].Text.ShouldBe(transformGroup.Captures[i].Value);
                 }
             }
             else
@@ -405,492 +406,168 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
 
     [Fact]
     public void ExtractItemVectorTransform1()
-    {
-        string expression = "@(i->'%(Meta0)'->'%(Filename)'->Substring($(Val)))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-
-        ItemVector itemVector = enumerator.Current;
-
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("i");
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures[0].Text.ShouldBe("%(Meta0)");
-        itemVector.Captures[1].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[2].Text.ShouldBe("Substring($(Val))");
-    }
+        => Verify(
+            "@(i->'%(Meta0)'->'%(Filename)'->Substring($(Val)))",
+            itemType: "i",
+            QuotedTransform("%(Meta0)"),
+            QuotedTransform("%(Filename)"),
+            FunctionTransform("Substring", "$(Val)"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpressionInvalid1()
-    {
-        string expression = "@(type-&gt;'%($(a)), '%'')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeFalse();
-    }
+        => VerifyInvalid("@(type-&gt;'%($(a)), '%'')");
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression1()
-    {
-        string expression = "@(Foo)";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.Captures.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-    }
+        => Verify("@(Foo)", itemType: "Foo");
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression2()
-    {
-        string expression = "@(Foo, ';')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.Captures.ShouldBeNull();
-        itemVector.HasSeparator.ShouldBeTrue();
-        itemVector.Separator.ShouldBe(";");
-        itemVector.ItemType.ShouldBe("Foo");
-    }
+        => Verify("@(Foo, ';')", itemType: "Foo", separator: ";");
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression3()
-    {
-        string expression = "@(Foo->'%(Fullpath)')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.ShouldHaveSingleItem();
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Fullpath)");
-    }
+        => Verify("@(Foo->'%(Fullpath)')", itemType: "Foo", QuotedTransform("%(Fullpath)"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression4()
-    {
-        string expression = "@(Foo->'%(Fullpath)',';')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.ShouldHaveSingleItem();
-        itemVector.HasSeparator.ShouldBeTrue();
-        itemVector.Separator.ShouldBe(";");
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Fullpath)");
-    }
+        => Verify("@(Foo->'%(Fullpath)',';')", itemType: "Foo", separator: ";", QuotedTransform("%(Fullpath)"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression5()
-    {
-        string expression = "@(Foo->Bar(a,b))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.ShouldHaveSingleItem();
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("Bar(a,b)");
-        itemVector.Captures[0].FunctionName.ShouldBe("Bar");
-        itemVector.Captures[0].FunctionArguments.ShouldBe("a,b");
-    }
+        => Verify("@(Foo->Bar(a,b))", itemType: "Foo", FunctionTransform("Bar", "a,b"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression6()
-    {
-        string expression = "@(Foo->Bar(a,b),';')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.ShouldHaveSingleItem();
-        itemVector.HasSeparator.ShouldBeTrue();
-        itemVector.Separator.ShouldBe(";");
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("Bar(a,b)");
-        itemVector.Captures[0].FunctionName.ShouldBe("Bar");
-        itemVector.Captures[0].FunctionArguments.ShouldBe("a,b");
-    }
+        => Verify("@(Foo->Bar(a,b),';')", itemType: "Foo", separator: ";", FunctionTransform("Bar", "a,b"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression7()
-    {
-        string expression = "@(Foo->Metadata('Meta0')->Directory())";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("Metadata('Meta0')");
-        itemVector.Captures[0].FunctionName.ShouldBe("Metadata");
-        itemVector.Captures[0].FunctionArguments.ShouldBe("'Meta0'");
-        itemVector.Captures[1].Text.ShouldBe("Directory()");
-        itemVector.Captures[1].FunctionName.ShouldBe("Directory");
-        itemVector.Captures[1].FunctionArguments.ShouldBeNull();
-    }
+        => Verify(
+            "@(Foo->Metadata('Meta0')->Directory())",
+            itemType: "Foo",
+            FunctionTransform("Metadata", "'Meta0'"),
+            FunctionTransform("Directory"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression8()
-    {
-        string expression = "@(Foo->Metadata('Meta0')->Directory(),';')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeTrue();
-        itemVector.Separator.ShouldBe(";");
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("Metadata('Meta0')");
-        itemVector.Captures[0].FunctionName.ShouldBe("Metadata");
-        itemVector.Captures[0].FunctionArguments.ShouldBe("'Meta0'");
-        itemVector.Captures[1].Text.ShouldBe("Directory()");
-        itemVector.Captures[1].FunctionName.ShouldBe("Directory");
-        itemVector.Captures[1].FunctionArguments.ShouldBeNull();
-    }
+        => Verify(
+            "@(Foo->Metadata('Meta0')->Directory(),';')",
+            itemType: "Foo",
+            separator: ";",
+            FunctionTransform("Metadata", "'Meta0'"),
+            FunctionTransform("Directory"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression9()
-    {
-        string expression = "@(Foo->'%(Fullpath)'->Directory(), '|')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeTrue();
-        itemVector.Separator.ShouldBe("|");
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Fullpath)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Directory()");
-        itemVector.Captures[1].FunctionName.ShouldBe("Directory");
-        itemVector.Captures[1].FunctionArguments.ShouldBeNull();
-    }
+        => Verify(
+            "@(Foo->'%(Fullpath)'->Directory(), '|')",
+            itemType: "Foo",
+            separator: "|",
+            QuotedTransform("%(Fullpath)"),
+            FunctionTransform("Directory"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression10()
-    {
-        string expression = "@(Foo->'%(Fullpath)'->Directory(),';')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeTrue();
-        itemVector.Separator.ShouldBe(";");
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Fullpath)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Directory()");
-        itemVector.Captures[1].FunctionName.ShouldBe("Directory");
-        itemVector.Captures[1].FunctionArguments.ShouldBeNull();
-    }
+        => Verify(
+            "@(Foo->'%(Fullpath)'->Directory(),';')",
+            itemType: "Foo",
+            separator: ";",
+            QuotedTransform("%(Fullpath)"),
+            FunctionTransform("Directory"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression11()
-    {
-        string expression = "@(Foo->'$(SOMEPROP)%(Fullpath)')";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.ShouldHaveSingleItem();
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("$(SOMEPROP)%(Fullpath)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-    }
+        => Verify(
+            "@(Foo->'$(SOMEPROP)%(Fullpath)')",
+            itemType: "Foo",
+            QuotedTransform("$(SOMEPROP)%(Fullpath)"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression12()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring($(Val), $(Boo)))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring($(Val), $(Boo))");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("$(Val), $(Boo)");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring($(Val), $(Boo)))",
+            itemType: "Foo",
+            QuotedTransform("%(Filename)"),
+            FunctionTransform("Substring", "$(Val), $(Boo)"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression13()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring(\"AA\", 'BB', `cc`))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring(\"AA\", 'BB', `cc`)");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("\"AA\", 'BB', `cc`");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring(\"AA\", 'BB', `cc`))",
+            itemType: "Foo",
+            QuotedTransform("%(Filename)"),
+            FunctionTransform("Substring", "\"AA\", 'BB', `cc`"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression14()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring('()', $(Boo), ')('))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring('()', $(Boo), ')(')");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("'()', $(Boo), ')('");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring('()', $(Boo), ')('))",
+            itemType: "Foo",
+            QuotedTransform("%(Filename)"),
+            FunctionTransform("Substring", "'()', $(Boo), ')('"));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression15()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \"AA\"))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring(`()`, $(Boo), \"AA\")");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("`()`, $(Boo), \"AA\"");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \"AA\"))",
+            itemType: "Foo",
+            QuotedTransform("%(Filename)"),
+            FunctionTransform("Substring", "`()`, $(Boo), \"AA\""));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression16()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \")(\"))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring(`()`, $(Boo), \")(\")");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("`()`, $(Boo), \")(\"");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \")(\"))",
+            itemType: "Foo",
+            QuotedTransform("%(Filename)"),
+            FunctionTransform("Substring", "`()`, $(Boo), \")(\""));
 
     [Fact]
     public void ExtractItemVectorExpressionsSingleExpression17()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring(\"()\", $(Boo), `)(`)");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("\"()\", $(Boo), `)(`");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))",
+            itemType: "Foo",
+            QuotedTransform("%(Filename)"),
+            FunctionTransform("Substring", "\"()\", $(Boo), `)(`"));
 
     [Fact]
     public void ExtractItemVectorExpressionsMultipleExpression1()
-    {
-        string expression = "@(Bar);@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector firstItemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        firstItemVector.ItemType.ShouldBe("Bar");
-        firstItemVector.HasCaptures.ShouldBeFalse();
-        firstItemVector.Captures.ShouldBeNull();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring(\"()\", $(Boo), `)(`)");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("\"()\", $(Boo), `)(`");
-    }
+        => Verify(
+            "@(Bar);@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))",
+            ItemVector("Bar"),
+            ItemVector(itemType: "Foo", QuotedTransform("%(Filename)"), FunctionTransform("Substring", "\"()\", $(Boo), `)(`")));
 
     [Fact]
     public void ExtractItemVectorExpressionsMultipleExpression2()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`));@(Bar)";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector firstItemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector secondItemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        secondItemVector.ItemType.ShouldBe("Bar");
-        secondItemVector.HasCaptures.ShouldBeFalse();
-        secondItemVector.Captures.ShouldBeNull();
-        firstItemVector.HasCaptures.ShouldBeTrue();
-        firstItemVector.Captures.Count.ShouldBe(2);
-        firstItemVector.HasSeparator.ShouldBeFalse();
-        firstItemVector.Separator.ShouldBeNull();
-        firstItemVector.ItemType.ShouldBe("Foo");
-        firstItemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        firstItemVector.Captures[0].FunctionName.ShouldBeNull();
-        firstItemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        firstItemVector.Captures[1].Text.ShouldBe("Substring(\"()\", $(Boo), `)(`)");
-        firstItemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        firstItemVector.Captures[1].FunctionArguments.ShouldBe("\"()\", $(Boo), `)(`");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`));@(Bar)",
+            ItemVector(itemType: "Foo", QuotedTransform("%(Filename)"), FunctionTransform("Substring", "\"()\", $(Boo), `)(`")),
+            ItemVector("Bar"));
 
     [Fact]
     public void ExtractItemVectorExpressionsMultipleExpression3()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`));AAAAAA;@(Bar)";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector secondItemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        secondItemVector.ItemType.ShouldBe("Bar");
-        secondItemVector.HasCaptures.ShouldBeFalse();
-        secondItemVector.Captures.ShouldBeNull();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring(\"()\", $(Boo), `)(`)");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("\"()\", $(Boo), `)(`");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`));AAAAAA;@(Bar)",
+            ItemVector(itemType: "Foo", QuotedTransform("%(Filename)"), FunctionTransform("Substring", "\"()\", $(Boo), `)(`")),
+            ItemVector("Bar"));
 
     [Fact]
     public void ExtractItemVectorExpressionsMultipleExpression4()
-    {
-        string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(\"`));@(;);@(aaa->;b);@(bbb->'d);@(`Foo->'%(Filename)'->Distinct());@(Bar)";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeTrue();
-        ItemVector secondItemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        secondItemVector.ItemType.ShouldBe("Bar");
-        secondItemVector.HasCaptures.ShouldBeFalse();
-        secondItemVector.Captures.ShouldBeNull();
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.HasSeparator.ShouldBeFalse();
-        itemVector.Separator.ShouldBeNull();
-        itemVector.ItemType.ShouldBe("Foo");
-        itemVector.Captures[0].Text.ShouldBe("%(Filename)");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
-        itemVector.Captures[0].FunctionArguments.ShouldBeNull();
-        itemVector.Captures[1].Text.ShouldBe("Substring(\"()\", $(Boo), `)(\"`)");
-        itemVector.Captures[1].FunctionName.ShouldBe("Substring");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("\"()\", $(Boo), `)(\"`");
-    }
+        => Verify(
+            "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(\"`));@(;);@(aaa->;b);@(bbb->'d);@(`Foo->'%(Filename)'->Distinct());@(Bar)",
+            ItemVector(itemType: "Foo", QuotedTransform("%(Filename)"), FunctionTransform("Substring", "\"()\", $(Boo), `)(\"`")),
+            ItemVector("Bar"));
 
     [Fact]
     public void ExtractItemVectorExpressionsMultipleExpression5()
-    {
-        string expression = "@(foo);@(foo,'-');@(foo);@(foo,',');@(foo)";
-        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
-
-        enumerator.MoveNext().ShouldBeTrue();
-        enumerator.Current.ItemType.ShouldBe("foo");
-        enumerator.Current.HasSeparator.ShouldBeFalse();
-        enumerator.Current.Separator.ShouldBeNull();
-
-        enumerator.MoveNext().ShouldBeTrue();
-        enumerator.Current.ItemType.ShouldBe("foo");
-        enumerator.Current.HasSeparator.ShouldBeTrue();
-        enumerator.Current.Separator.ShouldBe("-");
-
-        enumerator.MoveNext().ShouldBeTrue();
-        enumerator.Current.ItemType.ShouldBe("foo");
-        enumerator.Current.HasSeparator.ShouldBeFalse();
-        enumerator.Current.Separator.ShouldBeNull();
-
-        enumerator.MoveNext().ShouldBeTrue();
-        enumerator.Current.ItemType.ShouldBe("foo");
-        enumerator.Current.HasSeparator.ShouldBeTrue();
-        enumerator.Current.Separator.ShouldBe(",");
-
-        enumerator.MoveNext().ShouldBeTrue();
-        enumerator.Current.ItemType.ShouldBe("foo");
-        enumerator.Current.HasSeparator.ShouldBeFalse();
-        enumerator.Current.Separator.ShouldBeNull();
-
-        enumerator.MoveNext().ShouldBeFalse();
-    }
+        => Verify(
+            "@(foo);@(foo,'-');@(foo);@(foo,',');@(foo)",
+            ItemVector("foo"),
+            ItemVector("foo", separator: "-"),
+            ItemVector("foo"),
+            ItemVector("foo", separator: ","),
+            ItemVector("foo"));
 
     /// <summary>
     /// Test that item function chaining works with whitespace before arrow operators.
@@ -898,67 +575,35 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
     [Fact]
     public void ExtractItemVectorExpressionsChainedFunctionsWithWhitespace()
     {
-        ItemVectorEnumerator enumerator;
-        ItemVector itemVector;
-
         // Test with space before second arrow: ") ->"
-        enumerator = ExpressionShredder.GetReferencedItemExpressions("@(I -> WithMetadataValue('M', 'T') -> WithMetadataValue('M', 'T'))");
-        enumerator.MoveNext().ShouldBeTrue();
-        itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.ItemType.ShouldBe("I");
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.Captures[0].FunctionName.ShouldBe("WithMetadataValue");
-        itemVector.Captures[0].FunctionArguments.ShouldBe("'M', 'T'");
-        itemVector.Captures[1].FunctionName.ShouldBe("WithMetadataValue");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("'M', 'T'");
+        Verify(
+            "@(I -> WithMetadataValue('M', 'T') -> WithMetadataValue('M', 'T'))",
+            itemType: "I",
+            FunctionTransform("WithMetadataValue", "'M', 'T'"),
+            FunctionTransform("WithMetadataValue", "'M', 'T'"));
 
         // Test without space before second arrow: ")->"
-        enumerator = ExpressionShredder.GetReferencedItemExpressions("@(I -> WithMetadataValue('M', 'T')-> WithMetadataValue('M', 'T'))");
-        enumerator.MoveNext().ShouldBeTrue();
-        itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.ItemType.ShouldBe("I");
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(2);
-        itemVector.Captures[0].FunctionName.ShouldBe("WithMetadataValue");
-        itemVector.Captures[0].FunctionArguments.ShouldBe("'M', 'T'");
-        itemVector.Captures[1].FunctionName.ShouldBe("WithMetadataValue");
-        itemVector.Captures[1].FunctionArguments.ShouldBe("'M', 'T'");
+        Verify(
+            "@(I -> WithMetadataValue('M', 'T')-> WithMetadataValue('M', 'T'))",
+            itemType: "I",
+            FunctionTransform("WithMetadataValue", "'M', 'T'"),
+            FunctionTransform("WithMetadataValue", "'M', 'T'"));
 
         // Test with multiple spaces and chained functions
-        enumerator = ExpressionShredder.GetReferencedItemExpressions("@(I->Distinct() -> Reverse() ->Count())");
-        enumerator.MoveNext().ShouldBeTrue();
-        itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.ItemType.ShouldBe("I");
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.Count.ShouldBe(3);
-        itemVector.Captures[0].FunctionName.ShouldBe("Distinct");
-        itemVector.Captures[1].FunctionName.ShouldBe("Reverse");
-        itemVector.Captures[2].FunctionName.ShouldBe("Count");
+        Verify(
+            "@(I->Distinct() -> Reverse() ->Count())",
+            itemType: "I",
+            FunctionTransform("Distinct"),
+            FunctionTransform("Reverse"),
+            FunctionTransform("Count"));
 
         // Test trailing whitespace after function call
-        enumerator = ExpressionShredder.GetReferencedItemExpressions("@(I -> Count() )");
-        enumerator.MoveNext().ShouldBeTrue();
-        itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.ItemType.ShouldBe("I");
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.ShouldHaveSingleItem();
-        itemVector.Captures[0].FunctionName.ShouldBe("Count");
+        Verify(
+            "@(I -> Count() )", itemType: "I", FunctionTransform("Count"));
 
         // Test trailing whitespace after quoted transform
-        enumerator = ExpressionShredder.GetReferencedItemExpressions("@(I -> 'Replacement' )");
-        enumerator.MoveNext().ShouldBeTrue();
-        itemVector = enumerator.Current;
-        enumerator.MoveNext().ShouldBeFalse();
-        itemVector.ItemType.ShouldBe("I");
-        itemVector.HasCaptures.ShouldBeTrue();
-        itemVector.Captures.ShouldHaveSingleItem();
-        itemVector.Captures[0].Text.ShouldBe("Replacement");
-        itemVector.Captures[0].FunctionName.ShouldBeNull();
+        Verify(
+            "@(I -> 'Replacement' )", itemType: "I", QuotedTransform("Replacement"));
     }
 
     /// <summary>
@@ -971,6 +616,95 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
         ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions("@(I -> Count() invalid)");
         enumerator.MoveNext().ShouldBeFalse();
     }
+
+    private static void Verify(
+        string expression,
+        string itemType,
+        string separator,
+        params ImmutableArray<Action<ItemTransform>> transformVerifiers)
+        => Verify(expression, ItemVector(itemType, separator, transformVerifiers));
+
+    private static void Verify(
+        string expression,
+        string itemType,
+        params ImmutableArray<Action<ItemTransform>> transformVerifiers)
+        => Verify(expression, ItemVector(itemType, transformVerifiers));
+
+    private static void Verify(string expression, params ImmutableArray<Action<ItemVector>> verifiers)
+    {
+        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+
+        foreach (Action<ItemVector> verifier in verifiers)
+        {
+            enumerator.MoveNext().ShouldBeTrue();
+            verifier(enumerator.Current);
+        }
+
+        enumerator.MoveNext().ShouldBeFalse();
+    }
+
+    private static void VerifyInvalid(string expression)
+    {
+        ItemVectorEnumerator enumerator = ExpressionShredder.GetReferencedItemExpressions(expression);
+        enumerator.MoveNext().ShouldBeFalse();
+    }
+
+    private static Action<ItemVector> ItemVector(string itemType, params ImmutableArray<Action<ItemTransform>> verifiers)
+        => ItemVector(itemType, separator: null, verifiers);
+
+    private static Action<ItemVector> ItemVector(string itemType, string? separator, params ImmutableArray<Action<ItemTransform>> verifiers)
+        => itemVector =>
+        {
+            itemVector.ItemType.ShouldBe(itemType);
+
+            if (separator is null)
+            {
+                itemVector.HasSeparator.ShouldBeFalse();
+                itemVector.Separator.ShouldBeNull();
+            }
+            else
+            {
+                itemVector.HasSeparator.ShouldBeTrue();
+                itemVector.Separator.ShouldBe(separator);
+            }
+
+            if (verifiers.Length == 0)
+            {
+                itemVector.Transforms.ShouldBeEmpty();
+            }
+            else
+            {
+                itemVector.Transforms.Length.ShouldBe(verifiers.Length);
+
+                for (int i = 0; i < verifiers.Length; i++)
+                {
+                    verifiers[i](itemVector.Transforms[i]);
+                }
+            }
+        };
+
+    private static Action<ItemTransform> QuotedTransform(string text)
+        => transform =>
+        {
+            transform.Text.ShouldBe(text);
+            transform.FunctionName.ShouldBeNull();
+            transform.FunctionArguments.ShouldBeNull();
+        };
+
+    private static Action<ItemTransform> FunctionTransform(string name, string? arguments = null)
+        => transform =>
+        {
+            transform.FunctionName.ShouldBe(name);
+
+            if (arguments is null)
+            {
+                transform.FunctionArguments.ShouldBeNull();
+            }
+            else
+            {
+                transform.FunctionArguments.ShouldBe(arguments);
+            }
+        };
 
     private void VerifyExpression(string test)
     {

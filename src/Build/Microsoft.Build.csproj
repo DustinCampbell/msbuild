@@ -548,6 +548,7 @@
     <Compile Include="Evaluation\ExpressionShredder.cs" />
     <Compile Include="Evaluation\ItemVectorEnumerator.cs" />
     <Compile Include="Evaluation\ItemVector.cs" />
+    <Compile Include="Evaluation\ItemTransform.cs" />
     <Compile Include="Evaluation\Evaluator.cs" />
     <Compile Include="Evaluation\Expander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />

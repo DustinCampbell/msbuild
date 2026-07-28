@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
@@ -207,28 +208,28 @@ internal static class ExpressionShredder
             string itemName = Strings.WeakIntern(_expression.AsSpan(startOfName, _index - startOfName));
 
             SinkWhitespace();
-            List<ItemVector>? transformExpressions = null;
+            ImmutableArray<ItemTransform>.Builder? transforms = null;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
             while (Sink('-', '>'))
             {
                 SinkWhitespace();
 
-                if (TryParseQuotedTransform(out ItemVector quotedTransform))
+                if (TryParseQuotedTransform(out ItemTransform quotedTransform))
                 {
                     // PERF: Almost all expressions have only one capture, so optimize for that case
-                    transformExpressions ??= new List<ItemVector>(1);
-                    transformExpressions.Add(quotedTransform);
+                    transforms ??= ImmutableArray.CreateBuilder<ItemTransform>(initialCapacity: 1);
+                    transforms.Add(quotedTransform);
 
                     SinkWhitespace();
                     continue;
                 }
 
-                if (TryParseFunctionTransform(out ItemVector functionCapture))
+                if (TryParseFunctionTransform(out ItemTransform functionCapture))
                 {
                     // PERF: Almost all expressions have only one capture, so optimize for that case
-                    transformExpressions ??= new List<ItemVector>(1);
-                    transformExpressions.Add(functionCapture);
+                    transforms ??= ImmutableArray.CreateBuilder<ItemTransform>(initialCapacity: 1);
+                    transforms.Add(functionCapture);
 
                     SinkWhitespace();
                     continue;
@@ -281,10 +282,10 @@ internal static class ExpressionShredder
                 text: Strings.WeakIntern(_expression.AsSpan(startPoint, endPoint - startPoint)),
                 index: startPoint,
                 length: endPoint - startPoint,
-                itemName,
-                separator,
-                separatorStart,
-                transformExpressions);
+                itemType: itemName,
+                separator: separator,
+                separatorStart: separatorStart,
+                transforms: transforms?.DrainToImmutable() ?? []);
 
             return true;
         }
@@ -527,7 +528,7 @@ internal static class ExpressionShredder
         /// <returns>
         ///  <see langword="true"/> if a single-quoted transform was parsed.
         /// </returns>
-        private bool TryParseQuotedTransform(out ItemVector result)
+        private bool TryParseQuotedTransform(out ItemTransform result)
         {
             if (!Sink('\''))
             {
@@ -544,10 +545,7 @@ internal static class ExpressionShredder
                 return false;
             }
 
-            result = new ItemVector(
-                text: _expression.Substring(startQuoted, endQuoted - startQuoted),
-                index: startQuoted,
-                length: endQuoted - startQuoted);
+            result = new ItemTransform(text: _expression.Substring(startQuoted, endQuoted - startQuoted));
 
             _index = endQuoted + 1;
             return true;
@@ -651,7 +649,7 @@ internal static class ExpressionShredder
         /// <returns>
         ///  <see langword="true"/> if an item function transform was parsed.
         /// </returns>
-        private bool TryParseFunctionTransform(out ItemVector result)
+        private bool TryParseFunctionTransform(out ItemTransform result)
         {
             int start = _index;
 
@@ -674,10 +672,8 @@ internal static class ExpressionShredder
                         functionArguments = Strings.WeakIntern(_expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                     }
 
-                    result = new ItemVector(
+                    result = new ItemTransform(
                         text: _expression.Substring(start, _index - start),
-                        index: start,
-                        length: _index - start,
                         functionName: functionName,
                         functionArguments: functionArguments);
 
