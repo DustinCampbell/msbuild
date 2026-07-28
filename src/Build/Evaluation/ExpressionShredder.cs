@@ -490,80 +490,54 @@ internal static class ExpressionShredder
     /// </summary>
     private static bool SinkArgumentsInParentheses(string expression, ref int i, int end)
     {
-        int nestLevel = 0;
-        int length = expression.Length;
-        int restartPoint;
+        Assumed.LessThanOrEqual(end, expression.Length);
 
-        unsafe
-        {
-            fixed (char* pchar = expression)
-            {
-                if (pchar[i] == '(')
-                {
-                    nestLevel++;
-                    i++;
-                }
-                else
-                {
-                    return false;
-                }
+        int start = i;
 
-                // Scan for our closing ')'
-                while (i < length && i < end && nestLevel > 0)
-                {
-                    char character = pchar[i];
-
-                    if (character == '\'' || character == '`' || character == '"')
-                    {
-                        restartPoint = i;
-                        if (!SinkUntilClosingQuote(character, expression, ref i, end))
-                        {
-                            i = restartPoint;
-                            return false;
-                        }
-                    }
-                    else if (character == '(')
-                    {
-                        nestLevel++;
-                    }
-                    else if (character == ')')
-                    {
-                        nestLevel--;
-                    }
-
-                    i++;
-                }
-            }
-        }
-
-        if (nestLevel == 0)
-        {
-            return true;
-        }
-        else
+        // The opening '(' is required; bail out (without pinning) if it isn't there.
+        if (i >= end || expression[i] != '(')
         {
             return false;
         }
-    }
 
-    /// <summary>
-    /// Skip all characters until we find the matching quote character
-    /// </summary>
-    private static bool SinkUntilClosingQuote(char quoteChar, string expression, ref int i, int end)
-    {
+        int nestLevel = 1;
+        i++;
+
         unsafe
         {
             fixed (char* pchar = expression)
             {
-                // We have already checked the first quote
-                i++;
-
-                // Scan for our closing quoteChar
-                while (i < expression.Length && i < end)
+                // Scan for our closing ')'
+                while (i < end && nestLevel > 0)
                 {
-                    if (pchar[i] == quoteChar)
+                    char character = pchar[i];
+
+                    switch (character)
                     {
-                        return true;
+                        case '\'' or '`' or '"':
+                            // Skip to the matching closing quote (the opening one is already consumed).
+                            i++;
+
+                            while (i < end && pchar[i] != character)
+                            {
+                                i++;
+                            }
+
+                            if (i >= end)
+                            {
+                                i = start;
+                                return false;
+                            }
+
+                            break;
+
+                        case '(':
+                            nestLevel++;
+                            break;
+
+                        case ')':
+                            nestLevel--;
+                            break;
                     }
 
                     i++;
@@ -571,7 +545,13 @@ internal static class ExpressionShredder
             }
         }
 
-        return false;
+        if (nestLevel != 0)
+        {
+            i = start;
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
