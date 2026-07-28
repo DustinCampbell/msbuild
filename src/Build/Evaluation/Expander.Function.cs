@@ -15,6 +15,7 @@ using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 using AvailableStaticMethods = Microsoft.Build.Internal.AvailableStaticMethods;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
@@ -840,12 +841,19 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
+        /// Realizes unexpanded function arguments (views over the original expression) into strings
+        /// for the reflection-based invocation path. A null (the "null" constant) segment is preserved as null.
+        /// </summary>
+        private static string[] RealizeFunctionArguments(StringSegment[] functionArguments)
+            => Array.ConvertAll(functionArguments, static argument => argument.Value);
+
+        /// <summary>
         /// Extracts the name, arguments, binding flags, and invocation type for an indexer
         /// Also extracts the remainder of the expression that is not part of this indexer.
         /// </summary>
         private static void ConstructIndexerFunction(string expressionFunction, IElementLocation elementLocation, object propertyValue, int methodStartIndex, int indexerEndIndex, ref FunctionBuilder functionBuilder)
         {
-            ReadOnlyMemory<char> argumentsContent = expressionFunction.AsMemory().Slice(1, indexerEndIndex - 1);
+            StringSegment argumentsContent = expressionFunction.AsSegment(1, indexerEndIndex - 1);
             string[] functionArguments;
 
             // If there are no arguments, then just create an empty array
@@ -856,7 +864,7 @@ internal partial class Expander<P, I>
             else
             {
                 // We will keep empty entries so that we can treat them as null
-                functionArguments = ExtractFunctionArguments(elementLocation, expressionFunction, argumentsContent);
+                functionArguments = RealizeFunctionArguments(ExtractFunctionArguments(elementLocation, expressionFunction, argumentsContent));
             }
 
             // choose the name of the function based on the type of the object that we
@@ -913,7 +921,7 @@ internal partial class Expander<P, I>
                 argumentStartIndex++;
 
                 // Scan for the matching closing bracket, skipping any nested ones
-                int argumentsEndIndex = ScanForClosingParenthesis(expressionFunctionAsSpan, argumentStartIndex, out _, out _);
+                int argumentsEndIndex = ScanForClosingParenthesis(expressionFunction, argumentStartIndex, out _, out _);
 
                 if (argumentsEndIndex == -1)
                 {
@@ -931,7 +939,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // we have content within the '()' so let's extract and deal with it
-                    ReadOnlyMemory<char> argumentsContent = expressionFunction.AsMemory().Slice(argumentStartIndex, argumentsEndIndex - argumentStartIndex);
+                    StringSegment argumentsContent = expressionFunction.AsSegment(argumentStartIndex, argumentsEndIndex - argumentStartIndex);
 
                     // If there are no arguments, then just create an empty array
                     if (argumentsContent.IsEmpty)
@@ -941,7 +949,7 @@ internal partial class Expander<P, I>
                     else
                     {
                         // We will keep empty entries so that we can treat them as null
-                        functionArguments = ExtractFunctionArguments(elementLocation, expressionFunction, argumentsContent);
+                        functionArguments = RealizeFunctionArguments(ExtractFunctionArguments(elementLocation, expressionFunction, argumentsContent));
                     }
 
                     remainder = expressionFunctionAsSpan.Slice(argumentsEndIndex + 1).Trim();

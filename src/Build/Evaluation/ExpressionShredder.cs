@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 
 namespace Microsoft.Build.Evaluation;
@@ -548,7 +549,7 @@ internal static class ExpressionShredder
             }
 
             // Exclude the enclosing quotes: start is at the opening ' and _index is one past the closing '.
-            result = new ItemTransform(text: _expression.Substring(start + 1, _index - start - 2));
+            result = ItemTransform.Quoted(_expression.AsSegment(start + 1, _index - start - 2));
             return true;
         }
 
@@ -625,15 +626,18 @@ internal static class ExpressionShredder
         }
 
         /// <summary>
-        ///  Consumes a parenthesized argument list at the current position and returns its contents (the
-        ///  text between the enclosing parentheses, exclusive) as a span over the expression. This is the
-        ///  value-returning analog of <see cref="TryConsumeArgumentList"/>.
+        ///  Consumes a parenthesized argument list at the current position and returns the position of its
+        ///  contents (the text between the enclosing parentheses, exclusive) as a start/length pair into the
+        ///  expression. This is the value-returning analog of <see cref="TryConsumeArgumentList"/>.
         /// </summary>
-        /// <param name="arguments">The argument-list contents if one was found; otherwise an empty span.</param>
+        /// <param name="arguments">
+        ///  The start offset and length of the argument-list contents within the expression if one was found;
+        ///  otherwise <see langword="default"/>.
+        /// </param>
         /// <returns>
         ///  <see langword="true"/> if a balanced argument list was consumed.
         /// </returns>
-        private bool TryParseArgumentList(out ReadOnlySpan<char> arguments)
+        private bool TryParseArgumentList(out (int Start, int Length) arguments)
         {
             int start = _index;
 
@@ -644,7 +648,7 @@ internal static class ExpressionShredder
             }
 
             // Exclude the enclosing parentheses: start is at the '(' and _index is one past the ')'.
-            arguments = _expression.AsSpan(start + 1, _index - start - 2);
+            arguments = (start + 1, _index - start - 2);
             return true;
         }
 
@@ -684,17 +688,20 @@ internal static class ExpressionShredder
         {
             int start = _index;
 
-            if (TryParseName(out ReadOnlySpan<char> functionNameSpan))
+            if (TryConsumeName())
             {
+                int nameLength = _index - start;
+
                 // Eat any whitespace between the function name and its arguments
                 SkipWhiteSpace();
 
-                if (TryParseArgumentList(out ReadOnlySpan<char> argumentsSpan))
+                if (TryParseArgumentList(out (int Start, int Length) arguments))
                 {
-                    result = new ItemTransform(
-                        text: _expression.Substring(start, _index - start),
-                        functionName: Strings.WeakIntern(functionNameSpan),
-                        functionArguments: argumentsSpan.IsEmpty ? null : Strings.WeakIntern(argumentsSpan));
+                    result = ItemTransform.Function(
+                        text: _expression.AsSegment(start, _index - start),
+                        nameLength: nameLength,
+                        argsStart: arguments.Start - start,
+                        argsLength: arguments.Length);
 
                     return true;
                 }

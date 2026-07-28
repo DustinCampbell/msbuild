@@ -146,7 +146,7 @@ internal partial class Expander<P, I>
                 // Scan for the matching closing bracket, skipping any nested ones
                 // This is a very complete, fast validation of parenthesis matching including for nested
                 // function calls.
-                propertyEndIndex = ScanForClosingParenthesis(expression.AsSpan(), propertyStartIndex + 2, out bool tryExtractPropertyFunction, out bool tryExtractRegistryFunction);
+                propertyEndIndex = ScanForClosingParenthesis(expression, propertyStartIndex + 2, out bool tryExtractPropertyFunction, out bool tryExtractRegistryFunction);
 
                 if (propertyEndIndex == -1)
                 {

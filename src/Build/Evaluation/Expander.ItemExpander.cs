@@ -9,6 +9,7 @@ using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 
 #nullable disable
@@ -60,7 +61,7 @@ internal partial class Expander<P, I>
     /// </remarks>
     private static partial class ItemExpander
     {
-        private static readonly FrozenDictionary<string, TransformKind> s_intrinsicTransforms = new Dictionary<string, TransformKind>(StringComparer.OrdinalIgnoreCase)
+        private static readonly FrozenDictionary<StringSegment, TransformKind> s_intrinsicTransforms = new Dictionary<StringSegment, TransformKind>(StringSegmentComparer.OrdinalIgnoreCase)
         {
             { "Count", TransformKind.Count },
             { "Exists", TransformKind.Exists },
@@ -78,7 +79,7 @@ internal partial class Expander<P, I>
             { "WithMetadataValue", TransformKind.WithMetadataValue },
             { "WithoutMetadataValue", TransformKind.WithoutMetadataValue },
             { "AnyHaveMetadataValue", TransformKind.AnyHaveMetadataValue },
-        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+        }.ToFrozenDictionary(StringSegmentComparer.OrdinalIgnoreCase);
 
         /// <summary>
         ///  Executes the list of transform functions.
@@ -121,20 +122,22 @@ internal partial class Expander<P, I>
             for (int i = 0; i < transforms.Length; i++)
             {
                 ItemTransform transform = transforms[i];
-                string function = transform.Text;
-                string functionName = transform.FunctionName;
-                string argumentsExpression = transform.FunctionArguments;
+                StringSegment functionName = transform.FunctionName;
+                StringSegment[] arguments = null;
 
-                string[] arguments = null;
-
-                if (functionName == null)
+                if (!functionName.HasValue)
                 {
+                    // Quoted transform, e.g. @(Foo->'%(Bar)'): expand the quoted expression.
                     functionName = "ExpandQuotedExpressionFunction";
-                    arguments = [function];
+                    arguments = [transform.Text];
                 }
-                else if (argumentsExpression != null)
+                else
                 {
-                    arguments = ExtractFunctionArguments(elementLocation, argumentsExpression, argumentsExpression.AsMemory());
+                    StringSegment functionArguments = transform.FunctionArguments;
+                    if (functionArguments.HasValue)
+                    {
+                        arguments = ExtractFunctionArguments(elementLocation, transform.Text, functionArguments);
+                    }
                 }
 
                 TransformKind kind;
@@ -462,10 +465,10 @@ internal partial class Expander<P, I>
             if (itemsOfType.Count == 0)
             {
                 // ... but only if there isn't a function "Count", since that will want to return something (zero) for an empty list
-                if (!transforms.Any(capture => string.Equals(capture.FunctionName, "Count", StringComparison.OrdinalIgnoreCase)))
+                if (!transforms.Any(capture => capture.FunctionName.Equals("Count", StringComparison.OrdinalIgnoreCase)))
                 {
                     // ...or a function "AnyHaveMetadataValue", since that will want to return false for an empty list.
-                    if (!transforms.Any(capture => string.Equals(capture.FunctionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
+                    if (!transforms.Any(capture => capture.FunctionName.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
                     {
                         entries = null;
                         return false;
