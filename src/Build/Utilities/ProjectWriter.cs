@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.IO;
@@ -25,7 +25,7 @@ namespace Microsoft.Build.Shared
 
         // the portion of the expression that matches the item type or metadata name, eg: "foo123"
         // Note that the pattern is more strict than the rules for valid XML element names.
-        // This grammar MUST be kept in sync with ExpressionShredder.SinkValidName, which validates
+        // This grammar MUST be kept in sync with ExpressionShredder.Scanner.TryConsumeName, which validates
         // item type and metadata names when parsing item/metadata expressions.
         internal const string itemTypeOrMetadataNameSpecification = @"[A-Za-z_][A-Za-z_0-9\-]*";
 

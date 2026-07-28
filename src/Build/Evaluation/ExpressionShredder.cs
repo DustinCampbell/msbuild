@@ -105,7 +105,7 @@ internal static class ExpressionShredder
         // scan leaves the caller's position unchanged.
         Scanner scanner = new(expression, i, end);
 
-        if (scanner.TryScanItemExpressionCapture(out capture))
+        if (scanner.TryParseItemVector(out capture))
         {
             i = scanner.Index;
             return true;
@@ -178,15 +178,17 @@ internal static class ExpressionShredder
         /// <summary>
         ///  Attempts to scan a single <c>@(...)</c> item vector expression at the current position.
         /// </summary>
-        /// <param name="capture">The scanned expression if one was found; otherwise <see langword="default"/>.</param>
+        /// <param name="result">The scanned expression if one was found; otherwise <see langword="default"/>.</param>
         /// <returns>
         ///  <see langword="true"/> if a well-formed item vector expression was scanned.
         /// </returns>
-        public bool TryScanItemExpressionCapture(out ItemVector capture)
+        public bool TryParseItemVector(out ItemVector result)
         {
-            capture = default;
+            result = default;
 
-            if (!Sink('@', '('))
+            int start = _index;
+
+            if (!TryConsume('@', '('))
             {
                 return false;
             }
@@ -194,26 +196,24 @@ internal static class ExpressionShredder
             // Start of a possible item list expression. Store the expression's start point (the '@').
             int startPoint = _index - 2;
 
-            SinkWhitespace();
+            SkipWhiteSpace();
 
-            int startOfName = _index;
-
-            if (!SinkValidName())
+            if (!TryParseName(out ReadOnlySpan<char> itemNameSpan))
             {
+                _index = start;
                 return false;
             }
 
-            // Grab the name, but continue to verify it's a well-formed expression
-            // before we store it.
-            string itemName = Strings.WeakIntern(_expression.AsSpan(startOfName, _index - startOfName));
-
-            SinkWhitespace();
+            // Hold the name as a span and keep verifying the expression. We defer interning it into a
+            // string until we know the whole expression is well-formed (see the capture below), so a
+            // malformed expression that bails out early doesn't pay for a WeakIntern.
+            SkipWhiteSpace();
             ImmutableArray<ItemTransform>.Builder? transforms = null;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
-            while (Sink('-', '>'))
+            while (TryConsume('-', '>'))
             {
-                SinkWhitespace();
+                SkipWhiteSpace();
 
                 if (TryParseQuotedTransform(out ItemTransform quotedTransform))
                 {
@@ -221,7 +221,7 @@ internal static class ExpressionShredder
                     transforms ??= ImmutableArray.CreateBuilder<ItemTransform>(initialCapacity: 1);
                     transforms.Add(quotedTransform);
 
-                    SinkWhitespace();
+                    SkipWhiteSpace();
                     continue;
                 }
 
@@ -231,32 +231,35 @@ internal static class ExpressionShredder
                     transforms ??= ImmutableArray.CreateBuilder<ItemTransform>(initialCapacity: 1);
                     transforms.Add(functionCapture);
 
-                    SinkWhitespace();
+                    SkipWhiteSpace();
                     continue;
                 }
 
                 // Saw '->' but neither a quoted transform nor a transform function followed: malformed.
+                _index = start;
                 return false;
             }
 
-            SinkWhitespace();
+            SkipWhiteSpace();
 
             string? separator = null;
             int separatorStart = -1;
 
             // If there's a ',', eat it and the subsequent quoted expression
-            if (Sink(','))
+            if (TryConsume(','))
             {
-                SinkWhitespace();
+                SkipWhiteSpace();
 
-                if (!Sink('\''))
+                if (!TryConsume('\''))
                 {
+                    _index = start;
                     return false;
                 }
 
                 int closingQuote = _expression.IndexOf('\'', _index, _end - _index);
                 if (closingQuote == -1)
                 {
+                    _index = start;
                     return false;
                 }
 
@@ -266,10 +269,11 @@ internal static class ExpressionShredder
                 _index = closingQuote + 1;
             }
 
-            SinkWhitespace();
+            SkipWhiteSpace();
 
-            if (!Sink(')'))
+            if (!TryConsume(')'))
             {
+                _index = start;
                 return false;
             }
 
@@ -278,11 +282,11 @@ internal static class ExpressionShredder
             // Create an expression capture that encompasses the entire expression between the @( and the )
             // with the item name and any separator contained within it
             // and each transform expression contained within it (i.e. each ->XYZ)
-            capture = new ItemVector(
+            result = new ItemVector(
                 text: Strings.WeakIntern(_expression.AsSpan(startPoint, endPoint - startPoint)),
                 index: startPoint,
                 length: endPoint - startPoint,
-                itemType: itemName,
+                itemType: Strings.WeakIntern(itemNameSpan),
                 separator: separator,
                 separatorStart: separatorStart,
                 transforms: transforms?.DrainToImmutable() ?? []);
@@ -328,58 +332,54 @@ internal static class ExpressionShredder
                 if (marker == '@')
                 {
                     // Start of a possible item list expression.
-                    SinkWhitespace();
+                    SkipWhiteSpace();
 
-                    int startOfName = _index;
-
-                    if (!SinkValidName())
+                    if (!TryParseName(out ReadOnlySpan<char> itemNameSpan))
                     {
                         _index = restartPoint;
                         continue;
                     }
 
-                    // Grab the name boundaries, but continue to verify it's a well-formed expression
+                    // Hold the name as a span and continue to verify it's a well-formed expression
                     // before we store it.
-                    int nameLength = _index - startOfName;
+                    SkipWhiteSpace();
 
-                    SinkWhitespace();
-
-                    bool transformOrFunctionFound = true;
+                    bool malformed = false;
 
                     // If there's an '->' eat it and the subsequent quoted expression or transform function
-                    while (Sink('-', '>') && transformOrFunctionFound)
+                    while (!malformed && TryConsume('-', '>'))
                     {
-                        SinkWhitespace();
+                        SkipWhiteSpace();
 
-                        if (SinkSingleQuotedExpression())
+                        if (TryConsumeQuotedTransform())
                         {
-                            SinkWhitespace();
+                            SkipWhiteSpace();
                             continue;
                         }
 
-                        if (SinkFunctionTransform())
+                        if (TryConsumeFunctionTransform())
                         {
-                            SinkWhitespace();
+                            SkipWhiteSpace();
                             continue;
                         }
 
                         _index = restartPoint;
-                        transformOrFunctionFound = false;
+                        malformed = true;
                     }
 
-                    if (!transformOrFunctionFound)
+                    if (malformed)
                     {
                         continue;
                     }
 
-                    SinkWhitespace();
+                    SkipWhiteSpace();
 
                     // If there's a ',', eat it and the subsequent quoted expression
-                    if (Sink(','))
+                    if (TryConsume(','))
                     {
-                        SinkWhitespace();
+                        SkipWhiteSpace();
 
-                        if (!Sink('\''))
+                        if (!TryConsume('\''))
                         {
                             _index = restartPoint;
                             continue;
@@ -400,9 +400,9 @@ internal static class ExpressionShredder
                         _index = closingQuote + 1;
                     }
 
-                    SinkWhitespace();
+                    SkipWhiteSpace();
 
-                    if (!Sink(')'))
+                    if (!TryConsume(')'))
                     {
                         _index = restartPoint;
                         continue;
@@ -413,7 +413,7 @@ internal static class ExpressionShredder
                     if (includeItemTypes)
                     {
                         pair.Items ??= new HashSet<string>(MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Items.Add(_expression.Substring(startOfName, nameLength));
+                        pair.Items.Add(itemNameSpan.ToString());
                     }
                 }
                 else
@@ -454,36 +454,36 @@ internal static class ExpressionShredder
             itemType = null;
             metadataName = null;
 
-            SinkWhitespace();
+            int start = _index;
 
-            int startOfText = _index;
+            SkipWhiteSpace();
 
-            if (!SinkValidName())
+            if (!TryParseName(out ReadOnlySpan<char> firstNameSpan))
             {
+                _index = start;
                 return false;
             }
 
-            string firstName = Strings.WeakIntern(_expression.AsSpan(startOfText, _index - startOfText));
+            string firstName = Strings.WeakIntern(firstNameSpan);
 
-            SinkWhitespace();
+            SkipWhiteSpace();
 
-            if (Sink('.'))
+            if (TryConsume('.'))
             {
                 // Qualified: %(ItemType.Name)
                 itemType = firstName;
 
-                SinkWhitespace();
+                SkipWhiteSpace();
 
-                startOfText = _index;
-
-                if (!SinkValidName())
+                if (!TryParseName(out ReadOnlySpan<char> metadataNameSpan))
                 {
+                    _index = start;
                     return false;
                 }
 
-                metadataName = Strings.WeakIntern(_expression.AsSpan(startOfText, _index - startOfText));
+                metadataName = Strings.WeakIntern(metadataNameSpan);
 
-                SinkWhitespace();
+                SkipWhiteSpace();
             }
             else
             {
@@ -491,19 +491,27 @@ internal static class ExpressionShredder
                 metadataName = firstName;
             }
 
-            return Sink(')');
+            if (!TryConsume(')'))
+            {
+                _index = start;
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
-        ///  Returns <see langword="true"/> if a single-quoted subexpression (e.g. <c>'foo'</c>) begins at
-        ///  the current position, advancing past the closing quote.
+        ///  Consumes a single-quoted transform (e.g. <c>'foo'</c>) beginning at the current position,
+        ///  advancing past the closing quote.
         /// </summary>
         /// <returns>
-        ///  <see langword="true"/> if a single-quoted subexpression was found.
+        ///  <see langword="true"/> if a single-quoted transform was consumed.
         /// </returns>
-        private bool SinkSingleQuotedExpression()
+        private bool TryConsumeQuotedTransform()
         {
-            if (!Sink('\''))
+            int start = _index;
+
+            if (!TryConsume('\''))
             {
                 return false;
             }
@@ -513,6 +521,7 @@ internal static class ExpressionShredder
 
             if (endIndex < 0)
             {
+                _index = start;
                 return false;
             }
 
@@ -530,33 +539,28 @@ internal static class ExpressionShredder
         /// </returns>
         private bool TryParseQuotedTransform(out ItemTransform result)
         {
-            if (!Sink('\''))
+            int start = _index;
+
+            if (!TryConsumeQuotedTransform())
             {
                 result = default;
                 return false;
             }
 
-            int startQuoted = _index;
-            int endQuoted = _expression.IndexOf('\'', startQuoted, _end - startQuoted);
-
-            if (endQuoted < 0)
-            {
-                result = default;
-                return false;
-            }
-
-            result = new ItemTransform(text: _expression.Substring(startQuoted, endQuoted - startQuoted));
-
-            _index = endQuoted + 1;
+            // Exclude the enclosing quotes: start is at the opening ' and _index is one past the closing '.
+            result = new ItemTransform(text: _expression.Substring(start + 1, _index - start - 2));
             return true;
         }
 
         /// <summary>
-        /// Scan for the closing bracket that matches the one we've already skipped;
-        /// essentially, pushes and pops on a stack of parentheses to do this.
-        /// Returns true if the matching parenthesis was found, leaving the position one past it.
+        ///  Consumes a parenthesized argument list (e.g. <c>(a, 'b(c)')</c>) beginning at the current
+        ///  position, matching nested parentheses and skipping over quoted sections. Leaves the position
+        ///  one past the closing <c>)</c>.
         /// </summary>
-        private bool SinkArgumentsInParentheses()
+        /// <returns>
+        ///  <see langword="true"/> if a balanced argument list was consumed.
+        /// </returns>
+        private bool TryConsumeArgumentList()
         {
             int start = _index;
 
@@ -621,23 +625,50 @@ internal static class ExpressionShredder
         }
 
         /// <summary>
+        ///  Consumes a parenthesized argument list at the current position and returns its contents (the
+        ///  text between the enclosing parentheses, exclusive) as a span over the expression. This is the
+        ///  value-returning analog of <see cref="TryConsumeArgumentList"/>.
+        /// </summary>
+        /// <param name="arguments">The argument-list contents if one was found; otherwise an empty span.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a balanced argument list was consumed.
+        /// </returns>
+        private bool TryParseArgumentList(out ReadOnlySpan<char> arguments)
+        {
+            int start = _index;
+
+            if (!TryConsumeArgumentList())
+            {
+                arguments = default;
+                return false;
+            }
+
+            // Exclude the enclosing parentheses: start is at the '(' and _index is one past the ')'.
+            arguments = _expression.AsSpan(start + 1, _index - start - 2);
+            return true;
+        }
+
+        /// <summary>
         /// Returns true if a item function subexpression begins at the current position
         /// and ends before the end of the scan range.
         /// Leaves the position one past the end of the closing paren.
         /// </summary>
-        private bool SinkFunctionTransform()
+        private bool TryConsumeFunctionTransform()
         {
-            if (SinkValidName())
+            int start = _index;
+
+            if (TryConsumeName())
             {
                 // Eat any whitespace between the function name and its arguments
-                SinkWhitespace();
+                SkipWhiteSpace();
 
-                if (SinkArgumentsInParentheses())
+                if (TryConsumeArgumentList())
                 {
                     return true;
                 }
             }
 
+            _index = start;
             return false;
         }
 
@@ -653,35 +684,24 @@ internal static class ExpressionShredder
         {
             int start = _index;
 
-            if (SinkValidName())
+            if (TryParseName(out ReadOnlySpan<char> functionNameSpan))
             {
-                int endFunctionName = _index;
-
                 // Eat any whitespace between the function name and its arguments
-                SinkWhitespace();
-                int startFunctionArguments = _index + 1;
+                SkipWhiteSpace();
 
-                if (SinkArgumentsInParentheses())
+                if (TryParseArgumentList(out ReadOnlySpan<char> argumentsSpan))
                 {
-                    int endFunctionArguments = _index - 1;
-
-                    string functionName = _expression.Substring(start, endFunctionName - start);
-                    string? functionArguments = null;
-                    if (endFunctionArguments > startFunctionArguments)
-                    {
-                        functionArguments = Strings.WeakIntern(_expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
-                    }
-
                     result = new ItemTransform(
                         text: _expression.Substring(start, _index - start),
-                        functionName: functionName,
-                        functionArguments: functionArguments);
+                        functionName: Strings.WeakIntern(functionNameSpan),
+                        functionArguments: argumentsSpan.IsEmpty ? null : Strings.WeakIntern(argumentsSpan));
 
                     return true;
                 }
             }
 
             result = default;
+            _index = start;
             return false;
         }
 
@@ -698,7 +718,7 @@ internal static class ExpressionShredder
         /// item/metadata expressions diverges from the one used to write them back out, expressions could
         /// round-trip incorrectly.
         /// </remarks>
-        private bool SinkValidName()
+        private bool TryConsumeName()
         {
             if (_end <= _index || !XmlUtilities.IsValidInitialElementNameCharacter(_expression[_index]))
             {
@@ -724,10 +744,34 @@ internal static class ExpressionShredder
         }
 
         /// <summary>
+        ///  Attempts to consume a valid name at the current position, returning it as a span over the
+        ///  expression. This is the value-returning analog of <see cref="TryConsumeName"/>; callers can
+        ///  pass the returned span to <see cref="Strings.WeakIntern(ReadOnlySpan{char})"/> to realize a
+        ///  string without an intermediate substring allocation.
+        /// </summary>
+        /// <param name="name">The consumed name if one was found; otherwise an empty span.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a valid name was consumed.
+        /// </returns>
+        private bool TryParseName(out ReadOnlySpan<char> name)
+        {
+            int start = _index;
+
+            if (!TryConsumeName())
+            {
+                name = default;
+                return false;
+            }
+
+            name = _expression.AsSpan(start, _index - start);
+            return true;
+        }
+
+        /// <summary>
         ///  Returns <see langword="true"/> if the character at the current position (which must be before
         ///  the end of the scan range) is the specified char. Leaves the position one past the character.
         /// </summary>
-        private bool Sink(char c)
+        private bool TryConsume(char c)
         {
             if (_index < _end && _expression[_index] == c)
             {
@@ -742,7 +786,7 @@ internal static class ExpressionShredder
         ///  Returns <see langword="true"/> if the next two characters at the current position are the specified sequence.
         ///  Leaves the position one past the second character.
         /// </summary>
-        private bool Sink(char c1, char c2)
+        private bool TryConsume(char c1, char c2)
         {
             if (_index < _end - 1 && _expression[_index] == c1 && _expression[_index + 1] == c2)
             {
@@ -761,7 +805,7 @@ internal static class ExpressionShredder
         ///  <see cref="char.IsWhiteSpace(char)"/> is not identical in behavior to regex's <c>\s</c> character class,
         ///  but it's extremely close, and it's what we use in conditional expressions.
         /// </remarks>
-        private void SinkWhitespace()
+        private void SkipWhiteSpace()
         {
             while (_index < _end && char.IsWhiteSpace(_expression[_index]))
             {
