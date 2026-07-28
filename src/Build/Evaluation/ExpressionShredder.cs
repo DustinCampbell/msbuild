@@ -104,7 +104,7 @@ internal static class ExpressionShredder
         // Start of a possible item list expression. Store the expression's start point (the '@').
         int startPoint = index - 2;
 
-        SinkWhitespace(expression, ref index);
+        SinkWhitespace(expression, ref index, end);
 
         int startOfName = index;
 
@@ -117,21 +117,21 @@ internal static class ExpressionShredder
         // before we store it.
         string itemName = Strings.WeakIntern(expression.AsSpan(startOfName, index - startOfName));
 
-        SinkWhitespace(expression, ref index);
+        SinkWhitespace(expression, ref index, end);
         List<ItemVector>? transformExpressions = null;
 
         // If there's an '->' eat it and the subsequent quoted expression or transform function
         while (Sink(expression, ref index, end, '-', '>'))
         {
-            SinkWhitespace(expression, ref index);
+            SinkWhitespace(expression, ref index, end);
 
-            if (TryParseQuotedTransform(expression, ref index, out ItemVector quotedTransform))
+            if (TryParseQuotedTransform(expression, ref index, end, out ItemVector quotedTransform))
             {
                 // PERF: Almost all expressions have only one capture, so optimize for that case
                 transformExpressions ??= new List<ItemVector>(1);
                 transformExpressions.Add(quotedTransform);
 
-                SinkWhitespace(expression, ref index);
+                SinkWhitespace(expression, ref index, end);
                 continue;
             }
 
@@ -141,7 +141,7 @@ internal static class ExpressionShredder
                 transformExpressions ??= new List<ItemVector>(1);
                 transformExpressions.Add(functionCapture);
 
-                SinkWhitespace(expression, ref index);
+                SinkWhitespace(expression, ref index, end);
                 continue;
             }
 
@@ -149,22 +149,22 @@ internal static class ExpressionShredder
             return false;
         }
 
-        SinkWhitespace(expression, ref index);
+        SinkWhitespace(expression, ref index, end);
 
         string? separator = null;
         int separatorStart = -1;
 
         // If there's a ',', eat it and the subsequent quoted expression
-        if (Sink(expression, ref index, ','))
+        if (Sink(expression, ref index, end, ','))
         {
-            SinkWhitespace(expression, ref index);
+            SinkWhitespace(expression, ref index, end);
 
-            if (!Sink(expression, ref index, '\''))
+            if (!Sink(expression, ref index, end, '\''))
             {
                 return false;
             }
 
-            int closingQuote = expression.IndexOf('\'', index);
+            int closingQuote = expression.IndexOf('\'', index, end - index);
             if (closingQuote == -1)
             {
                 return false;
@@ -176,9 +176,9 @@ internal static class ExpressionShredder
             index = closingQuote + 1;
         }
 
-        SinkWhitespace(expression, ref index);
+        SinkWhitespace(expression, ref index, end);
 
-        if (!Sink(expression, ref index, ')'))
+        if (!Sink(expression, ref index, end, ')'))
         {
             return false;
         }
@@ -452,20 +452,21 @@ internal static class ExpressionShredder
     /// </summary>
     /// <param name="expression">The expression being scanned.</param>
     /// <param name="i">Current scan position. Advanced past the closing quote on success.</param>
+    /// <param name="end">Exclusive end index of the scan range; no character at or beyond this index is read.</param>
     /// <param name="result">The parsed transform if one was found; otherwise <see langword="default"/>.</param>
     /// <returns>
     ///  <see langword="true"/> if a single-quoted transform was parsed.
     /// </returns>
-    private static bool TryParseQuotedTransform(string expression, ref int i, out ItemVector result)
+    private static bool TryParseQuotedTransform(string expression, ref int i, int end, out ItemVector result)
     {
-        if (!Sink(expression, ref i, '\''))
+        if (!Sink(expression, ref i, end, '\''))
         {
             result = default;
             return false;
         }
 
         int startQuoted = i;
-        int endQuoted = expression.IndexOf('\'', startQuoted);
+        int endQuoted = expression.IndexOf('\'', startQuoted, end - startQuoted);
 
         if (endQuoted < 0)
         {
@@ -564,7 +565,7 @@ internal static class ExpressionShredder
         if (SinkValidName(expression, ref i, end))
         {
             // Eat any whitespace between the function name and its arguments
-            SinkWhitespace(expression, ref i);
+            SinkWhitespace(expression, ref i, end);
 
             if (SinkArgumentsInParentheses(expression, ref i, end))
             {
@@ -595,7 +596,7 @@ internal static class ExpressionShredder
             int endFunctionName = i;
 
             // Eat any whitespace between the function name and its arguments
-            SinkWhitespace(expression, ref i);
+            SinkWhitespace(expression, ref i, end);
             int startFunctionArguments = i + 1;
 
             if (SinkArgumentsInParentheses(expression, ref i, end))
@@ -663,13 +664,6 @@ internal static class ExpressionShredder
     }
 
     /// <summary>
-    ///  Returns <see langword="true"/> if the character at the specified index is the specified char.
-    ///  Leaves index one past the character.
-    /// </summary>
-    private static bool Sink(string expression, ref int i, char c)
-        => Sink(expression, ref i, expression.Length, c);
-
-    /// <summary>
     ///  Returns <see langword="true"/> if the character at the specified index (which must be before
     ///  <paramref name="end"/>) is the specified char. Leaves index one past the character.
     /// </summary>
@@ -698,19 +692,6 @@ internal static class ExpressionShredder
 
         return false;
     }
-
-    /// <summary>
-    ///  Moves past all whitespace starting at the specified index.
-    ///  Returns the next index, possibly the string length.
-    /// </summary>
-    /// <param name="expression">The expression to process.</param>
-    /// <param name="i">The start location for skipping whitespace, contains the next non-whitespace character on exit.</param>
-    /// <remarks>
-    ///  <see cref="char.IsWhiteSpace(char)"/> is not identical in behavior to regex's <c>\s</c> character class,
-    ///  but it's extremely close, and it's what we use in conditional expressions.
-    /// </remarks>
-    private static void SinkWhitespace(string expression, ref int i)
-        => SinkWhitespace(expression, ref i, expression.Length);
 
     /// <summary>
     ///  Moves past all whitespace starting at the specified index, without scanning at or beyond
