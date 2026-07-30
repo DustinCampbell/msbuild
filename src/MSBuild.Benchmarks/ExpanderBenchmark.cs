@@ -47,6 +47,13 @@ public class ExpanderBenchmark
     private string _itemListWithTransform = null!;
     private string _itemListWithSeparator = null!;
 
+    // Item-function transforms that execute through ExtractFunctionArguments / the intrinsic
+    // transform pipeline (as opposed to the quoted metadata-transform fast path above).
+    private string _itemFunctionTransform = null!;
+    private string _itemFunctionTransformWithArgs = null!;
+    private string _itemStringFunctionTransform = null!;
+    private string _itemChainedTransforms = null!;
+
     private string _singleMetadata = null!;
     private string _qualifiedMetadata = null!;
     private string _multipleMetadata = null!;
@@ -132,6 +139,13 @@ public class ExpanderBenchmark
         _itemListWithTransform = "@(Compile->'%(Filename).obj')";
         _itemListWithSeparator = "@(Compile, ',')";
 
+        // Function transforms: these run the intrinsic transform pipeline and, for the
+        // arg-bearing shapes, ExtractFunctionArguments (which the quoted transform above skips).
+        _itemFunctionTransform = "@(Compile->Distinct())";
+        _itemFunctionTransformWithArgs = "@(Compile->WithMetadataValue('Culture', 'en-US'))";
+        _itemStringFunctionTransform = "@(Compile->'%(Filename)'->Substring(0, 3))";
+        _itemChainedTransforms = "@(Compile->Distinct()->Reverse())";
+
         // Metadata expressions
         _singleMetadata = "%(Culture)";
         _qualifiedMetadata = "%(Compile.Link)";
@@ -185,6 +199,22 @@ public class ExpanderBenchmark
     [Benchmark]
     public string ItemList_WithSeparator()
         => _expander.ExpandIntoStringLeaveEscaped(_itemListWithSeparator, ExpanderOptions.ExpandItems, _location);
+
+    [Benchmark]
+    public string ItemList_FunctionTransform()
+        => _expander.ExpandIntoStringLeaveEscaped(_itemFunctionTransform, ExpanderOptions.ExpandItems, _location);
+
+    [Benchmark]
+    public string ItemList_FunctionTransformWithArgs()
+        => _expander.ExpandIntoStringLeaveEscaped(_itemFunctionTransformWithArgs, ExpanderOptions.ExpandItems, _location);
+
+    [Benchmark]
+    public string ItemList_StringFunctionTransform()
+        => _expander.ExpandIntoStringLeaveEscaped(_itemStringFunctionTransform, ExpanderOptions.ExpandItems, _location);
+
+    [Benchmark]
+    public string ItemList_ChainedTransforms()
+        => _expander.ExpandIntoStringLeaveEscaped(_itemChainedTransforms, ExpanderOptions.ExpandItems, _location);
 
     // =========================================================================
     // Metadata expansion
