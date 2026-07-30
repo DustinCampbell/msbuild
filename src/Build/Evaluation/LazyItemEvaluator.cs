@@ -9,6 +9,7 @@ using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
 using System;
 using System.Collections.Generic;
@@ -679,9 +680,9 @@ namespace Microsoft.Build.Evaluation
 
         private void AddReferencedItemLists(OperationBuilder operationBuilder, ItemVector match)
         {
-            if (match.ItemType != null)
+            if (match.ItemType.HasValue)
             {
-                AddReferencedItemList(match.ItemType, operationBuilder.ReferencedItemLists);
+                AddReferencedItemList(match.ItemType.WeakIntern(), operationBuilder.ReferencedItemLists);
             }
         }
     }

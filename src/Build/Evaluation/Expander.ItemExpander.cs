@@ -335,7 +335,7 @@ internal partial class Expander<P, I>
         }
 
         internal static IList<T> ExpandExpressionCaptureIntoItems<T>(
-            ItemVector expressionCapture, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
+            ItemVector itemVector, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
             ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
             where T : class, IItem
         {
@@ -349,11 +349,11 @@ internal partial class Expander<P, I>
             // have the item type "Compile".
             if (itemFactory.ItemType == null)
             {
-                itemFactory.ItemType = expressionCapture.ItemType;
+                itemFactory.ItemType = itemVector.ItemType.WeakInternOrNull();
             }
 
             IList<T> result;
-            if (expressionCapture.HasSeparator)
+            if (itemVector.Separator.HasValue)
             {
                 // Reference contains a separator, for example @(Compile, ';').
                 // We need to flatten the list into
@@ -361,7 +361,7 @@ internal partial class Expander<P, I>
                 // to be able to convert item lists with user specified separators into properties.
                 string expandedItemVector;
                 using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
-                brokeEarlyNonEmpty = ExpandExpressionCaptureIntoStringBuilder(expander, expressionCapture, items, elementLocation, builder, options);
+                brokeEarlyNonEmpty = ExpandExpressionCaptureIntoStringBuilder(expander, itemVector, items, elementLocation, builder, options);
 
                 if (brokeEarlyNonEmpty)
                 {
@@ -383,7 +383,7 @@ internal partial class Expander<P, I>
             }
 
             List<TransformEntry> entries;
-            brokeEarlyNonEmpty = ExpandExpressionCapture(expander, expressionCapture, items, elementLocation /* including null items */, options, true, out isTransformExpression, out entries);
+            brokeEarlyNonEmpty = ExpandExpressionCapture(expander, itemVector, items, elementLocation /* including null items */, options, true, out isTransformExpression, out entries);
 
             if (brokeEarlyNonEmpty)
             {
@@ -437,14 +437,14 @@ internal partial class Expander<P, I>
         ///
         /// </param>
         /// <param name="expander">The expander whose state will be used to expand any transforms.</param>
-        /// <param name="expressionCapture">The <see cref="ExpandSingleItemVectorExpressionIntoExpressionCapture"/> representing the structure of an item expression.</param>
-        /// <param name="evaluatedItems"><see cref="IItemProvider{T}"/> to provide the inital items (which may get subsequently transformed, if <paramref name="expressionCapture"/> is a transform expression)>.</param>
-        /// <param name="elementLocation">Location of the xml element containing the <paramref name="expressionCapture"/>.</param>
+        /// <param name="itemVector">The <see cref="ItemVector"/> representing the structure of an item expression.</param>
+        /// <param name="evaluatedItems"><see cref="IItemProvider{T}"/> to provide the inital items (which may get subsequently transformed, if <paramref name="itemVector"/> is a transform expression)>.</param>
+        /// <param name="elementLocation">Location of the xml element containing the <paramref name="itemVector"/>.</param>
         /// <param name="options">expander options.</param>
         /// <param name="includeNullEntries">Wether to include items that evaluated to empty / null.</param>
         internal static bool ExpandExpressionCapture(
             Expander<P, I> expander,
-            ItemVector expressionCapture,
+            ItemVector itemVector,
             IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             ExpanderOptions options,
@@ -453,26 +453,36 @@ internal partial class Expander<P, I>
             out List<TransformEntry> entries)
         {
             Assumed.NotNull(evaluatedItems, "Cannot expand items without providing items");
+
             // There's something wrong with the expression, and we ended up with a blank item type
-            ProjectErrorUtilities.VerifyThrowInvalidProject(!string.IsNullOrEmpty(expressionCapture.ItemType), elementLocation, "InvalidFunctionPropertyExpression");
+            ProjectErrorUtilities.VerifyThrowInvalidProject(!StringSegment.IsNullOrEmpty(itemVector.ItemType), elementLocation, "InvalidFunctionPropertyExpression");
 
             isTransformExpression = false;
 
-            ICollection<I> itemsOfType = evaluatedItems.GetItems(expressionCapture.ItemType);
-            ImmutableArray<ItemTransform> transforms = expressionCapture.Transforms;
+            ICollection<I> itemsOfType = evaluatedItems.GetItems(itemVector.ItemType.WeakIntern());
+            ImmutableArray<ItemTransform> transforms = itemVector.Transforms;
 
-            // If there are no items of the given type, then bail out early
+            // If there are no items of the given type, then bail out early except for the following two cases:
+            // - If there's a function transform for "Count", we'll want to return 0.
+            // - If there's a function transform for "AnyHaveMetadataValue", we'll want to return false.
             if (itemsOfType.Count == 0)
             {
-                // ... but only if there isn't a function "Count", since that will want to return something (zero) for an empty list
-                if (!transforms.Any(capture => capture.FunctionName.Equals("Count", StringComparison.OrdinalIgnoreCase)))
+                bool found = false;
+
+                foreach (ItemTransform transform in transforms)
                 {
-                    // ...or a function "AnyHaveMetadataValue", since that will want to return false for an empty list.
-                    if (!transforms.Any(capture => capture.FunctionName.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase)))
+                    if (transform.FunctionName.Equals("Count", StringComparison.OrdinalIgnoreCase) ||
+                        transform.FunctionName.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase))
                     {
-                        entries = null;
-                        return false;
+                        found = true;
+                        break;
                     }
+                }
+
+                if (!found)
+                {
+                    entries = null;
+                    return false;
                 }
             }
 
@@ -509,9 +519,9 @@ internal partial class Expander<P, I>
                 }
             }
 
-            if (expressionCapture.HasSeparator)
+            if (itemVector.Separator.HasValue)
             {
-                var joinedItems = string.Join(expressionCapture.Separator, entries.Select(i => i.Value));
+                var joinedItems = StringSegment.Join(itemVector.Separator, entries.Select(i => i.Value.AsSegment()));
                 entries.Clear();
                 entries.Add(new TransformEntry(joinedItems, null));
             }
@@ -581,7 +591,7 @@ internal partial class Expander<P, I>
         /// </summary>
         private static bool ExpandExpressionCaptureIntoStringBuilder(
             Expander<P, I> expander,
-            ItemVector capture,
+            ItemVector itemVector,
             IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             SpanBasedStringBuilder builder,
@@ -589,7 +599,7 @@ internal partial class Expander<P, I>
         {
             List<TransformEntry> entries;
             bool throwaway;
-            var brokeEarlyNonEmpty = ExpandExpressionCapture(expander, capture, evaluatedItems, elementLocation /* including null items */, options, true, out throwaway, out entries);
+            var brokeEarlyNonEmpty = ExpandExpressionCapture(expander, itemVector, evaluatedItems, elementLocation /* including null items */, options, true, out throwaway, out entries);
 
             if (brokeEarlyNonEmpty)
             {

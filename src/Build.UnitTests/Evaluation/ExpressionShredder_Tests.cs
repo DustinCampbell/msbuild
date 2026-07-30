@@ -659,12 +659,10 @@ public class ExpressionShredder_Tests(ITestOutputHelper output)
 
             if (separator is null)
             {
-                itemVector.HasSeparator.ShouldBeFalse();
                 itemVector.Separator.ShouldBeNull();
             }
             else
             {
-                itemVector.HasSeparator.ShouldBeTrue();
                 itemVector.Separator.ShouldBe(separator);
             }
 

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
@@ -12,19 +11,53 @@ namespace Microsoft.Build.Evaluation;
 ///  along with its position, item type, optional separator, and any transforms applied to it.
 /// </summary>
 /// <param name="text">The captured item vector expression, as a view over the original expression.</param>
-/// <param name="itemType">The item type named inside the <c>@(...)</c>, or <see langword="null"/> if none.</param>
-/// <param name="separator">The custom separator used to join the items (e.g. <c>@(Foo, ';')</c>), or <see langword="null"/> if none.</param>
+/// <param name="itemTypeStart">
+///  The start of the item type, relative to the beginning of <paramref name="text"/>.
+/// </param>
+/// <param name="itemTypeLength">
+///  The length of the item type within <paramref name="text"/>, or <c>0</c> if there is no item type.
+/// </param>
 /// <param name="separatorStart">
-///  The position within <see cref="Text"/> where <paramref name="separator"/> begins, or <c>-1</c> if there is no separator.
+///  The start of the separator, relative to the beginning of <paramref name="text"/>.
+/// </param>
+/// <param name="separatorLength">
+///  The length of the separator within <paramref name="text"/>, or <c>0</c> if there is no separator.
 /// </param>
 /// <param name="transforms">The transforms applied to the item vector; empty if none.</param>
+/// <remarks>
+///  The item type and separator are held as offsets into <see cref="Text"/> and sliced on demand,
+///  so the whole expression is backed by a single <see cref="StringSegment"/> rather than three
+///  separate references to the same string. This mirrors how <see cref="ItemTransform"/> slices its
+///  function name and arguments from a single backing segment.
+/// </remarks>
 internal readonly struct ItemVector(
     StringSegment text,
-    string? itemType = null,
-    string? separator = null,
-    int separatorStart = -1,
+    int itemTypeStart,
+    int itemTypeLength,
+    int separatorStart,
+    int separatorLength,
     ImmutableArray<ItemTransform> transforms = default)
 {
+    /// <summary>
+    ///  The start of the item type relative to <see cref="Text"/>.
+    /// </summary>
+    private readonly int _itemTypeStart = itemTypeStart;
+
+    /// <summary>
+    ///  The length of the item type within <see cref="Text"/>, or <c>0</c> if there is no item type.
+    /// </summary>
+    private readonly int _itemTypeLength = itemTypeLength;
+
+    /// <summary>
+    ///  The start of the separator relative to <see cref="Text"/>.
+    /// </summary>
+    private readonly int _separatorStart = separatorStart;
+
+    /// <summary>
+    ///  The length of the separator within <see cref="Text"/>.
+    /// </summary>
+    private readonly int _separatorLength = separatorLength;
+
     /// <summary>
     ///  Gets the captured item vector expression text as a view over the original expression.
     /// </summary>
@@ -41,25 +74,16 @@ internal readonly struct ItemVector(
     public int Length => Text.Length;
 
     /// <summary>
-    ///  Gets the item type named inside the <c>@(...)</c>, or <see langword="null"/> if none.
+    ///  Gets the item type named inside the <c>@(...)</c>, or a default (no-value) segment if none.
     /// </summary>
-    public string? ItemType { get; } = itemType;
+    public StringSegment ItemType
+        => _itemTypeLength > 0 ? Text.Slice(_itemTypeStart, _itemTypeLength) : default;
 
     /// <summary>
-    ///  Gets a value indicating whether the item vector specifies a custom separator.
+    ///  Gets the custom separator used to join the items (e.g. <c>@(Foo, ';')</c>), or a default (no-value) segment if none.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(Separator))]
-    public bool HasSeparator => Separator is not null;
-
-    /// <summary>
-    ///  Gets the custom separator used to join the items (e.g. <c>@(Foo, ';')</c>), or <see langword="null"/> if none.
-    /// </summary>
-    public string? Separator { get; } = separator;
-
-    /// <summary>
-    ///  Gets the position within <see cref="Text"/> where <see cref="Separator"/> begins, or <c>-1</c> if there is no separator.
-    /// </summary>
-    public int SeparatorStart { get; } = separatorStart;
+    public StringSegment Separator
+        => _separatorStart >= 0 ? Text.Slice(_separatorStart, _separatorLength) : default;
 
     /// <summary>
     ///  Gets the transforms applied to the item vector. The array is empty (never default) if there are none.

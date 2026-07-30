@@ -393,6 +393,69 @@ internal readonly partial struct StringSegment
     }
 
     /// <summary>
+    ///  Concatenates the given segments, inserting <paramref name="separator"/> between each.
+    /// </summary>
+    /// <param name="separator">The characters to insert between each segment. May be empty.</param>
+    /// <param name="values">The sequence of segments to concatenate.</param>
+    /// <returns>
+    ///  A string consisting of the segments separated by <paramref name="separator"/>, or
+    ///  <see cref="string.Empty"/> if <paramref name="values"/> is empty.
+    /// </returns>
+    public static string Join(ReadOnlySpan<char> separator, IEnumerable<StringSegment> values)
+    {
+        Assumed.NotNull(values);
+
+        if (values is StringSegment[] array)
+        {
+            return JoinCore(separator, array.AsSpan());
+        }
+
+        if (values is ImmutableArray<StringSegment> immutableArray)
+        {
+            return JoinCore(separator, immutableArray.AsSpan());
+        }
+
+        switch (separator)
+        {
+            case [char c]:
+                return Join(c, values);
+            case []:
+                return JoinCore_NoSeparator(values);
+        }
+
+        if (values.TryGetCount(out int count) && count == 0)
+        {
+            return string.Empty;
+        }
+
+        using IEnumerator<StringSegment> enumerator = values.GetEnumerator();
+
+        // Avoid acquiring a StringBuilder for an empty sequence.
+        if (!enumerator.MoveNext())
+        {
+            return string.Empty;
+        }
+
+        StringBuilder builder = StringBuilderCache.Acquire();
+        builder.AppendSegment(enumerator.Current);
+
+        while (enumerator.MoveNext())
+        {
+#if NET
+            builder.Append(separator);
+#else
+            foreach (char c in separator)
+            {
+                builder.Append(c);
+            }
+#endif
+            builder.AppendSegment(enumerator.Current);
+        }
+
+        return StringBuilderCache.GetStringAndRelease(builder);
+    }
+
+    /// <summary>
     ///  Concatenates the given segments with no separator between them.
     /// </summary>
     /// <param name="values">The sequence of segments to concatenate.</param>

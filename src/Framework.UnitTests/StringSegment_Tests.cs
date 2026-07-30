@@ -757,6 +757,47 @@ public class StringSegment_Tests
     }
 
     [Fact]
+    public void Join_SpanSeparator_Enumerable_List()
+    {
+        List<StringSegment> values = ["a", "b", "c"];
+
+        StringSegment.Join("--".AsSpan(), values).ShouldBe("a--b--c");
+    }
+
+    [Fact]
+    public void Join_SpanSeparator_Enumerable_ArrayFastPath()
+    {
+        StringSegment[] values = ["a", "b", "c"];
+
+        StringSegment.Join(";;".AsSpan(), values).ShouldBe("a;;b;;c");
+    }
+
+    [Fact]
+    public void Join_SpanSeparator_SingleChar_MatchesCharOverload()
+    {
+        List<StringSegment> values = ["a", "b"];
+
+        StringSegment.Join(",".AsSpan(), values).ShouldBe("a,b");
+    }
+
+    [Fact]
+    public void Join_SpanSeparator_Empty_Concatenates()
+    {
+        List<StringSegment> values = ["a", "b", "c"];
+
+        StringSegment.Join(default(ReadOnlySpan<char>), values).ShouldBe("abc");
+    }
+
+    [Fact]
+    public void Join_SpanSeparator_FromSegment_Windowed()
+    {
+        List<StringSegment> values = ["a", "b"];
+
+        // A windowed segment used as the separator resolves to just its window ("::").
+        StringSegment.Join("[::]".AsSegment(1, 2), values).ShouldBe("a::b");
+    }
+
+    [Fact]
     public void Join_EmptySeparator_Concatenates()
     {
         StringSegment.Join(string.Empty, "a", "b", "c").ShouldBe("abc");

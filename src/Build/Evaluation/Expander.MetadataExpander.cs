@@ -112,7 +112,7 @@ internal partial class Expander<P, I>
                     ScanAndExpandMetadata(expression);
                 }
                 else if (enumerator.Current.Text == expression
-                    && !enumerator.Current.HasSeparator
+                    && !enumerator.Current.Separator.HasValue
                     && !enumerator.MoveNext())
                 {
                     // The entire expression is a single item vector with no separator, so there are
@@ -168,11 +168,11 @@ internal partial class Expander<P, I>
             }
 
             // Expand metadata that appears in the item vector expression's separator.
-            if (itemVector.HasSeparator)
+            if (itemVector.Separator.HasValue)
             {
                 // Append the portion before the separator verbatim, then expand within the separator portion.
                 StringSegment text = itemVector.Text;
-                int separatorStart = itemVector.SeparatorStart;
+                int separatorStart = itemVector.Separator.Offset - text.Offset;
 
                 _builder.Append(text[..separatorStart]);
                 ScanAndExpandMetadata(text[separatorStart..]);

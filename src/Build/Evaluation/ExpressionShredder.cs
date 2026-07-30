@@ -6,7 +6,6 @@ using System.Collections.Immutable;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Text;
-using Microsoft.NET.StringTools;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -185,6 +184,7 @@ internal static class ExpressionShredder
         {
             result = default;
 
+            // The start of a possible item list expression (the '@'). If parsing fails we reset _index here.
             int start = _index;
 
             if (!TryConsume('@', '('))
@@ -192,20 +192,18 @@ internal static class ExpressionShredder
                 return false;
             }
 
-            // Start of a possible item list expression. Store the expression's start point (the '@').
-            int startPoint = _index - 2;
-
             SkipWhiteSpace();
 
-            if (!TryParseName(out StringSegment itemNameSegment))
+            int itemTypeStart = _index - start;
+
+            if (!TryConsumeName())
             {
                 _index = start;
                 return false;
             }
 
-            // Hold the name as a segment and keep verifying the expression. We defer interning it into a
-            // string until we know the whole expression is well-formed (see the capture below), so a
-            // malformed expression that bails out early doesn't pay for a WeakIntern.
+            int itemTypeEnd = _index - start;
+
             SkipWhiteSpace();
             ImmutableArray<ItemTransform>.Builder? transforms = null;
 
@@ -241,8 +239,8 @@ internal static class ExpressionShredder
 
             SkipWhiteSpace();
 
-            string? separator = null;
             int separatorStart = -1;
+            int separatorLength = 0;
 
             // If there's a ',', eat it and the subsequent quoted expression
             if (TryConsume(','))
@@ -262,8 +260,8 @@ internal static class ExpressionShredder
                     return false;
                 }
 
-                separatorStart = _index - startPoint;
-                separator = _expression.Substring(_index, closingQuote - _index);
+                separatorStart = _index - start;
+                separatorLength = closingQuote - _index;
 
                 _index = closingQuote + 1;
             }
@@ -276,16 +274,15 @@ internal static class ExpressionShredder
                 return false;
             }
 
-            int endPoint = _index;
-
             // Create an expression capture that encompasses the entire expression between the @( and the )
             // with the item name and any separator contained within it
             // and each transform expression contained within it (i.e. each ->XYZ)
             result = new ItemVector(
-                text: _expression.AsSegment(startPoint, endPoint - startPoint),
-                itemType: Strings.WeakIntern(itemNameSegment),
-                separator,
+                text: _expression.AsSegment(start, _index - start),
+                itemTypeStart,
+                itemTypeLength: itemTypeEnd - itemTypeStart,
                 separatorStart,
+                separatorLength,
                 transforms?.DrainToImmutable() ?? []);
 
             return true;
@@ -696,7 +693,7 @@ internal static class ExpressionShredder
                 {
                     result = ItemTransform.Function(
                         text: _expression.AsSegment(start, _index - start),
-                        nameLength: nameLength,
+                        nameLength,
                         argsStart: arguments.Start - start,
                         argsLength: arguments.Length);
 
