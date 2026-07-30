@@ -635,19 +635,20 @@ internal partial class Expander<P, I>
 
                     int refEnd = pos + 2;
 
-                    if (!ExpressionShredder.TryParseMetadataExpression(quotedExpressionFunction, ref refEnd, quotedExpressionFunction.Length, out string itemType, out string name))
+                    if (!ExpressionShredder.TryParseMetadataExpression(quotedExpressionFunction, ref refEnd, quotedExpressionFunction.Length, out StringSegment itemTypeSegment, out StringSegment nameSegment))
                     {
                         pos += 2;
                         continue;
                     }
 
                     // Qualified metadata is not allowed in transforms.
-                    if (itemType != null)
+                    if (itemTypeSegment.HasValue)
                     {
-                        string matchValue = quotedExpressionFunction.Substring(pos, refEnd - pos);
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "QualifiedMetadataInTransformNotAllowed", matchValue, name);
+                        StringSegment matchValue = quotedExpressionFunction.AsSegment(pos, refEnd - pos);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "QualifiedMetadataInTransformNotAllowed", matchValue, nameSegment);
                     }
 
+                    string name = nameSegment.WeakIntern();
                     int matchLength = refEnd - pos;
 
                     if (firstMatch == null)

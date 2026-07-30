@@ -224,7 +224,7 @@ internal partial class Expander<P, I>
             {
                 int pos = i + 2;
 
-                if (!ExpressionShredder.TryParseMetadataExpression(buffer, ref pos, endIndex, out string? itemType, out string? metadataName))
+                if (!ExpressionShredder.TryParseMetadataExpression(buffer, ref pos, endIndex, out StringSegment itemType, out StringSegment metadataName))
                 {
                     // Not a valid metadata reference — skip past '%(' and keep scanning.
                     i = buffer.IndexOf("%(", i + 2, StringComparison.Ordinal);
@@ -243,13 +243,15 @@ internal partial class Expander<P, I>
                 if ((isBuiltInMetadata && ((_options & ExpanderOptions.ExpandBuiltInMetadata) != 0)) ||
                    (!isBuiltInMetadata && ((_options & ExpanderOptions.ExpandCustomMetadata) != 0)))
                 {
-                    string expanded = _metadata.GetEscapedValue(itemType, metadataName);
+                    string expanded = _metadata.GetEscapedValue(
+                        itemType.WeakInternOrNull(),
+                        metadataName.WeakIntern());
 
                     if ((_options & ExpanderOptions.LogOnItemMetadataSelfReference) != 0 &&
                         _loggingContext != null &&
-                        !string.IsNullOrEmpty(metadataName) &&
+                        !StringSegment.IsNullOrEmpty(metadataName) &&
                         _metadata is IItemTypeDefinition itemMetadata &&
-                        (string.IsNullOrEmpty(itemType) || string.Equals(itemType, itemMetadata.ItemType, StringComparison.Ordinal)))
+                        (StringSegment.IsNullOrEmpty(itemType) || itemType.Equals(itemMetadata.ItemType, StringComparison.Ordinal)))
                     {
                         _loggingContext.LogComment(
                             MessageImportance.Low,

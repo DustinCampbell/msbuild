@@ -1,10 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Text;
@@ -128,12 +126,12 @@ internal static class ExpressionShredder
     /// <param name="expression">The expression being scanned.</param>
     /// <param name="i">Current scan position (just after <c>%(</c>). Advanced on success.</param>
     /// <param name="end">Exclusive end index of the scan range; no character at or beyond this index is read.</param>
-    /// <param name="itemType">The item type if qualified; otherwise <see langword="null"/>.</param>
+    /// <param name="itemType">The item type if qualified; otherwise a default (no-value) segment.</param>
     /// <param name="metadataName">The metadata name.</param>
     /// <returns>
     ///  <see langword="true"/> if a valid metadata expression was parsed.
     /// </returns>
-    internal static bool TryParseMetadataExpression(string expression, ref int i, int end, out string? itemType, [NotNullWhen(true)] out string? metadataName)
+    internal static bool TryParseMetadataExpression(string expression, ref int i, int end, out StringSegment itemType, out StringSegment metadataName)
     {
         Scanner scanner = new(expression, i, end);
         bool result = scanner.TryParseMetadataExpression(out itemType, out metadataName);
@@ -199,13 +197,13 @@ internal static class ExpressionShredder
 
             SkipWhiteSpace();
 
-            if (!TryParseName(out ReadOnlySpan<char> itemNameSpan))
+            if (!TryParseName(out StringSegment itemNameSegment))
             {
                 _index = start;
                 return false;
             }
 
-            // Hold the name as a span and keep verifying the expression. We defer interning it into a
+            // Hold the name as a segment and keep verifying the expression. We defer interning it into a
             // string until we know the whole expression is well-formed (see the capture below), so a
             // malformed expression that bails out early doesn't pay for a WeakIntern.
             SkipWhiteSpace();
@@ -285,7 +283,7 @@ internal static class ExpressionShredder
             // and each transform expression contained within it (i.e. each ->XYZ)
             result = new ItemVector(
                 text: _expression.AsSegment(startPoint, endPoint - startPoint),
-                itemType: Strings.WeakIntern(itemNameSpan),
+                itemType: Strings.WeakIntern(itemNameSegment),
                 separator,
                 separatorStart,
                 transforms?.DrainToImmutable() ?? []);
@@ -333,13 +331,13 @@ internal static class ExpressionShredder
                     // Start of a possible item list expression.
                     SkipWhiteSpace();
 
-                    if (!TryParseName(out ReadOnlySpan<char> itemNameSpan))
+                    if (!TryParseName(out StringSegment itemNameSegment))
                     {
                         _index = restartPoint;
                         continue;
                     }
 
-                    // Hold the name as a span and continue to verify it's a well-formed expression
+                    // Hold the name as a segment and continue to verify it's a well-formed expression
                     // before we store it.
                     SkipWhiteSpace();
 
@@ -412,13 +410,13 @@ internal static class ExpressionShredder
                     if (includeItemTypes)
                     {
                         pair.Items ??= new HashSet<string>(MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Items.Add(itemNameSpan.ToString());
+                        pair.Items.Add(itemNameSegment.ToString());
                     }
                 }
                 else
                 {
                     // Start of a possible metadata expression.
-                    if (!TryParseMetadataExpression(out string? itemName, out string? metadataName))
+                    if (!TryParseMetadataExpression(out StringSegment itemType, out StringSegment metadataName))
                     {
                         _index = restartPoint;
                         continue;
@@ -426,9 +424,11 @@ internal static class ExpressionShredder
 
                     if (includeMetadataOutsideTransforms)
                     {
-                        string qualifiedMetadataName = itemName != null ? $"{itemName}.{metadataName}" : metadataName;
+                        string? itemName = itemType.WeakInternOrNull();
+                        string name = metadataName.WeakIntern();
+                        string qualifiedMetadataName = itemName != null ? $"{itemName}.{name}" : name;
                         pair.Metadata ??= new Dictionary<string, MetadataReference>(MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, metadataName);
+                        pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, name);
                     }
                 }
             }
@@ -439,7 +439,7 @@ internal static class ExpressionShredder
         ///  starting just after the <c>%(</c> has been consumed (i.e., the scan position points at the
         ///  first character after the opening parenthesis).
         /// </summary>
-        /// <param name="itemType">The item type if qualified; otherwise <see langword="null"/>.</param>
+        /// <param name="itemType">The item type if qualified; otherwise a default (no-value) segment.</param>
         /// <param name="metadataName">The metadata name.</param>
         /// <returns>
         ///  <see langword="true"/> if a valid metadata expression was parsed.
@@ -448,51 +448,50 @@ internal static class ExpressionShredder
         ///  On success, the scan position is left one past the closing <c>)</c>. On failure, it is at an
         ///  indeterminate position and the caller should restore it from a saved restart point.
         /// </remarks>
-        public bool TryParseMetadataExpression(out string? itemType, [NotNullWhen(true)] out string? metadataName)
+        public bool TryParseMetadataExpression(out StringSegment itemType, out StringSegment metadataName)
         {
-            itemType = null;
-            metadataName = null;
+            itemType = default;
+            metadataName = default;
 
             int start = _index;
 
             SkipWhiteSpace();
 
-            if (!TryParseName(out ReadOnlySpan<char> firstNameSpan))
+            if (!TryParseName(out StringSegment firstName))
             {
                 _index = start;
                 return false;
             }
 
-            string firstName = Strings.WeakIntern(firstNameSpan);
-
             SkipWhiteSpace();
 
             if (TryConsume('.'))
             {
-                // Qualified: %(ItemType.Name)
-                itemType = firstName;
-
                 SkipWhiteSpace();
 
-                if (!TryParseName(out ReadOnlySpan<char> metadataNameSpan))
+                if (!TryParseName(out StringSegment secondName))
                 {
                     _index = start;
                     return false;
                 }
 
-                metadataName = Strings.WeakIntern(metadataNameSpan);
+                // Qualified: %(ItemType.Name)
+                itemType = firstName;
+                metadataName = secondName;
 
                 SkipWhiteSpace();
             }
             else
             {
-                // Unqualified: %(Name)
+                // Unqualified: %(Name) — itemType stays a default (no-value) segment.
                 metadataName = firstName;
             }
 
             if (!TryConsume(')'))
             {
                 _index = start;
+                itemType = default;
+                metadataName = default;
                 return false;
             }
 
@@ -749,16 +748,15 @@ internal static class ExpressionShredder
         }
 
         /// <summary>
-        ///  Attempts to consume a valid name at the current position, returning it as a span over the
-        ///  expression. This is the value-returning analog of <see cref="TryConsumeName"/>; callers can
-        ///  pass the returned span to <see cref="Strings.WeakIntern(ReadOnlySpan{char})"/> to realize a
-        ///  string without an intermediate substring allocation.
+        ///  Attempts to consume a valid name at the current position, returning it as a segment over the
+        ///  expression. This is the value-returning analog of <see cref="TryConsumeName"/>; the returned
+        ///  segment views the backing expression directly, so no substring is realized.
         /// </summary>
-        /// <param name="name">The consumed name if one was found; otherwise an empty span.</param>
+        /// <param name="name">The consumed name if one was found; otherwise a default segment.</param>
         /// <returns>
         ///  <see langword="true"/> if a valid name was consumed.
         /// </returns>
-        private bool TryParseName(out ReadOnlySpan<char> name)
+        private bool TryParseName(out StringSegment name)
         {
             int start = _index;
 
@@ -768,7 +766,7 @@ internal static class ExpressionShredder
                 return false;
             }
 
-            name = _expression.AsSpan(start, _index - start);
+            name = _expression.AsSegment(start, _index - start);
             return true;
         }
 
