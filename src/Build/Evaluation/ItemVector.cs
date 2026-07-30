@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -10,38 +11,34 @@ namespace Microsoft.Build.Evaluation;
 ///  Represents a single <c>@(...)</c> item vector expression shredded from a larger expression,
 ///  along with its position, item type, optional separator, and any transforms applied to it.
 /// </summary>
-/// <param name="text">The captured item vector expression text.</param>
-/// <param name="index">The position within the original expression where <paramref name="text"/> begins.</param>
-/// <param name="length">The length of <paramref name="text"/>.</param>
+/// <param name="text">The captured item vector expression, as a view over the original expression.</param>
 /// <param name="itemType">The item type named inside the <c>@(...)</c>, or <see langword="null"/> if none.</param>
 /// <param name="separator">The custom separator used to join the items (e.g. <c>@(Foo, ';')</c>), or <see langword="null"/> if none.</param>
 /// <param name="separatorStart">
-///  The position within <paramref name="text"/> where <paramref name="separator"/> begins, or <c>-1</c> if there is no separator.
+///  The position within <see cref="Text"/> where <paramref name="separator"/> begins, or <c>-1</c> if there is no separator.
 /// </param>
 /// <param name="transforms">The transforms applied to the item vector; empty if none.</param>
 internal readonly struct ItemVector(
-    string text,
-    int index,
-    int length,
+    StringSegment text,
     string? itemType = null,
     string? separator = null,
     int separatorStart = -1,
     ImmutableArray<ItemTransform> transforms = default)
 {
     /// <summary>
-    ///  Gets the captured item vector expression text.
+    ///  Gets the captured item vector expression text as a view over the original expression.
     /// </summary>
-    public string Text { get; } = text;
+    public StringSegment Text { get; } = text;
 
     /// <summary>
     ///  Gets the position within the original expression where <see cref="Text"/> begins.
     /// </summary>
-    public int Index { get; } = index;
+    public int Index => Text.Offset;
 
     /// <summary>
     ///  Gets the length of <see cref="Text"/>.
     /// </summary>
-    public int Length { get; } = length;
+    public int Length => Text.Length;
 
     /// <summary>
     ///  Gets the item type named inside the <c>@(...)</c>, or <see langword="null"/> if none.
@@ -75,5 +72,5 @@ internal readonly struct ItemVector(
     /// <returns>
     ///  The value of <see cref="Text"/>.
     /// </returns>
-    public override string ToString() => Text;
+    public override string ToString() => Text.ToString();
 }

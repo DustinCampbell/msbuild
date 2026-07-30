@@ -284,13 +284,11 @@ internal static class ExpressionShredder
             // with the item name and any separator contained within it
             // and each transform expression contained within it (i.e. each ->XYZ)
             result = new ItemVector(
-                text: Strings.WeakIntern(_expression.AsSpan(startPoint, endPoint - startPoint)),
-                index: startPoint,
-                length: endPoint - startPoint,
+                text: _expression.AsSegment(startPoint, endPoint - startPoint),
                 itemType: Strings.WeakIntern(itemNameSpan),
-                separator: separator,
-                separatorStart: separatorStart,
-                transforms: transforms?.DrainToImmutable() ?? []);
+                separator,
+                separatorStart,
+                transforms?.DrainToImmutable() ?? []);
 
             return true;
         }

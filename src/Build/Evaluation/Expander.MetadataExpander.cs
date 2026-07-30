@@ -5,6 +5,7 @@ using System;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 
 namespace Microsoft.Build.Evaluation;
@@ -18,13 +19,19 @@ internal partial class Expander<P, I>
     ///  This is a private nested ref struct, exposed only through the static
     ///  <see cref="ExpandMetadataLeaveEscaped"/> entry point.
     /// </remarks>
-    private readonly ref struct MetadataExpander
+    private ref struct MetadataExpander
     {
         private readonly IMetadataTable _metadata;
         private readonly ExpanderOptions _options;
         private readonly IElementLocation _elementLocation;
         private readonly LoggingContext? _loggingContext;
         private readonly SpanBasedStringBuilder _builder;
+
+        /// <summary>
+        ///  Set once any metadata reference is actually expanded, meaning the built result differs from
+        ///  the original expression and must be realized via <see cref="SpanBasedStringBuilder.ToString"/>.
+        /// </summary>
+        private bool _expandedAnyMetadata;
 
         private MetadataExpander(
             IMetadataTable metadata,
@@ -121,9 +128,9 @@ internal partial class Expander<P, I>
                 }
             }
 
-            return _builder.Equals(expression.AsSpan())
-                ? expression
-                : _builder.ToString();
+            return _expandedAnyMetadata
+                ? _builder.ToString()
+                : expression;
         }
 
         /// <summary>
@@ -141,84 +148,93 @@ internal partial class Expander<P, I>
 
             do
             {
-                start = ProcessItemExpressionCapture(expression, start, enumerator.Current);
+                start = ProcessItemVector(expression, start, enumerator.Current);
             }
             while (enumerator.MoveNext());
 
             // Expand metadata in any trailing text after the last item vector expression.
             if (start < expression.Length)
             {
-                ScanAndExpandMetadata(expression, start, expression.Length);
+                ScanAndExpandMetadata(expression.AsSegment(start, expression.Length - start));
             }
         }
 
-        private int ProcessItemExpressionCapture(string expression, int start, ItemVector itemExpressionCapture)
+        private int ProcessItemVector(string expression, int start, ItemVector itemVector)
         {
             // Expand metadata in the gap before this item vector expression.
-            if (itemExpressionCapture.Index > start)
+            if (itemVector.Index > start)
             {
-                ScanAndExpandMetadata(expression, start, itemExpressionCapture.Index);
+                ScanAndExpandMetadata(expression.AsSegment(start, itemVector.Index - start));
             }
 
             // Expand metadata that appears in the item vector expression's separator.
-            if (itemExpressionCapture.HasSeparator)
+            if (itemVector.HasSeparator)
             {
                 // Append the portion before the separator verbatim, then expand within the separator portion.
-                string value = itemExpressionCapture.Text;
-                int separatorStart = itemExpressionCapture.SeparatorStart;
+                StringSegment text = itemVector.Text;
+                int separatorStart = itemVector.SeparatorStart;
 
-                _builder.Append(value, 0, separatorStart);
-                ScanAndExpandMetadata(value, separatorStart, value.Length);
+                _builder.Append(text[..separatorStart]);
+                ScanAndExpandMetadata(text[separatorStart..]);
             }
             else
             {
                 // Append the item vector expression as-is.
-                _builder.Append(itemExpressionCapture.Text);
+                _builder.Append(itemVector.Text);
             }
 
             // Advance past this item vector expression.
-            return itemExpressionCapture.Index + itemExpressionCapture.Length;
+            return itemVector.Index + itemVector.Length;
         }
 
-        /// <inheritdoc cref="ScanAndExpandMetadata(string, int, int)" />
-        private void ScanAndExpandMetadata(string input)
-            => ScanAndExpandMetadata(input, 0, input.Length);
-
         /// <summary>
-        ///  Scans the specified range of <paramref name="input"/> for item metadata references
-        ///  of the form <c>%(Name)</c> or <c>%(ItemType.Name)</c>, expands them using the
-        ///  provided metadata table, and appends the results to the builder.
+        ///  Scans <paramref name="input"/> for item metadata references of the form <c>%(Name)</c>
+        ///  or <c>%(ItemType.Name)</c>, expands them using the provided metadata table, and appends
+        ///  the results to the builder.
         /// </summary>
         /// <remarks>
-        ///  A valid metadata name starts with a letter or underscore, followed by zero or more
-        ///  letters, digits, underscores, or hyphens: <c>[A-Za-z_][A-Za-z_0-9\-]*</c>. This grammar is
-        ///  enforced by <see cref="ExpressionShredder.TryParseMetadataExpression"/> and must stay in sync
-        ///  with <see cref="ProjectWriter.itemTypeOrMetadataNameSpecification"/>.
-        ///  Whitespace is allowed around the parentheses and the dot separator.
-        ///  If a <c>%(</c> sequence does not form a valid metadata reference, it is appended
-        ///  to the output verbatim.
+        ///  Scans directly over the segment's backing string (<see cref="StringSegment.Buffer"/>) so no
+        ///  substring is realized; all offsets are absolute into that buffer and bounded by the segment's
+        ///  range.
+        ///  <para>
+        ///   A valid metadata name starts with a letter or underscore, followed by zero or more
+        ///   letters, digits, underscores, or hyphens: <c>[A-Za-z_][A-Za-z_0-9\-]*</c>. This grammar is
+        ///   enforced by <see cref="ExpressionShredder.TryParseMetadataExpression"/> and must stay in sync
+        ///   with <see cref="ProjectWriter.itemTypeOrMetadataNameSpecification"/>.
+        ///   Whitespace is allowed around the parentheses and the dot separator.
+        ///   If a <c>%(</c> sequence does not form a valid metadata reference, it is appended
+        ///   to the output verbatim.
+        ///  </para>
         /// </remarks>
-        private void ScanAndExpandMetadata(string input, int startIndex, int endIndex)
+        private void ScanAndExpandMetadata(StringSegment input)
         {
-            int lastCopied = startIndex;
+            if (!input.HasValue || input.IsEmpty)
+            {
+                return;
+            }
 
-            int i = input.IndexOf("%(", startIndex, StringComparison.Ordinal);
+            string buffer = input.Buffer;
+            int endIndex = input.Offset + input.Length;
+
+            int lastCopied = input.Offset;
+
+            int i = buffer.IndexOf("%(", input.Offset, StringComparison.Ordinal);
 
             while (i >= 0 && i < endIndex - 1)
             {
                 int pos = i + 2;
 
-                if (!ExpressionShredder.TryParseMetadataExpression(input, ref pos, endIndex, out string? itemType, out string? metadataName))
+                if (!ExpressionShredder.TryParseMetadataExpression(buffer, ref pos, endIndex, out string? itemType, out string? metadataName))
                 {
                     // Not a valid metadata reference — skip past '%(' and keep scanning.
-                    i = input.IndexOf("%(", i + 2, StringComparison.Ordinal);
+                    i = buffer.IndexOf("%(", i + 2, StringComparison.Ordinal);
                     continue;
                 }
 
                 // Append everything before this reference.
                 if (i > lastCopied)
                 {
-                    _builder.Append(input, lastCopied, i - lastCopied);
+                    _builder.Append(buffer, lastCopied, i - lastCopied);
                 }
 
                 // Determine whether to expand this metadata reference.
@@ -249,22 +265,23 @@ internal partial class Expander<P, I>
                     }
 
                     _builder.Append(expanded);
+                    _expandedAnyMetadata = true;
                 }
                 else
                 {
-                    _builder.Append(input, i, pos - i);
+                    _builder.Append(buffer, i, pos - i);
                 }
 
                 lastCopied = pos;
 
                 // Continue scanning after this reference.
-                i = input.IndexOf("%(", pos, StringComparison.Ordinal);
+                i = buffer.IndexOf("%(", pos, StringComparison.Ordinal);
             }
 
             // Append any remaining text after the last reference.
             if (lastCopied < endIndex)
             {
-                _builder.Append(input, lastCopied, endIndex - lastCopied);
+                _builder.Append(buffer, lastCopied, endIndex - lastCopied);
             }
         }
     }
