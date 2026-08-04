@@ -10,6 +10,7 @@ using System.IO;
 #endif
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
@@ -384,7 +385,9 @@ internal partial class Expander<P, I>
                 }
 
                 // We have a methodinfo match, need to plug in the arguments
-                args = new object[_arguments.Length];
+                args = _arguments.Length > 0
+                    ? new object[_arguments.Length]
+                    : [];
 
                 // Assemble our arguments ready for passing to our method
                 for (int n = 0; n < _arguments.Length; n++)
@@ -498,7 +501,7 @@ internal partial class Expander<P, I>
                     }
                     catch (Exception ex) // we need to preserve the same behavior on exceptions as the actual binder
                     {
-                        string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
+                        string partiallyEvaluated = FormatPropertyFunctionInvocation(objectInstance, args);
                         if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                         {
                             return partiallyEvaluated;
@@ -569,7 +572,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
+                string partiallyEvaluated = FormatPropertyFunctionInvocation(objectInstance, args);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -592,7 +595,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
+                    string partiallyEvaluated = FormatPropertyFunctionInvocation(objectInstance, args);
                     ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
                 }
 
@@ -1017,65 +1020,74 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Make an attempt to create a string showing what we were trying to execute when we failed.
-        /// This will show any intermediate evaluation which may help the user figure out what happened.
+        ///  Formats a property-function invocation for inclusion in an error message.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(object? objectInstance, string name, object[]? args)
+        /// <param name="objectInstance">
+        ///  The instance on which the function was invoked, or <see langword="null"/> for a static function.
+        /// </param>
+        /// <param name="args">
+        ///  The evaluated function arguments, or <see langword="null"/> if argument evaluation had not started.
+        /// </param>
+        /// <returns>
+        ///  A representation of the invocation containing the receiver, function name, and available arguments.
+        /// </returns>
+        private string FormatPropertyFunctionInvocation(object? objectInstance, object[]? args)
         {
-            string parameters = string.Empty;
-            if (args != null)
+            StringBuilder builder = StringBuilderCache.Acquire();
+
+            if (objectInstance is null)
             {
-                foreach (object? arg in args)
-                {
-                    if (arg == null)
-                    {
-                        parameters += "null";
-                    }
-                    else
-                    {
-                        string argString = arg.ToString()!;
-                        if (arg is string && argString.Length == 0)
-                        {
-                            parameters += "''";
-                        }
-                        else
-                        {
-                            parameters += arg.ToString();
-                        }
-                    }
-
-                    parameters += ", ";
-                }
-
-                if (parameters.Length > 2)
-                {
-                    parameters = parameters.Substring(0, parameters.Length - 2);
-                }
-            }
-
-            if (objectInstance == null)
-            {
-                string typeName = _receiverType.FullName!;
-
-                // We don't want to expose the real type name of our intrinsics
-                // so we'll replace it with "MSBuild"
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    typeName = "MSBuild";
-                }
-
-                return (_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod
-                    ? $"[{typeName}]::{name}({parameters})"
-                    : $"[{typeName}]::{name}";
+                builder.Append('[');
+                builder.Append(_receiverType == typeof(IntrinsicFunctions) ? "MSBuild" : _receiverType.FullName);
+                builder.Append("]::");
             }
             else
             {
-                string propertyValue = $"\"{objectInstance as string}\"";
-
-                return (_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod
-                    ? $"{propertyValue}.{name}({parameters})"
-                    : $"{propertyValue}.{name}";
+                builder.Append('"');
+                builder.Append(objectInstance as string);
+                builder.Append("\".");
             }
+
+            builder.Append(_methodName);
+
+            if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            {
+                builder.Append('(');
+
+                if (args is not null)
+                {
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        if (i > 0)
+                        {
+                            builder.Append(", ");
+                        }
+
+                        switch (args[i])
+                        {
+                            case null:
+                                builder.Append("null");
+                                break;
+
+                            case "":
+                                builder.Append("''");
+                                break;
+
+                            case string value:
+                                builder.Append(value);
+                                break;
+
+                            case object arg:
+                                builder.Append(arg);
+                                break;
+                        }
+                    }
+                }
+
+                builder.Append(')');
+            }
+
+            return StringBuilderCache.GetStringAndRelease(builder);
         }
 
         /// <summary>
