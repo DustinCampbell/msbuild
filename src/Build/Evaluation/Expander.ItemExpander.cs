@@ -4,10 +4,12 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 
 #nullable disable
@@ -120,20 +122,20 @@ internal partial class Expander<P, I>
             for (int i = 0; i < captures.Count; i++)
             {
                 ExpressionShredder.ItemExpressionCapture capture = captures[i];
-                string function = capture.Value;
                 string functionName = capture.FunctionName;
-                string argumentsExpression = capture.FunctionArguments;
 
-                string[] arguments = null;
+                ImmutableArray<StringSegment> arguments;
 
                 if (functionName == null)
                 {
                     functionName = "ExpandQuotedExpressionFunction";
-                    arguments = [function];
+                    arguments = [capture.Value];
                 }
-                else if (argumentsExpression != null)
+                else
                 {
-                    arguments = ExtractFunctionArguments(elementLocation, argumentsExpression, argumentsExpression.AsMemory());
+                    arguments = capture.FunctionArguments is string functionArguments
+                        ? ExtractFunctionArguments(capture.Value, functionArguments, elementLocation)
+                        : [];
                 }
 
                 TransformKind kind;

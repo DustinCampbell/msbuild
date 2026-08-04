@@ -15,6 +15,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 using Microsoft.Win32;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
@@ -141,7 +142,12 @@ internal partial class Expander<P, I>
                 // Scan for the matching closing bracket, skipping any nested ones
                 // This is a very complete, fast validation of parenthesis matching including for nested
                 // function calls.
-                propertyEndIndex = ScanForClosingParenthesis(expression.AsSpan(), propertyStartIndex + 2, out bool tryExtractPropertyFunction, out bool tryExtractRegistryFunction);
+                int propertyBodyStart = propertyStartIndex + 2;
+                propertyEndIndex = ScanForClosingParenthesis(expression.AsSegment(propertyBodyStart), out bool tryExtractPropertyFunction, out bool tryExtractRegistryFunction);
+                if (propertyEndIndex != -1)
+                {
+                    propertyEndIndex += propertyBodyStart;
+                }
 
                 if (propertyEndIndex == -1)
                 {

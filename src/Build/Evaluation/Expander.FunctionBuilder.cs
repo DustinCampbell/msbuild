@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -62,7 +64,7 @@ internal partial class Expander<P, I>
         /// <summary>
         /// The arguments for the function.
         /// </summary>
-        public string?[] Arguments { get; set; }
+        public ImmutableArray<StringSegment> Arguments { get; set; }
 
         /// <summary>
         /// The expression that this function is part of.

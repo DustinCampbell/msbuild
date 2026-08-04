@@ -3,13 +3,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using Microsoft.NET.StringTools;
+using Microsoft.Build.Text;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 using TaskItemFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.TaskItemFactory;
 
@@ -480,233 +482,167 @@ internal partial class Expander<P, I>
     }
 
     /// <summary>
-    /// Scan for the closing bracket that matches the one we've already skipped;
-    /// essentially, pushes and pops on a stack of parentheses to do this.
-    /// Takes the expression and the index to start at.
-    /// Returns the index of the matching parenthesis, or -1 if it was not found.
-    /// Also returns flags to indicate if a propertyfunction or registry property is likely
-    /// to be found in the expression.
+    ///  Scans for the closing parenthesis that matches an opening parenthesis immediately preceding
+    ///  <paramref name="expression"/>.
     /// </summary>
-    private static int ScanForClosingParenthesis(ReadOnlySpan<char> expression, int index, out bool potentialPropertyFunction, out bool potentialRegistryFunction)
+    /// <param name="expression">The expression beginning immediately after the opening parenthesis.</param>
+    /// <param name="potentialPropertyFunction">
+    ///  Receives a value indicating whether the expression may contain a property function.
+    /// </param>
+    /// <param name="potentialRegistryFunction">
+    ///  Receives a value indicating whether the expression may contain a registry function.
+    /// </param>
+    /// <returns>
+    ///  The index of the matching closing parenthesis relative to <paramref name="expression"/>, or
+    ///  <c>-1</c> if no matching parenthesis is found.
+    /// </returns>
+    private static int ScanForClosingParenthesis(StringSegment expression, out bool potentialPropertyFunction, out bool potentialRegistryFunction)
     {
         int nestLevel = 1;
+        int index = 0;
         int length = expression.Length;
 
         potentialPropertyFunction = false;
         potentialRegistryFunction = false;
 
-        // Scan for our closing ')'
+        // Scan for the closing parenthesis.
         while (index < length && nestLevel > 0)
         {
             char character = expression[index];
+
             switch (character)
             {
-                case '\'':
-                case '`':
-                case '"':
+                case '\'' or '`' or '"':
+                    int closingQuoteIndex = expression.IndexOf(character, index + 1);
+                    if (closingQuoteIndex < 0)
                     {
-                        index++;
-                        index = ScanForClosingQuote(character, expression, index);
+                        return -1;
+                    }
 
-                        if (index < 0)
-                        {
-                            return -1;
-                        }
-                        break;
-                    }
+                    index = closingQuoteIndex;
+                    break;
+
                 case '(':
-                    {
-                        nestLevel++;
-                        break;
-                    }
+                    nestLevel++;
+                    break;
+
                 case ')':
-                    {
-                        nestLevel--;
-                        break;
-                    }
+                    nestLevel--;
+                    break;
+
                 case '.':
                 case '[':
                 case '$':
-                    {
-                        potentialPropertyFunction = true;
-                        break;
-                    }
+                    potentialPropertyFunction = true;
+                    break;
+
                 case ':':
-                    {
-                        potentialRegistryFunction = true;
-                        break;
-                    }
+                    potentialRegistryFunction = true;
+                    break;
             }
 
             index++;
         }
 
-        // We will have parsed past the ')', so step back one character
+        // The scan advances past the last character inspected, so step back to its index.
         index--;
 
-        return (nestLevel == 0) ? index : -1;
+        return nestLevel == 0 ? index : -1;
     }
 
     /// <summary>
-    /// Skip all characters until we find the matching quote character.
+    ///  Extracts the top-level function arguments, splitting on commas outside nested property expressions
+    ///  and quoted strings.
     /// </summary>
-    private static int ScanForClosingQuote(char quoteChar, ReadOnlySpan<char> expression, int index)
+    /// <param name="expressionFunction">The complete function expression, used when reporting parse errors.</param>
+    /// <param name="arguments">The non-empty, unexpanded function argument list.</param>
+    /// <param name="elementLocation">The location of the function expression.</param>
+    /// <returns>
+    ///  An immutable array of unexpanded argument segments that view the original argument list.
+    /// </returns>
+    private static ImmutableArray<StringSegment> ExtractFunctionArguments(StringSegment expressionFunction, StringSegment arguments, IElementLocation elementLocation)
     {
-        // Scan for our closing quoteChar
-        int foundIndex = expression.Slice(index).IndexOf(quoteChar);
-        return foundIndex < 0 ? -1 : foundIndex + index;
-    }
+        // Extract each top-level argument in a single pass.
+        int index = 0;
+        int argStart = 0;
+        int length = arguments.Length;
 
-    /// <summary>
-    /// Extract the argument from the StringBuilder, handling nulls appropriately.
-    /// </summary>
-    private static string ExtractArgument(SpanBasedStringBuilder argumentBuilder)
-    {
-        // we reached the end of an argument, add the builder's final result
-        // to our arguments.
-        argumentBuilder.Trim();
+        using RefArrayBuilder<StringSegment> builder = default;
 
-        // We support passing of null through the argument constant value null
-        if (argumentBuilder.Equals("null", StringComparison.OrdinalIgnoreCase))
+        while (index < length)
         {
-            return null;
-        }
-        else
-        {
-            if (argumentBuilder.Length > 0)
+            char character = arguments[index];
+
+            switch (character)
             {
-                if (argumentBuilder[0] == '\'' && argumentBuilder[argumentBuilder.Length - 1] == '\'')
-                {
-                    argumentBuilder.Trim('\'');
-                }
-                else if (argumentBuilder[0] == '`' && argumentBuilder[argumentBuilder.Length - 1] == '`')
-                {
-                    argumentBuilder.Trim('`');
-                }
-                else if (argumentBuilder[0] == '"' && argumentBuilder[argumentBuilder.Length - 1] == '"')
-                {
-                    argumentBuilder.Trim('"');
-                }
+                // Skip the entire nested property expression.
+                case '$' when index < length - 1 && arguments[index + 1] == '(':
+                    index += 2; // Skip the opening "$(".
 
-                return argumentBuilder.ToString();
-            }
-            else
-            {
-                return string.Empty;
-            }
-        }
-    }
+                    // Find the matching closing parenthesis, accounting for nesting.
+                    int closingParenIndex = ScanForClosingParenthesis(arguments[index..], out _, out _);
 
-    /// <summary>
-    /// Extract the first level of arguments from the content.
-    /// Splits the content passed in at commas.
-    /// Returns an array of unexpanded arguments.
-    /// If there are no arguments, returns an empty array.
-    /// </summary>
-    private static string[] ExtractFunctionArguments(IElementLocation elementLocation, string expressionFunction, ReadOnlyMemory<char> argumentsMemory)
-    {
-        int argumentsContentLength = argumentsMemory.Length;
-        ReadOnlySpan<char> argumentsSpan = argumentsMemory.Span;
-
-        using SpanBasedStringBuilder argumentBuilder = Strings.GetSpanBasedStringBuilder();
-        int? argumentStartIndex = null;
-
-        // We iterate over the string in the for loop below. When we find an argument, instead of adding it to the argument
-        // builder one-character-at-a-time, we remember the start index and then call this function when we find the end of
-        // the argument. This appends the entire {start, end} span to the builder in one call.
-        void FlushCurrentArgumentToArgumentBuilder(int argumentEndIndex)
-        {
-            if (argumentStartIndex.HasValue)
-            {
-                argumentBuilder.Append(argumentsMemory.Slice(argumentStartIndex.Value, argumentEndIndex - argumentStartIndex.Value));
-                argumentStartIndex = null;
-            }
-        }
-
-        // Iterate over the contents of the arguments extracting the
-        // the individual arguments as we go
-        List<string> arguments = null;
-        for (int n = 0; n < argumentsContentLength; n++)
-        {
-            // We found a property expression.. skip over all of it.
-            if ((n < argumentsContentLength - 1) && (argumentsSpan[n] == '$' && argumentsSpan[n + 1] == '('))
-            {
-                int nestedPropertyStart = n;
-                n += 2; // skip over the opening '$('
-
-                // Scan for the matching closing bracket, skipping any nested ones
-                n = ScanForClosingParenthesis(argumentsSpan, n, out _, out _);
-
-                if (n == -1)
-                {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
-                }
-
-                FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: nestedPropertyStart);
-                argumentBuilder.Append(argumentsMemory.Slice(nestedPropertyStart, (n - nestedPropertyStart) + 1));
-            }
-            else if (argumentsSpan[n] == '`' || argumentsSpan[n] == '"' || argumentsSpan[n] == '\'')
-            {
-                int quoteStart = n;
-                n++; // skip over the opening quote
-
-                n = ScanForClosingQuote(argumentsSpan[quoteStart], argumentsSpan, n);
-
-                if (n == -1)
-                {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedQuote"));
-                }
-
-                FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: quoteStart);
-                argumentBuilder.Append(argumentsMemory.Slice(quoteStart, (n - quoteStart) + 1));
-            }
-            else if (argumentsSpan[n] == ',')
-            {
-                FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: n);
-
-                // We have reached the end of the current argument, go ahead and add it
-                // to our list
-                if (arguments is null)
-                {
-                    // get an upper limit for the size of the arguments list.
-                    int argumentCount = 2;
-                    for (int i = n + 1; i < argumentsContentLength; ++i)
+                    if (closingParenIndex == -1)
                     {
-                        if (argumentsSpan[i] == ',')
-                        {
-                            argumentCount++;
-                        }
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
                     }
 
-                    arguments = new List<string>(argumentCount);
-                }
+                    index += closingParenIndex;
+                    break;
 
-                arguments.Add(ExtractArgument(argumentBuilder));
+                case '`' or '"' or '\'':
+                    index++; // Skip the opening quote.
 
-                // Clear out the argument builder ready for the next argument
-                argumentBuilder.Clear();
+                    int closingQuoteIndex = arguments.IndexOf(character, index);
+
+                    if (closingQuoteIndex == -1)
+                    {
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedQuote"));
+                    }
+
+                    index = closingQuoteIndex;
+                    break;
+
+                case ',':
+                    // Add the argument ending at this top-level comma.
+                    builder.Add(ExtractArgument(arguments[argStart..index]));
+                    argStart = index + 1;
+                    break;
             }
-            else
+
+            index++;
+        }
+
+        // Extract the only argument, or the final argument after the last comma.
+        StringSegment finalArg = ExtractArgument(arguments[argStart..]);
+        if (builder.IsEmpty)
+        {
+            return [finalArg];
+        }
+
+        builder.Add(finalArg);
+
+        return builder.ToImmutable();
+
+        // Trim whitespace and matching quote delimiters while preserving null argument semantics.
+        static StringSegment ExtractArgument(StringSegment argument)
+        {
+            argument = argument.Trim();
+
+            // The unquoted literal null represents a null argument.
+            if (argument.Equals("null", StringComparison.OrdinalIgnoreCase))
             {
-                argumentStartIndex ??= n;
+                return default;
             }
-        }
 
-        // We reached the end of the string but we may have seen the start but not the end of the last (or only) argument so flush it now.
-        FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: argumentsContentLength);
+            if (argument is [var quote, .., var closingQuote]
+                && quote is '\'' or '`' or '"'
+                && closingQuote == quote)
+            {
+                argument = argument.Trim(quote);
+            }
 
-        // This will either be the one and only argument, or the last one
-        // so add it to our list
-        string finalArgument = ExtractArgument(argumentBuilder);
-        if (arguments is null)
-        {
-            return [finalArgument];
-        }
-        else
-        {
-            arguments.Add(finalArgument);
-
-            return arguments.ToArray();
+            return argument;
         }
     }
 }

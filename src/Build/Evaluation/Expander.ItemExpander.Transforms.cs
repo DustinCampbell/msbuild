@@ -4,7 +4,9 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
+using System.Runtime.InteropServices;
 #if !FEATURE_MSIOREDIST
 using System.IO;
 #endif
@@ -13,6 +15,7 @@ using System.Reflection;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 
 #if FEATURE_MSIOREDIST
@@ -93,12 +96,12 @@ internal partial class Expander<P, I>
             internal static void ItemSpecModifierFunction(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 bool includeNullEntries,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.IsEmpty, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
                 foreach (TransformEntry item in input)
                 {
@@ -149,11 +152,11 @@ internal partial class Expander<P, I>
             internal static void Exists(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.IsEmpty, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
                 foreach (TransformEntry item in input)
                 {
@@ -203,13 +206,13 @@ internal partial class Expander<P, I>
             internal static void Combine(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
-                string relativePath = arguments[0];
+                string relativePath = arguments[0].Value;
 
                 foreach (TransformEntry item in input)
                 {
@@ -232,11 +235,11 @@ internal partial class Expander<P, I>
             internal static void GetPathsOfAllDirectoriesAbove(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.IsEmpty, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
                 // Phase 1: find all the applicable directories.
 
@@ -315,12 +318,12 @@ internal partial class Expander<P, I>
             internal static void DirectoryName(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 bool includeNullEntries,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.IsEmpty, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
                 Dictionary<string, string> directoryNameTable = new Dictionary<string, string>(input.Count, StringComparer.OrdinalIgnoreCase);
 
@@ -390,14 +393,14 @@ internal partial class Expander<P, I>
             internal static void Metadata(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 bool includeNullEntries,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
-                string metadataName = arguments[0];
+                string metadataName = arguments[0].Value;
 
                 foreach (TransformEntry item in input)
                 {
@@ -450,7 +453,7 @@ internal partial class Expander<P, I>
             internal static void DistinctWithCase(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
                 => DistinctWithComparer(input, output, arguments, StringComparer.Ordinal, functionName, elementLocation);
@@ -462,7 +465,7 @@ internal partial class Expander<P, I>
             internal static void Distinct(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
                 => DistinctWithComparer(input, output, arguments, StringComparer.OrdinalIgnoreCase, functionName, elementLocation);
@@ -474,12 +477,12 @@ internal partial class Expander<P, I>
             private static void DistinctWithComparer(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 StringComparer comparer,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.IsEmpty, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
                 // This dictionary will ensure that we only return one result per unique itemspec
                 HashSet<string> seenItems = new HashSet<string>(input.Count, comparer);
@@ -499,11 +502,11 @@ internal partial class Expander<P, I>
             internal static void Reverse(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.IsEmpty, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
                 for (int i = input.Count - 1; i >= 0; i--)
                 {
@@ -517,14 +520,14 @@ internal partial class Expander<P, I>
             internal static void ExpandQuotedExpressionFunction(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 bool includeNullEntries,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
-                string quotedExpressionFunction = arguments[0];
+                string quotedExpressionFunction = arguments[0].Value;
                 OneOrMultipleMetadataMatches matches = GetQuotedExpressionMatches(quotedExpressionFunction, elementLocation);
 
                 // This is just a sanity check in case a code change causes something in the call stack to take this reference.
@@ -727,11 +730,25 @@ internal partial class Expander<P, I>
                 Expander<P, I> expander,
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 bool includeNullEntries,
                 string functionName,
                 IElementLocation elementLocation)
             {
+                // Each function is executed once per item. Realize the arguments once and replace the
+                // segment windows with views over those complete strings so repeated Value access does not
+                // allocate a new substring for every item.
+                if (!arguments.IsEmpty)
+                {
+                    StringSegment[] realizedArguments = new StringSegment[arguments.Length];
+                    for (int i = 0; i < arguments.Length; i++)
+                    {
+                        realizedArguments[i] = arguments[i].Value;
+                    }
+
+                    arguments = ImmutableCollectionsMarshal.AsImmutableArray(realizedArguments);
+                }
+
                 // Transform: expression is like @(Compile->'%(foo)'), so create completely new items,
                 // using the Include from the source items
                 foreach (TransformEntry item in input)
@@ -770,12 +787,12 @@ internal partial class Expander<P, I>
             internal static void ClearMetadata(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 bool includeNullEntries,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.IsEmpty, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
                 foreach (TransformEntry item in input)
                 {
@@ -793,13 +810,13 @@ internal partial class Expander<P, I>
             internal static void HasMetadata(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
-                string metadataName = arguments[0];
+                string metadataName = arguments[0].Value;
 
                 foreach (TransformEntry item in input)
                 {
@@ -832,14 +849,14 @@ internal partial class Expander<P, I>
             internal static void WithMetadataValue(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
-                string metadataName = arguments[0];
-                string metadataValueToFind = arguments[1];
+                string metadataName = arguments[0].Value;
+                string metadataValueToFind = arguments[1].Value;
 
                 foreach (TransformEntry item in input)
                 {
@@ -870,14 +887,14 @@ internal partial class Expander<P, I>
             internal static void WithoutMetadataValue(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
-                string metadataName = arguments[0];
-                string metadataValueToFind = arguments[1];
+                string metadataName = arguments[0].Value;
+                string metadataValueToFind = arguments[1].Value;
 
                 foreach (TransformEntry item in input)
                 {
@@ -908,14 +925,14 @@ internal partial class Expander<P, I>
             internal static void AnyHaveMetadataValue(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                ImmutableArray<StringSegment> arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(arguments.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments.Length);
 
-                string metadataName = arguments[0];
-                string metadataValueToFind = arguments[1];
+                string metadataName = arguments[0].Value;
+                string metadataValueToFind = arguments[1].Value;
                 bool metadataFound = false;
 
                 foreach (TransformEntry item in input)
