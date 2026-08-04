@@ -7,8 +7,6 @@ using System.Reflection;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Shared.FileSystem;
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation;
 
 internal partial class Expander<P, I>
@@ -64,7 +62,7 @@ internal partial class Expander<P, I>
         /// <summary>
         /// The arguments for the function.
         /// </summary>
-        public string[] Arguments { get; set; }
+        public string?[] Arguments { get; set; }
 
         /// <summary>
         /// The expression that this function is part of.
@@ -74,7 +72,7 @@ internal partial class Expander<P, I>
         /// <summary>
         /// The property name that this function is applied on.
         /// </summary>
-        public string Receiver { get; set; }
+        public string? Receiver { get; set; }
 
         /// <summary>
         /// The binding flags that will be used during invocation of this function.
@@ -88,7 +86,7 @@ internal partial class Expander<P, I>
 
         public IFileSystem FileSystem { get; set; }
 
-        public LoggingContext LoggingContext { get; set; }
+        public LoggingContext? LoggingContext { get; set; }
 
         /// <summary>
         /// List of properties which have been used but have not been initialized yet.
@@ -96,8 +94,7 @@ internal partial class Expander<P, I>
         public PropertiesUseTracker PropertiesUseTracker { get; set; }
 
         internal readonly Function Build()
-        {
-            return new Function(
+            => new(
                 ReceiverType,
                 Expression,
                 Receiver,
@@ -108,6 +105,5 @@ internal partial class Expander<P, I>
                 PropertiesUseTracker,
                 FileSystem,
                 LoggingContext);
-        }
     }
 }

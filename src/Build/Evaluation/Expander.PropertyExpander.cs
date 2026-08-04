@@ -25,8 +25,6 @@ using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 using Path = Microsoft.IO.Path;
 #endif
 
-#nullable disable
-
 namespace Microsoft.Build.Evaluation;
 
 internal partial class Expander<P, I>
@@ -66,17 +64,14 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
-        {
-            return
-                ConvertToString(
-                    ExpandPropertiesLeaveTypedAndEscaped(
-                        expression,
-                        properties,
-                        options,
-                        elementLocation,
-                        propertiesUseTracker,
-                        fileSystem));
-        }
+            => ConvertToString(
+                ExpandPropertiesLeaveTypedAndEscaped(
+                    expression,
+                    properties,
+                    options,
+                    elementLocation,
+                    propertiesUseTracker,
+                    fileSystem));
 
         /// <summary>
         /// This method takes a string which may contain any number of
@@ -95,15 +90,15 @@ internal partial class Expander<P, I>
         ///
         /// This method leaves the result typed and escaped.  Callers may need to convert to string, and unescape on their own as appropriate.
         /// </summary>
-        internal static object ExpandPropertiesLeaveTypedAndEscaped(
-            string expression,
+        internal static object? ExpandPropertiesLeaveTypedAndEscaped(
+            string? expression,
             IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
         {
-            if (((options & ExpanderOptions.ExpandProperties) == 0) || String.IsNullOrEmpty(expression))
+            if (((options & ExpanderOptions.ExpandProperties) == 0) || expression.IsNullOrEmpty())
             {
                 return expression;
             }
@@ -168,12 +163,12 @@ internal partial class Expander<P, I>
                     string propertyBody;
 
                     // A property value of null will indicate that we're calling a static function on a type
-                    object propertyValue;
+                    object? propertyValue;
 
                     // Compat: $() should return String.Empty
                     if (propertyStartIndex + 2 == propertyEndIndex)
                     {
-                        propertyValue = String.Empty;
+                        propertyValue = string.Empty;
                     }
                     else if ((expression.Length - (propertyStartIndex + 2)) > 9 && tryExtractRegistryFunction && s_invariantCompareInfo.IndexOf(expression, "Registry:", propertyStartIndex + 2, 9, CompareOptions.OrdinalIgnoreCase) == propertyStartIndex + 2)
                     {
@@ -188,16 +183,16 @@ internal partial class Expander<P, I>
                     // In this case, tryExtractRegistryFunction will be false. Note that very few properties are exactly 77 chars, so this check should be fast.
                     else if ((propertyEndIndex - (propertyStartIndex + 2)) == 77 && s_invariantCompareInfo.IndexOf(expression, @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory", propertyStartIndex + 2, 77, CompareOptions.OrdinalIgnoreCase) == propertyStartIndex + 2)
                     {
-                        propertyValue = String.Empty;
+                        propertyValue = string.Empty;
                     }
 
                     // Compat hack: WebProjects may have an import with a condition like:
                     //       Condition=" '$(Solutions.VSVersion)' == '8.0'"
                     // These would have been '' in prior versions of msbuild but would be treated as a possible string function in current versions.
                     // Be compatible by returning an empty string here.
-                    else if ((propertyEndIndex - (propertyStartIndex + 2)) == 19 && String.Equals(expression, "$(Solutions.VSVersion)", StringComparison.Ordinal))
+                    else if ((propertyEndIndex - (propertyStartIndex + 2)) == 19 && string.Equals(expression, "$(Solutions.VSVersion)", StringComparison.Ordinal))
                     {
-                        propertyValue = String.Empty;
+                        propertyValue = string.Empty;
                     }
                     else if (tryExtractPropertyFunction)
                     {
@@ -222,7 +217,7 @@ internal partial class Expander<P, I>
                     {
                         if (IsTruncationEnabled(options))
                         {
-                            var value = propertyValue.ToString();
+                            string value = propertyValue.ToString()!;
                             if (value.Length > CharacterLimitPerExpansion)
                             {
                                 propertyValue = TruncateString(value);
@@ -234,6 +229,7 @@ internal partial class Expander<P, I>
                         // parenthesis.
                         results.Add(propertyValue);
                     }
+
                     sourceIndex = propertyEndIndex + 1;
                 }
 
@@ -252,23 +248,23 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Expand the body of the property, including any functions that it may contain.
         /// </summary>
-        internal static object ExpandPropertyBody(
+        internal static object? ExpandPropertyBody(
             string propertyBody,
-            object propertyValue,
+            object? propertyValue,
             IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
         {
-            Function function = null;
-            string propertyName = propertyBody;
+            Function? function = null;
+            string? propertyName = propertyBody;
 
             // Trim the body for compatibility reasons:
             // Spaces are not valid property name chars, but $( Foo ) is allowed, and should always expand to BLANK.
             // Do a very fast check for leading and trailing whitespace, and trim them from the property body if we have any.
             // But we will do a property name lookup on the propertyName that we held onto.
-            if (Char.IsWhiteSpace(propertyBody[0]) || Char.IsWhiteSpace(propertyBody[propertyBody.Length - 1]))
+            if (char.IsWhiteSpace(propertyBody[0]) || char.IsWhiteSpace(propertyBody[^1]))
             {
                 propertyBody = propertyBody.Trim();
             }
@@ -304,7 +300,7 @@ internal partial class Expander<P, I>
                     {
                         // In the event that we have been handed an unrecognized property body, throw
                         // an invalid function property exception.
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", propertyBody, String.Empty);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", propertyBody, string.Empty);
                         return null;
                     }
                 }
@@ -337,7 +333,7 @@ internal partial class Expander<P, I>
                 {
                     // In the event that we have been handed an unrecognized property body, throw
                     // an invalid function property exception.
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", propertyBody, String.Empty);
+                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", propertyBody, string.Empty);
                     return null;
                 }
             }
@@ -345,9 +341,9 @@ internal partial class Expander<P, I>
             // Find the property value in our property collection.  This
             // will automatically return "" (empty string) if the property
             // doesn't exist in the collection, and we're not executing a static function
-            if (!String.IsNullOrEmpty(propertyName))
+            if (!propertyName.IsNullOrEmpty())
             {
-                propertyValue = LookupProperty(properties, propertyName, elementLocation, propertiesUseTracker);
+                propertyValue = LookupProperty(properties, propertyName!, elementLocation, propertiesUseTracker);
             }
 
             if (function != null)
@@ -373,12 +369,13 @@ internal partial class Expander<P, I>
         /// Arrays are supported.
         /// Will not return NULL.
         /// </summary>
-        internal static string ConvertToString(object valueToConvert)
+        internal static string ConvertToString(object? valueToConvert)
         {
             if (valueToConvert == null)
             {
-                return String.Empty;
+                return string.Empty;
             }
+
             // If the value is a string, then there is nothing to do
             if (valueToConvert is string stringValue)
             {
@@ -438,7 +435,7 @@ internal partial class Expander<P, I>
             {
                 // The fall back is always to just convert to a string directly.
                 // Issue: https://github.com/dotnet/msbuild/issues/9757
-                convertedString = Convert.ToString(valueToConvert, CultureInfo.InvariantCulture);
+                convertedString = Convert.ToString(valueToConvert, CultureInfo.InvariantCulture)!;
             }
 
             return convertedString;
@@ -448,16 +445,14 @@ internal partial class Expander<P, I>
         /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
         /// </summary>
         private static object LookupProperty(IPropertyProvider<P> properties, string propertyName, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
-        {
-            return LookupProperty(properties, propertyName, 0, propertyName.Length - 1, elementLocation, propertiesUseTracker);
-        }
+            => LookupProperty(properties, propertyName, 0, propertyName.Length - 1, elementLocation, propertiesUseTracker);
 
         /// <summary>
         /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
         /// </summary>
         private static object LookupProperty(IPropertyProvider<P> properties, string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
         {
-            P property = properties.GetProperty(propertyName, startIndex, endIndex);
+            P? property = properties.GetProperty(propertyName, startIndex, endIndex);
 
             object propertyValue;
 
@@ -470,18 +465,13 @@ internal partial class Expander<P, I>
             {
                 // It could be one of the MSBuildThisFileXXXX properties,
                 // whose values vary according to the file they are in.
-                if (startIndex != 0 || endIndex != propertyName.Length)
-                {
-                    propertyValue = ExpandMSBuildThisFileProperty(propertyName.Substring(startIndex, endIndex - startIndex + 1), elementLocation);
-                }
-                else
-                {
-                    propertyValue = ExpandMSBuildThisFileProperty(propertyName, elementLocation);
-                }
+                propertyValue = startIndex != 0 || endIndex != propertyName.Length
+                    ? ExpandMSBuildThisFileProperty(propertyName.Substring(startIndex, endIndex - startIndex + 1), elementLocation)
+                    : ExpandMSBuildThisFileProperty(propertyName, elementLocation);
             }
             else if (property == null)
             {
-                propertyValue = String.Empty;
+                propertyValue = string.Empty;
             }
             else
             {
@@ -503,50 +493,53 @@ internal partial class Expander<P, I>
         /// never been saved) then returns empty string.
         /// If the property name is not one of those properties, returns empty string.
         /// </summary>
-        private static object ExpandMSBuildThisFileProperty(string propertyName, IElementLocation elementLocation)
+        private static string ExpandMSBuildThisFileProperty(string propertyName, IElementLocation elementLocation)
         {
             if (!ReservedPropertyNames.IsReservedProperty(propertyName))
             {
-                return String.Empty;
+                return string.Empty;
             }
 
             if (elementLocation.File.Length == 0)
             {
-                return String.Empty;
+                return string.Empty;
             }
-
-            string value = String.Empty;
 
             // Because String.Equals checks the length first, and these strings are almost
             // all different lengths, this sequence is efficient.
-            if (String.Equals(propertyName, ReservedPropertyNames.thisFile, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(propertyName, ReservedPropertyNames.thisFile, StringComparison.OrdinalIgnoreCase))
             {
-                value = Path.GetFileName(elementLocation.File);
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.thisFileName, StringComparison.OrdinalIgnoreCase))
-            {
-                value = Path.GetFileNameWithoutExtension(elementLocation.File);
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.thisFileFullPath, StringComparison.OrdinalIgnoreCase))
-            {
-                value = FileUtilities.NormalizePath(elementLocation.File);
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.thisFileExtension, StringComparison.OrdinalIgnoreCase))
-            {
-                value = Path.GetExtension(elementLocation.File);
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.thisFileDirectory, StringComparison.OrdinalIgnoreCase))
-            {
-                value = FileUtilities.EnsureTrailingSlash(Path.GetDirectoryName(elementLocation.File));
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.thisFileDirectoryNoRoot, StringComparison.OrdinalIgnoreCase))
-            {
-                string directory = Path.GetDirectoryName(elementLocation.File);
-                int rootLength = Path.GetPathRoot(directory).Length;
-                value = FileUtilities.EnsureTrailingNoLeadingSlash(directory, rootLength);
+                return Path.GetFileName(elementLocation.File);
             }
 
-            return value;
+            if (string.Equals(propertyName, ReservedPropertyNames.thisFileName, StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.GetFileNameWithoutExtension(elementLocation.File);
+            }
+
+            if (string.Equals(propertyName, ReservedPropertyNames.thisFileFullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return FileUtilities.NormalizePath(elementLocation.File);
+            }
+
+            if (string.Equals(propertyName, ReservedPropertyNames.thisFileExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.GetExtension(elementLocation.File);
+            }
+
+            if (string.Equals(propertyName, ReservedPropertyNames.thisFileDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                return FileUtilities.EnsureTrailingSlash(Path.GetDirectoryName(elementLocation.File)!);
+            }
+
+            if (string.Equals(propertyName, ReservedPropertyNames.thisFileDirectoryNoRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                string directory = Path.GetDirectoryName(elementLocation.File)!;
+                int rootLength = Path.GetPathRoot(directory)!.Length;
+                return FileUtilities.EnsureTrailingNoLeadingSlash(directory, rootLength);
+            }
+
+            return string.Empty;
         }
 
         /// <summary>
@@ -576,16 +569,16 @@ internal partial class Expander<P, I>
             int firstAtSignOffset = registryLocation.IndexOf('@');
             int lastAtSignOffset = registryLocation.LastIndexOf('@');
 
-            ProjectErrorUtilities.VerifyThrowInvalidProject(firstAtSignOffset == lastAtSignOffset, elementLocation, "InvalidRegistryPropertyExpression", "$(" + registryExpression + ")", String.Empty);
+            ProjectErrorUtilities.VerifyThrowInvalidProject(firstAtSignOffset == lastAtSignOffset, elementLocation, "InvalidRegistryPropertyExpression", "$(" + registryExpression + ")", string.Empty);
 
-            string valueName = lastAtSignOffset == -1 || lastAtSignOffset == registryLocation.Length - 1
+            string? valueName = lastAtSignOffset == -1 || lastAtSignOffset == registryLocation.Length - 1
                 ? null : registryLocation.Substring(lastAtSignOffset + 1);
 
             // If there's no '@', or '@' is first, then we'll use null or String.Empty for the location; otherwise
             // the location is the part before the '@'
             string registryKeyName = lastAtSignOffset != -1 ? registryLocation.Substring(0, lastAtSignOffset) : registryLocation;
 
-            string result = String.Empty;
+            string result = string.Empty;
             if (registryKeyName != null)
             {
                 // We rely on the '@' character to delimit the key and its value, but the registry
@@ -607,10 +600,8 @@ internal partial class Expander<P, I>
                         // Fake common requests to HKLM that we can resolve
 
                         // This is the base path of the framework
-                        if (registryKeyName.StartsWith(
-                            @"HKEY_LOCAL_MACHINE\Software\Microsoft\.NETFramework",
-                            StringComparison.OrdinalIgnoreCase) &&
-                            valueName.Equals("InstallRoot", StringComparison.OrdinalIgnoreCase))
+                        if (registryKeyName.StartsWith(@"HKEY_LOCAL_MACHINE\Software\Microsoft\.NETFramework", StringComparison.OrdinalIgnoreCase) &&
+                            valueName!.Equals("InstallRoot", StringComparison.OrdinalIgnoreCase))
                         {
                             return NativeMethodsShared.FrameworkBasePath + Path.DirectorySeparatorChar;
                         }
@@ -618,7 +609,7 @@ internal partial class Expander<P, I>
                         return string.Empty;
                     }
 
-                    object valueFromRegistry = Registry.GetValue(registryKeyName, valueName, null /* default if key or value name is not found */);
+                    object? valueFromRegistry = Registry.GetValue(registryKeyName, valueName, null /* default if key or value name is not found */);
 
                     if (valueFromRegistry != null)
                     {
@@ -630,7 +621,7 @@ internal partial class Expander<P, I>
                         // This means either the key or value was not found in the registry.  In this case,
                         // we simply expand the property value to String.Empty to imitate the behavior of
                         // normal properties.
-                        result = String.Empty;
+                        result = string.Empty;
                     }
                 }
                 catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))

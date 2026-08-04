@@ -59,6 +59,7 @@ When reviewing pull requests:
 * **Existing files with `#nullable disable`**: Match the existing style; don't add nullable annotations (`?`) to types
 * **Existing files with nullable enabled**: Use proper nullable annotations
 * Always use `is null` or `is not null` instead of `== null` or `!= null`
+* Use MSBuild's nullable-annotated `IsNullOrEmpty()` and `IsNullOrWhiteSpace()` extension methods instead of the static `string` methods so flow analysis works consistently on .NET and .NET Framework
 
 ## Performance Best Practices
 
