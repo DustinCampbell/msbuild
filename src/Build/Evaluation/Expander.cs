@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation.Context;
@@ -46,12 +45,6 @@ internal partial class Expander<P, I>
     /// Enabled by ExpanderOptions.Truncate.
     /// </summary>
     private const int ItemLimitPerExpansion = 3;
-
-    /// <summary>
-    /// The CultureInfo from the invariant culture. Used to avoid allocations for
-    /// performing IndexOf etc.
-    /// </summary>
-    private static readonly CompareInfo s_invariantCompareInfo = CultureInfo.InvariantCulture.CompareInfo;
 
     /// <summary>
     /// Properties to draw on for expansion.

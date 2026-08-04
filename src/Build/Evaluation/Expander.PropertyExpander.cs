@@ -111,7 +111,7 @@ internal partial class Expander<P, I>
             int propertyStartIndex, propertyEndIndex;
 
             // If there are no substitutions, then just return the string.
-            propertyStartIndex = s_invariantCompareInfo.IndexOf(expression, "$(", CompareOptions.Ordinal);
+            propertyStartIndex = expression.IndexOf("$(", StringComparison.Ordinal);
             if (propertyStartIndex == -1)
             {
                 return expression;
@@ -176,7 +176,7 @@ internal partial class Expander<P, I>
                     {
                         propertyValue = string.Empty;
                     }
-                    else if ((expression.Length - (propertyStartIndex + 2)) > 9 && tryExtractRegistryFunction && s_invariantCompareInfo.IndexOf(expression, "Registry:", propertyStartIndex + 2, 9, CompareOptions.OrdinalIgnoreCase) == propertyStartIndex + 2)
+                    else if ((expression.Length - (propertyStartIndex + 2)) > 9 && tryExtractRegistryFunction && expression.IndexOf("Registry:", propertyStartIndex + 2, 9, StringComparison.OrdinalIgnoreCase) == propertyStartIndex + 2)
                     {
                         propertyBody = expression.Substring(propertyStartIndex + 2, propertyEndIndex - propertyStartIndex - 2);
 
@@ -187,7 +187,7 @@ internal partial class Expander<P, I>
 
                     // Compat hack: as a special case, $(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory) should return String.Empty
                     // In this case, tryExtractRegistryFunction will be false. Note that very few properties are exactly 77 chars, so this check should be fast.
-                    else if ((propertyEndIndex - (propertyStartIndex + 2)) == 77 && s_invariantCompareInfo.IndexOf(expression, @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory", propertyStartIndex + 2, 77, CompareOptions.OrdinalIgnoreCase) == propertyStartIndex + 2)
+                    else if ((propertyEndIndex - (propertyStartIndex + 2)) == 77 && expression.IndexOf(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory", propertyStartIndex + 2, 77, StringComparison.OrdinalIgnoreCase) == propertyStartIndex + 2)
                     {
                         propertyValue = string.Empty;
                     }
@@ -239,7 +239,7 @@ internal partial class Expander<P, I>
                     sourceIndex = propertyEndIndex + 1;
                 }
 
-                propertyStartIndex = s_invariantCompareInfo.IndexOf(expression, "$(", sourceIndex, CompareOptions.Ordinal);
+                propertyStartIndex = expression.IndexOf("$(", sourceIndex, StringComparison.Ordinal);
             }
 
             // If we couldn't find any more property tags in the expression just copy the remainder into the result.

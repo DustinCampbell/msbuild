@@ -590,7 +590,7 @@ internal partial class Expander<P, I>
             {
                 // If there's a :: in the expression, they were probably trying for a static function
                 // invocation. Give them some more relevant info in that case
-                if (s_invariantCompareInfo.IndexOf(_expression, "::", CompareOptions.OrdinalIgnoreCase) > -1)
+                if (_expression.IndexOf("::", StringComparison.Ordinal) > -1)
                 {
                     ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionStaticMethodSyntax", _expression, ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
                 }
