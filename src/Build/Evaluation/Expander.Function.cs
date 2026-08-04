@@ -263,7 +263,7 @@ internal partial class Expander<P, I>
                 ConstructFunction(elementLocation, expressionFunction, argumentStartIndex, methodStartIndex, ref functionBuilder);
 
                 // Locate a type that matches the body of the expression.
-                var receiverType = GetTypeForStaticMethod(typeName, functionBuilder.Name);
+                var receiverType = AvailableStaticMethods.GetTypeForStaticMethod(typeName, functionBuilder.Name);
 
                 if (receiverType == null)
                 {
@@ -376,7 +376,7 @@ internal partial class Expander<P, I>
                 if (objectInstance == null)
                 {
                     // Check that the function that we're going to call is valid to call
-                    if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
+                    if (!AvailableStaticMethods.IsStaticMethodAvailable(_receiverType, _methodMethodName))
                     {
                         ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
                     }
@@ -518,7 +518,7 @@ internal partial class Expander<P, I>
                     // we need to preserve the same behavior on exceptions as the actual binder
                     catch (Exception ex)
                     {
-                        string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                        string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
                         if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                         {
                             return partiallyEvaluated;
@@ -589,7 +589,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -611,7 +611,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
                     ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
                 }
 
@@ -659,185 +659,6 @@ internal partial class Expander<P, I>
                 // This isn't a viable option, but perhaps another set of parameters will work.
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Given a type name and method name, try to resolve the type.
-        /// </summary>
-        /// <param name="typeName">May be full name or assembly qualified name.</param>
-        /// <param name="simpleMethodName">simple name of the method.</param>
-        /// <returns></returns>
-        [UnconditionalSuppressMessage("Trimming", "IL2096:UnrecognizedReflectionPattern",
-            Justification = "The type name is resolved against the curated AvailableStaticMethods allowlist; the case-insensitive lookup only resolves to allowlist types, whose members are preserved for trimming.")]
-        private static Type GetTypeForStaticMethod(string typeName, string simpleMethodName)
-        {
-            Type receiverType;
-            Tuple<string, Type> cachedTypeInformation;
-
-            // If we don't have a type name, we already know that we won't be able to find a type.
-            // Go ahead and return here -- otherwise the Type.GetType() calls below will throw.
-            if (string.IsNullOrWhiteSpace(typeName))
-            {
-                return null;
-            }
-
-            // Check if the type is in the allowlist cache. If it is, use it or load it.
-            cachedTypeInformation = AvailableStaticMethods.GetTypeInformationFromTypeCache(typeName, simpleMethodName);
-            if (cachedTypeInformation != null)
-            {
-                // We need at least one of these set
-                Assumed.True(cachedTypeInformation.Item1 != null || cachedTypeInformation.Item2 != null, "Function type information needs either string or type represented.");
-
-                // If we have the type information in Type form, then just return that
-                if (cachedTypeInformation.Item2 != null)
-                {
-                    return cachedTypeInformation.Item2;
-                }
-                else if (cachedTypeInformation.Item1 != null)
-                {
-                    // This is a case where the Type is not available at compile time, so
-                    // we are forced to bind by name instead
-                    var assemblyQualifiedTypeName = cachedTypeInformation.Item1;
-
-                    // Get the type from the assembly qualified type name from AvailableStaticMethods
-                    receiverType = Type.GetType(assemblyQualifiedTypeName, throwOnError: false, ignoreCase: true);
-
-                    // If the type information from the cache is not loadable, it means the cache information got corrupted somehow
-                    // Throw here to prevent adding null types in the cache
-                    Assumed.NotNull(receiverType, $"Type information for {typeName} was present in the allowlist cache as {assemblyQualifiedTypeName} but the type could not be loaded.");
-
-                    // If we've used it once, chances are that we'll be using it again
-                    // We can record the type here since we know it's available for calling from the fact that is was in the AvailableStaticMethods table
-                    AvailableStaticMethods.TryAdd(typeName, simpleMethodName, new Tuple<string, Type>(assemblyQualifiedTypeName, receiverType));
-
-                    return receiverType;
-                }
-            }
-
-            // Get the type from mscorlib (or the currently running assembly)
-            receiverType = Type.GetType(typeName, throwOnError: false, ignoreCase: true);
-
-            if (receiverType != null)
-            {
-                // DO NOT CACHE THE TYPE HERE!
-                // We don't add the resolved type here in the AvailableStaticMethods table. This is because that table is used
-                // during function parse, but only later during execution do we check for the ability to call specific methods on specific types.
-                // Caching it here would load any type into the allow list.
-                return receiverType;
-            }
-
-            // The following reflective probing runs only when the EnableAllPropertyFunctions feature
-            // switch is enabled (or, in untrimmed builds, the legacy MSBUILDENABLEALLPROPERTYFUNCTIONS
-            // environment variable is set). That switch is a [FeatureGuard] for RequiresUnreferencedCode,
-            // so the analyzer treats this branch as the trim-unsafe region (no suppression needed). In
-            // trimmed / AOT applications the trimmer substitutes the switch false and removes this branch,
-            // so only the curated allowlist of receiver types is supported.
-            if (FeatureSwitches.EnableAllPropertyFunctions)
-            {
-                // We didn't find the type, so go probing. First in System
-                receiverType = GetTypeFromAssembly(typeName, "System");
-
-                // Next in System.Core
-                if (receiverType == null)
-                {
-                    receiverType = GetTypeFromAssembly(typeName, "System.Core");
-                }
-
-                // We didn't find the type, so try to find it using the namespace
-                if (receiverType == null)
-                {
-                    receiverType = GetTypeFromAssemblyUsingNamespace(typeName);
-                }
-
-                if (receiverType != null)
-                {
-                    // If we've used it once, chances are that we'll be using it again
-                    // We can cache the type here, since all functions are enabled
-                    AvailableStaticMethods.TryAdd(typeName, new Tuple<string, Type>(typeName, receiverType));
-                }
-            }
-
-            return receiverType;
-        }
-
-        /// <summary>
-        /// Gets the specified type using the namespace to guess the assembly that its in.
-        /// </summary>
-        [RequiresUnreferencedCode("Resolves a property-function receiver type by probing and loading assemblies at runtime; reachable only via the MSBUILDENABLEALLPROPERTYFUNCTIONS feature switch, which is disabled under trimming.")]
-        private static Type GetTypeFromAssemblyUsingNamespace(string typeName)
-        {
-            string baseName = typeName;
-            int assemblyNameEnd = baseName.Length;
-
-            // If the string has no dot, or is nothing but a dot, we have no
-            // namespace to look for, so we can't help.
-            if (assemblyNameEnd <= 0)
-            {
-                return null;
-            }
-
-            // We will work our way up the namespace looking for an assembly that matches
-            while (assemblyNameEnd > 0)
-            {
-                string candidateAssemblyName = baseName.Substring(0, assemblyNameEnd);
-
-                // Try to load the assembly with the computed name
-                Type foundType = GetTypeFromAssembly(typeName, candidateAssemblyName);
-
-                if (foundType != null)
-                {
-                    // We have a match, so get the type from that assembly
-                    return foundType;
-                }
-                else
-                {
-                    // Keep looking as we haven't found a match yet
-                    baseName = candidateAssemblyName;
-                    assemblyNameEnd = baseName.LastIndexOf('.');
-                }
-            }
-
-            // We didn't find it, so we need to give up
-            return null;
-        }
-
-        /// <summary>
-        /// Get the specified type from the assembly partial name supplied.
-        /// </summary>
-        [SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods", MessageId = "System.Reflection.Assembly.LoadWithPartialName", Justification = "Necessary since we don't have the full assembly name. ")]
-        [RequiresUnreferencedCode("Resolves a property-function receiver type by loading an assembly by partial name at runtime; reachable only via the MSBUILDENABLEALLPROPERTYFUNCTIONS feature switch, which is disabled under trimming.")]
-        private static Type GetTypeFromAssembly(string typeName, string candidateAssemblyName)
-        {
-            Type objectType = null;
-
-            // Try to load the assembly with the computed name
-#if FEATURE_GAC
-#pragma warning disable 618, 612
-            // Unfortunately Assembly.Load is not an alternative to LoadWithPartialName, since
-            // Assembly.Load requires the full assembly name to be passed to it.
-            // Therefore we must ignore the deprecated warning.
-            Assembly candidateAssembly = Assembly.LoadWithPartialName(candidateAssemblyName);
-#pragma warning restore 618, 612
-#else
-            Assembly candidateAssembly = null;
-            try
-            {
-                candidateAssembly = Assembly.Load(new AssemblyName(candidateAssemblyName));
-            }
-            catch (FileNotFoundException)
-            {
-                // Swallow the error; LoadWithPartialName returned null when the partial name
-                // was not found but Load throws.  Either way we'll provide a nice "couldn't
-                // resolve this" error later.
-            }
-#endif
-
-            if (candidateAssembly != null)
-            {
-                objectType = candidateAssembly.GetType(typeName, false /* do not throw TypeLoadException if not found */, true /* ignore case */);
-            }
-
-            return objectType;
         }
 
         /// <summary>
@@ -1069,9 +890,9 @@ internal partial class Expander<P, I>
         /// Make an attempt to create a string showing what we were trying to execute when we failed.
         /// This will show any intermediate evaluation which may help the user figure out what happened.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(string expression, object objectInstance, string name, object[] args)
+        private string GenerateStringOfMethodExecuted(object objectInstance, string name, object[] args)
         {
-            string parameters = String.Empty;
+            string parameters = string.Empty;
             if (args != null)
             {
                 foreach (object arg in args)
@@ -1112,51 +933,19 @@ internal partial class Expander<P, I>
                 {
                     typeName = "MSBuild";
                 }
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                {
-                    return $"[{typeName}]::{name}({parameters})";
-                }
-                else
-                {
-                    return $"[{typeName}]::{name}";
-                }
+
+                return (_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod
+                    ? $"[{typeName}]::{name}({parameters})"
+                    : $"[{typeName}]::{name}";
             }
             else
             {
                 string propertyValue = $"\"{objectInstance as string}\"";
 
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                {
-                    return $"{propertyValue}.{name}({parameters})";
-                }
-                else
-                {
-                    return $"{propertyValue}.{name}";
-                }
+                return (_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod
+                    ? $"{propertyValue}.{name}({parameters})"
+                    : $"{propertyValue}.{name}";
             }
-        }
-
-        /// <summary>
-        /// Check the property function allowlist whether this method is available.
-        /// </summary>
-        private static bool IsStaticMethodAvailable(Type receiverType, string methodName)
-        {
-            if (receiverType == typeof(IntrinsicFunctions))
-            {
-                // These are our intrinsic functions, so we're OK with those
-                return true;
-            }
-
-            // The escape hatch opens everything. The feature switch also preserves the legacy
-            // MSBUILDENABLEALLPROPERTYFUNCTIONS environment-variable behavior in untrimmed builds; under
-            // trimming it is substituted false, so this wide gate is removed.
-            if (FeatureSwitches.EnableAllPropertyFunctions)
-            {
-                // anything goes
-                return true;
-            }
-
-            return AvailableStaticMethods.GetTypeInformationFromTypeCache(receiverType.FullName, methodName) != null;
         }
 
         private static bool IsInstanceMethodAvailable(Type receiverType, string methodName)
@@ -1329,14 +1118,9 @@ internal partial class Expander<P, I>
             // We have a match and coerced arguments, let's construct..
             if (memberInfo != null && args != null)
             {
-                if (isConstructor)
-                {
-                    functionResult = ((ConstructorInfo)memberInfo).Invoke(args);
-                }
-                else
-                {
-                    functionResult = ((MethodInfo)memberInfo).Invoke(objectInstance /* null if static method */, args);
-                }
+                functionResult = isConstructor
+                    ? ((ConstructorInfo)memberInfo).Invoke(args)
+                    : ((MethodInfo)memberInfo).Invoke(objectInstance /* null if static method */, args);
             }
             else if (!isConstructor)
             {
