@@ -11,6 +11,7 @@ using System.Text;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Utilities;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 
 #pragma warning disable SA1519 // Braces should not be omitted from multi-line child statement
@@ -87,7 +88,9 @@ internal static class EscapingUtilities
     ///  Returns the lowercase hexadecimal digit character for <paramref name="value"/>.
     /// </summary>
     /// <param name="value">A value in the range [0, 15].</param>
-    /// <returns>The character <c>0</c>–<c>9</c> or <c>a</c>–<c>f</c>.</returns>
+    /// <returns>
+    ///  The character <c>0</c>–<c>9</c> or <c>a</c>–<c>f</c>.
+    /// </returns>
     private static char HexDigitChar(int value)
         => (char)(value + (value < 10 ? '0' : 'a' - 10));
 
@@ -109,34 +112,63 @@ internal static class EscapingUtilities
         }
 
         int startIndex = 0;
-        int endIndex = value.Length;
+        int length = value.Length;
 
         if (trim)
         {
-            while (startIndex < endIndex && char.IsWhiteSpace(value[startIndex]))
+            while (length > 0 && char.IsWhiteSpace(value[startIndex]))
             {
                 startIndex++;
+                length--;
             }
 
-            if (startIndex == endIndex)
+            while (length > 0 && char.IsWhiteSpace(value[startIndex + length - 1]))
             {
-                return string.Empty;
-            }
-
-            while (char.IsWhiteSpace(value[endIndex - 1]))
-            {
-                endIndex--;
+                length--;
             }
         }
 
+        // TryUnescape returns false, no escape sequences were decoded. In that case,
+        // return the original string, or the trimmed slice if trim was requested.
+        return TryUnescape(value, startIndex, length, out string? result)
+            ? result
+            : startIndex == 0 && length == value.Length
+                ? value
+                : value.Substring(startIndex, length);
+    }
+
+    /// <summary>
+    ///  Replaces all instances of <c>%XX</c> in the input segment with the character represented
+    ///  by the hexadecimal number <c>XX</c>.
+    /// </summary>
+    /// <param name="value">The segment to unescape.</param>
+    /// <returns>
+    ///  The original segment if it contains no escape sequences; otherwise, a segment over the unescaped string.
+    /// </returns>
+    public static StringSegment UnescapeAll(StringSegment value)
+    {
+        if (StringSegment.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        return TryUnescape(value.Buffer!, value.Offset, value.Length, out string? result)
+            ? result
+            : value;
+    }
+
+    private static bool TryUnescape(string value, int startIndex, int length, [NotNullWhen(true)] out string? result)
+    {
         // Search only within the active [startIndex, endIndex) window.
-        int percentIndex = value.IndexOf('%', startIndex, endIndex - startIndex);
+        int percentIndex = value.IndexOf('%', startIndex, length);
         if (percentIndex == -1)
         {
             // value contains no escape sequences.
-            return GetDefaultResult(value, startIndex, endIndex);
+            result = null;
+            return false;
         }
 
+        int endIndex = startIndex + length;
         StringBuilder? sb = null;
 
         do
@@ -146,7 +178,7 @@ internal static class EscapingUtilities
                 TryDecodeHexDigit(value[percentIndex + 1], out int hi) &&
                 TryDecodeHexDigit(value[percentIndex + 2], out int lo))
             {
-                sb ??= StringBuilderCache.Acquire(value.Length);
+                sb ??= StringBuilderCache.Acquire(length);
 
                 sb.Append(value, startIndex, percentIndex - startIndex);
                 sb.Append((char)((hi << 4) + lo));
@@ -160,19 +192,15 @@ internal static class EscapingUtilities
 
         if (sb is null)
         {
-            // No escape sequences were decoded; return the original string, or the trimmed
-            // slice if trim was requested.
-            return GetDefaultResult(value, startIndex, endIndex);
+            // No escape sequences were decoded.
+            result = null;
+            return false;
         }
 
         sb.Append(value, startIndex, endIndex - startIndex);
 
-        return StringBuilderCache.GetStringAndRelease(sb);
-
-        static string GetDefaultResult(string value, int startIndex, int endIndex)
-            => startIndex == 0 && endIndex == value.Length
-                ? value
-                : value.Substring(startIndex, endIndex - startIndex);
+        result = StringBuilderCache.GetStringAndRelease(sb);
+        return true;
     }
 
     /// <summary>

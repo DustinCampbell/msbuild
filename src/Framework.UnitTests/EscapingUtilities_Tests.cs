@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Shouldly;
 using Xunit;
 
@@ -43,7 +44,27 @@ public sealed class EscapingUtilities_Tests
     [InlineData("foo%20", "foo ")]
     [InlineData("  %ZZ  ", "%ZZ")]
     public void UnescapeWithTrim(string value, string result)
-    => EscapingUtilities.UnescapeAll(value, trim: true).ShouldBe(result);
+        => EscapingUtilities.UnescapeAll(value, trim: true).ShouldBe(result);
+
+    [Theory]
+    [InlineData("xxfooyy", 2, 3, "foo")]
+    [InlineData("xxfoo%20baryy", 2, 9, "foo bar")]
+    [InlineData("xx%ZZyy", 2, 3, "%ZZ")]
+    public void UnescapeSegment(string buffer, int offset, int length, string result)
+        => EscapingUtilities.UnescapeAll(buffer.AsSegment(offset, length)).ShouldBe(result);
+
+    [Fact]
+    public void UnescapeSegmentWithoutEscapesReturnsOriginalSegment()
+    {
+        const string buffer = "xxfooyy";
+        StringSegment value = new(buffer, 2, 3);
+
+        StringSegment result = EscapingUtilities.UnescapeAll(value);
+
+        result.Buffer.ShouldBeSameAs(buffer);
+        result.Offset.ShouldBe(value.Offset);
+        result.Length.ShouldBe(value.Length);
+    }
 
     [Theory]
     [InlineData("", "")]
