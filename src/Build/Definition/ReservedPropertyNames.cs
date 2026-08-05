@@ -4,6 +4,7 @@
 using System.Collections.Frozen;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Internal;
 
@@ -59,9 +60,9 @@ internal static class ReservedPropertyNames
     ///  This intentionally excludes <c>MSBuildExtensionsPath*</c> and <c>MSBuildUserExtensionsPath</c>
     ///  properties because tasks must be able to override them.
     /// </remarks>
-    private static readonly FrozenSet<string> s_reservedProperties = FrozenSet.Create(
+    private static readonly FrozenSet<StringSegment> s_reservedProperties = FrozenSet.Create(
         MSBuildNameIgnoreCaseComparer.Default,
-        projectDirectory,
+        projectDirectory.AsSegment(),
         projectDirectoryNoRoot,
         projectFile,
         projectExtension,
@@ -96,6 +97,6 @@ internal static class ReservedPropertyNames
     /// <returns>
     ///  <see langword="true"/> if <paramref name="name"/> is reserved; otherwise, <see langword="false"/>.
     /// </returns>
-    internal static bool IsReservedProperty(string name)
+    internal static bool IsReservedProperty(StringSegment name)
         => s_reservedProperties.Contains(name);
 }
