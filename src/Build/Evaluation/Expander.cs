@@ -446,9 +446,9 @@ internal partial class Expander<P, I>
     }
 
     /// <summary>
-    /// Returns true if the supplied string contains a valid property name.
+    ///  Returns <see langword="true"/> if the supplied segment contains a valid property name.
     /// </summary>
-    private static bool IsValidPropertyName(string propertyName)
+    private static bool IsValidPropertyName(StringSegment propertyName)
     {
         if (propertyName.Length == 0 || !XmlUtilities.IsValidInitialElementNameCharacter(propertyName[0]))
         {

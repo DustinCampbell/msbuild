@@ -7,9 +7,6 @@ using System.Globalization;
 #if !FEATURE_MSIOREDIST
 using System.IO;
 #endif
-#if !NET
-using System.Linq;
-#endif
 using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
@@ -160,34 +157,27 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    // Aha, we found the closing parenthesis.  All the stuff in
-                    // between the "$(" and the ")" constitutes the property body.
-                    // Note: Current propertyStartIndex points to the "$", and
-                    // propertyEndIndex points to the ")".  That's why we have to
-                    // add 2 for the start of the substring, and subtract 2 for
-                    // the length.
-                    string propertyBody;
+                    // The content between "$(" and ")" constitutes the property body.
+                    StringSegment propertyBody = expression.AsSegment(propertyBodyStart, propertyEndIndex - propertyBodyStart);
 
                     // A property value of null will indicate that we're calling a static function on a type
                     object? propertyValue;
 
                     // Compat: $() should return String.Empty
-                    if (propertyStartIndex + 2 == propertyEndIndex)
+                    if (propertyBody.IsEmpty)
                     {
                         propertyValue = string.Empty;
                     }
-                    else if ((expression.Length - (propertyStartIndex + 2)) > 9 && tryExtractRegistryFunction && expression.IndexOf("Registry:", propertyStartIndex + 2, 9, StringComparison.OrdinalIgnoreCase) == propertyStartIndex + 2)
+                    else if (tryExtractRegistryFunction && propertyBody.StartsWith("Registry:", StringComparison.OrdinalIgnoreCase))
                     {
-                        propertyBody = expression.Substring(propertyStartIndex + 2, propertyEndIndex - propertyStartIndex - 2);
-
                         // If the property body starts with any of our special objects, then deal with them
                         // This is a registry reference, like $(Registry:HKEY_LOCAL_MACHINE\Software\Vendor\Tools@TaskLocation)
-                        propertyValue = ExpandRegistryValue(propertyBody, elementLocation); // This func returns an empty string if not on Windows
+                        propertyValue = ExpandRegistryValue(propertyBody.Value!, elementLocation); // This func returns an empty string if not on Windows
                     }
 
                     // Compat hack: as a special case, $(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory) should return String.Empty
                     // In this case, tryExtractRegistryFunction will be false. Note that very few properties are exactly 77 chars, so this check should be fast.
-                    else if ((propertyEndIndex - (propertyStartIndex + 2)) == 77 && expression.IndexOf(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory", propertyStartIndex + 2, 77, StringComparison.OrdinalIgnoreCase) == propertyStartIndex + 2)
+                    else if (propertyBody.Equals(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory", StringComparison.OrdinalIgnoreCase))
                     {
                         propertyValue = string.Empty;
                     }
@@ -196,14 +186,14 @@ internal partial class Expander<P, I>
                     //       Condition=" '$(Solutions.VSVersion)' == '8.0'"
                     // These would have been '' in prior versions of msbuild but would be treated as a possible string function in current versions.
                     // Be compatible by returning an empty string here.
-                    else if ((propertyEndIndex - (propertyStartIndex + 2)) == 19 && string.Equals(expression, "$(Solutions.VSVersion)", StringComparison.Ordinal))
+                    else if (propertyStartIndex == 0
+                        && propertyEndIndex == expression.Length - 1
+                        && propertyBody.Equals("Solutions.VSVersion", StringComparison.Ordinal))
                     {
                         propertyValue = string.Empty;
                     }
                     else if (tryExtractPropertyFunction)
                     {
-                        propertyBody = expression.Substring(propertyStartIndex + 2, propertyEndIndex - propertyStartIndex - 2);
-
                         // This is likely to be a function expression
                         propertyValue = ExpandPropertyBody(
                             propertyBody,
@@ -216,7 +206,7 @@ internal partial class Expander<P, I>
                     }
                     else // This is a regular property
                     {
-                        propertyValue = LookupProperty(properties, expression, propertyStartIndex + 2, propertyEndIndex - 1, elementLocation, propertiesUseTracker);
+                        propertyValue = LookupProperty(properties, propertyBody, elementLocation, propertiesUseTracker);
                     }
 
                     if (propertyValue != null)
@@ -252,10 +242,10 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Expand the body of the property, including any functions that it may contain.
+        ///  Expands the body of the property, including any functions that it may contain.
         /// </summary>
         internal static object? ExpandPropertyBody(
-            string propertyBody,
+            StringSegment propertyBody,
             object? propertyValue,
             IPropertyProvider<P> properties,
             ExpanderOptions options,
@@ -264,22 +254,17 @@ internal partial class Expander<P, I>
             IFileSystem fileSystem)
         {
             Function? function = null;
-            string? propertyName = propertyBody;
+            StringSegment propertyName = propertyBody;
 
-            // Trim the body for compatibility reasons:
-            // Spaces are not valid property name chars, but $( Foo ) is allowed, and should always expand to BLANK.
-            // Do a very fast check for leading and trailing whitespace, and trim them from the property body if we have any.
-            // But we will do a property name lookup on the propertyName that we held onto.
-            if (char.IsWhiteSpace(propertyBody[0]) || char.IsWhiteSpace(propertyBody[^1]))
-            {
-                propertyBody = propertyBody.Trim();
-            }
+            // Spaces are not valid property name characters, but $( Foo ) is allowed and expands to blank.
+            // Preserve the original propertyName for the subsequent lookup.
+            propertyBody = propertyBody.Trim();
 
             // If we don't have a clean propertybody then we'll do deeper checks to see
             // if what we have is a function
             if (!IsValidPropertyName(propertyBody))
             {
-                if (propertyBody.Contains('.') || propertyBody[0] == '[')
+                if (propertyBody.Contains('.') || propertyBody.StartsWith('['))
                 {
                     if (BuildParameters.DebugExpansion)
                     {
@@ -321,8 +306,8 @@ internal partial class Expander<P, I>
                     }
                     else
                     {
-                        propertyValue = LookupProperty(properties, propertyBody, 0, indexerStart - 1, elementLocation, propertiesUseTracker);
-                        propertyBody = propertyBody.Substring(indexerStart);
+                        propertyValue = LookupProperty(properties, propertyBody[..indexerStart], elementLocation, propertiesUseTracker);
+                        propertyBody = propertyBody[indexerStart..];
 
                         // recurse so that the function representing the indexer can be executed on the property value
                         return ExpandPropertyBody(
@@ -347,9 +332,9 @@ internal partial class Expander<P, I>
             // Find the property value in our property collection.  This
             // will automatically return "" (empty string) if the property
             // doesn't exist in the collection, and we're not executing a static function
-            if (!propertyName.IsNullOrEmpty())
+            if (!StringSegment.IsNullOrEmpty(propertyName))
             {
-                propertyValue = LookupProperty(properties, propertyName!, elementLocation, propertiesUseTracker);
+                propertyValue = LookupProperty(properties, propertyName, elementLocation, propertiesUseTracker);
             }
 
             if (function != null)
@@ -363,7 +348,7 @@ internal partial class Expander<P, I>
                 }
                 catch (Exception) when (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
-                    propertyValue = propertyBody;
+                    propertyValue = propertyBody.Value;
                 }
             }
 
@@ -450,8 +435,8 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
         /// </summary>
-        private static object LookupProperty(IPropertyProvider<P> properties, string propertyName, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
-            => LookupProperty(properties, propertyName, 0, propertyName.Length - 1, elementLocation, propertiesUseTracker);
+        private static object LookupProperty(IPropertyProvider<P> properties, StringSegment propertyName, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
+            => LookupProperty(properties, propertyName.Buffer!, propertyName.Offset, propertyName.Offset + propertyName.Length - 1, elementLocation, propertiesUseTracker);
 
         /// <summary>
         /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
