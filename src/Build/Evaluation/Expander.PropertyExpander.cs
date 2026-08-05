@@ -39,7 +39,7 @@ internal partial class Expander<P, I>
     private static class PropertyExpander
     {
         /// <summary>
-        /// This method takes a string which may contain any number of
+        /// This method takes an expression which may contain any number of
         /// "$(propertyname)" tags in it.  It replaces all those tags with
         /// the actual property values, and returns a new string.  For example,
         ///
@@ -72,7 +72,7 @@ internal partial class Expander<P, I>
                     fileSystem));
 
         /// <summary>
-        /// This method takes a string which may contain any number of
+        /// This method takes an expression which may contain any number of
         /// "$(propertyname)" tags in it.  It replaces all those tags with
         /// the actual property values, and returns a new string.  For example,
         ///
@@ -89,16 +89,16 @@ internal partial class Expander<P, I>
         /// This method leaves the result typed and escaped.  Callers may need to convert to string, and unescape on their own as appropriate.
         /// </summary>
         internal static object? ExpandPropertiesLeaveTypedAndEscaped(
-            string? expression,
+            StringSegment expression,
             IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
         {
-            if (((options & ExpanderOptions.ExpandProperties) == 0) || expression.IsNullOrEmpty())
+            if (((options & ExpanderOptions.ExpandProperties) == 0) || StringSegment.IsNullOrEmpty(expression))
             {
-                return expression;
+                return expression.Value;
             }
 
             Assumed.NotNull(properties, "Cannot expand properties without providing properties");
@@ -111,7 +111,7 @@ internal partial class Expander<P, I>
             propertyStartIndex = expression.IndexOf("$(", StringComparison.Ordinal);
             if (propertyStartIndex == -1)
             {
-                return expression;
+                return expression.Value;
             }
 
             // We will build our set of results as object components
@@ -140,7 +140,7 @@ internal partial class Expander<P, I>
                 // This is a very complete, fast validation of parenthesis matching including for nested
                 // function calls.
                 int propertyBodyStart = propertyStartIndex + 2;
-                propertyEndIndex = ScanForClosingParenthesis(expression.AsSegment(propertyBodyStart), out bool tryExtractPropertyFunction, out bool tryExtractRegistryFunction);
+                propertyEndIndex = ScanForClosingParenthesis(expression[propertyBodyStart..], out bool tryExtractPropertyFunction, out bool tryExtractRegistryFunction);
                 if (propertyEndIndex != -1)
                 {
                     propertyEndIndex += propertyBodyStart;
@@ -158,7 +158,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // The content between "$(" and ")" constitutes the property body.
-                    StringSegment propertyBody = expression.AsSegment(propertyBodyStart, propertyEndIndex - propertyBodyStart);
+                    StringSegment propertyBody = expression[propertyBodyStart..propertyEndIndex];
 
                     // A property value of null will indicate that we're calling a static function on a type
                     object? propertyValue;

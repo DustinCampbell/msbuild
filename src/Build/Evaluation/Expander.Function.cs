@@ -395,7 +395,7 @@ internal partial class Expander<P, I>
                 for (int n = 0; n < _arguments.Length; n++)
                 {
                     object? argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                        _arguments[n].Value,
+                        _arguments[n],
                         properties,
                         options,
                         elementLocation,
