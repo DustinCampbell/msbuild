@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
 #if NETFRAMEWORK
 using NewPath = Microsoft.IO.Path;
@@ -713,6 +714,45 @@ namespace Microsoft.Build.Framework
             return string.IsNullOrEmpty(path) ? path : path.Replace('\\', '/');
         }
 
+        internal static StringSegment MaybeAdjustFilePath(StringSegment value)
+        {
+            if (NativeMethods.IsWindows || value.IsNullOrEmpty)
+            {
+                return value;
+            }
+
+            // Don't bother with item vectors or properties or network paths.
+            if (value.Length >= 2 && (value[0], value[1]) is ('$' or '@', '(') or ('\\', '\\'))
+            {
+                return value;
+            }
+
+            // For Unix-like systems, we may want to convert backslashes to slashes.
+            if (!value.Contains('\\'))
+            {
+                return value;
+            }
+
+            string str = string.FastAllocateString(value.Length);
+            int length;
+
+            unsafe
+            {
+                fixed (char* ptr = str)
+                {
+                    var destination = new Span<char>(ptr, value.Length);
+                    value.CopyTo(destination);
+
+                    destination = CollapseSlashes(destination);
+                    length = destination.Length;
+                }
+            }
+
+            // Find the part of the name we want to check, that is remove quotes, if present
+            bool shouldAdjust = LooksLikeUnixFilePath(RemoveQuotes(str.AsSpan(0, length)));
+            return shouldAdjust ? str.AsSegment(0, length) : value;
+        }
+
         /// <summary>
         /// If on Unix, convert backslashes to slashes for strings that resemble paths.
         /// The heuristic is if something resembles paths (contains slashes) check if the
@@ -724,13 +764,11 @@ namespace Microsoft.Build.Framework
         /// </summary>
         internal static string MaybeAdjustFilePath(string value, string baseDirectory = "")
         {
-            var comparisonType = StringComparison.Ordinal;
-
             // Don't bother with arrays or properties or network paths, or those that
             // have no slashes.
-            if (NativeMethods.IsWindows || string.IsNullOrEmpty(value)
-                || value.StartsWith("$(", comparisonType) || value.StartsWith("@(", comparisonType)
-                || value.StartsWith("\\\\", comparisonType))
+            if (NativeMethods.IsWindows || value.IsNullOrEmpty()
+                || value.StartsWith("$(", StringComparison.Ordinal) || value.StartsWith("@(", StringComparison.Ordinal)
+                || value.StartsWith("\\\\", StringComparison.Ordinal))
             {
                 return value;
             }
@@ -801,18 +839,10 @@ namespace Microsoft.Build.Framework
             return str.Slice(0, sliceLength);
         }
 
-        private static Span<char> RemoveQuotes(Span<char> path)
-        {
-            int endId = path.Length - 1;
-            char singleQuote = '\'';
-            char doubleQuote = '\"';
-
-            bool hasQuotes = path.Length > 2
-                && ((path[0] == singleQuote && path[endId] == singleQuote)
-                || (path[0] == doubleQuote && path[endId] == doubleQuote));
-
-            return hasQuotes ? path.Slice(1, endId - 1) : path;
-        }
+        private static ReadOnlySpan<char> RemoveQuotes(ReadOnlySpan<char> path)
+            => path.Length > 2 && path is ['\'', .., '\''] or ['\"', .., '\"']
+                ? path[1..^1]
+                : path;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool IsAnySlash(char c) => c == '/' || c == '\\';

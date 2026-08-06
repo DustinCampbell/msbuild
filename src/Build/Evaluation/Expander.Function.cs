@@ -367,17 +367,16 @@ internal partial class Expander<P, I>
                 // as StringSegment instances until the selected function actually requires strings or objects.
                 for (int n = 0; n < _arguments.Length; n++)
                 {
-                    if (_arguments[n].Contains("$(", StringComparison.Ordinal))
+                    if (PropertyExpander.TryExpandPropertyFunctionArgument(
+                        _arguments[n],
+                        properties,
+                        options,
+                        elementLocation,
+                        _propertiesUseTracker,
+                        _fileSystem,
+                        out object? expandedArgument))
                     {
-                        functionArguments.SetExpandedValue(
-                            n,
-                            PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                                _arguments[n],
-                                properties,
-                                options,
-                                elementLocation,
-                                _propertiesUseTracker,
-                                _fileSystem));
+                        functionArguments.SetExpandedValue(n, expandedArgument);
                     }
                 }
 
