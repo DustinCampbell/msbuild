@@ -254,6 +254,10 @@ namespace Microsoft.Build.Tasks
                         }
                     }
 
+                    // Metadata dictionaries may use randomized hashes, so their traversal order must not affect
+                    // generated source and incremental build determinism.
+                    namedParameters.Sort(static (left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Name, right.Name));
+
                     bool encounteredNull = false;
                     List<AttributeParameter> providedOrderedParameters = new();
                     for (int i = 0; i < orderedParameters.Count; i++)

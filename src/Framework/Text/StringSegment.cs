@@ -131,13 +131,19 @@ internal readonly partial struct StringSegment :
     }
 
     /// <summary>
-    ///  Gets the segment's characters as a newly allocated <see cref="string"/>, or <see langword="null"/>
-    ///  if this is a null segment.
+    ///  Gets the segment's characters as a <see cref="string"/>, or <see langword="null"/> if this is a null
+    ///  segment.
     /// </summary>
     /// <remarks>
-    ///  Accessing this property allocates a string; prefer <see cref="AsSpan()"/> on hot paths.
+    ///  A segment covering its entire buffer returns that buffer directly. Other non-null segments allocate a
+    ///  new string; prefer <see cref="AsSpan()"/> on hot paths.
     /// </remarks>
-    public string? Value => HasValue ? Buffer.Substring(Offset, Length) : null;
+    public string? Value
+        => !HasValue
+            ? null
+            : Offset == 0 && Length == Buffer.Length
+                ? Buffer
+                : Buffer.Substring(Offset, Length);
 
     /// <summary>
     ///  Gets a value indicating whether this segment has an underlying buffer; that is, whether it is not a

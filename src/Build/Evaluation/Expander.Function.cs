@@ -316,33 +316,6 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Determines whether the argument at <paramref name="argIndex"/> for a System.IO.File
-        /// or System.IO.Directory method is a file/directory path that should be resolved
-        /// against the thread-local working directory.
-        /// </summary>
-        private static bool IsFileOrDirectoryPathArgument(string methodName, int argIndex)
-        {
-            // First argument is always a path for all File/Directory static methods.
-            if (argIndex == 0)
-            {
-                return true;
-            }
-
-            // Second argument is a destination path for Copy, Move, Replace.
-            // CreateSymbolicLink is intentionally excluded — its arg1 (pathToTarget) is the
-            // symlink target and relative values are semantically meaningful (stored as-is).
-            if (argIndex == 1)
-            {
-                return string.Equals(methodName, "Copy", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(methodName, "Move", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(methodName, "Replace", StringComparison.OrdinalIgnoreCase);
-            }
-
-            // Third argument is the backup path for Replace.
-            return argIndex == 2 && string.Equals(methodName, "Replace", StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
         /// Execute the function on the given instance.
         /// </summary>
         [UnconditionalSuppressMessage("Trimming", "IL2074:UnrecognizedReflectionPattern",
@@ -353,6 +326,7 @@ internal partial class Expander<P, I>
         {
             object? functionResult = string.Empty;
             object[]? args = null;
+            FunctionArguments functionArguments = default;
 
             try
             {
@@ -386,57 +360,25 @@ internal partial class Expander<P, I>
                     }
                 }
 
-                // We have a methodinfo match, need to plug in the arguments
-                args = _arguments.Length > 0
-                    ? new object[_arguments.Length]
-                    : [];
+                functionArguments = _arguments.IsEmpty
+                    ? default
+                    : new(_arguments, _receiverType, _methodName);
 
-                // Assemble our arguments ready for passing to our method
+                // Nested property expressions remain eager and execute in source order. Literal arguments stay
+                // as StringSegment instances until the selected function actually requires strings or objects.
                 for (int n = 0; n < _arguments.Length; n++)
                 {
-                    object? argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                        _arguments[n],
-                        properties,
-                        options,
-                        elementLocation,
-                        _propertiesUseTracker,
-                        _fileSystem);
-
-                    if (argument is string argumentValue)
+                    if (_arguments[n].Contains("$(", StringComparison.Ordinal))
                     {
-                        // Unescape the value since we're about to send it out of the engine and into
-                        // the function being called. If a file or a directory function, fix the path
-                        // Use fully qualified type names because FEATURE_MSIOREDIST aliases
-                        // Directory and Path to Microsoft.IO.* in this file, but _receiverType
-                        // from AvailableStaticMethods is always System.IO.*.
-                        if (_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory)
-                            || _receiverType == typeof(System.IO.Path))
-                        {
-                            argumentValue = FileUtilities.FixFilePath(argumentValue);
-                        }
-
-                        args[n] = EscapingUtilities.UnescapeAll(argumentValue);
-
-                        // In -mt mode, resolve relative path arguments for File/Directory methods
-                        // against the thread-local working directory instead of the process-global
-                        // Environment.CurrentDirectory which may point to a different project's directory.
-                        // In multiprocess mode, CurrentThreadWorkingDirectory is null and
-                        // MakeFullPathFromThreadWorkingDirectory returns null — this is a no-op.
-                        // This must happen AFTER UnescapeAll so that the working directory path
-                        // (a real filesystem path) is not corrupted by MSBuild unescape processing.
-                        if ((_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory))
-                            && IsFileOrDirectoryPathArgument(_methodName, n))
-                        {
-                            AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory((string)args[n]);
-                            if (resolved.HasValue)
-                            {
-                                args[n] = (string)resolved.GetValueOrDefault();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        args[n] = argument!;
+                        functionArguments.SetExpandedValue(
+                            n,
+                            PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
+                                _arguments[n],
+                                properties,
+                                options,
+                                elementLocation,
+                                _propertiesUseTracker,
+                                _fileSystem));
                     }
                 }
 
@@ -446,8 +388,10 @@ internal partial class Expander<P, I>
                 // This special casing is to realize that its a comparison that is taking place and handle the
                 // argument type coercion accordingly; effectively pre-preparing the argument type so
                 // that it matches the left hand side ready for the default binder’s method invoke.
-                if (objectInstance != null && args.Length == 1 && (string.Equals("Equals", _methodName, StringComparison.OrdinalIgnoreCase) || string.Equals("CompareTo", _methodName, StringComparison.OrdinalIgnoreCase)))
+                if (objectInstance != null && functionArguments.Count == 1 && (string.Equals("Equals", _methodName, StringComparison.OrdinalIgnoreCase) || string.Equals("CompareTo", _methodName, StringComparison.OrdinalIgnoreCase)))
                 {
+                    args = functionArguments.MaterializeAll();
+
                     // Support comparison when the lhs is an integer
                     if (ParseArgs.IsFloatingPointRepresentation(args[0]!))
                     {
@@ -465,13 +409,14 @@ internal partial class Expander<P, I>
                 if (_receiverType == typeof(IntrinsicFunctions))
                 {
                     // Special case a few methods that take extra parameters that can't be passed in by the user
-                    if (_methodName.Equals("GetPathOfFileAbove") && args.Length == 1)
+                    if (_methodName.Equals("GetPathOfFileAbove") && functionArguments.Count == 1)
                     {
                         // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
                         // specified the file name.  This is syntactic sugar so they don't have to always
                         // include $(MSBuildThisFileDirectory) as a parameter.
                         string startingDirectory = elementLocation.File.IsNullOrWhiteSpace() ? string.Empty : Path.GetDirectoryName(elementLocation.File)!;
 
+                        args ??= functionArguments.MaterializeAll();
                         args = [args[0], startingDirectory];
                     }
                 }
@@ -480,6 +425,7 @@ internal partial class Expander<P, I>
                 // need to locate an appropriate constructor and invoke it
                 if (string.Equals("new", _methodName, StringComparison.OrdinalIgnoreCase))
                 {
+                    args ??= functionArguments.MaterializeAll();
                     if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
                     {
                         functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
@@ -491,18 +437,34 @@ internal partial class Expander<P, I>
 
                     try
                     {
+                        if (args is null)
+                        {
+                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithoutMaterializingArguments(
+                                _methodName,
+                                _receiverType,
+                                out functionResult,
+                                objectInstance,
+                                ref functionArguments);
+                        }
+
                         // First attempt to recognize some well-known functions to avoid binding
                         // and potential first-chance MissingMethodExceptions.
-                        wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodName, _receiverType, _fileSystem, out functionResult, objectInstance!, args);
+                        if (!wellKnownFunctionSuccess)
+                        {
+                            args ??= functionArguments.MaterializeAll();
+                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodName, _receiverType, _fileSystem, out functionResult, objectInstance!, args);
+                        }
 
                         if (!wellKnownFunctionSuccess)
                         {
                             // Some well-known functions need evaluated value from properties.
+                            args ??= functionArguments.MaterializeAll();
                             wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(_methodName, _receiverType, _loggingContext!, properties, out functionResult, objectInstance!, args);
                         }
                     }
                     catch (Exception ex) // we need to preserve the same behavior on exceptions as the actual binder
                     {
+                        args ??= functionArguments.MaterializeAll();
                         string partiallyEvaluated = FormatPropertyFunctionInvocation(objectInstance, args);
                         if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                         {
@@ -514,6 +476,8 @@ internal partial class Expander<P, I>
 
                     if (!wellKnownFunctionSuccess)
                     {
+                        args ??= functionArguments.MaterializeAll();
+
                         // Execute the function given converted arguments
                         // The only exception that we should catch to try a late bind here is missing method
                         // otherwise there is the potential of running a function twice!
@@ -574,6 +538,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
+                args ??= functionArguments.MaterializeAll();
                 string partiallyEvaluated = FormatPropertyFunctionInvocation(objectInstance, args);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {

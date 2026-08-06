@@ -10,6 +10,10 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
+#if !NET
+using Microsoft.NET.StringTools;
+#endif
 
 using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
@@ -764,6 +768,100 @@ namespace Microsoft.Build.Evaluation.Expander
                     return true;
                 }
             }
+            return false;
+        }
+
+        /// <summary>
+        /// Tries property functions whose arguments can be consumed without first constructing an object array
+        /// or realizing every argument segment as a string.
+        /// </summary>
+        internal static bool TryExecuteWellKnownFunctionWithoutMaterializingArguments(
+            string methodName,
+            Type receiverType,
+            out object? returnVal,
+            object? objectInstance,
+            ref FunctionArguments args)
+        {
+            returnVal = null;
+
+            if (objectInstance is string text)
+            {
+                if (string.Equals(methodName, nameof(string.ToUpperInvariant), StringComparison.OrdinalIgnoreCase)
+                    && args.Count == 0)
+                {
+                    returnVal = text.ToUpperInvariant();
+                    return true;
+                }
+
+                if (string.Equals(methodName, nameof(string.Substring), StringComparison.OrdinalIgnoreCase))
+                {
+                    if (ParseArgs.TryGetArg(ref args, out int startIndex))
+                    {
+                        returnVal = text.Substring(startIndex);
+                        return true;
+                    }
+
+                    if (ParseArgs.TryGetArgs(ref args, out startIndex, out int length))
+                    {
+                        returnVal = text.Substring(startIndex, length);
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (objectInstance is not null)
+            {
+                return false;
+            }
+
+            if (receiverType == typeof(Math))
+            {
+                if (string.Equals(methodName, nameof(Math.Max), StringComparison.OrdinalIgnoreCase)
+                    && ParseArgs.TryGetArgs(ref args, out double arg0, out double arg1))
+                {
+                    returnVal = Math.Max(arg0, arg1);
+                    return true;
+                }
+
+                if (string.Equals(methodName, nameof(Math.Min), StringComparison.OrdinalIgnoreCase)
+                    && ParseArgs.TryGetArgs(ref args, out arg0, out arg1))
+                {
+                    returnVal = Math.Min(arg0, arg1);
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (receiverType == typeof(string)
+                && string.Equals(methodName, nameof(string.Concat), StringComparison.OrdinalIgnoreCase)
+                && args.Count == 2
+                && args.TryGetUnescapedText(0, out StringSegment text0)
+                && args.TryGetUnescapedText(1, out StringSegment text1))
+            {
+#if NET
+                returnVal = string.Concat(text0.AsSpan(), text1.AsSpan());
+#else
+                using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
+                builder.Append(text0.Buffer!, text0.Offset, text0.Length);
+                builder.Append(text1.Buffer!, text1.Offset, text1.Length);
+                returnVal = builder.ToString();
+#endif
+                return true;
+            }
+
+            if (receiverType == typeof(IntrinsicFunctions)
+                && string.Equals(methodName, nameof(IntrinsicFunctions.ValueOrDefault), StringComparison.OrdinalIgnoreCase)
+                && args.Count == 2
+                && args.TryGetUnescapedText(0, out StringSegment conditionValue)
+                && args.TryGetUnescapedText(1, out StringSegment defaultValue))
+            {
+                returnVal = (conditionValue.IsEmpty ? defaultValue : conditionValue).Value;
+                return true;
+            }
+
             return false;
         }
 

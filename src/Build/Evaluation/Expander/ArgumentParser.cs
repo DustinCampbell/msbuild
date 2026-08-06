@@ -395,6 +395,37 @@ namespace Microsoft.Build.Evaluation.Expander
             return value is double || (value is string str && double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double _));
         }
 
+        internal static bool TryGetArg(ref FunctionArguments args, out int arg0)
+        {
+            if (args.Count == 1)
+            {
+                return args.TryGetInt32(0, out arg0);
+            }
+
+            arg0 = 0;
+            return false;
+        }
+
+        internal static bool TryGetArgs(ref FunctionArguments args, out int arg0, out int arg1)
+        {
+            arg0 = 0;
+            arg1 = 0;
+
+            return args.Count == 2
+                && args.TryGetInt32(0, out arg0)
+                && args.TryGetInt32(1, out arg1);
+        }
+
+        internal static bool TryGetArgs(ref FunctionArguments args, out double arg0, out double arg1)
+        {
+            arg0 = 0;
+            arg1 = 0;
+
+            return args.Count == 2
+                && args.TryGetDouble(0, out arg0)
+                && args.TryGetDouble(1, out arg1);
+        }
+
         internal static bool TryExecuteArithmeticOverload(object[] args, Func<long, long, long> integerOperation, Func<double, double, double> realOperation, out object? resultValue)
         {
             resultValue = null;

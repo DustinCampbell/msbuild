@@ -5432,6 +5432,26 @@ $(
             return expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
         }
 
+        [UnixOnlyFact]
+        public void WholePropertyExpansionAdjustsFilePath()
+        {
+            using var env = TestEnvironment.Create(_output);
+            var workingDirectory = env.CreateFolder(createFolder: true);
+            Directory.CreateDirectory(Path.Combine(workingDirectory.Path, "obj", "Debug"));
+            env.WithTransientTestState(new TransientThreadWorkingDirectory(workingDirectory.Path));
+
+            var properties = new PropertyDictionary<ProjectPropertyInstance>();
+            properties.Set(ProjectPropertyInstance.Create("OutputPath", @"obj\Debug"));
+            var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
+
+            expander
+                .ExpandPropertiesLeaveTypedAndEscaped(
+                    "$(OutputPath)",
+                    ExpanderOptions.ExpandProperties,
+                    MockElementLocation.Instance)
+                .ShouldBe("obj/Debug");
+        }
+
         // =====================================================================
         // Category A: -mt mode tests for default-allowed File methods
         // =====================================================================

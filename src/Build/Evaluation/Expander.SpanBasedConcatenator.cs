@@ -43,16 +43,10 @@ internal partial class Expander<P, I>
         private ReadOnlyMemory<char> _firstSpan;
 
         /// <summary>
-        /// True if this instance is already disposed.
-        /// </summary>
-        private bool _disposed;
-
-        /// <summary>
         /// Adds an object to be concatenated.
         /// </summary>
         public void Add(object obj)
         {
-            CheckDisposed();
             FlushFirstValueIfNeeded();
             if (_builder != null)
             {
@@ -69,7 +63,6 @@ internal partial class Expander<P, I>
         /// </summary>
         public void Add(ReadOnlyMemory<char> span)
         {
-            CheckDisposed();
             FlushFirstValueIfNeeded();
             if (_builder != null)
             {
@@ -92,7 +85,6 @@ internal partial class Expander<P, I>
         /// </returns>
         public readonly object GetResult()
         {
-            CheckDisposed();
             if (_firstObject != null)
             {
                 return (_firstObject is string stringValue) ? FileUtilities.MaybeAdjustFilePath(stringValue) : _firstObject;
@@ -107,16 +99,8 @@ internal partial class Expander<P, I>
         /// </summary>
         public void Dispose()
         {
-            CheckDisposed();
             _builder?.Dispose();
-            _disposed = true;
         }
-
-        /// <summary>
-        /// Throws <see cref="ObjectDisposedException"/> if this concatenator is already disposed.
-        /// </summary>
-        private readonly void CheckDisposed() =>
-            ObjectDisposedException.ThrowIf(_disposed, typeof(SpanBasedConcatenator));
 
         /// <summary>
         /// Lazily initializes <see cref="_builder"/> and populates it with the first value
@@ -133,11 +117,7 @@ internal partial class Expander<P, I>
             else if (!_firstSpan.IsEmpty)
             {
                 _builder = Strings.GetSpanBasedStringBuilder();
-#if FEATURE_SPAN
                 _builder.Append(FileUtilities.MaybeAdjustFilePath(_firstSpan));
-#else
-                _builder.Append(FileUtilities.MaybeAdjustFilePath(_firstSpan.ToString()));
-#endif
                 _firstSpan = new ReadOnlyMemory<char>();
             }
         }

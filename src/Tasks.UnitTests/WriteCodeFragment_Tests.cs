@@ -485,8 +485,8 @@ namespace Microsoft.Build.UnitTests
                 MockEngine engine = new MockEngine(true);
                 task.BuildEngine = engine;
                 TaskItem attribute = new TaskItem("AssemblyTrademarkAttribute");
-                attribute.SetMetadata("Company", "Microsoft");
                 attribute.SetMetadata("Year", "2009");
+                attribute.SetMetadata("Company", "Microsoft");
                 task.AssemblyAttributes = new TaskItem[] { attribute };
                 task.Language = "c#";
                 task.OutputFile = new TaskItem(file);
@@ -849,7 +849,7 @@ namespace Microsoft.Build.UnitTests
 
             ExecuteAndVerifySuccess(
                 CreateTask("c#", attribute),
-                @"[assembly: TestAttribute(Int32Argument=42, BoolArgument=false)]");
+                @"[assembly: TestAttribute(BoolArgument=false, Int32Argument=42)]");
         }
 
         /// <summary>
@@ -866,7 +866,7 @@ namespace Microsoft.Build.UnitTests
 
             ExecuteAndVerifySuccess(
                 CreateTask("c#", attribute),
-                @"[assembly: TestAttribute(Int32Argument_TypeName=""System.Int32"", BoolArgument=false)]");
+                @"[assembly: TestAttribute(BoolArgument=false, Int32Argument_TypeName=""System.Int32"")]");
         }
 
         /// <summary>

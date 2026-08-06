@@ -19,6 +19,7 @@ namespace MSBuild.Benchmarks;
 /// 3) It takes advantage of limitations on MSBuild Property/Item names to cheaply do case insensitive comparison.
 /// </summary>
 [Serializable]
+#pragma warning disable CA1852 // The benchmark baseline intentionally preserves the original unsealed type shape.
 internal class LegacyMSBuildNameIgnoreCaseComparer : IConstrainedEqualityComparer<string>, IEqualityComparer<string>
 {
     /// <summary>
@@ -97,6 +98,7 @@ internal class LegacyMSBuildNameIgnoreCaseComparer : IConstrainedEqualityCompare
                 }
             }
         }
+        #pragma warning restore CA1852
         else
         {
             return String.Compare(compareToString, 0, constrainedString, start, lengthToCompare, StringComparison.OrdinalIgnoreCase) == 0;

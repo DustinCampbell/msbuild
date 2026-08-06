@@ -102,6 +102,8 @@ internal partial class Expander<P, I>
 
             Assumed.NotNull(properties, "Cannot expand properties without providing properties");
 
+            bool truncationEnabled = IsTruncationEnabled(options);
+
             // These are also zero-based indices into the expression, but
             // these tell us where the current property tag begins and ends.
             int propertyStartIndex, propertyEndIndex;
@@ -112,6 +114,69 @@ internal partial class Expander<P, I>
             {
                 return expression.Value;
             }
+
+#if NET
+            if (TryExpandSimpleProperties(
+                expression,
+                propertyStartIndex,
+                properties,
+                elementLocation,
+                propertiesUseTracker,
+                truncationEnabled,
+                out object? simpleResult))
+            {
+                return simpleResult;
+            }
+#else
+            int simplePropertyBodyStart = propertyStartIndex + 2;
+            int simplePropertyEnd = expression.Length <= 48
+                ? expression.IndexOf(')', simplePropertyBodyStart)
+                : -1;
+            if (simplePropertyEnd >= 0
+                && IsValidPropertyName(expression[simplePropertyBodyStart..simplePropertyEnd]))
+            {
+                if (propertyStartIndex == 0 && simplePropertyEnd == expression.Length - 1 && NativeMethodsShared.IsWindows)
+                {
+                    string propertyValue = LookupProperty(
+                        properties,
+                        expression[simplePropertyBodyStart..simplePropertyEnd],
+                        elementLocation,
+                        propertiesUseTracker);
+                    if (truncationEnabled && propertyValue.Length > CharacterLimitPerExpansion)
+                    {
+                        propertyValue = TruncateString(propertyValue);
+                    }
+
+                    return propertyValue;
+                }
+
+                int nextPropertyStartIndex = expression.IndexOf(
+                    "$(",
+                    simplePropertyEnd + 1,
+                    StringComparison.Ordinal);
+                if (nextPropertyStartIndex < 0 && NativeMethodsShared.IsWindows)
+                {
+                    string propertyValue = LookupProperty(
+                        properties,
+                        expression[simplePropertyBodyStart..simplePropertyEnd],
+                        elementLocation,
+                        propertiesUseTracker);
+                    if (truncationEnabled && propertyValue.Length > CharacterLimitPerExpansion)
+                    {
+                        propertyValue = TruncateString(propertyValue);
+                    }
+
+                    using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
+                    builder.Append(expression.Buffer!, expression.Offset, propertyStartIndex);
+                    builder.Append(propertyValue);
+                    builder.Append(
+                        expression.Buffer!,
+                        expression.Offset + simplePropertyEnd + 1,
+                        expression.Length - simplePropertyEnd - 1);
+                    return builder.ToString();
+                }
+            }
+#endif
 
             // We will build our set of results as object components
             // so that we can either maintain the object's type in the event
@@ -139,7 +204,12 @@ internal partial class Expander<P, I>
                 // This is a very complete, fast validation of parenthesis matching including for nested
                 // function calls.
                 int propertyBodyStart = propertyStartIndex + 2;
-                propertyEndIndex = ScanForClosingParenthesis(expression[propertyBodyStart..], out bool tryExtractPropertyFunction, out bool tryExtractRegistryFunction);
+                StringSegment propertyRemainder = expression[propertyBodyStart..];
+                propertyEndIndex = ScanForClosingParenthesis(
+                    propertyRemainder,
+                    out bool tryExtractPropertyFunction,
+                    out bool tryExtractRegistryFunction);
+
                 if (propertyEndIndex != -1)
                 {
                     propertyEndIndex += propertyBodyStart;
@@ -163,7 +233,15 @@ internal partial class Expander<P, I>
                     object? propertyValue;
 
                     // Compat: $() should return String.Empty
-                    if (propertyBody.IsEmpty)
+                    // The 77-character legacy property handled below must bypass this common path.
+                    if (!tryExtractPropertyFunction
+                        && !tryExtractRegistryFunction
+                        && !propertyBody.IsEmpty
+                        && propertyBody.Length != 77)
+                    {
+                        propertyValue = LookupProperty(properties, propertyBody, elementLocation, propertiesUseTracker);
+                    }
+                    else if (propertyBody.IsEmpty)
                     {
                         propertyValue = string.Empty;
                     }
@@ -210,13 +288,22 @@ internal partial class Expander<P, I>
 
                     if (propertyValue != null)
                     {
-                        if (IsTruncationEnabled(options))
+                        if (truncationEnabled)
                         {
                             string value = propertyValue.ToString()!;
                             if (value.Length > CharacterLimitPerExpansion)
                             {
                                 propertyValue = TruncateString(value);
                             }
+                        }
+
+                        if (propertyStartIndex == 0 && propertyEndIndex == expression.Length - 1)
+                        {
+                            return propertyValue is string stringValue
+                                ? NativeMethodsShared.IsWindows
+                                    ? stringValue
+                                    : FileUtilities.MaybeAdjustFilePath(stringValue)
+                                : propertyValue;
                         }
 
                         // Record our result, and advance
@@ -239,6 +326,102 @@ internal partial class Expander<P, I>
 
             return results.GetResult();
         }
+
+#if NET
+        private static bool TryExpandSimpleProperties(
+            StringSegment expression,
+            int firstPropertyStart,
+            IPropertyProvider<P> properties,
+            IElementLocation elementLocation,
+            PropertiesUseTracker propertiesUseTracker,
+            bool truncationEnabled,
+            out object? result)
+        {
+            if (!NativeMethodsShared.IsWindows)
+            {
+                result = null;
+                return false;
+            }
+
+            if (expression[^2] == ')')
+            {
+                result = null;
+                return false;
+            }
+
+            int firstPropertyEnd = expression.IndexOf(')', firstPropertyStart + 2);
+            if (firstPropertyStart == 0
+                && firstPropertyEnd == expression.Length - 1
+                && IsValidPropertyName(expression[2..firstPropertyEnd]))
+            {
+                string propertyValue = LookupProperty(properties, expression[2..^1], elementLocation, propertiesUseTracker);
+                result = truncationEnabled && propertyValue.Length > CharacterLimitPerExpansion
+                    ? TruncateString(propertyValue)
+                    : propertyValue;
+                return true;
+            }
+
+            int propertyStart = firstPropertyStart;
+            int propertyEnd = firstPropertyEnd;
+            do
+            {
+                int propertyBodyStart = propertyStart + 2;
+                if (propertyEnd < 0 || !IsValidPropertyName(expression[propertyBodyStart..propertyEnd]))
+                {
+                    result = null;
+                    return false;
+                }
+
+                propertyStart = expression.IndexOf("$(", propertyEnd + 1, StringComparison.Ordinal);
+                if (propertyStart >= 0)
+                {
+                    propertyEnd = expression.IndexOf(')', propertyStart + 2);
+                }
+            }
+            while (propertyStart >= 0);
+
+            using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
+            int sourceIndex = 0;
+            propertyStart = firstPropertyStart;
+            do
+            {
+                if (propertyStart > sourceIndex)
+                {
+                    builder.Append(
+                        expression.Buffer!,
+                        expression.Offset + sourceIndex,
+                        propertyStart - sourceIndex);
+                }
+                int propertyBodyStart = propertyStart + 2;
+                propertyEnd = expression.IndexOf(')', propertyBodyStart);
+                string propertyValue = LookupProperty(
+                    properties,
+                    expression[propertyBodyStart..propertyEnd],
+                    elementLocation,
+                    propertiesUseTracker);
+                if (truncationEnabled && propertyValue.Length > CharacterLimitPerExpansion)
+                {
+                    propertyValue = TruncateString(propertyValue);
+                }
+
+                builder.Append(propertyValue);
+                sourceIndex = propertyEnd + 1;
+                propertyStart = expression.IndexOf("$(", sourceIndex, StringComparison.Ordinal);
+            }
+            while (propertyStart >= 0);
+
+            if (sourceIndex < expression.Length)
+            {
+                builder.Append(
+                    expression.Buffer!,
+                    expression.Offset + sourceIndex,
+                    expression.Length - sourceIndex);
+            }
+
+            result = builder.ToString();
+            return true;
+        }
+#endif
 
         /// <summary>
         ///  Expands the body of the property, including any functions that it may contain.
