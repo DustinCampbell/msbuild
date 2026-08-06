@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 #if NET
 using System.Buffers;
 #endif
@@ -120,13 +121,243 @@ public class StringSegment_Tests
     }
 
     [Theory]
+    [InlineData("0", 0)]
+    [InlineData("-0", 0)]
+    [InlineData("+42", 42)]
+    [InlineData(" -42 ", -42)]
+    [InlineData("\t\r\n+42\f\v ", 42)]
+    [InlineData("0000000000002147483647", int.MaxValue)]
+    [InlineData("-0000000000002147483648", int.MinValue)]
+    [InlineData("2147483647", int.MaxValue)]
+    [InlineData("-2147483648", int.MinValue)]
+    public void Int32TryParse_ParsesInvariantIntegerSegments(string text, int expected)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        int.TryParse(segment, out int result).ShouldBeTrue();
+        result.ShouldBe(expected);
+        int.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out int styledResult).ShouldBeTrue();
+        styledResult.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("+")]
+    [InlineData("++1")]
+    [InlineData("--1")]
+    [InlineData("+-1")]
+    [InlineData("4 2")]
+    [InlineData("42-")]
+    [InlineData("1.0")]
+    [InlineData("0x2a")]
+    [InlineData("\u00a042")]
+    [InlineData("42\u00a0")]
+    [InlineData("2147483648")]
+    [InlineData("-2147483649")]
+    public void Int32TryParse_RejectsInvalidInvariantIntegerSegments(string text)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        int.TryParse(segment, out int result).ShouldBeFalse();
+        result.ShouldBe(0);
+        int.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out int styledResult).ShouldBeFalse();
+        styledResult.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData("0", 0L)]
+    [InlineData("-0", 0L)]
+    [InlineData("+42", 42L)]
+    [InlineData(" -42 ", -42L)]
+    [InlineData("\t\r\n+42\f\v ", 42L)]
+    [InlineData("000000000009223372036854775807", long.MaxValue)]
+    [InlineData("-000000000009223372036854775808", long.MinValue)]
+    [InlineData("9223372036854775807", long.MaxValue)]
+    [InlineData("-9223372036854775808", long.MinValue)]
+    public void Int64TryParse_ParsesInvariantIntegerSegments(string text, long expected)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        long.TryParse(segment, out long result).ShouldBeTrue();
+        result.ShouldBe(expected);
+        long.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out long styledResult).ShouldBeTrue();
+        styledResult.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("-")]
+    [InlineData("++1")]
+    [InlineData("--1")]
+    [InlineData("-+1")]
+    [InlineData("4 2")]
+    [InlineData("42+")]
+    [InlineData("1.0")]
+    [InlineData("0x2a")]
+    [InlineData("\u00a042")]
+    [InlineData("42\u00a0")]
+    [InlineData("9223372036854775808")]
+    [InlineData("-9223372036854775809")]
+    public void Int64TryParse_RejectsInvalidInvariantIntegerSegments(string text)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        long.TryParse(segment, out long result).ShouldBeFalse();
+        result.ShouldBe(0);
+        long.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out long styledResult).ShouldBeFalse();
+        styledResult.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IntegerTryParse_RejectsNullSegments()
+    {
+        StringSegment segment = default;
+
+        int.TryParse(segment, out int intResult).ShouldBeFalse();
+        intResult.ShouldBe(0);
+        int.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out intResult).ShouldBeFalse();
+        intResult.ShouldBe(0);
+
+        long.TryParse(segment, out long longResult).ShouldBeFalse();
+        longResult.ShouldBe(0);
+        long.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out longResult).ShouldBeFalse();
+        longResult.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IntegerTryParse_FallsBackForOtherStyles()
+    {
+        StringSegment thousandsSegment = new("prefix1,234suffix", 6, 5);
+        NumberStyles thousandsStyle = NumberStyles.Integer | NumberStyles.AllowThousands;
+
+        int.TryParse(
+            thousandsSegment,
+            thousandsStyle,
+            CultureInfo.InvariantCulture,
+            out int intResult).ShouldBeTrue();
+        intResult.ShouldBe(1234);
+        long.TryParse(
+            thousandsSegment,
+            thousandsStyle,
+            CultureInfo.InvariantCulture,
+            out long longResult).ShouldBeTrue();
+        longResult.ShouldBe(1234);
+
+        StringSegment hexSegment = new("prefix7fffffffsuffix", 6, 8);
+        int.TryParse(
+            hexSegment,
+            NumberStyles.HexNumber,
+            CultureInfo.InvariantCulture,
+            out intResult).ShouldBeTrue();
+        intResult.ShouldBe(int.MaxValue);
+        long.TryParse(
+            hexSegment,
+            NumberStyles.HexNumber,
+            CultureInfo.InvariantCulture,
+            out longResult).ShouldBeTrue();
+        longResult.ShouldBe(int.MaxValue);
+
+        StringSegment digitsSegment = new("prefix42suffix", 6, 2);
+        int.TryParse(digitsSegment, NumberStyles.None, null, out intResult).ShouldBeTrue();
+        intResult.ShouldBe(42);
+        long.TryParse(digitsSegment, NumberStyles.None, null, out longResult).ShouldBeTrue();
+        longResult.ShouldBe(42);
+
+        StringSegment whitespaceSegment = new("prefix 42 suffix", 6, 4);
+        int.TryParse(whitespaceSegment, NumberStyles.None, null, out intResult).ShouldBeFalse();
+        intResult.ShouldBe(0);
+        long.TryParse(whitespaceSegment, NumberStyles.None, null, out longResult).ShouldBeFalse();
+        longResult.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IntegerTryParse_RejectsInvalidStyles()
+    {
+        StringSegment segment = new("prefix42suffix", 6, 2);
+        NumberStyles invalidStyle = NumberStyles.AllowHexSpecifier | NumberStyles.AllowLeadingSign;
+
+        Should.Throw<ArgumentException>(() =>
+        {
+            _ = int.TryParse(segment, invalidStyle, CultureInfo.InvariantCulture, out _);
+        });
+        Should.Throw<ArgumentException>(() =>
+        {
+            _ = long.TryParse(segment, invalidStyle, CultureInfo.InvariantCulture, out _);
+        });
+    }
+
+    [Fact]
+    public void IntegerTryParse_FallsBackForOtherProviders()
+    {
+        var numberFormat = new NumberFormatInfo { NegativeSign = "~" };
+        StringSegment segment = new("prefix~42suffix", 6, 3);
+
+        int.TryParse(segment, NumberStyles.Integer, numberFormat, out int intResult).ShouldBeTrue();
+        intResult.ShouldBe(-42);
+        long.TryParse(segment, NumberStyles.Integer, numberFormat, out long longResult).ShouldBeTrue();
+        longResult.ShouldBe(-42);
+    }
+
+    [Fact]
+    public void IntegerTryParse_AcceptsInvariantNumberFormatProvider()
+    {
+        StringSegment segment = new("prefix-42suffix", 6, 3);
+
+        int.TryParse(
+            segment,
+            NumberStyles.Integer,
+            NumberFormatInfo.InvariantInfo,
+            out int intResult).ShouldBeTrue();
+        intResult.ShouldBe(-42);
+        long.TryParse(
+            segment,
+            NumberStyles.Integer,
+            NumberFormatInfo.InvariantInfo,
+            out long longResult).ShouldBeTrue();
+        longResult.ShouldBe(-42);
+    }
+
+    [Theory]
     [InlineData(null, true)]
     [InlineData("", true)]
     [InlineData("a", false)]
     [InlineData("hello", false)]
     public void IsNullOrEmpty_Works(string? value, bool expected)
     {
-        StringSegment.IsNullOrEmpty(value).ShouldBe(expected);
+        StringSegment segment = value;
+
+        segment.IsNullOrEmpty.ShouldBe(expected);
+        if (!segment.IsNullOrEmpty)
+        {
+            segment.Buffer.Length.ShouldBe(segment.Length);
+            segment.Value.Length.ShouldBe(segment.Length);
+        }
     }
 
     [Fact]
@@ -148,11 +379,18 @@ public class StringSegment_Tests
     [Fact]
     public void IsNullOrWhiteSpace_Works()
     {
-        StringSegment.IsNullOrWhiteSpace(default).ShouldBeTrue();
-        StringSegment.IsNullOrWhiteSpace(StringSegment.Empty).ShouldBeTrue();
-        StringSegment.IsNullOrWhiteSpace("   ").ShouldBeTrue();
-        StringSegment.IsNullOrWhiteSpace("a").ShouldBeFalse();
-        StringSegment.IsNullOrWhiteSpace("  a  ").ShouldBeFalse();
+        default(StringSegment).IsNullOrWhiteSpace().ShouldBeTrue();
+        StringSegment.Empty.IsNullOrWhiteSpace().ShouldBeTrue();
+        ((StringSegment)"   ").IsNullOrWhiteSpace().ShouldBeTrue();
+        ((StringSegment)"a").IsNullOrWhiteSpace().ShouldBeFalse();
+
+        StringSegment segment = "  a  ";
+        segment.IsNullOrWhiteSpace().ShouldBeFalse();
+        if (!segment.IsNullOrWhiteSpace())
+        {
+            segment.Buffer.Length.ShouldBe(5);
+            segment.Value.Length.ShouldBe(5);
+        }
     }
 
     [Fact]
@@ -342,6 +580,16 @@ public class StringSegment_Tests
     }
 
     [Fact]
+    public void Equals_Span_WithComparison()
+    {
+        HelloWorld.Equals("hello world".AsSpan()).ShouldBeTrue();
+        HelloWorld.Equals("HELLO WORLD".AsSpan(), StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
+        HelloWorld.Equals("HELLO WORLD".AsSpan(), StringComparison.Ordinal).ShouldBeFalse();
+        ((StringSegment)"\u00c5").Equals("A\u030a".AsSpan(), StringComparison.InvariantCulture).ShouldBeTrue();
+        default(StringSegment).Equals(ReadOnlySpan<char>.Empty).ShouldBeTrue();
+    }
+
+    [Fact]
     public void Equals_NullAndEmpty_AreDistinct()
     {
         StringSegment nullSegment = default;
@@ -423,6 +671,31 @@ public class StringSegment_Tests
         Math.Sign(((StringSegment)"ABC").CompareTo("abc", StringComparison.OrdinalIgnoreCase)).ShouldBe(0);
     }
 
+    [Fact]
+    public void ComparisonMethods_RejectInvalidComparison()
+    {
+        const StringComparison InvalidComparison = (StringComparison)(-1);
+
+        Should.Throw<InternalErrorException>(() => HelloWorld.Equals(HelloWorld, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => HelloWorld.Equals(HelloWorldBuffer, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => StringSegment.Compare(default, default, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).IndexOf(string.Empty, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).IndexOf(StringSegment.Empty, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).LastIndexOf(string.Empty, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).LastIndexOf(StringSegment.Empty, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).LastIndexOf(ReadOnlySpan<char>.Empty, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).StartsWith(string.Empty, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).StartsWith(StringSegment.Empty, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).EndsWith(string.Empty, InvalidComparison));
+        Should.Throw<InternalErrorException>(() => default(StringSegment).EndsWith(StringSegment.Empty, InvalidComparison));
+
+        Should.Throw<ArgumentException>(() => HelloWorld.Equals("hello world".AsSpan(), InvalidComparison));
+        Should.Throw<ArgumentException>(() => HelloWorld.IndexOf("world".AsSpan(), InvalidComparison));
+        Should.Throw<ArgumentException>(() => HelloWorld.LastIndexOf("world".AsSpan(), InvalidComparison));
+        Should.Throw<ArgumentException>(() => HelloWorld.StartsWith("hello".AsSpan(), InvalidComparison));
+        Should.Throw<ArgumentException>(() => HelloWorld.EndsWith("world".AsSpan(), InvalidComparison));
+    }
+
     [Theory]
     [InlineData('h', 0)]
     [InlineData('o', 4)]
@@ -459,6 +732,30 @@ public class StringSegment_Tests
     public void IndexOf_Span()
     {
         HelloWorld.IndexOf("world".AsSpan()).ShouldBe(6);
+        default(StringSegment).IndexOf(ReadOnlySpan<char>.Empty).ShouldBe(0);
+        default(StringSegment).Contains(ReadOnlySpan<char>.Empty).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IndexOf_Span_WithComparisonAndRange()
+    {
+        HelloWorld.IndexOf("WORLD".AsSpan(), StringComparison.OrdinalIgnoreCase).ShouldBe(6);
+        HelloWorld.IndexOf("O".AsSpan(), 5, StringComparison.OrdinalIgnoreCase).ShouldBe(7);
+        HelloWorld.IndexOf("O".AsSpan(), 3, 3, StringComparison.OrdinalIgnoreCase).ShouldBe(4);
+        HelloWorld.IndexOf("WORLD".AsSpan(), 0, 5, StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
+    }
+
+    [Fact]
+    public void SpanSearch_CultureSensitiveComparisonHandlesDifferentUtf16Lengths()
+    {
+        StringSegment segment = new("[[x\u00c5y\u00c5z]]", 2, 5);
+        ReadOnlySpan<char> value = "A\u030a".AsSpan();
+
+        segment.Contains(value, StringComparison.InvariantCulture).ShouldBeTrue();
+        segment.IndexOf(value, StringComparison.InvariantCulture).ShouldBe(1);
+        segment.IndexOf(value, 2, 3, StringComparison.InvariantCulture).ShouldBe(3);
+        segment.LastIndexOf(value, StringComparison.InvariantCulture).ShouldBe(3);
+        segment.LastIndexOf(value, 2, 3, StringComparison.InvariantCulture).ShouldBe(1);
     }
 
     [Theory]
@@ -518,6 +815,17 @@ public class StringSegment_Tests
     public void LastIndexOf_Span()
     {
         HelloWorld.LastIndexOf("o".AsSpan()).ShouldBe(7);
+        default(StringSegment).LastIndexOf(ReadOnlySpan<char>.Empty).ShouldBe(0);
+    }
+
+    [Fact]
+    public void LastIndexOf_Span_WithComparisonAndRange()
+    {
+        HelloWorld.LastIndexOf("O".AsSpan(), StringComparison.OrdinalIgnoreCase).ShouldBe(7);
+        HelloWorld.LastIndexOf("O".AsSpan(), 6, StringComparison.OrdinalIgnoreCase).ShouldBe(4);
+        HelloWorld.LastIndexOf("O".AsSpan(), 10, 5, StringComparison.OrdinalIgnoreCase).ShouldBe(7);
+        HelloWorld.LastIndexOf("O".AsSpan(), 6, 2, StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
+        HelloWorld.LastIndexOf(ReadOnlySpan<char>.Empty, 7, 3).ShouldBe(8);
     }
 
     [Fact]
@@ -543,11 +851,26 @@ public class StringSegment_Tests
         HelloWorld.IndexOfAny("zqxw".AsSpan()).ShouldBe(6);
     }
 
+    [Fact]
+    public void IndexOfAny_Span_WithStartAndLength()
+    {
+        HelloWorld.IndexOfAny("wo".AsSpan(), 5).ShouldBe(6);
+        HelloWorld.IndexOfAny("wo".AsSpan(), 7).ShouldBe(7);
+        HelloWorld.IndexOfAny("wo".AsSpan(), 5, 2).ShouldBe(6);
+        HelloWorld.IndexOfAny("wo".AsSpan(), 8, 3).ShouldBe(-1);
+        HelloWorld.IndexOfAny(ReadOnlySpan<char>.Empty, 5, 2).ShouldBe(-1);
+    }
+
 #if NET
     [Fact]
     public void IndexOfAny_SearchValues()
     {
-        HelloWorld.IndexOfAny(SearchValues.Create("ow")).ShouldBe(4);
+        SearchValues<char> values = SearchValues.Create("ow");
+
+        HelloWorld.IndexOfAny(values).ShouldBe(4);
+        HelloWorld.IndexOfAny(values, 5).ShouldBe(6);
+        HelloWorld.IndexOfAny(values, 7, 2).ShouldBe(7);
+        HelloWorld.IndexOfAny(values, 8, 3).ShouldBe(-1);
         HelloWorld.IndexOfAny(SearchValues.Create("zq")).ShouldBe(-1);
     }
 
@@ -560,6 +883,16 @@ public class StringSegment_Tests
         HelloWorld.LastIndexOfAny('o', 'l').ShouldBe(9);
         HelloWorld.LastIndexOfAny('o', 'l', 'h').ShouldBe(9);
         HelloWorld.LastIndexOfAny("ol".AsSpan()).ShouldBe(9);
+    }
+
+    [Fact]
+    public void LastIndexOfAny_Span_WithStartAndLength()
+    {
+        HelloWorld.LastIndexOfAny("ol".AsSpan(), 10).ShouldBe(9);
+        HelloWorld.LastIndexOfAny("ol".AsSpan(), 6).ShouldBe(4);
+        HelloWorld.LastIndexOfAny("ol".AsSpan(), 10, 4).ShouldBe(9);
+        HelloWorld.LastIndexOfAny("ol".AsSpan(), 6, 2).ShouldBe(-1);
+        HelloWorld.LastIndexOfAny(ReadOnlySpan<char>.Empty, 10, 4).ShouldBe(-1);
     }
 
     [Fact]
@@ -579,7 +912,12 @@ public class StringSegment_Tests
     [Fact]
     public void LastIndexOfAny_SearchValues()
     {
-        HelloWorld.LastIndexOfAny(SearchValues.Create("ol")).ShouldBe(9);
+        SearchValues<char> values = SearchValues.Create("ol");
+
+        HelloWorld.LastIndexOfAny(values).ShouldBe(9);
+        HelloWorld.LastIndexOfAny(values, 6).ShouldBe(4);
+        HelloWorld.LastIndexOfAny(values, 10, 4).ShouldBe(9);
+        HelloWorld.LastIndexOfAny(values, 6, 2).ShouldBe(-1);
         HelloWorld.LastIndexOfAny(SearchValues.Create("zq")).ShouldBe(-1);
     }
 
@@ -593,6 +931,7 @@ public class StringSegment_Tests
         HelloWorld.Contains("world").ShouldBeTrue();
         HelloWorld.Contains("WORLD", StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
         HelloWorld.Contains("lo".AsSpan()).ShouldBeTrue();
+        HelloWorld.Contains("WORLD".AsSpan(), StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
     }
 
     [Fact]
@@ -714,7 +1053,12 @@ public class StringSegment_Tests
     [Fact]
     public void Join_SingleValue_HasNoSeparator()
     {
-        StringSegment.Join(',', "only").ShouldBe("only");
+        string value = "only";
+
+        string result = StringSegment.Join(',', value);
+
+        result.ShouldBe(value);
+        ReferenceEquals(result, value).ShouldBeTrue();
     }
 
     [Fact]
@@ -786,8 +1130,20 @@ public class StringSegment_Tests
     [Fact]
     public void Join_SingleValue_StringAndNoSeparator()
     {
-        StringSegment.Join("--", "only").ShouldBe("only");
-        StringSegment.Join(string.Empty, "only").ShouldBe("only");
+        string value = "only";
+        List<StringSegment> enumerable = [value];
+
+        string stringSeparatorResult = StringSegment.Join("--", value);
+        string noSeparatorResult = StringSegment.Join(string.Empty, value);
+        string charEnumerableResult = StringSegment.Join(',', enumerable);
+        string enumerableResult = StringSegment.Join("--", enumerable);
+        string noSeparatorEnumerableResult = StringSegment.Join(string.Empty, enumerable);
+
+        ReferenceEquals(stringSeparatorResult, value).ShouldBeTrue();
+        ReferenceEquals(noSeparatorResult, value).ShouldBeTrue();
+        ReferenceEquals(charEnumerableResult, value).ShouldBeTrue();
+        ReferenceEquals(enumerableResult, value).ShouldBeTrue();
+        ReferenceEquals(noSeparatorEnumerableResult, value).ShouldBeTrue();
     }
 
     private static List<string> Split(StringSegment segment, char separator, StringSplitOptions options = StringSplitOptions.None)
@@ -795,7 +1151,7 @@ public class StringSegment_Tests
         List<string> result = [];
         foreach (StringSegment piece in segment.Split(separator, options))
         {
-            result.Add(piece.ToString());
+            result.Add(piece.ValueOrEmpty);
         }
 
         return result;
@@ -851,7 +1207,7 @@ public class StringSegment_Tests
         List<string> result = [];
         foreach (StringSegment piece in ((StringSegment)"a;b,c").Split([';', ',']))
         {
-            result.Add(piece.ToString());
+            result.Add(piece.ValueOrEmpty);
         }
 
         result.ShouldBe(["a", "b", "c"]);
@@ -863,7 +1219,7 @@ public class StringSegment_Tests
         List<string> result = [];
         foreach (StringSegment piece in ((StringSegment)"a,b").Split(default(ReadOnlySpan<char>)))
         {
-            result.Add(piece.ToString());
+            result.Add(piece.ValueOrEmpty);
         }
 
         result.ShouldBe(["a,b"]);
@@ -898,6 +1254,7 @@ public class StringSegment_Tests
         HelloWorld.StartsWith("hello world!").ShouldBeFalse(); // longer than the segment
         HelloWorld.StartsWith(string.Empty).ShouldBeTrue();
         HelloWorld.StartsWith("hello".AsSpan()).ShouldBeTrue();
+        HelloWorld.StartsWith("Hello".AsSpan(), StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
     }
 
     [Fact]
@@ -910,6 +1267,7 @@ public class StringSegment_Tests
         HelloWorld.EndsWith("World", StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
         HelloWorld.EndsWith(string.Empty).ShouldBeTrue();
         HelloWorld.EndsWith("world".AsSpan()).ShouldBeTrue();
+        HelloWorld.EndsWith("World".AsSpan(), StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
     }
 
     [Fact]
@@ -919,10 +1277,14 @@ public class StringSegment_Tests
         HelloWorld.IndexOf((StringSegment)"world").ShouldBe(6);
         HelloWorld.IndexOf((StringSegment)"missing").ShouldBe(-1);
         HelloWorld.IndexOf(StringSegment.Empty).ShouldBe(0);
+        default(StringSegment).IndexOf(StringSegment.Empty).ShouldBe(-1);
+        default(StringSegment).Contains(StringSegment.Empty).ShouldBeFalse();
 
-        // Sub-view search value: exercises the substring fallback path.
+        // Sub-view search value exercises the substring fallback path.
         StringSegment worldSubView = new("xxworldyy", 2, 5);
         HelloWorld.IndexOf(worldSubView).ShouldBe(6);
+        StringSegment upperWorldSubView = new("xxWORLDyy", 2, 5);
+        HelloWorld.IndexOf(upperWorldSubView, StringComparison.OrdinalIgnoreCase).ShouldBe(6);
 
         // Comparison and range overloads.
         HelloWorld.IndexOf((StringSegment)"WORLD", StringComparison.OrdinalIgnoreCase).ShouldBe(6);
@@ -936,9 +1298,12 @@ public class StringSegment_Tests
         HelloWorld.LastIndexOf((StringSegment)"o").ShouldBe(7);
         HelloWorld.LastIndexOf((StringSegment)"world").ShouldBe(6);
         HelloWorld.LastIndexOf(StringSegment.Empty).ShouldBe(11);
+        default(StringSegment).LastIndexOf(StringSegment.Empty).ShouldBe(-1);
 
         StringSegment worldSubView = new("xxworldyy", 2, 5);
         HelloWorld.LastIndexOf(worldSubView).ShouldBe(6);
+        StringSegment upperWorldSubView = new("xxWORLDyy", 2, 5);
+        HelloWorld.LastIndexOf(upperWorldSubView, StringComparison.OrdinalIgnoreCase).ShouldBe(6);
 
         HelloWorld.LastIndexOf((StringSegment)"o", 6).ShouldBe(4);
         HelloWorld.LastIndexOf((StringSegment)"world", 10, 5).ShouldBe(6);
@@ -1058,10 +1423,18 @@ public class StringSegment_Tests
     }
 
     [Fact]
+    public void ValueOrEmpty_ReturnsValueOrEmpty()
+    {
+        HelloWorld.ValueOrEmpty.ShouldBe("hello world");
+        default(StringSegment).ValueOrEmpty.ShouldBe(string.Empty);
+        StringSegment.Empty.ValueOrEmpty.ShouldBe(string.Empty);
+    }
+
+    [Fact]
     public void ToString_ReturnsValueOrEmpty()
     {
         HelloWorld.ToString().ShouldBe("hello world");
-        ((StringSegment)default).ToString().ShouldBe(string.Empty);
+        default(StringSegment).ToString().ShouldBe(string.Empty);
         StringSegment.Empty.ToString().ShouldBe(string.Empty);
     }
 }

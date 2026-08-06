@@ -95,7 +95,7 @@ internal partial class Expander<P, I>
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
         {
-            if (((options & ExpanderOptions.ExpandProperties) == 0) || StringSegment.IsNullOrEmpty(expression))
+            if (((options & ExpanderOptions.ExpandProperties) == 0) || expression.IsNullOrEmpty)
             {
                 return expression.Value;
             }
@@ -514,7 +514,7 @@ internal partial class Expander<P, I>
             // Find the property value in our property collection.  This
             // will automatically return "" (empty string) if the property
             // doesn't exist in the collection, and we're not executing a static function
-            if (!StringSegment.IsNullOrEmpty(propertyName))
+            if (!propertyName.IsNullOrEmpty)
             {
                 propertyValue = LookupProperty(properties, propertyName, elementLocation, propertiesUseTracker);
             }
@@ -762,7 +762,7 @@ internal partial class Expander<P, I>
                 registryKeyName = EscapingUtilities.UnescapeAll(registryKeyName);
             }
 
-            if (valueName.HasValue)
+            if (!valueName.IsNullOrEmpty)
             {
                 valueName = EscapingUtilities.UnescapeAll(valueName);
             }

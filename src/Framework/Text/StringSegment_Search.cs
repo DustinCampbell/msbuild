@@ -47,6 +47,19 @@ internal readonly partial struct StringSegment
         => AsSpan().IndexOf(value) >= 0;
 
     /// <summary>
+    ///  Indicates whether the characters in the specified span occur within this segment using the specified
+    ///  comparison.
+    /// </summary>
+    /// <param name="value">The sequence of characters to find.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  <see langword="true"/> if <paramref name="value"/> occurs within the segment; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    public bool Contains(ReadOnlySpan<char> value, StringComparison comparisonType)
+        => IndexOf(value, comparisonType) >= 0;
+
+    /// <summary>
     ///  Indicates whether the specified segment occurs within this segment using the specified comparison.
     /// </summary>
     /// <param name="value">The segment to find.</param>
@@ -125,7 +138,7 @@ internal readonly partial struct StringSegment
 
         int result = -1;
 
-        if (HasValue)
+        if (!IsNullOrEmpty)
         {
             result = Buffer.IndexOf(value, Offset + start, length);
 
@@ -218,6 +231,10 @@ internal readonly partial struct StringSegment
                 result -= Offset;
             }
         }
+        else
+        {
+            ValidateComparisonType(comparisonType);
+        }
 
         return result;
     }
@@ -233,6 +250,61 @@ internal readonly partial struct StringSegment
     /// </returns>
     public int IndexOf(ReadOnlySpan<char> value)
         => AsSpan().IndexOf(value);
+
+    /// <summary>
+    ///  Searches this segment for the first occurrence of the characters in the specified span using the
+    ///  specified comparison.
+    /// </summary>
+    /// <param name="value">The sequence of characters to find.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  The zero-based index of the first occurrence, relative to the start of the segment, or <c>-1</c> if
+    ///  not found.
+    /// </returns>
+    public int IndexOf(ReadOnlySpan<char> value, StringComparison comparisonType)
+        => IndexOf(value, start: 0, Length, comparisonType);
+
+    /// <summary>
+    ///  Searches this segment, beginning at the specified index, for the first occurrence of the characters
+    ///  in the specified span using the specified comparison.
+    /// </summary>
+    /// <param name="value">The sequence of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  The zero-based index of the first occurrence, relative to the start of the segment, or <c>-1</c> if
+    ///  not found.
+    /// </returns>
+    public int IndexOf(ReadOnlySpan<char> value, int start, StringComparison comparisonType = StringComparison.Ordinal)
+        => IndexOf(value, start, Length - start, comparisonType);
+
+    /// <summary>
+    ///  Searches the specified range of this segment for the first occurrence of the characters in the
+    ///  specified span using the specified comparison.
+    /// </summary>
+    /// <param name="value">The sequence of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <param name="length">The number of characters to search.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  The zero-based index of the first occurrence, relative to the start of the segment, or <c>-1</c> if
+    ///  not found.
+    /// </returns>
+    public int IndexOf(
+        ReadOnlySpan<char> value,
+        int start,
+        int length,
+        StringComparison comparisonType = StringComparison.Ordinal)
+    {
+        Assumed.PositiveOrZero(start);
+        Assumed.PositiveOrZero(length);
+        Assumed.LessThanOrEqual(start + length, Length);
+
+        ReadOnlySpan<char> searchSpace = AsSpan(start, length);
+        int result = searchSpace.IndexOf(value, comparisonType);
+
+        return result < 0 ? -1 : result + start;
+    }
 
     /// <summary>
     ///  Searches this segment for the first occurrence of another segment using the specified comparison.
@@ -276,7 +348,7 @@ internal readonly partial struct StringSegment
     {
         Assumed.True(value.HasValue);
 
-        return IndexOf(ToSearchString(value), start, length, comparisonType);
+        return IndexOf(value.Value, start, length, comparisonType);
     }
 
     /// <summary>
@@ -300,7 +372,7 @@ internal readonly partial struct StringSegment
 
         int result = -1;
 
-        if (HasValue)
+        if (!IsNullOrEmpty)
         {
             result = Buffer.IndexOfAny(values, Offset + start, length);
 
@@ -424,6 +496,35 @@ internal readonly partial struct StringSegment
         }
     }
 
+    /// <summary>
+    ///  Searches the specified range of this segment for the first occurrence of any of the characters in
+    ///  the specified span. An empty set never matches.
+    /// </summary>
+    /// <param name="values">The set of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <param name="length">The number of characters to search.</param>
+    /// <returns>
+    ///  The zero-based index of the first occurrence of any of <paramref name="values"/>, relative to the
+    ///  start of the segment, or <c>-1</c> if none is found.
+    /// </returns>
+    public int IndexOfAny(ReadOnlySpan<char> values, int start, int length)
+    {
+        Assumed.PositiveOrZero(start);
+        Assumed.PositiveOrZero(length);
+        Assumed.LessThanOrEqual(start + length, Length);
+
+        if (values.IsEmpty)
+        {
+            return -1;
+        }
+
+        int relativeIndex = values.Length == 1
+            ? AsSpan(start, length).IndexOf(values[0])
+            : AsSpan(start, length).IndexOfAny(values);
+
+        return relativeIndex < 0 ? -1 : relativeIndex + start;
+    }
+
 #if NET
     /// <summary>
     ///  Searches this segment for the first occurrence of any of the characters in the specified search values.
@@ -435,6 +536,41 @@ internal readonly partial struct StringSegment
     /// </returns>
     public int IndexOfAny(SearchValues<char> values)
         => AsSpan().IndexOfAny(values);
+
+    /// <summary>
+    ///  Searches this segment, beginning at the specified index, for the first occurrence of any character
+    ///  in the specified search values.
+    /// </summary>
+    /// <param name="values">The set of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <returns>
+    ///  The zero-based index of the first occurrence of any character in <paramref name="values"/>, relative
+    ///  to the start of the segment, or <c>-1</c> if none is found.
+    /// </returns>
+    public int IndexOfAny(SearchValues<char> values, int start)
+        => IndexOfAny(values, start, Length - start);
+
+    /// <summary>
+    ///  Searches the specified range of this segment for the first occurrence of any character in the
+    ///  specified search values.
+    /// </summary>
+    /// <param name="values">The set of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <param name="length">The number of characters to search.</param>
+    /// <returns>
+    ///  The zero-based index of the first occurrence of any character in <paramref name="values"/>, relative
+    ///  to the start of the segment, or <c>-1</c> if none is found.
+    /// </returns>
+    public int IndexOfAny(SearchValues<char> values, int start, int length)
+    {
+        Assumed.NotNull(values);
+        Assumed.PositiveOrZero(start);
+        Assumed.PositiveOrZero(length);
+        Assumed.LessThanOrEqual(start + length, Length);
+
+        int relativeIndex = AsSpan(start, length).IndexOfAny(values);
+        return relativeIndex < 0 ? -1 : relativeIndex + start;
+    }
 
 #endif
 
@@ -464,7 +600,7 @@ internal readonly partial struct StringSegment
 
         int result = -1;
 
-        if (HasValue)
+        if (!IsNullOrEmpty)
         {
             result = Buffer.LastIndexOf(value, Offset + start, length);
 
@@ -547,26 +683,25 @@ internal readonly partial struct StringSegment
         Assumed.LessThanOrEqual(start, Length);
         Assumed.LessThanOrEqual(length, start + 1);
 
-        int result = -1;
-
-        if (HasValue && value.Length == 0)
+        if (value.Length == 0)
         {
-            // string.LastIndexOf(string.Empty) differs between .NET Framework and modern .NET; keep this stable.
-            result = Math.Min(start + 1, Length);
-        }
-        else if (HasValue && Length > 0 && length > 0)
-        {
-            int searchStart = start == Length ? Length - 1 : start;
-            int searchLength = start == Length ? Math.Min(length - 1, Length) : length;
-            result = Buffer.LastIndexOf(value, Offset + searchStart, searchLength, comparisonType);
-
-            if (result >= 0)
-            {
-                result -= Offset;
-            }
+            // .NET Framework returns start for an empty value, while modern string and span searches return
+            // the insertion point after start. Keep the overloads consistent across target frameworks.
+            ValidateComparisonType(comparisonType);
+            return HasValue ? Math.Min(start + 1, Length) : -1;
         }
 
-        return result;
+        if (IsNullOrEmpty || length == 0)
+        {
+            ValidateComparisonType(comparisonType);
+            return -1;
+        }
+
+        int searchStart = start == Length ? Length - 1 : start;
+        int searchLength = start == Length ? Math.Min(length - 1, Length) : length;
+        int result = Buffer.LastIndexOf(value, Offset + searchStart, searchLength, comparisonType);
+
+        return result < 0 ? -1 : result - Offset;
     }
 
     /// <summary>
@@ -579,6 +714,108 @@ internal readonly partial struct StringSegment
     /// </returns>
     public int LastIndexOf(ReadOnlySpan<char> value)
         => AsSpan().LastIndexOf(value);
+
+    /// <summary>
+    ///  Searches this segment for the last occurrence of the characters in the specified span using the
+    ///  specified comparison.
+    /// </summary>
+    /// <param name="value">The sequence of characters to find.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  The zero-based index of the last occurrence, relative to the start of the segment, or <c>-1</c> if
+    ///  not found.
+    /// </returns>
+    public int LastIndexOf(ReadOnlySpan<char> value, StringComparison comparisonType)
+        => LastIndexOf(value, Length, Length + 1, comparisonType);
+
+    /// <summary>
+    ///  Searches this segment, beginning at the specified index, for the last occurrence of the characters
+    ///  in the specified span using the specified comparison.
+    /// </summary>
+    /// <param name="value">The sequence of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  The zero-based index of the last occurrence, relative to the start of the segment, or <c>-1</c> if
+    ///  not found.
+    /// </returns>
+    public int LastIndexOf(ReadOnlySpan<char> value, int start, StringComparison comparisonType = StringComparison.Ordinal)
+        => LastIndexOf(value, start, start + 1, comparisonType);
+
+    /// <summary>
+    ///  Searches the specified range of this segment for the last occurrence of the characters in the
+    ///  specified span using the specified comparison.
+    /// </summary>
+    /// <param name="value">The sequence of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <param name="length">The number of characters to search.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  The zero-based index of the last occurrence, relative to the start of the segment, or <c>-1</c> if
+    ///  not found.
+    /// </returns>
+    public int LastIndexOf(ReadOnlySpan<char> value, int start, int length, StringComparison comparisonType = StringComparison.Ordinal)
+    {
+        Assumed.PositiveOrZero(start);
+        Assumed.PositiveOrZero(length);
+        Assumed.LessThanOrEqual(start, Length);
+        Assumed.LessThanOrEqual(length, start + 1);
+
+        if (value.IsEmpty)
+        {
+            ValidateComparisonType(comparisonType);
+            return Math.Min(start + 1, Length);
+        }
+
+        if (Length == 0 || length == 0)
+        {
+            ValidateComparisonType(comparisonType);
+            return -1;
+        }
+
+        int searchStart = start == Length ? Length - 1 : start;
+        int searchLength = start == Length ? Math.Min(length - 1, Length) : length;
+        int rangeStart = searchStart - searchLength + 1;
+        ReadOnlySpan<char> searchSpace = AsSpan(rangeStart, searchLength);
+#if NET
+        int result = searchSpace.LastIndexOf(value, comparisonType);
+#else
+        int result;
+
+        if (comparisonType == StringComparison.Ordinal)
+        {
+            result = searchSpace.LastIndexOf(value);
+        }
+        else
+        {
+            // System.Memory has no comparison-aware LastIndexOf. Repeated IndexOf calls preserve
+            // culture-sensitive and overlapping-match semantics without materializing either span.
+            result = -1;
+            int searchOffset = 0;
+
+            while (searchOffset <= searchSpace.Length)
+            {
+                int match = searchSpace[searchOffset..].IndexOf(value, comparisonType);
+
+                if (match < 0)
+                {
+                    break;
+                }
+
+                result = searchOffset + match;
+
+                if (result == searchSpace.Length)
+                {
+                    break;
+                }
+
+                searchOffset = result + 1;
+            }
+        }
+#endif
+
+        return result < 0 ? -1 : result + rangeStart;
+    }
 
     /// <summary>
     ///  Searches this segment for the last occurrence of another segment using the specified comparison.
@@ -624,20 +861,8 @@ internal readonly partial struct StringSegment
     {
         Assumed.True(value.HasValue);
 
-        return LastIndexOf(ToSearchString(value), start, length, comparisonType);
+        return LastIndexOf(value.Value, start, length, comparisonType);
     }
-
-    /// <summary>
-    ///  Returns a <see cref="string"/> for <paramref name="value"/> suitable for the string-based search
-    ///  methods, reusing the underlying buffer without allocating when the segment already spans the whole
-    ///  buffer and only allocating a substring for a sub-view.
-    /// </summary>
-    /// <param name="value">The valued segment to represent as a search string.</param>
-    /// <returns>The segment's characters as a string.</returns>
-    private static string ToSearchString(StringSegment value)
-        => value.Offset == 0 && value.Length == value.Buffer!.Length
-            ? value.Buffer
-            : value.ToString();
 
     /// <summary>
     ///  Searches the specified range of this segment for the last occurrence of any of the specified
@@ -668,7 +893,7 @@ internal readonly partial struct StringSegment
 
         int result = -1;
 
-        if (HasValue)
+        if (!IsNullOrEmpty)
         {
             result = Buffer.LastIndexOfAny(values, Offset + start, length);
 
@@ -757,6 +982,58 @@ internal readonly partial struct StringSegment
             _ => AsSpan().LastIndexOfAny(values),
         };
 
+    /// <summary>
+    ///  Searches this segment, beginning at the specified index, for the last occurrence of any of the
+    ///  characters in the specified span. An empty set never matches.
+    /// </summary>
+    /// <param name="values">The set of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <returns>
+    ///  The zero-based index of the last occurrence of any of <paramref name="values"/>, relative to the
+    ///  start of the segment, or <c>-1</c> if none is found.
+    /// </returns>
+    public int LastIndexOfAny(ReadOnlySpan<char> values, int start)
+        => LastIndexOfAny(values, start, start + 1);
+
+    /// <summary>
+    ///  Searches the specified range of this segment for the last occurrence of any of the characters in
+    ///  the specified span. An empty set never matches.
+    /// </summary>
+    /// <param name="values">The set of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <param name="length">The number of characters to search.</param>
+    /// <returns>
+    ///  The zero-based index of the last occurrence of any of <paramref name="values"/>, relative to the
+    ///  start of the segment, or <c>-1</c> if none is found.
+    /// </returns>
+    public int LastIndexOfAny(ReadOnlySpan<char> values, int start, int length)
+    {
+        Assumed.PositiveOrZero(start);
+        Assumed.PositiveOrZero(length);
+
+        if (length == 0)
+        {
+            Assumed.LessThanOrEqual(start, Length);
+            return -1;
+        }
+
+        Assumed.LessThan(start, Length);
+        Assumed.LessThanOrEqual(length, start + 1);
+
+        if (values.IsEmpty)
+        {
+            return -1;
+        }
+
+        int rangeStart = start - length + 1;
+        ReadOnlySpan<char> searchSpace = AsSpan(rangeStart, length);
+        int relativeIndex = values.Length == 1
+            ? searchSpace.LastIndexOf(values[0])
+            : searchSpace.LastIndexOfAny(values);
+
+        return relativeIndex < 0 ? -1 : relativeIndex + rangeStart;
+    }
+
 #if NET
     /// <summary>
     ///  Searches this segment for the last occurrence of any of the characters in the specified search values.
@@ -768,6 +1045,50 @@ internal readonly partial struct StringSegment
     /// </returns>
     public int LastIndexOfAny(SearchValues<char> values)
         => AsSpan().LastIndexOfAny(values);
+
+    /// <summary>
+    ///  Searches this segment, beginning at the specified index, for the last occurrence of any character in
+    ///  the specified search values.
+    /// </summary>
+    /// <param name="values">The set of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <returns>
+    ///  The zero-based index of the last occurrence of any character in <paramref name="values"/>, relative
+    ///  to the start of the segment, or <c>-1</c> if none is found.
+    /// </returns>
+    public int LastIndexOfAny(SearchValues<char> values, int start)
+        => LastIndexOfAny(values, start, start + 1);
+
+    /// <summary>
+    ///  Searches the specified range of this segment for the last occurrence of any character in the
+    ///  specified search values.
+    /// </summary>
+    /// <param name="values">The set of characters to find.</param>
+    /// <param name="start">The zero-based index, relative to the start of the segment, at which the search begins.</param>
+    /// <param name="length">The number of characters to search.</param>
+    /// <returns>
+    ///  The zero-based index of the last occurrence of any character in <paramref name="values"/>, relative
+    ///  to the start of the segment, or <c>-1</c> if none is found.
+    /// </returns>
+    public int LastIndexOfAny(SearchValues<char> values, int start, int length)
+    {
+        Assumed.NotNull(values);
+        Assumed.PositiveOrZero(start);
+        Assumed.PositiveOrZero(length);
+
+        if (length == 0)
+        {
+            Assumed.LessThanOrEqual(start, Length);
+            return -1;
+        }
+
+        Assumed.LessThan(start, Length);
+        Assumed.LessThanOrEqual(length, start + 1);
+
+        int rangeStart = start - length + 1;
+        int relativeIndex = AsSpan(rangeStart, length).LastIndexOfAny(values);
+        return relativeIndex < 0 ? -1 : relativeIndex + rangeStart;
+    }
 
 #endif
 
@@ -794,7 +1115,7 @@ internal readonly partial struct StringSegment
     {
         int result = -1;
 
-        if (HasValue && Length > 0)
+        if (!IsNullOrEmpty)
         {
             char[] searchChars = t_searchChars ??= new char[3];
             searchChars[0] = value0;
@@ -827,7 +1148,7 @@ internal readonly partial struct StringSegment
     {
         int result = -1;
 
-        if (HasValue && Length > 0)
+        if (!IsNullOrEmpty)
         {
             char[] searchChars = t_searchChars ??= new char[3];
             searchChars[0] = value0;

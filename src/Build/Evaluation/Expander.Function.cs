@@ -21,7 +21,6 @@ using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 using AvailableStaticMethods = Microsoft.Build.Internal.AvailableStaticMethods;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
@@ -390,20 +389,18 @@ internal partial class Expander<P, I>
                 // that it matches the left hand side ready for the default binder’s method invoke.
                 if (objectInstance != null && functionArguments.Count == 1 && (string.Equals("Equals", _methodName, StringComparison.OrdinalIgnoreCase) || string.Equals("CompareTo", _methodName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    args = functionArguments.MaterializeAll();
+                    object? argument = functionArguments.GetObject(0);
 
                     // Support comparison when the lhs is an integer
-                    if (ParseArgs.IsFloatingPointRepresentation(args[0]!))
+                    if ((argument is double || (argument is string s && TryParseInvariantDouble(s, out _))) &&
+                        TryParseInvariantDouble(objectInstance.ToString(), out double result))
                     {
-                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
-                        {
-                            objectInstance = result;
-                            _receiverType = objectInstance.GetType();
-                        }
+                        objectInstance = result;
+                        _receiverType = objectInstance.GetType();
                     }
 
                     // change the type of the final unescaped string into the destination
-                    args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
+                    functionArguments.SetExpandedValue(0, Convert.ChangeType(argument, objectInstance.GetType(), CultureInfo.InvariantCulture));
                 }
 
                 if (_receiverType == typeof(IntrinsicFunctions))
@@ -416,8 +413,7 @@ internal partial class Expander<P, I>
                         // include $(MSBuildThisFileDirectory) as a parameter.
                         string startingDirectory = elementLocation.File.IsNullOrWhiteSpace() ? string.Empty : Path.GetDirectoryName(elementLocation.File)!;
 
-                        args ??= functionArguments.MaterializeAll();
-                        args = [args[0], startingDirectory];
+                        functionArguments.AppendExpandedValue(startingDirectory);
                     }
                 }
 
@@ -425,9 +421,9 @@ internal partial class Expander<P, I>
                 // need to locate an appropriate constructor and invoke it
                 if (string.Equals("new", _methodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    args ??= functionArguments.MaterializeAll();
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, ref functionArguments))
                     {
+                        args ??= functionArguments.MaterializeAll();
                         functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
                     }
                 }
@@ -437,29 +433,27 @@ internal partial class Expander<P, I>
 
                     try
                     {
-                        if (args is null)
-                        {
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithoutMaterializingArguments(
-                                _methodName,
-                                _receiverType,
-                                out functionResult,
-                                objectInstance,
-                                ref functionArguments);
-                        }
-
                         // First attempt to recognize some well-known functions to avoid binding
                         // and potential first-chance MissingMethodExceptions.
-                        if (!wellKnownFunctionSuccess)
-                        {
-                            args ??= functionArguments.MaterializeAll();
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodName, _receiverType, _fileSystem, out functionResult, objectInstance!, args);
-                        }
+                        wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(
+                            _methodName,
+                            _receiverType,
+                            _fileSystem,
+                            out functionResult,
+                            objectInstance,
+                            ref functionArguments);
 
                         if (!wellKnownFunctionSuccess)
                         {
                             // Some well-known functions need evaluated value from properties.
-                            args ??= functionArguments.MaterializeAll();
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(_methodName, _receiverType, _loggingContext!, properties, out functionResult, objectInstance!, args);
+                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
+                                _methodName,
+                                _receiverType,
+                                _loggingContext!,
+                                properties,
+                                out functionResult,
+                                objectInstance,
+                                ref functionArguments);
                         }
                     }
                     catch (Exception ex) // we need to preserve the same behavior on exceptions as the actual binder
@@ -518,7 +512,7 @@ internal partial class Expander<P, I>
                 }
 
                 // We have nothing left to parse, so we'll return what we have
-                if (StringSegment.IsNullOrEmpty(_remainder))
+                if (_remainder.IsNullOrEmpty)
                 {
                     return functionResult;
                 }
@@ -568,6 +562,9 @@ internal partial class Expander<P, I>
 
                 return null;
             }
+
+            static bool TryParseInvariantDouble(string? value, out double result)
+                => double.TryParse(value, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out result);
         }
 
         private object? GetMethodResult(object? objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)
@@ -895,7 +892,7 @@ internal partial class Expander<P, I>
             // either there are no functions left or what we have is another function or an indexer
             if (remainder.IsEmpty || remainder[0] == '.' || remainder[0] == '[')
             {
-                functionBuilder.Name = functionName.ToString();
+                functionBuilder.Name = functionName.ValueOrEmpty;
                 functionBuilder.Arguments = functionArguments;
                 functionBuilder.BindingFlags = defaultBindingFlags;
                 functionBuilder.Remainder = remainder;

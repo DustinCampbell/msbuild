@@ -37,7 +37,7 @@ internal sealed class PropertyReadData(
     /// <summary>
     /// Name of the property that was accessed.
     /// </summary>
-    public string PropertyName => field ??= propertyName.ToString();
+    public string PropertyName => field ??= propertyName.ValueOrEmpty;
 
     /// <summary>
     /// Location of the property access.

@@ -66,7 +66,7 @@ internal sealed class PropertiesUseTracker
             // Check to see if the property name does not match the property we are currently evaluating, note the property we are currently evaluating in the element name, this means no $( or )
             if (!MSBuildNameIgnoreCaseComparer.Default.Equals(CurrentlyEvaluatingPropertyElementName, propertyName))
             {
-                TryAdd(propertyName.ToString(), elementLocation);
+                TryAdd(propertyName.ValueOrEmpty, elementLocation);
             }
         }
     }

@@ -104,7 +104,7 @@ internal readonly partial struct StringSegment
     /// </returns>
     private StringSegment TrimWhiteSpace(bool front, bool back)
     {
-        if (!HasValue)
+        if (IsNullOrEmpty)
         {
             return this;
         }
@@ -142,7 +142,7 @@ internal readonly partial struct StringSegment
     /// </returns>
     private StringSegment TrimChar(char value, bool front, bool back)
     {
-        if (!HasValue)
+        if (IsNullOrEmpty)
         {
             return this;
         }
@@ -182,7 +182,7 @@ internal readonly partial struct StringSegment
     {
         // An empty trim set has nothing to remove. Unlike string.Trim(char[]), this does not fall back
         // to trimming whitespace; callers that want whitespace trimming use the parameterless overloads.
-        if (!HasValue || trimChars.IsEmpty)
+        if (IsNullOrEmpty || trimChars.IsEmpty)
         {
             return this;
         }

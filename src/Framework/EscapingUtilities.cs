@@ -147,12 +147,12 @@ internal static class EscapingUtilities
     /// </returns>
     public static StringSegment UnescapeAll(StringSegment value)
     {
-        if (StringSegment.IsNullOrEmpty(value))
+        if (value.IsNullOrEmpty)
         {
             return value;
         }
 
-        return TryUnescape(value.Buffer!, value.Offset, value.Length, out string? result)
+        return TryUnescape(value.Buffer, value.Offset, value.Length, out string? result)
             ? result
             : value;
     }

@@ -53,28 +53,6 @@ internal readonly partial struct StringSegment :
     public static readonly StringSegment Empty = string.Empty;
 
     /// <summary>
-    ///  Indicates whether the specified segment is a null segment or has a length of zero.
-    /// </summary>
-    /// <param name="segment">The segment to test.</param>
-    /// <returns>
-    ///  <see langword="true"/> if <paramref name="segment"/> has no underlying buffer or its length is zero;
-    ///  otherwise, <see langword="false"/>.
-    /// </returns>
-    public static bool IsNullOrEmpty(StringSegment segment)
-        => !segment.HasValue || segment.IsEmpty;
-
-    /// <summary>
-    ///  Indicates whether the specified segment is a null segment or consists only of white-space characters.
-    /// </summary>
-    /// <param name="segment">The segment to test.</param>
-    /// <returns>
-    ///  <see langword="true"/> if <paramref name="segment"/> has no underlying buffer, or if every character
-    ///  in it is white-space (including when it is empty); otherwise, <see langword="false"/>.
-    /// </returns>
-    public static bool IsNullOrWhiteSpace(StringSegment segment)
-        => !segment.HasValue || segment.IsWhiteSpace();
-
-    /// <summary>
     ///  Gets the underlying string that this segment is a view over, or <see langword="null"/> if this is a
     ///  null segment.
     /// </summary>
@@ -146,6 +124,12 @@ internal readonly partial struct StringSegment :
                 : Buffer.Substring(Offset, Length);
 
     /// <summary>
+    ///  Gets the segment's characters as a <see cref="string"/>, or <see cref="string.Empty"/> if this is a
+    ///  null segment.
+    /// </summary>
+    public string ValueOrEmpty => Value ?? string.Empty;
+
+    /// <summary>
     ///  Gets a value indicating whether this segment has an underlying buffer; that is, whether it is not a
     ///  null segment.
     /// </summary>
@@ -161,6 +145,13 @@ internal readonly partial struct StringSegment :
     public bool IsEmpty => HasValue && Length == 0;
 
     /// <summary>
+    ///  Gets a value indicating whether this segment has no underlying buffer or has a length of zero.
+    /// </summary>
+    [MemberNotNullWhen(false, nameof(Buffer))]
+    [MemberNotNullWhen(false, nameof(Value))]
+    public bool IsNullOrEmpty => !HasValue || Length == 0;
+
+    /// <summary>
     ///  Indicates whether this segment is non-null and consists entirely of white-space characters. An empty
     ///  (but non-null) segment is considered white-space; a null segment is not.
     /// </summary>
@@ -168,6 +159,8 @@ internal readonly partial struct StringSegment :
     ///  <see langword="true"/> if this segment has an underlying buffer and every character in it is
     ///  white-space; otherwise, <see langword="false"/>.
     /// </returns>
+    [MemberNotNullWhen(true, nameof(Buffer))]
+    [MemberNotNullWhen(true, nameof(Value))]
     public bool IsWhiteSpace()
     {
         if (!HasValue)
@@ -205,6 +198,18 @@ internal readonly partial struct StringSegment :
     }
 
     /// <summary>
+    ///  Indicates whether this segment has no underlying buffer or consists only of white-space characters.
+    /// </summary>
+    /// <returns>
+    ///  <see langword="true"/> if this segment has no underlying buffer, or if every character in it is
+    ///  white-space (including when it is empty); otherwise, <see langword="false"/>.
+    /// </returns>
+    [MemberNotNullWhen(false, nameof(Buffer))]
+    [MemberNotNullWhen(false, nameof(Value))]
+    public bool IsNullOrWhiteSpace()
+        => !HasValue || IsWhiteSpace();
+
+    /// <summary>
     ///  Indicates whether this segment is non-null and every character is an ASCII character (U+0000 through
     ///  U+007F). An empty (but non-null) segment is considered ASCII; a null segment is not.
     /// </summary>
@@ -212,6 +217,8 @@ internal readonly partial struct StringSegment :
     ///  <see langword="true"/> if this segment has an underlying buffer and contains only ASCII characters;
     ///  otherwise, <see langword="false"/>.
     /// </returns>
+    [MemberNotNullWhen(true, nameof(Buffer))]
+    [MemberNotNullWhen(true, nameof(Value))]
     public bool IsAscii()
     {
         if (!HasValue)
@@ -463,7 +470,7 @@ internal readonly partial struct StringSegment :
     [EditorBrowsable(EditorBrowsableState.Never)]
     public unsafe ref char GetPinnableReference()
     {
-        if (!HasValue || Length == 0)
+        if (IsNullOrEmpty)
         {
             // Return a null ref so the compiler emits a null pointer.
             return ref Unsafe.AsRef<char>(null);
@@ -486,6 +493,8 @@ internal readonly partial struct StringSegment :
     /// </returns>
     public static int Compare(StringSegment a, StringSegment b, StringComparison comparisonType)
     {
+        ValidateComparisonType(comparisonType);
+
         if (!a.HasValue)
         {
             // A null segment sorts before any non-null segment; two null segments are equal.
@@ -593,6 +602,13 @@ internal readonly partial struct StringSegment :
 #endif
 
     /// <summary>
+    ///  Verifies that <paramref name="comparisonType"/> is a defined <see cref="StringComparison"/> value.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ValidateComparisonType(StringComparison comparisonType)
+        => Assumed.True((uint)comparisonType <= (uint)StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     ///  Indicates whether this segment begins with the specified character.
     /// </summary>
     /// <param name="value">The character to compare to the start of the segment.</param>
@@ -601,7 +617,7 @@ internal readonly partial struct StringSegment :
     ///  <paramref name="value"/>; otherwise, <see langword="false"/>.
     /// </returns>
     public bool StartsWith(char value)
-        => HasValue && Length > 0 && Buffer[Offset] == value;
+        => !IsNullOrEmpty && Buffer[Offset] == value;
 
     /// <summary>
     ///  Indicates whether this segment begins with the specified string using the specified comparison.
@@ -614,6 +630,7 @@ internal readonly partial struct StringSegment :
     public bool StartsWith(string value, StringComparison comparisonType = StringComparison.Ordinal)
     {
         Assumed.NotNull(value);
+        ValidateComparisonType(comparisonType);
 
         if (value.Length > Length)
         {
@@ -638,6 +655,18 @@ internal readonly partial struct StringSegment :
         => AsSpan().StartsWith(value);
 
     /// <summary>
+    ///  Indicates whether this segment begins with the characters in the specified span using the specified
+    ///  comparison.
+    /// </summary>
+    /// <param name="value">The characters to compare to the start of the segment.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the segment begins with <paramref name="value"/>; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool StartsWith(ReadOnlySpan<char> value, StringComparison comparisonType)
+        => AsSpan().StartsWith(value, comparisonType);
+
+    /// <summary>
     ///  Indicates whether this segment begins with the specified segment using the specified comparison.
     /// </summary>
     /// <param name="value">The segment to compare to the start of this segment.</param>
@@ -648,6 +677,7 @@ internal readonly partial struct StringSegment :
     public bool StartsWith(StringSegment value, StringComparison comparisonType = StringComparison.Ordinal)
     {
         Assumed.True(value.HasValue);
+        ValidateComparisonType(comparisonType);
 
         if (value.Length > Length)
         {
@@ -669,7 +699,7 @@ internal readonly partial struct StringSegment :
     ///  <paramref name="value"/>; otherwise, <see langword="false"/>.
     /// </returns>
     public bool EndsWith(char value)
-        => HasValue && Length > 0 && Buffer[Offset + Length - 1] == value;
+        => !IsNullOrEmpty && Buffer[Offset + Length - 1] == value;
 
     /// <summary>
     ///  Indicates whether this segment ends with the specified string using the specified comparison.
@@ -682,6 +712,7 @@ internal readonly partial struct StringSegment :
     public bool EndsWith(string value, StringComparison comparisonType = StringComparison.Ordinal)
     {
         Assumed.NotNull(value);
+        ValidateComparisonType(comparisonType);
 
         if (value.Length > Length)
         {
@@ -706,6 +737,18 @@ internal readonly partial struct StringSegment :
         => AsSpan().EndsWith(value);
 
     /// <summary>
+    ///  Indicates whether this segment ends with the characters in the specified span using the specified
+    ///  comparison.
+    /// </summary>
+    /// <param name="value">The characters to compare to the end of the segment.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the segment ends with <paramref name="value"/>; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool EndsWith(ReadOnlySpan<char> value, StringComparison comparisonType)
+        => AsSpan().EndsWith(value, comparisonType);
+
+    /// <summary>
     ///  Indicates whether this segment ends with the specified segment using the specified comparison.
     /// </summary>
     /// <param name="value">The segment to compare to the end of this segment.</param>
@@ -716,6 +759,7 @@ internal readonly partial struct StringSegment :
     public bool EndsWith(StringSegment value, StringComparison comparisonType = StringComparison.Ordinal)
     {
         Assumed.True(value.HasValue);
+        ValidateComparisonType(comparisonType);
 
         if (value.Length > Length)
         {
@@ -735,7 +779,7 @@ internal readonly partial struct StringSegment :
     ///  The segment's characters as a string.
     /// </returns>
     public override string ToString()
-        => Value ?? string.Empty;
+        => ValueOrEmpty;
 
     /// <summary>
     ///  Implicitly converts a <see cref="string"/> to a <see cref="StringSegment"/> that views the entire

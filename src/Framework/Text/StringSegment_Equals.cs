@@ -42,6 +42,8 @@ internal readonly partial struct StringSegment
     /// </returns>
     public bool Equals(StringSegment other, StringComparison comparisonType)
     {
+        ValidateComparisonType(comparisonType);
+
         if (HasValue != other.HasValue)
         {
             return false;
@@ -90,6 +92,8 @@ internal readonly partial struct StringSegment
     /// </returns>
     public bool Equals(string? other, StringComparison comparisonType)
     {
+        ValidateComparisonType(comparisonType);
+
         if (HasValue != (other != null))
         {
             return false;
@@ -113,6 +117,19 @@ internal readonly partial struct StringSegment
         return EqualsCore(Buffer, Offset, Length, other!, 0, other!.Length, comparisonType);
 #endif
     }
+
+    /// <summary>
+    ///  Indicates whether this segment is equal to the characters in <paramref name="other"/> using the
+    ///  specified comparison. A null segment is treated as an empty span.
+    /// </summary>
+    /// <param name="other">The characters to compare with this segment.</param>
+    /// <param name="comparisonType">One of the enumeration values that specifies how the values are compared.</param>
+    /// <returns>
+    ///  <see langword="true"/> if this segment and <paramref name="other"/> are equal; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    public bool Equals(ReadOnlySpan<char> other, StringComparison comparisonType = StringComparison.Ordinal)
+        => AsSpan().Equals(other, comparisonType);
 
     /// <summary>
     ///  Indicates whether two <see cref="StringSegment"/> instances are equal using an ordinal comparison.
@@ -184,13 +201,6 @@ internal readonly partial struct StringSegment
     /// <summary>
     ///  Determines whether two string regions are equal using ordinal ignore case comparison.
     /// </summary>
-    /// <param name="buffer1"></param>
-    /// <param name="offset1"></param>
-    /// <param name="length1"></param>
-    /// <param name="buffer2"></param>
-    /// <param name="offset2"></param>
-    /// <param name="length2"></param>
-    /// <returns></returns>
     private static bool EqualsOrdinalIgnoreCase(string buffer1, int offset1, int length1, string buffer2, int offset2, int length2)
     {
         // Regions of different lengths can never be ordinally equal.

@@ -27,27 +27,31 @@ internal readonly partial struct StringSegment
             return string.Empty;
         }
 
-        int total = values.Length - 1;
-        foreach (StringSegment value in values)
+        if (values.Length == 1)
         {
-            total += value.Length;
+            // No separator or copy is needed; preserve the underlying string when the segment covers it entirely.
+            return values[0].ValueOrEmpty;
         }
 
-        if (total == 0)
+        // Compute the exact destination size once so JoinCore can allocate the result without another traversal.
+        int length = values.Length - 1;
+        foreach (StringSegment value in values)
         {
-            return string.Empty;
+            length += value.Length;
         }
 
 #if NET
-        return JoinCore(new ReadOnlySpan<char>(in separator), values);
+        return JoinCore(new ReadOnlySpan<char>(in separator), values, length);
 #else
-        string result = string.FastAllocateString(total);
+        // Keep the character separator as a direct assignment on .NET Framework rather than using the
+        // general span-copying path in JoinCore.
+        string result = string.FastAllocateString(length);
 
         unsafe
         {
             fixed (char* ptr = result)
             {
-                Span<char> destination = new(ptr, total);
+                Span<char> destination = new(ptr, length);
                 StringSegment first = values[0];
                 first.CopyTo(destination);
                 int position = first.Length;
@@ -84,6 +88,12 @@ internal readonly partial struct StringSegment
             return string.Empty;
         }
 
+        if (values.Length == 1)
+        {
+            // No separator or copy is needed; preserve the underlying string when the segment covers it entirely.
+            return values[0].ValueOrEmpty;
+        }
+
         switch (separator)
         {
             case [char c]:
@@ -92,46 +102,14 @@ internal readonly partial struct StringSegment
                 return JoinCore_NoSeparator(values);
         }
 
-        int total = separator.Length * (values.Length - 1);
+        // Compute the exact destination size once so JoinCore can allocate the result without another traversal.
+        int length = separator.Length * (values.Length - 1);
         foreach (StringSegment value in values)
         {
-            total += value.Length;
+            length += value.Length;
         }
 
-        if (total == 0)
-        {
-            return string.Empty;
-        }
-
-#if NET
-        return JoinCore(separator.AsSpan(), values);
-#else
-        string result = string.FastAllocateString(total);
-
-        unsafe
-        {
-            fixed (char* ptr = result)
-            {
-                Span<char> destination = new(ptr, total);
-                ReadOnlySpan<char> separatorSpan = separator.AsSpan();
-                StringSegment first = values[0];
-                first.CopyTo(destination);
-                int position = first.Length;
-
-                for (int i = 1; i < values.Length; i++)
-                {
-                    separatorSpan.CopyTo(destination[position..]);
-                    position += separatorSpan.Length;
-
-                    StringSegment value = values[i];
-                    value.CopyTo(destination[position..]);
-                    position += value.Length;
-                }
-            }
-        }
-
-        return result;
-#endif
+        return JoinCore(separator.AsSpan(), values, length);
     }
 
     /// <summary>
@@ -139,25 +117,16 @@ internal readonly partial struct StringSegment
     /// </summary>
     /// <param name="separator">The string to insert between each segment.</param>
     /// <param name="values">The segments to concatenate.</param>
+    /// <param name="length">The total length of the resulting string.</param>
     /// <returns>
     ///  A string consisting of the segments separated by <paramref name="separator"/>, or
     ///  <see cref="string.Empty"/> if <paramref name="values"/> is empty.
     /// </returns>
-    private static string JoinCore(ReadOnlySpan<char> separator, ReadOnlySpan<StringSegment> values)
+    private static string JoinCore(ReadOnlySpan<char> separator, ReadOnlySpan<StringSegment> values, int length)
     {
-        int total = separator.Length * (values.Length - 1);
-        foreach (StringSegment value in values)
-        {
-            total += value.Length;
-        }
-
-        if (total == 0)
-        {
-            return string.Empty;
-        }
-
+        // Callers have already handled empty results and computed the exact destination length.
 #if NET
-        return string.Create(total, new JoinCoreState(separator, values), static (span, state) =>
+        return string.Create(length, new JoinCoreState(separator, values), static (span, state) =>
         {
             var (separator, values) = state;
 
@@ -177,13 +146,13 @@ internal readonly partial struct StringSegment
         });
 #else
         // Note: The non-NET code path is needed because the string.Create polyfill can't use a ref struct as state.
-        string result = string.FastAllocateString(total);
+        string result = string.FastAllocateString(length);
 
         unsafe
         {
             fixed (char* ptr = result)
             {
-                Span<char> destination = new(ptr, total);
+                Span<char> destination = new(ptr, length);
                 StringSegment first = values[0];
                 first.CopyTo(destination);
                 int position = first.Length;
@@ -239,19 +208,27 @@ internal readonly partial struct StringSegment
     /// </returns>
     private static string JoinCore_NoSeparator(ReadOnlySpan<StringSegment> values)
     {
-        int total = 0;
-        foreach (StringSegment value in values)
+        if (values.Length == 1)
         {
-            total += value.Length;
+            // No copy is needed; preserve the underlying string when the segment covers it entirely.
+            return values[0].ValueOrEmpty;
         }
 
-        if (total == 0)
+        // Compute the exact destination size once so the result can be allocated at its final length.
+        int length = 0;
+        foreach (StringSegment value in values)
+        {
+            length += value.Length;
+        }
+
+        // Unlike the separator overloads, multiple empty segments still produce an empty result.
+        if (length == 0)
         {
             return string.Empty;
         }
 
 #if NET
-        return string.Create(total, values, static (span, values) =>
+        return string.Create(length, values, static (span, values) =>
         {
             int position = 0;
             for (int i = 0; i < values.Length; i++)
@@ -263,13 +240,13 @@ internal readonly partial struct StringSegment
         });
 #else
         // Note: The non-NET code path is needed because the string.Create polyfill can't use a ref struct as state.
-        string result = string.FastAllocateString(total);
+        string result = string.FastAllocateString(length);
 
         unsafe
         {
             fixed (char* ptr = result)
             {
-                Span<char> destination = new(ptr, total);
+                Span<char> destination = new(ptr, length);
                 int position = 0;
 
                 for (int i = 0; i < values.Length; i++)
@@ -322,16 +299,24 @@ internal readonly partial struct StringSegment
         }
 
         StringSegment first = enumerator.Current;
+
+        if (!enumerator.MoveNext())
+        {
+            // Avoid acquiring and populating a StringBuilder when the sequence contains only one segment.
+            return first.ValueOrEmpty;
+        }
+
         StringBuilder builder = StringBuilderCache.Acquire();
 
         builder.AppendSegment(first);
 
-        while (enumerator.MoveNext())
+        do
         {
             StringSegment value = enumerator.Current;
             builder.Append(separator);
             builder.AppendSegment(value);
         }
+        while (enumerator.MoveNext());
 
         return StringBuilderCache.GetStringAndRelease(builder);
     }
@@ -380,14 +365,23 @@ internal readonly partial struct StringSegment
             return string.Empty;
         }
 
-        StringBuilder builder = StringBuilderCache.Acquire();
-        builder.AppendSegment(enumerator.Current);
+        StringSegment first = enumerator.Current;
 
-        while (enumerator.MoveNext())
+        if (!enumerator.MoveNext())
+        {
+            // Avoid acquiring and populating a StringBuilder when the sequence contains only one segment.
+            return first.ValueOrEmpty;
+        }
+
+        StringBuilder builder = StringBuilderCache.Acquire();
+        builder.AppendSegment(first);
+
+        do
         {
             builder.Append(separator);
             builder.AppendSegment(enumerator.Current);
         }
+        while (enumerator.MoveNext());
 
         return StringBuilderCache.GetStringAndRelease(builder);
     }
@@ -417,13 +411,22 @@ internal readonly partial struct StringSegment
             return string.Empty;
         }
 
-        StringBuilder builder = StringBuilderCache.Acquire();
-        builder.AppendSegment(enumerator.Current);
+        StringSegment first = enumerator.Current;
 
-        while (enumerator.MoveNext())
+        if (!enumerator.MoveNext())
+        {
+            // Avoid acquiring and populating a StringBuilder when the sequence contains only one segment.
+            return first.ValueOrEmpty;
+        }
+
+        StringBuilder builder = StringBuilderCache.Acquire();
+        builder.AppendSegment(first);
+
+        do
         {
             builder.AppendSegment(enumerator.Current);
         }
+        while (enumerator.MoveNext());
 
         return StringBuilderCache.GetStringAndRelease(builder);
     }
