@@ -10,6 +10,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable enable
 
@@ -37,16 +38,14 @@ internal sealed class PropertiesUseTracker
     /// </summary>
     private Dictionary<string, IElementLocation>? _properties;
 
-    internal void TrackRead(string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, bool isUninitialized, bool isArtificial)
+    internal void TrackRead(StringSegment propertyName, IElementLocation elementLocation, bool isUninitialized)
     {
-        if (isArtificial)
-        {
-            return;
-        }
-
         // LoggingContext can be null e.g. for initial toolset resolving and reading - we'll miss those expansions in our tracking
-        LoggingContext?.ProcessPropertyRead(new PropertyReadInfo(propertyName, startIndex, endIndex,
-            elementLocation, isUninitialized, GetPropertyReadContext(propertyName, startIndex, endIndex)));
+        LoggingContext?.ProcessPropertyRead(new PropertyReadInfo(
+            propertyName,
+            elementLocation,
+            isUninitialized,
+            GetPropertyReadContext(propertyName)));
 
         if (!isUninitialized)
         {
@@ -65,21 +64,18 @@ internal sealed class PropertiesUseTracker
         if (_warnForUninitializedProperties && CurrentlyEvaluatingPropertyElementName != null)
         {
             // Check to see if the property name does not match the property we are currently evaluating, note the property we are currently evaluating in the element name, this means no $( or )
-            if (!MSBuildNameIgnoreCaseComparer.Default.Equals(CurrentlyEvaluatingPropertyElementName, propertyName, startIndex, endIndex - startIndex + 1))
+            if (!MSBuildNameIgnoreCaseComparer.Default.Equals(CurrentlyEvaluatingPropertyElementName, propertyName))
             {
-                TryAdd(
-                    propertyName: propertyName.Substring(startIndex, endIndex - startIndex + 1),
-                    elementLocation);
+                TryAdd(propertyName.ToString(), elementLocation);
             }
         }
     }
 
-    private PropertyReadContext GetPropertyReadContext(string propertyName, int startIndex, int endIndex)
+    private PropertyReadContext GetPropertyReadContext(StringSegment propertyName)
     {
         if (PropertyReadContext == PropertyReadContext.PropertyEvaluation &&
-            !string.IsNullOrEmpty(CurrentlyEvaluatingPropertyElementName) &&
-            MSBuildNameIgnoreCaseComparer.Default.Equals(CurrentlyEvaluatingPropertyElementName, propertyName,
-                startIndex, endIndex - startIndex + 1))
+            !CurrentlyEvaluatingPropertyElementName.IsNullOrEmpty() &&
+            MSBuildNameIgnoreCaseComparer.Default.Equals(CurrentlyEvaluatingPropertyElementName, propertyName))
         {
             return PropertyReadContext.PropertyEvaluationSelf;
         }

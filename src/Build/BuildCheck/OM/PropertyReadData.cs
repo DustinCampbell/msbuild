@@ -4,16 +4,17 @@
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Experimental.BuildCheck;
 
 /// <summary>
 /// Information about property being accessed - whether during evaluation or build.
 /// </summary>
-internal class PropertyReadData(
+internal sealed class PropertyReadData(
     string projectFilePath,
     int? projectConfigurationId,
-    string propertyName,
+    StringSegment propertyName,
     IMSBuildElementLocation elementLocation,
     bool isUninitialized,
     PropertyReadContext propertyReadContext)
@@ -23,18 +24,20 @@ internal class PropertyReadData(
         string projectFilePath,
         int? projectConfigurationId,
         PropertyReadInfo propertyReadInfo)
-        : this(projectFilePath,
+        : this(
+            projectFilePath,
             projectConfigurationId,
-            propertyReadInfo.PropertyName.Substring(propertyReadInfo.StartIndex, propertyReadInfo.EndIndex - propertyReadInfo.StartIndex + 1),
+            propertyReadInfo.PropertyName,
             propertyReadInfo.ElementLocation,
             propertyReadInfo.IsUninitialized,
             propertyReadInfo.PropertyReadContext)
-    { }
+    {
+    }
 
     /// <summary>
     /// Name of the property that was accessed.
     /// </summary>
-    public string PropertyName { get; } = propertyName;
+    public string PropertyName => field ??= propertyName.ToString();
 
     /// <summary>
     /// Location of the property access.

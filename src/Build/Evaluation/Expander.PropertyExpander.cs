@@ -7,7 +7,6 @@ using System.Globalization;
 #if !FEATURE_MSIOREDIST
 using System.IO;
 #endif
-using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -172,7 +171,7 @@ internal partial class Expander<P, I>
                     {
                         // If the property body starts with any of our special objects, then deal with them
                         // This is a registry reference, like $(Registry:HKEY_LOCAL_MACHINE\Software\Vendor\Tools@TaskLocation)
-                        propertyValue = ExpandRegistryValue(propertyBody.Value!, elementLocation); // This func returns an empty string if not on Windows
+                        propertyValue = ExpandRegistryValue(propertyBody, elementLocation); // This func returns an empty string if not on Windows
                     }
 
                     // Compat hack: as a special case, $(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory) should return String.Empty
@@ -435,46 +434,34 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
         /// </summary>
-        private static object LookupProperty(IPropertyProvider<P> properties, StringSegment propertyName, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
-            => LookupProperty(properties, propertyName.Buffer!, propertyName.Offset, propertyName.Offset + propertyName.Length - 1, elementLocation, propertiesUseTracker);
-
-        /// <summary>
-        /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
-        /// </summary>
-        private static object LookupProperty(IPropertyProvider<P> properties, string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
+        private static string LookupProperty(IPropertyProvider<P> properties, StringSegment propertyName, IElementLocation elementLocation, PropertiesUseTracker propertiesUseTracker)
         {
-            P? property = properties.GetProperty(propertyName, startIndex, endIndex);
+            P? property = properties.GetProperty(propertyName);
 
-            object propertyValue;
+            bool mayBeReservedProperty = property == null &&
+                propertyName.Length > 7 &&
+                propertyName.StartsWith("MSBuild", StringComparison.OrdinalIgnoreCase);
 
-            bool isArtificial = property == null && ((endIndex - startIndex) >= 7) &&
-                               MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7);
-
-            propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, elementLocation, property == null, isArtificial);
-
-            if (isArtificial)
+            if (mayBeReservedProperty)
             {
                 // It could be one of the MSBuildThisFileXXXX properties,
                 // whose values vary according to the file they are in.
-                propertyValue = startIndex != 0 || endIndex != propertyName.Length
-                    ? ExpandMSBuildThisFileProperty(propertyName.Substring(startIndex, endIndex - startIndex + 1), elementLocation)
-                    : ExpandMSBuildThisFileProperty(propertyName, elementLocation);
-            }
-            else if (property == null)
-            {
-                propertyValue = string.Empty;
-            }
-            else
-            {
-                if (property is ProjectPropertyInstance.EnvironmentDerivedProjectPropertyInstance environmentDerivedProperty)
-                {
-                    environmentDerivedProperty.loggingContext = propertiesUseTracker.LoggingContext;
-                }
-
-                propertyValue = property.GetEvaluatedValueEscaped(elementLocation);
+                return ExpandMSBuildThisFileProperty(propertyName, elementLocation);
             }
 
-            return propertyValue;
+            propertiesUseTracker.TrackRead(propertyName, elementLocation, property == null);
+
+            if (property == null)
+            {
+                return string.Empty;
+            }
+
+            if (property is ProjectPropertyInstance.EnvironmentDerivedProjectPropertyInstance environmentDerivedProperty)
+            {
+                environmentDerivedProperty.loggingContext = propertiesUseTracker.LoggingContext;
+            }
+
+            return property.GetEvaluatedValueEscaped(elementLocation);
         }
 
         /// <summary>
@@ -484,7 +471,7 @@ internal partial class Expander<P, I>
         /// never been saved) then returns empty string.
         /// If the property name is not one of those properties, returns empty string.
         /// </summary>
-        private static string ExpandMSBuildThisFileProperty(string propertyName, IElementLocation elementLocation)
+        private static string ExpandMSBuildThisFileProperty(StringSegment propertyName, IElementLocation elementLocation)
         {
             if (!ReservedPropertyNames.IsReservedProperty(propertyName))
             {
@@ -496,34 +483,34 @@ internal partial class Expander<P, I>
                 return string.Empty;
             }
 
-            // Because String.Equals checks the length first, and these strings are almost
+            // Because StringSegment.Equals checks the length first, and these strings are almost
             // all different lengths, this sequence is efficient.
-            if (string.Equals(propertyName, ReservedPropertyNames.thisFile, StringComparison.OrdinalIgnoreCase))
+            if (propertyName.Equals(ReservedPropertyNames.thisFile, StringComparison.OrdinalIgnoreCase))
             {
                 return Path.GetFileName(elementLocation.File);
             }
 
-            if (string.Equals(propertyName, ReservedPropertyNames.thisFileName, StringComparison.OrdinalIgnoreCase))
+            if (propertyName.Equals(ReservedPropertyNames.thisFileName, StringComparison.OrdinalIgnoreCase))
             {
                 return Path.GetFileNameWithoutExtension(elementLocation.File);
             }
 
-            if (string.Equals(propertyName, ReservedPropertyNames.thisFileFullPath, StringComparison.OrdinalIgnoreCase))
+            if (propertyName.Equals(ReservedPropertyNames.thisFileFullPath, StringComparison.OrdinalIgnoreCase))
             {
                 return FileUtilities.NormalizePath(elementLocation.File);
             }
 
-            if (string.Equals(propertyName, ReservedPropertyNames.thisFileExtension, StringComparison.OrdinalIgnoreCase))
+            if (propertyName.Equals(ReservedPropertyNames.thisFileExtension, StringComparison.OrdinalIgnoreCase))
             {
                 return Path.GetExtension(elementLocation.File);
             }
 
-            if (string.Equals(propertyName, ReservedPropertyNames.thisFileDirectory, StringComparison.OrdinalIgnoreCase))
+            if (propertyName.Equals(ReservedPropertyNames.thisFileDirectory, StringComparison.OrdinalIgnoreCase))
             {
                 return FileUtilities.EnsureTrailingSlash(Path.GetDirectoryName(elementLocation.File)!);
             }
 
-            if (string.Equals(propertyName, ReservedPropertyNames.thisFileDirectoryNoRoot, StringComparison.OrdinalIgnoreCase))
+            if (propertyName.Equals(ReservedPropertyNames.thisFileDirectoryNoRoot, StringComparison.OrdinalIgnoreCase))
             {
                 string directory = Path.GetDirectoryName(elementLocation.File)!;
                 int rootLength = Path.GetPathRoot(directory)!.Length;
@@ -541,9 +528,9 @@ internal partial class Expander<P, I>
         /// "TaskLocation" is the name of the value.  The name of the value and the preceding "@" may be omitted if
         /// the default value is desired.
         /// </summary>
-        private static string ExpandRegistryValue(string registryExpression, IElementLocation elementLocation)
+        private static string ExpandRegistryValue(StringSegment registryExpression, IElementLocation elementLocation)
         {
-#if RUNTIME_TYPE_NETCORE
+#if NET
             // .NET Core MSBuild used to always return empty, so match that behavior
             // on non-Windows (no registry).
             if (!NativeMethodsShared.IsWindows)
@@ -553,75 +540,80 @@ internal partial class Expander<P, I>
 #endif
 
             // Remove "Registry:" prefix
-            string registryLocation = registryExpression.Substring(9);
+            StringSegment registryLocation = registryExpression[9..];
 
-            // Split off the value name -- the part after the "@" sign. If there's no "@" sign, then it's the default value name
-            // we want.
-            int firstAtSignOffset = registryLocation.IndexOf('@');
-            int lastAtSignOffset = registryLocation.LastIndexOf('@');
+            // Split off the value name -- the part after the "@" sign. If there's no "@" sign,
+            // then it's the default value name we want.
+            int atSignIndex = registryLocation.IndexOf('@');
 
-            ProjectErrorUtilities.VerifyThrowInvalidProject(firstAtSignOffset == lastAtSignOffset, elementLocation, "InvalidRegistryPropertyExpression", "$(" + registryExpression + ")", string.Empty);
-
-            string? valueName = lastAtSignOffset == -1 || lastAtSignOffset == registryLocation.Length - 1
-                ? null : registryLocation.Substring(lastAtSignOffset + 1);
-
-            // If there's no '@', or '@' is first, then we'll use null or String.Empty for the location; otherwise
-            // the location is the part before the '@'
-            string registryKeyName = lastAtSignOffset != -1 ? registryLocation.Substring(0, lastAtSignOffset) : registryLocation;
-
-            string result = string.Empty;
-            if (registryKeyName != null)
+            if (registryLocation.IndexOf('@', atSignIndex + 1) >= 0)
             {
-                // We rely on the '@' character to delimit the key and its value, but the registry
-                // allows this character to be used in the names of keys and the names of values.
-                // Hence we use our standard escaping mechanism to allow users to access such keys
-                // and values.
-                registryKeyName = EscapingUtilities.UnescapeAll(registryKeyName);
-
-                if (valueName != null)
-                {
-                    valueName = EscapingUtilities.UnescapeAll(valueName);
-                }
-
-                try
-                {
-                    // Unless we are running under Windows, don't bother with anything but the user keys
-                    if (!NativeMethodsShared.IsWindows && !registryKeyName.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Fake common requests to HKLM that we can resolve
-
-                        // This is the base path of the framework
-                        if (registryKeyName.StartsWith(@"HKEY_LOCAL_MACHINE\Software\Microsoft\.NETFramework", StringComparison.OrdinalIgnoreCase) &&
-                            valueName!.Equals("InstallRoot", StringComparison.OrdinalIgnoreCase))
-                        {
-                            return NativeMethodsShared.FrameworkBasePath + Path.DirectorySeparatorChar;
-                        }
-
-                        return string.Empty;
-                    }
-
-                    object? valueFromRegistry = Registry.GetValue(registryKeyName, valueName, null /* default if key or value name is not found */);
-
-                    if (valueFromRegistry != null)
-                    {
-                        // Convert the result to a string that is reasonable for MSBuild
-                        result = ConvertToString(valueFromRegistry);
-                    }
-                    else
-                    {
-                        // This means either the key or value was not found in the registry.  In this case,
-                        // we simply expand the property value to String.Empty to imitate the behavior of
-                        // normal properties.
-                        result = string.Empty;
-                    }
-                }
-                catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
-                {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidRegistryPropertyExpression", $"$({registryExpression})", ex.Message);
-                }
+                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidRegistryPropertyExpression", $"$({registryExpression})", string.Empty);
             }
 
-            return result;
+            StringSegment registryKeyName;
+            StringSegment valueName;
+
+            if (atSignIndex >= 0)
+            {
+                // If there's no '@', or '@' is first, then we'll use null or String.Empty for the location; otherwise
+                // the location is the part before the '@'
+                registryKeyName = registryLocation[..atSignIndex];
+
+                valueName = atSignIndex < registryLocation.Length - 1
+                    ? registryLocation[(atSignIndex + 1)..]
+                    : default;
+            }
+            else
+            {
+                registryKeyName = registryLocation;
+                valueName = default;
+            }
+
+            // We rely on the '@' character to delimit the key and its value, but the registry
+            // allows this character to be used in the names of keys and the names of values.
+            // Hence we use our standard escaping mechanism to allow users to access such keys
+            // and values.
+            if (registryKeyName.Length > 0)
+            {
+                registryKeyName = EscapingUtilities.UnescapeAll(registryKeyName);
+            }
+
+            if (valueName.HasValue)
+            {
+                valueName = EscapingUtilities.UnescapeAll(valueName);
+            }
+
+            try
+            {
+                // Unless we are running under Windows, don't bother with anything but the user keys
+                if (!NativeMethodsShared.IsWindows && !registryKeyName.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Fake common requests to HKLM that we can resolve
+
+                    // This is the base path of the framework
+                    if (registryKeyName.StartsWith(@"HKEY_LOCAL_MACHINE\Software\Microsoft\.NETFramework", StringComparison.OrdinalIgnoreCase) &&
+                        valueName.Equals("InstallRoot", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return NativeMethodsShared.FrameworkBasePath + Path.DirectorySeparatorChar;
+                    }
+
+                    return string.Empty;
+                }
+
+                object? valueFromRegistry = Registry.GetValue(registryKeyName.Value!, valueName.Value, defaultValue: null);
+
+                // This means either the key or value was not found in the registry. In this case,
+                // return String.Empty to imitate the behavior of normal properties.
+                return valueFromRegistry is not null
+                    ? ConvertToString(valueFromRegistry)
+                    : string.Empty;
+            }
+            catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
+            {
+                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidRegistryPropertyExpression", $"$({registryExpression})", ex.Message);
+                return string.Empty;
+            }
         }
     }
 }
