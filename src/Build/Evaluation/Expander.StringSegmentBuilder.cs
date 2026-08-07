@@ -1,9 +1,10 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.Collections;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Text;
+using Microsoft.NET.StringTools;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -12,15 +13,15 @@ internal partial class Expander<P, I>
     where I : class, IItem
 {
     /// <summary>
-    ///  Collects string segments, adjusts each segment that may contain a file path, and concatenates them into
-    ///  a single string.
+    ///  Collects string segments, adjusts each segment that may contain a file path, and weakly interns their
+    ///  concatenation.
     /// </summary>
     /// <remarks>
     ///  This is purpose-built for property expansion to adjust segments that are actually file paths.
     /// </remarks>
     private ref struct StringSegmentBuilder
     {
-        private RefArrayBuilder<StringSegment> _segments;
+        private SpanBasedStringBuilder? _builder;
 
         /// <summary>
         ///  Adjusts a segment that may contain a file path and adds it to be concatenated.
@@ -32,13 +33,51 @@ internal partial class Expander<P, I>
                 return;
             }
 
+            segment = NativeMethodsShared.IsWindows
+                ? segment
+                : FileUtilities.MaybeAdjustFilePath(segment);
+
+            (_builder ??= Strings.GetSpanBasedStringBuilder()).Append(segment.AsMemory());
+        }
+
+        /// <summary>
+        ///  Adjusts a string that may contain a file path and adds it to be concatenated.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Append(string value)
+        {
+            if (value.Length == 0)
+            {
+                return;
+            }
+
             if (NativeMethodsShared.IsWindows)
             {
-                _segments.Add(segment);
+                (_builder ??= Strings.GetSpanBasedStringBuilder()).Append(value);
             }
             else
             {
-                _segments.Add(FileUtilities.MaybeAdjustFilePath(segment));
+                Append(FileUtilities.MaybeAdjustFilePath((StringSegment)value));
+            }
+        }
+
+        /// <summary>
+        ///  Adjusts a string region that may contain a file path and adds it to be concatenated.
+        /// </summary>
+        public void Append(string value, int start, int length)
+        {
+            if (length == 0)
+            {
+                return;
+            }
+
+            if (NativeMethodsShared.IsWindows)
+            {
+                (_builder ??= Strings.GetSpanBasedStringBuilder()).Append(value, start, length);
+            }
+            else
+            {
+                Append(FileUtilities.MaybeAdjustFilePath(new StringSegment(value, start, length)));
             }
         }
 
@@ -46,12 +85,12 @@ internal partial class Expander<P, I>
         ///  Returns the result of the concatenation.
         /// </summary>
         public readonly string GetResult()
-            => StringSegment.Join(string.Empty, _segments.AsSpan());
+            => _builder?.ToString() ?? string.Empty;
 
         /// <summary>
-        ///  Returns the rented segment array to the pool.
+        ///  Returns the span-based builder to its pool.
         /// </summary>
         public void Dispose()
-            => _segments.Dispose();
+            => _builder?.Dispose();
     }
 }

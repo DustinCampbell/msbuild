@@ -184,6 +184,11 @@ namespace Microsoft.Build.Evaluation.Expander
         /// <returns></returns>
         internal static bool TryExecuteStringFunction(string methodName, out object? returnVal, string text, ref FunctionArguments args)
         {
+            if (args.Count == 0 && TryExecuteStringFunctionNoArguments(methodName, out returnVal, text))
+            {
+                return true;
+            }
+
             returnVal = null;
             if (string.Equals(methodName, nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase))
             {
@@ -211,22 +216,6 @@ namespace Microsoft.Build.Evaluation.Expander
                     return true;
                 }
             }
-            else if (string.Equals(methodName, nameof(string.ToUpperInvariant), StringComparison.OrdinalIgnoreCase))
-            {
-                if (args.Count == 0)
-                {
-                    returnVal = text.ToUpperInvariant();
-                    return true;
-                }
-            }
-            else if (string.Equals(methodName, nameof(string.ToLowerInvariant), StringComparison.OrdinalIgnoreCase))
-            {
-                if (args.Count == 0)
-                {
-                    returnVal = text.ToLowerInvariant();
-                    return true;
-                }
-            }
             else if (string.Equals(methodName, nameof(string.EndsWith), StringComparison.OrdinalIgnoreCase))
             {
                 if (args.Count == 1 && args.TryGetString(0, out string? arg0) && arg0 != null)
@@ -239,14 +228,6 @@ namespace Microsoft.Build.Evaluation.Expander
                     && args.TryGetStringComparison(1, out StringComparison arg1))
                 {
                     returnVal = text.EndsWith(arg0, arg1);
-                    return true;
-                }
-            }
-            else if (string.Equals(methodName, nameof(string.ToLower), StringComparison.OrdinalIgnoreCase))
-            {
-                if (args.Count == 0)
-                {
-                    returnVal = text.ToLower();
                     return true;
                 }
             }
@@ -295,14 +276,6 @@ namespace Microsoft.Build.Evaluation.Expander
                 if (args.Count == 1 && args.TryGetString(0, out string? arg0) && arg0 != null)
                 {
                     returnVal = text.AsSpan().LastIndexOfAny(arg0.AsSpan());
-                    return true;
-                }
-            }
-            else if (string.Equals(methodName, nameof(string.Length), StringComparison.OrdinalIgnoreCase))
-            {
-                if (args.Count == 0)
-                {
-                    returnVal = text.Length;
                     return true;
                 }
             }
@@ -391,6 +364,45 @@ namespace Microsoft.Build.Evaluation.Expander
                     return true;
                 }
             }
+            return false;
+        }
+
+        internal static bool TryExecuteStringFunctionNoArguments(
+            string methodName,
+            out object? returnVal,
+            string text)
+            => TryExecuteStringFunctionNoArguments((StringSegment)methodName, out returnVal, text);
+
+        internal static bool TryExecuteStringFunctionNoArguments(
+            StringSegment methodName,
+            out object? returnVal,
+            string text)
+        {
+            if (methodName.Equals(nameof(string.ToUpperInvariant), StringComparison.OrdinalIgnoreCase))
+            {
+                returnVal = text.ToUpperInvariant();
+                return true;
+            }
+
+            if (methodName.Equals(nameof(string.ToLowerInvariant), StringComparison.OrdinalIgnoreCase))
+            {
+                returnVal = text.ToLowerInvariant();
+                return true;
+            }
+
+            if (methodName.Equals(nameof(string.ToLower), StringComparison.OrdinalIgnoreCase))
+            {
+                returnVal = text.ToLower();
+                return true;
+            }
+
+            if (methodName.Equals(nameof(string.Length), StringComparison.OrdinalIgnoreCase))
+            {
+                returnVal = text.Length;
+                return true;
+            }
+
+            returnVal = null;
             return false;
         }
 

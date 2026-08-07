@@ -224,6 +224,11 @@ internal readonly partial struct StringSegment
 
         if (HasValue)
         {
+            if (value.Length == 2 && comparisonType == StringComparison.Ordinal)
+            {
+                return IndexOfTwoCharacters(value[0], value[1], start, length);
+            }
+
             result = Buffer.IndexOf(value, Offset + start, length, comparisonType);
 
             if (result >= 0)
@@ -347,8 +352,48 @@ internal readonly partial struct StringSegment
     public int IndexOf(StringSegment value, int start, int length, StringComparison comparisonType = StringComparison.Ordinal)
     {
         Assumed.True(value.HasValue);
+        Assumed.PositiveOrZero(start);
+        Assumed.PositiveOrZero(length);
+        Assumed.LessThanOrEqual(start + length, Length);
+
+        if (value.Length == 2 && comparisonType == StringComparison.Ordinal)
+        {
+            return IndexOfTwoCharacters(value[0], value[1], start, length);
+        }
 
         return IndexOf(value.Value, start, length, comparisonType);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int IndexOfTwoCharacters(char first, char second, int start, int length)
+    {
+        if (length < 2 || IsNullOrEmpty)
+        {
+            return -1;
+        }
+
+        int searchIndex = Offset + start;
+        int remainingStarts = length - 1;
+
+        while (remainingStarts > 0)
+        {
+            int firstIndex = Buffer.IndexOf(first, searchIndex, remainingStarts);
+            if (firstIndex < 0)
+            {
+                return -1;
+            }
+
+            if (Buffer[firstIndex + 1] == second)
+            {
+                return firstIndex - Offset;
+            }
+
+            int consumed = firstIndex - searchIndex + 1;
+            searchIndex = firstIndex + 1;
+            remainingStarts -= consumed;
+        }
+
+        return -1;
     }
 
     /// <summary>

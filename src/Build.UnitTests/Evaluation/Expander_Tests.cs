@@ -4658,6 +4658,13 @@ $(
         }
 
         [Fact]
+        public void PropertyFunctionSubstringNegativeLength()
+        {
+            Should.Throw<InvalidProjectFileException>(
+                () => TestPropertyFunction("$(prop.Substring(2, -1))", "prop", "abcdef", string.Empty));
+        }
+
+        [Fact]
         public void PropertyFunctionStringGetChars()
         {
             TestPropertyFunction("$(prop[0])", "prop", "461", "4");

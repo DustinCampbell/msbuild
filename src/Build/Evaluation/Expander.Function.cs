@@ -359,6 +359,30 @@ internal partial class Expander<P, I>
                     }
                 }
 
+                if (_arguments.IsEmpty
+                    && objectInstance is string stringInstance
+                    && WellKnownFunctions.TryExecuteStringFunctionNoArguments(
+                        _methodName,
+                        out functionResult,
+                        stringInstance))
+                {
+                    if (functionResult is string fastFunctionResultString)
+                    {
+                        functionResult = EscapingUtilities.Escape(fastFunctionResultString);
+                    }
+
+                    return _remainder.IsNullOrEmpty
+                        ? functionResult
+                        : PropertyExpander.ExpandPropertyBody(
+                            _remainder,
+                            functionResult,
+                            properties,
+                            options,
+                            elementLocation,
+                            _propertiesUseTracker,
+                            _fileSystem);
+                }
+
                 functionArguments = _arguments.IsEmpty
                     ? default
                     : new(_arguments, _receiverType, _methodName);

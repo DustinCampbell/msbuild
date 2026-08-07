@@ -2,14 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+#if NET
+using System.Buffers;
+#endif
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 #if !FEATURE_MSIOREDIST
 using System.IO;
 #endif
 using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -38,6 +43,18 @@ internal partial class Expander<P, I>
     /// </remarks>
     private readonly ref struct PropertyExpander
     {
+        private const string LegacyVisualStudioRegistryProperty =
+            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory";
+        private const string SimpleWholePropertySpecialCharacters = ".[$:()'`\"";
+
+#if NET
+        private static readonly SearchValues<char> s_simpleWholePropertySpecialCharacters =
+            SearchValues.Create(SimpleWholePropertySpecialCharacters);
+#else
+        private static readonly char[] s_simpleWholePropertySpecialCharacters =
+            SimpleWholePropertySpecialCharacters.ToCharArray();
+#endif
+
         private readonly IPropertyProvider<P> _properties;
         private readonly ExpanderOptions _options;
         private readonly IElementLocation _elementLocation;
@@ -98,22 +115,25 @@ internal partial class Expander<P, I>
 
             Assumed.NotNull(properties, "Cannot expand properties without providing properties");
 
-            // Keep the overwhelmingly common no-property path on string. A segment is useful only after a property
-            // reference has actually been found.
-            int propertyStartIndex = expression.IndexOf("$(", StringComparison.Ordinal);
+            int propertyStartIndex = IndexOfPropertyStart(expression, startIndex: 0);
             if (propertyStartIndex == -1)
             {
                 return expression;
             }
 
             StringSegment segment = expression;
+            PropertyExpander expander = new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
+
+            if (propertyStartIndex == 0 && expander.TryExpandSimpleWholeProperty(segment, out string? simpleResult))
+            {
+                return simpleResult;
+            }
 
             if (!TryExtractPropertyReference(segment, propertyStartIndex, out PropertyReference firstProperty))
             {
                 return expression;
             }
 
-            PropertyExpander expander = new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
             return expander.ExpandExpression(segment, firstProperty);
         }
 
@@ -176,12 +196,15 @@ internal partial class Expander<P, I>
             {
                 if (property.Start > sourceIndex)
                 {
-                    builder.Append(expression[sourceIndex..property.Start]);
+                    builder.Append(
+                        expression.Buffer!,
+                        expression.Offset + sourceIndex,
+                        property.Start - sourceIndex);
                 }
 
                 if (TryExpand(property, out object? propertyValue))
                 {
-                    builder.Append(propertyValue.ToString());
+                    builder.Append(propertyValue is string stringValue ? stringValue : propertyValue.ToString()!);
                 }
 
                 sourceIndex = property.End + 1;
@@ -195,10 +218,16 @@ internal partial class Expander<P, I>
                 {
                     if (propertyStart > sourceIndex)
                     {
-                        builder.Append(expression[sourceIndex..propertyStart]);
+                        builder.Append(
+                            expression.Buffer!,
+                            expression.Offset + sourceIndex,
+                            propertyStart - sourceIndex);
                     }
 
-                    builder.Append(expression[propertyStart..]);
+                    builder.Append(
+                        expression.Buffer!,
+                        expression.Offset + propertyStart,
+                        expression.Length - propertyStart);
                     sourceIndex = expression.Length;
                     break;
                 }
@@ -206,29 +235,100 @@ internal partial class Expander<P, I>
 
             if (sourceIndex < expression.Length)
             {
-                builder.Append(expression[sourceIndex..]);
+                builder.Append(
+                    expression.Buffer!,
+                    expression.Offset + sourceIndex,
+                    expression.Length - sourceIndex);
             }
 
             return builder.GetResult();
         }
 
         /// <summary>
+        ///  Expands the common <c>$(PropertyName)</c> shape without constructing and rescanning a property reference.
+        /// </summary>
+        private bool TryExpandSimpleWholeProperty(StringSegment expression, [NotNullWhen(true)] out string? result)
+        {
+            int bodyLength = expression.Length - 3;
+            if (bodyLength < 0 || expression[^1] != ')')
+            {
+                result = null;
+                return false;
+            }
+
+            StringSegment propertyBody = expression.Slice(2, bodyLength);
+
+            // The legacy registry-shaped property and every construct that affects parenthesis matching or dispatch
+            // stay on the complete scanner.
+            if (propertyBody.Equals(LegacyVisualStudioRegistryProperty, StringComparison.OrdinalIgnoreCase)
+                || propertyBody.IndexOfAny(s_simpleWholePropertySpecialCharacters) >= 0)
+            {
+                result = null;
+                return false;
+            }
+
+            result = propertyBody.IsEmpty
+                ? string.Empty
+                : LookupProperty(propertyBody);
+
+            if (_truncationEnabled && result.Length > CharacterLimitPerExpansion)
+            {
+                result = TruncateString(result);
+            }
+
+            if (!NativeMethodsShared.IsWindows)
+            {
+                result = FileUtilities.MaybeAdjustFilePath(result);
+            }
+
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int IndexOfPropertyStart(string expression, int startIndex)
+        {
+            while ((startIndex = expression.IndexOf('$', startIndex)) >= 0)
+            {
+                int openingParenthesis = startIndex + 1;
+                if (openingParenthesis < expression.Length && expression[openingParenthesis] == '(')
+                {
+                    return startIndex;
+                }
+
+                startIndex = openingParenthesis;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         ///  Expands one syntactically complete property reference.
         /// </summary>
-        private bool TryExpand(PropertyReference property, [NotNullWhen(true)] out object? result)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryExpand(in PropertyReference property, [NotNullWhen(true)] out object? result)
         {
             StringSegment propertyBody = property.Body;
 
-            // Compat: $() should return String.Empty. The 77-character legacy property handled below must bypass
-            // the common lookup path.
-            if (!property.MayContainPropertyFunction
-                && !property.MayContainRegistryExpression
-                && !propertyBody.IsEmpty
-                && propertyBody.Length != 77)
+            if (property.IsSimple)
             {
-                result = LookupProperty(propertyBody);
+                string propertyValue = LookupProperty(propertyBody);
+                result = _truncationEnabled && propertyValue.Length > CharacterLimitPerExpansion
+                    ? TruncateString(propertyValue)
+                    : propertyValue;
+                return true;
             }
-            else if (propertyBody.IsEmpty)
+
+            return TryExpandComplex(in property, out result);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private bool TryExpandComplex(in PropertyReference property, [NotNullWhen(true)] out object? result)
+        {
+            StringSegment propertyBody = property.Body;
+
+            // Compat: $() should return String.Empty. The legacy registry-shaped property handled below must bypass
+            // the common lookup path.
+            if (propertyBody.IsEmpty)
             {
                 result = string.Empty;
             }
@@ -237,9 +337,7 @@ internal partial class Expander<P, I>
             {
                 result = ExpandRegistryValue(propertyBody);
             }
-            else if (propertyBody.Equals(
-                @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory",
-                StringComparison.OrdinalIgnoreCase))
+            else if (propertyBody.Equals(LegacyVisualStudioRegistryProperty, StringComparison.OrdinalIgnoreCase))
             {
                 // Compat: this legacy registry-shaped property always expands to empty.
                 result = string.Empty;
@@ -249,6 +347,10 @@ internal partial class Expander<P, I>
             {
                 // Compat: WebProjects historically treated this expression as an undefined property.
                 result = string.Empty;
+            }
+            else if (property.MayContainPropertyFunction
+                && TryExpandSimpleStringPropertyFunction(propertyBody, out result))
+            {
             }
             else if (property.MayContainPropertyFunction)
             {
@@ -271,14 +373,191 @@ internal partial class Expander<P, I>
             return result is not null;
         }
 
+        private bool TryExpandSimpleStringPropertyFunction(
+            StringSegment propertyBody,
+            [NotNullWhen(true)] out object? result)
+        {
+            int separator = propertyBody.IndexOf('.');
+            if (separator <= 0)
+            {
+                result = null;
+                return false;
+            }
+
+            StringSegment propertyName = propertyBody[..separator];
+            if (!IsValidPropertyName(propertyName)
+                || !TryEvaluateSimpleStringFunctionChain(
+                    propertyBody,
+                    separator + 1,
+                    value: null,
+                    validateOnly: true,
+                    out _))
+            {
+                result = null;
+                return false;
+            }
+
+            string value = EscapingUtilities.UnescapeAll(LookupProperty(propertyName));
+            if (!TryEvaluateSimpleStringFunctionChain(
+                propertyBody,
+                separator + 1,
+                value,
+                validateOnly: false,
+                out result))
+            {
+                result = null;
+                return false;
+            }
+
+            if (result is string stringResult)
+            {
+                result = EscapingUtilities.Escape(stringResult);
+            }
+
+            return result is not null;
+        }
+
+        private static bool TryEvaluateSimpleStringFunctionChain(
+            StringSegment propertyBody,
+            int position,
+            string? value,
+            bool validateOnly,
+            out object? result)
+        {
+            object? current = value;
+
+            while (position < propertyBody.Length)
+            {
+                int argumentsStart = propertyBody.IndexOf('(', position);
+                if (argumentsStart <= position)
+                {
+                    result = null;
+                    return false;
+                }
+
+                StringSegment methodName = propertyBody[position..argumentsStart];
+                if (!IsValidPropertyName(methodName))
+                {
+                    result = null;
+                    return false;
+                }
+
+                int argumentsEnd = propertyBody.IndexOf(')', argumentsStart + 1);
+                if (argumentsEnd < 0)
+                {
+                    result = null;
+                    return false;
+                }
+
+                bool hasRemainder = argumentsEnd < propertyBody.Length - 1;
+                if (hasRemainder && propertyBody[argumentsEnd + 1] != '.')
+                {
+                    result = null;
+                    return false;
+                }
+
+                StringSegment arguments = propertyBody[(argumentsStart + 1)..argumentsEnd];
+                if (arguments.IsEmpty)
+                {
+                    string input = validateOnly ? string.Empty : (string)current!;
+                    if (!WellKnownFunctions.TryExecuteStringFunctionNoArguments(methodName, out current, input)
+                        || (hasRemainder && current is not string))
+                    {
+                        result = null;
+                        return false;
+                    }
+                }
+                else if (methodName.Equals(nameof(string.Substring), StringComparison.OrdinalIgnoreCase))
+                {
+                    int separator = arguments.IndexOf(',');
+                    int start;
+                    int length = 0;
+                    bool hasLength = separator >= 0;
+
+                    if (!hasLength)
+                    {
+                        if (!int.TryParse(arguments, out start))
+                        {
+                            result = null;
+                            return false;
+                        }
+                    }
+                    else if (!int.TryParse(arguments[..separator], out start)
+                        || !int.TryParse(arguments[(separator + 1)..], out length))
+                    {
+                        result = null;
+                        return false;
+                    }
+
+                    if (!validateOnly)
+                    {
+                        string input = (string)current!;
+                        if (start < 0
+                            || start > input.Length
+                            || (hasLength && (length < 0 || length > input.Length - start)))
+                        {
+                            result = null;
+                            return false;
+                        }
+
+                        current = hasLength
+                            ? input.Substring(start, length)
+                            : input.Substring(start);
+                    }
+                }
+                else
+                {
+                    result = null;
+                    return false;
+                }
+
+                if (!hasRemainder)
+                {
+                    result = current;
+                    return validateOnly || result is not null;
+                }
+
+                position = argumentsEnd + 2;
+            }
+
+            result = null;
+            return false;
+        }
+
         private static bool TryExtractPropertyReference(
             StringSegment expression,
             int propertyStart,
             out PropertyReference property)
         {
             int bodyStart = propertyStart + 2;
+
+            if (bodyStart < expression.Length
+                && XmlUtilities.IsValidInitialElementNameCharacter(expression[bodyStart]))
+            {
+                int simplePropertyEnd = bodyStart + 1;
+                while (simplePropertyEnd < expression.Length
+                    && XmlUtilities.IsValidSubsequentElementNameCharacter(expression[simplePropertyEnd]))
+                {
+                    simplePropertyEnd++;
+                }
+
+                if (simplePropertyEnd < expression.Length && expression[simplePropertyEnd] == ')')
+                {
+                    property = new(
+                        propertyStart,
+                        simplePropertyEnd,
+                        expression[bodyStart..simplePropertyEnd],
+                        mayContainPropertyFunction: false,
+                        mayContainRegistryExpression: false,
+                        isSimple: true,
+                        isEntireExpression: propertyStart == 0 && simplePropertyEnd == expression.Length - 1);
+                    return true;
+                }
+            }
+
             int propertyEnd = ScanForClosingParenthesis(
-                expression[bodyStart..],
+                expression,
+                bodyStart,
                 out bool mayContainPropertyFunction,
                 out bool mayContainRegistryExpression);
 
@@ -288,13 +567,18 @@ internal partial class Expander<P, I>
                 return false;
             }
 
-            propertyEnd += bodyStart;
+            StringSegment propertyBody = expression[bodyStart..propertyEnd];
+            bool isSimple = !mayContainPropertyFunction
+                && !mayContainRegistryExpression
+                && !propertyBody.IsEmpty
+                && !propertyBody.Equals(LegacyVisualStudioRegistryProperty, StringComparison.OrdinalIgnoreCase);
             property = new(
                 propertyStart,
                 propertyEnd,
-                expression[bodyStart..propertyEnd],
+                propertyBody,
                 mayContainPropertyFunction,
                 mayContainRegistryExpression,
+                isSimple,
                 propertyStart == 0 && propertyEnd == expression.Length - 1);
             return true;
         }
@@ -305,6 +589,7 @@ internal partial class Expander<P, I>
             StringSegment body,
             bool mayContainPropertyFunction,
             bool mayContainRegistryExpression,
+            bool isSimple,
             bool isEntireExpression)
         {
             internal int Start { get; } = start;
@@ -312,6 +597,7 @@ internal partial class Expander<P, I>
             internal StringSegment Body { get; } = body;
             internal bool MayContainPropertyFunction { get; } = mayContainPropertyFunction;
             internal bool MayContainRegistryExpression { get; } = mayContainRegistryExpression;
+            internal bool IsSimple { get; } = isSimple;
             internal bool CoversEntireExpression { get; } = isEntireExpression;
         }
 

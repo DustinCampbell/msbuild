@@ -1280,6 +1280,14 @@ public class StringSegment_Tests
         default(StringSegment).IndexOf(StringSegment.Empty).ShouldBe(-1);
         default(StringSegment).Contains(StringSegment.Empty).ShouldBeFalse();
 
+        // Two-character sub-view uses the allocation-free ordinal fast path.
+        StringSegment markerSource = "x$x$($(";
+        StringSegment marker = new("x$(y", 1, 2);
+        markerSource.IndexOf(marker).ShouldBe(3);
+        markerSource.IndexOf(marker, 4).ShouldBe(5);
+        markerSource.IndexOf(marker, 0, 5).ShouldBe(3);
+        markerSource.IndexOf("$(").ShouldBe(3);
+
         // Sub-view search value exercises the substring fallback path.
         StringSegment worldSubView = new("xxworldyy", 2, 5);
         HelloWorld.IndexOf(worldSubView).ShouldBe(6);

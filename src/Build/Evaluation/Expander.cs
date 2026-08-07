@@ -490,18 +490,41 @@ internal partial class Expander<P, I>
     ///  <c>-1</c> if no matching parenthesis is found.
     /// </returns>
     private static int ScanForClosingParenthesis(StringSegment expression, out bool potentialPropertyFunction, out bool potentialRegistryFunction)
+        => ScanForClosingParenthesis(
+            expression,
+            startIndex: 0,
+            out potentialPropertyFunction,
+            out potentialRegistryFunction);
+
+    /// <summary>
+    ///  Scans <paramref name="expression"/> from <paramref name="startIndex"/> for the closing parenthesis
+    ///  matching an opening parenthesis immediately before that position.
+    /// </summary>
+    private static int ScanForClosingParenthesis(
+        StringSegment expression,
+        int startIndex,
+        out bool potentialPropertyFunction,
+        out bool potentialRegistryFunction)
     {
         int nestLevel = 1;
-        int index = 0;
+        int index = startIndex;
         int length = expression.Length;
 
         potentialPropertyFunction = false;
         potentialRegistryFunction = false;
 
+#if NET
+        ReadOnlySpan<char> characters = expression.AsSpan();
+#endif
+
         // Scan for the closing parenthesis.
         while (index < length && nestLevel > 0)
         {
-            char character = expression[index];
+#if NET
+            char character = characters[index];
+#else
+            char character = expression.Buffer![expression.Offset + index];
+#endif
 
             switch (character)
             {
