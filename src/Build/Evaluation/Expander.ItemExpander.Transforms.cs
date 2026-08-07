@@ -615,9 +615,9 @@ internal partial class Expander<P, I>
                     return new OneOrMultipleMetadataMatches(cachedName);
                 }
 
-                // Scan for %(Name) references manually.
-                int firstIndex = quotedExpressionFunction.IndexOf("%(", StringComparison.Ordinal);
-                if (firstIndex == -1)
+                // Scan for %(Name) references.
+                int pos = ExpressionShredder.IndexOfMetadataMarker(quotedExpressionFunction);
+                if (pos == -1)
                 {
                     return OneOrMultipleMetadataMatches.None;
                 }
@@ -625,20 +625,13 @@ internal partial class Expander<P, I>
                 List<MetadataMatch> multipleMatches = null;
                 MetadataMatch? firstMatch = null;
 
-                int pos = firstIndex;
-                while (pos < quotedExpressionFunction.Length - 1)
+                while (pos >= 0)
                 {
-                    if (quotedExpressionFunction[pos] != '%' || quotedExpressionFunction[pos + 1] != '(')
-                    {
-                        pos++;
-                        continue;
-                    }
-
                     int refEnd = pos + 2;
 
                     if (!ExpressionShredder.TryParseMetadataExpression(quotedExpressionFunction, ref refEnd, quotedExpressionFunction.Length, out string itemType, out string name))
                     {
-                        pos += 2;
+                        pos = ExpressionShredder.IndexOfMetadataMarker(quotedExpressionFunction, pos + 2);
                         continue;
                     }
 
@@ -661,7 +654,7 @@ internal partial class Expander<P, I>
                         multipleMatches.Add(new MetadataMatch(pos, matchLength, name));
                     }
 
-                    pos = refEnd;
+                    pos = ExpressionShredder.IndexOfMetadataMarker(quotedExpressionFunction, refEnd);
                 }
 
                 if (multipleMatches != null)
