@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Utilities;
 
 #if NETFRAMEWORK
 using NewPath = Microsoft.IO.Path;
@@ -722,25 +723,52 @@ namespace Microsoft.Build.Framework
         ///
         /// @baseDirectory is just passed to LooksLikeUnixFilePath, to help with the check
         /// </summary>
-        internal static string MaybeAdjustFilePath(string value, string baseDirectory = "")
+        [return: NotNullIfNotNull(nameof(value))]
+        internal static string? MaybeAdjustFilePath(string? value, string baseDirectory = "")
         {
-            var comparisonType = StringComparison.Ordinal;
-
-            // Don't bother with arrays or properties or network paths, or those that
-            // have no slashes.
-            if (NativeMethods.IsWindows || string.IsNullOrEmpty(value)
-                || value.StartsWith("$(", comparisonType) || value.StartsWith("@(", comparisonType)
-                || value.StartsWith("\\\\", comparisonType))
+            // Don't bother with arrays or properties or network paths, or those that have no slashes.
+            if (NativeMethods.IsWindows || value.IsNullOrEmpty() ||
+                value is ['$', '(', ..] or ['@', '(', ..] or ['\\', '\\', ..])
             {
                 return value;
             }
 
-            // For Unix-like systems, we may want to convert backslashes to slashes
-            Span<char> newValue = ConvertToUnixSlashes(value.ToCharArray());
+            if (value.IndexOf('\\') == -1)
+            {
+                return value;
+            }
 
-            // Find the part of the name we want to check, that is remove quotes, if present
-            bool shouldAdjust = newValue.IndexOf('/') != -1 && LooksLikeUnixFilePath(RemoveQuotes(newValue), baseDirectory);
-            return shouldAdjust ? newValue.ToString() : value;
+            using BufferScope<char> scope = new(minimumLength: value.Length);
+            Span<char> output = scope;
+
+            output[0] = value[0] == '\\' ? '/' : value[0];
+            int written = 1;
+
+            bool isPrevSlash = IsAnySlash(value[0]);
+
+            // Performs Regex.Replace(str, @"[\\/]+", "/")
+            for (int i = 1; i < value.Length; i++)
+            {
+                bool isCurSlash = IsAnySlash(value[i]);
+
+                if (!isCurSlash || !isPrevSlash)
+                {
+                    output[written] = value[i] == '\\' ? '/' : value[i];
+                    written++;
+                }
+
+                isPrevSlash = isCurSlash;
+            }
+
+            output = output[..written];
+
+            // There should be at least one '/' character in the path,
+            // since we verified that there had to be at one '\' character earlier.
+            Debug.Assert(output.IndexOf('/') >= 0, "Expected at least one '/' in the path.");
+
+            return LooksLikeUnixFilePath(RemoveQuotes(output), baseDirectory)
+                ? output.ToString()
+                : value;
         }
 
         /// <summary>
@@ -754,68 +782,60 @@ namespace Microsoft.Build.Framework
                 return value;
             }
 
-            // Don't bother with arrays or properties or network paths.
-            if (value.Length >= 2)
-            {
-                var span = value.Span;
+            ReadOnlySpan<char> span = value.Span;
 
-                // The condition is equivalent to span.StartsWith("$(") || span.StartsWith("@(") || span.StartsWith("\\\\")
-                if ((span[1] == '(' && (span[0] == '$' || span[0] == '@')) ||
-                    (span[1] == '\\' && span[0] == '\\'))
-                {
-                    return value;
-                }
+            // Don't bother with arrays or properties or network paths.
+            if (span is ['$', '(', ..] or ['@', '(', ..] or ['\\', '\\', ..])
+            {
+                return value;
             }
 
-            // For Unix-like systems, we may want to convert backslashes to slashes
-            Span<char> newValue = ConvertToUnixSlashes(value.ToArray());
+            if (span.IndexOf('\\') == -1)
+            {
+                return value;
+            }
 
-            // Find the part of the name we want to check, that is remove quotes, if present
-            bool shouldAdjust = newValue.IndexOf('/') != -1 && LooksLikeUnixFilePath(RemoveQuotes(newValue), baseDirectory);
-            return shouldAdjust ? newValue.ToString().AsMemory() : value;
-        }
+            using BufferScope<char> scope = new(minimumLength: value.Length);
+            Span<char> output = scope;
 
-        private static Span<char> ConvertToUnixSlashes(Span<char> path)
-        {
-            return path.IndexOf('\\') == -1 ? path : CollapseSlashes(path);
-        }
+            output[0] = span[0] == '\\' ? '/' : span[0];
+            int written = 1;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Span<char> CollapseSlashes(Span<char> str)
-        {
-            int sliceLength = 0;
+            bool isPrevSlash = IsAnySlash(span[0]);
 
             // Performs Regex.Replace(str, @"[\\/]+", "/")
-            for (int i = 0; i < str.Length; i++)
+            for (int i = 1; i < value.Length; i++)
             {
-                bool isCurSlash = IsAnySlash(str[i]);
-                bool isPrevSlash = i > 0 && IsAnySlash(str[i - 1]);
+                bool isCurSlash = IsAnySlash(span[i]);
 
                 if (!isCurSlash || !isPrevSlash)
                 {
-                    str[sliceLength] = str[i] == '\\' ? '/' : str[i];
-                    sliceLength++;
+                    output[written] = span[i] == '\\' ? '/' : span[i];
+                    written++;
                 }
+
+                isPrevSlash = isCurSlash;
             }
 
-            return str.Slice(0, sliceLength);
+            output = output[..written];
+
+            // There should be at least one '/' character in the path,
+            // since we verified that there had to be at one '\' character earlier.
+            Debug.Assert(output.IndexOf('/') >= 0, "Expected at least one '/' in the path.");
+
+            return LooksLikeUnixFilePath(RemoveQuotes(output), baseDirectory)
+                ? output.ToString().AsMemory()
+                : value;
         }
 
-        private static Span<char> RemoveQuotes(Span<char> path)
-        {
-            int endId = path.Length - 1;
-            char singleQuote = '\'';
-            char doubleQuote = '\"';
-
-            bool hasQuotes = path.Length > 2
-                && ((path[0] == singleQuote && path[endId] == singleQuote)
-                || (path[0] == doubleQuote && path[endId] == doubleQuote));
-
-            return hasQuotes ? path.Slice(1, endId - 1) : path;
-        }
+        private static ReadOnlySpan<char> RemoveQuotes(ReadOnlySpan<char> path)
+            => path is ['\'', .., '\''] or ['"', .., '"']
+                ? path[1..^1]
+                : path;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool IsAnySlash(char c) => c == '/' || c == '\\';
+        internal static bool IsAnySlash(char c)
+            => c is '/' or '\\';
 
         /// <summary>
         /// If on Unix, check if the string looks like a file path.
@@ -837,7 +857,7 @@ namespace Microsoft.Build.Framework
 
             // In MT mode the process CWD should not be used when resolving the first relative path segment. Use the
             // thread-local working directory so the directory existence heuristic runs against the correct project directory.
-            if (string.IsNullOrEmpty(baseDirectory))
+            if (baseDirectory.IsNullOrEmpty())
             {
                 baseDirectory = CurrentThreadWorkingDirectory ?? "";
             }

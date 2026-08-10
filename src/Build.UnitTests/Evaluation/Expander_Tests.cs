@@ -1763,7 +1763,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         /// <summary>
-        ///  Parity test for the rewritten transform scanner (<c>GetQuotedExpressionMatches</c>): metadata
+        ///  Parity test for the quoted-transform metadata scanner: metadata
         ///  references inside a transform must not be qualified with an item name. This pins the error path
         ///  (and its message arguments) so the de-regexed scanner keeps rejecting qualified references,
         ///  including when surrounded by internal whitespace.

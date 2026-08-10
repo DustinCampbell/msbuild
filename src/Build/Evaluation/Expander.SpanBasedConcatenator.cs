@@ -82,6 +82,28 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
+        /// Adds the portion of <paramref name="text"/> beginning at <paramref name="start"/>.
+        /// </summary>
+        /// <param name="text">The string containing the text to add.</param>
+        /// <param name="start">The index of the first character to add.</param>
+        public void Add(string text, int start)
+            => Add(text, start, text.Length - start);
+
+        /// <summary>
+        /// Adds a range from <paramref name="text"/>, ignoring an empty range.
+        /// </summary>
+        /// <param name="text">The string containing the text to add.</param>
+        /// <param name="start">The index of the first character to add.</param>
+        /// <param name="length">The number of characters to add.</param>
+        public void Add(string text, int start, int length)
+        {
+            if (length > 0)
+            {
+                Add(text.AsMemory(start, length));
+            }
+        }
+
+        /// <summary>
         /// Returns the result of the concatenation.
         /// </summary>
         /// <returns>
