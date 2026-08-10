@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
@@ -91,17 +92,33 @@ namespace Microsoft.Build.Evaluation
             => IndexOfMetadataMarker(expression) >= 0;
 
         /// <summary>
-        ///  Finds the first property marker at or after <paramref name="startIndex"/>.
+        ///  Finds the first property marker.
         /// </summary>
         /// <remarks>
         ///  This method does not validate the expression or locate its closing parenthesis.
         /// </remarks>
         /// <param name="expression">The expression to scan.</param>
-        /// <param name="startIndex">The index at which to begin scanning.</param>
         /// <returns>
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
-        public static int IndexOfPropertyMarker(string expression, int startIndex = 0)
+        // Keep the common expression-prefix case inline without pulling the scanner loop into callers.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int IndexOfPropertyMarker(string expression)
+        {
+            return expression.Length > 1 && expression[0] == '$' && expression[1] == '('
+                ? 0
+                : IndexOfPropertyMarker(expression, startIndex: 0);
+        }
+
+        /// <summary>
+        ///  Finds the first property marker at or after <paramref name="startIndex"/>.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfPropertyMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        // RyuJIT otherwise duplicates this loop in large property-expansion callers and degrades their code quality.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static int IndexOfPropertyMarker(string expression, int startIndex)
             => IndexOfMarker(expression, '$', startIndex);
 
         /// <summary>
