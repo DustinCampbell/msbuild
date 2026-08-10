@@ -105,9 +105,31 @@ namespace Microsoft.Build.Evaluation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOfPropertyMarker(string expression)
         {
-            return expression.Length > 1 && expression[0] == '$' && expression[1] == '('
-                ? 0
-                : IndexOfPropertyMarker(expression, startIndex: 0);
+            if (expression.Length <= 1)
+            {
+                return -1;
+            }
+
+            if (expression[0] == '$' && expression[1] == '(')
+            {
+                return 0;
+            }
+
+            int markerIndex = expression.IndexOf('$', startIndex: 1);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= expression.Length)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '$', nextIndex);
         }
 
         /// <summary>
@@ -116,10 +138,38 @@ namespace Microsoft.Build.Evaluation
         /// <inheritdoc cref="IndexOfPropertyMarker(string)"/>
         /// <param name="expression">The expression to scan.</param>
         /// <param name="startIndex">The index at which to begin scanning.</param>
-        // RyuJIT otherwise duplicates this loop in large property-expansion callers and degrades their code quality.
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOfPropertyMarker(string expression, int startIndex)
-            => IndexOfMarker(expression, '$', startIndex);
+        {
+            if (expression.Length > 1 && (uint)startIndex < (uint)(expression.Length - 1))
+            {
+                if (expression[startIndex] == '$' && expression[startIndex + 1] == '(')
+                {
+                    return startIndex;
+                }
+
+                startIndex++;
+            }
+
+            int markerIndex = expression.IndexOf('$', startIndex);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= expression.Length)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '$', nextIndex);
+        }
 
         /// <summary>
         ///  Finds the first property marker in the range beginning at <paramref name="startIndex"/>
@@ -135,8 +185,79 @@ namespace Microsoft.Build.Evaluation
         /// <returns>
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOfPropertyMarker(string expression, int startIndex, int count)
-            => IndexOfMarker(expression, '$', startIndex, count);
+        {
+            if (count > 1 &&
+                (uint)startIndex <= (uint)expression.Length &&
+                count <= expression.Length - startIndex)
+            {
+                if (expression[startIndex] == '$' && expression[startIndex + 1] == '(')
+                {
+                    return startIndex;
+                }
+
+                startIndex++;
+                count--;
+            }
+
+            int markerIndex = expression.IndexOf('$', startIndex, count);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= startIndex + count)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '$', startIndex: nextIndex, count - (nextIndex - startIndex));
+        }
+
+        /// <summary>
+        ///  Finds the first item-vector marker.
+        /// </summary>
+        /// <remarks>
+        ///  This method does not validate the expression or locate its closing parenthesis.
+        /// </remarks>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        // Keep the common expression-prefix case inline without pulling the scanner loop into callers.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int IndexOfItemVectorMarker(string expression)
+        {
+            if (expression.Length <= 1)
+            {
+                return -1;
+            }
+
+            if (expression[0] == '@' && expression[1] == '(')
+            {
+                return 0;
+            }
+
+            int markerIndex = expression.IndexOf('@', startIndex: 1);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= expression.Length)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '@', nextIndex);
+        }
 
         /// <summary>
         ///  Finds the first item-vector marker at or after <paramref name="startIndex"/>.
@@ -149,8 +270,35 @@ namespace Microsoft.Build.Evaluation
         /// <returns>
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
-        public static int IndexOfItemVectorMarker(string expression, int startIndex = 0)
-            => IndexOfMarker(expression, '@', startIndex);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int IndexOfItemVectorMarker(string expression, int startIndex)
+        {
+            if (expression.Length > 1 && (uint)startIndex < (uint)(expression.Length - 1))
+            {
+                if (expression[startIndex] == '@' && expression[startIndex + 1] == '(')
+                {
+                    return startIndex;
+                }
+
+                startIndex++;
+            }
+
+            int markerIndex = expression.IndexOf('@', startIndex);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= expression.Length)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '@', nextIndex);
+        }
 
         /// <summary>
         ///  Finds the first item-vector marker in the range beginning at <paramref name="startIndex"/>
@@ -166,8 +314,79 @@ namespace Microsoft.Build.Evaluation
         /// <returns>
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOfItemVectorMarker(string expression, int startIndex, int count)
-            => IndexOfMarker(expression, '@', startIndex, count);
+        {
+            if (count > 1 &&
+                (uint)startIndex <= (uint)expression.Length &&
+                count <= expression.Length - startIndex)
+            {
+                if (expression[startIndex] == '@' && expression[startIndex + 1] == '(')
+                {
+                    return startIndex;
+                }
+
+                startIndex++;
+                count--;
+            }
+
+            int markerIndex = expression.IndexOf('@', startIndex, count);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= startIndex + count)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '@', startIndex: nextIndex, count - (nextIndex - startIndex));
+        }
+
+        /// <summary>
+        ///  Finds the first metadata marker.
+        /// </summary>
+        /// <remarks>
+        ///  This method does not validate the expression or locate its closing parenthesis.
+        /// </remarks>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        // Keep the common expression-prefix case inline without pulling the scanner loop into callers.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int IndexOfMetadataMarker(string expression)
+        {
+            if (expression.Length <= 1)
+            {
+                return -1;
+            }
+
+            if (expression[0] == '%' && expression[1] == '(')
+            {
+                return 0;
+            }
+
+            int markerIndex = expression.IndexOf('%', startIndex: 1);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= expression.Length)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '%', nextIndex);
+        }
 
         /// <summary>
         ///  Finds the first metadata marker at or after <paramref name="startIndex"/>.
@@ -180,8 +399,35 @@ namespace Microsoft.Build.Evaluation
         /// <returns>
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
-        public static int IndexOfMetadataMarker(string expression, int startIndex = 0)
-            => IndexOfMarker(expression, '%', startIndex);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int IndexOfMetadataMarker(string expression, int startIndex)
+        {
+            if (expression.Length > 1 && (uint)startIndex < (uint)(expression.Length - 1))
+            {
+                if (expression[startIndex] == '%' && expression[startIndex + 1] == '(')
+                {
+                    return startIndex;
+                }
+
+                startIndex++;
+            }
+
+            int markerIndex = expression.IndexOf('%', startIndex);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= expression.Length)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '%', nextIndex);
+        }
 
         /// <summary>
         ///  Finds the first metadata marker in the range beginning at <paramref name="startIndex"/>
@@ -197,10 +443,42 @@ namespace Microsoft.Build.Evaluation
         /// <returns>
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexOfMetadataMarker(string expression, int startIndex, int count)
-            => IndexOfMarker(expression, '%', startIndex, count);
+        {
+            if (count > 1 &&
+                (uint)startIndex <= (uint)expression.Length &&
+                count <= expression.Length - startIndex)
+            {
+                if (expression[startIndex] == '%' && expression[startIndex + 1] == '(')
+                {
+                    return startIndex;
+                }
 
-        private static int IndexOfMarker(string expression, char marker, int startIndex)
+                startIndex++;
+                count--;
+            }
+
+            int markerIndex = expression.IndexOf('%', startIndex, count);
+            if (markerIndex < 0)
+            {
+                return -1;
+            }
+
+            int nextIndex = markerIndex + 1;
+            if (nextIndex >= startIndex + count)
+            {
+                return -1;
+            }
+
+            return expression[nextIndex] == '('
+                ? markerIndex
+                : IndexOfMarkerSlow(expression, '%', startIndex: nextIndex, count - (nextIndex - startIndex));
+        }
+
+        // Keep the scanner loop out of callers; RyuJIT can duplicate it and degrade caller code quality.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int IndexOfMarkerSlow(string expression, char marker, int startIndex)
         {
             // IndexOf(char) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.
@@ -219,7 +497,9 @@ namespace Microsoft.Build.Evaluation
             return -1;
         }
 
-        private static int IndexOfMarker(string expression, char marker, int startIndex, int count)
+        // Keep the scanner loop out of callers; RyuJIT can duplicate it and degrade caller code quality.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int IndexOfMarkerSlow(string expression, char marker, int startIndex, int count)
         {
             // IndexOf(char) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.

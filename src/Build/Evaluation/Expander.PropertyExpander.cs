@@ -237,9 +237,7 @@ internal partial class Expander<P, I>
                     sourceIndex = propertyEndIndex + 1;
                 }
 
-                propertyStartIndex = sourceIndex < expression.Length
-                    ? ExpressionShredder.IndexOfPropertyMarker(expression, sourceIndex)
-                    : -1;
+                propertyStartIndex = ExpressionShredder.IndexOfPropertyMarker(expression, sourceIndex);
             }
 
             // If we couldn't find any more property tags in the expression just copy the remainder into the result.
