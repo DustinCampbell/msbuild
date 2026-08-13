@@ -581,6 +581,8 @@ namespace Microsoft.Build.Execution
                 // Check for build in progress.
                 RequireState(BuildManagerState.Idle, "BuildInProgress");
 
+                ExpansionTelemetry.ResetReport();
+
                 MSBuildEventSource.Log.BuildStart();
 
                 // Initiate build telemetry data
@@ -617,6 +619,9 @@ namespace Microsoft.Build.Execution
 
                 // Initialize additional build parameters.
                 _buildParameters.BuildId = GetNextBuildId();
+                _buildParameters.SetBuildProcessEnvironmentVariable(
+                    ExpansionTelemetry.TelemetryEnvironmentVariable,
+                    ExpansionTelemetry.ReportPath);
 
                 if (_buildParameters.UsesCachedResults() && _buildParameters.ProjectIsolationMode == ProjectIsolationMode.False)
                 {
@@ -1271,6 +1276,8 @@ namespace Microsoft.Build.Execution
                     }
 
                     CrashTelemetryRecorder.FlushCrashTelemetry();
+
+                    ExpansionTelemetry.Flush(final: true);
 
                     _threadException?.Throw();
 

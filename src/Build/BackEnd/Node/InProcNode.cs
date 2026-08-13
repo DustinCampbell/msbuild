@@ -7,6 +7,7 @@ using System.Collections.Frozen;
 using System.Globalization;
 using System.Threading;
 using Microsoft.Build.BackEnd.Components.Caching;
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
@@ -350,6 +351,8 @@ namespace Microsoft.Build.BackEnd
             }
 
             exception = _shutdownException;
+
+            ExpansionTelemetry.Flush();
 
             if (_loggingContext != null)
             {

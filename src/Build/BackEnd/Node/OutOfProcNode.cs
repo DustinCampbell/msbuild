@@ -529,6 +529,8 @@ namespace Microsoft.Build.Execution
 
                 exception = _shutdownException;
 
+                ExpansionTelemetry.Flush();
+
                 if (_nodeEndpoint.LinkStatus == LinkStatus.Active)
                 {
                     // Notify the BuildManager that we are done.
@@ -748,6 +750,8 @@ namespace Microsoft.Build.Execution
 
             Traits.UpdateFromEnvironment();
             DotnetHostEnvironmentHelper.ClearBootstrapDotnetRootEnvironment(_buildParameters.BuildProcessEnvironment);
+            ExpansionTelemetry.ConfigureReportPath(
+                Environment.GetEnvironmentVariable(ExpansionTelemetry.TelemetryEnvironmentVariable));
 
             // We want to make sure the global project collection has the toolsets which were defined on the parent
             // so that any custom toolsets defined can be picked up by tasks who may use the global project collection but are

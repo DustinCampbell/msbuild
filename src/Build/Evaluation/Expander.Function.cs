@@ -366,8 +366,10 @@ internal partial class Expander<P, I>
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         internal object Execute(object objectInstance, IPropertyProvider<P> properties, ExpanderOptions options, IElementLocation elementLocation)
         {
+            long telemetryStart = ExpansionTelemetry.GetTimestamp();
             object functionResult = String.Empty;
             object[] args = null;
+            string telemetryDispatch = null;
 
             try
             {
@@ -493,9 +495,14 @@ internal partial class Expander<P, I>
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                    if (WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                    {
+                        telemetryDispatch = "Well-known";
+                    }
+                    else
                     {
                         functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
+                        telemetryDispatch = "Late-bound reflection";
                     }
                 }
                 else
@@ -528,6 +535,8 @@ internal partial class Expander<P, I>
 
                     if (!wellKnownFunctionSuccess)
                     {
+                        telemetryDispatch = "Reflection binder";
+
                         // Execute the function given converted arguments
                         // The only exception that we should catch to try a late bind here is missing method
                         // otherwise there is the potential of running a function twice!
@@ -552,9 +561,22 @@ internal partial class Expander<P, I>
                             // The standard binder failed, so do our best to coerce types into the arguments for the function
                             // This may happen if the types need coercion, but it may also happen if the object represents a type that contains open type parameters, that is, ContainsGenericParameters returns true.
                             functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, false /* is not constructor */);
+                            telemetryDispatch = "Late-bound reflection";
                         }
                     }
+                    else
+                    {
+                        telemetryDispatch = "Well-known";
+                    }
                 }
+
+                ExpansionTelemetry.RecordPropertyFunction(
+                    _receiverType,
+                    _methodMethodName,
+                    args,
+                    telemetryDispatch,
+                    ExpansionTelemetry.GetElapsedTicks(telemetryStart),
+                    elementLocation);
 
                 // If the result of the function call is a string, then we need to escape the result
                 // so that we maintain the "engine contains escaped data" state.

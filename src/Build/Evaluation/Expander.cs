@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Framework;
@@ -253,10 +254,46 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
+        if (ExpansionTelemetry.Enabled)
+        {
+            return ExpandIntoStringLeaveEscapedWithTelemetry(expression, options, elementLocation);
+        }
+
         string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
         result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
         result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, elementLocation);
         result = FileUtilities.MaybeAdjustFilePath(result);
+
+        return result;
+    }
+
+    private string ExpandIntoStringLeaveEscapedWithTelemetry(string expression, ExpanderOptions options, IElementLocation elementLocation)
+    {
+        long totalStart = ExpansionTelemetry.GetTimestamp();
+
+        long stageStart = ExpansionTelemetry.GetTimestamp();
+        string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
+        long metadataElapsed = ExpansionTelemetry.GetElapsedTicks(stageStart);
+
+        stageStart = ExpansionTelemetry.GetTimestamp();
+        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+        long propertyElapsed = ExpansionTelemetry.GetElapsedTicks(stageStart);
+
+        stageStart = ExpansionTelemetry.GetTimestamp();
+        result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, elementLocation);
+        long itemElapsed = ExpansionTelemetry.GetElapsedTicks(stageStart);
+
+        result = FileUtilities.MaybeAdjustFilePath(result);
+        ExpansionTelemetry.RecordExpansion(
+            expression,
+            result,
+            ExpansionTelemetry.GetElapsedTicks(totalStart),
+            metadataElapsed,
+            propertyElapsed,
+            itemElapsed,
+            options,
+            "String",
+            elementLocation);
 
         return result;
     }
@@ -273,6 +310,31 @@ internal partial class Expander<P, I>
         }
 
         Assumed.NotNull(elementLocation);
+
+        if (ExpansionTelemetry.Enabled)
+        {
+            long totalStart = ExpansionTelemetry.GetTimestamp();
+            long stageStart = ExpansionTelemetry.GetTimestamp();
+            string metaExpandedWithTelemetry = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
+            long metadataElapsed = ExpansionTelemetry.GetElapsedTicks(stageStart);
+
+            stageStart = ExpansionTelemetry.GetTimestamp();
+            object resultWithTelemetry = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(metaExpandedWithTelemetry, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+            long propertyElapsed = ExpansionTelemetry.GetElapsedTicks(stageStart);
+
+            ExpansionTelemetry.RecordExpansion(
+                expression,
+                resultWithTelemetry?.ToString(),
+                ExpansionTelemetry.GetElapsedTicks(totalStart),
+                metadataElapsed,
+                propertyElapsed,
+                itemElapsedTicks: -1,
+                options,
+                "TypedProperty",
+                elementLocation);
+
+            return resultWithTelemetry;
+        }
 
         string metaExpanded = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
         return PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(metaExpanded, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
@@ -322,15 +384,32 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
+        string originalExpression = expression;
+        long totalStart = ExpansionTelemetry.GetTimestamp();
+        long stageStart = ExpansionTelemetry.GetTimestamp();
         expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
+        long metadataElapsed = ExpansionTelemetry.GetElapsedTicks(stageStart);
+
+        stageStart = ExpansionTelemetry.GetTimestamp();
         expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+        long propertyElapsed = ExpansionTelemetry.GetElapsedTicks(stageStart);
         expression = FileUtilities.MaybeAdjustFilePath(expression);
 
+        long itemStart = ExpansionTelemetry.GetTimestamp();
         List<T> result = new List<T>();
 
         if (expression.Length == 0)
         {
-            return result;
+            return RecordItemExpansion(
+                originalExpression,
+                result,
+                totalStart,
+                metadataElapsed,
+                propertyElapsed,
+                ExpansionTelemetry.GetElapsedTicks(itemStart),
+                options,
+                "Items",
+                elementLocation);
         }
 
         var splits = ExpressionShredder.SplitSemiColonSeparatedList(expression);
@@ -341,7 +420,16 @@ internal partial class Expander<P, I>
 
             if ((itemsToAdd == null /* broke out early non empty */ || (itemsToAdd.Count > 0)) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
-                return null;
+                return RecordItemExpansion<T>(
+                    originalExpression,
+                    result: null,
+                    totalStart,
+                    metadataElapsed,
+                    propertyElapsed,
+                    ExpansionTelemetry.GetElapsedTicks(itemStart),
+                    options,
+                    "Items",
+                    elementLocation);
             }
 
             if (itemsToAdd != null)
@@ -357,6 +445,58 @@ internal partial class Expander<P, I>
                 result.Add(itemToAdd);
             }
         }
+
+        return RecordItemExpansion(
+            originalExpression,
+            result,
+            totalStart,
+            metadataElapsed,
+            propertyElapsed,
+            ExpansionTelemetry.GetElapsedTicks(itemStart),
+            options,
+            "Items",
+            elementLocation);
+    }
+
+    private static IList<T> RecordItemExpansion<T>(
+        string expression,
+        IList<T> result,
+        long totalStart,
+        long metadataElapsed,
+        long propertyElapsed,
+        long itemElapsed,
+        ExpanderOptions options,
+        string callType,
+        IElementLocation elementLocation)
+        where T : class, IItem
+    {
+        string output = null;
+        if (result is not null)
+        {
+            StringBuilder builder = new();
+            for (int i = 0; i < result.Count; i++)
+            {
+                if (i > 0)
+                {
+                    builder.Append(';');
+                }
+
+                builder.Append(result[i]?.EvaluatedIncludeEscaped);
+            }
+
+            output = builder.ToString();
+        }
+
+        ExpansionTelemetry.RecordExpansion(
+            expression,
+            output,
+            ExpansionTelemetry.GetElapsedTicks(totalStart),
+            metadataElapsed,
+            propertyElapsed,
+            itemElapsed,
+            options,
+            callType,
+            elementLocation);
 
         return result;
     }
@@ -396,7 +536,19 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
-        return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, expression, _items, itemFactory, options, includeNullItems, out isTransformExpression, elementLocation);
+        long totalStart = ExpansionTelemetry.GetTimestamp();
+        long itemStart = ExpansionTelemetry.GetTimestamp();
+        IList<T> result = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, expression, _items, itemFactory, options, includeNullItems, out isTransformExpression, elementLocation);
+        return RecordItemExpansion(
+            expression,
+            result,
+            totalStart,
+            metadataElapsed: -1,
+            propertyElapsed: -1,
+            ExpansionTelemetry.GetElapsedTicks(itemStart),
+            options,
+            "SingleItemVector",
+            elementLocation);
     }
 
     internal static bool TryExpandSingleItemVectorExpression(

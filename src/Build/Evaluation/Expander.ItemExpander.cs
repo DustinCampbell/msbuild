@@ -131,6 +131,8 @@ internal partial class Expander<P, I>
 
                 string[] arguments = null;
                 TransformKind kind;
+                string[] telemetryInputs = ExpansionTelemetry.Enabled ? GetTelemetryValues(input) : null;
+                long telemetryStart = ExpansionTelemetry.Enabled ? ExpansionTelemetry.GetTimestamp() : 0;
 
                 // Quoted transforms have no function name. Select their kind directly to avoid synthesizing
                 // a function name and one-element argument array, then performing name-based dispatch.
@@ -223,6 +225,16 @@ internal partial class Expander<P, I>
                         break;
                 }
 
+                if (ExpansionTelemetry.Enabled)
+                {
+                    ExpansionTelemetry.RecordTransform(
+                        function,
+                        kind.ToString(),
+                        telemetryInputs,
+                        GetTelemetryValues(output),
+                        ExpansionTelemetry.GetElapsedTicks(telemetryStart));
+                }
+
                 // If we have another transform, swap the source and transform lists.
                 if (i < captures.Count - 1)
                 {
@@ -246,6 +258,17 @@ internal partial class Expander<P, I>
 
             result = output;
             return true;
+        }
+
+        private static string[] GetTelemetryValues(List<TransformEntry> entries)
+        {
+            string[] values = new string[entries.Count];
+            for (int i = 0; i < entries.Count; i++)
+            {
+                values[i] = entries[i].Value;
+            }
+
+            return values;
         }
 
         /// <summary>
