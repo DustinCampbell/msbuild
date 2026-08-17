@@ -362,7 +362,7 @@ namespace Microsoft.Build.Evaluation
             int end = expression.Length;
             int index = startIndex + 2;
 
-            SinkWhitespace(expression, ref index);
+            SkipWhiteSpace(expression, ref index, end);
 
             if (!TryParseValidName(expression, ref index, end, stopBeforeTransformArrow: true, out string itemType))
             {
@@ -370,19 +370,19 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            SinkWhitespace(expression, ref index);
+            SkipWhiteSpace(expression, ref index, end);
             using RefArrayBuilder<ItemTransform> transforms = default;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
-            while (Sink(expression, ref index, end, '-', '>'))
+            while (TryConsume(expression, ref index, end, '-', '>'))
             {
-                SinkWhitespace(expression, ref index);
+                SkipWhiteSpace(expression, ref index, end);
 
                 if (TryParseQuotedTransform(expression, ref index, end, out ItemTransform transform))
                 {
                     transforms.Add(transform);
 
-                    SinkWhitespace(expression, ref index);
+                    SkipWhiteSpace(expression, ref index, end);
                     continue;
                 }
 
@@ -390,7 +390,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     transforms.Add(transform);
 
-                    SinkWhitespace(expression, ref index);
+                    SkipWhiteSpace(expression, ref index, end);
                     continue;
                 }
 
@@ -398,17 +398,17 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            SinkWhitespace(expression, ref index);
+            SkipWhiteSpace(expression, ref index, end);
 
             string separator = null;
             int separatorStart = -1;
 
             // If there's a ',', eat it and the subsequent quoted expression
-            if (Sink(expression, ref index, ','))
+            if (TryConsume(expression, ref index, ','))
             {
-                SinkWhitespace(expression, ref index);
+                SkipWhiteSpace(expression, ref index, end);
 
-                if (!Sink(expression, ref index, '\''))
+                if (!TryConsume(expression, ref index, '\''))
                 {
                     itemVector = default;
                     return false;
@@ -427,9 +427,9 @@ namespace Microsoft.Build.Evaluation
                 index = closingQuote + 1;
             }
 
-            SinkWhitespace(expression, ref index);
+            SkipWhiteSpace(expression, ref index, end);
 
-            if (!Sink(expression, ref index, ')'))
+            if (!TryConsume(expression, ref index, ')'))
             {
                 itemVector = default;
                 return false;
@@ -490,7 +490,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     // Start of a possible item list expression
 
-                    SinkWhitespace(expression, ref i, end);
+                    SkipWhiteSpace(expression, ref i, end);
 
                     int startOfName = i;
 
@@ -504,24 +504,24 @@ namespace Microsoft.Build.Evaluation
                     // before we store it.
                     int nameLength = i - startOfName;
 
-                    SinkWhitespace(expression, ref i, end);
+                    SkipWhiteSpace(expression, ref i, end);
 
                     bool transformOrFunctionFound = true;
 
                     // If there's an '->' eat it and the subsequent quoted expression or transform function
-                    while (Sink(expression, ref i, end, '-', '>') && transformOrFunctionFound)
+                    while (TryConsume(expression, ref i, end, '-', '>') && transformOrFunctionFound)
                     {
-                        SinkWhitespace(expression, ref i, end);
+                        SkipWhiteSpace(expression, ref i, end);
 
                         if (TryScanQuotedTransform(expression, ref i, end))
                         {
-                            SinkWhitespace(expression, ref i, end);
+                            SkipWhiteSpace(expression, ref i, end);
                             continue;
                         }
 
                         if (TryScanFunctionTransform(expression, ref i, end))
                         {
-                            SinkWhitespace(expression, ref i, end);
+                            SkipWhiteSpace(expression, ref i, end);
                             continue;
                         }
 
@@ -534,14 +534,14 @@ namespace Microsoft.Build.Evaluation
                         continue;
                     }
 
-                    SinkWhitespace(expression, ref i, end);
+                    SkipWhiteSpace(expression, ref i, end);
 
                     // If there's a ',', eat it and the subsequent quoted expression
-                    if (Sink(expression, ref i, ','))
+                    if (TryConsume(expression, ref i, ','))
                     {
-                        SinkWhitespace(expression, ref i, end);
+                        SkipWhiteSpace(expression, ref i, end);
 
-                        if (!Sink(expression, ref i, '\''))
+                        if (!TryConsume(expression, ref i, '\''))
                         {
                             i = restartPoint;
                             continue;
@@ -561,9 +561,9 @@ namespace Microsoft.Build.Evaluation
                         i = closingQuote + 1;
                     }
 
-                    SinkWhitespace(expression, ref i, end);
+                    SkipWhiteSpace(expression, ref i, end);
 
-                    if (!Sink(expression, ref i, ')'))
+                    if (!TryConsume(expression, ref i, ')'))
                     {
                         i = restartPoint;
                         continue;
@@ -620,28 +620,28 @@ namespace Microsoft.Build.Evaluation
             itemType = null;
             metadataName = null;
 
-            SinkWhitespace(expression, ref i, end);
+            SkipWhiteSpace(expression, ref i, end);
 
             if (!TryParseValidName(expression, ref i, end, out string firstName))
             {
                 return false;
             }
 
-            SinkWhitespace(expression, ref i, end);
+            SkipWhiteSpace(expression, ref i, end);
 
-            if (Sink(expression, ref i, end, '.'))
+            if (TryConsume(expression, ref i, end, '.'))
             {
                 // Qualified: %(ItemType.Name)
                 itemType = firstName;
 
-                SinkWhitespace(expression, ref i, end);
+                SkipWhiteSpace(expression, ref i, end);
 
                 if (!TryParseValidName(expression, ref i, end, out metadataName))
                 {
                     return false;
                 }
 
-                SinkWhitespace(expression, ref i, end);
+                SkipWhiteSpace(expression, ref i, end);
             }
             else
             {
@@ -649,7 +649,7 @@ namespace Microsoft.Build.Evaluation
                 metadataName = firstName;
             }
 
-            return Sink(expression, ref i, end, ')');
+            return TryConsume(expression, ref i, end, ')');
         }
 
         /// <summary>
@@ -691,7 +691,7 @@ namespace Microsoft.Build.Evaluation
         /// </returns>
         private static bool TryScanQuotedTransform(string expression, ref int i, int end)
         {
-            if (!Sink(expression, ref i, '\''))
+            if (!TryConsume(expression, ref i, '\''))
             {
                 return false;
             }
@@ -719,7 +719,7 @@ namespace Microsoft.Build.Evaluation
         {
             Debug.Assert((uint)end <= (uint)expression.Length, "The scan end must be within the expression.");
 
-            if (!Sink(expression, ref i, end, '('))
+            if (!TryConsume(expression, ref i, end, '('))
             {
                 return false;
             }
@@ -836,7 +836,7 @@ namespace Microsoft.Build.Evaluation
             endFunctionName = i;
 
             // Eat any whitespace between the function name and its arguments.
-            SinkWhitespace(expression, ref i, end);
+            SkipWhiteSpace(expression, ref i, end);
             startArguments = i + 1;
 
             if (!TryScanArgumentList(expression, ref i, end))
@@ -939,14 +939,14 @@ namespace Microsoft.Build.Evaluation
         ///  Returns <see langword="true"/> if the character at the specified index is the specified char.
         ///  Leaves index one past the character.
         /// </summary>
-        private static bool Sink(string expression, ref int i, char c)
-            => Sink(expression, ref i, expression.Length, c);
+        private static bool TryConsume(string expression, ref int i, char c)
+            => TryConsume(expression, ref i, expression.Length, c);
 
         /// <summary>
         ///  Returns <see langword="true"/> if the character at the specified index (which must be before
         ///  <paramref name="end"/>) is the specified char. Leaves index one past the character.
         /// </summary>
-        private static bool Sink(string expression, ref int i, int end, char c)
+        private static bool TryConsume(string expression, ref int i, int end, char c)
         {
             if (i < end && expression[i] == c)
             {
@@ -961,7 +961,7 @@ namespace Microsoft.Build.Evaluation
         ///  Returns <see langword="true"/> if the next two characters at the specified index are the specified sequence.
         ///  Leaves index one past the second character.
         /// </summary>
-        private static bool Sink(string expression, ref int i, int end, char c1, char c2)
+        private static bool TryConsume(string expression, ref int i, int end, char c1, char c2)
         {
             if (i < end - 1 && expression[i] == c1 && expression[i + 1] == c2)
             {
@@ -971,19 +971,6 @@ namespace Microsoft.Build.Evaluation
 
             return false;
         }
-
-        /// <summary>
-        ///  Moves past all whitespace starting at the specified index.
-        ///  Returns the next index, possibly the string length.
-        /// </summary>
-        /// <param name="expression">The expression to process.</param>
-        /// <param name="i">The start location for skipping whitespace, contains the next non-whitespace character on exit.</param>
-        /// <remarks>
-        ///  <see cref="char.IsWhiteSpace(char)"/> is not identical in behavior to regex's <c>\s</c> character class,
-        ///  but it's extremely close, and it's what we use in conditional expressions.
-        /// </remarks>
-        private static void SinkWhitespace(string expression, ref int i)
-            => SinkWhitespace(expression, ref i, expression.Length);
 
         /// <summary>
         ///  Moves past all whitespace starting at the specified index, without scanning at or beyond
@@ -998,7 +985,7 @@ namespace Microsoft.Build.Evaluation
         ///  <see cref="char.IsWhiteSpace(char)"/> is not identical in behavior to regex's <c>\s</c> character class,
         ///  but it's extremely close, and it's what we use in conditional expressions.
         /// </remarks>
-        private static void SinkWhitespace(string expression, ref int i, int end)
+        private static void SkipWhiteSpace(string expression, ref int i, int end)
         {
             while (i < end && char.IsWhiteSpace(expression[i]))
             {
