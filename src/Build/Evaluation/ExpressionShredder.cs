@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
@@ -702,96 +703,56 @@ namespace Microsoft.Build.Evaluation
 
             i++;
 
-            if (end <= i)
+            return end > i;
+        }
+
+        /// <summary>
+        ///  Scans an argument list beginning at the specified index.
+        /// </summary>
+        /// <param name="expression">The expression containing the argument list.</param>
+        /// <param name="i">The current index, updated to one past the closing parenthesis when successful.</param>
+        /// <param name="end">The exclusive upper bound of the scan.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a complete argument list was found; otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryScanArgumentList(string expression, ref int i, int end)
+        {
+            Debug.Assert((uint)end <= (uint)expression.Length, "The scan end must be within the expression.");
+
+            if (!Sink(expression, ref i, end, '('))
             {
                 return false;
             }
 
-            return true;
-        }
-
-        /// <summary>
-        /// Scan for the closing bracket that matches the one we've already skipped;
-        /// essentially, pushes and pops on a stack of parentheses to do this.
-        /// Takes the expression and the index to start at.
-        /// Returns the index of the matching parenthesis, or -1 if it was not found.
-        /// </summary>
-        private static bool SinkArgumentsInParentheses(string expression, ref int i, int end)
-        {
-            int nestLevel = 0;
-            int length = expression.Length;
-            int restartPoint;
-
+            int nestLevel = 1;
             unsafe
             {
                 fixed (char* pchar = expression)
                 {
-                    if (pchar[i] == '(')
-                    {
-                        nestLevel++;
-                        i++;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-
                     // Scan for our closing ')'
-                    while (i < length && i < end && nestLevel > 0)
+                    while (i < end && nestLevel > 0)
                     {
                         char character = pchar[i];
 
-                        if (character == '\'' || character == '`' || character == '"')
+                        switch (character)
                         {
-                            restartPoint = i;
-                            if (!SinkUntilClosingQuote(character, expression, ref i, end))
-                            {
-                                i = restartPoint;
-                                return false;
-                            }
-                        }
-                        else if (character == '(')
-                        {
-                            nestLevel++;
-                        }
-                        else if (character == ')')
-                        {
-                            nestLevel--;
-                        }
+                            case '\'' or '`' or '"':
+                                int closingQuote = expression.IndexOf(character, i + 1, end - i - 1);
+                                if (closingQuote < 0)
+                                {
+                                    return false;
+                                }
 
-                        i++;
-                    }
-                }
-            }
+                                i = closingQuote;
+                                break;
 
-            if (nestLevel == 0)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
+                            case '(':
+                                nestLevel++;
+                                break;
 
-        /// <summary>
-        /// Skip all characters until we find the matching quote character
-        /// </summary>
-        private static bool SinkUntilClosingQuote(char quoteChar, string expression, ref int i, int end)
-        {
-            unsafe
-            {
-                fixed (char* pchar = expression)
-                {
-                    // We have already checked the first quote
-                    i++;
-
-                    // Scan for our closing quoteChar
-                    while (i < expression.Length && i < end)
-                    {
-                        if (pchar[i] == quoteChar)
-                        {
-                            return true;
+                            case ')':
+                                nestLevel--;
+                                break;
                         }
 
                         i++;
@@ -799,7 +760,7 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            return false;
+            return nestLevel == 0;
         }
 
         /// <summary>
@@ -821,14 +782,14 @@ namespace Microsoft.Build.Evaluation
                     ref i,
                     end,
                     out int endFunctionName,
-                    out int startFunctionArguments,
-                    out int endFunctionArguments))
+                    out int startArguments,
+                    out int endArguments))
             {
                 string functionName = expression.Substring(startTransform, endFunctionName - startTransform);
                 string functionArguments = null;
-                if (endFunctionArguments > startFunctionArguments)
+                if (endArguments > startArguments)
                 {
-                    functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
+                    functionArguments = Strings.WeakIntern(expression.AsSpan(startArguments, endArguments - startArguments));
                 }
 
                 transform = new ItemTransform(
@@ -860,12 +821,12 @@ namespace Microsoft.Build.Evaluation
             ref int i,
             int end,
             out int endFunctionName,
-            out int startFunctionArguments,
-            out int endFunctionArguments)
+            out int startArguments,
+            out int endArguments)
         {
-            endFunctionName = -1;
-            startFunctionArguments = -1;
-            endFunctionArguments = -1;
+            endFunctionName = 0;
+            startArguments = 0;
+            endArguments = 0;
 
             if (!TryScanValidName(expression, ref i, end))
             {
@@ -876,14 +837,14 @@ namespace Microsoft.Build.Evaluation
 
             // Eat any whitespace between the function name and its arguments.
             SinkWhitespace(expression, ref i, end);
-            startFunctionArguments = i + 1;
+            startArguments = i + 1;
 
-            if (!SinkArgumentsInParentheses(expression, ref i, end))
+            if (!TryScanArgumentList(expression, ref i, end))
             {
                 return false;
             }
 
-            endFunctionArguments = i - 1;
+            endArguments = i - 1;
             return true;
         }
 
