@@ -390,23 +390,16 @@ namespace Microsoft.Build.Evaluation
             while (Sink(expression, ref index, end, '-', '>'))
             {
                 SinkWhitespace(expression, ref index);
-                int startTransform = index;
 
-                if (SinkSingleQuotedExpression(expression, ref index, end))
+                if (TryParseQuotedTransform(expression, ref index, end, out ItemTransform transform))
                 {
-                    int startQuoted = startTransform + 1;
-                    int endQuoted = index - 1;
-
-                    transforms.Add(new ItemTransform(
-                        text: expression.Substring(startQuoted, endQuoted - startQuoted),
-                        index: startQuoted));
+                    transforms.Add(transform);
 
                     SinkWhitespace(expression, ref index);
                     continue;
                 }
 
-                startTransform = index;
-                if (TryParseFunctionTransform(expression, startTransform, ref index, end, out ItemTransform transform))
+                if (TryParseFunctionTransform(expression, ref index, end, out transform))
                 {
                     transforms.Add(transform);
 
@@ -510,7 +503,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     // Start of a possible item list expression
 
-                    SinkWhitespace(expression, ref i);
+                    SinkWhitespace(expression, ref i, end);
 
                     int startOfName = i;
 
@@ -532,26 +525,24 @@ namespace Microsoft.Build.Evaluation
                     // before we store it.
                     int nameLength = i - startOfName;
 
-                    SinkWhitespace(expression, ref i);
+                    SinkWhitespace(expression, ref i, end);
 
                     bool transformOrFunctionFound = true;
 
                     // If there's an '->' eat it and the subsequent quoted expression or transform function
                     while (Sink(expression, ref i, end, '-', '>') && transformOrFunctionFound)
                     {
-                        SinkWhitespace(expression, ref i);
-                        int startTransform = i;
+                        SinkWhitespace(expression, ref i, end);
 
-                        bool isQuotedTransform = SinkSingleQuotedExpression(expression, ref i, end);
-                        if (isQuotedTransform)
+                        if (TryScanQuotedTransform(expression, ref i, end))
                         {
-                            SinkWhitespace(expression, ref i);
+                            SinkWhitespace(expression, ref i, end);
                             continue;
                         }
 
-                        if (TryParseFunctionTransform(expression, startTransform, ref i, end, out _))
+                        if (TryScanFunctionTransform(expression, ref i, end))
                         {
-                            SinkWhitespace(expression, ref i);
+                            SinkWhitespace(expression, ref i, end);
                             continue;
                         }
 
@@ -564,12 +555,12 @@ namespace Microsoft.Build.Evaluation
                         continue;
                     }
 
-                    SinkWhitespace(expression, ref i);
+                    SinkWhitespace(expression, ref i, end);
 
                     // If there's a ',', eat it and the subsequent quoted expression
                     if (Sink(expression, ref i, ','))
                     {
-                        SinkWhitespace(expression, ref i);
+                        SinkWhitespace(expression, ref i, end);
 
                         if (!Sink(expression, ref i, '\''))
                         {
@@ -591,7 +582,7 @@ namespace Microsoft.Build.Evaluation
                         i = closingQuote + 1;
                     }
 
-                    SinkWhitespace(expression, ref i);
+                    SinkWhitespace(expression, ref i, end);
 
                     if (!Sink(expression, ref i, ')'))
                     {
@@ -691,11 +682,43 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// Returns true if a single quoted subexpression begins at the specified index
-        /// and ends before the specified end index.
-        /// Leaves index one past the end of the second quote.
+        ///  Parses a quoted item transform beginning at the specified index.
         /// </summary>
-        private static bool SinkSingleQuotedExpression(string expression, ref int i, int end)
+        /// <param name="expression">The expression containing the transform.</param>
+        /// <param name="i">The current index, updated to one past the closing quote when successful.</param>
+        /// <param name="end">The exclusive upper bound of the scan.</param>
+        /// <param name="transform">The parsed transform when successful.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a quoted transform was parsed; otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryParseQuotedTransform(string expression, ref int i, int end, out ItemTransform transform)
+        {
+            int startTransform = i;
+
+            if (TryScanQuotedTransform(expression, ref i, end))
+            {
+                int startQuoted = startTransform + 1;
+
+                transform = new ItemTransform(
+                    text: expression.Substring(startQuoted, i - startQuoted - 1),
+                    index: startQuoted);
+                return true;
+            }
+
+            transform = default;
+            return false;
+        }
+
+        /// <summary>
+        ///  Advances past a quoted item transform without constructing an <see cref="ItemTransform"/>.
+        /// </summary>
+        /// <param name="expression">The expression containing the transform.</param>
+        /// <param name="i">The current index, updated to one past the closing quote when successful.</param>
+        /// <param name="end">The exclusive upper bound of the scan.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a quoted transform was found; otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryScanQuotedTransform(string expression, ref int i, int end)
         {
             if (!Sink(expression, ref i, '\''))
             {
@@ -810,42 +833,94 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// Returns true if a item function subexpression begins at the specified index
-        /// and ends before the specified end index.
-        /// Leaves index one past the end of the closing paren.
+        ///  Parses a function item transform beginning at the specified index.
         /// </summary>
-        private static bool TryParseFunctionTransform(string expression, int startTransform, ref int i, int end, out ItemTransform transform)
+        /// <param name="expression">The expression containing the transform.</param>
+        /// <param name="i">The current index, updated to one past the closing parenthesis when successful.</param>
+        /// <param name="end">The exclusive upper bound of the scan.</param>
+        /// <param name="transform">The parsed transform when successful.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a function transform was parsed; otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryParseFunctionTransform(string expression, ref int i, int end, out ItemTransform transform)
         {
-            if (SinkValidName(expression, ref i, end))
+            int startTransform = i;
+
+            if (TryScanFunctionTransform(
+                    expression,
+                    ref i,
+                    end,
+                    out int endFunctionName,
+                    out int startFunctionArguments,
+                    out int endFunctionArguments))
             {
-                int endFunctionName = i;
-
-                // Eat any whitespace between the function name and its arguments
-                SinkWhitespace(expression, ref i);
-                int startFunctionArguments = i + 1;
-
-                if (SinkArgumentsInParentheses(expression, ref i, end))
+                string functionName = expression.Substring(startTransform, endFunctionName - startTransform);
+                string functionArguments = null;
+                if (endFunctionArguments > startFunctionArguments)
                 {
-                    int endFunctionArguments = i - 1;
-
-                    string functionName = expression.Substring(startTransform, endFunctionName - startTransform);
-                    string functionArguments = null;
-                    if (endFunctionArguments > startFunctionArguments)
-                    {
-                        functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
-                    }
-
-                    transform = new ItemTransform(
-                        text: expression.Substring(startTransform, i - startTransform),
-                        index: startTransform,
-                        functionName,
-                        functionArguments);
-                    return true;
+                    functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                 }
+
+                transform = new ItemTransform(
+                    text: expression.Substring(startTransform, i - startTransform),
+                    index: startTransform,
+                    functionName,
+                    functionArguments);
+                return true;
             }
 
             transform = default;
             return false;
+        }
+
+        /// <summary>
+        ///  Advances past a function item transform without constructing an <see cref="ItemTransform"/>.
+        /// </summary>
+        /// <param name="expression">The expression containing the transform.</param>
+        /// <param name="i">The current index, updated to one past the closing parenthesis when successful.</param>
+        /// <param name="end">The exclusive upper bound of the scan.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a function transform was found; otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryScanFunctionTransform(string expression, ref int i, int end)
+            => TryScanFunctionTransform(
+                expression,
+                ref i,
+                end,
+                out _,
+                out _,
+                out _);
+
+        private static bool TryScanFunctionTransform(
+            string expression,
+            ref int i,
+            int end,
+            out int endFunctionName,
+            out int startFunctionArguments,
+            out int endFunctionArguments)
+        {
+            endFunctionName = -1;
+            startFunctionArguments = -1;
+            endFunctionArguments = -1;
+
+            if (!SinkValidName(expression, ref i, end))
+            {
+                return false;
+            }
+
+            endFunctionName = i;
+
+            // Eat any whitespace between the function name and its arguments.
+            SinkWhitespace(expression, ref i, end);
+            startFunctionArguments = i + 1;
+
+            if (!SinkArgumentsInParentheses(expression, ref i, end))
+            {
+                return false;
+            }
+
+            endFunctionArguments = i - 1;
+            return true;
         }
 
         /// <summary>
