@@ -41,7 +41,7 @@ namespace Microsoft.Build.Evaluation
             private IMSBuildGlob _msbuildGlob;
 
             private List<ReferencedItem> _referencedItems;
-            public ExpressionShredder.ItemExpressionCapture Capture { get; }
+            public ItemVector ItemVector { get; }
 
             public List<ReferencedItem> ReferencedItems
             {
@@ -66,13 +66,13 @@ namespace Microsoft.Build.Evaluation
             }
 
             public ItemExpressionFragment(
-                ExpressionShredder.ItemExpressionCapture capture,
+                ItemVector itemVector,
                 string textFragment,
                 ItemSpec<P, I> containingItemSpec,
                 string projectDirectory)
                 : base(textFragment, projectDirectory)
             {
-                Capture = capture;
+                ItemVector = itemVector;
 
                 _containingItemSpec = containingItemSpec;
                 _expander = _containingItemSpec.Expander;
@@ -117,8 +117,8 @@ namespace Microsoft.Build.Evaluation
                 {
                     _expander = _containingItemSpec.Expander;
 
-                    _expander.ExpandExpressionCapture(
-                        Capture,
+                    _expander.ExpandItemVector(
+                        ItemVector,
                         _containingItemSpec.ItemSpecLocation,
                         ExpanderOptions.ExpandItems,
                         includeNullEntries: false,
@@ -266,7 +266,7 @@ namespace Microsoft.Build.Evaluation
                     expression,
                     ExpanderOptions.ExpandItems,
                     elementLocation,
-                    out ExpressionShredder.ItemExpressionCapture itemVector))
+                    out ItemVector itemVector))
             {
                 isItemListExpression = true;
 

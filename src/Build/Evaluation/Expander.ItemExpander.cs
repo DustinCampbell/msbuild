@@ -89,7 +89,7 @@ internal partial class Expander<P, I>
         /// </summary>
         /// <remarks>
         ///  <para>
-        ///  Each captured transform function will be mapped to either a static method on
+        ///  Each transform function will be mapped to either a static method on
         ///  <see cref="Transforms"/> or a known item spec modifier which operates on the item path.
         ///  </para>
         ///  <para>
@@ -111,7 +111,7 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             ExpanderOptions options,
             bool includeNullEntries,
-            List<ExpressionShredder.ItemExpressionCapture> captures,
+            List<ItemVector> vectors,
             ICollection<I> itemsOfType,
             out List<TransformEntry> result)
         {
@@ -122,12 +122,11 @@ internal partial class Expander<P, I>
 
             // Create a TransformFunction for each transform in the chain by extracting the relevant information
             // from the regex parsing results
-            for (int i = 0; i < captures.Count; i++)
+            for (int i = 0; i < vectors.Count; i++)
             {
-                ExpressionShredder.ItemExpressionCapture capture = captures[i];
-                string function = capture.Value;
-                string functionName = capture.FunctionName;
-                string argumentsExpression = capture.FunctionArguments;
+                ItemVector itemVector = vectors[i];
+                string functionName = itemVector.FunctionName;
+                string argumentsExpression = itemVector.FunctionArguments;
 
                 string[] arguments = null;
                 TransformKind kind;
@@ -188,11 +187,11 @@ internal partial class Expander<P, I>
                         Transforms.Reverse(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.ExpandQuotedExpressionFunction:
-                        // The unnamed form stores the quoted expression in capture.Value. An explicitly named
+                        // The unnamed form stores the quoted expression in itemVector.Text. An explicitly named
                         // invocation uses parsed arguments so its existing syntax validation is preserved.
                         if (functionName is null)
                         {
-                            Transforms.ExpandQuotedExpressionFunction(input, output, function, includeNullEntries, elementLocation);
+                            Transforms.ExpandQuotedExpressionFunction(input, output, itemVector.Text, includeNullEntries, elementLocation);
                         }
                         else
                         {
@@ -224,7 +223,7 @@ internal partial class Expander<P, I>
                 }
 
                 // If we have another transform, swap the source and transform lists.
-                if (i < captures.Count - 1)
+                if (i < vectors.Count - 1)
                 {
                     (output, input) = (input, output);
                     output.Clear();
@@ -299,7 +298,7 @@ internal partial class Expander<P, I>
         /// have an item type set on it, it will be given the item type of the item vector to use.
         /// </summary>
         /// <typeparam name="T">Type of the items that should be returned.</typeparam>
-        internal static IList<T> ExpandSingleItemVectorExpressionIntoItems<T>(
+        internal static IList<T> ExpandSingleItemVectorIntoItems<T>(
             Expander<P, I> expander,
             string expression,
             IItemProvider<I> items,
@@ -312,8 +311,8 @@ internal partial class Expander<P, I>
         {
             isTransformExpression = false;
 
-            return TryExpandSingleItemVectorExpression(expression, options, elementLocation, out ExpressionShredder.ItemExpressionCapture itemVector)
-                ? ExpandExpressionCaptureIntoItems(
+            return TryExpandSingleItemVector(expression, options, elementLocation, out ItemVector itemVector)
+                ? ExpandItemVectorIntoItems(
                     itemVector,
                     expander,
                     items,
@@ -325,11 +324,11 @@ internal partial class Expander<P, I>
                 : null;
         }
 
-        internal static bool TryExpandSingleItemVectorExpression(
+        internal static bool TryExpandSingleItemVector(
             string expression,
             ExpanderOptions options,
             IElementLocation elementLocation,
-            out ExpressionShredder.ItemExpressionCapture itemVector)
+            out ItemVector itemVector)
         {
             if (((options & ExpanderOptions.ExpandItems) == 0) || expression.Length == 0)
             {
@@ -337,7 +336,7 @@ internal partial class Expander<P, I>
                 return false;
             }
 
-            if (!ExpressionShredder.TryGetNextItemVectorExpression(expression, out itemVector))
+            if (!ExpressionShredder.TryGetNextItemVector(expression, out itemVector))
             {
                 return false;
             }
@@ -355,9 +354,15 @@ internal partial class Expander<P, I>
             return true;
         }
 
-        internal static IList<T> ExpandExpressionCaptureIntoItems<T>(
-            ExpressionShredder.ItemExpressionCapture expressionCapture, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
-            ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
+        internal static IList<T> ExpandItemVectorIntoItems<T>(
+            ItemVector itemVector,
+            Expander<P, I> expander,
+            IItemProvider<I> items,
+            IItemFactory<I, T> itemFactory,
+            ExpanderOptions options,
+            bool includeNullEntries,
+            out bool isTransformExpression,
+            IElementLocation elementLocation)
             where T : class, IItem
         {
             Assumed.NotNull(items, "Cannot expand items without providing items");
@@ -370,11 +375,11 @@ internal partial class Expander<P, I>
             // have the item type "Compile".
             if (itemFactory.ItemType == null)
             {
-                itemFactory.ItemType = expressionCapture.ItemType;
+                itemFactory.ItemType = itemVector.ItemType;
             }
 
             IList<T> result;
-            if (expressionCapture.Separator != null)
+            if (itemVector.Separator != null)
             {
                 // Reference contains a separator, for example @(Compile, ';').
                 // We need to flatten the list into
@@ -382,7 +387,7 @@ internal partial class Expander<P, I>
                 // to be able to convert item lists with user specified separators into properties.
                 string expandedItemVector;
                 using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
-                brokeEarlyNonEmpty = ExpandExpressionCaptureIntoStringBuilder(expander, expressionCapture, items, elementLocation, builder, options);
+                brokeEarlyNonEmpty = ExpandItemVectorIntoStringBuilder(expander, itemVector, items, elementLocation, builder, options);
 
                 if (brokeEarlyNonEmpty)
                 {
@@ -404,7 +409,7 @@ internal partial class Expander<P, I>
             }
 
             List<TransformEntry> entries;
-            brokeEarlyNonEmpty = ExpandItemVector(expander, expressionCapture, items, elementLocation /* including null items */, options, true, out isTransformExpression, out entries);
+            brokeEarlyNonEmpty = ExpandItemVector(expander, itemVector, items, elementLocation /* including null items */, options, true, out isTransformExpression, out entries);
 
             if (brokeEarlyNonEmpty)
             {
@@ -467,7 +472,7 @@ internal partial class Expander<P, I>
         /// </returns>
         internal static bool ExpandItemVector(
             Expander<P, I> expander,
-            ExpressionShredder.ItemExpressionCapture itemVector,
+            ItemVector itemVector,
             IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             ExpanderOptions options,
@@ -481,10 +486,10 @@ internal partial class Expander<P, I>
             ProjectErrorUtilities.VerifyThrowInvalidProject(!itemVector.ItemType.IsNullOrEmpty(), elementLocation, "InvalidFunctionPropertyExpression");
 
             ICollection<I> items = evaluatedItems.GetItems(itemVector.ItemType);
-            List<ExpressionShredder.ItemExpressionCapture> captures = itemVector.Captures;
+            List<ItemVector> vectors = itemVector.Vectors;
             string separator = itemVector.Separator;
 
-            isTransformExpression = captures is not null;
+            isTransformExpression = vectors is not null;
             entries = null;
 
             if (!isTransformExpression)
@@ -526,15 +531,15 @@ internal partial class Expander<P, I>
             }
 
             // Most transforms cannot produce a value from an empty item list.
-            if (items.Count == 0 && !ShouldEvaluateEmptyList(captures))
+            if (items.Count == 0 && !ShouldEvaluateEmptyList(vectors))
             {
                 return false; // did not break early
             }
 
-            // A transform item vector without any captures indicates that it could not be parsed correctly.
-            ProjectErrorUtilities.VerifyThrowInvalidProject(captures.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
+            // A transform item vector without any transforms indicates that it could not be parsed correctly.
+            ProjectErrorUtilities.VerifyThrowInvalidProject(vectors.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
 
-            if (!TryTransform(expander, elementLocation, options, includeNullEntries, captures, items, out entries))
+            if (!TryTransform(expander, elementLocation, options, includeNullEntries, vectors, items, out entries))
             {
                 return true; // broke early
             }
@@ -550,12 +555,12 @@ internal partial class Expander<P, I>
 
             return false; // did not break early
 
-            static bool ShouldEvaluateEmptyList(List<ExpressionShredder.ItemExpressionCapture> captures)
+            static bool ShouldEvaluateEmptyList(List<ItemVector> vectors)
             {
                 // Count returns zero and AnyHaveMetadataValue returns false for an empty list, so those transforms must still run.
-                foreach (ExpressionShredder.ItemExpressionCapture capture in captures)
+                foreach (ItemVector vector in vectors)
                 {
-                    string functionName = capture.FunctionName;
+                    string functionName = vector.FunctionName;
                     if (string.Equals(functionName, "Count", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(functionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase))
                     {
@@ -668,7 +673,7 @@ internal partial class Expander<P, I>
 
             Assumed.NotNull(items, "Cannot expand items without providing items");
 
-            if (!ExpressionShredder.TryGetNextItemVectorExpression(expression, out ExpressionShredder.ItemExpressionCapture currentItem))
+            if (!ExpressionShredder.TryGetNextItemVector(expression, out ItemVector currentItem))
             {
                 return expression;
             }
@@ -691,7 +696,7 @@ internal partial class Expander<P, I>
                     builder.Append(expression, lastStringIndex, currentItem.Index - lastStringIndex);
                 }
 
-                bool brokeEarlyNonEmpty = ExpandExpressionCaptureIntoStringBuilder(expander, currentItem, items, elementLocation, builder, options);
+                bool brokeEarlyNonEmpty = ExpandItemVectorIntoStringBuilder(expander, currentItem, items, elementLocation, builder, options);
 
                 if (brokeEarlyNonEmpty)
                 {
@@ -700,7 +705,7 @@ internal partial class Expander<P, I>
 
                 lastStringIndex = currentItem.Index + currentItem.Length;
             }
-            while (ExpressionShredder.TryGetNextItemVectorExpression(expression, lastStringIndex, out currentItem));
+            while (ExpressionShredder.TryGetNextItemVector(expression, lastStringIndex, out currentItem));
 
             builder.Append(expression, lastStringIndex, expression.Length - lastStringIndex);
 
@@ -711,9 +716,9 @@ internal partial class Expander<P, I>
         /// Expand the match provided into a string, and append that to the provided InternableString.
         /// Returns true if ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and so it broke out early.
         /// </summary>
-        private static bool ExpandExpressionCaptureIntoStringBuilder(
+        private static bool ExpandItemVectorIntoStringBuilder(
             Expander<P, I> expander,
-            ExpressionShredder.ItemExpressionCapture capture,
+            ItemVector itemVector,
             IItemProvider<I> evaluatedItems,
             IElementLocation elementLocation,
             SpanBasedStringBuilder builder,
@@ -721,7 +726,7 @@ internal partial class Expander<P, I>
         {
             List<TransformEntry> entries;
             bool throwaway;
-            var brokeEarlyNonEmpty = ExpandItemVector(expander, capture, evaluatedItems, elementLocation /* including null items */, options, true, out throwaway, out entries);
+            var brokeEarlyNonEmpty = ExpandItemVector(expander, itemVector, evaluatedItems, elementLocation /* including null items */, options, true, out throwaway, out entries);
 
             if (brokeEarlyNonEmpty)
             {
@@ -737,7 +742,7 @@ internal partial class Expander<P, I>
             int startLength = builder.Length;
             bool truncate = IsTruncationEnabled(options);
 
-            // if the capture.Separator is not null, then ExpandExpressionCapture would have joined the items using that separator itself
+            // if the vector.Separator is not null, then ExpandItemVector would have joined the items using that separator itself
             for (int i = 0; i < entries.Count; i++)
             {
                 var entry = entries[i];

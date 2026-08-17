@@ -89,7 +89,7 @@ internal partial class Expander<P, I>
 
         private string Expand(string expression)
         {
-            if (!ExpressionShredder.TryGetNextItemVectorExpression(expression, out ExpressionShredder.ItemExpressionCapture itemVector))
+            if (!ExpressionShredder.TryGetNextItemVector(expression, out ItemVector itemVector))
             {
                 // No well-formed item vectors in the string — scan for metadata references directly.
                 ScanAndExpandMetadata(expression);
@@ -113,15 +113,15 @@ internal partial class Expander<P, I>
         /// <summary>
         ///  Expands metadata in the gaps between item vector expressions and within their separators.
         /// </summary>
-        private void ScanAndExpandMetadataInGaps(string expression, ExpressionShredder.ItemExpressionCapture itemVector)
+        private void ScanAndExpandMetadataInGaps(string expression, ItemVector itemVector)
         {
             int start = 0;
 
             do
             {
-                start = ProcessItemExpressionCapture(expression, start, itemVector);
+                start = ProcessItemVector(expression, start, itemVector);
             }
-            while (ExpressionShredder.TryGetNextItemVectorExpression(expression, start, out itemVector));
+            while (ExpressionShredder.TryGetNextItemVector(expression, start, out itemVector));
 
             // Expand metadata in any trailing text after the last item vector expression.
             if (start < expression.Length)
@@ -130,7 +130,7 @@ internal partial class Expander<P, I>
             }
         }
 
-        private int ProcessItemExpressionCapture(string expression, int start, ExpressionShredder.ItemExpressionCapture itemVector)
+        private int ProcessItemVector(string expression, int start, ItemVector itemVector)
         {
             // Expand metadata in the gap before this item vector expression.
             if (itemVector.Index > start)
@@ -142,16 +142,16 @@ internal partial class Expander<P, I>
             if (itemVector.Separator != null)
             {
                 // Append the portion before the separator verbatim, then expand within the separator portion.
-                string value = itemVector.Value;
+                string text = itemVector.Text;
                 int separatorStart = itemVector.SeparatorStart;
 
-                _builder.Append(value, 0, separatorStart);
-                ScanAndExpandMetadata(value, separatorStart, value.Length);
+                _builder.Append(text, 0, separatorStart);
+                ScanAndExpandMetadata(text, separatorStart, text.Length);
             }
             else
             {
                 // Append the item vector expression as-is.
-                _builder.Append(itemVector.Value);
+                _builder.Append(itemVector.Text);
             }
 
             // Advance past this item vector expression.

@@ -59,8 +59,8 @@ namespace Microsoft.Build.Evaluation
                     if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemReferenceFragment)
                     {
                         // STEP 3: If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
-                        var itemsFromExpression = _expander.ExpandExpressionCaptureIntoItems(
-                            itemReferenceFragment.Capture,
+                        var itemsFromExpression = _expander.ExpandItemVectorIntoItems(
+                            itemReferenceFragment.ItemVector,
                             _evaluatorData,
                             _itemFactory,
                             ExpanderOptions.ExpandItems,
