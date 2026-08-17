@@ -1,37 +1,34 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Microsoft.Build.Evaluation
+namespace Microsoft.Build.Evaluation;
+
+/// <summary>
+///  Represents a qualified or unqualified item metadata reference, such as
+///  <c>%(EmbeddedResource.Culture)</c> or <c>%(Culture)</c>.
+/// </summary>
+internal readonly struct MetadataReference
 {
     /// <summary>
-    /// This struct represents a reference to a piece of item metadata.  For example,
-    /// %(EmbeddedResource.Culture) or %(Culture) in the project file.  In this case,
-    /// "EmbeddedResource" is the item name, and "Culture" is the metadata name.
-    /// The item name is optional.
+    ///  The item type for a qualified reference, or <see langword="null"/> for an unqualified reference.
     /// </summary>
-    internal struct MetadataReference
+    public readonly string? ItemName;
+
+    /// <summary>
+    ///  The metadata name.
+    /// </summary>
+    public readonly string MetadataName;
+
+    /// <summary>
+    ///  Initializes a metadata reference.
+    /// </summary>
+    /// <param name="itemName">
+    ///  The item type for a qualified reference, or <see langword="null"/> for an unqualified reference.
+    /// </param>
+    /// <param name="metadataName">The metadata name.</param>
+    internal MetadataReference(string? itemName, string metadataName)
     {
-        /// <summary>
-        /// The item name
-        /// </summary>
-        internal string ItemName;       // Could be null if the %(...) is not qualified with an item name.
-
-        /// <summary>
-        /// The metadata name
-        /// </summary>
-        internal string MetadataName;
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="itemName">Name of the item</param>
-        /// <param name="metadataName">Name of the metadata</param>
-        internal MetadataReference(
-            string itemName,
-            string metadataName)
-        {
-            this.ItemName = itemName;
-            this.MetadataName = metadataName;
-        }
+        ItemName = itemName;
+        MetadataName = metadataName;
     }
 }
