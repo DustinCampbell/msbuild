@@ -384,7 +384,7 @@ namespace Microsoft.Build.Evaluation
             string itemName = Strings.WeakIntern(expression.AsSpan(startOfName, index - startOfName));
 
             SinkWhitespace(expression, ref index);
-            List<ItemVector> transformExpressions = null;
+            using RefArrayBuilder<ItemTransform> transforms = default;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
             while (Sink(expression, ref index, end, '-', '>'))
@@ -397,9 +397,7 @@ namespace Microsoft.Build.Evaluation
                     int startQuoted = startTransform + 1;
                     int endQuoted = index - 1;
 
-                    // PERF: Almost all expressions have only one transform, so optimize for that case
-                    transformExpressions ??= new List<ItemVector>(1);
-                    transformExpressions.Add(new ItemVector(
+                    transforms.Add(new ItemTransform(
                         text: expression.Substring(startQuoted, endQuoted - startQuoted),
                         index: startQuoted));
 
@@ -408,11 +406,9 @@ namespace Microsoft.Build.Evaluation
                 }
 
                 startTransform = index;
-                if (TryParseFunctionTransform(expression, startTransform, ref index, end, out ItemVector transform))
+                if (TryParseFunctionTransform(expression, startTransform, ref index, end, out ItemTransform transform))
                 {
-                    // PERF: Almost all expressions have only one transform, so optimize for that case
-                    transformExpressions ??= new List<ItemVector>(1);
-                    transformExpressions.Add(transform);
+                    transforms.Add(transform);
 
                     SinkWhitespace(expression, ref index);
                     continue;
@@ -470,7 +466,7 @@ namespace Microsoft.Build.Evaluation
                 itemName,
                 separator,
                 separatorStart,
-                vectors: transformExpressions);
+                transforms.ToImmutable());
 
             return true;
         }
@@ -818,7 +814,7 @@ namespace Microsoft.Build.Evaluation
         /// and ends before the specified end index.
         /// Leaves index one past the end of the closing paren.
         /// </summary>
-        private static bool TryParseFunctionTransform(string expression, int startTransform, ref int i, int end, out ItemVector transform)
+        private static bool TryParseFunctionTransform(string expression, int startTransform, ref int i, int end, out ItemTransform transform)
         {
             if (SinkValidName(expression, ref i, end))
             {
@@ -839,15 +835,11 @@ namespace Microsoft.Build.Evaluation
                         functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
                     }
 
-                    transform = new ItemVector(
+                    transform = new ItemTransform(
                         text: expression.Substring(startTransform, i - startTransform),
                         index: startTransform,
-                        itemType: null,
-                        separator: null,
-                        separatorStart: -1,
-                        vectors: null,
-                        functionName: functionName,
-                        functionArguments: functionArguments);
+                        functionName,
+                        functionArguments);
                     return true;
                 }
             }

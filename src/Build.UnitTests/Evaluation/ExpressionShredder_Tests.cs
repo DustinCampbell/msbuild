@@ -680,9 +680,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             Assert.Null(vector.Separator);
             Assert.Equal("i", vector.ItemType);
-            Assert.Equal("%(Meta0)", vector.Vectors[0].Text);
-            Assert.Equal("%(Filename)", vector.Vectors[1].Text);
-            Assert.Equal("Substring($(Val))", vector.Vectors[2].Text);
+            Assert.Equal("%(Meta0)", vector.Transforms[0].Text);
+            Assert.Equal("%(Filename)", vector.Transforms[1].Text);
+            Assert.Equal("Substring($(Val))", vector.Transforms[2].Text);
         }
 
         /// <summary>
@@ -708,16 +708,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
                     Group transformGroup = match.Groups["TRANSFORM"];
 
-                    if (vector.Vectors != null)
+                    vector.Transforms.Length.ShouldBe(transformGroup.Captures.Count);
+                    for (int j = 0; j < transformGroup.Captures.Count; j++)
                     {
-                        for (int j = 0; j < transformGroup.Captures.Count; j++)
-                        {
-                            Assert.Equal(transformGroup.Captures[j].Value, vector.Vectors[j].Text);
-                        }
-                    }
-                    else
-                    {
-                        Assert.Equal(0, transformGroup.Length);
+                        vector.Transforms[j].Text.ShouldBe(transformGroup.Captures[j].Value);
                     }
                 }
             }
@@ -730,233 +724,237 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         [Fact]
+        public void DefaultItemVectorHasEmptyTransforms()
+        {
+            ItemVector itemVector = default;
+
+            itemVector.Transforms.IsDefault.ShouldBeFalse();
+            itemVector.Transforms.ShouldBeEmpty();
+        }
+
+        [Fact]
         public void ExtractItemVectorExpressionsSingleExpression1()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo)");
             Assert.Null(vector.Separator);
-            Assert.Null(vector.Vectors);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Null(vector.Vectors);
+            vector.Transforms.IsDefault.ShouldBeFalse();
+            vector.Transforms.ShouldBeEmpty();
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression2()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo, ';')");
-            Assert.Null(vector.Vectors);
+            vector.Transforms.ShouldBeEmpty();
             Assert.Equal(";", vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Null(vector.Vectors);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression3()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Fullpath)')");
-            Assert.Single(vector.Vectors);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Single(vector.Vectors);
-            Assert.Equal("%(Fullpath)", vector.Vectors[0].Text);
+            ItemTransform transform = Assert.Single(vector.Transforms);
+            Assert.Equal("%(Fullpath)", transform.Text);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression4()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Fullpath)',';')");
-            Assert.Single(vector.Vectors);
             Assert.Equal(";", vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Single(vector.Vectors);
-            Assert.Equal("%(Fullpath)", vector.Vectors[0].Text);
+            ItemTransform transform = Assert.Single(vector.Transforms);
+            Assert.Equal("%(Fullpath)", transform.Text);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression5()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->Bar(a,b))");
-            Assert.Single(vector.Vectors);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Single(vector.Vectors);
-            Assert.Equal("Bar(a,b)", vector.Vectors[0].Text);
-            Assert.Equal("Bar", vector.Vectors[0].FunctionName);
-            Assert.Equal("a,b", vector.Vectors[0].FunctionArguments);
+            ItemTransform transform = Assert.Single(vector.Transforms);
+            Assert.Equal("Bar(a,b)", transform.Text);
+            Assert.Equal("Bar", transform.FunctionName);
+            Assert.Equal("a,b", transform.FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression6()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->Bar(a,b),';')");
-            Assert.Single(vector.Vectors);
             Assert.Equal(";", vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Single(vector.Vectors);
-            Assert.Equal("Bar(a,b)", vector.Vectors[0].Text);
-            Assert.Equal("Bar", vector.Vectors[0].FunctionName);
-            Assert.Equal("a,b", vector.Vectors[0].FunctionArguments);
+            ItemTransform transform = Assert.Single(vector.Transforms);
+            Assert.Equal("Bar(a,b)", transform.Text);
+            Assert.Equal("Bar", transform.FunctionName);
+            Assert.Equal("a,b", transform.FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression7()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->Metadata('Meta0')->Directory())");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("Metadata('Meta0')", vector.Vectors[0].Text);
-            Assert.Equal("Metadata", vector.Vectors[0].FunctionName);
-            Assert.Equal("'Meta0'", vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Directory()", vector.Vectors[1].Text);
-            Assert.Equal("Directory", vector.Vectors[1].FunctionName);
-            Assert.Null(vector.Vectors[1].FunctionArguments);
+            Assert.Equal("Metadata('Meta0')", vector.Transforms[0].Text);
+            Assert.Equal("Metadata", vector.Transforms[0].FunctionName);
+            Assert.Equal("'Meta0'", vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Directory()", vector.Transforms[1].Text);
+            Assert.Equal("Directory", vector.Transforms[1].FunctionName);
+            Assert.Null(vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression8()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->Metadata('Meta0')->Directory(),';')");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Equal(";", vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("Metadata('Meta0')", vector.Vectors[0].Text);
-            Assert.Equal("Metadata", vector.Vectors[0].FunctionName);
-            Assert.Equal("'Meta0'", vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Directory()", vector.Vectors[1].Text);
-            Assert.Equal("Directory", vector.Vectors[1].FunctionName);
-            Assert.Null(vector.Vectors[1].FunctionArguments);
+            Assert.Equal("Metadata('Meta0')", vector.Transforms[0].Text);
+            Assert.Equal("Metadata", vector.Transforms[0].FunctionName);
+            Assert.Equal("'Meta0'", vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Directory()", vector.Transforms[1].Text);
+            Assert.Equal("Directory", vector.Transforms[1].FunctionName);
+            Assert.Null(vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression9()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Fullpath)'->Directory(), '|')");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Equal("|", vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("%(Fullpath)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Directory()", vector.Vectors[1].Text);
-            Assert.Equal("Directory", vector.Vectors[1].FunctionName);
-            Assert.Null(vector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Fullpath)", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
+            Assert.Null(vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Directory()", vector.Transforms[1].Text);
+            Assert.Equal("Directory", vector.Transforms[1].FunctionName);
+            Assert.Null(vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression10()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Fullpath)'->Directory(),';')");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Equal(";", vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("%(Fullpath)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Directory()", vector.Vectors[1].Text);
-            Assert.Equal("Directory", vector.Vectors[1].FunctionName);
-            Assert.Null(vector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Fullpath)", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
+            Assert.Null(vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Directory()", vector.Transforms[1].Text);
+            Assert.Equal("Directory", vector.Transforms[1].FunctionName);
+            Assert.Null(vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression11()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'$(SOMEPROP)%(Fullpath)')");
-            Assert.Single(vector.Vectors);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("$(SOMEPROP)%(Fullpath)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
+            Assert.Equal("$(SOMEPROP)%(Fullpath)", vector.Transforms[0].Text);
+            ItemTransform transform = Assert.Single(vector.Transforms);
+            Assert.Null(transform.FunctionName);
+            Assert.Null(transform.FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression12()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Filename)'->Substring($(Val), $(Boo)))");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("%(Filename)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring($(Val), $(Boo))", vector.Vectors[1].Text);
-            Assert.Equal("Substring", vector.Vectors[1].FunctionName);
-            Assert.Equal("$(Val), $(Boo)", vector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
+            Assert.Null(vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring($(Val), $(Boo))", vector.Transforms[1].Text);
+            Assert.Equal("Substring", vector.Transforms[1].FunctionName);
+            Assert.Equal("$(Val), $(Boo)", vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression13()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Filename)'->Substring(\"AA\", 'BB', `cc`))");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("%(Filename)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring(\"AA\", 'BB', `cc`)", vector.Vectors[1].Text);
-            Assert.Equal("Substring", vector.Vectors[1].FunctionName);
-            Assert.Equal("\"AA\", 'BB', `cc`", vector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
+            Assert.Null(vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring(\"AA\", 'BB', `cc`)", vector.Transforms[1].Text);
+            Assert.Equal("Substring", vector.Transforms[1].FunctionName);
+            Assert.Equal("\"AA\", 'BB', `cc`", vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression14()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Filename)'->Substring('()', $(Boo), ')('))");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("%(Filename)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring('()', $(Boo), ')(')", vector.Vectors[1].Text);
-            Assert.Equal("Substring", vector.Vectors[1].FunctionName);
-            Assert.Equal("'()', $(Boo), ')('", vector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
+            Assert.Null(vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring('()', $(Boo), ')(')", vector.Transforms[1].Text);
+            Assert.Equal("Substring", vector.Transforms[1].FunctionName);
+            Assert.Equal("'()', $(Boo), ')('", vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression15()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \"AA\"))");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("%(Filename)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring(`()`, $(Boo), \"AA\")", vector.Vectors[1].Text);
-            Assert.Equal("Substring", vector.Vectors[1].FunctionName);
-            Assert.Equal("`()`, $(Boo), \"AA\"", vector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
+            Assert.Null(vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring(`()`, $(Boo), \"AA\")", vector.Transforms[1].Text);
+            Assert.Equal("Substring", vector.Transforms[1].FunctionName);
+            Assert.Equal("`()`, $(Boo), \"AA\"", vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression16()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \")(\"))");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("%(Filename)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring(`()`, $(Boo), \")(\")", vector.Vectors[1].Text);
-            Assert.Equal("Substring", vector.Vectors[1].FunctionName);
-            Assert.Equal("`()`, $(Boo), \")(\"", vector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
+            Assert.Null(vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring(`()`, $(Boo), \")(\")", vector.Transforms[1].Text);
+            Assert.Equal("Substring", vector.Transforms[1].FunctionName);
+            Assert.Equal("`()`, $(Boo), \")(\"", vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression17()
         {
             ItemVector vector = GetSingleItemExpression("@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))");
-            Assert.Equal(2, vector.Vectors.Count);
+            Assert.Equal(2, vector.Transforms.Length);
             Assert.Null(vector.Separator);
             Assert.Equal("Foo", vector.ItemType);
-            Assert.Equal("%(Filename)", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
-            Assert.Null(vector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", vector.Vectors[1].Text);
-            Assert.Equal("Substring", vector.Vectors[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", vector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
+            Assert.Null(vector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", vector.Transforms[1].Text);
+            Assert.Equal("Substring", vector.Transforms[1].FunctionName);
+            Assert.Equal("\"()\", $(Boo), `)(`", vector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
@@ -970,16 +968,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ItemVector secondVector = vectors[1];
 
             Assert.Equal("Bar", firstVector.ItemType);
-            Assert.Null(firstVector.Vectors);
-            Assert.Equal(2, secondVector.Vectors.Count);
+            firstVector.Transforms.ShouldBeEmpty();
+            Assert.Equal(2, secondVector.Transforms.Length);
             Assert.Null(secondVector.Separator);
             Assert.Equal("Foo", secondVector.ItemType);
-            Assert.Equal("%(Filename)", secondVector.Vectors[0].Text);
-            Assert.Null(secondVector.Vectors[0].FunctionName);
-            Assert.Null(secondVector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", secondVector.Vectors[1].Text);
-            Assert.Equal("Substring", secondVector.Vectors[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", secondVector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", secondVector.Transforms[0].Text);
+            Assert.Null(secondVector.Transforms[0].FunctionName);
+            Assert.Null(secondVector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", secondVector.Transforms[1].Text);
+            Assert.Equal("Substring", secondVector.Transforms[1].FunctionName);
+            Assert.Equal("\"()\", $(Boo), `)(`", secondVector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
@@ -993,16 +991,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ItemVector secondVector = vectors[1];
 
             Assert.Equal("Bar", secondVector.ItemType);
-            Assert.Null(secondVector.Vectors);
-            Assert.Equal(2, firstVector.Vectors.Count);
+            secondVector.Transforms.ShouldBeEmpty();
+            Assert.Equal(2, firstVector.Transforms.Length);
             Assert.Null(firstVector.Separator);
             Assert.Equal("Foo", firstVector.ItemType);
-            Assert.Equal("%(Filename)", firstVector.Vectors[0].Text);
-            Assert.Null(firstVector.Vectors[0].FunctionName);
-            Assert.Null(firstVector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", firstVector.Vectors[1].Text);
-            Assert.Equal("Substring", firstVector.Vectors[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", firstVector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", firstVector.Transforms[0].Text);
+            Assert.Null(firstVector.Transforms[0].FunctionName);
+            Assert.Null(firstVector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", firstVector.Transforms[1].Text);
+            Assert.Equal("Substring", firstVector.Transforms[1].FunctionName);
+            Assert.Equal("\"()\", $(Boo), `)(`", firstVector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
@@ -1016,16 +1014,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ItemVector secondVector = vectors[1];
 
             Assert.Equal("Bar", secondVector.ItemType);
-            Assert.Null(secondVector.Vectors);
-            Assert.Equal(2, firstVector.Vectors.Count);
+            secondVector.Transforms.ShouldBeEmpty();
+            Assert.Equal(2, firstVector.Transforms.Length);
             Assert.Null(firstVector.Separator);
             Assert.Equal("Foo", firstVector.ItemType);
-            Assert.Equal("%(Filename)", firstVector.Vectors[0].Text);
-            Assert.Null(firstVector.Vectors[0].FunctionName);
-            Assert.Null(firstVector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", firstVector.Vectors[1].Text);
-            Assert.Equal("Substring", firstVector.Vectors[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", firstVector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", firstVector.Transforms[0].Text);
+            Assert.Null(firstVector.Transforms[0].FunctionName);
+            Assert.Null(firstVector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", firstVector.Transforms[1].Text);
+            Assert.Equal("Substring", firstVector.Transforms[1].FunctionName);
+            Assert.Equal("\"()\", $(Boo), `)(`", firstVector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
@@ -1039,16 +1037,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ItemVector secondVector = vectors[1];
 
             Assert.Equal("Bar", secondVector.ItemType);
-            Assert.Null(secondVector.Vectors);
-            Assert.Equal(2, firstVector.Vectors.Count);
+            secondVector.Transforms.ShouldBeEmpty();
+            Assert.Equal(2, firstVector.Transforms.Length);
             Assert.Null(firstVector.Separator);
             Assert.Equal("Foo", firstVector.ItemType);
-            Assert.Equal("%(Filename)", firstVector.Vectors[0].Text);
-            Assert.Null(firstVector.Vectors[0].FunctionName);
-            Assert.Null(firstVector.Vectors[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(\"`)", firstVector.Vectors[1].Text);
-            Assert.Equal("Substring", firstVector.Vectors[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(\"`", firstVector.Vectors[1].FunctionArguments);
+            Assert.Equal("%(Filename)", firstVector.Transforms[0].Text);
+            Assert.Null(firstVector.Transforms[0].FunctionName);
+            Assert.Null(firstVector.Transforms[0].FunctionArguments);
+            Assert.Equal("Substring(\"()\", $(Boo), `)(\"`)", firstVector.Transforms[1].Text);
+            Assert.Equal("Substring", firstVector.Transforms[1].FunctionName);
+            Assert.Equal("\"()\", $(Boo), `)(\"`", firstVector.Transforms[1].FunctionArguments);
         }
 
         [Fact]
@@ -1081,41 +1079,41 @@ namespace Microsoft.Build.UnitTests.Evaluation
             // Test with space before second arrow: ") ->"
             vector = GetSingleItemExpression("@(I -> WithMetadataValue('M', 'T') -> WithMetadataValue('M', 'T'))");
             Assert.Equal("I", vector.ItemType);
-            Assert.Equal(2, vector.Vectors.Count);
-            Assert.Equal("WithMetadataValue", vector.Vectors[0].FunctionName);
-            Assert.Equal("'M', 'T'", vector.Vectors[0].FunctionArguments);
-            Assert.Equal("WithMetadataValue", vector.Vectors[1].FunctionName);
-            Assert.Equal("'M', 'T'", vector.Vectors[1].FunctionArguments);
+            Assert.Equal(2, vector.Transforms.Length);
+            Assert.Equal("WithMetadataValue", vector.Transforms[0].FunctionName);
+            Assert.Equal("'M', 'T'", vector.Transforms[0].FunctionArguments);
+            Assert.Equal("WithMetadataValue", vector.Transforms[1].FunctionName);
+            Assert.Equal("'M', 'T'", vector.Transforms[1].FunctionArguments);
 
             // Test without space before second arrow: ")->"
             vector = GetSingleItemExpression("@(I -> WithMetadataValue('M', 'T')-> WithMetadataValue('M', 'T'))");
             Assert.Equal("I", vector.ItemType);
-            Assert.Equal(2, vector.Vectors.Count);
-            Assert.Equal("WithMetadataValue", vector.Vectors[0].FunctionName);
-            Assert.Equal("'M', 'T'", vector.Vectors[0].FunctionArguments);
-            Assert.Equal("WithMetadataValue", vector.Vectors[1].FunctionName);
-            Assert.Equal("'M', 'T'", vector.Vectors[1].FunctionArguments);
+            Assert.Equal(2, vector.Transforms.Length);
+            Assert.Equal("WithMetadataValue", vector.Transforms[0].FunctionName);
+            Assert.Equal("'M', 'T'", vector.Transforms[0].FunctionArguments);
+            Assert.Equal("WithMetadataValue", vector.Transforms[1].FunctionName);
+            Assert.Equal("'M', 'T'", vector.Transforms[1].FunctionArguments);
 
             // Test with multiple spaces and chained functions
             vector = GetSingleItemExpression("@(I->Distinct() -> Reverse() ->Count())");
             Assert.Equal("I", vector.ItemType);
-            Assert.Equal(3, vector.Vectors.Count);
-            Assert.Equal("Distinct", vector.Vectors[0].FunctionName);
-            Assert.Equal("Reverse", vector.Vectors[1].FunctionName);
-            Assert.Equal("Count", vector.Vectors[2].FunctionName);
+            Assert.Equal(3, vector.Transforms.Length);
+            Assert.Equal("Distinct", vector.Transforms[0].FunctionName);
+            Assert.Equal("Reverse", vector.Transforms[1].FunctionName);
+            Assert.Equal("Count", vector.Transforms[2].FunctionName);
 
             // Test trailing whitespace after function call
             vector = GetSingleItemExpression("@(I -> Count() )");
             Assert.Equal("I", vector.ItemType);
-            Assert.Equal(1, vector.Vectors.Count);
-            Assert.Equal("Count", vector.Vectors[0].FunctionName);
+            Assert.Equal(1, vector.Transforms.Length);
+            Assert.Equal("Count", vector.Transforms[0].FunctionName);
 
             // Test trailing whitespace after quoted transform
             vector = GetSingleItemExpression("@(I -> 'Replacement' )");
             Assert.Equal("I", vector.ItemType);
-            Assert.Equal(1, vector.Vectors.Count);
-            Assert.Equal("Replacement", vector.Vectors[0].Text);
-            Assert.Null(vector.Vectors[0].FunctionName);
+            Assert.Equal(1, vector.Transforms.Length);
+            Assert.Equal("Replacement", vector.Transforms[0].Text);
+            Assert.Null(vector.Transforms[0].FunctionName);
         }
 
         /// <summary>

@@ -678,17 +678,7 @@ namespace Microsoft.Build.Evaluation
 
         private void AddReferencedItemLists(OperationBuilder operationBuilder, ItemVector itemVector)
         {
-            if (itemVector.ItemType != null)
-            {
-                AddReferencedItemList(itemVector.ItemType, operationBuilder.ReferencedItemLists);
-            }
-            if (itemVector.Vectors != null)
-            {
-                foreach (var subItemVector in itemVector.Vectors)
-                {
-                    AddReferencedItemLists(operationBuilder, subItemVector);
-                }
-            }
+            AddReferencedItemList(itemVector.ItemType, operationBuilder.ReferencedItemLists);
         }
     }
 }
