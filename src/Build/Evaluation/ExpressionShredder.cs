@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
@@ -350,7 +351,7 @@ namespace Microsoft.Build.Evaluation
             }
 
             SkipWhiteSpace(expression, ref index, end);
-            using RefArrayBuilder<ItemTransform> transforms = default;
+            ImmutableArray<ItemTransform>.Builder transforms = null;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
             while (TryConsume(expression, ref index, end, '-', '>'))
@@ -359,6 +360,8 @@ namespace Microsoft.Build.Evaluation
 
                 if (TryParseQuotedTransform(expression, ref index, end, out ItemTransform transform))
                 {
+                    // PERF: Almost all expressions have only one transform, so optimize for that case.
+                    transforms ??= ImmutableArray.CreateBuilder<ItemTransform>(1);
                     transforms.Add(transform);
 
                     SkipWhiteSpace(expression, ref index, end);
@@ -367,6 +370,8 @@ namespace Microsoft.Build.Evaluation
 
                 if (TryParseFunctionTransform(expression, ref index, end, out transform))
                 {
+                    // PERF: Almost all expressions have only one transform, so optimize for that case.
+                    transforms ??= ImmutableArray.CreateBuilder<ItemTransform>(1);
                     transforms.Add(transform);
 
                     SkipWhiteSpace(expression, ref index, end);
@@ -425,7 +430,7 @@ namespace Microsoft.Build.Evaluation
                 itemType,
                 separator,
                 separatorStart,
-                transforms.ToImmutable());
+                transforms?.DrainToImmutable() ?? []);
 
             return true;
         }
