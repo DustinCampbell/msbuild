@@ -97,35 +97,41 @@ internal static partial class ExpressionShredder
             }
 
             SkipWhiteSpace();
-            ImmutableArray<ItemTransform>.Builder? transforms = null;
+
+            // PERF: Most item vectors have one transform, so allocate a builder only when a second is found.
+            ItemTransform firstTransform = default;
+            bool hasTransform = false;
+            ImmutableArray<ItemTransform>.Builder? builder = null;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
             while (TryConsume('-', '>'))
             {
                 SkipWhiteSpace();
 
-                if (TryParseQuotedTransform(out ItemTransform transform))
+                if (!TryParseQuotedTransform(out ItemTransform transform) &&
+                    !TryParseFunctionTransform(out transform))
                 {
-                    // PERF: Almost all expressions have only one transform, so optimize for that case.
-                    transforms ??= ImmutableArray.CreateBuilder<ItemTransform>(1);
-                    transforms.Add(transform);
-
-                    SkipWhiteSpace();
-                    continue;
+                    itemVector = default;
+                    return false;
                 }
 
-                if (TryParseFunctionTransform(out transform))
+                if (!hasTransform)
                 {
-                    // PERF: Almost all expressions have only one transform, so optimize for that case.
-                    transforms ??= ImmutableArray.CreateBuilder<ItemTransform>(1);
-                    transforms.Add(transform);
+                    firstTransform = transform;
+                    hasTransform = true;
+                }
+                else
+                {
+                    if (builder is null)
+                    {
+                        builder = ImmutableArray.CreateBuilder<ItemTransform>(2);
+                        builder.Add(firstTransform);
+                    }
 
-                    SkipWhiteSpace();
-                    continue;
+                    builder.Add(transform);
                 }
 
-                itemVector = default;
-                return false;
+                SkipWhiteSpace();
             }
 
             SkipWhiteSpace();
@@ -166,6 +172,7 @@ internal static partial class ExpressionShredder
             }
 
             int length = _position - startIndex;
+            ImmutableArray<ItemTransform> transforms = builder?.DrainToImmutable() ?? (hasTransform ? [firstTransform] : []);
 
             // Create an ItemVector that encompasses the entire expression delimited by @( and the )
             // with the item name and any separator contained within it
@@ -176,7 +183,7 @@ internal static partial class ExpressionShredder
                 itemType,
                 separator,
                 separatorStart,
-                transforms?.DrainToImmutable() ?? []);
+                transforms);
 
             return true;
         }
