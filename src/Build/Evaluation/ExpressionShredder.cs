@@ -363,25 +363,11 @@ namespace Microsoft.Build.Evaluation
 
             SinkWhitespace(expression, ref index);
 
-            int startOfName = index;
-
-            if (!SinkValidName(expression, ref index, end))
+            if (!TryParseValidName(expression, ref index, end, stopBeforeTransformArrow: true, out string itemType))
             {
                 itemVector = default;
                 return false;
             }
-
-            // '-' is a legitimate char in an item name, but we should match '->' as an arrow
-            // in '@(foo->'x')' rather than as the last char of the item name.
-            // The old regex accomplished this by being "greedy"
-            if (end > index && expression[index - 1] == '-' && expression[index] == '>')
-            {
-                index--;
-            }
-
-            // Grab the name, but continue to verify it's a well-formed expression
-            // before we store it.
-            string itemName = Strings.WeakIntern(expression.AsSpan(startOfName, index - startOfName));
 
             SinkWhitespace(expression, ref index);
             using RefArrayBuilder<ItemTransform> transforms = default;
@@ -456,7 +442,7 @@ namespace Microsoft.Build.Evaluation
             itemVector = new ItemVector(
                 text: Strings.WeakIntern(expression.AsSpan(startIndex, length)),
                 index: startIndex,
-                itemName,
+                itemType,
                 separator,
                 separatorStart,
                 transforms.ToImmutable());
@@ -507,18 +493,10 @@ namespace Microsoft.Build.Evaluation
 
                     int startOfName = i;
 
-                    if (!SinkValidName(expression, ref i, end))
+                    if (!TryScanValidName(expression, ref i, end, stopBeforeTransformArrow: true))
                     {
                         i = restartPoint;
                         continue;
-                    }
-
-                    // '-' is a legitimate char in an item name, but we should match '->' as an arrow
-                    // in '@(foo->'x')' rather than as the last char of the item name.
-                    // The old regex accomplished this by being "greedy"
-                    if (end > i && expression[i - 1] == '-' && expression[i] == '>')
-                    {
-                        i--;
                     }
 
                     // Grab the name boundaries, but continue to verify it's a well-formed expression
@@ -643,14 +621,10 @@ namespace Microsoft.Build.Evaluation
 
             SinkWhitespace(expression, ref i, end);
 
-            int startOfText = i;
-
-            if (!SinkValidName(expression, ref i, end))
+            if (!TryParseValidName(expression, ref i, end, out string firstName))
             {
                 return false;
             }
-
-            string firstName = Strings.WeakIntern(expression.AsSpan(startOfText, i - startOfText));
 
             SinkWhitespace(expression, ref i, end);
 
@@ -661,14 +635,10 @@ namespace Microsoft.Build.Evaluation
 
                 SinkWhitespace(expression, ref i, end);
 
-                startOfText = i;
-
-                if (!SinkValidName(expression, ref i, end))
+                if (!TryParseValidName(expression, ref i, end, out metadataName))
                 {
                     return false;
                 }
-
-                metadataName = Strings.WeakIntern(expression.AsSpan(startOfText, i - startOfText));
 
                 SinkWhitespace(expression, ref i, end);
             }
@@ -883,13 +853,7 @@ namespace Microsoft.Build.Evaluation
         ///  <see langword="true"/> if a function transform was found; otherwise, <see langword="false"/>.
         /// </returns>
         private static bool TryScanFunctionTransform(string expression, ref int i, int end)
-            => TryScanFunctionTransform(
-                expression,
-                ref i,
-                end,
-                out _,
-                out _,
-                out _);
+            => TryScanFunctionTransform(expression, ref i, end, out _, out _, out _);
 
         private static bool TryScanFunctionTransform(
             string expression,
@@ -903,7 +867,7 @@ namespace Microsoft.Build.Evaluation
             startFunctionArguments = -1;
             endFunctionArguments = -1;
 
-            if (!SinkValidName(expression, ref i, end))
+            if (!TryScanValidName(expression, ref i, end))
             {
                 return false;
             }
@@ -923,20 +887,68 @@ namespace Microsoft.Build.Evaluation
             return true;
         }
 
+        private static bool TryParseValidName(string expression, ref int i, int end, out string name)
+            => TryParseValidName(expression, ref i, end, stopBeforeTransformArrow: false, out name);
+
         /// <summary>
-        /// Returns true if a valid name begins at the specified index.
-        /// Leaves index one past the end of the name.
+        ///  Parses and weak-interns a valid name beginning at the specified index.
+        /// </summary>
+        /// <param name="expression">The expression containing the name.</param>
+        /// <param name="i">The current index, updated to one past the name when successful.</param>
+        /// <param name="end">The exclusive upper bound of the scan.</param>
+        /// <param name="stopBeforeTransformArrow">
+        ///  <see langword="true"/> to treat a trailing <c>-></c> as an item transform arrow rather than part of
+        ///  the name.
+        /// </param>
+        /// <param name="name">The weak-interned name when successful.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a valid name was parsed; otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryParseValidName(
+            string expression,
+            ref int i,
+            int end,
+            bool stopBeforeTransformArrow,
+            out string name)
+        {
+            int start = i;
+
+            if (TryScanValidName(expression, ref i, end, stopBeforeTransformArrow))
+            {
+                name = Strings.WeakIntern(expression.AsSpan(start, i - start));
+                return true;
+            }
+
+            name = null;
+            return false;
+        }
+
+        private static bool TryScanValidName(string expression, ref int i, int end)
+            => TryScanValidName(expression, ref i, end, stopBeforeTransformArrow: false);
+
+        /// <summary>
+        ///  Scans a valid name beginning at the specified index.
         /// </summary>
         /// <remarks>
-        /// The accepted grammar is <c>[A-Za-z_][A-Za-z_0-9\-]*</c> (via
-        /// <see cref="XmlUtilities.IsValidInitialElementNameCharacter"/> and
-        /// <see cref="XmlUtilities.IsValidSubsequentElementNameCharacter"/>), which defines a valid item
-        /// type or metadata name. This MUST be kept in sync with
-        /// <see cref="ProjectWriter.itemTypeOrMetadataNameSpecification"/>: if the grammar used to parse
-        /// item/metadata expressions diverges from the one used to write them back out, expressions could
-        /// round-trip incorrectly.
+        ///  The accepted grammar is <c>[A-Za-z_][A-Za-z_0-9\-]*</c> (via
+        ///  <see cref="XmlUtilities.IsValidInitialElementNameCharacter"/> and
+        ///  <see cref="XmlUtilities.IsValidSubsequentElementNameCharacter"/>), which defines a valid item
+        ///  type or metadata name. This MUST be kept in sync with
+        ///  <see cref="ProjectWriter.itemTypeOrMetadataNameSpecification"/>: if the grammar used to parse
+        ///  item/metadata expressions diverges from the one used to write them back out, expressions could
+        ///  round-trip incorrectly.
         /// </remarks>
-        private static bool SinkValidName(string expression, ref int i, int end)
+        /// <param name="expression">The expression containing the name.</param>
+        /// <param name="i">The current index, updated to one past the name when successful.</param>
+        /// <param name="end">The exclusive upper bound of the scan.</param>
+        /// <param name="stopBeforeTransformArrow">
+        ///  <see langword="true"/> to treat a trailing <c>-></c> as an item transform arrow rather than part of
+        ///  the name.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> if a valid name was found; otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryScanValidName(string expression, ref int i, int end, bool stopBeforeTransformArrow)
         {
             if (end <= i || !XmlUtilities.IsValidInitialElementNameCharacter(expression[i]))
             {
@@ -948,6 +960,15 @@ namespace Microsoft.Build.Evaluation
             while (end > i && XmlUtilities.IsValidSubsequentElementNameCharacter(expression[i]))
             {
                 i++;
+            }
+
+            // '-' is a valid name character, but the final '-' in '->' starts the item transform arrow.
+            if (stopBeforeTransformArrow &&
+                end > i &&
+                expression[i - 1] == '-' &&
+                expression[i] == '>')
+            {
+                i--;
             }
 
             return true;
