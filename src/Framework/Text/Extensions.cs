@@ -1,6 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.NET.StringTools;
@@ -10,8 +12,60 @@ namespace Microsoft.Build.Text;
 /// <summary>
 ///  Extension methods for working with <see cref="StringSegment"/> values.
 /// </summary>
-internal static class Extensions
+internal static partial class Extensions
 {
+    extension(int)
+    {
+        /// <summary>
+        ///  Converts an invariant integer represented by a <see cref="StringSegment"/> to a 32-bit signed integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, out int result)
+#if NET
+            => int.TryParse(value.AsSpan(), NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+#else
+            => TryParseInvariantInteger(value, out result) ||
+               int.TryParse(value.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+#endif
+
+        /// <summary>
+        ///  Converts a number represented by a <see cref="StringSegment"/> to a 32-bit signed integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, NumberStyles style, IFormatProvider? provider, out int result)
+#if NET
+            => int.TryParse(value.AsSpan(), style, provider, out result);
+#else
+            => style == NumberStyles.Integer && IsInvariantProvider(provider)
+                ? int.TryParse(value, out result)
+                : int.TryParse(value.Value, style, provider, out result);
+#endif
+    }
+
+    extension(long)
+    {
+        /// <summary>
+        ///  Converts an invariant integer represented by a <see cref="StringSegment"/> to a 64-bit signed integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, out long result)
+#if NET
+            => long.TryParse(value.AsSpan(), NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+#else
+            => TryParseInvariantInteger(value, out result) ||
+               long.TryParse(value.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+#endif
+
+        /// <summary>
+        ///  Converts a number represented by a <see cref="StringSegment"/> to a 64-bit signed integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, NumberStyles style, IFormatProvider? provider, out long result)
+#if NET
+            => long.TryParse(value.AsSpan(), style, provider, out result);
+#else
+            => style == NumberStyles.Integer && IsInvariantProvider(provider)
+                ? long.TryParse(value, out result)
+                : long.TryParse(value.Value, style, provider, out result);
+#endif
+    }
+
     /// <summary>
     ///  Creates a <see cref="StringSegment"/> that views the entirety of <paramref name="text"/>.
     /// </summary>
