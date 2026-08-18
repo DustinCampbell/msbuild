@@ -111,7 +111,7 @@ internal static partial class ExpressionShredder
 
             SkipWhiteSpace();
 
-            if (!TryParseValidName(stopBeforeTransformArrow: true, out string? itemType))
+            if (!TryScanItemVectorName(out Range itemVectorNameRange))
             {
                 _position = startIndex;
                 itemVector = default;
@@ -173,6 +173,9 @@ internal static partial class ExpressionShredder
             }
 
             int length = _position - startIndex;
+            int itemVectorNameStart = itemVectorNameRange.Start.Value;
+            string itemType = Strings.WeakIntern(
+                _expression.AsSpan(itemVectorNameStart, itemVectorNameRange.End.Value - itemVectorNameStart));
             ImmutableArray<ItemTransform> transforms = builder?.DrainToImmutable() ?? (hasTransform ? [firstTransform] : []);
 
             // Create an ItemVector that encompasses the entire expression delimited by @( and the )
@@ -238,17 +241,11 @@ internal static partial class ExpressionShredder
                     // Start of a possible item list expression
                     SkipWhiteSpace();
 
-                    int startOfName = _position;
-
-                    if (!TryScanValidName(stopBeforeTransformArrow: true))
+                    if (!TryScanItemVectorName(out Range itemVectorNameRange))
                     {
                         _position = recoveryPosition;
                         continue;
                     }
-
-                    // Grab the name boundaries, but continue to verify it's a well-formed expression
-                    // before we store it.
-                    int nameLength = _position - startOfName;
 
                     SkipWhiteSpace();
 
@@ -306,7 +303,7 @@ internal static partial class ExpressionShredder
                     if (collectItemTypes)
                     {
                         pair.Items ??= new(MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Items.Add(_expression.Substring(startOfName, nameLength));
+                        pair.Items.Add(_expression[itemVectorNameRange]);
                     }
 
                     continue;
@@ -388,7 +385,7 @@ internal static partial class ExpressionShredder
         {
             SkipWhiteSpace();
 
-            if (!TryParseValidName(out string? firstName))
+            if (!TryParseName(out string? firstName))
             {
                 itemType = null;
                 metadataName = null;
@@ -404,7 +401,7 @@ internal static partial class ExpressionShredder
 
                 SkipWhiteSpace();
 
-                if (!TryParseValidName(out metadataName))
+                if (!TryParseName(out metadataName))
                 {
                     return false;
                 }
@@ -581,7 +578,7 @@ internal static partial class ExpressionShredder
         /// </remarks>
         private bool TryScanFunctionTransform()
         {
-            if (!TryScanValidName())
+            if (!TryScanName())
             {
                 return false;
             }
@@ -606,7 +603,7 @@ internal static partial class ExpressionShredder
             startArguments = 0;
             endArguments = 0;
 
-            if (!TryScanValidName())
+            if (!TryScanName())
             {
                 return false;
             }
@@ -627,31 +624,48 @@ internal static partial class ExpressionShredder
         }
 
         /// <summary>
+        ///  Scans an item-vector name beginning at the current position.
+        /// </summary>
+        /// <param name="itemVectorNameRange">
+        ///  The absolute, from-start range of the item-vector name when successful.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> if a valid item-vector name is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        private bool TryScanItemVectorName(out Range itemVectorNameRange)
+        {
+            int start = _position;
+
+            if (!TryScanName())
+            {
+                itemVectorNameRange = default;
+                return false;
+            }
+
+            // '-' is a valid name character, but the final '-' in '->' starts the item transform arrow.
+            if (_end > _position &&
+                _expression[_position - 1] == '-' &&
+                _expression[_position] == '>')
+            {
+                _position--;
+            }
+
+            itemVectorNameRange = start.._position;
+            return true;
+        }
+
+        /// <summary>
         ///  Parses and weak-interns a valid name beginning at the current position.
         /// </summary>
         /// <param name="name">The weak-interned name when parsing succeeds.</param>
         /// <returns>
         ///  <see langword="true"/> if a valid name is parsed; otherwise, <see langword="false"/>.
         /// </returns>
-        private bool TryParseValidName([NotNullWhen(true)] out string? name)
-            => TryParseValidName(stopBeforeTransformArrow: false, out name);
-
-        /// <summary>
-        ///  Parses and weak-interns a valid name beginning at the current position.
-        /// </summary>
-        /// <param name="stopBeforeTransformArrow">
-        ///  <see langword="true"/> to treat a trailing <c>-></c> as an item transform arrow rather than part of
-        ///  the name.
-        /// </param>
-        /// <param name="name">The weak-interned name when successful.</param>
-        /// <returns>
-        ///  <see langword="true"/> if a valid name was parsed; otherwise, <see langword="false"/>.
-        /// </returns>
-        private bool TryParseValidName(bool stopBeforeTransformArrow, [NotNullWhen(true)] out string? name)
+        private bool TryParseName([NotNullWhen(true)] out string? name)
         {
             int start = _position;
 
-            if (TryScanValidName(stopBeforeTransformArrow))
+            if (TryScanName())
             {
                 name = Strings.WeakIntern(_expression.AsSpan(start, _position - start));
                 return true;
@@ -667,19 +681,6 @@ internal static partial class ExpressionShredder
         /// <returns>
         ///  <see langword="true"/> if a valid name is found; otherwise, <see langword="false"/>.
         /// </returns>
-        private bool TryScanValidName()
-            => TryScanValidName(stopBeforeTransformArrow: false);
-
-        /// <summary>
-        ///  Scans a valid name beginning at the current position.
-        /// </summary>
-        /// <param name="stopBeforeTransformArrow">
-        ///  <see langword="true"/> to treat a trailing <c>-></c> as an item transform arrow rather than part of
-        ///  the name.
-        /// </param>
-        /// <returns>
-        ///  <see langword="true"/> if a valid name was found; otherwise, <see langword="false"/>.
-        /// </returns>
         /// <remarks>
         ///  The accepted grammar is <c>[A-Za-z_][A-Za-z_0-9\-]*</c> (via
         ///  <see cref="XmlUtilities.IsValidInitialElementNameCharacter"/> and
@@ -689,7 +690,7 @@ internal static partial class ExpressionShredder
         ///  item/metadata expressions diverges from the one used to write them back out, expressions could
         ///  round-trip incorrectly.
         /// </remarks>
-        private bool TryScanValidName(bool stopBeforeTransformArrow)
+        private bool TryScanName()
         {
             if (_end <= _position ||
                 !XmlUtilities.IsValidInitialElementNameCharacter(_expression[_position]))
@@ -703,15 +704,6 @@ internal static partial class ExpressionShredder
                 XmlUtilities.IsValidSubsequentElementNameCharacter(_expression[_position]))
             {
                 _position++;
-            }
-
-            // '-' is a valid name character, but the final '-' in '->' starts the item transform arrow.
-            if (stopBeforeTransformArrow &&
-                _end > _position &&
-                _expression[_position - 1] == '-' &&
-                _expression[_position] == '>')
-            {
-                _position--;
             }
 
             return true;
