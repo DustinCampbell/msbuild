@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 #if NET
 using System.Buffers;
 #endif
@@ -117,6 +118,229 @@ public class StringSegment_Tests
         Should.Throw<InternalErrorException>(() => new StringSegment("ab", -1, 1));
         Should.Throw<InternalErrorException>(() => new StringSegment("ab", 0, -1));
         Should.Throw<InternalErrorException>(() => new StringSegment("ab", 3, 0));
+    }
+
+    [Theory]
+    [InlineData("0", 0)]
+    [InlineData("-0", 0)]
+    [InlineData("+42", 42)]
+    [InlineData(" -42 ", -42)]
+    [InlineData("\t\r\n+42\f\v ", 42)]
+    [InlineData("0000000000002147483647", int.MaxValue)]
+    [InlineData("-0000000000002147483648", int.MinValue)]
+    [InlineData("2147483647", int.MaxValue)]
+    [InlineData("-2147483648", int.MinValue)]
+    public void Int32TryParse_ParsesInvariantIntegerSegments(string text, int expected)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        int.TryParse(segment, out int result).ShouldBeTrue();
+        result.ShouldBe(expected);
+        int.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out int styledResult).ShouldBeTrue();
+        styledResult.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("+")]
+    [InlineData("++1")]
+    [InlineData("--1")]
+    [InlineData("+-1")]
+    [InlineData("4 2")]
+    [InlineData("42-")]
+    [InlineData("1.0")]
+    [InlineData("0x2a")]
+    [InlineData("\u00a042")]
+    [InlineData("42\u00a0")]
+    [InlineData("2147483648")]
+    [InlineData("-2147483649")]
+    public void Int32TryParse_RejectsInvalidInvariantIntegerSegments(string text)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        int.TryParse(segment, out int result).ShouldBeFalse();
+        result.ShouldBe(0);
+        int.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out int styledResult).ShouldBeFalse();
+        styledResult.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData("0", 0L)]
+    [InlineData("-0", 0L)]
+    [InlineData("+42", 42L)]
+    [InlineData(" -42 ", -42L)]
+    [InlineData("\t\r\n+42\f\v ", 42L)]
+    [InlineData("000000000009223372036854775807", long.MaxValue)]
+    [InlineData("-000000000009223372036854775808", long.MinValue)]
+    [InlineData("9223372036854775807", long.MaxValue)]
+    [InlineData("-9223372036854775808", long.MinValue)]
+    public void Int64TryParse_ParsesInvariantIntegerSegments(string text, long expected)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        long.TryParse(segment, out long result).ShouldBeTrue();
+        result.ShouldBe(expected);
+        long.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out long styledResult).ShouldBeTrue();
+        styledResult.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("-")]
+    [InlineData("++1")]
+    [InlineData("--1")]
+    [InlineData("-+1")]
+    [InlineData("4 2")]
+    [InlineData("42+")]
+    [InlineData("1.0")]
+    [InlineData("0x2a")]
+    [InlineData("\u00a042")]
+    [InlineData("42\u00a0")]
+    [InlineData("9223372036854775808")]
+    [InlineData("-9223372036854775809")]
+    public void Int64TryParse_RejectsInvalidInvariantIntegerSegments(string text)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        long.TryParse(segment, out long result).ShouldBeFalse();
+        result.ShouldBe(0);
+        long.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out long styledResult).ShouldBeFalse();
+        styledResult.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IntegerTryParse_RejectsNullSegments()
+    {
+        StringSegment segment = default;
+
+        int.TryParse(segment, out int intResult).ShouldBeFalse();
+        intResult.ShouldBe(0);
+        int.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out intResult).ShouldBeFalse();
+        intResult.ShouldBe(0);
+
+        long.TryParse(segment, out long longResult).ShouldBeFalse();
+        longResult.ShouldBe(0);
+        long.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out longResult).ShouldBeFalse();
+        longResult.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IntegerTryParse_FallsBackForOtherStyles()
+    {
+        StringSegment thousandsSegment = new("prefix1,234suffix", 6, 5);
+        NumberStyles thousandsStyle = NumberStyles.Integer | NumberStyles.AllowThousands;
+
+        int.TryParse(
+            thousandsSegment,
+            thousandsStyle,
+            CultureInfo.InvariantCulture,
+            out int intResult).ShouldBeTrue();
+        intResult.ShouldBe(1234);
+        long.TryParse(
+            thousandsSegment,
+            thousandsStyle,
+            CultureInfo.InvariantCulture,
+            out long longResult).ShouldBeTrue();
+        longResult.ShouldBe(1234);
+
+        StringSegment hexSegment = new("prefix7fffffffsuffix", 6, 8);
+        int.TryParse(
+            hexSegment,
+            NumberStyles.HexNumber,
+            CultureInfo.InvariantCulture,
+            out intResult).ShouldBeTrue();
+        intResult.ShouldBe(int.MaxValue);
+        long.TryParse(
+            hexSegment,
+            NumberStyles.HexNumber,
+            CultureInfo.InvariantCulture,
+            out longResult).ShouldBeTrue();
+        longResult.ShouldBe(int.MaxValue);
+
+        StringSegment digitsSegment = new("prefix42suffix", 6, 2);
+        int.TryParse(digitsSegment, NumberStyles.None, null, out intResult).ShouldBeTrue();
+        intResult.ShouldBe(42);
+        long.TryParse(digitsSegment, NumberStyles.None, null, out longResult).ShouldBeTrue();
+        longResult.ShouldBe(42);
+
+        StringSegment whitespaceSegment = new("prefix 42 suffix", 6, 4);
+        int.TryParse(whitespaceSegment, NumberStyles.None, null, out intResult).ShouldBeFalse();
+        intResult.ShouldBe(0);
+        long.TryParse(whitespaceSegment, NumberStyles.None, null, out longResult).ShouldBeFalse();
+        longResult.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IntegerTryParse_RejectsInvalidStyles()
+    {
+        StringSegment segment = new("prefix42suffix", 6, 2);
+        NumberStyles invalidStyle = NumberStyles.AllowHexSpecifier | NumberStyles.AllowLeadingSign;
+
+        Should.Throw<ArgumentException>(() =>
+        {
+            _ = int.TryParse(segment, invalidStyle, CultureInfo.InvariantCulture, out _);
+        });
+        Should.Throw<ArgumentException>(() =>
+        {
+            _ = long.TryParse(segment, invalidStyle, CultureInfo.InvariantCulture, out _);
+        });
+    }
+
+    [Fact]
+    public void IntegerTryParse_FallsBackForOtherProviders()
+    {
+        var numberFormat = new NumberFormatInfo { NegativeSign = "~" };
+        StringSegment segment = new("prefix~42suffix", 6, 3);
+
+        int.TryParse(segment, NumberStyles.Integer, numberFormat, out int intResult).ShouldBeTrue();
+        intResult.ShouldBe(-42);
+        long.TryParse(segment, NumberStyles.Integer, numberFormat, out long longResult).ShouldBeTrue();
+        longResult.ShouldBe(-42);
+    }
+
+    [Fact]
+    public void IntegerTryParse_AcceptsInvariantNumberFormatProvider()
+    {
+        StringSegment segment = new("prefix-42suffix", 6, 3);
+
+        int.TryParse(
+            segment,
+            NumberStyles.Integer,
+            NumberFormatInfo.InvariantInfo,
+            out int intResult).ShouldBeTrue();
+        intResult.ShouldBe(-42);
+        long.TryParse(
+            segment,
+            NumberStyles.Integer,
+            NumberFormatInfo.InvariantInfo,
+            out long longResult).ShouldBeTrue();
+        longResult.ShouldBe(-42);
     }
 
     [Theory]
