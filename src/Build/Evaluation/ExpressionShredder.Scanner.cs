@@ -173,9 +173,7 @@ internal static partial class ExpressionShredder
             }
 
             int length = _position - startIndex;
-            int itemVectorNameStart = itemVectorNameRange.Start.Value;
-            string itemType = Strings.WeakIntern(
-                _expression.AsSpan(itemVectorNameStart, itemVectorNameRange.End.Value - itemVectorNameStart));
+            string itemType = GetWeakInternedString(itemVectorNameRange);
             ImmutableArray<ItemTransform> transforms = builder?.DrainToImmutable() ?? (hasTransform ? [firstTransform] : []);
 
             // Create an ItemVector that encompasses the entire expression delimited by @( and the )
@@ -310,7 +308,7 @@ internal static partial class ExpressionShredder
                 }
 
                 // Start of a possible metadata expression
-                if (!TryParseMetadataExpression(out string? itemName, out string? metadataName))
+                if (!TryScanMetadataExpression(out Range? itemTypeRange, out Range metadataNameRange))
                 {
                     _position = recoveryPosition;
                     continue;
@@ -318,6 +316,8 @@ internal static partial class ExpressionShredder
 
                 if (collectMetadataOutsideTransforms)
                 {
+                    string? itemName = GetWeakInternedString(itemTypeRange);
+                    string metadataName = GetWeakInternedString(metadataNameRange);
                     string qualifiedMetadataName = itemName != null ? $"{itemName}.{metadataName}" : metadataName;
                     pair.Metadata ??= new(MSBuildNameIgnoreCaseComparer.Default);
                     pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, metadataName);
@@ -383,25 +383,60 @@ internal static partial class ExpressionShredder
         /// </remarks>
         public bool TryParseMetadataExpression(out string? itemType, [NotNullWhen(true)] out string? metadataName)
         {
-            SkipWhiteSpace();
-
-            if (!TryParseName(out string? firstName))
+            if (!TryScanMetadataExpression(out Range? itemTypeRange, out Range metadataNameRange))
             {
                 itemType = null;
                 metadataName = null;
                 return false;
             }
 
+            itemType = GetWeakInternedString(itemTypeRange);
+            metadataName = GetWeakInternedString(metadataNameRange);
+            return true;
+        }
+
+        /// <summary>
+        ///  Scans a metadata expression after its <c>%(</c> marker has been consumed.
+        /// </summary>
+        /// <param name="itemTypeRange">
+        ///  The absolute, from-start range of the item type when the expression is qualified; otherwise,
+        ///  <see langword="null"/>.
+        /// </param>
+        /// <param name="metadataNameRange">
+        ///  The absolute, from-start range of the metadata name when successful.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> if a valid metadata expression is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  On success, the position is left one past the closing <c>)</c>. On failure, the position is
+        ///  indeterminate and should be restored by callers that need to recover.
+        /// </remarks>
+        private bool TryScanMetadataExpression(out Range? itemTypeRange, out Range metadataNameRange)
+        {
+            itemTypeRange = null;
+            metadataNameRange = default;
+
             SkipWhiteSpace();
+
+            if (!TryScanName(out Range firstNameRange))
+            {
+                return false;
+            }
+
+            SkipWhiteSpace();
+
+            Range? scannedItemTypeRange;
+            Range scannedMetadataNameRange;
 
             if (TryConsume('.'))
             {
                 // Qualified: %(ItemType.Name)
-                itemType = firstName;
+                scannedItemTypeRange = firstNameRange;
 
                 SkipWhiteSpace();
 
-                if (!TryParseName(out metadataName))
+                if (!TryScanName(out scannedMetadataNameRange))
                 {
                     return false;
                 }
@@ -411,11 +446,18 @@ internal static partial class ExpressionShredder
             else
             {
                 // Unqualified: %(Name)
-                itemType = null;
-                metadataName = firstName;
+                scannedItemTypeRange = null;
+                scannedMetadataNameRange = firstNameRange;
             }
 
-            return TryConsume(')');
+            if (!TryConsume(')'))
+            {
+                return false;
+            }
+
+            itemTypeRange = scannedItemTypeRange;
+            metadataNameRange = scannedMetadataNameRange;
+            return true;
         }
 
         /// <summary>
@@ -634,11 +676,8 @@ internal static partial class ExpressionShredder
         /// </returns>
         private bool TryScanItemVectorName(out Range itemVectorNameRange)
         {
-            int start = _position;
-
-            if (!TryScanName())
+            if (!TryScanName(out itemVectorNameRange))
             {
-                itemVectorNameRange = default;
                 return false;
             }
 
@@ -648,31 +687,31 @@ internal static partial class ExpressionShredder
                 _expression[_position] == '>')
             {
                 _position--;
+                itemVectorNameRange = itemVectorNameRange.Start.._position;
             }
 
-            itemVectorNameRange = start.._position;
             return true;
         }
 
         /// <summary>
-        ///  Parses and weak-interns a valid name beginning at the current position.
+        ///  Scans a valid name beginning at the current position and reports its range.
         /// </summary>
-        /// <param name="name">The weak-interned name when parsing succeeds.</param>
+        /// <param name="nameRange">The absolute, from-start range of the name when successful.</param>
         /// <returns>
-        ///  <see langword="true"/> if a valid name is parsed; otherwise, <see langword="false"/>.
+        ///  <see langword="true"/> if a valid name is found; otherwise, <see langword="false"/>.
         /// </returns>
-        private bool TryParseName([NotNullWhen(true)] out string? name)
+        private bool TryScanName(out Range nameRange)
         {
             int start = _position;
 
-            if (TryScanName())
+            if (!TryScanName())
             {
-                name = Strings.WeakIntern(_expression.AsSpan(start, _position - start));
-                return true;
+                nameRange = default;
+                return false;
             }
 
-            name = null;
-            return false;
+            nameRange = start.._position;
+            return true;
         }
 
         /// <summary>
@@ -764,5 +803,29 @@ internal static partial class ExpressionShredder
                 _position++;
             }
         }
+
+        /// <summary>
+        ///  Gets a weakly interned string from an absolute, from-start range.
+        /// </summary>
+        /// <param name="range">The range of the string.</param>
+        /// <returns>
+        ///  The weakly interned string.
+        /// </returns>
+        private string GetWeakInternedString(Range range)
+        {
+            int start = range.Start.Value;
+            return Strings.WeakIntern(_expression.AsSpan(start, range.End.Value - start));
+        }
+
+        /// <summary>
+        ///  Gets a weakly interned string from an optional absolute, from-start range.
+        /// </summary>
+        /// <param name="range">The optional range of the string.</param>
+        /// <returns>
+        ///  The weakly interned string, or <see langword="null"/> when <paramref name="range"/> is
+        ///  <see langword="null"/>.
+        /// </returns>
+        private string? GetWeakInternedString(Range? range)
+            => range is Range value ? GetWeakInternedString(value) : null;
     }
 }
