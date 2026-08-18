@@ -1,6 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.NET.StringTools;
@@ -10,8 +12,118 @@ namespace Microsoft.Build.Text;
 /// <summary>
 ///  Extension methods for working with <see cref="StringSegment"/> values.
 /// </summary>
-internal static class Extensions
+internal static partial class Extensions
 {
+    extension(int)
+    {
+        /// <summary>
+        ///  Converts an invariant integer represented by a <see cref="StringSegment"/> to a 32-bit signed integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, out int result)
+#if NET
+            => int.TryParse(value.AsSpan(), NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+#else
+            => TryParseInt32(value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out result) ||
+               int.TryParse(value.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+#endif
+
+        /// <summary>
+        ///  Converts a number represented by a <see cref="StringSegment"/> to a 32-bit signed integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, NumberStyles style, IFormatProvider? provider, out int result)
+#if NET
+            => int.TryParse(value.AsSpan(), style, provider, out result);
+#else
+        {
+            if (!value.HasValue || !CanUseIntegerFastPath(style))
+            {
+                return int.TryParse(value.Value, style, provider, out result);
+            }
+
+            NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider);
+            return TryParseInt32(value, style, numberFormat, out result) ||
+                int.TryParse(value.Value, style, numberFormat, out result);
+        }
+#endif
+    }
+
+    extension(long)
+    {
+        /// <summary>
+        ///  Converts an invariant integer represented by a <see cref="StringSegment"/> to a 64-bit signed integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, out long result)
+#if NET
+            => long.TryParse(value.AsSpan(), NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+#else
+            => TryParseInt64(value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out result) ||
+               long.TryParse(value.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+#endif
+
+        /// <summary>
+        ///  Converts a number represented by a <see cref="StringSegment"/> to a 64-bit signed integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, NumberStyles style, IFormatProvider? provider, out long result)
+#if NET
+            => long.TryParse(value.AsSpan(), style, provider, out result);
+#else
+        {
+            if (!value.HasValue || !CanUseIntegerFastPath(style))
+            {
+                return long.TryParse(value.Value, style, provider, out result);
+            }
+
+            NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider);
+            return TryParseInt64(value, style, numberFormat, out result) ||
+                long.TryParse(value.Value, style, numberFormat, out result);
+        }
+#endif
+    }
+
+    extension(uint)
+    {
+        /// <summary>
+        ///  Converts a number represented by a <see cref="StringSegment"/> to a 32-bit unsigned integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, NumberStyles style, IFormatProvider? provider, out uint result)
+#if NET
+            => uint.TryParse(value.AsSpan(), style, provider, out result);
+#else
+        {
+            if (!value.HasValue || !CanUseIntegerFastPath(style))
+            {
+                return uint.TryParse(value.Value, style, provider, out result);
+            }
+
+            NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider);
+            return TryParseUInt32(value, style, numberFormat, out result) ||
+                uint.TryParse(value.Value, style, numberFormat, out result);
+        }
+#endif
+    }
+
+    extension(double)
+    {
+        /// <summary>
+        ///  Converts a number represented by a <see cref="StringSegment"/> to a double-precision floating-point number.
+        /// </summary>
+        public static bool TryParse(StringSegment value, NumberStyles style, IFormatProvider? provider, out double result)
+#if NET
+            => double.TryParse(value.AsSpan(), style, provider, out result);
+#else
+        {
+            if (!value.HasValue || !CanUseIntegerFastPath(style))
+            {
+                return double.TryParse(value.Value, style, provider, out result);
+            }
+
+            NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider);
+            return TryParseInt32AsDouble(value, style, numberFormat, out result) ||
+                double.TryParse(value.Value, style, numberFormat, out result);
+        }
+#endif
+    }
+
     /// <summary>
     ///  Creates a <see cref="StringSegment"/> that views the entirety of <paramref name="text"/>.
     /// </summary>
