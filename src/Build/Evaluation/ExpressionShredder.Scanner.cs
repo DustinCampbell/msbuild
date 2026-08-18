@@ -46,6 +46,19 @@ internal static partial class ExpressionShredder
         }
 
         /// <summary>
+        ///  Initializes a scanner for a range of an expression.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="range">The range of the expression to scan.</param>
+        public Scanner(string expression, Range range)
+            : this(
+                expression,
+                range.Start.GetOffset(expression.Length),
+                range.End.GetOffset(expression.Length))
+        {
+        }
+
+        /// <summary>
         ///  Gets the current scan position.
         /// </summary>
         public readonly int Position => _position;
@@ -62,15 +75,12 @@ internal static partial class ExpressionShredder
         {
             while ((_position = IndexOfItemVectorMarker(_expression, _position)) >= 0)
             {
-                int startIndex = _position;
-                _position += 2;
-
-                if (TryParseItemVector(startIndex, out itemVector))
+                if (TryParseItemVector(out itemVector))
                 {
                     return true;
                 }
 
-                _position = startIndex + 2;
+                _position += 2;
             }
 
             itemVector = default;
@@ -78,20 +88,32 @@ internal static partial class ExpressionShredder
         }
 
         /// <summary>
-        ///  Parses an item-vector expression whose opening marker has already been consumed.
+        ///  Parses an item-vector expression beginning at the current position.
         /// </summary>
-        /// <param name="startIndex">The index of the expression's <c>@</c> marker.</param>
         /// <param name="itemVector">The parsed item-vector expression.</param>
         /// <returns>
         ///  <see langword="true"/> if a valid item-vector expression is parsed; otherwise,
         ///  <see langword="false"/>.
         /// </returns>
-        private bool TryParseItemVector(int startIndex, out ItemVector itemVector)
+        /// <remarks>
+        ///  On success, the position is left one past the closing <c>)</c>. On failure, the position is unchanged.
+        /// </remarks>
+        private bool TryParseItemVector(out ItemVector itemVector)
         {
+            Debug.Assert(
+                _position < _end - 1 &&
+                _expression[_position] == '@' &&
+                _expression[_position + 1] == '(',
+                "The current position must be the start of an item-vector marker.");
+
+            int startIndex = _position;
+            _position += 2;
+
             SkipWhiteSpace();
 
             if (!TryParseValidName(stopBeforeTransformArrow: true, out string? itemType))
             {
+                _position = startIndex;
                 itemVector = default;
                 return false;
             }
@@ -111,6 +133,7 @@ internal static partial class ExpressionShredder
                 if (!TryParseQuotedTransform(out ItemTransform transform) &&
                     !TryParseFunctionTransform(out transform))
                 {
+                    _position = startIndex;
                     itemVector = default;
                     return false;
                 }
@@ -136,37 +159,15 @@ internal static partial class ExpressionShredder
 
             SkipWhiteSpace();
 
-            string? separator = null;
-            int separatorStart = -1;
-
-            // If there's a ',', eat it and the subsequent quoted expression
-            if (TryConsume(','))
-            {
-                SkipWhiteSpace();
-
-                if (!TryConsume('\''))
-                {
-                    itemVector = default;
-                    return false;
-                }
-
-                int closingQuote = _expression.IndexOf('\'', _position);
-                if (closingQuote == -1)
-                {
-                    itemVector = default;
-                    return false;
-                }
-
-                separatorStart = _position - startIndex;
-                separator = _expression.Substring(_position, closingQuote - _position);
-
-                _position = closingQuote + 1;
-            }
+            (string? separator, int separatorStart) = TryScanItemVectorSeparator(out Range separatorRange)
+                ? (_expression[separatorRange], separatorRange.Start.Value - startIndex)
+                : (null, -1);
 
             SkipWhiteSpace();
 
             if (!TryConsume(')'))
             {
+                _position = startIndex;
                 itemVector = default;
                 return false;
             }
@@ -281,33 +282,15 @@ internal static partial class ExpressionShredder
 
                     SkipWhiteSpace();
 
-                    // If there's a ',', eat it and the subsequent quoted expression
-                    if (TryConsume(','))
+                    if (TryScanItemVectorSeparator(out Range separatorRange))
                     {
-                        SkipWhiteSpace();
-
-                        if (!TryConsume('\''))
-                        {
-                            _position = recoveryPosition;
-                            continue;
-                        }
-
-                        int closingQuote = _expression.IndexOf('\'', _position);
-                        if (closingQuote == -1)
-                        {
-                            _position = recoveryPosition;
-                            continue;
-                        }
-
                         // Look for metadata in the separator expression
                         // e.g., @(foo, '%(bar)') contains batchable metadata 'bar'
-                        Scanner separatorScanner = new(_expression, _position, closingQuote);
+                        Scanner separatorScanner = new(_expression, separatorRange);
                         separatorScanner.CollectReferencedItemNamesAndMetadata(
                             ref pair,
                             collectItemTypes: false,
                             collectMetadataOutsideTransforms: true);
-
-                        _position = closingQuote + 1;
                     }
 
                     SkipWhiteSpace();
@@ -343,6 +326,50 @@ internal static partial class ExpressionShredder
                     pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, metadataName);
                 }
             }
+        }
+
+        /// <summary>
+        ///  Scans an item-vector separator beginning at the current position.
+        /// </summary>
+        /// <param name="separatorRange">
+        ///  The absolute, from-start range of the separator when successful.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> if a valid separator is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  On success, the position is left one past the closing quote. On failure, the position is unchanged.
+        /// </remarks>
+        private bool TryScanItemVectorSeparator(out Range separatorRange)
+        {
+            int start = _position;
+
+            separatorRange = default;
+
+            if (!TryConsume(','))
+            {
+                return false;
+            }
+
+            SkipWhiteSpace();
+
+            if (!TryConsume('\''))
+            {
+                _position = start;
+                return false;
+            }
+
+            int contentStart = _position;
+            int contentEnd = _expression.IndexOf('\'', contentStart);
+            if (contentEnd < 0)
+            {
+                _position = start;
+                return false;
+            }
+
+            separatorRange = contentStart..contentEnd;
+            _position = contentEnd + 1;
+            return true;
         }
 
         /// <summary>
