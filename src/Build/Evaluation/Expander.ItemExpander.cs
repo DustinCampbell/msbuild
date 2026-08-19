@@ -538,9 +538,6 @@ internal partial class Expander<P, I>
         {
             Assumed.NotNull(evaluatedItems, "Cannot expand items without providing items");
 
-            // An empty item type indicates that the expression could not be parsed correctly.
-            ProjectErrorUtilities.VerifyThrowInvalidProject(!itemVector.ItemType.IsNullOrEmpty, elementLocation, "InvalidFunctionPropertyExpression");
-
             ICollection<I> items = evaluatedItems.GetItems(itemVector.ItemType);
             ImmutableArray<ItemTransform> transforms = itemVector.Transforms;
             StringSegment separator = itemVector.Separator;

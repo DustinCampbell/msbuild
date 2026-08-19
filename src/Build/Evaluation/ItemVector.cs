@@ -22,31 +22,34 @@ internal readonly struct ItemVector(
     Range? separatorRange,
     ImmutableArray<ItemTransform> transforms)
 {
-    private readonly ImmutableArray<ItemTransform> _transforms = transforms;
+    // Field order is intentional: each constructor parameter is stored explicitly while keeping
+    // ItemVector at 48 bytes on 64-bit runtimes and 40 bytes on 32-bit runtimes.
+    private readonly StringSegment _text = text;
+    private readonly int _index = index;
     private readonly Range _itemTypeRange = itemTypeRange;
     private readonly Range _separatorRange = separatorRange.GetValueOrDefault();
     private readonly bool _hasSeparator = separatorRange.HasValue;
-
-    /// <summary>
-    ///  Gets the position of this vector in its containing expression.
-    /// </summary>
-    public int Index { get; } = index;
+    private readonly ImmutableArray<ItemTransform> _transforms = transforms;
 
     /// <summary>
     ///  Gets the complete item-vector expression.
     /// </summary>
-    public StringSegment Text { get; } = text;
+    public StringSegment Text => _text;
+
+    /// <summary>
+    ///  Gets the position of this vector in its containing expression.
+    /// </summary>
+    public int Index => _index;
 
     /// <summary>
     ///  Gets the length of this vector.
     /// </summary>
-    public int Length => Text.Length;
+    public int Length => _text.Length;
 
     /// <summary>
     ///  Gets the item type.
     /// </summary>
-    public StringSegment ItemType
-        => Text[_itemTypeRange];
+    public StringSegment ItemType => _text[_itemTypeRange];
 
     /// <summary>
     ///  Gets a value indicating whether the vector has an explicit separator.
@@ -56,23 +59,19 @@ internal readonly struct ItemVector(
     /// <summary>
     ///  Gets the explicit separator, or a <see langword="null"/> segment when none was specified.
     /// </summary>
-    public StringSegment Separator
-        => HasSeparator
-            ? Text[_separatorRange]
-            : default;
+    public StringSegment Separator => _hasSeparator ? _text[_separatorRange] : default;
 
     /// <summary>
     ///  Gets the separator's position in <see cref="Text"/>, or <c>-1</c> when none was specified.
     /// </summary>
-    public int SeparatorStart => HasSeparator ? _separatorRange.Start.Value : -1;
+    public int SeparatorStart => _hasSeparator ? _separatorRange.Start.Value : -1;
 
     /// <summary>
     ///  Gets the item transforms as a non-default immutable array.
     /// </summary>
-    public ImmutableArray<ItemTransform> Transforms
-        => _transforms.IsDefault ? [] : _transforms;
+    public ImmutableArray<ItemTransform> Transforms => _transforms.IsDefault ? [] : _transforms;
 
     /// <inheritdoc />
     public override string ToString()
-        => Text.ValueOrEmpty;
+        => _text.ValueOrEmpty;
 }

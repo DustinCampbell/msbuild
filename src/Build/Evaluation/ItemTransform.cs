@@ -11,14 +11,10 @@ namespace Microsoft.Build.Evaluation;
 /// </summary>
 internal readonly struct ItemTransform
 {
+    private readonly StringSegment _text;
     private readonly int _functionNameLength;
     private readonly Range _functionArgumentsRange;
     private readonly bool _hasFunctionArguments;
-
-    /// <summary>
-    ///  Gets the complete transform text.
-    /// </summary>
-    public StringSegment Text { get; }
 
     /// <summary>
     ///  Initializes an item transform.
@@ -35,7 +31,7 @@ internal readonly struct ItemTransform
         int functionNameLength,
         Range? functionArgumentsRange)
     {
-        Text = text;
+        _text = text;
         _functionNameLength = functionNameLength;
         _functionArgumentsRange = functionArgumentsRange.GetValueOrDefault();
         _hasFunctionArguments = functionArgumentsRange.HasValue;
@@ -69,6 +65,11 @@ internal readonly struct ItemTransform
         => new(text, functionNameLength, functionArgumentsRange);
 
     /// <summary>
+    ///  Gets the complete transform text.
+    /// </summary>
+    public StringSegment Text => _text;
+
+    /// <summary>
     ///  Gets a value indicating whether this is a function transform.
     /// </summary>
     public bool IsFunction => _functionNameLength > 0;
@@ -81,20 +82,14 @@ internal readonly struct ItemTransform
     /// <summary>
     ///  Gets the function name, or a <see langword="null"/> segment for a quoted-expression transform.
     /// </summary>
-    public StringSegment FunctionName
-        => IsFunction
-            ? Text[.._functionNameLength]
-            : default;
+    public StringSegment FunctionName => IsFunction ? _text[.._functionNameLength] : default;
 
     /// <summary>
     ///  Gets the function arguments, or a <see langword="null"/> segment when none were specified.
     /// </summary>
-    public StringSegment FunctionArguments
-        => _hasFunctionArguments
-            ? Text[_functionArgumentsRange]
-            : default;
+    public StringSegment FunctionArguments => _hasFunctionArguments ? _text[_functionArgumentsRange] : default;
 
     /// <inheritdoc />
     public override string ToString()
-        => Text.ValueOrEmpty;
+        => _text.ValueOrEmpty;
 }
