@@ -318,10 +318,7 @@ internal static partial class ExpressionShredder
     {
         ItemsAndMetadataPair pair = default;
         Scanner scanner = new(expression);
-        scanner.CollectReferencedItemNamesAndMetadata(
-            ref pair,
-            collectItemTypes: false,
-            collectMetadataOutsideTransforms: true);
+        scanner.CollectReferencedItemNamesAndMetadata(ref pair, collectItemTypes: false);
 
         return pair.Metadata?.Count > 0;
     }
@@ -357,19 +354,15 @@ internal static partial class ExpressionShredder
     public static void GetReferencedItemNamesAndMetadata(string expression, ref ItemsAndMetadataPair pair)
     {
         Scanner scanner = new(expression);
-        scanner.CollectReferencedItemNamesAndMetadata(
-            ref pair,
-            collectItemTypes: true,
-            collectMetadataOutsideTransforms: true);
+        scanner.CollectReferencedItemNamesAndMetadata(ref pair, collectItemTypes: true);
     }
 
     /// <summary>
     ///  Attempts to parse a metadata expression of the form <c>%(Name)</c> or <c>%(ItemType.Name)</c>,
-    ///  starting just after the <c>%(</c> has been consumed (i.e., <paramref name="i"/> points at
-    ///  the first character after the opening parenthesis).
+    ///  beginning at <paramref name="i"/>.
     /// </summary>
     /// <param name="expression">The expression being scanned.</param>
-    /// <param name="i">Current scan position (just after <c>%(</c>). Advanced on success.</param>
+    /// <param name="i">Current scan position at the <c>%(</c> marker. Advanced on success.</param>
     /// <param name="end">Exclusive end index of the scan range; no character at or beyond this index is read.</param>
     /// <param name="itemType">The item type if qualified; otherwise <see langword="null"/>.</param>
     /// <param name="metadataName">The metadata name when parsing succeeds.</param>
@@ -378,8 +371,7 @@ internal static partial class ExpressionShredder
     /// </returns>
     /// <remarks>
     ///  On success, <paramref name="i"/> is left one past the closing <c>)</c>.
-    ///  On failure, <paramref name="i"/> is at an indeterminate position and the caller
-    ///  should restore it from a saved position.
+    ///  On failure, <paramref name="i"/> is unchanged.
     /// </remarks>
     public static bool TryParseMetadataExpression(
         string expression,

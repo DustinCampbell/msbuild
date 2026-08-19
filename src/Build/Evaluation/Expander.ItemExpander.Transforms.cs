@@ -707,7 +707,7 @@ internal partial class Expander<P, I>
 
                 do
                 {
-                    int refEnd = metadataMarkerIndex + 2;
+                    int refEnd = metadataMarkerIndex;
 
                     if (!ExpressionShredder.TryParseMetadataExpression(text, ref refEnd, text.Length, out string itemType, out string name))
                     {

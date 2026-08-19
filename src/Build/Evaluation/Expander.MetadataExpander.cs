@@ -184,7 +184,7 @@ internal partial class Expander<P, I>
 
             while (i >= 0 && i < endIndex - 1)
             {
-                int pos = i + 2;
+                int pos = i;
 
                 if (!ExpressionShredder.TryParseMetadataExpression(input, ref pos, endIndex, out string? itemType, out string? metadataName))
                 {

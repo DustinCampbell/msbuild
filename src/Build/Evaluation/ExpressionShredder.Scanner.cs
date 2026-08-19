@@ -229,18 +229,12 @@ internal static partial class ExpressionShredder
         /// <param name="collectItemTypes">
         ///  <see langword="true"/> to collect item type names; otherwise, <see langword="false"/>.
         /// </param>
-        /// <param name="collectMetadataOutsideTransforms">
-        ///  <see langword="true"/> to collect metadata outside transforms; otherwise, <see langword="false"/>.
-        /// </param>
         /// <remarks>
         ///  Item transforms are scanned for syntax but their contents are excluded. Metadata in item separators is
         ///  collected recursively. When a candidate expression is malformed, scanning resumes from its recovery
         ///  position so nested markers are not skipped.
         /// </remarks>
-        public void CollectReferencedItemNamesAndMetadata(
-            ref ItemsAndMetadataPair pair,
-            bool collectItemTypes,
-            bool collectMetadataOutsideTransforms)
+        public void CollectReferencedItemNamesAndMetadata(ref ItemsAndMetadataPair pair, bool collectItemTypes)
         {
             while (_position < _end)
             {
@@ -251,88 +245,141 @@ internal static partial class ExpressionShredder
                 }
 
                 char markerPrefix = _expression[markerIndex];
-                _position = markerIndex + 1;
+                _position = markerIndex;
 
-                if (_position >= _end)
+                if (_position >= _end - 1)
                 {
                     break;
                 }
 
-                if (_expression[_position] != '(')
+                if (_expression[_position + 1] != '(')
                 {
+                    _position++;
                     continue;
                 }
-
-                _position++;
-                int recoveryPosition = _position;
 
                 if (markerPrefix == '@')
                 {
-                    // Start of a possible item list expression
-                    SkipWhiteSpace();
-
-                    if (!TryScanItemVectorName(out Range itemVectorNameRange))
+                    if (TryCollectItemVectorReference(ref pair, collectItemTypes))
                     {
-                        _position = recoveryPosition;
                         continue;
                     }
-
-                    SkipWhiteSpace();
-
-                    if (!TryScanItemVectorTransforms())
-                    {
-                        _position = recoveryPosition;
-                        continue;
-                    }
-
-                    SkipWhiteSpace();
-
-                    if (TryScanItemVectorSeparator(out Range separatorRange))
-                    {
-                        // Look for metadata in the separator expression
-                        // e.g., @(foo, '%(bar)') contains batchable metadata 'bar'
-                        Scanner separatorScanner = new(_expression, separatorRange);
-                        separatorScanner.CollectReferencedItemNamesAndMetadata(
-                            ref pair,
-                            collectItemTypes: false,
-                            collectMetadataOutsideTransforms: true);
-                    }
-
-                    SkipWhiteSpace();
-
-                    if (!TryConsume(')'))
-                    {
-                        _position = recoveryPosition;
-                        continue;
-                    }
-
-                    // If we've got this far, we know the item expression was
-                    // well formed, so make sure the name's in the table
-                    if (collectItemTypes)
-                    {
-                        pair.Items ??= new(MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Items.Add(_expression[itemVectorNameRange]);
-                    }
-
+                }
+                else if (TryCollectMetadataReference(ref pair))
+                {
                     continue;
                 }
 
-                // Start of a possible metadata expression
-                if (!TryScanMetadataExpression(out Range? itemTypeRange, out Range metadataNameRange))
-                {
-                    _position = recoveryPosition;
-                    continue;
-                }
-
-                if (collectMetadataOutsideTransforms)
-                {
-                    string? itemName = GetWeakInternedString(itemTypeRange);
-                    string metadataName = GetWeakInternedString(metadataNameRange);
-                    string qualifiedMetadataName = itemName != null ? $"{itemName}.{metadataName}" : metadataName;
-                    pair.Metadata ??= new(MSBuildNameIgnoreCaseComparer.Default);
-                    pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, metadataName);
-                }
+                _position += 2;
             }
+        }
+
+        /// <summary>
+        ///  Scans an item-vector reference beginning at the current position and optionally collects its item type.
+        /// </summary>
+        /// <param name="pair">The collections to which references are added.</param>
+        /// <param name="collectItemType">
+        ///  <see langword="true"/> to collect the item type; otherwise, <see langword="false"/>.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> if a valid item-vector reference is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  On success, the position is left one past the closing <c>)</c>. On failure, the position is unchanged.
+        /// </remarks>
+        private bool TryCollectItemVectorReference(ref ItemsAndMetadataPair pair, bool collectItemType)
+        {
+            Debug.Assert(
+                _position < _end - 1 &&
+                _expression[_position] == '@' &&
+                _expression[_position + 1] == '(',
+                "The current position must be the start of an item-vector marker.");
+
+            int startIndex = _position;
+            _position += 2;
+
+            SkipWhiteSpace();
+
+            if (!TryScanItemVectorName(out Range itemVectorNameRange))
+            {
+                _position = startIndex;
+                return false;
+            }
+
+            SkipWhiteSpace();
+
+            if (!TryScanItemVectorTransforms())
+            {
+                _position = startIndex;
+                return false;
+            }
+
+            SkipWhiteSpace();
+
+            if (TryScanItemVectorSeparator(out Range separatorRange))
+            {
+                // Metadata is expanded before item vectors, so item-vector syntax in a separator is still literal text
+                // and only metadata references need to be collected.
+                Scanner separatorScanner = new(_expression, separatorRange);
+                separatorScanner.CollectReferencedMetadata(ref pair);
+            }
+
+            SkipWhiteSpace();
+
+            if (!TryConsume(')'))
+            {
+                _position = startIndex;
+                return false;
+            }
+
+            if (collectItemType)
+            {
+                pair.Items ??= new(MSBuildNameIgnoreCaseComparer.Default);
+                pair.Items.Add(_expression[itemVectorNameRange]);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        ///  Collects metadata references in the scanner's bounded range.
+        /// </summary>
+        /// <param name="pair">The collections to which metadata references are added.</param>
+        private void CollectReferencedMetadata(ref ItemsAndMetadataPair pair)
+        {
+            while ((_position = IndexOfMetadataMarker(_expression, _position, _end - _position)) >= 0)
+            {
+                if (TryCollectMetadataReference(ref pair))
+                {
+                    continue;
+                }
+
+                _position += 2;
+            }
+        }
+
+        /// <summary>
+        ///  Scans and collects a metadata reference beginning at the current position.
+        /// </summary>
+        /// <param name="pair">The collections to which the reference is added.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a valid metadata reference is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  On success, the position is left one past the closing <c>)</c>. On failure, the position is unchanged.
+        /// </remarks>
+        private bool TryCollectMetadataReference(ref ItemsAndMetadataPair pair)
+        {
+            if (TryParseMetadataExpression(out string? itemName, out string? metadataName))
+            {
+                string qualifiedMetadataName = itemName != null ? $"{itemName}.{metadataName}" : metadataName;
+                pair.Metadata ??= new(MSBuildNameIgnoreCaseComparer.Default);
+                pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, metadataName);
+
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -380,7 +427,7 @@ internal static partial class ExpressionShredder
         }
 
         /// <summary>
-        ///  Parses a metadata expression after its <c>%(</c> marker has been consumed.
+        ///  Parses a metadata expression beginning at the current position.
         /// </summary>
         /// <param name="itemType">The item type for qualified metadata; otherwise, <see langword="null"/>.</param>
         /// <param name="metadataName">The metadata name when parsing succeeds.</param>
@@ -388,11 +435,19 @@ internal static partial class ExpressionShredder
         ///  <see langword="true"/> if a valid metadata expression is parsed; otherwise, <see langword="false"/>.
         /// </returns>
         /// <remarks>
-        ///  On success, the position is left one past the closing <c>)</c>. On failure, the position is
-        ///  indeterminate and should be restored by callers that need to recover.
+        ///  On success, the position is left one past the closing <c>)</c>. On failure, the position is unchanged.
         /// </remarks>
         public bool TryParseMetadataExpression(out string? itemType, [NotNullWhen(true)] out string? metadataName)
         {
+            Debug.Assert(
+                _position < _end - 1 &&
+                _expression[_position] == '%' &&
+                _expression[_position + 1] == '(',
+                "The current position must be the start of a metadata marker.");
+
+            int startIndex = _position;
+            _position += 2;
+
             if (TryScanMetadataExpression(out Range? itemTypeRange, out Range metadataNameRange))
             {
                 itemType = GetWeakInternedString(itemTypeRange);
@@ -400,6 +455,7 @@ internal static partial class ExpressionShredder
                 return true;
             }
 
+            _position = startIndex;
             itemType = null;
             metadataName = null;
             return false;
