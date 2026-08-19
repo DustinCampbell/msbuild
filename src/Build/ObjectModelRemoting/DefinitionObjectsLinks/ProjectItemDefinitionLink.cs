@@ -28,7 +28,7 @@ namespace Microsoft.Build.ObjectModelRemoting
         public abstract ICollection<ProjectMetadata> Metadata { get; }
 
         /// <summary>
-        /// Facilitate remoting the <see cref="ProjectItemDefinition.GetMetadata"/>.
+        /// Facilitate remoting the <see cref="ProjectItemDefinition.GetMetadata(string)"/>.
         /// </summary>
         public abstract ProjectMetadata GetMetadata(string name);
 

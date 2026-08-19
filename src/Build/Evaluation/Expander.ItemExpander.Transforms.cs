@@ -63,9 +63,10 @@ internal partial class Expander<P, I>
             internal static void ItemSpecModifierFunction(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                StringSegment[] arguments,
                 bool includeNullEntries,
-                string functionName,
+                StringSegment functionName,
+                ItemSpecModifierKind modifierKind,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
@@ -91,7 +92,7 @@ internal partial class Expander<P, I>
                         string directoryToUse = item.Item.ProjectDirectory ?? FileUtilities.CurrentThreadWorkingDirectory ?? Directory.GetCurrentDirectory();
                         string definingProjectEscaped = item.Item.GetMetadataValueEscaped(ItemSpecModifiers.DefiningProjectFullPath);
 
-                        result = ItemSpecModifiers.GetItemSpecModifier(item.Value, functionName, directoryToUse, definingProjectEscaped);
+                        result = ItemSpecModifiers.GetItemSpecModifier(item.Value, modifierKind, directoryToUse, definingProjectEscaped);
                     }
                     // InvalidOperationException is how GetItemSpecModifier communicates invalid conditions upwards, so
                     // we do not want to rethrow in that case.
@@ -119,8 +120,8 @@ internal partial class Expander<P, I>
             internal static void Exists(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
@@ -173,13 +174,13 @@ internal partial class Expander<P, I>
             internal static void Combine(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                string relativePath = arguments[0];
+                string relativePath = arguments[0].ValueOrEmpty;
 
                 foreach (TransformEntry item in input)
                 {
@@ -202,8 +203,8 @@ internal partial class Expander<P, I>
             internal static void GetPathsOfAllDirectoriesAbove(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
@@ -285,9 +286,9 @@ internal partial class Expander<P, I>
             internal static void DirectoryName(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                StringSegment[] arguments,
                 bool includeNullEntries,
-                string functionName,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
@@ -360,14 +361,14 @@ internal partial class Expander<P, I>
             internal static void Metadata(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                StringSegment[] arguments,
                 bool includeNullEntries,
-                string functionName,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                string metadataName = arguments[0];
+                StringSegment metadataName = arguments[0];
 
                 foreach (TransformEntry item in input)
                 {
@@ -382,7 +383,7 @@ internal partial class Expander<P, I>
                         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                         {
                             // Blank metadata name
-                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
+                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
                         }
 
                         if (!String.IsNullOrEmpty(metadataValue))
@@ -420,8 +421,8 @@ internal partial class Expander<P, I>
             internal static void DistinctWithCase(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
                 => DistinctWithComparer(input, output, arguments, StringComparer.Ordinal, functionName, elementLocation);
 
@@ -432,8 +433,8 @@ internal partial class Expander<P, I>
             internal static void Distinct(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
                 => DistinctWithComparer(input, output, arguments, StringComparer.OrdinalIgnoreCase, functionName, elementLocation);
 
@@ -444,9 +445,9 @@ internal partial class Expander<P, I>
             private static void DistinctWithComparer(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                StringSegment[] arguments,
                 StringComparer comparer,
-                string functionName,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
@@ -469,8 +470,8 @@ internal partial class Expander<P, I>
             internal static void Reverse(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
@@ -487,14 +488,14 @@ internal partial class Expander<P, I>
             internal static void ExpandQuotedExpressionFunction(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                StringSegment[] arguments,
                 bool includeNullEntries,
-                string functionName,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                ExpandQuotedExpressionFunction(input, output, arguments[0].AsSegment(), includeNullEntries, elementLocation);
+                ExpandQuotedExpressionFunction(input, output, arguments[0], includeNullEntries, elementLocation);
             }
 
             internal static void ExpandQuotedExpressionFunction(
@@ -736,20 +737,21 @@ internal partial class Expander<P, I>
                 Expander<P, I> expander,
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                StringSegment[] arguments,
                 bool includeNullEntries,
-                string functionName,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 // Transform: expression is like @(Compile->'%(foo)'), so create completely new items,
                 // using the Include from the source items
+                string methodName = functionName.ValueOrEmpty;
                 foreach (TransformEntry item in input)
                 {
                     Function function = new Function(
                         typeof(string),
                         item.Value,
                         item.Value,
-                        functionName,
+                        methodName,
                         arguments,
                         BindingFlags.Public | BindingFlags.InvokeMethod,
                         string.Empty,
@@ -779,9 +781,9 @@ internal partial class Expander<P, I>
             internal static void ClearMetadata(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
+                StringSegment[] arguments,
                 bool includeNullEntries,
-                string functionName,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
@@ -802,13 +804,13 @@ internal partial class Expander<P, I>
             internal static void HasMetadata(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                string metadataName = arguments[0];
+                StringSegment metadataName = arguments[0];
 
                 foreach (TransformEntry item in input)
                 {
@@ -821,7 +823,7 @@ internal partial class Expander<P, I>
                     catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                     {
                         // Blank metadata name
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
                     }
 
                     // GetMetadataValueEscaped returns empty string for missing metadata,
@@ -841,14 +843,14 @@ internal partial class Expander<P, I>
             internal static void WithMetadataValue(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                string metadataName = arguments[0];
-                string metadataValueToFind = arguments[1];
+                StringSegment metadataName = arguments[0];
+                StringSegment metadataValueToFind = arguments[1];
 
                 foreach (TransformEntry item in input)
                 {
@@ -861,10 +863,10 @@ internal partial class Expander<P, I>
                     catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                     {
                         // Blank metadata name
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
                     }
 
-                    if (metadataValue != null && String.Equals(metadataValue, metadataValueToFind, StringComparison.OrdinalIgnoreCase))
+                    if (metadataValue != null && metadataValueToFind.Equals(metadataValue, StringComparison.OrdinalIgnoreCase))
                     {
                         // return a result through the enumerator
                         output.Add(item);
@@ -879,14 +881,14 @@ internal partial class Expander<P, I>
             internal static void WithoutMetadataValue(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                string metadataName = arguments[0];
-                string metadataValueToFind = arguments[1];
+                StringSegment metadataName = arguments[0];
+                StringSegment metadataValueToFind = arguments[1];
 
                 foreach (TransformEntry item in input)
                 {
@@ -899,10 +901,10 @@ internal partial class Expander<P, I>
                     catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                     {
                         // Blank metadata name
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
                     }
 
-                    if (!String.Equals(metadataValue, metadataValueToFind, StringComparison.OrdinalIgnoreCase))
+                    if (!metadataValueToFind.Equals(metadataValue, StringComparison.OrdinalIgnoreCase))
                     {
                         // return a result through the enumerator
                         output.Add(item);
@@ -917,14 +919,14 @@ internal partial class Expander<P, I>
             internal static void AnyHaveMetadataValue(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string[] arguments,
-                string functionName,
+                StringSegment[] arguments,
+                StringSegment functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                string metadataName = arguments[0];
-                string metadataValueToFind = arguments[1];
+                StringSegment metadataName = arguments[0];
+                StringSegment metadataValueToFind = arguments[1];
                 bool metadataFound = false;
 
                 foreach (TransformEntry item in input)
@@ -940,10 +942,10 @@ internal partial class Expander<P, I>
                         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                         {
                             // Blank metadata name
-                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
+                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
                         }
 
-                        if (metadataValue != null && String.Equals(metadataValue, metadataValueToFind, StringComparison.OrdinalIgnoreCase))
+                        if (metadataValue != null && metadataValueToFind.Equals(metadataValue, StringComparison.OrdinalIgnoreCase))
                         {
                             metadataFound = true;
 
@@ -1007,7 +1009,7 @@ internal partial class Expander<P, I>
                     }
                     else
                     {
-                        value = sourceOfMetadata.GetMetadataValueEscaped(match.Name.ValueOrEmpty);
+                        value = sourceOfMetadata.GetMetadataValueEscaped(match.Name);
                     }
                 }
                 catch (InvalidOperationException ex)

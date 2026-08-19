@@ -12,6 +12,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -472,14 +473,24 @@ namespace Microsoft.Build.Evaluation
         /// Returns the escaped value of the metadatum requested.
         /// </summary>
         string IItem.GetMetadataValueEscaped(string name)
+            => ((IItem)this).GetMetadataValueEscaped(name.AsSegment());
+
+        /// <inheritdoc />
+        string IItem.GetMetadataValueEscaped(StringSegment name)
         {
-            ArgumentException.ThrowIfNullOrEmpty(name);
+            if (name.IsNullOrEmpty)
+            {
+                ArgumentException.ThrowIfNullOrEmpty(name.Value);
+            }
 
             string value = null;
 
             if (_directMetadata != null)
             {
-                ProjectMetadata metadatum = _directMetadata[name];
+                ProjectMetadata metadatum = _directMetadata.GetProperty(
+                    name.Buffer,
+                    name.Offset,
+                    name.Offset + name.Length - 1);
                 if (metadatum != null)
                 {
                     value = metadatum.EvaluatedValueEscaped;
@@ -735,6 +746,10 @@ namespace Microsoft.Build.Evaluation
             return value;
         }
 
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValue(StringSegment name)
+            => ((IMetadataTable)this).GetEscapedValue(default, name);
+
         /// <summary>
         /// Retrieves any value we have in our metadata table for the metadata name and item type specified.
         /// If no value is available, returns empty string.
@@ -747,6 +762,10 @@ namespace Microsoft.Build.Evaluation
 
             return value ?? String.Empty;
         }
+
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValue(StringSegment itemType, StringSegment name)
+            => ((IMetadataTable)this).GetEscapedValueIfPresent(itemType, name) ?? string.Empty;
 
         /// <summary>
         /// Returns the value if it exists.
@@ -767,6 +786,20 @@ namespace Microsoft.Build.Evaluation
             }
 
             return null;
+        }
+
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValueIfPresent(StringSegment itemType, StringSegment name)
+        {
+            if (itemType.HasValue && !itemType.Equals(ItemType, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            string value = ((IItem)this).GetMetadataValueEscaped(name);
+            return value.Length > 0 || HasMetadata(name.ValueOrEmpty)
+                ? value
+                : null;
         }
 
         #endregion
@@ -854,6 +887,16 @@ namespace Microsoft.Build.Evaluation
                 : null;
 
         /// <summary>
+        ///  Gets a built-in metadata value by name segment.
+        /// </summary>
+        /// <param name="name">The metadata name segment.</param>
+        /// <returns>The escaped value, or <see langword="null"/> when the name is not built in.</returns>
+        private string GetBuiltInMetadataEscaped(StringSegment name)
+            => ItemSpecModifiers.TryGetModifierKind(name, out ItemSpecModifierKind modifierKind)
+                ? BuiltInMetadata.GetMetadataValueEscaped(_project.DirectoryPath, _evaluatedIncludeBeforeWildcardExpansionEscaped, _evaluatedIncludeEscaped, Xml.ContainingProject.FullPath, modifierKind, ref _cachedModifiers)
+                : null;
+
+        /// <summary>
         /// Retrieves the named metadata from the item definition, if any.
         /// If it is not present, returns null
         /// </summary>
@@ -886,6 +929,30 @@ namespace Microsoft.Build.Evaluation
             }
 
             return metadataFromDefinition;
+        }
+
+        /// <summary>
+        ///  Retrieves item-definition metadata by a source-backed name segment.
+        /// </summary>
+        /// <param name="name">The metadata name segment.</param>
+        /// <returns>The metadata, or <see langword="null"/> when it is not defined.</returns>
+        private ProjectMetadata GetItemDefinitionMetadata(StringSegment name)
+        {
+            if (_inheritedItemDefinitions != null)
+            {
+                foreach (ProjectItemDefinition inheritedItemDefinition in _inheritedItemDefinitions)
+                {
+                    ProjectMetadata metadata = inheritedItemDefinition.GetMetadata(name);
+                    if (metadata != null)
+                    {
+                        return metadata;
+                    }
+                }
+            }
+
+            return _project.ItemDefinitions.TryGetValue(ItemType, out ProjectItemDefinition itemDefinition)
+                ? itemDefinition.GetMetadata(name)
+                : null;
         }
 
         /// <summary>
@@ -1104,6 +1171,10 @@ namespace Microsoft.Build.Evaluation
                 return value;
             }
 
+            /// <inheritdoc />
+            public string GetEscapedValue(StringSegment name)
+                => _item.GetBuiltInMetadataEscaped(name);
+
             /// <summary>
             /// Retrieves any value we have in our metadata table for the metadata name and item type specified.
             /// If item type is null, it is ignored.
@@ -1115,6 +1186,10 @@ namespace Microsoft.Build.Evaluation
 
                 return value ?? String.Empty;
             }
+
+            /// <inheritdoc />
+            public string GetEscapedValue(StringSegment itemType, StringSegment name)
+                => GetEscapedValueIfPresent(itemType, name) ?? string.Empty;
 
             /// <summary>
             /// Returns the value if it exists, null otherwise.
@@ -1131,6 +1206,12 @@ namespace Microsoft.Build.Evaluation
 
                 return value;
             }
+
+            /// <inheritdoc />
+            public string GetEscapedValueIfPresent(StringSegment itemType, StringSegment name)
+                => !itemType.HasValue || itemType.Equals(_item.ItemType, StringComparison.OrdinalIgnoreCase)
+                    ? GetEscapedValue(name)
+                    : null;
         }
     }
 }

@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Instance
 {
@@ -19,6 +20,7 @@ namespace Microsoft.Build.Instance
         where TCached : IKeyed, IItem
     {
         private readonly IDictionary<string, ICollection<TCached>> _itemsByType;
+        private readonly Dictionary<StringSegment, ICollection<TCached>> _itemsByTypeSegments;
         private readonly ICollection<TCached> _allCachedItems;
         private readonly Func<TCached, T?> _getInstance;
 
@@ -36,6 +38,14 @@ namespace Microsoft.Build.Instance
             _allCachedItems = allItems;
             _itemsByType = itemsByType ?? throw new ArgumentNullException(nameof(itemsByType));
             _getInstance = getInstance;
+
+            _itemsByTypeSegments = new Dictionary<StringSegment, ICollection<TCached>>(
+                itemsByType.Count,
+                StringSegmentComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, ICollection<TCached>> pair in itemsByType)
+            {
+                _itemsByTypeSegments.Add(pair.Key, pair.Value);
+            }
         }
 
         /// <inheritdoc />
@@ -48,7 +58,7 @@ namespace Microsoft.Build.Instance
                     return Array.Empty<T>();
                 }
 
-                return new ListConverter(itemType, list, _getInstance);
+                return new ListConverter(list, _getInstance);
             }
         }
 
@@ -75,7 +85,7 @@ namespace Microsoft.Build.Instance
                     continue;
                 }
 
-                itemTypeCallback(kvp.Key, new ListConverter(kvp.Key, kvp.Value, _getInstance));
+                itemTypeCallback(kvp.Key, new ListConverter(kvp.Value, _getInstance));
             }
         }
 
@@ -123,7 +133,18 @@ namespace Microsoft.Build.Instance
         {
             if (_itemsByType.TryGetValue(itemType, out ICollection<TCached>? items))
             {
-                return new ListConverter(itemType, items, _getInstance);
+                return new ListConverter(items, _getInstance);
+            }
+
+            return Array.Empty<T>();
+        }
+
+        /// <inheritdoc />
+        public ICollection<T> GetItems(StringSegment itemType)
+        {
+            if (_itemsByTypeSegments.TryGetValue(itemType, out ICollection<TCached>? items))
+            {
+                return new ListConverter(items, _getInstance);
             }
 
             return Array.Empty<T>();
@@ -146,7 +167,7 @@ namespace Microsoft.Build.Instance
             private readonly ICollection<TCached> _list;
             private readonly Func<TCached, T?> _getInstance;
 
-            public ListConverter(string itemType, ICollection<TCached> list, Func<TCached, T?> getInstance)
+            public ListConverter(ICollection<TCached> list, Func<TCached, T?> getInstance)
             {
                 _list = list;
                 _getInstance = getInstance;

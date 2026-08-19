@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -42,6 +43,10 @@ namespace Microsoft.Build.Evaluation
             return GetEscapedValue(null, name);
         }
 
+        /// <inheritdoc />
+        public string GetEscapedValue(StringSegment name)
+            => GetEscapedValue(default, name);
+
         /// <summary>
         /// Retrieves any value we have in our metadata table for the metadata name and item type specified.
         /// If no value is available, returns empty string.
@@ -50,6 +55,10 @@ namespace Microsoft.Build.Evaluation
         {
             return GetEscapedValueIfPresent(itemType, name) ?? String.Empty;
         }
+
+        /// <inheritdoc />
+        public string GetEscapedValue(StringSegment itemType, StringSegment name)
+            => GetEscapedValueIfPresent(itemType, name) ?? string.Empty;
 
         /// <summary>
         /// Retrieves any value we have in our metadata table for the metadata name and item type specified.
@@ -76,6 +85,38 @@ namespace Microsoft.Build.Evaluation
             _metadata.TryGetValue(key, out value);
 
             return value;
+        }
+
+        /// <inheritdoc />
+        public string GetEscapedValueIfPresent(StringSegment itemType, StringSegment name)
+        {
+            if (_metadata == null)
+            {
+                return null;
+            }
+
+            // Bucket metadata tables are intentionally small. Comparing their existing keys avoids
+            // allocating a temporary "ItemType.Name" key and preserves live views over mutable tables.
+            foreach (KeyValuePair<string, string> pair in _metadata)
+            {
+                ReadOnlySpan<char> key = pair.Key.AsSpan();
+                if (!itemType.HasValue)
+                {
+                    if (name.Equals(key, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return pair.Value;
+                    }
+                }
+                else if (key.Length == itemType.Length + name.Length + 1 &&
+                         key[itemType.Length] == '.' &&
+                         itemType.Equals(key[..itemType.Length], StringComparison.OrdinalIgnoreCase) &&
+                         name.Equals(key[(itemType.Length + 1)..], StringComparison.OrdinalIgnoreCase))
+                {
+                    return pair.Value;
+                }
+            }
+
+            return null;
         }
     }
 }

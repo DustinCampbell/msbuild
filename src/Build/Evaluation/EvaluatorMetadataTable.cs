@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Build.Text;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 
@@ -49,6 +50,10 @@ namespace Microsoft.Build.Evaluation
             return GetEscapedValue(null, name);
         }
 
+        /// <inheritdoc />
+        public string GetEscapedValue(StringSegment name)
+            => GetEscapedValue(default, name);
+
         /// <summary>
         /// Retrieves any value we have in our metadata table for the metadata name and item type specified.
         /// If no value is available, returns empty string.
@@ -57,6 +62,10 @@ namespace Microsoft.Build.Evaluation
         {
             return GetEscapedValueIfPresent(itemType, name) ?? String.Empty;
         }
+
+        /// <inheritdoc />
+        public string GetEscapedValue(StringSegment itemType, StringSegment name)
+            => GetEscapedValueIfPresent(itemType, name) ?? string.Empty;
 
         /// <summary>
         /// Retrieves any value we have in our metadata table for the metadata name and item type specified.
@@ -80,6 +89,26 @@ namespace Microsoft.Build.Evaluation
             }
 
             return value;
+        }
+
+        /// <inheritdoc />
+        public string? GetEscapedValueIfPresent(StringSegment itemType, StringSegment name)
+        {
+            if (_metadata == null ||
+                (itemType.HasValue && !itemType.Equals(_implicitItemType, StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+
+            foreach (KeyValuePair<string, string> pair in _metadata)
+            {
+                if (name.Equals(pair.Key, StringComparison.OrdinalIgnoreCase))
+                {
+                    return pair.Value;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

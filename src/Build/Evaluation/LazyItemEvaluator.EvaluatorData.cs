@@ -12,6 +12,7 @@ using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -40,6 +41,10 @@ namespace Microsoft.Build.Evaluation
                     ? items.GetMatchedItems(globsToIgnore: ImmutableHashSet<string>.Empty)
                     : Array.Empty<I>();
             }
+
+            /// <inheritdoc />
+            public ICollection<I> GetItems(StringSegment itemType)
+                => GetItems(itemType.ValueOrEmpty);
 
             public IDictionary<string, List<TargetSpecification>> AfterTargets
             {

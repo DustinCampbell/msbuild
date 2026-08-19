@@ -13,6 +13,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using SdkResult = Microsoft.Build.BackEnd.SdkResolution.SdkResult;
 
 namespace Microsoft.Build.Evaluation
@@ -135,6 +136,7 @@ namespace Microsoft.Build.Evaluation
 
         #region IEvaluatorData<> members that are forwarded directly to wrapped object.
         public ICollection<I> GetItems(string itemType) => _wrapped.GetItems(itemType);
+        public ICollection<I> GetItems(StringSegment itemType) => _wrapped.GetItems(itemType);
         public int EvaluationId { get => _wrapped.EvaluationId; set => _wrapped.EvaluationId = value; }
         public string Directory => _wrapped.Directory;
         public TaskRegistry TaskRegistry { get => _wrapped.TaskRegistry; set => _wrapped.TaskRegistry = value; }

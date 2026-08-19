@@ -13,6 +13,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -164,6 +165,10 @@ namespace Microsoft.Build.Execution
             return ((IMetadataTable)this).GetEscapedValue(null, name);
         }
 
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValue(StringSegment name)
+            => ((IMetadataTable)this).GetEscapedValue(default, name);
+
         /// <summary>
         /// Returns the metadata for the specified item type.
         /// </summary>
@@ -174,6 +179,10 @@ namespace Microsoft.Build.Execution
         {
             return ((IMetadataTable)this).GetEscapedValueIfPresent(specifiedItemType, name) ?? String.Empty;
         }
+
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValue(StringSegment specifiedItemType, StringSegment name)
+            => ((IMetadataTable)this).GetEscapedValueIfPresent(specifiedItemType, name) ?? string.Empty;
 
         /// <summary>
         /// Returns the metadata for the specified item type.
@@ -192,6 +201,27 @@ namespace Microsoft.Build.Execution
             return matchesItemType && _metadata.TryGetValue(name, out string value)
                 ? value
                 : null;
+        }
+
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValueIfPresent(StringSegment specifiedItemType, StringSegment name)
+        {
+            if (_metadata == null ||
+                (specifiedItemType.HasValue &&
+                 !specifiedItemType.Equals(_itemType, StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+
+            foreach (KeyValuePair<string, string> pair in _metadata)
+            {
+                if (name.Equals(pair.Key, StringComparison.OrdinalIgnoreCase))
+                {
+                    return pair.Value;
+                }
+            }
+
+            return null;
         }
 
         #endregion

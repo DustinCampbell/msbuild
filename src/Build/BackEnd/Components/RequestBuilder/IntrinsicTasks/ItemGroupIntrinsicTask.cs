@@ -13,6 +13,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using ElementLocation = Microsoft.Build.Construction.ElementLocation;
 using EngineFileUtilities = Microsoft.Build.Internal.EngineFileUtilities;
 using ProjectItemInstanceFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.ProjectItemInstanceFactory;
@@ -745,6 +746,10 @@ namespace Microsoft.Build.BackEnd
                 return GetEscapedValue(null, name);
             }
 
+            /// <inheritdoc />
+            public string GetEscapedValue(StringSegment name)
+                => GetEscapedValue(default, name);
+
             /// <summary>
             /// Gets the specified metadata value for the qualified item type.  Returns an empty string if none is set.
             /// </summary>
@@ -752,6 +757,10 @@ namespace Microsoft.Build.BackEnd
             {
                 return GetEscapedValueIfPresent(specifiedItemType, name) ?? String.Empty;
             }
+
+            /// <inheritdoc />
+            public string GetEscapedValue(StringSegment specifiedItemType, StringSegment name)
+                => GetEscapedValueIfPresent(specifiedItemType, name) ?? string.Empty;
 
             /// <summary>
             /// Gets the specified metadata value for the qualified item type.  Returns null if none is set.
@@ -785,6 +794,25 @@ namespace Microsoft.Build.BackEnd
                 }
 
                 return value;
+            }
+
+            /// <inheritdoc />
+            public string GetEscapedValueIfPresent(StringSegment specifiedItemType, StringSegment name)
+            {
+                if (!specifiedItemType.HasValue ||
+                    specifiedItemType.Equals(_itemType, StringComparison.Ordinal))
+                {
+                    foreach (KeyValuePair<string, string> pair in _addTable)
+                    {
+                        if (name.Equals(pair.Key, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return pair.Value;
+                        }
+                    }
+                }
+
+                string value = _bucketTable?.GetEscapedValueIfPresent(specifiedItemType, name);
+                return value ?? _itemDefinitionTable?.GetEscapedValueIfPresent(specifiedItemType, name);
             }
 
             #endregion

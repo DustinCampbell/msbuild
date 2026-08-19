@@ -28,7 +28,7 @@ internal partial class Expander<P, I>
                     Length = length;
                     Name = name;
                     IsDerivableItemSpecModifier =
-                        ItemSpecModifiers.TryGetDerivableModifierKind(name.ValueOrEmpty, out _modifierKind);
+                        ItemSpecModifiers.TryGetDerivableModifierKind(name, out _modifierKind);
                 }
 
                 public MetadataMatch(StringSegment name)

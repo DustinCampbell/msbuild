@@ -130,9 +130,9 @@ internal partial class Expander<P, I>
                 StringSegment functionName = capture.FunctionNameSegment;
                 StringSegment argumentsExpression = capture.FunctionArgumentsSegment;
 
-                string[] arguments = null;
+                StringSegment[] arguments = null;
                 TransformKind kind;
-                string functionNameString = null;
+                ItemSpecModifierKind modifierKind = default;
 
                 // Quoted transforms have no function name. Select their kind directly to avoid synthesizing
                 // a function name and one-element argument array, then performing name-based dispatch.
@@ -142,15 +142,12 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    functionNameString = functionName.ValueOrEmpty;
-
                     if (argumentsExpression.HasValue)
                     {
-                        string argumentsString = argumentsExpression.ValueOrEmpty;
-                        arguments = ExtractFunctionArguments(elementLocation, argumentsString, argumentsString.AsMemory());
+                        arguments = ExtractFunctionArguments(elementLocation, function, argumentsExpression);
                     }
 
-                    if (ItemSpecModifiers.IsDerivableItemSpecModifier(functionNameString))
+                    if (ItemSpecModifiers.TryGetDerivableModifierKind(functionName, out modifierKind))
                     {
                         kind = TransformKind.ItemSpecModifierFunction;
                     }
@@ -163,34 +160,34 @@ internal partial class Expander<P, I>
                 switch (kind)
                 {
                     case TransformKind.ItemSpecModifierFunction:
-                        Transforms.ItemSpecModifierFunction(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
+                        Transforms.ItemSpecModifierFunction(input, output, arguments, includeNullEntries, functionName, modifierKind, elementLocation);
                         break;
                     case TransformKind.Count:
                         Transforms.Count(input, output);
                         break;
                     case TransformKind.Exists:
-                        Transforms.Exists(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.Exists(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.Combine:
-                        Transforms.Combine(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.Combine(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.GetPathsOfAllDirectoriesAbove:
-                        Transforms.GetPathsOfAllDirectoriesAbove(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.GetPathsOfAllDirectoriesAbove(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.DirectoryName:
-                        Transforms.DirectoryName(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
+                        Transforms.DirectoryName(input, output, arguments, includeNullEntries, functionName, elementLocation);
                         break;
                     case TransformKind.Metadata:
-                        Transforms.Metadata(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
+                        Transforms.Metadata(input, output, arguments, includeNullEntries, functionName, elementLocation);
                         break;
                     case TransformKind.DistinctWithCase:
-                        Transforms.DistinctWithCase(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.DistinctWithCase(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.Distinct:
-                        Transforms.Distinct(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.Distinct(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.Reverse:
-                        Transforms.Reverse(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.Reverse(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.ExpandQuotedExpressionFunction:
                         // The unnamed form stores the quoted expression in capture.ValueSegment. An explicitly named
@@ -201,30 +198,30 @@ internal partial class Expander<P, I>
                         }
                         else
                         {
-                            Transforms.ExpandQuotedExpressionFunction(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
+                            Transforms.ExpandQuotedExpressionFunction(input, output, arguments, includeNullEntries, functionName, elementLocation);
                         }
 
                         break;
                     case TransformKind.ExecuteStringFunction:
-                        Transforms.ExecuteStringFunction(expander, input, output, arguments, includeNullEntries, functionNameString, elementLocation);
+                        Transforms.ExecuteStringFunction(expander, input, output, arguments, includeNullEntries, functionName, elementLocation);
                         break;
                     case TransformKind.ClearMetadata:
-                        Transforms.ClearMetadata(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
+                        Transforms.ClearMetadata(input, output, arguments, includeNullEntries, functionName, elementLocation);
                         break;
                     case TransformKind.HasMetadata:
-                        Transforms.HasMetadata(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.HasMetadata(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.WithMetadataValue:
-                        Transforms.WithMetadataValue(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.WithMetadataValue(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.WithoutMetadataValue:
-                        Transforms.WithoutMetadataValue(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.WithoutMetadataValue(input, output, arguments, functionName, elementLocation);
                         break;
                     case TransformKind.AnyHaveMetadataValue:
-                        Transforms.AnyHaveMetadataValue(input, output, arguments, functionNameString, elementLocation);
+                        Transforms.AnyHaveMetadataValue(input, output, arguments, functionName, elementLocation);
                         break;
                     default:
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnknownItemFunction", functionNameString);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnknownItemFunction", functionName.ValueOrEmpty);
                         break;
                 }
 
@@ -514,9 +511,9 @@ internal partial class Expander<P, I>
             // An empty item type indicates that the expression could not be parsed correctly.
             ProjectErrorUtilities.VerifyThrowInvalidProject(!itemVector.ItemTypeSegment.IsNullOrEmpty, elementLocation, "InvalidFunctionPropertyExpression");
 
-            ICollection<I> items = evaluatedItems.GetItems(itemVector.ItemTypeSegment.ValueOrEmpty);
+            ICollection<I> items = evaluatedItems.GetItems(itemVector.ItemTypeSegment);
             List<ExpressionShredder.ItemExpressionCapture> captures = itemVector.Captures;
-            string separator = itemVector.SeparatorSegment.Value;
+            StringSegment separator = itemVector.SeparatorSegment;
 
             isTransformExpression = captures is not null;
             entries = null;
@@ -532,7 +529,7 @@ internal partial class Expander<P, I>
                 bool breakOnNotEmpty = (options & ExpanderOptions.BreakOnNotEmpty) != 0;
 
                 // An explicit separator, such as @(Compile, ','), collapses the item vector into one scalar entry.
-                if (separator is not null)
+                if (separator.HasValue)
                 {
                     if (!TryJoinItems(items, separator, breakOnNotEmpty, out string result))
                     {
@@ -573,7 +570,7 @@ internal partial class Expander<P, I>
                 return true; // broke early
             }
 
-            if (separator is not null)
+            if (separator.HasValue)
             {
                 // An explicit separator collapses the transformed values into one scalar entry.
                 string joinedItems = JoinEntries(separator, entries);
@@ -600,7 +597,7 @@ internal partial class Expander<P, I>
                 return false;
             }
 
-            static bool TryJoinItems(ICollection<I> items, string separator, bool breakOnNotEmpty, out string result)
+            static bool TryJoinItems(ICollection<I> items, StringSegment separator, bool breakOnNotEmpty, out string result)
             {
                 using IEnumerator<I> enumerator = items.GetEnumerator();
                 if (!enumerator.MoveNext())
@@ -642,7 +639,11 @@ internal partial class Expander<P, I>
                         return false; // broke early
                     }
 
-                    builder.Append(separator);
+#if NET
+                    builder.Append(separator.AsSpan());
+#else
+                    builder.AppendSegment(separator);
+#endif
                     builder.Append(evaluatedIncludeEscaped);
                 }
 
@@ -654,7 +655,7 @@ internal partial class Expander<P, I>
                 return true; // joined successfully
             }
 
-            static string JoinEntries(string separator, List<TransformEntry> entries)
+            static string JoinEntries(StringSegment separator, List<TransformEntry> entries)
             {
                 if (entries is [{ Value: var value }])
                 {
@@ -673,7 +674,11 @@ internal partial class Expander<P, I>
                 {
                     if (!first)
                     {
-                        builder.Append(separator);
+#if NET
+                        builder.Append(separator.AsSpan());
+#else
+                        builder.AppendSegment(separator);
+#endif
                     }
 
                     first = false;

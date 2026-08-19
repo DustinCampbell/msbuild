@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -21,5 +22,12 @@ namespace Microsoft.Build.Evaluation
         /// <param name="itemType">The item type of items to return.</param>
         /// <returns>A list of matching items.</returns>
         ICollection<T> GetItems(string itemType);
+
+        /// <summary>
+        ///  Returns a list of items with the specified item type segment.
+        /// </summary>
+        /// <param name="itemType">The item type segment of items to return.</param>
+        /// <returns>A list of matching items.</returns>
+        ICollection<T> GetItems(StringSegment itemType);
     }
 }

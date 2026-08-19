@@ -224,14 +224,12 @@ internal partial class Expander<P, I>
                 }
 
                 // Determine whether to expand this metadata reference.
-                string metadataNameString = metadataName.ValueOrEmpty;
-                bool isBuiltInMetadata = ItemSpecModifiers.IsItemSpecModifier(metadataNameString);
+                bool isBuiltInMetadata = ItemSpecModifiers.IsItemSpecModifier(metadataName);
 
                 if ((isBuiltInMetadata && ((_options & ExpanderOptions.ExpandBuiltInMetadata) != 0)) ||
                    (!isBuiltInMetadata && ((_options & ExpanderOptions.ExpandCustomMetadata) != 0)))
                 {
-                    string? itemTypeString = itemType.Value;
-                    string expanded = _metadata.GetEscapedValue(itemTypeString, metadataNameString);
+                    string expanded = _metadata.GetEscapedValue(itemType, metadataName);
 
                     if ((_options & ExpanderOptions.LogOnItemMetadataSelfReference) != 0 &&
                         _loggingContext != null &&
@@ -244,7 +242,7 @@ internal partial class Expander<P, I>
                             new BuildEventFileInfo(_elementLocation),
                             "ItemReferencingSelfInTarget",
                             itemMetadata.ItemType,
-                            metadataNameString);
+                            metadataName.ValueOrEmpty);
                     }
 
                     if (IsTruncationEnabled(_options) && expanded.Length > CharacterLimitPerExpansion)

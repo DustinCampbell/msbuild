@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Framework;
 
@@ -113,11 +114,27 @@ internal static class ItemSpecModifiers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetModifierKind(string name, out ItemSpecModifierKind kind)
     {
+        ArgumentNullException.ThrowIfNull(name);
+        return TryGetModifierKind(name.AsSegment(), out kind);
+    }
+
+    /// <summary>
+    ///  Resolves a segment containing an item-spec modifier name.
+    /// </summary>
+    /// <param name="name">The modifier name segment.</param>
+    /// <param name="kind">The resolved modifier kind when this method returns <see langword="true"/>.</param>
+    /// <returns>
+    ///  <see langword="true"/> when <paramref name="name"/> identifies a known modifier; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryGetModifierKind(StringSegment name, out ItemSpecModifierKind kind)
+    {
         switch (name.Length)
         {
             case 7:
                 // RootDir
-                if (string.Equals(name, RootDir, StringComparison.OrdinalIgnoreCase))
+                if (name.Equals(RootDir, StringComparison.OrdinalIgnoreCase))
                 {
                     kind = ItemSpecModifierKind.RootDir;
                     return true;
@@ -133,7 +150,7 @@ internal static class ItemSpecModifiers
                         switch (name[1])
                         {
                             case 'U' or 'u':
-                                if (string.Equals(name, FullPath, StringComparison.OrdinalIgnoreCase))
+                                if (name.Equals(FullPath, StringComparison.OrdinalIgnoreCase))
                                 {
                                     kind = ItemSpecModifierKind.FullPath;
                                     return true;
@@ -142,7 +159,7 @@ internal static class ItemSpecModifiers
                                 break;
 
                             case 'I' or 'i':
-                                if (string.Equals(name, Filename, StringComparison.OrdinalIgnoreCase))
+                                if (name.Equals(Filename, StringComparison.OrdinalIgnoreCase))
                                 {
                                     kind = ItemSpecModifierKind.Filename;
                                     return true;
@@ -154,7 +171,7 @@ internal static class ItemSpecModifiers
                         break;
 
                     case 'I' or 'i':
-                        if (string.Equals(name, Identity, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(Identity, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.Identity;
                             return true;
@@ -170,7 +187,7 @@ internal static class ItemSpecModifiers
                 switch (name[0])
                 {
                     case 'E' or 'e':
-                        if (string.Equals(name, Extension, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(Extension, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.Extension;
                             return true;
@@ -179,7 +196,7 @@ internal static class ItemSpecModifiers
                         break;
 
                     case 'D' or 'd':
-                        if (string.Equals(name, Directory, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(Directory, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.Directory;
                             return true;
@@ -195,7 +212,7 @@ internal static class ItemSpecModifiers
                 switch (name[0])
                 {
                     case 'R' or 'r':
-                        if (string.Equals(name, RelativeDir, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(RelativeDir, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.RelativeDir;
                             return true;
@@ -204,7 +221,7 @@ internal static class ItemSpecModifiers
                         break;
 
                     case 'C' or 'c':
-                        if (string.Equals(name, CreatedTime, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(CreatedTime, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.CreatedTime;
                             return true;
@@ -220,7 +237,7 @@ internal static class ItemSpecModifiers
                 switch (name[0])
                 {
                     case 'R' or 'r':
-                        if (string.Equals(name, RecursiveDir, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(RecursiveDir, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.RecursiveDir;
                             return true;
@@ -229,7 +246,7 @@ internal static class ItemSpecModifiers
                         break;
 
                     case 'M' or 'm':
-                        if (string.Equals(name, ModifiedTime, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(ModifiedTime, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.ModifiedTime;
                             return true;
@@ -238,7 +255,7 @@ internal static class ItemSpecModifiers
                         break;
 
                     case 'A' or 'a':
-                        if (string.Equals(name, AccessedTime, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(AccessedTime, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.AccessedTime;
                             return true;
@@ -251,7 +268,7 @@ internal static class ItemSpecModifiers
 
             case 19:
                 // DefiningProjectName
-                if (string.Equals(name, DefiningProjectName, StringComparison.OrdinalIgnoreCase))
+                if (name.Equals(DefiningProjectName, StringComparison.OrdinalIgnoreCase))
                 {
                     kind = ItemSpecModifierKind.DefiningProjectName;
                     return true;
@@ -261,7 +278,7 @@ internal static class ItemSpecModifiers
 
             case 23:
                 // DefiningProjectFullPath
-                if (string.Equals(name, DefiningProjectFullPath, StringComparison.OrdinalIgnoreCase))
+                if (name.Equals(DefiningProjectFullPath, StringComparison.OrdinalIgnoreCase))
                 {
                     kind = ItemSpecModifierKind.DefiningProjectFullPath;
                     return true;
@@ -274,7 +291,7 @@ internal static class ItemSpecModifiers
                 switch (name[15])
                 {
                     case 'D' or 'd':
-                        if (string.Equals(name, DefiningProjectDirectory, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(DefiningProjectDirectory, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.DefiningProjectDirectory;
                             return true;
@@ -283,7 +300,7 @@ internal static class ItemSpecModifiers
                         break;
 
                     case 'E' or 'e':
-                        if (string.Equals(name, DefiningProjectExtension, StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals(DefiningProjectExtension, StringComparison.OrdinalIgnoreCase))
                         {
                             kind = ItemSpecModifierKind.DefiningProjectExtension;
                             return true;
@@ -314,11 +331,45 @@ internal static class ItemSpecModifiers
     }
 
     /// <summary>
+    ///  Resolves a segment containing a derivable item-spec modifier name.
+    /// </summary>
+    /// <param name="name">The modifier name segment.</param>
+    /// <param name="result">The resolved derivable modifier kind.</param>
+    /// <returns>
+    ///  <see langword="true"/> when <paramref name="name"/> identifies a derivable modifier; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool TryGetDerivableModifierKind(StringSegment name, out ItemSpecModifierKind result)
+    {
+        if (TryGetModifierKind(name, out ItemSpecModifierKind kind) &&
+            kind is not ItemSpecModifierKind.RecursiveDir)
+        {
+            result = kind;
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
+
+    /// <summary>
     /// Indicates if the given name is reserved for an item-spec modifier.
     /// </summary>
     public static bool IsItemSpecModifier([NotNullWhen(true)] string? name)
         => name is not null
         && TryGetModifierKind(name, out _);
+
+    /// <summary>
+    ///  Indicates whether a segment identifies an item-spec modifier.
+    /// </summary>
+    /// <param name="name">The modifier name segment.</param>
+    /// <returns>
+    ///  <see langword="true"/> when <paramref name="name"/> identifies a known modifier; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    internal static bool IsItemSpecModifier(StringSegment name)
+        => name.HasValue && TryGetModifierKind(name, out _);
 
     /// <summary>
     /// Indicates if the given name is reserved for a derivable item-spec modifier.
@@ -329,6 +380,17 @@ internal static class ItemSpecModifiers
     public static bool IsDerivableItemSpecModifier([NotNullWhen(true)] string? name)
         => name is not null
         && TryGetDerivableModifierKind(name, out _);
+
+    /// <summary>
+    ///  Indicates whether a segment identifies a derivable item-spec modifier.
+    /// </summary>
+    /// <param name="name">The modifier name segment.</param>
+    /// <returns>
+    ///  <see langword="true"/> when <paramref name="name"/> identifies a derivable modifier; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    internal static bool IsDerivableItemSpecModifier(StringSegment name)
+        => name.HasValue && TryGetDerivableModifierKind(name, out _);
 
     /// <summary>
     ///  Performs path manipulations on the given item-spec as directed.

@@ -10,6 +10,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -124,6 +125,16 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
+        ///  Gets metadata by a source-backed name segment.
+        /// </summary>
+        /// <param name="name">The metadata name segment.</param>
+        /// <returns>The metadata, or <see langword="null"/> when it is not defined.</returns>
+        internal ProjectMetadata GetMetadata(StringSegment name)
+            => Link != null
+                ? Link.GetMetadata(name.ValueOrEmpty)
+                : _metadata?.GetProperty(name.Buffer, name.Offset, name.Offset + name.Length - 1);
+
+        /// <summary>
         /// Get the value of any metadata in the item that has the specified
         /// name, otherwise returns null
         /// </summary>
@@ -215,6 +226,10 @@ namespace Microsoft.Build.Evaluation
             return ((IMetadataTable)this).GetEscapedValue(null, name);
         }
 
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValue(StringSegment name)
+            => ((IMetadataTable)this).GetEscapedValue(default, name);
+
         /// <summary>
         /// Retrieves the value of the named metadatum.
         /// </summary>
@@ -225,6 +240,10 @@ namespace Microsoft.Build.Evaluation
         {
             return ((IMetadataTable)this).GetEscapedValueIfPresent(specifiedItemType, name) ?? String.Empty;
         }
+
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValue(StringSegment specifiedItemType, StringSegment name)
+            => ((IMetadataTable)this).GetEscapedValueIfPresent(specifiedItemType, name) ?? string.Empty;
 
         /// <summary>
         /// Retrieves the value of the named metadatum, or null if it doesn't exist
@@ -249,6 +268,24 @@ namespace Microsoft.Build.Evaluation
             }
 
             return null;
+        }
+
+        /// <inheritdoc />
+        string IMetadataTable.GetEscapedValueIfPresent(StringSegment specifiedItemType, StringSegment name)
+        {
+            if (_metadata == null ||
+                (specifiedItemType.HasValue &&
+                 !specifiedItemType.Equals(_itemType, StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+
+            ProjectMetadata metadatum = _metadata.GetProperty(
+                name.Buffer,
+                name.Offset,
+                name.Offset + name.Length - 1);
+
+            return metadatum?.EvaluatedValueEscaped;
         }
 
         #endregion

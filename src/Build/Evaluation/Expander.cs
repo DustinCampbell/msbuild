@@ -3,14 +3,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Text;
-using Microsoft.NET.StringTools;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 using TaskItemFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.TaskItemFactory;
 
@@ -45,12 +43,6 @@ internal partial class Expander<P, I>
     /// Enabled by ExpanderOptions.Truncate.
     /// </summary>
     private const int ItemLimitPerExpansion = 3;
-
-    /// <summary>
-    /// The CultureInfo from the invariant culture. Used to avoid allocations for
-    /// performing IndexOf etc.
-    /// </summary>
-    private static readonly CompareInfo s_invariantCompareInfo = CultureInfo.InvariantCulture.CompareInfo;
 
     /// <summary>
     /// Properties to draw on for expansion.
@@ -253,6 +245,13 @@ internal partial class Expander<P, I>
         }
 
         Assumed.NotNull(elementLocation);
+
+        // Most project text is literal. A single vectorized prefix scan avoids running three
+        // independent expansion scanners when no property, metadata, or item marker can exist.
+        if (!ExpressionMayContainExpandableExpressions(expression))
+        {
+            return FileUtilities.MaybeAdjustFilePath(expression);
+        }
 
         string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
         result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
@@ -474,9 +473,14 @@ internal partial class Expander<P, I>
     }
 
     /// <summary>
-    /// Returns true if the supplied string contains a valid property name.
+    ///  Returns <see langword="true"/> if <paramref name="propertyName"/> contains a valid property name.
     /// </summary>
-    private static bool IsValidPropertyName(string propertyName)
+    /// <param name="propertyName">The property name segment.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the segment contains a valid property name; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    private static bool IsValidPropertyName(StringSegment propertyName)
     {
         if (propertyName.Length == 0 || !XmlUtilities.IsValidInitialElementNameCharacter(propertyName[0]))
         {
@@ -559,119 +563,88 @@ internal partial class Expander<P, I>
     }
 
     /// <summary>
-    /// Extract the argument from the StringBuilder, handling nulls appropriately.
+    ///  Extracts one function argument, trimming surrounding whitespace and matching quotes.
     /// </summary>
-    private static string ExtractArgument(SpanBasedStringBuilder argumentBuilder)
+    /// <param name="argument">The source-backed argument segment.</param>
+    /// <returns>
+    ///  The normalized argument segment, or a null segment for the <c>null</c> literal.
+    /// </returns>
+    private static StringSegment ExtractArgument(StringSegment argument)
     {
-        // we reached the end of an argument, add the builder's final result
-        // to our arguments.
-        argumentBuilder.Trim();
+        argument = argument.Trim();
 
-        // We support passing of null through the argument constant value null
-        if (argumentBuilder.Equals("null", StringComparison.OrdinalIgnoreCase))
+        if (argument.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
-            return null;
+            return default;
         }
-        else
-        {
-            if (argumentBuilder.Length > 0)
-            {
-                if (argumentBuilder[0] == '\'' && argumentBuilder[argumentBuilder.Length - 1] == '\'')
-                {
-                    argumentBuilder.Trim('\'');
-                }
-                else if (argumentBuilder[0] == '`' && argumentBuilder[argumentBuilder.Length - 1] == '`')
-                {
-                    argumentBuilder.Trim('`');
-                }
-                else if (argumentBuilder[0] == '"' && argumentBuilder[argumentBuilder.Length - 1] == '"')
-                {
-                    argumentBuilder.Trim('"');
-                }
 
-                return argumentBuilder.ToString();
-            }
-            else
+        if (argument.Length > 1)
+        {
+            char quote = argument[0];
+            if (quote is '\'' or '`' or '"' && argument[^1] == quote)
             {
-                return string.Empty;
+                argument = argument.Trim(quote);
             }
         }
+
+        return argument.Length == 0 ? StringSegment.Empty : argument;
     }
 
     /// <summary>
-    /// Extract the first level of arguments from the content.
-    /// Splits the content passed in at commas.
-    /// Returns an array of unexpanded arguments.
-    /// If there are no arguments, returns an empty array.
+    ///  Extracts the first level of comma-separated function arguments as source-backed segments.
     /// </summary>
-    private static string[] ExtractFunctionArguments(IElementLocation elementLocation, string expressionFunction, ReadOnlyMemory<char> argumentsMemory)
+    /// <param name="elementLocation">The expression location used for errors.</param>
+    /// <param name="expressionFunction">The complete function expression.</param>
+    /// <param name="argumentsContent">The segment containing the function arguments.</param>
+    /// <returns>The unexpanded argument segments.</returns>
+    private static StringSegment[] ExtractFunctionArguments(
+        IElementLocation elementLocation,
+        StringSegment expressionFunction,
+        StringSegment argumentsContent)
     {
-        int argumentsContentLength = argumentsMemory.Length;
-        ReadOnlySpan<char> argumentsSpan = argumentsMemory.Span;
+        ReadOnlySpan<char> argumentsSpan = argumentsContent.AsSpan();
+        List<StringSegment> arguments = null;
+        int argumentStart = 0;
 
-        using SpanBasedStringBuilder argumentBuilder = Strings.GetSpanBasedStringBuilder();
-        int? argumentStartIndex = null;
-
-        // We iterate over the string in the for loop below. When we find an argument, instead of adding it to the argument
-        // builder one-character-at-a-time, we remember the start index and then call this function when we find the end of
-        // the argument. This appends the entire {start, end} span to the builder in one call.
-        void FlushCurrentArgumentToArgumentBuilder(int argumentEndIndex)
-        {
-            if (argumentStartIndex.HasValue)
-            {
-                argumentBuilder.Append(argumentsMemory.Slice(argumentStartIndex.Value, argumentEndIndex - argumentStartIndex.Value));
-                argumentStartIndex = null;
-            }
-        }
-
-        // Iterate over the contents of the arguments extracting the
-        // the individual arguments as we go
-        List<string> arguments = null;
-        for (int n = 0; n < argumentsContentLength; n++)
+        for (int n = 0; n < argumentsContent.Length; n++)
         {
             // We found a property expression.. skip over all of it.
-            if ((n < argumentsContentLength - 1) && (argumentsSpan[n] == '$' && argumentsSpan[n + 1] == '('))
+            if (n < argumentsContent.Length - 1 && argumentsSpan[n] == '$' && argumentsSpan[n + 1] == '(')
             {
-                int nestedPropertyStart = n;
                 n += 2; // skip over the opening '$('
-
-                // Scan for the matching closing bracket, skipping any nested ones
                 n = ScanForClosingParenthesis(argumentsSpan, n);
 
                 if (n == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
+                    ProjectErrorUtilities.ThrowInvalidProject(
+                        elementLocation,
+                        "InvalidFunctionPropertyExpression",
+                        expressionFunction.ValueOrEmpty,
+                        AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
                 }
-
-                FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: nestedPropertyStart);
-                argumentBuilder.Append(argumentsMemory.Slice(nestedPropertyStart, (n - nestedPropertyStart) + 1));
             }
             else if (argumentsSpan[n] == '`' || argumentsSpan[n] == '"' || argumentsSpan[n] == '\'')
             {
-                int quoteStart = n;
+                char quote = argumentsSpan[n];
                 n++; // skip over the opening quote
-
-                n = ScanForClosingQuote(argumentsSpan[quoteStart], argumentsSpan, n);
+                n = ScanForClosingQuote(quote, argumentsSpan, n);
 
                 if (n == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedQuote"));
+                    ProjectErrorUtilities.ThrowInvalidProject(
+                        elementLocation,
+                        "InvalidFunctionPropertyExpression",
+                        expressionFunction.ValueOrEmpty,
+                        AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedQuote"));
                 }
-
-                FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: quoteStart);
-                argumentBuilder.Append(argumentsMemory.Slice(quoteStart, (n - quoteStart) + 1));
             }
             else if (argumentsSpan[n] == ',')
             {
-                FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: n);
-
-                // We have reached the end of the current argument, go ahead and add it
-                // to our list
                 if (arguments is null)
                 {
-                    // get an upper limit for the size of the arguments list.
+                    // Count remaining commas as a cheap upper bound; nested commas only overestimate.
                     int argumentCount = 2;
-                    for (int i = n + 1; i < argumentsContentLength; ++i)
+                    for (int i = n + 1; i < argumentsContent.Length; i++)
                     {
                         if (argumentsSpan[i] == ',')
                         {
@@ -679,26 +652,15 @@ internal partial class Expander<P, I>
                         }
                     }
 
-                    arguments = new List<string>(argumentCount);
+                    arguments = new List<StringSegment>(argumentCount);
                 }
 
-                arguments.Add(ExtractArgument(argumentBuilder));
-
-                // Clear out the argument builder ready for the next argument
-                argumentBuilder.Clear();
-            }
-            else
-            {
-                argumentStartIndex ??= n;
+                arguments.Add(ExtractArgument(argumentsContent.Slice(argumentStart, n - argumentStart)));
+                argumentStart = n + 1;
             }
         }
 
-        // We reached the end of the string but we may have seen the start but not the end of the last (or only) argument so flush it now.
-        FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: argumentsContentLength);
-
-        // This will either be the one and only argument, or the last one
-        // so add it to our list
-        string finalArgument = ExtractArgument(argumentBuilder);
+        StringSegment finalArgument = ExtractArgument(argumentsContent.Slice(argumentStart));
         if (arguments is null)
         {
             return [finalArgument];

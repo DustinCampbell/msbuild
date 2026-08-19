@@ -10,6 +10,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -134,15 +135,29 @@ namespace Microsoft.Build.Evaluation
                     return _operationItem.GetEscapedValue(name);
                 }
 
+                /// <inheritdoc />
+                public string GetEscapedValue(StringSegment name)
+                    => _operationItem.GetEscapedValue(name);
+
                 public string GetEscapedValue(string itemType, string name)
                 {
                     return RouteCall(itemType, name, (t, it, n) => t.GetEscapedValue(it, n));
                 }
 
+                /// <inheritdoc />
+                public string GetEscapedValue(StringSegment itemType, StringSegment name)
+                    => RouteCall(itemType, name, static (table, type, metadataName) =>
+                        table.GetEscapedValue(type, metadataName));
+
                 public string GetEscapedValueIfPresent(string itemType, string name)
                 {
                     return RouteCall(itemType, name, (t, it, n) => t.GetEscapedValueIfPresent(it, n));
                 }
+
+                /// <inheritdoc />
+                public string GetEscapedValueIfPresent(StringSegment itemType, StringSegment name)
+                    => RouteCall(itemType, name, static (table, type, metadataName) =>
+                        table.GetEscapedValueIfPresent(type, metadataName));
 
                 private string RouteCall(string itemType, string name, Func<IMetadataTable, string, string, string> getEscapedValueFunc)
                 {
@@ -158,6 +173,27 @@ namespace Microsoft.Build.Evaluation
                     {
                         return string.Empty;
                     }
+                }
+
+                private string RouteCall(
+                    StringSegment itemType,
+                    StringSegment name,
+                    Func<IMetadataTable, StringSegment, StringSegment, string> getEscapedValue)
+                {
+                    if (!itemType.HasValue || itemType.Equals(_operationItem.Key, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return getEscapedValue(_operationItem, itemType, name);
+                    }
+
+                    foreach (KeyValuePair<string, I> pair in _capturedItems)
+                    {
+                        if (itemType.Equals(pair.Key, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return getEscapedValue(pair.Value, itemType, name);
+                        }
+                    }
+
+                    return string.Empty;
                 }
             }
 

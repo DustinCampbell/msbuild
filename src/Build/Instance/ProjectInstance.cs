@@ -28,6 +28,7 @@ using Microsoft.Build.Instance.ImmutableProjectCollections;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Constants = Microsoft.Build.Framework.Constants;
 using ForwardingLoggerRecord = Microsoft.Build.Logging.ForwardingLoggerRecord;
 using ObjectModel = System.Collections.ObjectModel;
@@ -1822,6 +1823,10 @@ namespace Microsoft.Build.Execution
         {
             return _items[itemType];
         }
+
+        /// <inheritdoc />
+        ICollection<ProjectItemInstance> IItemProvider<ProjectItemInstance>.GetItems(StringSegment itemType)
+            => _items.GetItems(itemType);
 
         /// <summary>
         /// Initializes the object for evaluation.

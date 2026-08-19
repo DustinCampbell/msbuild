@@ -11,6 +11,7 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 
 #nullable disable
@@ -660,6 +661,14 @@ namespace Microsoft.Build.BackEnd
 
             return result;
         }
+
+        /// <summary>
+        ///  Gets the items of the specified type segment that are visible in the current scope.
+        /// </summary>
+        /// <param name="itemType">The item type segment.</param>
+        /// <returns>The visible matching items.</returns>
+        public ICollection<ProjectItemInstance> GetItems(StringSegment itemType)
+            => GetItems(itemType.ValueOrEmpty);
 
         /// <summary>
         /// Populates with an item group. This is done before the item lookup is used in this scope.

@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -64,17 +65,17 @@ internal partial class Expander<P, I>
         /// <summary>
         /// The arguments for the function.
         /// </summary>
-        public string[] Arguments { get; set; }
+        public StringSegment[] Arguments { get; set; }
 
         /// <summary>
         /// The expression that this function is part of.
         /// </summary>
-        public string Expression { get; set; }
+        public StringSegment Expression { get; set; }
 
         /// <summary>
         /// The property name that this function is applied on.
         /// </summary>
-        public string Receiver { get; set; }
+        public StringSegment Receiver { get; set; }
 
         /// <summary>
         /// The binding flags that will be used during invocation of this function.
@@ -84,7 +85,7 @@ internal partial class Expander<P, I>
         /// <summary>
         /// The remainder of the body once the function and arguments have been extracted.
         /// </summary>
-        public string Remainder { get; set; }
+        public StringSegment Remainder { get; set; }
 
         public IFileSystem FileSystem { get; set; }
 

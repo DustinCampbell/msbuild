@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Collections;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -52,5 +53,12 @@ namespace Microsoft.Build.Evaluation
         /// Metadata value is the escaped value initially set.
         /// </summary>
         string GetMetadataValueEscaped(string name);
+
+        /// <summary>
+        ///  Returns the escaped metadata value for the specified name segment.
+        /// </summary>
+        /// <param name="name">The metadata name segment.</param>
+        /// <returns>The escaped metadata value, or <see cref="string.Empty"/> when it does not exist.</returns>
+        string GetMetadataValueEscaped(StringSegment name);
     }
 }

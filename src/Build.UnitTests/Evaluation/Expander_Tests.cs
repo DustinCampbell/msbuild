@@ -24,6 +24,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Microsoft.Build.Utilities;
 using Microsoft.Win32;
 using Shouldly;
@@ -1615,6 +1616,9 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
                 return string.Empty;
             }
+
+            public string GetMetadataValueEscaped(StringSegment name)
+                => GetMetadataValueEscaped(name.ValueOrEmpty);
         }
 
         /// <summary>

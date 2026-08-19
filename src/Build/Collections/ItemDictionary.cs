@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Text;
 #if DEBUG
 #endif
 
@@ -40,12 +41,19 @@ namespace Microsoft.Build.Collections
         private readonly Dictionary<string, List<T>> _itemLists;
 
         /// <summary>
+        ///  A segment-keyed view over <see cref="_itemLists"/> that allows parsed item types to be
+        ///  queried without realizing or interning a substring.
+        /// </summary>
+        private readonly Dictionary<StringSegment, List<T>> _itemListsBySegment;
+
+        /// <summary>
         /// Constructor for an empty collection.
         /// </summary>
         public ItemDictionary()
         {
             // Tracing.Record("new item dictionary");
             _itemLists = new Dictionary<string, List<T>>(MSBuildNameIgnoreCaseComparer.Default);
+            _itemListsBySegment = new Dictionary<StringSegment, List<T>>(StringSegmentComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -56,6 +64,9 @@ namespace Microsoft.Build.Collections
         {
             // Tracing.Record("new item dictionary");
             _itemLists = new Dictionary<string, List<T>>(initialItemTypesCapacity, MSBuildNameIgnoreCaseComparer.Default);
+            _itemListsBySegment = new Dictionary<StringSegment, List<T>>(
+                initialItemTypesCapacity,
+                StringSegmentComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -65,6 +76,7 @@ namespace Microsoft.Build.Collections
         {
             // Tracing.Record("new item dictionary");
             _itemLists = new Dictionary<string, List<T>>(MSBuildNameIgnoreCaseComparer.Default);
+            _itemListsBySegment = new Dictionary<StringSegment, List<T>>(StringSegmentComparer.OrdinalIgnoreCase);
             ImportItems(items);
         }
 
@@ -147,6 +159,7 @@ namespace Microsoft.Build.Collections
                 }
 
                 _itemLists.Clear();
+                _itemListsBySegment.Clear();
             }
         }
 
@@ -225,6 +238,21 @@ namespace Microsoft.Build.Collections
             return result ?? Array.Empty<T>();
         }
 
+        /// <summary>
+        ///  Returns all items whose type matches <paramref name="itemType"/> without realizing the segment.
+        /// </summary>
+        /// <param name="itemType">The item type segment to return.</param>
+        /// <returns>The matching items, or an empty collection when the item type is absent.</returns>
+        public ICollection<T> GetItems(StringSegment itemType)
+        {
+            lock (_itemLists)
+            {
+                return _itemListsBySegment.TryGetValue(itemType, out List<T> list)
+                    ? new ReadOnlyCollection<T>(list)
+                    : Array.Empty<T>();
+            }
+        }
+
         #endregion
 
         /// <summary>
@@ -287,6 +315,7 @@ namespace Microsoft.Build.Collections
                         if (list.Count == 0)
                         {
                             _itemLists.Remove(projectItem.Key);
+                            _itemListsBySegment.Remove(projectItem.Key);
                         }
 
                         return true;
@@ -326,6 +355,7 @@ namespace Microsoft.Build.Collections
                 {
                     list = new List<T>();
                     _itemLists[itemType] = list;
+                    _itemListsBySegment[itemType] = list;
                 }
 
                 int count = list.Count;
@@ -371,11 +401,13 @@ namespace Microsoft.Build.Collections
                 if (listWithRemoves.Count > 0)
                 {
                     _itemLists[itemType] = listWithRemoves;
+                    _itemListsBySegment[itemType] = listWithRemoves;
                 }
                 else
                 {
                     // If the clone is empty, remove the item type from the dictionary
                     _itemLists.Remove(itemType);
+                    _itemListsBySegment.Remove(itemType);
                 }
             }
         }
@@ -386,6 +418,7 @@ namespace Microsoft.Build.Collections
             {
                 list = new List<T>();
                 _itemLists[projectItem.Key] = list;
+                _itemListsBySegment[projectItem.Key] = list;
             }
 
             list.Add(projectItem);
