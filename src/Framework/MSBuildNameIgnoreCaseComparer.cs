@@ -6,232 +6,315 @@ using System.Collections.Generic;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Text;
 
-#nullable disable
+namespace Microsoft.Build.Collections;
 
-namespace Microsoft.Build.Collections
+/// <summary>
+///  Compares MSBuild names case-insensitively without requiring constrained ranges or
+///  <see cref="StringSegment"/> values to be realized as strings.
+/// </summary>
+/// <remarks>
+///  Use this comparer for MSBuild property, item type, and metadata names, whose grammar is
+///  <c>[A-Za-z_][A-Za-z0-9_-]*</c>. It is not a general-purpose case-insensitive string comparer.
+/// </remarks>
+[Serializable]
+internal class MSBuildNameIgnoreCaseComparer :
+    IConstrainedEqualityComparer<string>,
+    IEqualityComparer<string>,
+    IEqualityComparer<StringSegment>
+#if NET
+    , IAlternateEqualityComparer<StringSegment, string>
+#endif
 {
     /// <summary>
-    /// This is a custom string comparer that has three advantages over the regular
-    /// string comparer:
-    /// 1) It can generate hash codes and perform equivalence operations on parts of a string rather than a whole
-    /// 2) It uses "unsafe" pointers to maximize performance of those operations
-    /// 3) It takes advantage of limitations on MSBuild Property/Item names to cheaply do case insensitive comparison.
+    ///  The architecture-specific implementation used by legacy equality and hashing paths.
     /// </summary>
-    [Serializable]
-    internal class MSBuildNameIgnoreCaseComparer :
-        IConstrainedEqualityComparer<string>,
-        IEqualityComparer<string>,
-        IEqualityComparer<StringSegment>
-#if NET
-        , IAlternateEqualityComparer<StringSegment, string>
-#endif
+    private static readonly NativeMethods.ProcessorArchitectures s_runningProcessorArchitecture =
+        NativeMethods.ProcessorArchitecture;
+
+    /// <summary>
+    ///  Gets the shared comparer instance.
+    /// </summary>
+    internal static MSBuildNameIgnoreCaseComparer Default { get; } = new();
+
+    /// <summary>
+    ///  Determines whether two MSBuild names are equal.
+    /// </summary>
+    /// <param name="x">The first name, or <see langword="null"/>.</param>
+    /// <param name="y">The second name, or <see langword="null"/>.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the names are equal under MSBuild's case-insensitive name
+    ///  semantics; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool Equals(string? x, string? y)
     {
-        /// <summary>
-        /// The processor architecture on which we are running, but default it will be x86
-        /// </summary>
-        private static readonly NativeMethods.ProcessorArchitectures s_runningProcessorArchitecture = NativeMethods.ProcessorArchitecture;
-
-        /// <summary>
-        /// The default immutable comparer instance.
-        /// </summary>
-        internal static MSBuildNameIgnoreCaseComparer Default { get; } = new MSBuildNameIgnoreCaseComparer();
-
-        public bool Equals(string x, string y)
+        if (ReferenceEquals(x, y))
         {
-            return Equals(x, y, 0, y?.Length ?? 0);
-        }
-
-        public int GetHashCode(string obj)
-        {
-            return GetHashCode(obj, 0, obj?.Length ?? 0);
-        }
-
-        /// <summary>
-        ///  Compares two source-backed MSBuild names without realizing either segment.
-        /// </summary>
-        /// <param name="x">The first name segment.</param>
-        /// <param name="y">The second name segment.</param>
-        /// <returns>
-        ///  <see langword="true"/> when the segments are equal under MSBuild's case-insensitive
-        ///  name semantics; otherwise, <see langword="false"/>.
-        /// </returns>
-        public bool Equals(StringSegment x, StringSegment y)
-            => x.Equals(y, StringComparison.OrdinalIgnoreCase);
-
-        /// <summary>
-        ///  Computes the MSBuild name hash for a source-backed segment.
-        /// </summary>
-        /// <param name="obj">The name segment.</param>
-        /// <returns>The case-insensitive MSBuild name hash.</returns>
-        public int GetHashCode(StringSegment obj)
-            => GetHashCode(obj.Buffer, obj.Offset, obj.Length);
-
-#if NET
-        /// <summary>
-        ///  Compares a source-backed alternate key with a stored string key.
-        /// </summary>
-        /// <param name="alternate">The alternate segment key.</param>
-        /// <param name="other">The stored string key.</param>
-        /// <returns>
-        ///  <see langword="true"/> when the keys are equal under MSBuild name semantics; otherwise,
-        ///  <see langword="false"/>.
-        /// </returns>
-        public bool Equals(StringSegment alternate, string other)
-            => alternate.Equals(other, StringComparison.OrdinalIgnoreCase);
-
-        /// <summary>
-        ///  Realizes an alternate key when a dictionary operation needs to store it.
-        /// </summary>
-        /// <param name="alternate">The alternate segment key.</param>
-        /// <returns>The realized key.</returns>
-        public string Create(StringSegment alternate)
-            => alternate.ValueOrEmpty;
-#endif
-
-        /// <summary>
-        /// Performs the "Equals" operation on two MSBuild property, item or metadata names
-        /// </summary>
-        public bool Equals(string compareToString, string constrainedString, int start, int lengthToCompare)
-        {
-            Assumed.PositiveOrZero(lengthToCompare, $"Invalid {nameof(lengthToCompare)} '{constrainedString}' {start} {lengthToCompare}");
-            Assumed.PositiveOrZero(start, $"Invalid {nameof(start)} '{constrainedString}' {start} {lengthToCompare}");
-            Assumed.LessThanOrEqual(start, (constrainedString?.Length ?? 0) - lengthToCompare, $"Invalid {nameof(start)} '{constrainedString}' {start} {lengthToCompare}");
-
-            if (ReferenceEquals(compareToString, constrainedString))
-            {
-                return true;
-            }
-
-            if (compareToString == null || constrainedString == null)
-            {
-                return false;
-            }
-
-#if NET
-            return compareToString.AsSpan().Equals(constrainedString.AsSpan(start, lengthToCompare), StringComparison.OrdinalIgnoreCase);
-#else
-            if (lengthToCompare != compareToString.Length)
-            {
-                return false;
-            }
-
-            if ((s_runningProcessorArchitecture != NativeMethods.ProcessorArchitectures.IA64)
-                && (s_runningProcessorArchitecture != NativeMethods.ProcessorArchitectures.ARM))
-            {
-                // The use of unsafe here is quite a bit faster than the regular
-                // mechanism in the BCL. This is because we can make assumptions
-                // about the characters that are within the strings being compared
-                // i.e. they are valid MSBuild property, item and metadata names
-                unsafe
-                {
-                    fixed (char* px = compareToString)
-                    {
-                        fixed (char* py = constrainedString)
-                        {
-                            for (int i = 0; i < compareToString.Length; i++)
-                            {
-                                int chx = px[i];
-                                int chy = py[i + start];
-                                chx &= 0x00DF; // Extract the uppercase character
-                                chy &= 0x00DF; // Extract the uppercase character
-
-                                if (chx != chy)
-                                {
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                return String.Compare(compareToString, 0, constrainedString, start, lengthToCompare, StringComparison.OrdinalIgnoreCase) == 0;
-            }
-
             return true;
-#endif
         }
 
-        /// <summary>
-        /// Getting a case insensitive hash code for the msbuild property, item or metadata name
-        /// </summary>
-        public int GetHashCode(string obj, int start, int length)
+        if (x is null || y is null || x.Length != y.Length)
         {
-            if (obj == null)
-            {
-                return 0; // per BCL convention
-            }
+            return false;
+        }
 
-            if ((s_runningProcessorArchitecture != NativeMethods.ProcessorArchitectures.IA64)
-                && (s_runningProcessorArchitecture != NativeMethods.ProcessorArchitectures.ARM))
+        return EqualsCore(x, 0, y, 0, x.Length);
+    }
+
+    /// <summary>
+    ///  Computes the hash code for an MSBuild name.
+    /// </summary>
+    /// <param name="obj">The name to hash.</param>
+    /// <returns>The case-insensitive MSBuild name hash.</returns>
+    public int GetHashCode(string obj)
+        => GetHashCode(obj, 0, obj?.Length ?? 0);
+
+    /// <summary>
+    ///  Determines whether two source-backed MSBuild names are equal without realizing either segment.
+    /// </summary>
+    /// <param name="x">The first name segment.</param>
+    /// <param name="y">The second name segment.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the segments are equal under MSBuild's case-insensitive name
+    ///  semantics; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool Equals(StringSegment x, StringSegment y)
+    {
+        if (!x.HasValue)
+        {
+            return !y.HasValue;
+        }
+
+        if (!y.HasValue)
+        {
+            return false;
+        }
+
+        if (x.Length != y.Length)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(x.Buffer, y.Buffer) && x.Offset == y.Offset)
+        {
+            return true;
+        }
+
+        return EqualsCore(x.Buffer, x.Offset, y.Buffer, y.Offset, x.Length);
+    }
+
+    /// <summary>
+    ///  Computes the hash code for a source-backed MSBuild name.
+    /// </summary>
+    /// <param name="obj">The name segment to hash.</param>
+    /// <returns>The case-insensitive MSBuild name hash.</returns>
+    public int GetHashCode(StringSegment obj)
+        => GetHashCode(obj.Buffer, obj.Offset, obj.Length);
+
+#if NET
+    /// <summary>
+    ///  Determines whether a source-backed alternate key equals a stored MSBuild name.
+    /// </summary>
+    /// <param name="alternate">The alternate name segment.</param>
+    /// <param name="other">The stored name.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the names are equal under MSBuild's case-insensitive name
+    ///  semantics; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool Equals(StringSegment alternate, string other)
+    {
+        if (!alternate.HasValue)
+        {
+            return other is null;
+        }
+
+        if (other is null || alternate.Length != other.Length)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(alternate.Buffer, other) && alternate.Offset == 0)
+        {
+            return true;
+        }
+
+        return EqualsCore(alternate.Buffer, alternate.Offset, other, 0, alternate.Length);
+    }
+
+    /// <summary>
+    ///  Realizes an alternate key when a dictionary operation needs to store it.
+    /// </summary>
+    /// <param name="alternate">The alternate name segment.</param>
+    /// <returns>The realized name.</returns>
+    public string Create(StringSegment alternate)
+        => alternate.ValueOrEmpty;
+#endif
+
+    /// <summary>
+    ///  Determines whether an MSBuild name equals a constrained range of another string.
+    /// </summary>
+    /// <param name="compareToString">The complete name to compare, or <see langword="null"/>.</param>
+    /// <param name="constrainedString">The string containing the constrained name, or <see langword="null"/>.</param>
+    /// <param name="start">The constrained name's starting index.</param>
+    /// <param name="lengthToCompare">The constrained name's length.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the names are equal under MSBuild's case-insensitive name
+    ///  semantics; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool Equals(string? compareToString, string? constrainedString, int start, int lengthToCompare)
+    {
+        Assumed.PositiveOrZero(
+            lengthToCompare,
+            $"Invalid {nameof(lengthToCompare)} '{constrainedString}' {start} {lengthToCompare}");
+        Assumed.PositiveOrZero(
+            start,
+            $"Invalid {nameof(start)} '{constrainedString}' {start} {lengthToCompare}");
+        Assumed.LessThanOrEqual(
+            start,
+            (constrainedString?.Length ?? 0) - lengthToCompare,
+            $"Invalid {nameof(start)} '{constrainedString}' {start} {lengthToCompare}");
+
+        if (ReferenceEquals(compareToString, constrainedString))
+        {
+            return true;
+        }
+
+        if (compareToString is null ||
+            constrainedString is null ||
+            lengthToCompare != compareToString.Length)
+        {
+            return false;
+        }
+
+        return EqualsCore(compareToString, 0, constrainedString, start, lengthToCompare);
+    }
+
+    /// <summary>
+    ///  Computes the hash code for a constrained range containing an MSBuild name.
+    /// </summary>
+    /// <param name="obj">The string containing the constrained name, or <see langword="null"/>.</param>
+    /// <param name="start">The constrained name's starting index.</param>
+    /// <param name="length">The constrained name's length.</param>
+    /// <returns>
+    ///  The case-insensitive MSBuild name hash, or <c>0</c> when <paramref name="obj"/> is
+    ///  <see langword="null"/>.
+    /// </returns>
+    public int GetHashCode(string? obj, int start, int length)
+    {
+        if (obj is null)
+        {
+            return 0;
+        }
+
+        if (s_runningProcessorArchitecture is NativeMethods.ProcessorArchitectures.IA64 or NativeMethods.ProcessorArchitectures.ARM)
+        {
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Substring(start, length));
+        }
+
+        unsafe
+        {
+            // This algorithm is based on the 32-bit CLR string hash implementation.
+            fixed (char* src = obj)
             {
-                unsafe
+                int hash1 = (5381 << 16) + 5381;
+                int hash2 = hash1;
+                char* src2 = src + start;
+                var pint = (int*)src2;
+
+                while (length > 0)
                 {
-                    // This algorithm is based on the 32bit version from the CLR's string::GetHashCode
-                    fixed (char* src = obj)
+                    // Fold two UTF-16 code units to uppercase ASCII simultaneously.
+                    int val = pint[0] & 0x00DF00DF;
+
+                    // Ignore the second code unit when only one character remains.
+                    if (length == 1)
                     {
-                        int hash1 = (5381 << 16) + 5381;
-
-                        int hash2 = hash1;
-
-                        char* src2 = src + start;
-                        var pint = (int*)src2;
-
-                        while (length > 0)
+                        if (BitConverter.IsLittleEndian)
                         {
-                            // We're only interested in uppercase ASCII characters
-                            int val = pint[0] & 0x00DF00DF;
-
-                            // When we reach the end of the string, we need to
-                            // stop short when gathering our data to compute the
-                            // hash code - we are only interested in the data within
-                            // the string, and not the null terminator etc.
-                            if (length == 1)
-                            {
-                                if (BitConverter.IsLittleEndian)
-                                {
-                                    val &= 0xFFFF;
-                                }
-                                else
-                                {
-                                    val &= unchecked((int)0xFFFF0000);
-                                }
-                            }
-
-                            hash1 = ((hash1 << 5) + hash1 + (hash1 >> 27)) ^ val;
-                            if (length <= 2)
-                            {
-                                break;
-                            }
-
-                            // Once again we're only interested in the uppercase ASCII characters
-                            val = pint[1] & 0x00DF00DF;
-                            if (length == 3)
-                            {
-                                if (BitConverter.IsLittleEndian)
-                                {
-                                    val &= 0xFFFF;
-                                }
-                                else
-                                {
-                                    val &= unchecked((int)0xFFFF0000);
-                                }
-                            }
-
-                            hash2 = ((hash2 << 5) + hash2 + (hash2 >> 27)) ^ val;
-                            pint += 2;
-                            length -= 4;
+                            val &= 0xFFFF;
                         }
+                        else
+                        {
+                            val &= unchecked((int)0xFFFF0000);
+                        }
+                    }
 
-                        return hash1 + (hash2 * 1566083941);
+                    hash1 = ((hash1 << 5) + hash1 + (hash1 >> 27)) ^ val;
+                    if (length <= 2)
+                    {
+                        break;
+                    }
+
+                    val = pint[1] & 0x00DF00DF;
+
+                    // Ignore the fourth code unit when only three characters remain.
+                    if (length == 3)
+                    {
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            val &= 0xFFFF;
+                        }
+                        else
+                        {
+                            val &= unchecked((int)0xFFFF0000);
+                        }
+                    }
+
+                    hash2 = ((hash2 << 5) + hash2 + (hash2 >> 27)) ^ val;
+                    pint += 2;
+                    length -= 4;
+                }
+
+                return hash1 + (hash2 * 1566083941);
+            }
+        }
+    }
+
+    /// <summary>
+    ///  Compares two equal-length string ranges using MSBuild's case-insensitive name semantics.
+    /// </summary>
+    /// <remarks>
+    ///  The caller must validate both ranges and ensure they have equal lengths before invoking this method.
+    /// </remarks>
+    /// <param name="x">The string containing the first range.</param>
+    /// <param name="offsetX">The first range's starting index.</param>
+    /// <param name="y">The string containing the second range.</param>
+    /// <param name="offsetY">The second range's starting index.</param>
+    /// <param name="length">The number of characters to compare.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the ranges are equal under MSBuild's case-insensitive name
+    ///  semantics; otherwise, <see langword="false"/>.
+    /// </returns>
+    private static bool EqualsCore(string x, int offsetX, string y, int offsetY, int length)
+    {
+#if NET
+        return x.AsSpan(offsetX, length).Equals(y.AsSpan(offsetY, length), StringComparison.OrdinalIgnoreCase);
+#else
+        if (s_runningProcessorArchitecture is NativeMethods.ProcessorArchitectures.IA64 or NativeMethods.ProcessorArchitectures.ARM)
+        {
+            return string.Compare(x, offsetX, y, offsetY, length, StringComparison.OrdinalIgnoreCase) == 0;
+        }
+
+        // The unsafe path is faster than the BCL implementation for the constrained ASCII grammar accepted
+        // by MSBuild names: [A-Za-z_][A-Za-z0-9_-]*.
+        unsafe
+        {
+            fixed (char* px = x, py = y)
+            {
+                char* currentX = px + offsetX;
+                char* currentY = py + offsetY;
+
+                for (int i = 0; i < length; i++, currentX++, currentY++)
+                {
+                    // Clear bit 0x20 to fold ASCII letters to uppercase.
+                    if ((*currentX & 0x00DF) != (*currentY & 0x00DF))
+                    {
+                        return false;
                     }
                 }
             }
-            else
-            {
-                return StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Substring(start, length));
-            }
         }
+
+        return true;
+#endif
     }
 }

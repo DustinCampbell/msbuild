@@ -5,6 +5,7 @@ using System;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 using Xunit;
 
 #nullable disable
@@ -198,6 +199,34 @@ namespace Microsoft.Build.UnitTests.OM.Collections
             MSBuildNameIgnoreCaseComparer comparer = MSBuildNameIgnoreCaseComparer.Default;
 
             Assert.Equal(comparer.GetHashCode("abcd", 0, 3), comparer.GetHashCode("abc"));
+        }
+
+        [Fact]
+        public void EqualityOverloadsHaveConsistentSemantics()
+        {
+            MSBuildNameIgnoreCaseComparer comparer = MSBuildNameIgnoreCaseComparer.Default;
+            string[] values = ["A", "a", "[", "{", "Name", "name", "Σ", "σ", "ς"];
+
+            foreach (string x in values)
+            {
+                string xBuffer = $":{x}:";
+                StringSegment xSegment = xBuffer.AsSegment(1, x.Length);
+                Assert.Equal(comparer.GetHashCode(x), comparer.GetHashCode(xSegment));
+                Assert.Equal(comparer.GetHashCode(x), comparer.GetHashCode(xBuffer, 1, x.Length));
+
+                foreach (string y in values)
+                {
+                    string yBuffer = $":{y}:";
+                    StringSegment ySegment = yBuffer.AsSegment(1, y.Length);
+                    bool areStringsEqual = comparer.Equals(x, y);
+
+                    Assert.Equal(areStringsEqual, comparer.Equals(xSegment, ySegment));
+                    Assert.Equal(areStringsEqual, comparer.Equals(x, yBuffer, 1, y.Length));
+#if NET
+                    Assert.Equal(areStringsEqual, comparer.Equals(xSegment, y));
+#endif
+                }
+            }
         }
     }
 }
