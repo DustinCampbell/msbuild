@@ -41,7 +41,7 @@ namespace Microsoft.Build.Instance
 
             _itemsByTypeSegments = new Dictionary<StringSegment, ICollection<TCached>>(
                 itemsByType.Count,
-                StringSegmentComparer.OrdinalIgnoreCase);
+                MSBuildNameIgnoreCaseComparer.Default);
             foreach (KeyValuePair<string, ICollection<TCached>> pair in itemsByType)
             {
                 _itemsByTypeSegments.Add(pair.Key, pair.Value);

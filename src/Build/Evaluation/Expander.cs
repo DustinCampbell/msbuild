@@ -246,8 +246,76 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
-        // Most project text is literal. A single vectorized prefix scan avoids running three
-        // independent expansion scanners when no property, metadata, or item marker can exist.
+        // Property-only expansion dominates evaluation. Locate only the marker that can be
+        // consumed and hand its index to the property expander to avoid a second scan.
+        if ((options & ExpanderOptions.ExpandProperties) != 0 &&
+            (options & (ExpanderOptions.ExpandMetadata | ExpanderOptions.ExpandItems)) == 0)
+        {
+            int propertyMarkerIndex = ExpressionShredder.IndexOfPropertyMarker(expression);
+            if (propertyMarkerIndex < 0)
+            {
+                return FileUtilities.MaybeAdjustFilePath(expression);
+            }
+
+            string propertyResult = PropertyExpander.ExpandPropertiesLeaveEscaped(
+                expression,
+                propertyMarkerIndex,
+                _properties,
+                options,
+                elementLocation,
+                _propertiesUseTracker,
+                _fileSystem);
+
+            return FileUtilities.MaybeAdjustFilePath(propertyResult);
+        }
+
+        if ((options & ExpanderOptions.ExpandItems) != 0 &&
+            (options & (ExpanderOptions.ExpandProperties | ExpanderOptions.ExpandMetadata)) == 0)
+        {
+            int itemMarkerIndex = ExpressionShredder.IndexOfItemVectorMarker(expression);
+            if (itemMarkerIndex < 0)
+            {
+                return FileUtilities.MaybeAdjustFilePath(expression);
+            }
+
+            if (ExpressionShredder.TryGetItemVectorExpressionAt(
+                    expression.AsSegment(),
+                    itemMarkerIndex,
+                    out ExpressionShredder.ItemExpressionCapture firstItem))
+            {
+                string itemResult = ItemExpander.ExpandItemVectorsIntoString(
+                    this,
+                    expression,
+                    _items,
+                    options,
+                    elementLocation,
+                    firstItem);
+
+                return FileUtilities.MaybeAdjustFilePath(itemResult);
+            }
+        }
+
+        if ((options & ExpanderOptions.ExpandMetadata) != 0 &&
+            (options & (ExpanderOptions.ExpandProperties | ExpanderOptions.ExpandItems)) == 0)
+        {
+            int metadataMarkerIndex = ExpressionShredder.IndexOfMetadataMarker(expression);
+            if (metadataMarkerIndex < 0)
+            {
+                return FileUtilities.MaybeAdjustFilePath(expression);
+            }
+
+            string metadataResult = MetadataExpander.ExpandMetadataLeaveEscaped(
+                expression,
+                metadataMarkerIndex,
+                _metadata,
+                options,
+                elementLocation,
+                _loggingContext);
+
+            return FileUtilities.MaybeAdjustFilePath(metadataResult);
+        }
+
+        // Mixed expansion still benefits from one cheap rejection before invoking all three scanners.
         if (!ExpressionMayContainExpandableExpressions(expression))
         {
             return FileUtilities.MaybeAdjustFilePath(expression);

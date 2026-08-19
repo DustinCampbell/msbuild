@@ -38,7 +38,7 @@ internal partial class Expander<P, I>
     /// This class represents the function as extracted from an expression
     /// It is also responsible for executing the function.
     /// </summary>
-    internal class Function
+    internal struct Function
     {
         /// <summary>
         /// The type of this function's receiver.
@@ -70,11 +70,6 @@ internal partial class Expander<P, I>
         /// The expression that this function is part of.
         /// </summary>
         private readonly StringSegment _expression;
-
-        /// <summary>
-        /// The property name that this function is applied on.
-        /// </summary>
-        private readonly StringSegment _receiver;
 
         /// <summary>
         /// The complete set of <see cref="BindingFlags"/> the property-function binder is permitted
@@ -125,10 +120,9 @@ internal partial class Expander<P, I>
                 DynamicallyAccessedMemberTypes.PublicConstructors |
                 DynamicallyAccessedMemberTypes.PublicMethods |
                 DynamicallyAccessedMemberTypes.PublicProperties |
-                DynamicallyAccessedMemberTypes.PublicFields)] Type receiverType,
-            StringSegment expression,
-            StringSegment receiver,
-            string methodName,
+                DynamicallyAccessedMemberTypes.PublicFields)]                 Type receiverType,
+                StringSegment expression,
+                string methodName,
             StringSegment[] arguments,
             BindingFlags bindingFlags,
             StringSegment remainder,
@@ -146,7 +140,6 @@ internal partial class Expander<P, I>
                 _arguments = arguments;
             }
 
-            _receiver = receiver;
             _expression = expression;
             _receiverType = receiverType;
 
@@ -167,19 +160,7 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Part of the extraction may result in the name of the property
-        /// This accessor is used by the Expander
-        /// Examples of expression root:
-        ///     [System.Diagnostics.Process]::Start
-        ///     SomeMSBuildProperty.
-        /// </summary>
-        internal StringSegment Receiver
-        {
-            get { return _receiver; }
-        }
-
-        /// <summary>
-        /// Extract the function details from the given property function expression.
+        ///  Tries to extract function details from a property function expression.
         /// </summary>
         /// <param name="expressionFunction">The property-function body, e.g. <c>SomeProp.ToLower()</c> or <c>[System.Math]::Max(1, 2)</c>.</param>
         /// <param name="elementLocation">Location used for error reporting.</param>
@@ -203,30 +184,47 @@ internal partial class Expander<P, I>
         /// <param name="propertiesUseTracker">Tracks property reads performed while evaluating the function.</param>
         /// <param name="fileSystem">File system abstraction used by file and directory property functions.</param>
         /// <param name="loggingContext">Logging context for the operation; may be <see langword="null"/>.</param>
-        internal static Function ExtractPropertyFunction(
+        /// <param name="function">Receives the parsed function.</param>
+        /// <param name="receiver">
+        ///  Receives the source-backed property name for an instance function, or a null segment for
+        ///  a static function.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> when a function was parsed; otherwise, <see langword="false"/>.
+        /// </returns>
+        internal static bool TryExtractPropertyFunction(
             string expressionFunction,
             IElementLocation elementLocation,
             object propertyValue,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem,
-            LoggingContext loggingContext)
-            => ExtractPropertyFunction(
+            LoggingContext loggingContext,
+            out Function function,
+            out StringSegment receiver)
+            => TryExtractPropertyFunction(
                 expressionFunction.AsSegment(),
                 elementLocation,
                 propertyValue,
                 propertiesUseTracker,
                 fileSystem,
-                loggingContext);
+                loggingContext,
+                out function,
+                out receiver);
 
-        /// <inheritdoc cref="ExtractPropertyFunction(string, IElementLocation, object, PropertiesUseTracker, IFileSystem, LoggingContext)"/>
-        internal static Function ExtractPropertyFunction(
+        /// <inheritdoc cref="TryExtractPropertyFunction(string, IElementLocation, object, PropertiesUseTracker, IFileSystem, LoggingContext, out Function, out StringSegment)"/>
+        internal static bool TryExtractPropertyFunction(
             StringSegment expressionFunction,
             IElementLocation elementLocation,
             object propertyValue,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem,
-            LoggingContext loggingContext)
+            LoggingContext loggingContext,
+            out Function function,
+            out StringSegment receiver)
         {
+            function = default;
+            receiver = default;
+
             // Used to aggregate all the components needed for a Function
             FunctionBuilder functionBuilder = new FunctionBuilder { FileSystem = fileSystem, LoggingContext = loggingContext };
 
@@ -278,7 +276,7 @@ internal partial class Expander<P, I>
                 ConstructFunction(elementLocation, expressionFunction, argumentStartIndex, methodStartIndex, ref functionBuilder);
 
                 // Locate a type that matches the body of the expression.
-                var receiverType = GetTypeForStaticMethod(typeName.ValueOrEmpty, functionBuilder.Name);
+                var receiverType = GetTypeForStaticMethod(typeName, functionBuilder.Name);
 
                 if (receiverType == null)
                 {
@@ -310,7 +308,7 @@ internal partial class Expander<P, I>
                 if (methodStartIndex == -1)
                 {
                     // We don't have a function invocation in the expression root, return null
-                    return null;
+                    return false;
                 }
 
                 // skip over the '.';
@@ -338,7 +336,9 @@ internal partial class Expander<P, I>
                 ConstructFunction(elementLocation, expressionFunction, argumentStartIndex, methodStartIndex, ref functionBuilder);
             }
 
-            return functionBuilder.Build();
+            receiver = functionBuilder.Receiver;
+            function = functionBuilder.Build();
+            return true;
         }
 
         /// <summary>
@@ -555,7 +555,10 @@ internal partial class Expander<P, I>
                             // If there are any out parameters, try to figure out their type and create defaults for them as appropriate before calling the method.
                             if (args.Any(a => "out _".Equals(a)))
                             {
-                                IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodMethodName) && m.GetParameters().Length == args.Length);
+                                string methodName = _methodMethodName;
+                                IEnumerable<MethodInfo> methods = _receiverType
+                                    .GetMethods(_bindingFlags)
+                                    .Where(m => m.Name.Equals(methodName) && m.GetParameters().Length == args.Length);
                                 functionResult = GetMethodResult(objectInstance, methods, args, 0);
                             }
                             else
@@ -687,14 +690,14 @@ internal partial class Expander<P, I>
         /// <returns></returns>
         [UnconditionalSuppressMessage("Trimming", "IL2096:UnrecognizedReflectionPattern",
             Justification = "The type name is resolved against the curated AvailableStaticMethods allowlist; the case-insensitive lookup only resolves to allowlist types, whose members are preserved for trimming.")]
-        private static Type GetTypeForStaticMethod(string typeName, string simpleMethodName)
+        private static Type GetTypeForStaticMethod(StringSegment typeName, string simpleMethodName)
         {
             Type receiverType;
             Tuple<string, Type> cachedTypeInformation;
 
             // If we don't have a type name, we already know that we won't be able to find a type.
             // Go ahead and return here -- otherwise the Type.GetType() calls below will throw.
-            if (string.IsNullOrWhiteSpace(typeName))
+            if (typeName.IsNullOrWhiteSpace())
             {
                 return null;
             }
@@ -722,18 +725,20 @@ internal partial class Expander<P, I>
 
                     // If the type information from the cache is not loadable, it means the cache information got corrupted somehow
                     // Throw here to prevent adding null types in the cache
-                    Assumed.NotNull(receiverType, $"Type information for {typeName} was present in the allowlist cache as {assemblyQualifiedTypeName} but the type could not be loaded.");
+                    Assumed.NotNull(receiverType, $"Type information for {typeName.ValueOrEmpty} was present in the allowlist cache as {assemblyQualifiedTypeName} but the type could not be loaded.");
 
                     // If we've used it once, chances are that we'll be using it again
                     // We can record the type here since we know it's available for calling from the fact that is was in the AvailableStaticMethods table
-                    AvailableStaticMethods.TryAdd(typeName, simpleMethodName, new Tuple<string, Type>(assemblyQualifiedTypeName, receiverType));
+                    AvailableStaticMethods.TryAdd(typeName.ValueOrEmpty, simpleMethodName, new Tuple<string, Type>(assemblyQualifiedTypeName, receiverType));
 
                     return receiverType;
                 }
             }
 
+            string typeNameString = typeName.ValueOrEmpty;
+
             // Get the type from mscorlib (or the currently running assembly)
-            receiverType = Type.GetType(typeName, throwOnError: false, ignoreCase: true);
+            receiverType = Type.GetType(typeNameString, throwOnError: false, ignoreCase: true);
 
             if (receiverType != null)
             {
@@ -753,25 +758,25 @@ internal partial class Expander<P, I>
             if (FeatureSwitches.EnableAllPropertyFunctions)
             {
                 // We didn't find the type, so go probing. First in System
-                receiverType = GetTypeFromAssembly(typeName, "System");
+                receiverType = GetTypeFromAssembly(typeNameString, "System");
 
                 // Next in System.Core
                 if (receiverType == null)
                 {
-                    receiverType = GetTypeFromAssembly(typeName, "System.Core");
+                    receiverType = GetTypeFromAssembly(typeNameString, "System.Core");
                 }
 
                 // We didn't find the type, so try to find it using the namespace
                 if (receiverType == null)
                 {
-                    receiverType = GetTypeFromAssemblyUsingNamespace(typeName);
+                    receiverType = GetTypeFromAssemblyUsingNamespace(typeNameString);
                 }
 
                 if (receiverType != null)
                 {
                     // If we've used it once, chances are that we'll be using it again
                     // We can cache the type here, since all functions are enabled
-                    AvailableStaticMethods.TryAdd(typeName, new Tuple<string, Type>(typeName, receiverType));
+                    AvailableStaticMethods.TryAdd(typeNameString, new Tuple<string, Type>(typeNameString, receiverType));
                 }
             }
 
@@ -1320,7 +1325,10 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    members = _receiverType.GetMethods(_bindingFlags).Where(m => string.Equals(m.Name, _methodMethodName, StringComparison.OrdinalIgnoreCase));
+                    string methodName = _methodMethodName;
+                    members = _receiverType
+                        .GetMethods(_bindingFlags)
+                        .Where(m => string.Equals(m.Name, methodName, StringComparison.OrdinalIgnoreCase));
                 }
 
                 foreach (MethodBase member in members)

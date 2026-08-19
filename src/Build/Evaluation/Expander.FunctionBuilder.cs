@@ -101,7 +101,6 @@ internal partial class Expander<P, I>
             return new Function(
                 ReceiverType,
                 Expression,
-                Receiver,
                 Name,
                 Arguments,
                 BindingFlags,

@@ -95,6 +95,15 @@ namespace Microsoft.Build.Evaluation
                 return null;
             }
 
+#if NET
+            if (!itemType.HasValue &&
+                _metadata.Comparer is IAlternateEqualityComparer<StringSegment, string> &&
+                _metadata.GetAlternateLookup<StringSegment>().TryGetValue(name, out string value))
+            {
+                return value;
+            }
+#endif
+
             // Bucket metadata tables are intentionally small. Comparing their existing keys avoids
             // allocating a temporary "ItemType.Name" key and preserves live views over mutable tables.
             foreach (KeyValuePair<string, string> pair in _metadata)

@@ -368,7 +368,7 @@ internal partial class Expander<P, I>
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                StringSegment metadataName = arguments[0];
+                string metadataName = arguments[0].ValueOrEmpty;
 
                 foreach (TransformEntry item in input)
                 {
@@ -383,7 +383,7 @@ internal partial class Expander<P, I>
                         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                         {
                             // Blank metadata name
-                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
+                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
                         }
 
                         if (!String.IsNullOrEmpty(metadataValue))
@@ -750,7 +750,6 @@ internal partial class Expander<P, I>
                     Function function = new Function(
                         typeof(string),
                         item.Value,
-                        item.Value,
                         methodName,
                         arguments,
                         BindingFlags.Public | BindingFlags.InvokeMethod,
@@ -810,7 +809,7 @@ internal partial class Expander<P, I>
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                StringSegment metadataName = arguments[0];
+                string metadataName = arguments[0].ValueOrEmpty;
 
                 foreach (TransformEntry item in input)
                 {
@@ -823,7 +822,7 @@ internal partial class Expander<P, I>
                     catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                     {
                         // Blank metadata name
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
                     }
 
                     // GetMetadataValueEscaped returns empty string for missing metadata,
@@ -849,8 +848,8 @@ internal partial class Expander<P, I>
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                StringSegment metadataName = arguments[0];
-                StringSegment metadataValueToFind = arguments[1];
+                string metadataName = arguments[0].ValueOrEmpty;
+                string metadataValueToFind = arguments[1].ValueOrEmpty;
 
                 foreach (TransformEntry item in input)
                 {
@@ -863,10 +862,10 @@ internal partial class Expander<P, I>
                     catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                     {
                         // Blank metadata name
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
                     }
 
-                    if (metadataValue != null && metadataValueToFind.Equals(metadataValue, StringComparison.OrdinalIgnoreCase))
+                    if (metadataValue != null && String.Equals(metadataValue, metadataValueToFind, StringComparison.OrdinalIgnoreCase))
                     {
                         // return a result through the enumerator
                         output.Add(item);
@@ -887,8 +886,8 @@ internal partial class Expander<P, I>
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                StringSegment metadataName = arguments[0];
-                StringSegment metadataValueToFind = arguments[1];
+                string metadataName = arguments[0].ValueOrEmpty;
+                string metadataValueToFind = arguments[1].ValueOrEmpty;
 
                 foreach (TransformEntry item in input)
                 {
@@ -901,10 +900,10 @@ internal partial class Expander<P, I>
                     catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                     {
                         // Blank metadata name
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
                     }
 
-                    if (!metadataValueToFind.Equals(metadataValue, StringComparison.OrdinalIgnoreCase))
+                    if (!String.Equals(metadataValue, metadataValueToFind, StringComparison.OrdinalIgnoreCase))
                     {
                         // return a result through the enumerator
                         output.Add(item);
@@ -925,8 +924,8 @@ internal partial class Expander<P, I>
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 2, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                StringSegment metadataName = arguments[0];
-                StringSegment metadataValueToFind = arguments[1];
+                string metadataName = arguments[0].ValueOrEmpty;
+                string metadataValueToFind = arguments[1].ValueOrEmpty;
                 bool metadataFound = false;
 
                 foreach (TransformEntry item in input)
@@ -942,10 +941,10 @@ internal partial class Expander<P, I>
                         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
                         {
                             // Blank metadata name
-                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName.ValueOrEmpty, ex.Message);
+                            ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", metadataName, ex.Message);
                         }
 
-                        if (metadataValue != null && metadataValueToFind.Equals(metadataValue, StringComparison.OrdinalIgnoreCase))
+                        if (metadataValue != null && String.Equals(metadataValue, metadataValueToFind, StringComparison.OrdinalIgnoreCase))
                         {
                             metadataFound = true;
 

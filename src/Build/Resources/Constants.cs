@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -121,6 +122,7 @@ namespace Microsoft.Build.Internal
         /// Static methods that are allowed in constants. Key = Type or Type::Method, Value = Tuple of AssemblyQualifiedTypeName (where null = mscorlib) or the actual type object
         /// </summary>
         private static ConcurrentDictionary<string, Tuple<string, Type>> s_availableStaticMethods;
+        private static ConcurrentDictionary<StringSegment, Tuple<string, Type>> s_availableStaticMethodsBySegment;
 
         /// <summary>
         /// Locker to protect initialization
@@ -145,7 +147,13 @@ namespace Microsoft.Build.Internal
         /// </summary>
         internal static bool TryAdd(string key, Tuple<string, Type> value)
         {
-            return s_availableStaticMethods.TryAdd(key, value);
+            if (!s_availableStaticMethods.TryAdd(key, value))
+            {
+                return false;
+            }
+
+            s_availableStaticMethodsBySegment.TryAdd(key, value);
+            return true;
         }
 
         /// <summary>
@@ -157,7 +165,7 @@ namespace Microsoft.Build.Internal
         /// <returns></returns>
         public static bool TryAdd(string typeFullName, string simpleMethodName, Tuple<string, Type> typeInformation)
         {
-            return s_availableStaticMethods.TryAdd(CreateQualifiedMethodName(typeFullName, simpleMethodName), typeInformation);
+            return TryAdd(CreateQualifiedMethodName(typeFullName, simpleMethodName), typeInformation);
         }
 
         /// <summary>
@@ -196,6 +204,28 @@ namespace Microsoft.Build.Internal
         }
 
         /// <summary>
+        ///  Tries to retrieve type information using a source-backed type name.
+        /// </summary>
+        /// <param name="typeFullName">The namespace-qualified type name segment.</param>
+        /// <param name="simpleMethodName">The method name.</param>
+        /// <returns>The cached type information, or <see langword="null"/> when unavailable.</returns>
+        internal static Tuple<string, Type> GetTypeInformationFromTypeCache(
+            StringSegment typeFullName,
+            string simpleMethodName)
+        {
+            if (s_availableStaticMethodsBySegment.TryGetValue(
+                    typeFullName,
+                    out Tuple<string, Type> typeInformation))
+            {
+                return typeInformation;
+            }
+
+            // Method-specific allowlist entries require a composite key. Realize only on this
+            // uncommon fallback after the allocation-free type-level lookup misses.
+            return GetValue(CreateQualifiedMethodName(typeFullName.ValueOrEmpty, simpleMethodName));
+        }
+
+        /// <summary>
         /// Returns the fully qualified format for the given method: see typeFullName::methodName
         /// </summary>
         /// <param name="typeFullName">namespace qualified type name</param>
@@ -217,6 +247,7 @@ namespace Microsoft.Build.Internal
             lock (s_locker)
             {
                 s_availableStaticMethods = null;
+                s_availableStaticMethodsBySegment = null;
                 InitializeAvailableMethods();
             }
         }
@@ -406,6 +437,15 @@ namespace Microsoft.Build.Internal
                         availableStaticMethods.TryAdd("Microsoft.Build.Framework.OperatingSystem", operatingSystemType);
 #endif
 
+                        var availableStaticMethodsBySegment =
+                            new ConcurrentDictionary<StringSegment, Tuple<string, Type>>(
+                                MSBuildNameIgnoreCaseComparer.Default);
+                        foreach (KeyValuePair<string, Tuple<string, Type>> pair in availableStaticMethods)
+                        {
+                            availableStaticMethodsBySegment.TryAdd(pair.Key, pair.Value);
+                        }
+
+                        s_availableStaticMethodsBySegment = availableStaticMethodsBySegment;
                         s_availableStaticMethods = availableStaticMethods;
                     }
                 }

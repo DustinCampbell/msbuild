@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation
@@ -69,10 +70,12 @@ namespace Microsoft.Build.Evaluation
         public override int GetHashCode()
         {
             int itemNameHash = ItemName.HasValue
-                ? ItemName.GetHashCode(StringComparison.OrdinalIgnoreCase)
+                ? MSBuildNameIgnoreCaseComparer.Default.GetHashCode(ItemName)
                 : 0;
 
-            return unchecked((itemNameHash * 397) ^ MetadataName.GetHashCode(StringComparison.OrdinalIgnoreCase));
+            return unchecked(
+                (itemNameHash * 397) ^
+                MSBuildNameIgnoreCaseComparer.Default.GetHashCode(MetadataName));
         }
     }
 }

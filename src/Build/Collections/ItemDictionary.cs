@@ -53,7 +53,7 @@ namespace Microsoft.Build.Collections
         {
             // Tracing.Record("new item dictionary");
             _itemLists = new Dictionary<string, List<T>>(MSBuildNameIgnoreCaseComparer.Default);
-            _itemListsBySegment = new Dictionary<StringSegment, List<T>>(StringSegmentComparer.OrdinalIgnoreCase);
+            _itemListsBySegment = new Dictionary<StringSegment, List<T>>(MSBuildNameIgnoreCaseComparer.Default);
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Microsoft.Build.Collections
             _itemLists = new Dictionary<string, List<T>>(initialItemTypesCapacity, MSBuildNameIgnoreCaseComparer.Default);
             _itemListsBySegment = new Dictionary<StringSegment, List<T>>(
                 initialItemTypesCapacity,
-                StringSegmentComparer.OrdinalIgnoreCase);
+                MSBuildNameIgnoreCaseComparer.Default);
         }
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace Microsoft.Build.Collections
         {
             // Tracing.Record("new item dictionary");
             _itemLists = new Dictionary<string, List<T>>(MSBuildNameIgnoreCaseComparer.Default);
-            _itemListsBySegment = new Dictionary<StringSegment, List<T>>(StringSegmentComparer.OrdinalIgnoreCase);
+            _itemListsBySegment = new Dictionary<StringSegment, List<T>>(MSBuildNameIgnoreCaseComparer.Default);
             ImportItems(items);
         }
 

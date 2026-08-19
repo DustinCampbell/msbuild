@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 
 #nullable disable
@@ -78,6 +79,24 @@ internal partial class Expander<P, I>
             else
             {
                 _firstSpan = span;
+            }
+        }
+
+        /// <summary>
+        ///  Adds a source-backed segment without converting it to an intermediate memory value.
+        /// </summary>
+        /// <param name="segment">The segment to concatenate.</param>
+        public void Add(StringSegment segment)
+        {
+            CheckDisposed();
+            FlushFirstValueIfNeeded();
+            if (_builder != null)
+            {
+                _builder.Append(FileUtilities.MaybeAdjustFilePath(segment.AsMemory()));
+            }
+            else
+            {
+                _firstSpan = segment.AsMemory();
             }
         }
 

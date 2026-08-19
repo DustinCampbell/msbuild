@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Text;
 
@@ -292,12 +293,15 @@ namespace Microsoft.Build.Evaluation
         {
             // IndexOf(char) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.
-            int markerIndex = expression.IndexOf(marker);
-            if (markerIndex < 0 || markerIndex == expression.Length - 1)
+            string buffer = expression.Buffer;
+            int offset = expression.Offset;
+            int markerIndex = buffer.IndexOf(marker, offset, expression.Length);
+            if (markerIndex < 0 || markerIndex == offset + expression.Length - 1)
             {
                 return -1;
             }
 
+            markerIndex -= offset;
             do
             {
                 int nextIndex = markerIndex + 1;
@@ -306,7 +310,11 @@ namespace Microsoft.Build.Evaluation
                     return markerIndex;
                 }
 
-                markerIndex = expression.IndexOf(marker, nextIndex);
+                markerIndex = buffer.IndexOf(
+                    marker,
+                    offset + nextIndex,
+                    expression.Length - nextIndex);
+                markerIndex = markerIndex < 0 ? -1 : markerIndex - offset;
             }
             while (markerIndex >= 0 && markerIndex < expression.Length - 1);
 
@@ -317,12 +325,15 @@ namespace Microsoft.Build.Evaluation
         {
             // IndexOf(char, int, int) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.
-            int markerIndex = expression.IndexOf(marker, startIndex, count);
+            string buffer = expression.Buffer;
+            int offset = expression.Offset;
+            int markerIndex = buffer.IndexOf(marker, offset + startIndex, count);
             if (markerIndex < 0)
             {
                 return -1;
             }
 
+            markerIndex -= offset;
             int endIndex = startIndex + count;
             if (markerIndex == endIndex - 1)
             {
@@ -337,7 +348,11 @@ namespace Microsoft.Build.Evaluation
                     return markerIndex;
                 }
 
-                markerIndex = expression.IndexOf(marker, nextIndex, endIndex - nextIndex);
+                markerIndex = buffer.IndexOf(
+                    marker,
+                    offset + nextIndex,
+                    endIndex - nextIndex);
+                markerIndex = markerIndex < 0 ? -1 : markerIndex - offset;
             }
             while (markerIndex >= 0 && markerIndex < endIndex - 1);
 
@@ -377,7 +392,7 @@ namespace Microsoft.Build.Evaluation
             for (int i = 0; i < expressions.Count; i++)
             {
                 string expression = expressions[i];
-                GetReferencedItemNamesAndMetadata(expression.AsSegment(), 0, expression.Length, ref pair, ShredderOptions.All);
+                GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.All);
             }
 
             return pair;
@@ -390,7 +405,7 @@ namespace Microsoft.Build.Evaluation
         {
             ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
 
-            GetReferencedItemNamesAndMetadata(expression.AsSegment(), 0, expression.Length, ref pair, ShredderOptions.MetadataOutsideTransforms);
+            GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.MetadataOutsideTransforms);
 
             bool result = (pair.Metadata?.Count > 0);
 
@@ -564,6 +579,22 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
+        ///  Parses an item-vector expression known to begin at <paramref name="startIndex"/>.
+        /// </summary>
+        /// <param name="expression">The expression segment.</param>
+        /// <param name="startIndex">The index of the <c>@(</c> marker.</param>
+        /// <param name="itemVector">The parsed item-vector capture.</param>
+        /// <returns>
+        ///  <see langword="true"/> when a valid item vector begins at the specified index; otherwise,
+        ///  <see langword="false"/>.
+        /// </returns>
+        internal static bool TryGetItemVectorExpressionAt(
+            StringSegment expression,
+            int startIndex,
+            out ItemExpressionCapture itemVector)
+            => TryParseItemVectorExpression(expression, startIndex, out itemVector);
+
+        /// <summary>
         /// Given a subexpression, finds referenced item names and inserts them into the table
         /// as K=Name, V=String.Empty.
         /// </summary>
@@ -571,7 +602,23 @@ namespace Microsoft.Build.Evaluation
         /// We can ignore any semicolons in the expression, since we're not itemizing it.
         /// </remarks>
         internal static void GetReferencedItemNamesAndMetadata(string expression, int start, int end, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
-            => GetReferencedItemNamesAndMetadata(expression.AsSegment(), start, end, ref pair, whatToShredFor);
+        {
+            int markerIndex = expression.IndexOfAny(
+                s_itemVectorOrMetadataMarkerPrefixes,
+                start,
+                end - start);
+
+            if (markerIndex >= 0)
+            {
+                GetReferencedItemNamesAndMetadata(
+                    expression.AsSegment(),
+                    start,
+                    end,
+                    ref pair,
+                    whatToShredFor,
+                    markerIndex);
+            }
+        }
 
         /// <inheritdoc cref="GetReferencedItemNamesAndMetadata(string, int, int, ref ItemsAndMetadataPair, ShredderOptions)"/>
         /// <param name="expression">The expression segment to scan.</param>
@@ -581,11 +628,36 @@ namespace Microsoft.Build.Evaluation
         /// <param name="whatToShredFor">The reference kinds to collect.</param>
         internal static void GetReferencedItemNamesAndMetadata(StringSegment expression, int start, int end, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
         {
+            int markerIndex = IndexOfItemOrMetadataMarker(expression, start, end);
+            if (markerIndex >= 0)
+            {
+                GetReferencedItemNamesAndMetadata(
+                    expression,
+                    start,
+                    end,
+                    ref pair,
+                    whatToShredFor,
+                    markerIndex);
+            }
+        }
+
+        private static void GetReferencedItemNamesAndMetadata(
+            StringSegment expression,
+            int start,
+            int end,
+            ref ItemsAndMetadataPair pair,
+            ShredderOptions whatToShredFor,
+            int markerIndex)
+        {
             int i = start;
 
             while (i < end)
             {
-                int markerIndex = expression.IndexOfAny(s_itemVectorOrMetadataMarkerPrefixes, i, end - i);
+                if (markerIndex < i)
+                {
+                    markerIndex = IndexOfItemOrMetadataMarker(expression, i, end);
+                }
+
                 if (markerIndex < 0)
                 {
                     break;
@@ -593,6 +665,7 @@ namespace Microsoft.Build.Evaluation
 
                 char markerPrefix = expression[markerIndex];
                 i = markerIndex + 1;
+                markerIndex = -1;
 
                 if (i >= end)
                 {
@@ -704,7 +777,8 @@ namespace Microsoft.Build.Evaluation
                     // well formed, so make sure the name's in the table
                     if ((whatToShredFor & ShredderOptions.ItemTypes) != 0)
                     {
-                        pair.Items ??= new HashSet<StringSegment>(StringSegmentComparer.OrdinalIgnoreCase);
+                        pair.Items ??= new ReferenceSet<StringSegment>(
+                            MSBuildNameIgnoreCaseComparer.Default);
                         pair.Items.Add(expression.Slice(startOfName, nameLength));
                     }
 
@@ -721,10 +795,24 @@ namespace Microsoft.Build.Evaluation
 
                 if ((whatToShredFor & ShredderOptions.MetadataOutsideTransforms) != 0)
                 {
-                    pair.Metadata ??= new HashSet<MetadataReference>();
+                    pair.Metadata ??= new ReferenceSet<MetadataReference>(
+                        EqualityComparer<MetadataReference>.Default);
                     pair.Metadata.Add(new MetadataReference(itemName, metadataName));
                 }
             }
+        }
+
+        private static int IndexOfItemOrMetadataMarker(
+            StringSegment expression,
+            int start,
+            int end)
+        {
+            int markerIndex = expression.Buffer.IndexOfAny(
+                s_itemVectorOrMetadataMarkerPrefixes,
+                expression.Offset + start,
+                end - start);
+
+            return markerIndex < 0 ? -1 : markerIndex - expression.Offset;
         }
 
         /// <summary>
@@ -1041,6 +1129,15 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal readonly struct ItemExpressionCapture
         {
+            private readonly int _itemTypeOffset;
+            private readonly int _itemTypeLength;
+            private readonly int _separatorOffset;
+            private readonly int _separatorLength;
+            private readonly int _functionNameOffset;
+            private readonly int _functionNameLength;
+            private readonly int _functionArgumentsOffset;
+            private readonly int _functionArgumentsLength;
+
             /// <summary>
             ///  Initializes a capture for a subexpression shredded from a larger expression.
             /// </summary>
@@ -1100,13 +1197,21 @@ namespace Microsoft.Build.Evaluation
                 Index = index;
                 Length = length;
                 ValueSegment = subExpression;
-                ItemTypeSegment = itemType;
-                SeparatorSegment = separator;
+                (_itemTypeOffset, _itemTypeLength) = GetRelativeRange(subExpression, itemType);
+                (_separatorOffset, _separatorLength) = GetRelativeRange(subExpression, separator);
                 SeparatorStart = separatorStart;
                 Captures = captures;
-                FunctionNameSegment = functionName;
-                FunctionArgumentsSegment = functionArguments;
+                (_functionNameOffset, _functionNameLength) = GetRelativeRange(subExpression, functionName);
+                (_functionArgumentsOffset, _functionArgumentsLength) =
+                    GetRelativeRange(subExpression, functionArguments);
             }
+
+            private static (int Offset, int Length) GetRelativeRange(
+                StringSegment containingSegment,
+                StringSegment nestedSegment)
+                => nestedSegment.HasValue
+                    ? (nestedSegment.Offset - containingSegment.Offset, nestedSegment.Length)
+                    : (-1, 0);
 
             /// <summary>
             /// Captures within this capture
@@ -1140,7 +1245,10 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             ///  Gets an allocation-free view over the captured item type.
             /// </summary>
-            public StringSegment ItemTypeSegment { get; }
+            public StringSegment ItemTypeSegment
+                => _itemTypeOffset >= 0
+                    ? ValueSegment.Slice(_itemTypeOffset, _itemTypeLength)
+                    : default;
 
             /// <summary>
             ///  Gets the captured item type as a string, or <see langword="null"/> when none was captured.
@@ -1153,7 +1261,10 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             ///  Gets an allocation-free view over the captured separator.
             /// </summary>
-            public StringSegment SeparatorSegment { get; }
+            public StringSegment SeparatorSegment
+                => _separatorOffset >= 0
+                    ? ValueSegment.Slice(_separatorOffset, _separatorLength)
+                    : default;
 
             /// <summary>
             ///  Gets the captured separator as a string, or <see langword="null"/> when none was captured.
@@ -1171,7 +1282,10 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             ///  Gets an allocation-free view over the function name, if any.
             /// </summary>
-            public StringSegment FunctionNameSegment { get; }
+            public StringSegment FunctionNameSegment
+                => _functionNameOffset >= 0
+                    ? ValueSegment.Slice(_functionNameOffset, _functionNameLength)
+                    : default;
 
             /// <summary>
             ///  Gets the function name as a string, or <see langword="null"/> when none was captured.
@@ -1184,7 +1298,10 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             ///  Gets an allocation-free view over the function arguments, if any.
             /// </summary>
-            public StringSegment FunctionArgumentsSegment { get; }
+            public StringSegment FunctionArgumentsSegment
+                => _functionArgumentsOffset >= 0
+                    ? ValueSegment.Slice(_functionArgumentsOffset, _functionArgumentsLength)
+                    : default;
 
             /// <summary>
             ///  Gets the function arguments as a string, or <see langword="null"/> when none were captured.

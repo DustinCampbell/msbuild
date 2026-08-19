@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -17,7 +18,13 @@ namespace Microsoft.Build.Collections
     /// 3) It takes advantage of limitations on MSBuild Property/Item names to cheaply do case insensitive comparison.
     /// </summary>
     [Serializable]
-    internal class MSBuildNameIgnoreCaseComparer : IConstrainedEqualityComparer<string>, IEqualityComparer<string>
+    internal class MSBuildNameIgnoreCaseComparer :
+        IConstrainedEqualityComparer<string>,
+        IEqualityComparer<string>,
+        IEqualityComparer<StringSegment>
+#if NET
+        , IAlternateEqualityComparer<StringSegment, string>
+#endif
     {
         /// <summary>
         /// The processor architecture on which we are running, but default it will be x86
@@ -38,6 +45,48 @@ namespace Microsoft.Build.Collections
         {
             return GetHashCode(obj, 0, obj?.Length ?? 0);
         }
+
+        /// <summary>
+        ///  Compares two source-backed MSBuild names without realizing either segment.
+        /// </summary>
+        /// <param name="x">The first name segment.</param>
+        /// <param name="y">The second name segment.</param>
+        /// <returns>
+        ///  <see langword="true"/> when the segments are equal under MSBuild's case-insensitive
+        ///  name semantics; otherwise, <see langword="false"/>.
+        /// </returns>
+        public bool Equals(StringSegment x, StringSegment y)
+            => x.Equals(y, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        ///  Computes the MSBuild name hash for a source-backed segment.
+        /// </summary>
+        /// <param name="obj">The name segment.</param>
+        /// <returns>The case-insensitive MSBuild name hash.</returns>
+        public int GetHashCode(StringSegment obj)
+            => GetHashCode(obj.Buffer, obj.Offset, obj.Length);
+
+#if NET
+        /// <summary>
+        ///  Compares a source-backed alternate key with a stored string key.
+        /// </summary>
+        /// <param name="alternate">The alternate segment key.</param>
+        /// <param name="other">The stored string key.</param>
+        /// <returns>
+        ///  <see langword="true"/> when the keys are equal under MSBuild name semantics; otherwise,
+        ///  <see langword="false"/>.
+        /// </returns>
+        public bool Equals(StringSegment alternate, string other)
+            => alternate.Equals(other, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        ///  Realizes an alternate key when a dictionary operation needs to store it.
+        /// </summary>
+        /// <param name="alternate">The alternate segment key.</param>
+        /// <returns>The realized key.</returns>
+        public string Create(StringSegment alternate)
+            => alternate.ValueOrEmpty;
+#endif
 
         /// <summary>
         /// Performs the "Equals" operation on two MSBuild property, item or metadata names

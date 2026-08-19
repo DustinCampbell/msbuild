@@ -91,13 +91,14 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
-            => ExpandPropertiesLeaveEscaped(
-                expression.AsSegment(),
-                properties,
-                options,
-                elementLocation,
-                propertiesUseTracker,
-                fileSystem);
+            => ConvertToString(
+                ExpandPropertiesLeaveTypedAndEscaped(
+                    expression,
+                    properties,
+                    options,
+                    elementLocation,
+                    propertiesUseTracker,
+                    fileSystem));
 
         /// <inheritdoc cref="ExpandPropertiesLeaveEscaped(string, IPropertyProvider{P}, ExpanderOptions, IElementLocation, PropertiesUseTracker, IFileSystem)"/>
         internal static string ExpandPropertiesLeaveEscaped(
@@ -117,6 +118,34 @@ internal partial class Expander<P, I>
                         elementLocation,
                         propertiesUseTracker,
                         fileSystem));
+        }
+
+        /// <summary>
+        ///  Expands properties when the first marker has already been located by an upstream scanner.
+        /// </summary>
+        /// <param name="expression">The expression containing property references.</param>
+        /// <param name="markerIndex">The index of the first property marker.</param>
+        /// <param name="properties">The property provider.</param>
+        /// <param name="options">The expansion options.</param>
+        /// <param name="elementLocation">The expression location.</param>
+        /// <param name="propertiesUseTracker">The property-use tracker.</param>
+        /// <param name="fileSystem">The file system used by property functions.</param>
+        /// <returns>The expanded escaped string.</returns>
+        internal static string ExpandPropertiesLeaveEscaped(
+            string expression,
+            int markerIndex,
+            IPropertyProvider<P> properties,
+            ExpanderOptions options,
+            IElementLocation elementLocation,
+            PropertiesUseTracker propertiesUseTracker,
+            IFileSystem fileSystem)
+        {
+            Assumed.NotNull(properties, "Cannot expand properties without providing properties");
+            PropertyExpander expander =
+                new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
+
+            return ConvertToString(
+                expander.ExpandPropertiesLeaveTypedAndEscapedWithKnownMarker(expression, markerIndex));
         }
 
         /// <summary>
@@ -143,13 +172,24 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
-            => ExpandPropertiesLeaveTypedAndEscaped(
-                expression.AsSegment(),
-                properties,
-                options,
-                elementLocation,
-                propertiesUseTracker,
-                fileSystem);
+        {
+            if (((options & ExpanderOptions.ExpandProperties) == 0) || String.IsNullOrEmpty(expression))
+            {
+                return expression;
+            }
+
+            Assumed.NotNull(properties, "Cannot expand properties without providing properties");
+
+            int markerIndex = ExpressionShredder.IndexOfPropertyMarker(expression);
+            if (markerIndex == -1)
+            {
+                return expression;
+            }
+
+            PropertyExpander expander =
+                new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
+            return expander.ExpandPropertiesLeaveTypedAndEscapedWithKnownMarker(expression, markerIndex);
+        }
 
         /// <inheritdoc cref="ExpandPropertiesLeaveTypedAndEscaped(string, IPropertyProvider{P}, ExpanderOptions, IElementLocation, PropertiesUseTracker, IFileSystem)"/>
         internal static object ExpandPropertiesLeaveTypedAndEscaped(
@@ -175,11 +215,45 @@ internal partial class Expander<P, I>
             }
 
             PropertyExpander expander = new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
+            return expander.ExpandPropertiesLeaveTypedAndEscapedWithKnownMarker(expression, markerIndex);
+        }
 
+        private object ExpandPropertiesLeaveTypedAndEscapedWithKnownMarker(
+            string expression,
+            int markerIndex)
+        {
+            if (!_isTruncationEnabled &&
+                markerIndex == 0 &&
+                expression.Length >= 3 &&
+                expression[^1] == ')')
+            {
+                int propertyNameLength = expression.Length - 3;
+                if (propertyNameLength == 0)
+                {
+                    return string.Empty;
+                }
+
+                StringSegment propertyName = expression.AsSegment(2, propertyNameLength);
+                if (IsValidPropertyName(propertyName))
+                {
+                    object value = LookupProperty(expression, 2, expression.Length - 2);
+                    return value is string stringValue
+                        ? FileUtilities.MaybeAdjustFilePath(stringValue)
+                        : value;
+                }
+            }
+
+            return ExpandPropertiesLeaveTypedAndEscaped(expression, markerIndex);
+        }
+
+        private object ExpandPropertiesLeaveTypedAndEscapedWithKnownMarker(
+            StringSegment expression,
+            int markerIndex)
+        {
             // A single simple property is the dominant expansion shape. Resolve its source-backed
             // name directly instead of constructing a concatenator and rescanning for the closing
             // parenthesis. Truncating condition expansions retain the shared general path below.
-            if (!expander._isTruncationEnabled &&
+            if (!_isTruncationEnabled &&
                 markerIndex == 0 &&
                 expression.Length >= 3 &&
                 expression[^1] == ')')
@@ -192,14 +266,80 @@ internal partial class Expander<P, I>
 
                 if (IsValidPropertyName(propertyName))
                 {
-                    object value = expander.LookupProperty(propertyName);
+                    object value = LookupProperty(propertyName);
                     return value is string stringValue
                         ? FileUtilities.MaybeAdjustFilePath(stringValue)
                         : value;
                 }
             }
 
-            return expander.ExpandPropertiesLeaveTypedAndEscaped(expression, markerIndex);
+            return ExpandPropertiesLeaveTypedAndEscaped(expression, markerIndex);
+        }
+
+        private object ExpandPropertiesLeaveTypedAndEscaped(string expression, int markerIndex)
+        {
+            using SpanBasedConcatenator results = new();
+            int index = 0;
+
+            while (markerIndex >= 0)
+            {
+                if (markerIndex > index)
+                {
+                    results.Add(expression.AsMemory(index, markerIndex - index));
+                }
+
+                int startIndex = markerIndex + 2;
+                int closingParenIndex = FindClosingParenthesis(
+                    expression,
+                    startIndex,
+                    out bool isPotentialPropertyFunction,
+                    out bool isPotentialRegistryFunction);
+
+                if (closingParenIndex < 0)
+                {
+                    results.Add(expression.AsMemory(markerIndex));
+                    return results.GetResult();
+                }
+
+                int endIndex = closingParenIndex - 1;
+                int length = closingParenIndex - startIndex;
+                object propertyValue = length switch
+                {
+                    0 => string.Empty,
+                    _ when !isPotentialPropertyFunction && !isPotentialRegistryFunction =>
+                        LookupProperty(expression, startIndex, endIndex),
+                    _ => ExpandProperty(
+                        expression.AsSegment(),
+                        startIndex,
+                        endIndex,
+                        isPotentialRegistryFunction,
+                        isPotentialPropertyFunction),
+                };
+
+                if (propertyValue != null)
+                {
+                    if (_isTruncationEnabled)
+                    {
+                        string value = propertyValue.ToString();
+                        if (value.Length > CharacterLimitPerExpansion)
+                        {
+                            propertyValue = TruncateString(value);
+                        }
+                    }
+
+                    results.Add(propertyValue);
+                }
+
+                index = closingParenIndex + 1;
+                markerIndex = ExpressionShredder.IndexOfPropertyMarker(expression, index);
+            }
+
+            if (index < expression.Length)
+            {
+                results.Add(expression.AsMemory(index));
+            }
+
+            return results.GetResult();
         }
 
         private object ExpandPropertiesLeaveTypedAndEscaped(StringSegment expression, int markerIndex)
@@ -221,7 +361,7 @@ internal partial class Expander<P, I>
                 // (but not including) the "$(", and advance the index pointer.
                 if (markerIndex - index > 0)
                 {
-                    results.Add(expression.AsMemory(index, markerIndex - index));
+                    results.Add(expression.Slice(index, markerIndex - index));
                 }
 
                 int startIndex = markerIndex + 2;
@@ -241,7 +381,7 @@ internal partial class Expander<P, I>
                     // If we didn't find the closing parenthesis, that means this
                     // isn't really a well-formed property. Copy the remainder of the
                     // expression (starting with the "$(" that we found) into the result, and return.
-                    results.Add(expression.AsMemory(markerIndex));
+                    results.Add(expression.Slice(markerIndex));
                     index = expression.Length;
                     return results.GetResult();
                 }
@@ -292,7 +432,7 @@ internal partial class Expander<P, I>
             // If we couldn't find any more property markers in the expression just copy the remainder into the result.
             if (expression.Length - index > 0)
             {
-                results.Add(expression.AsMemory(index));
+                results.Add(expression.Slice(index));
             }
 
             return results.GetResult();
@@ -314,6 +454,50 @@ internal partial class Expander<P, I>
         ///  The index of the matching closing parenthesis, or <c>-1</c> if it was not found.
         /// </returns>
         private static int FindClosingParenthesis(
+            string expression,
+            int index,
+            out bool isPotentialPropertyFunction,
+            out bool isPotentialRegistryFunction)
+        {
+            int nestLevel = 1;
+            isPotentialPropertyFunction = false;
+            isPotentialRegistryFunction = false;
+
+            while (index < expression.Length && nestLevel > 0)
+            {
+                char character = expression[index];
+                switch (character)
+                {
+                    case '\'' or '`' or '"':
+                        int quoteIndex = expression.IndexOf(character, index + 1);
+                        if (quoteIndex < 0)
+                        {
+                            return -1;
+                        }
+
+                        index = quoteIndex;
+                        break;
+                    case '(':
+                        nestLevel++;
+                        break;
+                    case ')':
+                        nestLevel--;
+                        break;
+                    case '.' or '[' or '$':
+                        isPotentialPropertyFunction = true;
+                        break;
+                    case ':':
+                        isPotentialRegistryFunction = true;
+                        break;
+                }
+
+                index++;
+            }
+
+            return nestLevel == 0 ? index - 1 : -1;
+        }
+
+        private static int FindClosingParenthesis(
             StringSegment expression,
             int index,
             out bool isPotentialPropertyFunction,
@@ -321,6 +505,8 @@ internal partial class Expander<P, I>
         {
             int nestLevel = 1;
             int length = expression.Length;
+            int offset = expression.Offset;
+            string buffer = expression.Buffer;
 
             isPotentialPropertyFunction = false;
             isPotentialRegistryFunction = false;
@@ -328,19 +514,22 @@ internal partial class Expander<P, I>
             // Scan for our closing ')'
             while (index < length && nestLevel > 0)
             {
-                char character = expression[index];
+                char character = buffer[offset + index];
 
                 switch (character)
                 {
                     case '\'' or '`' or '"':
-                        int quoteIndex = expression.IndexOf(character, index + 1);
+                        int quoteIndex = buffer.IndexOf(
+                            character,
+                            offset + index + 1,
+                            length - index - 1);
 
                         if (quoteIndex < 0)
                         {
                             return -1;
                         }
 
-                        index = quoteIndex;
+                        index = quoteIndex - offset;
                         break;
 
                     case '(':
@@ -454,7 +643,8 @@ internal partial class Expander<P, I>
 
         private object ExpandPropertyBody(StringSegment propertyBody, object propertyValue)
         {
-            Function function = null;
+            Function function = default;
+            bool hasFunction = false;
             StringSegment propertyName = propertyBody;
 
             // Trim the body for compatibility reasons:
@@ -478,20 +668,22 @@ internal partial class Expander<P, I>
                     }
 
                     // This is a function
-                    function = Function.ExtractPropertyFunction(
+                    hasFunction = Function.TryExtractPropertyFunction(
                         propertyBody,
                         _elementLocation,
                         propertyValue,
                         _propertiesUseTracker,
                         _fileSystem,
-                        _propertiesUseTracker.LoggingContext);
+                        _propertiesUseTracker.LoggingContext,
+                        out function,
+                        out StringSegment functionReceiver);
 
                     // We may not have been able to parse out a function
-                    if (function != null)
+                    if (hasFunction)
                     {
                         // We will have either extracted the actual property name
                         // or realized that there is none (static function), and have recorded a null
-                        propertyName = function.Receiver;
+                        propertyName = functionReceiver;
                     }
                     else
                     {
@@ -536,7 +728,7 @@ internal partial class Expander<P, I>
                 propertyValue = LookupProperty(propertyName);
             }
 
-            if (function != null)
+            if (hasFunction)
             {
                 try
                 {
@@ -660,6 +852,51 @@ internal partial class Expander<P, I>
             if (isArtificial)
             {
                 return ExpandMSBuildThisFileProperty(propertyName.ValueOrEmpty);
+            }
+
+            if (property == null)
+            {
+                return string.Empty;
+            }
+
+            if (property is ProjectPropertyInstance.EnvironmentDerivedProjectPropertyInstance environmentDerivedProperty)
+            {
+                environmentDerivedProperty.loggingContext = _propertiesUseTracker.LoggingContext;
+            }
+
+            return property.GetEvaluatedValueEscaped(_elementLocation);
+        }
+
+        /// <summary>
+        ///  Looks up a property name delimited by inclusive indices in <paramref name="propertyName"/>.
+        /// </summary>
+        /// <param name="propertyName">The string containing the property name.</param>
+        /// <param name="startIndex">The inclusive start index.</param>
+        /// <param name="endIndex">The inclusive end index.</param>
+        /// <returns>The escaped property value.</returns>
+        private object LookupProperty(string propertyName, int startIndex, int endIndex)
+        {
+            P property = _properties.GetProperty(propertyName, startIndex, endIndex);
+            bool isArtificial = property == null &&
+                                endIndex - startIndex >= 7 &&
+                                MSBuildNameIgnoreCaseComparer.Default.Equals(
+                                    "MSBuild",
+                                    propertyName,
+                                    startIndex,
+                                    7);
+
+            _propertiesUseTracker.TrackRead(
+                propertyName,
+                startIndex,
+                endIndex,
+                _elementLocation,
+                property == null,
+                isArtificial);
+
+            if (isArtificial)
+            {
+                return ExpandMSBuildThisFileProperty(
+                    propertyName.Substring(startIndex, endIndex - startIndex + 1));
             }
 
             if (property == null)

@@ -29,5 +29,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 .Select(segment => segment.ValueOrEmpty)
                 .ShouldBe(expectedTokens);
         }
+
+        [Fact]
+        public void TokensRetainSourceSegments()
+        {
+            const string expression = " first ; second ";
+
+            foreach (var segment in new SemiColonTokenizer(expression))
+            {
+                segment.Buffer.ShouldBeSameAs(expression);
+            }
+        }
     }
 }

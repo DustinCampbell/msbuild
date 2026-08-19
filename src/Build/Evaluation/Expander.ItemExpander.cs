@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Frozen;
 using System.Collections.Generic;
 #if !NET
 using System.Text;
@@ -65,27 +64,6 @@ internal partial class Expander<P, I>
     /// </remarks>
     private static partial class ItemExpander
     {
-        private static readonly FrozenDictionary<StringSegment, TransformKind> s_intrinsicTransforms =
-            new Dictionary<StringSegment, TransformKind>(StringSegmentComparer.OrdinalIgnoreCase)
-        {
-            { "Count", TransformKind.Count },
-            { "Exists", TransformKind.Exists },
-            { "Combine", TransformKind.Combine },
-            { "GetPathsOfAllDirectoriesAbove", TransformKind.GetPathsOfAllDirectoriesAbove },
-            { "DirectoryName", TransformKind.DirectoryName },
-            { "Metadata", TransformKind.Metadata },
-            { "DistinctWithCase", TransformKind.DistinctWithCase },
-            { "Distinct", TransformKind.Distinct },
-            { "Reverse", TransformKind.Reverse },
-            { "ExpandQuotedExpressionFunction", TransformKind.ExpandQuotedExpressionFunction },
-            { "ExecuteStringFunction", TransformKind.ExecuteStringFunction },
-            { "ClearMetadata", TransformKind.ClearMetadata },
-            { "HasMetadata", TransformKind.HasMetadata },
-            { "WithMetadataValue", TransformKind.WithMetadataValue },
-            { "WithoutMetadataValue", TransformKind.WithoutMetadataValue },
-            { "AnyHaveMetadataValue", TransformKind.AnyHaveMetadataValue },
-        }.ToFrozenDictionary(StringSegmentComparer.OrdinalIgnoreCase);
-
         /// <summary>
         ///  Executes the list of transform functions.
         /// </summary>
@@ -151,7 +129,7 @@ internal partial class Expander<P, I>
                     {
                         kind = TransformKind.ItemSpecModifierFunction;
                     }
-                    else if (!s_intrinsicTransforms.TryGetValue(functionName, out kind))
+                    else if (!TryGetIntrinsicTransform(functionName, out kind))
                     {
                         kind = TransformKind.ExecuteStringFunction;
                     }
@@ -248,6 +226,57 @@ internal partial class Expander<P, I>
 
             result = output;
             return true;
+        }
+
+        /// <summary>
+        ///  Resolves a built-in item transform without hashing or realizing its parsed name.
+        /// </summary>
+        /// <param name="name">The transform name segment.</param>
+        /// <param name="kind">The resolved transform kind.</param>
+        /// <returns>
+        ///  <see langword="true"/> when <paramref name="name"/> identifies an intrinsic transform;
+        ///  otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryGetIntrinsicTransform(StringSegment name, out TransformKind kind)
+        {
+            kind = name.Length switch
+            {
+                5 when name.Equals("Count", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.Count,
+                6 when name.Equals("Exists", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.Exists,
+                7 when name.Equals("Combine", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.Combine,
+                7 when name.Equals("Reverse", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.Reverse,
+                8 when name.Equals("Metadata", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.Metadata,
+                8 when name.Equals("Distinct", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.Distinct,
+                11 when name.Equals("HasMetadata", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.HasMetadata,
+                13 when name.Equals("DirectoryName", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.DirectoryName,
+                13 when name.Equals("ClearMetadata", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.ClearMetadata,
+                16 when name.Equals("DistinctWithCase", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.DistinctWithCase,
+                17 when name.Equals("WithMetadataValue", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.WithMetadataValue,
+                20 when name.Equals("WithoutMetadataValue", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.WithoutMetadataValue,
+                20 when name.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.AnyHaveMetadataValue,
+                21 when name.Equals("ExecuteStringFunction", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.ExecuteStringFunction,
+                29 when name.Equals("GetPathsOfAllDirectoriesAbove", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.GetPathsOfAllDirectoriesAbove,
+                30 when name.Equals("ExpandQuotedExpressionFunction", StringComparison.OrdinalIgnoreCase) =>
+                    TransformKind.ExpandQuotedExpressionFunction,
+                _ => default,
+            };
+
+            return kind != default;
         }
 
         /// <summary>
@@ -712,6 +741,27 @@ internal partial class Expander<P, I>
                 return expression;
             }
 
+            return ExpandItemVectorsIntoString(
+                expander,
+                expression,
+                items,
+                options,
+                elementLocation,
+                currentItem);
+        }
+
+        /// <summary>
+        ///  Expands item vectors when the first vector has already been parsed by an upstream scanner.
+        /// </summary>
+        internal static string ExpandItemVectorsIntoString(
+            Expander<P, I> expander,
+            string expression,
+            IItemProvider<I> items,
+            ExpanderOptions options,
+            IElementLocation elementLocation,
+            ExpressionShredder.ItemExpressionCapture currentItem)
+        {
+            Assumed.NotNull(items, "Cannot expand items without providing items");
             using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
 
             // As we walk through the matches, we need to copy out the original parts of the string which
@@ -758,6 +808,16 @@ internal partial class Expander<P, I>
             SpanBasedStringBuilder builder,
             ExpanderOptions options)
         {
+            if (capture.Captures is null &&
+                !(IsTruncationEnabled(options) && capture.SeparatorSegment.HasValue))
+            {
+                return ExpandBareItemVectorIntoStringBuilder(
+                    capture,
+                    evaluatedItems,
+                    builder,
+                    options);
+            }
+
             List<TransformEntry> entries;
             bool throwaway;
             var brokeEarlyNonEmpty = ExpandItemVector(expander, capture, evaluatedItems, elementLocation /* including null items */, options, true, out throwaway, out entries);
@@ -806,6 +866,151 @@ internal partial class Expander<P, I>
                 }
             }
 
+            return false;
+        }
+
+        /// <summary>
+        ///  Streams a bare item vector directly into the destination without allocating transform
+        ///  entries that carry item references no string-producing caller consumes.
+        /// </summary>
+        private static bool ExpandBareItemVectorIntoStringBuilder(
+            ExpressionShredder.ItemExpressionCapture capture,
+            IItemProvider<I> evaluatedItems,
+            SpanBasedStringBuilder builder,
+            ExpanderOptions options)
+        {
+            ICollection<I> items = evaluatedItems.GetItems(capture.ItemTypeSegment);
+            if (items.Count == 0)
+            {
+                return false;
+            }
+
+            bool breakOnNotEmpty = (options & ExpanderOptions.BreakOnNotEmpty) != 0;
+            bool truncate = IsTruncationEnabled(options);
+            bool hasExplicitSeparator = capture.SeparatorSegment.HasValue;
+            StringSegment separator = hasExplicitSeparator ? capture.SeparatorSegment : ";";
+            int startLength = builder.Length;
+            int itemIndex = 0;
+
+            if (hasExplicitSeparator)
+            {
+                return TryAppendJoinedItems(
+                    items,
+                    separator,
+                    breakOnNotEmpty,
+                    builder);
+            }
+
+            foreach (I item in items)
+            {
+                string value = item.EvaluatedIncludeEscaped;
+                if (breakOnNotEmpty && value.Length > 0)
+                {
+                    return true;
+                }
+
+                if (truncate && !hasExplicitSeparator && itemIndex >= ItemLimitPerExpansion)
+                {
+                    builder.Append(separator.AsMemory());
+                    builder.Append("...");
+                    return false;
+                }
+
+                if (itemIndex > 0)
+                {
+                    builder.Append(separator.AsMemory());
+                }
+
+                if (truncate)
+                {
+                    int currentLength = builder.Length - startLength;
+                    if (currentLength + value.Length > CharacterLimitPerExpansion)
+                    {
+                        int truncateLength = CharacterLimitPerExpansion - currentLength - 3;
+                        if (truncateLength > 0)
+                        {
+                            builder.Append(value, 0, Math.Min(value.Length, truncateLength));
+                        }
+
+                        builder.Append("...");
+                        return false;
+                    }
+                }
+
+                builder.Append(value);
+                itemIndex++;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///  Joins bare item values into one scalar before appending it to the destination.
+        /// </summary>
+        /// <param name="items">The items to join.</param>
+        /// <param name="separator">The explicit separator.</param>
+        /// <param name="breakOnNotEmpty">Whether expansion should stop after finding a non-empty value.</param>
+        /// <param name="destination">The destination builder.</param>
+        /// <returns>
+        ///  <see langword="true"/> when expansion stopped because a non-empty value was found;
+        ///  otherwise, <see langword="false"/>.
+        /// </returns>
+        private static bool TryAppendJoinedItems(
+            ICollection<I> items,
+            StringSegment separator,
+            bool breakOnNotEmpty,
+            SpanBasedStringBuilder destination)
+        {
+            using IEnumerator<I> enumerator = items.GetEnumerator();
+            if (!enumerator.MoveNext())
+            {
+                return false;
+            }
+
+            string firstValue = enumerator.Current.EvaluatedIncludeEscaped;
+            if (breakOnNotEmpty && firstValue.Length > 0)
+            {
+                return true;
+            }
+
+            if (!enumerator.MoveNext())
+            {
+                destination.Append(firstValue);
+                return false;
+            }
+
+#if NET
+            using ValueStringBuilder joined = new(stackalloc char[256]);
+#else
+            StringBuilder joined = StringBuilderCache.Acquire();
+#endif
+            joined.Append(firstValue);
+
+            do
+            {
+                string value = enumerator.Current.EvaluatedIncludeEscaped;
+                if (breakOnNotEmpty && value.Length > 0)
+                {
+#if !NET
+                    StringBuilderCache.Release(joined);
+#endif
+                    return true;
+                }
+
+#if NET
+                joined.Append(separator.AsSpan());
+#else
+                joined.AppendSegment(separator);
+#endif
+                joined.Append(value);
+            }
+            while (enumerator.MoveNext());
+
+#if NET
+            destination.Append(joined.ToString());
+#else
+            destination.Append(StringBuilderCache.GetStringAndRelease(joined));
+#endif
             return false;
         }
     }

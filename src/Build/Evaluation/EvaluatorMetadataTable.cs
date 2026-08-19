@@ -100,6 +100,14 @@ namespace Microsoft.Build.Evaluation
                 return null;
             }
 
+#if NET
+            if (_metadata.GetAlternateLookup<StringSegment>().TryGetValue(name, out string? value))
+            {
+                return value;
+            }
+
+            return null;
+#else
             foreach (KeyValuePair<string, string> pair in _metadata)
             {
                 if (name.Equals(pair.Key, StringComparison.OrdinalIgnoreCase))
@@ -109,6 +117,7 @@ namespace Microsoft.Build.Evaluation
             }
 
             return null;
+#endif
         }
 
         /// <summary>

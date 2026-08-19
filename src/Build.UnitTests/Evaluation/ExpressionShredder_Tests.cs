@@ -370,6 +370,28 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         [Fact]
+        public void ItemVectorCapturesRetainSourceSegments()
+        {
+            const string expression = "@(Compile->'%(Filename)'->Substring(0, 3), ',')";
+
+            ExpressionShredder
+                .TryGetNextItemVectorExpression(
+                    expression,
+                    out ExpressionShredder.ItemExpressionCapture capture)
+                .ShouldBeTrue();
+
+            capture.ValueSegment.Buffer.ShouldBeSameAs(expression);
+            capture.ItemTypeSegment.Buffer.ShouldBeSameAs(expression);
+            capture.SeparatorSegment.Buffer.ShouldBeSameAs(expression);
+            capture.Captures.ShouldAllBe(transform =>
+                ReferenceEquals(transform.ValueSegment.Buffer, expression) &&
+                (!transform.FunctionNameSegment.HasValue ||
+                 ReferenceEquals(transform.FunctionNameSegment.Buffer, expression)) &&
+                (!transform.FunctionArgumentsSegment.HasValue ||
+                 ReferenceEquals(transform.FunctionArgumentsSegment.Buffer, expression)));
+        }
+
+        [Fact]
         public void Medley()
         {
             foreach (string test in _medleyTests)
