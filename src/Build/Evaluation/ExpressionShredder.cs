@@ -503,7 +503,6 @@ namespace Microsoft.Build.Evaluation
 
                     transformExpressions.Add(new ItemExpressionCapture(
                         startQuoted,
-                        endQuoted - startQuoted,
                         expression.Slice(startQuoted, endQuoted - startQuoted)));
                     SinkWhitespace(expression, ref index);
                     continue;
@@ -568,7 +567,6 @@ namespace Microsoft.Build.Evaluation
             // and each transform expression contained within it (i.e. each ->XYZ)
             itemVector = new ItemExpressionCapture(
                 index: startIndex,
-                length,
                 subExpression: expression.Slice(startIndex, length),
                 itemType: itemName,
                 separator,
@@ -1007,7 +1005,6 @@ namespace Microsoft.Build.Evaluation
 
                     transform = new ItemExpressionCapture(
                         startTransform,
-                        i - startTransform,
                         expression.Slice(startTransform, i - startTransform),
                         default,
                         default,
@@ -1142,10 +1139,9 @@ namespace Microsoft.Build.Evaluation
             ///  Initializes a capture for a subexpression shredded from a larger expression.
             /// </summary>
             /// <param name="index">The capture's index in the containing expression.</param>
-            /// <param name="length">The capture's length.</param>
             /// <param name="subExpression">The captured subexpression.</param>
-            public ItemExpressionCapture(int index, int length, StringSegment subExpression)
-                : this(index, length, subExpression, default, default, -1, null, default, default)
+            public ItemExpressionCapture(int index, StringSegment subExpression)
+                : this(index, subExpression, default, default, -1, null, default, default)
             {
             }
 
@@ -1153,7 +1149,6 @@ namespace Microsoft.Build.Evaluation
             ///  Initializes a capture for an item-vector expression.
             /// </summary>
             /// <param name="index">The capture's index in the containing expression.</param>
-            /// <param name="length">The capture's length.</param>
             /// <param name="subExpression">The captured subexpression.</param>
             /// <param name="itemType">The captured item type.</param>
             /// <param name="separator">The optional captured separator.</param>
@@ -1161,13 +1156,12 @@ namespace Microsoft.Build.Evaluation
             /// <param name="captures">The nested transform captures.</param>
             public ItemExpressionCapture(
                 int index,
-                int length,
                 StringSegment subExpression,
                 StringSegment itemType,
                 StringSegment separator,
                 int separatorStart,
                 List<ItemExpressionCapture> captures)
-                : this(index, length, subExpression, itemType, separator, separatorStart, captures, default, default)
+                : this(index, subExpression, itemType, separator, separatorStart, captures, default, default)
             {
             }
 
@@ -1175,7 +1169,6 @@ namespace Microsoft.Build.Evaluation
             ///  Initializes a capture for an item-vector or transform expression.
             /// </summary>
             /// <param name="index">The capture's index in the containing expression.</param>
-            /// <param name="length">The capture's length.</param>
             /// <param name="subExpression">The captured subexpression.</param>
             /// <param name="itemType">The optional captured item type.</param>
             /// <param name="separator">The optional captured separator.</param>
@@ -1185,7 +1178,6 @@ namespace Microsoft.Build.Evaluation
             /// <param name="functionArguments">The optional transform function arguments.</param>
             public ItemExpressionCapture(
                 int index,
-                int length,
                 StringSegment subExpression,
                 StringSegment itemType,
                 StringSegment separator,
@@ -1195,7 +1187,6 @@ namespace Microsoft.Build.Evaluation
                 StringSegment functionArguments)
             {
                 Index = index;
-                Length = length;
                 ValueSegment = subExpression;
                 (_itemTypeOffset, _itemTypeLength) = GetRelativeRange(subExpression, itemType);
                 (_separatorOffset, _separatorLength) = GetRelativeRange(subExpression, separator);
@@ -1227,7 +1218,7 @@ namespace Microsoft.Build.Evaluation
             /// <summary>
             /// The length of the captured substring.
             /// </summary>
-            public int Length { get; }
+            public int Length => ValueSegment.Length;
 
             /// <summary>
             ///  Gets an allocation-free view over the captured substring.
