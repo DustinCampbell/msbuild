@@ -18,7 +18,7 @@ internal partial class Expander<P, I>
     /// <remarks>
     ///  This is a private nested ref struct exposed only through its static expansion entry points.
     /// </remarks>
-    private readonly ref struct MetadataExpander
+    private ref struct MetadataExpander
     {
         private readonly IMetadataTable _metadata;
         private readonly ExpanderOptions _options;
@@ -26,6 +26,7 @@ internal partial class Expander<P, I>
         private readonly LoggingContext? _loggingContext;
         private readonly SpanBasedStringBuilder _builder;
         private readonly int _firstMetadataMarkerIndex;
+        private bool _expandedMetadata;
 
         private MetadataExpander(
             IMetadataTable metadata,
@@ -41,6 +42,7 @@ internal partial class Expander<P, I>
             _loggingContext = loggingContext;
             _builder = builder;
             _firstMetadataMarkerIndex = firstMetadataMarkerIndex;
+            _expandedMetadata = false;
         }
 
         /// <summary>
@@ -174,7 +176,7 @@ internal partial class Expander<P, I>
                     if ((isBuiltInMetadata && (_options & ExpanderOptions.ExpandBuiltInMetadata) != 0) ||
                         (!isBuiltInMetadata && (_options & ExpanderOptions.ExpandCustomMetadata) != 0))
                     {
-                        string expanded = _metadata.GetEscapedValue(itemType, metadataName);
+                        string expanded = GetEscapedValue(itemType, metadataName);
 
                         if ((_options & ExpanderOptions.LogOnItemMetadataSelfReference) != 0 &&
                             _loggingContext != null &&
@@ -220,9 +222,9 @@ internal partial class Expander<P, I>
                 ScanAndExpandMetadataInGaps(expression, itemVector);
             }
 
-            return _builder.Equals(expression.AsSpan())
-                ? expression.ValueOrEmpty
-                : _builder.ToString();
+            return _expandedMetadata
+                ? _builder.ToString()
+                : expression.ValueOrEmpty;
         }
 
         /// <summary>
@@ -332,7 +334,8 @@ internal partial class Expander<P, I>
                 if ((isBuiltInMetadata && ((_options & ExpanderOptions.ExpandBuiltInMetadata) != 0)) ||
                    (!isBuiltInMetadata && ((_options & ExpanderOptions.ExpandCustomMetadata) != 0)))
                 {
-                    string expanded = _metadata.GetEscapedValue(itemType, metadataName);
+                    _expandedMetadata = true;
+                    string expanded = GetEscapedValue(itemType, metadataName);
 
                     if ((_options & ExpanderOptions.LogOnItemMetadataSelfReference) != 0 &&
                         _loggingContext != null &&
@@ -372,5 +375,14 @@ internal partial class Expander<P, I>
                 _builder.Append(input.AsMemory(lastCopied, endIndex - lastCopied));
             }
         }
+
+        /// <summary>
+        ///  Uses the concrete bucket metadata table when available so its segment-keyed lookup can
+        ///  inline, while preserving the general metadata-table contract for other expansion contexts.
+        /// </summary>
+        private string GetEscapedValue(StringSegment itemType, StringSegment metadataName)
+            => _metadata is StringMetadataTable stringMetadata
+                ? stringMetadata.GetEscapedValue(itemType, metadataName)
+                : _metadata.GetEscapedValue(itemType, metadataName);
     }
 }

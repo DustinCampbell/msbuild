@@ -51,7 +51,9 @@ internal partial class Expander<P, I>
         private readonly PropertiesUseTracker _propertiesUseTracker;
         private readonly IFileSystem _fileSystem;
         private readonly bool _isTruncationEnabled;
-        private StringSegment _lastPropertyName;
+        private string _lastPropertyBuffer;
+        private int _lastPropertyStart;
+        private int _lastPropertyLength;
         private P _lastProperty;
         private bool _hasLastProperty;
 
@@ -68,7 +70,9 @@ internal partial class Expander<P, I>
             _propertiesUseTracker = propertiesUseTracker;
             _fileSystem = fileSystem;
             _isTruncationEnabled = IsTruncationEnabled(options);
-            _lastPropertyName = default;
+            _lastPropertyBuffer = null;
+            _lastPropertyStart = 0;
+            _lastPropertyLength = 0;
             _lastProperty = default;
             _hasLastProperty = false;
         }
@@ -840,15 +844,23 @@ internal partial class Expander<P, I>
             string buffer = propertyName.Buffer;
             P property;
             if (_hasLastProperty &&
-                _lastPropertyName.Length == propertyName.Length &&
-                _lastPropertyName.Equals(propertyName, StringComparison.OrdinalIgnoreCase))
+                _lastPropertyLength == propertyName.Length &&
+                string.Compare(
+                    _lastPropertyBuffer,
+                    _lastPropertyStart,
+                    buffer,
+                    startIndex,
+                    propertyName.Length,
+                    StringComparison.OrdinalIgnoreCase) == 0)
             {
                 property = _lastProperty;
             }
             else
             {
                 property = _properties.GetProperty(buffer, startIndex, endIndex);
-                _lastPropertyName = propertyName;
+                _lastPropertyBuffer = buffer;
+                _lastPropertyStart = startIndex;
+                _lastPropertyLength = propertyName.Length;
                 _lastProperty = property;
                 _hasLastProperty = true;
             }
@@ -895,19 +907,26 @@ internal partial class Expander<P, I>
         /// <returns>The escaped property value.</returns>
         private object LookupProperty(string propertyName, int startIndex, int endIndex)
         {
-            StringSegment propertyNameSegment =
-                propertyName.AsSegment(startIndex, endIndex - startIndex + 1);
+            int propertyNameLength = endIndex - startIndex + 1;
             P property;
             if (_hasLastProperty &&
-                _lastPropertyName.Length == propertyNameSegment.Length &&
-                _lastPropertyName.Equals(propertyNameSegment, StringComparison.OrdinalIgnoreCase))
+                _lastPropertyLength == propertyNameLength &&
+                string.Compare(
+                    _lastPropertyBuffer,
+                    _lastPropertyStart,
+                    propertyName,
+                    startIndex,
+                    propertyNameLength,
+                    StringComparison.OrdinalIgnoreCase) == 0)
             {
                 property = _lastProperty;
             }
             else
             {
                 property = _properties.GetProperty(propertyName, startIndex, endIndex);
-                _lastPropertyName = propertyNameSegment;
+                _lastPropertyBuffer = propertyName;
+                _lastPropertyStart = startIndex;
+                _lastPropertyLength = propertyNameLength;
                 _lastProperty = property;
                 _hasLastProperty = true;
             }
