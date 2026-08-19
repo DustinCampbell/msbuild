@@ -398,6 +398,15 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         [Fact]
+        public void DefaultItemVectorHasNonDefaultEmptyTransforms()
+        {
+            var transforms = default(ItemVector).Transforms;
+
+            transforms.IsDefault.ShouldBeFalse();
+            transforms.ShouldBeEmpty();
+        }
+
+        [Fact]
         public void ItemVectorRangesAreRelativeToText()
         {
             const string prefix = "prefix";
@@ -814,7 +823,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             itemVector = GetSingleItemExpression(expression);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.SeparatorStart.ShouldBe(-1);
-            itemVector.Transforms.ShouldBeNull();
+            itemVector.Transforms.ShouldBeEmpty();
             itemVector.ItemType.Value.ShouldBe("Foo");
         }
 
@@ -826,7 +835,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo, ';')";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.ShouldBeNull();
+            itemVector.Transforms.ShouldBeEmpty();
             itemVector.HasSeparator.ShouldBeTrue();
             itemVector.SeparatorStart.ShouldBe(expression.IndexOf(';'));
             itemVector.Separator.Value.ShouldBe(";");
@@ -843,7 +852,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             itemVector = GetSingleItemExpression(expression);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
-            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms.Length.ShouldBe(1);
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Fullpath)");
         }
 
@@ -855,7 +864,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Fullpath)',';')";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms.Length.ShouldBe(1);
             itemVector.HasSeparator.ShouldBeTrue();
             itemVector.Separator.Value.ShouldBe(";");
             itemVector.ItemType.Value.ShouldBe("Foo");
@@ -872,7 +881,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             itemVector = GetSingleItemExpression(expression);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
-            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms.Length.ShouldBe(1);
             itemVector.Transforms[0].IsFunction.ShouldBeTrue();
             itemVector.Transforms[0].Text.Value.ShouldBe("Bar(a,b)");
             itemVector.Transforms[0].FunctionName.Value.ShouldBe("Bar");
@@ -887,7 +896,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->Bar(a,b),';')";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms.Length.ShouldBe(1);
             itemVector.HasSeparator.ShouldBeTrue();
             itemVector.Separator.Value.ShouldBe(";");
             itemVector.ItemType.Value.ShouldBe("Foo");
@@ -905,7 +914,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->Metadata('Meta0')->Directory())";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("Metadata('Meta0')");
@@ -924,7 +933,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->Metadata('Meta0')->Directory(),';')";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeTrue();
             itemVector.Separator.Value.ShouldBe(";");
             itemVector.ItemType.Value.ShouldBe("Foo");
@@ -944,7 +953,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Fullpath)'->Directory(), '|')";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeTrue();
             itemVector.Separator.Value.ShouldBe("|");
             itemVector.ItemType.Value.ShouldBe("Foo");
@@ -964,7 +973,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Fullpath)'->Directory(),';')";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeTrue();
             itemVector.Separator.Value.ShouldBe(";");
             itemVector.ItemType.Value.ShouldBe("Foo");
@@ -984,7 +993,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'$(SOMEPROP)%(Fullpath)')";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms.Length.ShouldBe(1);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("$(SOMEPROP)%(Fullpath)");
@@ -1000,7 +1009,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Filename)'->Substring($(Val), $(Boo)))";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1019,7 +1028,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Filename)'->Substring(\"AA\", 'BB', `cc`))";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1038,7 +1047,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Filename)'->Substring('()', $(Boo), ')('))";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1057,7 +1066,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \"AA\"))";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1076,7 +1085,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \")(\"))";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1095,7 +1104,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))";
             itemVector = GetSingleItemExpression(expression);
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1117,8 +1126,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ItemVector itemVector = expressions[1];
 
             firstItemVector.ItemType.Value.ShouldBe("Bar");
-            firstItemVector.Transforms.ShouldBeNull();
-            itemVector.Transforms.Count.ShouldBe(2);
+            firstItemVector.Transforms.ShouldBeEmpty();
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1140,8 +1149,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ItemVector secondItemVector = expressions[1];
 
             secondItemVector.ItemType.Value.ShouldBe("Bar");
-            secondItemVector.Transforms.ShouldBeNull();
-            firstItemVector.Transforms.Count.ShouldBe(2);
+            secondItemVector.Transforms.ShouldBeEmpty();
+            firstItemVector.Transforms.Length.ShouldBe(2);
             firstItemVector.HasSeparator.ShouldBeFalse();
             firstItemVector.ItemType.Value.ShouldBe("Foo");
             firstItemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1163,8 +1172,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ItemVector secondItemVector = expressions[1];
 
             secondItemVector.ItemType.Value.ShouldBe("Bar");
-            secondItemVector.Transforms.ShouldBeNull();
-            itemVector.Transforms.Count.ShouldBe(2);
+            secondItemVector.Transforms.ShouldBeEmpty();
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1186,8 +1195,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ItemVector secondItemVector = expressions[1];
 
             secondItemVector.ItemType.Value.ShouldBe("Bar");
-            secondItemVector.Transforms.ShouldBeNull();
-            itemVector.Transforms.Count.ShouldBe(2);
+            secondItemVector.Transforms.ShouldBeEmpty();
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.HasSeparator.ShouldBeFalse();
             itemVector.ItemType.Value.ShouldBe("Foo");
             itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
@@ -1230,7 +1239,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             expression = "@(I -> WithMetadataValue('M', 'T') -> WithMetadataValue('M', 'T'))";
             itemVector = GetSingleItemExpression(expression);
             itemVector.ItemType.Value.ShouldBe("I");
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.Transforms[0].FunctionName.Value.ShouldBe("WithMetadataValue");
             itemVector.Transforms[0].FunctionArguments.Value.ShouldBe("'M', 'T'");
             itemVector.Transforms[1].FunctionName.Value.ShouldBe("WithMetadataValue");
@@ -1240,7 +1249,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             expression = "@(I -> WithMetadataValue('M', 'T')-> WithMetadataValue('M', 'T'))";
             itemVector = GetSingleItemExpression(expression);
             itemVector.ItemType.Value.ShouldBe("I");
-            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms.Length.ShouldBe(2);
             itemVector.Transforms[0].FunctionName.Value.ShouldBe("WithMetadataValue");
             itemVector.Transforms[0].FunctionArguments.Value.ShouldBe("'M', 'T'");
             itemVector.Transforms[1].FunctionName.Value.ShouldBe("WithMetadataValue");
@@ -1250,7 +1259,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             expression = "@(I->Distinct() -> Reverse() ->Count())";
             itemVector = GetSingleItemExpression(expression);
             itemVector.ItemType.Value.ShouldBe("I");
-            itemVector.Transforms.Count.ShouldBe(3);
+            itemVector.Transforms.Length.ShouldBe(3);
             itemVector.Transforms[0].FunctionName.Value.ShouldBe("Distinct");
             itemVector.Transforms[1].FunctionName.Value.ShouldBe("Reverse");
             itemVector.Transforms[2].FunctionName.Value.ShouldBe("Count");
@@ -1259,14 +1268,14 @@ namespace Microsoft.Build.UnitTests.Evaluation
             expression = "@(I -> Count() )";
             itemVector = GetSingleItemExpression(expression);
             itemVector.ItemType.Value.ShouldBe("I");
-            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms.Length.ShouldBe(1);
             itemVector.Transforms[0].FunctionName.Value.ShouldBe("Count");
 
             // Test trailing whitespace after quoted transform
             expression = "@(I -> 'Replacement' )";
             itemVector = GetSingleItemExpression(expression);
             itemVector.ItemType.Value.ShouldBe("I");
-            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms.Length.ShouldBe(1);
             itemVector.Transforms[0].Text.Value.ShouldBe("Replacement");
             itemVector.Transforms[0].IsFunction.ShouldBeFalse();
         }

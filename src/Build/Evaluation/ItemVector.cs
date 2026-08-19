@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
@@ -14,14 +14,15 @@ namespace Microsoft.Build.Evaluation;
 /// <param name="index">The vector's index in the containing expression.</param>
 /// <param name="itemTypeRange">The item type's range within <paramref name="text"/>.</param>
 /// <param name="separatorRange">The optional separator's range within <paramref name="text"/>.</param>
-/// <param name="transforms">The item transforms, or <see langword="null"/> for a bare vector.</param>
+/// <param name="transforms">The item transforms.</param>
 internal readonly struct ItemVector(
     StringSegment text,
     int index,
     Range itemTypeRange,
     Range? separatorRange,
-    List<ItemTransform>? transforms)
+    ImmutableArray<ItemTransform> transforms)
 {
+    private readonly ImmutableArray<ItemTransform> _transforms = transforms;
     private readonly Range _itemTypeRange = itemTypeRange;
     private readonly Range _separatorRange = separatorRange.GetValueOrDefault();
     private readonly bool _hasSeparator = separatorRange.HasValue;
@@ -35,11 +36,6 @@ internal readonly struct ItemVector(
     ///  Gets the complete item-vector expression.
     /// </summary>
     public StringSegment Text { get; } = text;
-
-    /// <summary>
-    ///  Gets the item transforms, or <see langword="null"/> for a bare vector.
-    /// </summary>
-    public List<ItemTransform>? Transforms { get; } = transforms;
 
     /// <summary>
     ///  Gets the length of this vector.
@@ -69,6 +65,12 @@ internal readonly struct ItemVector(
     ///  Gets the separator's position in <see cref="Text"/>, or <c>-1</c> when none was specified.
     /// </summary>
     public int SeparatorStart => HasSeparator ? _separatorRange.Start.Value : -1;
+
+    /// <summary>
+    ///  Gets the item transforms as a non-default immutable array.
+    /// </summary>
+    public ImmutableArray<ItemTransform> Transforms
+        => _transforms.IsDefault ? [] : _transforms;
 
     /// <inheritdoc />
     public override string ToString()

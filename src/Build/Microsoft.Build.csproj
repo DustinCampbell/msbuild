@@ -547,6 +547,7 @@
     <Compile Include="Evaluation\ParserIgnoreConfiguration.cs" />
     <Compile Include="Evaluation\StringMetadataTable.cs" />
     <Compile Include="Evaluation\ExpressionShredder.cs" />
+    <Compile Include="Evaluation\ExpressionShredder.TransformsBuilder.cs" />
     <Compile Include="Evaluation\ItemTransform.cs" />
     <Compile Include="Evaluation\ItemVector.cs" />
     <Compile Include="Evaluation\Evaluator.cs" />

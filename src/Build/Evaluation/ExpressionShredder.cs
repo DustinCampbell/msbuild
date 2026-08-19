@@ -41,7 +41,7 @@ namespace Microsoft.Build.Evaluation
     /// <summary>
     /// A class which interprets and splits MSBuild expressions
     /// </summary>
-    internal static class ExpressionShredder
+    internal static partial class ExpressionShredder
     {
         /// <summary>
         ///  The marker that can begin a property expression.
@@ -482,7 +482,7 @@ namespace Microsoft.Build.Evaluation
             Range itemTypeRange = (startOfName - startIndex)..(index - startIndex);
 
             SinkWhitespace(expression, ref index);
-            List<ItemTransform> transforms = null;
+            TransformsBuilder transforms = default;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
             while (Sink(expression, ref index, end, '-', '>'))
@@ -494,12 +494,6 @@ namespace Microsoft.Build.Evaluation
                 {
                     int startQuoted = startTransform + 1;
                     int endQuoted = index - 1;
-                    if (transforms is null)
-                    {
-                        // PERF: Almost all expressions have only one transform, so optimize for that case.
-                        transforms = new List<ItemTransform>(1);
-                    }
-
                     transforms.Add(ItemTransform.CreateQuotedExpressionTransform(
                         expression[startQuoted..endQuoted]));
                     SinkWhitespace(expression, ref index);
@@ -509,8 +503,6 @@ namespace Microsoft.Build.Evaluation
                 startTransform = index;
                 if (TryParseFunctionTransform(expression, startTransform, ref index, end, out ItemTransform transform))
                 {
-                    // PERF: Almost all expressions have only one transform, so optimize for that case.
-                    transforms ??= new List<ItemTransform>(1);
                     transforms.Add(transform);
 
                     SinkWhitespace(expression, ref index);
@@ -561,7 +553,7 @@ namespace Microsoft.Build.Evaluation
                 index: startIndex,
                 itemTypeRange,
                 separatorRange,
-                transforms);
+                transforms.ToImmutable());
 
             return true;
         }

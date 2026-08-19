@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 #if !NET
 using System.Text;
 #endif
@@ -90,7 +91,7 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             ExpanderOptions options,
             bool includeNullEntries,
-            List<ItemTransform> transforms,
+            ImmutableArray<ItemTransform> transforms,
             ICollection<I> itemsOfType,
             out List<TransformEntry> result)
         {
@@ -101,7 +102,7 @@ internal partial class Expander<P, I>
 
             // Create a TransformFunction for each transform in the chain by extracting the relevant information
             // from the regex parsing results
-            for (int i = 0; i < transforms.Count; i++)
+            for (int i = 0; i < transforms.Length; i++)
             {
                 ItemTransform transform = transforms[i];
                 StringSegment function = transform.Text;
@@ -204,7 +205,7 @@ internal partial class Expander<P, I>
                 }
 
                 // If we have another transform, swap the source and transform lists.
-                if (i < transforms.Count - 1)
+                if (i < transforms.Length - 1)
                 {
                     (output, input) = (input, output);
                     output.Clear();
@@ -541,10 +542,10 @@ internal partial class Expander<P, I>
             ProjectErrorUtilities.VerifyThrowInvalidProject(!itemVector.ItemType.IsNullOrEmpty, elementLocation, "InvalidFunctionPropertyExpression");
 
             ICollection<I> items = evaluatedItems.GetItems(itemVector.ItemType);
-            List<ItemTransform> transforms = itemVector.Transforms;
+            ImmutableArray<ItemTransform> transforms = itemVector.Transforms;
             StringSegment separator = itemVector.Separator;
 
-            isTransformExpression = transforms is not null;
+            isTransformExpression = !transforms.IsEmpty;
             entries = null;
 
             if (!isTransformExpression)
@@ -591,9 +592,6 @@ internal partial class Expander<P, I>
                 return false; // did not break early
             }
 
-            // A transform item vector without any transforms indicates that it could not be parsed correctly.
-            ProjectErrorUtilities.VerifyThrowInvalidProject(transforms.Count > 0, elementLocation, "InvalidFunctionPropertyExpression");
-
             if (!TryTransform(expander, elementLocation, options, includeNullEntries, transforms, items, out entries))
             {
                 return true; // broke early
@@ -610,7 +608,7 @@ internal partial class Expander<P, I>
 
             return false; // did not break early
 
-            static bool ShouldEvaluateEmptyList(List<ItemTransform> transforms)
+            static bool ShouldEvaluateEmptyList(ImmutableArray<ItemTransform> transforms)
             {
                 // Count returns zero and AnyHaveMetadataValue returns false for an empty list, so those transforms must still run.
                 foreach (ItemTransform transform in transforms)
@@ -811,7 +809,7 @@ internal partial class Expander<P, I>
             SpanBasedStringBuilder builder,
             ExpanderOptions options)
         {
-            if (itemVector.Transforms is null &&
+            if (itemVector.Transforms.IsEmpty &&
                 !(IsTruncationEnabled(options) && itemVector.HasSeparator))
             {
                 return ExpandBareItemVectorIntoStringBuilder(
