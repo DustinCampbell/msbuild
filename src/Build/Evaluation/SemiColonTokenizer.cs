@@ -1,11 +1,9 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections;
 using System.Collections.Generic;
-
-using Microsoft.NET.StringTools;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -23,35 +21,48 @@ namespace Microsoft.Build.Evaluation
     ///  (3) Combination: @(foo->'xxx;xxx', 'xxx;xxx')
     ///  We must not split on semicolons in macro or separator expressions like these.
     /// </remarks>
-    internal struct SemiColonTokenizer : IEnumerable<string>
+    internal readonly struct SemiColonTokenizer : IEnumerable<StringSegment>
     {
-        private readonly string _expression;
+        private readonly StringSegment _expression;
 
+        /// <summary>
+        ///  Initializes a tokenizer over <paramref name="expression"/>.
+        /// </summary>
+        /// <param name="expression">The expression to tokenize.</param>
         public SemiColonTokenizer(string expression)
+            : this(expression.AsSegment())
+        {
+        }
+
+        /// <summary>
+        ///  Initializes a tokenizer over <paramref name="expression"/>.
+        /// </summary>
+        /// <param name="expression">The expression segment to tokenize.</param>
+        public SemiColonTokenizer(StringSegment expression)
         {
             _expression = expression;
         }
 
         public Enumerator GetEnumerator() => new Enumerator(_expression);
 
-        IEnumerator<string> IEnumerable<string>.GetEnumerator() => GetEnumerator();
+        IEnumerator<StringSegment> IEnumerable<StringSegment>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        internal struct Enumerator : IEnumerator<string>
+        internal struct Enumerator : IEnumerator<StringSegment>
         {
-            private readonly string _expression;
-            private string _current;
+            private readonly StringSegment _expression;
+            private StringSegment _current;
             private int _index;
 
-            public Enumerator(string expression)
+            public Enumerator(StringSegment expression)
             {
                 _expression = expression;
                 _index = 0;
-                _current = default(string);
+                _current = default;
             }
 
-            public string Current
+            public StringSegment Current
             {
                 get { return _current; }
             }
@@ -67,7 +78,7 @@ namespace Microsoft.Build.Evaluation
                 int segmentStart = _index;
                 bool insideItemList = false;
                 bool insideQuotedPart = false;
-                string segment;
+                StringSegment segment;
 
                 // Walk along the string, keeping track of whether we are in an item list expression.
                 // If we hit a semi-colon or the end of the string and we aren't in an item list,
@@ -81,7 +92,7 @@ namespace Microsoft.Build.Evaluation
                             {
                                 // End of segment, so add it to the list
                                 segment = GetExpressionSubstring(segmentStart, _index - segmentStart);
-                                if (segment != null)
+                                if (segment.HasValue)
                                 {
                                     _current = segment;
                                     return true;
@@ -122,22 +133,24 @@ namespace Microsoft.Build.Evaluation
 
                 // Reached the end of the string: what's left is another segment
                 _current = GetExpressionSubstring(segmentStart, _expression.Length - segmentStart);
-                return _current != null;
+                return _current.HasValue;
             }
 
             public void Reset()
             {
-                _current = default(string);
+                _current = default;
                 _index = 0;
             }
 
             /// <summary>
-            /// Returns a whitespace-trimmed and possibly interned substring of the expression.
+            ///  Returns a whitespace-trimmed view over a portion of the expression.
             /// </summary>
             /// <param name="startIndex">Start index of the substring.</param>
             /// <param name="length">Length of the substring.</param>
-            /// <returns>Equivalent to _expression.Substring(startIndex, length).Trim() or null if the trimmed substring is empty.</returns>
-            private string GetExpressionSubstring(int startIndex, int length)
+            /// <returns>
+            ///  The trimmed segment, or a null segment if the trimmed substring is empty.
+            /// </returns>
+            private StringSegment GetExpressionSubstring(int startIndex, int length)
             {
                 int endIndex = startIndex + length;
                 while (startIndex < endIndex && char.IsWhiteSpace(_expression[startIndex]))
@@ -150,9 +163,10 @@ namespace Microsoft.Build.Evaluation
                 }
                 if (startIndex < endIndex)
                 {
-                    return Strings.WeakIntern(_expression.AsSpan(startIndex, endIndex - startIndex));
+                    return _expression.Slice(startIndex, endIndex - startIndex);
                 }
-                return null;
+
+                return default;
             }
         }
     }

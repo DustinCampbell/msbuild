@@ -9,6 +9,7 @@ using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
 using System;
 using System.Collections.Generic;
@@ -566,7 +567,7 @@ namespace Microsoft.Build.Evaluation
 
                     foreach (var excludeSplit in excludeSplits)
                     {
-                        operationBuilder.Excludes.Add(excludeSplit);
+                        operationBuilder.Excludes.Add(excludeSplit.ValueOrEmpty);
                         AddItemReferences(excludeSplit, operationBuilder, itemElement.ExcludeLocation);
                     }
                 }
@@ -596,9 +597,15 @@ namespace Microsoft.Build.Evaluation
                     foreach (var matchOnMetadataSplit in matchOnMetadataSplits)
                     {
                         AddItemReferences(matchOnMetadataSplit, operationBuilder, itemElement.MatchOnMetadataLocation);
-                        string metadataExpanded = _expander.ExpandIntoStringLeaveEscaped(matchOnMetadataSplit, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
+                        string metadataExpanded = _expander.ExpandIntoStringLeaveEscaped(
+                            matchOnMetadataSplit.ValueOrEmpty,
+                            ExpanderOptions.ExpandPropertiesAndItems,
+                            itemElement.MatchOnMetadataLocation);
                         var metadataSplits = ExpressionShredder.SplitSemiColonSeparatedList(metadataExpanded);
-                        operationBuilder.MatchOnMetadata.AddRange(metadataSplits);
+                        foreach (var metadataSplit in metadataSplits)
+                        {
+                            operationBuilder.MatchOnMetadata.Add(metadataSplit.ValueOrEmpty);
+                        }
                     }
                 }
             }
@@ -658,13 +665,13 @@ namespace Microsoft.Build.Evaluation
                 {
                     foreach (var itemType in itemsAndMetadataFound.Items)
                     {
-                        AddReferencedItemList(itemType, operationBuilder.ReferencedItemLists);
+                        AddReferencedItemList(itemType.ValueOrEmpty, operationBuilder.ReferencedItemLists);
                     }
                 }
             }
         }
 
-        private void AddItemReferences(string expression, OperationBuilder operationBuilder, IElementLocation elementLocation)
+        private void AddItemReferences(StringSegment expression, OperationBuilder operationBuilder, IElementLocation elementLocation)
         {
             if (Expander<P, I>.TryExpandSingleItemVectorExpression(
                     expression,
@@ -678,9 +685,9 @@ namespace Microsoft.Build.Evaluation
 
         private void AddReferencedItemLists(OperationBuilder operationBuilder, ExpressionShredder.ItemExpressionCapture match)
         {
-            if (match.ItemType != null)
+            if (match.ItemTypeSegment.HasValue)
             {
-                AddReferencedItemList(match.ItemType, operationBuilder.ReferencedItemLists);
+                AddReferencedItemList(match.ItemTypeSegment.ValueOrEmpty, operationBuilder.ReferencedItemLists);
             }
             if (match.Captures != null)
             {

@@ -2,18 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
 #if !FEATURE_MSIOREDIST
 using System.IO;
 #endif
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 
 #if FEATURE_MSIOREDIST
@@ -43,30 +42,6 @@ internal partial class Expander<P, I>
             private const int QuotedExpressionSurroundCharCount = 3;
 
             /// <summary>
-            /// A precomputed lookup of item spec modifiers wrapped in regex strings.
-            /// This allows us to completely skip of Regex parsing when the inner string matches a known modifier.
-            /// IsDerivableItemSpecModifier doesn't currently support Span lookups, so we have to manually map these.
-            /// </summary>
-            private static readonly FrozenDictionary<string, string> s_itemSpecModifiers = new Dictionary<string, string>()
-            {
-                [$"%({ItemSpecModifiers.FullPath})"] = ItemSpecModifiers.FullPath,
-                [$"%({ItemSpecModifiers.RootDir})"] = ItemSpecModifiers.RootDir,
-                [$"%({ItemSpecModifiers.Filename})"] = ItemSpecModifiers.Filename,
-                [$"%({ItemSpecModifiers.Extension})"] = ItemSpecModifiers.Extension,
-                [$"%({ItemSpecModifiers.RelativeDir})"] = ItemSpecModifiers.RelativeDir,
-                [$"%({ItemSpecModifiers.Directory})"] = ItemSpecModifiers.Directory,
-                [$"%({ItemSpecModifiers.RecursiveDir})"] = ItemSpecModifiers.RecursiveDir,
-                [$"%({ItemSpecModifiers.Identity})"] = ItemSpecModifiers.Identity,
-                [$"%({ItemSpecModifiers.ModifiedTime})"] = ItemSpecModifiers.ModifiedTime,
-                [$"%({ItemSpecModifiers.CreatedTime})"] = ItemSpecModifiers.CreatedTime,
-                [$"%({ItemSpecModifiers.AccessedTime})"] = ItemSpecModifiers.AccessedTime,
-                [$"%({ItemSpecModifiers.DefiningProjectFullPath})"] = ItemSpecModifiers.DefiningProjectFullPath,
-                [$"%({ItemSpecModifiers.DefiningProjectDirectory})"] = ItemSpecModifiers.DefiningProjectDirectory,
-                [$"%({ItemSpecModifiers.DefiningProjectName})"] = ItemSpecModifiers.DefiningProjectName,
-                [$"%({ItemSpecModifiers.DefiningProjectExtension})"] = ItemSpecModifiers.DefiningProjectExtension,
-            }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-
-            /// <summary>
             /// A thread-static string builder for use in ExpandQuotedExpressionFunction.
             /// In theory we should be able to use shared instance, but in a profile it appears something higher in
             /// the call-stack is already borrowing the instance, so it ends up always allocating.
@@ -74,12 +49,6 @@ internal partial class Expander<P, I>
             /// </summary>
             [ThreadStatic]
             private static SpanBasedStringBuilder s_includeBuilder;
-
-            /// <summary>
-            /// A reference to the last extracted expression function to save on Regex-related allocations.
-            /// In many cases, the expression is exactly the same as the previous.
-            /// </summary>
-            private static string s_lastParsedQuotedExpression;
 
             /// <summary>
             /// Intrinsic function that adds the number of items in the list.
@@ -420,14 +389,14 @@ internal partial class Expander<P, I>
                         {
                             // It may be that the itemspec has unescaped ';'s in it so we need to split here to handle
                             // that case.
-                            if (metadataValue.Contains(';'))
+                            if (metadataValue.IndexOf(';') >= 0)
                             {
                                 var splits = ExpressionShredder.SplitSemiColonSeparatedList(metadataValue);
 
-                                foreach (string itemSpec in splits)
+                                foreach (var itemSpec in splits)
                                 {
                                     // return a result through the enumerator
-                                    output.Add(new TransformEntry(itemSpec, item.Item));
+                                    output.Add(new TransformEntry(itemSpec.ValueOrEmpty, item.Item));
                                 }
                             }
                             else
@@ -525,13 +494,13 @@ internal partial class Expander<P, I>
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments?.Length == 1, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                ExpandQuotedExpressionFunction(input, output, arguments[0], includeNullEntries, elementLocation);
+                ExpandQuotedExpressionFunction(input, output, arguments[0].AsSegment(), includeNullEntries, elementLocation);
             }
 
             internal static void ExpandQuotedExpressionFunction(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string text,
+                StringSegment text,
                 bool includeNullEntries,
                 IElementLocation elementLocation)
             {
@@ -560,12 +529,13 @@ internal partial class Expander<P, I>
             private static void ExpandLiteralTransform(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string literal,
+                StringSegment literal,
                 bool includeNullEntries)
             {
+                string literalString = literal.ValueOrEmpty;
                 foreach (TransformEntry item in input)
                 {
-                    AddTransformResult(output, item.Value is null ? null : literal, item.Item, includeNullEntries);
+                    AddTransformResult(output, item.Value is null ? null : literalString, item.Item, includeNullEntries);
                 }
             }
 
@@ -591,7 +561,7 @@ internal partial class Expander<P, I>
             private static void ExpandSingleMetadataTransform(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string text,
+                StringSegment text,
                 MetadataMatch match,
                 bool includeNullEntries,
                 IElementLocation elementLocation)
@@ -610,14 +580,14 @@ internal partial class Expander<P, I>
                     {
                         if (prefixLength > 0)
                         {
-                            includeBuilder.Append(text, 0, prefixLength);
+                            includeBuilder.Append(text.AsMemory(0, prefixLength));
                         }
 
                         includeBuilder.Append(GetMetadataValueFromMatch(match, item.Value, item.Item, elementLocation));
 
                         if (suffixLength > 0)
                         {
-                            includeBuilder.Append(text, suffixIndex, suffixLength);
+                            includeBuilder.Append(text.AsMemory(suffixIndex, suffixLength));
                         }
 
                         include = includeBuilder.ToString();
@@ -633,7 +603,7 @@ internal partial class Expander<P, I>
             private static void ExpandMultipleMetadataTransform(
                 List<TransformEntry> input,
                 List<TransformEntry> output,
-                string text,
+                StringSegment text,
                 List<MetadataMatch> matches,
                 bool includeNullEntries,
                 IElementLocation elementLocation)
@@ -649,12 +619,12 @@ internal partial class Expander<P, I>
                         int currentIndex = 0;
                         foreach (MetadataMatch match in matches)
                         {
-                            includeBuilder.Append(text, currentIndex, match.Index - currentIndex);
+                            includeBuilder.Append(text.AsMemory(currentIndex, match.Index - currentIndex));
                             includeBuilder.Append(GetMetadataValueFromMatch(match, item.Value, item.Item, elementLocation));
                             currentIndex = match.Index + match.Length;
                         }
 
-                        includeBuilder.Append(text, currentIndex, text.Length - currentIndex);
+                        includeBuilder.Append(text.AsMemory(currentIndex, text.Length - currentIndex));
                         include = includeBuilder.ToString();
                         includeBuilder.Clear();
                     }
@@ -685,16 +655,10 @@ internal partial class Expander<P, I>
             /// In the vast majority of cases, we'll only have 1-2 matches.
             /// Qualified metadata (e.g. <c>%(ItemType.Name)</c>) is not allowed in transforms and will throw.
             /// </summary>
-            private static OneOrMultipleMetadataMatches GetQuotedExpressionMatches(string text, IElementLocation elementLocation)
+            private static OneOrMultipleMetadataMatches GetQuotedExpressionMatches(
+                StringSegment text,
+                IElementLocation elementLocation)
             {
-                // Exact metadata references can use cached names or the built-in modifier lookup.
-                if (text is ['%', '(', .., ')'] &&
-                    (TryGetCachedMetadataMatch(text, out string cachedName)
-                     || s_itemSpecModifiers.TryGetValue(text, out cachedName)))
-                {
-                    return new OneOrMultipleMetadataMatches(cachedName);
-                }
-
                 int metadataMarkerIndex = ExpressionShredder.IndexOfMetadataMarker(text);
                 if (metadataMarkerIndex == -1)
                 {
@@ -709,17 +673,25 @@ internal partial class Expander<P, I>
                 {
                     int refEnd = metadataMarkerIndex + 2;
 
-                    if (!ExpressionShredder.TryParseMetadataExpression(text, ref refEnd, text.Length, out string itemType, out string name))
+                    if (!ExpressionShredder.TryParseMetadataExpression(
+                        text,
+                        ref refEnd,
+                        text.Length,
+                        out StringSegment itemType,
+                        out StringSegment name))
                     {
                         metadataMarkerIndex = ExpressionShredder.IndexOfMetadataMarker(text, metadataMarkerIndex + 2);
                         continue;
                     }
 
                     // Qualified metadata is not allowed in transforms.
-                    if (itemType != null)
+                    if (itemType.HasValue)
                     {
-                        string matchValue = text.Substring(metadataMarkerIndex, refEnd - metadataMarkerIndex);
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "QualifiedMetadataInTransformNotAllowed", matchValue, name);
+                        ProjectErrorUtilities.ThrowInvalidProject(
+                            elementLocation,
+                            "QualifiedMetadataInTransformNotAllowed",
+                            text.Slice(metadataMarkerIndex, refEnd - metadataMarkerIndex).ValueOrEmpty,
+                            name.ValueOrEmpty);
                     }
 
                     int matchLength = refEnd - metadataMarkerIndex;
@@ -746,55 +718,14 @@ internal partial class Expander<P, I>
 
                 if (hasFirstMatch)
                 {
-                    OneOrMultipleMetadataMatches singleMatch = new(text, firstMatch.Index, firstMatch.Length, firstMatch.Name);
-
-                    if (singleMatch.Type == MetadataMatchType.ExactSingle && !ItemSpecModifiers.IsItemSpecModifier(firstMatch.Name))
-                    {
-                        s_lastParsedQuotedExpression = firstMatch.Name;
-                    }
-
-                    return singleMatch;
+                    return new OneOrMultipleMetadataMatches(
+                        text,
+                        firstMatch.Index,
+                        firstMatch.Length,
+                        firstMatch.Name);
                 }
 
-                return new OneOrMultipleMetadataMatches();
-            }
-
-            /// <summary>
-            ///  Tries to reuse the metadata name cached from the most recently parsed exact quoted
-            ///  metadata reference.
-            /// </summary>
-            /// <remarks>
-            ///  The cached name is copied to a local and validated against <paramref name="stringToCheck"/>
-            ///  before it is returned, so another thread may safely replace the cached value concurrently.
-            /// </remarks>
-            /// <param name="stringToCheck">The quoted metadata expression to inspect.</param>
-            /// <param name="cachedMatch">The cached metadata name when it matches the expression.</param>
-            /// <returns>
-            ///  <see langword="true"/> when the cached metadata name matches the expression; otherwise,
-            ///  <see langword="false"/>.
-            /// </returns>
-            private static bool TryGetCachedMetadataMatch(string stringToCheck, out string cachedMatch)
-            {
-                // Pull a local reference first in case the cached value is swapped.
-                cachedMatch = s_lastParsedQuotedExpression;
-                if (string.IsNullOrEmpty(cachedMatch))
-                {
-                    return false;
-                }
-
-                // Quickly cancel out of definite misses.
-                int length = stringToCheck.Length;
-                if (length == cachedMatch.Length + QuotedExpressionSurroundCharCount)
-                {
-                    // If the inner slice is a hit, don't allocate a string.
-                    ReadOnlySpan<char> span = stringToCheck.AsSpan(2, length - QuotedExpressionSurroundCharCount);
-                    if (span.SequenceEqual(cachedMatch.AsSpan()))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                return OneOrMultipleMetadataMatches.None;
             }
 
             /// <summary>
@@ -1076,12 +1007,16 @@ internal partial class Expander<P, I>
                     }
                     else
                     {
-                        value = sourceOfMetadata.GetMetadataValueEscaped(match.Name);
+                        value = sourceOfMetadata.GetMetadataValueEscaped(match.Name.ValueOrEmpty);
                     }
                 }
                 catch (InvalidOperationException ex)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotEvaluateItemMetadata", match.Name, ex.Message);
+                    ProjectErrorUtilities.ThrowInvalidProject(
+                        elementLocation,
+                        "CannotEvaluateItemMetadata",
+                        match.Name.ValueOrEmpty,
+                        ex.Message);
                 }
 
                 return value;

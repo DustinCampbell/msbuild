@@ -915,7 +915,9 @@ namespace Microsoft.Build.BackEnd
                         return _ => false;
                     }
 
-                    var fragments = items.SelectMany(i => ExpressionShredder.SplitSemiColonSeparatedList(i.EvaluatedInclude));
+                    var fragments = items
+                        .SelectMany(i => ExpressionShredder.SplitSemiColonSeparatedList(i.EvaluatedInclude))
+                        .Select(segment => segment.ValueOrEmpty);
                     var glob = CompositeGlob.Create(
                         fragments
                             .Select(s => MSBuildGlob.Parse(Project.Directory, s)));

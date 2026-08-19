@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -27,13 +28,17 @@ internal partial class Expander<P, I>
                     Type = MetadataMatchType.None;
                 }
 
-                public OneOrMultipleMetadataMatches(string name)
+                public OneOrMultipleMetadataMatches(StringSegment name)
                 {
                     Type = MetadataMatchType.ExactSingle;
                     Single = new MetadataMatch(name);
                 }
 
-                public OneOrMultipleMetadataMatches(string quotedExpressionFunction, int matchIndex, int matchLength, string name)
+                public OneOrMultipleMetadataMatches(
+                    StringSegment quotedExpressionFunction,
+                    int matchIndex,
+                    int matchLength,
+                    StringSegment name)
                 {
                     // We know we have a full string match when our extracted name is the same length as the input
                     // string minus the surrounding characters.

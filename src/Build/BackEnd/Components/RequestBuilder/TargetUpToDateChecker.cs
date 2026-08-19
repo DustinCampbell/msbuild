@@ -803,7 +803,7 @@ namespace Microsoft.Build.BackEnd
             // 1. A discrete item. e.g. foo.cs
             // 2. An item vector.  e.g. @(Foo)
             // 3. An item vector transform. e.g. @(Foo->'%(Filename).obj')
-            foreach (string item in items)
+            foreach (var itemSegment in items)
             {
                 // Expand the items in the item expression.  Note that the items returned will have the same type as the original expression
                 // specified.  For example, both @(Foo) and @(Foo->'%(Filename).obj) will return items of type 'Foo'.  If the item in question
@@ -812,7 +812,8 @@ namespace Microsoft.Build.BackEnd
                 ProjectItemInstanceFactory itemFactory = new ProjectItemInstanceFactory(
                     _project /* no item type specified; use item type of vector itself */);
 
-                IList<ProjectItemInstance> itemVectorContents = bucket.Expander.ExpandSingleItemVectorExpressionIntoItems(item, itemFactory, ExpanderOptions.ExpandItems, true /* include null entries from transforms */, out bool isTransformExpression, elementLocation);
+                IList<ProjectItemInstance> itemVectorContents = bucket.Expander.ExpandSingleItemVectorExpressionIntoItems(itemSegment, itemFactory, ExpanderOptions.ExpandItems, true /* include null entries from transforms */, out bool isTransformExpression, elementLocation);
+                string item = itemSegment.ValueOrEmpty;
 
                 if (itemVectorContents != null)
                 {

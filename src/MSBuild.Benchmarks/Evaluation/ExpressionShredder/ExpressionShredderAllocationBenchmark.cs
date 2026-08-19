@@ -67,7 +67,7 @@ public class ExpressionShredderAllocationBenchmark
 
         for (int i = 0; i < _splitExpressions.Length; i++)
         {
-            foreach (string _ in ExpressionShredder.SplitSemiColonSeparatedList(_splitExpressions[i]))
+            foreach (var _ in ExpressionShredder.SplitSemiColonSeparatedList(_splitExpressions[i]))
             {
                 count++;
             }

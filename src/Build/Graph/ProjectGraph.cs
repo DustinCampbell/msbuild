@@ -926,11 +926,12 @@ namespace Microsoft.Build.Graph
                     }
                     else
                     {
-                        foreach (string expandedTarget in ExpressionShredder.SplitSemiColonSeparatedList(targetsString))
+                        foreach (var expandedTarget in ExpressionShredder.SplitSemiColonSeparatedList(targetsString))
                         {
-                            if (seen.Add(expandedTarget))
+                            string expandedTargetString = expandedTarget.ValueOrEmpty;
+                            if (seen.Add(expandedTargetString))
                             {
-                                result.Add(expandedTarget);
+                                result.Add(expandedTargetString);
                             }
                         }
                     }

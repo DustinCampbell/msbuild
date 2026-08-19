@@ -25,6 +25,7 @@ using Microsoft.Build.Framework.Profiler;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using static Microsoft.Build.Execution.ProjectPropertyInstance;
 using Constants = Microsoft.Build.Framework.Constants;
 using EngineFileUtilities = Microsoft.Build.Internal.EngineFileUtilities;
@@ -424,7 +425,7 @@ namespace Microsoft.Build.Evaluation
             {
                 var includeSplitsEscaped = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedIncludeEscaped);
 
-                foreach (string includeSplitEscaped in includeSplitsEscaped)
+                foreach (StringSegment includeSplitEscaped in includeSplitsEscaped)
                 {
                     // STEP 3: If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
                     bool throwaway;
@@ -441,9 +442,10 @@ namespace Microsoft.Build.Evaluation
                     else
                     {
                         // The expression is not of the form "@(X)". Treat as string
+                        string includeSplitEscapedString = includeSplitEscaped.ValueOrEmpty;
                         string[] includeSplitFilesEscaped = EngineFileUtilities.GetFileListEscaped(
                             rootDirectory,
-                            includeSplitEscaped,
+                            includeSplitEscapedString,
                             excludeSpecsEscaped: null,
                             forceEvaluate: false,
                             fileMatcher: expander.EvaluationContext?.FileMatcher,
@@ -456,7 +458,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             foreach (string includeSplitFileEscaped in includeSplitFilesEscaped)
                             {
-                                items.Add(itemFactory.CreateItem(includeSplitFileEscaped, includeSplitEscaped, itemElement.ContainingProject.FullPath));
+                                items.Add(itemFactory.CreateItem(includeSplitFileEscaped, includeSplitEscapedString, itemElement.ContainingProject.FullPath));
                             }
                         }
                     }
@@ -952,12 +954,16 @@ namespace Microsoft.Build.Evaluation
             {
                 // We accumulate InitialTargets from the project and each import
                 var initialTargets = _expander.ExpandIntoStringListLeaveEscaped(currentProjectOrImport.InitialTargets, ExpanderOptions.ExpandProperties, currentProjectOrImport.InitialTargetsLocation);
-                _initialTargetsList.AddRange(initialTargets);
+                foreach (var initialTarget in initialTargets)
+                {
+                    _initialTargetsList.Add(initialTarget.ValueOrEmpty);
+                }
 
                 if (!Traits.Instance.EscapeHatches.IgnoreTreatAsLocalProperty)
                 {
-                    foreach (string propertyName in _expander.ExpandIntoStringListLeaveEscaped(currentProjectOrImport.TreatAsLocalProperty, ExpanderOptions.ExpandProperties, currentProjectOrImport.TreatAsLocalPropertyLocation))
+                    foreach (var propertyNameSegment in _expander.ExpandIntoStringListLeaveEscaped(currentProjectOrImport.TreatAsLocalProperty, ExpanderOptions.ExpandProperties, currentProjectOrImport.TreatAsLocalPropertyLocation))
                     {
+                        string propertyName = propertyNameSegment.ValueOrEmpty;
                         XmlUtilities.VerifyThrowProjectValidElementName(propertyName, currentProjectOrImport.Location);
                         _data.GlobalPropertiesToTreatAsLocal.Add(propertyName);
                     }
@@ -1145,8 +1151,9 @@ namespace Microsoft.Build.Evaluation
             var beforeTargets = _expander.ExpandIntoStringListLeaveEscaped(targetElement.BeforeTargets, ExpanderOptions.ExpandPropertiesAndItems, targetElement.BeforeTargetsLocation);
             var afterTargets = _expander.ExpandIntoStringListLeaveEscaped(targetElement.AfterTargets, ExpanderOptions.ExpandPropertiesAndItems, targetElement.AfterTargetsLocation);
 
-            foreach (string beforeTarget in beforeTargets)
+            foreach (var beforeTargetSegment in beforeTargets)
             {
+                string beforeTarget = beforeTargetSegment.ValueOrEmpty;
                 string unescapedBeforeTarget = EscapingUtilities.UnescapeAll(beforeTarget);
 
                 if (activeTargets.ContainsKey(unescapedBeforeTarget))
@@ -1168,8 +1175,9 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            foreach (string afterTarget in afterTargets)
+            foreach (var afterTargetSegment in afterTargets)
             {
+                string afterTarget = afterTargetSegment.ValueOrEmpty;
                 string unescapedAfterTarget = EscapingUtilities.UnescapeAll(afterTarget);
 
                 if (activeTargets.ContainsKey(unescapedAfterTarget))
@@ -2133,8 +2141,9 @@ namespace Microsoft.Build.Evaluation
             bool atleastOneImportIgnored = false;
             bool atleastOneImportEmpty = false;
 
-            foreach (string importExpressionEscapedItem in ExpressionShredder.SplitSemiColonSeparatedList(importExpressionEscaped))
+            foreach (var importExpressionSegment in ExpressionShredder.SplitSemiColonSeparatedList(importExpressionEscaped))
             {
+                string importExpressionEscapedItem = importExpressionSegment.ValueOrEmpty;
                 string[] importFilesEscaped = null;
 
                 try
@@ -2770,9 +2779,12 @@ namespace Microsoft.Build.Evaluation
                 return;
             }
 
-            _itemGlobRequestedTypes = new HashSet<string>(
-                ExpressionShredder.SplitSemiColonSeparatedList(provideProperty.EvaluatedValue),
-                StringComparer.OrdinalIgnoreCase);
+            _itemGlobRequestedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var itemType in ExpressionShredder.SplitSemiColonSeparatedList(provideProperty.EvaluatedValue))
+            {
+                _itemGlobRequestedTypes.Add(itemType.ValueOrEmpty);
+            }
+
             _itemGlobElements = new List<ProjectItemElement>();
         }
 

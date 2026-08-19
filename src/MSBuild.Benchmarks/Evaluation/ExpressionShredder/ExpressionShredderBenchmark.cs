@@ -111,7 +111,7 @@ public class ExpressionShredderBenchmark
         {
             var scenario = (ExpressionShredderScenario)value;
 
-            foreach (string expression in ExpressionShredder.SplitSemiColonSeparatedList(scenario.Expression))
+            foreach (var expression in ExpressionShredder.SplitSemiColonSeparatedList(scenario.Expression))
             {
                 _warmCacheRoots.Add(expression);
             }
@@ -184,7 +184,7 @@ public class ExpressionShredderBenchmark
     {
         int count = 0;
 
-        foreach (string _ in ExpressionShredder.SplitSemiColonSeparatedList(scenario.Expression))
+        foreach (var _ in ExpressionShredder.SplitSemiColonSeparatedList(scenario.Expression))
         {
             count++;
         }

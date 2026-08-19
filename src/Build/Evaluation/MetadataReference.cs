@@ -1,6 +1,9 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+using Microsoft.Build.Text;
+
 namespace Microsoft.Build.Evaluation
 {
     /// <summary>
@@ -9,29 +12,67 @@ namespace Microsoft.Build.Evaluation
     /// "EmbeddedResource" is the item name, and "Culture" is the metadata name.
     /// The item name is optional.
     /// </summary>
-    internal struct MetadataReference
+    internal readonly struct MetadataReference : IEquatable<MetadataReference>
     {
         /// <summary>
-        /// The item name
+        ///  Initializes a metadata reference.
         /// </summary>
-        internal string ItemName;       // Could be null if the %(...) is not qualified with an item name.
-
-        /// <summary>
-        /// The metadata name
-        /// </summary>
-        internal string MetadataName;
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="itemName">Name of the item</param>
-        /// <param name="metadataName">Name of the metadata</param>
-        internal MetadataReference(
-            string itemName,
-            string metadataName)
+        /// <param name="itemName">
+        ///  The optional item type that qualifies the metadata name.
+        /// </param>
+        /// <param name="metadataName">The metadata name.</param>
+        public MetadataReference(StringSegment itemName, StringSegment metadataName)
         {
-            this.ItemName = itemName;
-            this.MetadataName = metadataName;
+            ItemName = itemName;
+            MetadataName = metadataName;
+        }
+
+        /// <summary>
+        ///  Gets the optional item type that qualifies the metadata name.
+        /// </summary>
+        public StringSegment ItemName { get; }
+
+        /// <summary>
+        ///  Gets the metadata name.
+        /// </summary>
+        public StringSegment MetadataName { get; }
+
+        /// <summary>
+        ///  Realizes the optionally qualified metadata name.
+        /// </summary>
+        /// <returns>
+        ///  The metadata name, qualified by its item type when present.
+        /// </returns>
+        public override string ToString()
+            => ItemName.HasValue
+                ? StringSegment.Join('.', [ItemName, MetadataName])
+                : MetadataName.ValueOrEmpty;
+
+        /// <summary>
+        ///  Determines whether this reference identifies the same item type and metadata name as
+        ///  <paramref name="other"/>.
+        /// </summary>
+        /// <param name="other">The reference to compare.</param>
+        /// <returns>
+        ///  <see langword="true"/> when both names are equal using MSBuild's case-insensitive name
+        ///  semantics; otherwise, <see langword="false"/>.
+        /// </returns>
+        public bool Equals(MetadataReference other)
+            => ItemName.Equals(other.ItemName, StringComparison.OrdinalIgnoreCase)
+                && MetadataName.Equals(other.MetadataName, StringComparison.OrdinalIgnoreCase);
+
+        /// <inheritdoc />
+        public override bool Equals(object? obj)
+            => obj is MetadataReference other && Equals(other);
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            int itemNameHash = ItemName.HasValue
+                ? ItemName.GetHashCode(StringComparison.OrdinalIgnoreCase)
+                : 0;
+
+            return unchecked((itemNameHash * 397) ^ MetadataName.GetHashCode(StringComparison.OrdinalIgnoreCase));
         }
     }
 }

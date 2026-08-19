@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -21,15 +22,16 @@ internal partial class Expander<P, I>
             {
                 private readonly ItemSpecModifierKind _modifierKind;
 
-                public MetadataMatch(int index, int length, string name)
+                public MetadataMatch(int index, int length, StringSegment name)
                 {
                     Index = index;
                     Length = length;
                     Name = name;
-                    IsDerivableItemSpecModifier = ItemSpecModifiers.TryGetDerivableModifierKind(name, out _modifierKind);
+                    IsDerivableItemSpecModifier =
+                        ItemSpecModifiers.TryGetDerivableModifierKind(name.ValueOrEmpty, out _modifierKind);
                 }
 
-                public MetadataMatch(string name)
+                public MetadataMatch(StringSegment name)
                     : this(index: 0, name.Length + QuotedExpressionSurroundCharCount, name)
                 {
                 }
@@ -37,7 +39,7 @@ internal partial class Expander<P, I>
                 /// <summary>
                 ///  Gets the inner value of the match.
                 /// </summary>
-                internal string Name { get; }
+                internal StringSegment Name { get; }
 
                 /// <summary>
                 ///  Gets the index of the match in the original string.

@@ -9,6 +9,7 @@ using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Microsoft.NET.StringTools;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 using TaskItemFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.TaskItemFactory;
@@ -334,7 +335,7 @@ internal partial class Expander<P, I>
         }
 
         var splits = ExpressionShredder.SplitSemiColonSeparatedList(expression);
-        foreach (string split in splits)
+        foreach (StringSegment split in splits)
         {
             bool isTransformExpression;
             IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, split, _items, itemFactory, options, false /* do not include null items */, out isTransformExpression, elementLocation);
@@ -352,7 +353,7 @@ internal partial class Expander<P, I>
             {
                 // The expression is not of the form @(itemName).  Therefore, just
                 // treat it as a string, and create a new item from that string.
-                T itemToAdd = itemFactory.CreateItem(split, elementLocation.File);
+                T itemToAdd = itemFactory.CreateItem(split.ValueOrEmpty, elementLocation.File);
 
                 result.Add(itemToAdd);
             }
@@ -387,6 +388,23 @@ internal partial class Expander<P, I>
     /// <typeparam name="T">Type of the items that should be returned.</typeparam>
     internal IList<T> ExpandSingleItemVectorExpressionIntoItems<T>(string expression, IItemFactory<I, T> itemFactory, ExpanderOptions options, bool includeNullItems, out bool isTransformExpression, IElementLocation elementLocation)
         where T : class, IItem
+        => ExpandSingleItemVectorExpressionIntoItems(
+            expression.AsSegment(),
+            itemFactory,
+            options,
+            includeNullItems,
+            out isTransformExpression,
+            elementLocation);
+
+    /// <inheritdoc cref="ExpandSingleItemVectorExpressionIntoItems{T}(string, IItemFactory{I, T}, ExpanderOptions, bool, out bool, IElementLocation)"/>
+    internal IList<T> ExpandSingleItemVectorExpressionIntoItems<T>(
+        StringSegment expression,
+        IItemFactory<I, T> itemFactory,
+        ExpanderOptions options,
+        bool includeNullItems,
+        out bool isTransformExpression,
+        IElementLocation elementLocation)
+        where T : class, IItem
     {
         if (expression.Length == 0)
         {
@@ -401,6 +419,14 @@ internal partial class Expander<P, I>
 
     internal static bool TryExpandSingleItemVectorExpression(
         string expression,
+        ExpanderOptions options,
+        IElementLocation elementLocation,
+        out ExpressionShredder.ItemExpressionCapture itemVector)
+        => ItemExpander.TryExpandSingleItemVectorExpression(expression, options, elementLocation, out itemVector);
+
+    /// <inheritdoc cref="TryExpandSingleItemVectorExpression(string, ExpanderOptions, IElementLocation, out ExpressionShredder.ItemExpressionCapture)"/>
+    internal static bool TryExpandSingleItemVectorExpression(
+        StringSegment expression,
         ExpanderOptions options,
         IElementLocation elementLocation,
         out ExpressionShredder.ItemExpressionCapture itemVector)

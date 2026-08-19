@@ -84,7 +84,10 @@ namespace Microsoft.Build.BackEnd
 
                             if (!String.IsNullOrEmpty(child.KeepMetadata))
                             {
-                                var keepMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.KeepMetadata, ExpanderOptions.ExpandAll, child.KeepMetadataLocation).ToList();
+                                var keepMetadataEvaluated = bucket.Expander
+                                    .ExpandIntoStringListLeaveEscaped(child.KeepMetadata, ExpanderOptions.ExpandAll, child.KeepMetadataLocation)
+                                    .Select(segment => segment.ValueOrEmpty)
+                                    .ToList();
                                 if (keepMetadataEvaluated.Count > 0)
                                 {
                                     keepMetadata = new HashSet<string>(keepMetadataEvaluated);
@@ -93,7 +96,10 @@ namespace Microsoft.Build.BackEnd
 
                             if (!String.IsNullOrEmpty(child.RemoveMetadata))
                             {
-                                var removeMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.RemoveMetadata, ExpanderOptions.ExpandAll, child.RemoveMetadataLocation).ToList();
+                                var removeMetadataEvaluated = bucket.Expander
+                                    .ExpandIntoStringListLeaveEscaped(child.RemoveMetadata, ExpanderOptions.ExpandAll, child.RemoveMetadataLocation)
+                                    .Select(segment => segment.ValueOrEmpty)
+                                    .ToList();
                                 if (removeMetadataEvaluated.Count > 0)
                                 {
                                     removeMetadata = new HashSet<string>(removeMetadataEvaluated);
@@ -102,7 +108,10 @@ namespace Microsoft.Build.BackEnd
 
                             if (!String.IsNullOrEmpty(child.MatchOnMetadata))
                             {
-                                var matchOnMetadataEvaluated = bucket.Expander.ExpandIntoStringListLeaveEscaped(child.MatchOnMetadata, ExpanderOptions.ExpandAll, child.MatchOnMetadataLocation).ToList();
+                                var matchOnMetadataEvaluated = bucket.Expander
+                                    .ExpandIntoStringListLeaveEscaped(child.MatchOnMetadata, ExpanderOptions.ExpandAll, child.MatchOnMetadataLocation)
+                                    .Select(segment => segment.ValueOrEmpty)
+                                    .ToList();
                                 if (matchOnMetadataEvaluated.Count > 0)
                                 {
                                     matchOnMetadata = new HashSet<string>(matchOnMetadataEvaluated);
@@ -417,9 +426,9 @@ namespace Microsoft.Build.BackEnd
                 {
                     var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude);
 
-                    foreach (string excludeSplit in excludeSplits)
+                    foreach (var excludeSplit in excludeSplits)
                     {
-                        excludes.Add(excludeSplit);
+                        excludes.Add(excludeSplit.ValueOrEmpty);
                     }
                 }
             }
@@ -432,7 +441,7 @@ namespace Microsoft.Build.BackEnd
             // If the code process any expression like "@(x)", we need to handle excludes explicitly using EvaluateExcludePaths().
             bool anyTransformExprProceeded = false;
 
-            foreach (string includeSplit in includeSplits)
+            foreach (var includeSplit in includeSplits)
             {
                 // If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
                 IList<ProjectItemInstance> itemsFromSplit = expander.ExpandSingleItemVectorExpressionIntoItems(
@@ -452,11 +461,12 @@ namespace Microsoft.Build.BackEnd
                 else
                 {
                     // The expression is not of the form "@(X)". Treat as string
+                    string includeSplitString = includeSplit.ValueOrEmpty;
 
                     // Pass the non wildcard expanded excludes here to fix https://github.com/dotnet/msbuild/issues/2621
                     string[] includeSplitFiles = EngineFileUtilities.GetFileListEscaped(
                         Project.Directory,
-                        includeSplit,
+                        includeSplitString,
                         excludes,
                         loggingMechanism: LoggingContext,
                         includeLocation: originalItem.IncludeLocation,
@@ -469,7 +479,7 @@ namespace Microsoft.Build.BackEnd
                             Project,
                             originalItem.ItemType,
                             includeSplitFile,
-                            includeSplit /* before wildcard expansion */,
+                            includeSplitString /* before wildcard expansion */,
                             null,
                             null,
                             originalItem.Location.File,
@@ -601,8 +611,9 @@ namespace Microsoft.Build.BackEnd
             // Split by semicolons
             var specificationPieces = expander.ExpandIntoStringListLeaveEscaped(specification, ExpanderOptions.ExpandAll, specificationLocation);
 
-            foreach (string piece in specificationPieces)
+            foreach (var pieceSegment in specificationPieces)
             {
+                string piece = pieceSegment.ValueOrEmpty;
                 // Take each individual path or file expression, and expand any
                 // wildcards.  Then loop through each file returned, and add it
                 // to our hashtable.

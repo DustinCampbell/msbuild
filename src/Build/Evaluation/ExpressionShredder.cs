@@ -3,9 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
-using Microsoft.NET.StringTools;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -68,6 +67,11 @@ namespace Microsoft.Build.Evaluation
         ///  <see langword="true"/> if a property marker is found; otherwise, <see langword="false"/>.
         /// </returns>
         public static bool ContainsPropertyMarker(string expression)
+            => ContainsPropertyMarker(expression.AsSegment());
+
+        /// <inheritdoc cref="ContainsPropertyMarker(string)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        public static bool ContainsPropertyMarker(StringSegment expression)
             => IndexOfPropertyMarker(expression) >= 0;
 
         /// <summary>
@@ -78,6 +82,11 @@ namespace Microsoft.Build.Evaluation
         ///  <see langword="true"/> if an item-vector marker is found; otherwise, <see langword="false"/>.
         /// </returns>
         public static bool ContainsItemVectorMarker(string expression)
+            => ContainsItemVectorMarker(expression.AsSegment());
+
+        /// <inheritdoc cref="ContainsItemVectorMarker(string)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        public static bool ContainsItemVectorMarker(StringSegment expression)
             => IndexOfItemVectorMarker(expression) >= 0;
 
         /// <summary>
@@ -88,6 +97,11 @@ namespace Microsoft.Build.Evaluation
         ///  <see langword="true"/> if a metadata marker is found; otherwise, <see langword="false"/>.
         /// </returns>
         public static bool ContainsMetadataMarker(string expression)
+            => ContainsMetadataMarker(expression.AsSegment());
+
+        /// <inheritdoc cref="ContainsMetadataMarker(string)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        public static bool ContainsMetadataMarker(StringSegment expression)
             => IndexOfMetadataMarker(expression) >= 0;
 
         /// <summary>
@@ -101,6 +115,11 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyMarker(string expression)
+            => IndexOfPropertyMarker(expression.AsSegment());
+
+        /// <inheritdoc cref="IndexOfPropertyMarker(string)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        public static int IndexOfPropertyMarker(StringSegment expression)
             => IndexOfMarker(expression, '$');
 
         /// <summary>
@@ -113,6 +132,12 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyMarker(string expression, int startIndex)
+            => IndexOfPropertyMarker(expression.AsSegment(), startIndex);
+
+        /// <inheritdoc cref="IndexOfPropertyMarker(string, int)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        public static int IndexOfPropertyMarker(StringSegment expression, int startIndex)
             => IndexOfMarker(expression, '$', startIndex, expression.Length - startIndex);
 
         /// <summary>
@@ -130,6 +155,13 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyMarker(string expression, int startIndex, int count)
+            => IndexOfPropertyMarker(expression.AsSegment(), startIndex, count);
+
+        /// <inheritdoc cref="IndexOfPropertyMarker(string, int, int)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <param name="count">The number of characters to scan.</param>
+        public static int IndexOfPropertyMarker(StringSegment expression, int startIndex, int count)
             => IndexOfMarker(expression, '$', startIndex, count);
 
         /// <summary>
@@ -143,6 +175,11 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfItemVectorMarker(string expression)
+            => IndexOfItemVectorMarker(expression.AsSegment());
+
+        /// <inheritdoc cref="IndexOfItemVectorMarker(string)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        public static int IndexOfItemVectorMarker(StringSegment expression)
             => IndexOfMarker(expression, '@');
 
         /// <summary>
@@ -157,6 +194,12 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfItemVectorMarker(string expression, int startIndex)
+            => IndexOfItemVectorMarker(expression.AsSegment(), startIndex);
+
+        /// <inheritdoc cref="IndexOfItemVectorMarker(string, int)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        public static int IndexOfItemVectorMarker(StringSegment expression, int startIndex)
             => IndexOfMarker(expression, '@', startIndex, expression.Length - startIndex);
 
         /// <summary>
@@ -174,6 +217,13 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfItemVectorMarker(string expression, int startIndex, int count)
+            => IndexOfItemVectorMarker(expression.AsSegment(), startIndex, count);
+
+        /// <inheritdoc cref="IndexOfItemVectorMarker(string, int, int)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <param name="count">The number of characters to scan.</param>
+        public static int IndexOfItemVectorMarker(StringSegment expression, int startIndex, int count)
             => IndexOfMarker(expression, '@', startIndex, count);
 
         /// <summary>
@@ -187,6 +237,11 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfMetadataMarker(string expression)
+            => IndexOfMetadataMarker(expression.AsSegment());
+
+        /// <inheritdoc cref="IndexOfMetadataMarker(string)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        public static int IndexOfMetadataMarker(StringSegment expression)
             => IndexOfMarker(expression, '%');
 
         /// <summary>
@@ -201,6 +256,12 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfMetadataMarker(string expression, int startIndex)
+            => IndexOfMetadataMarker(expression.AsSegment(), startIndex);
+
+        /// <inheritdoc cref="IndexOfMetadataMarker(string, int)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        public static int IndexOfMetadataMarker(StringSegment expression, int startIndex)
             => IndexOfMarker(expression, '%', startIndex, expression.Length - startIndex);
 
         /// <summary>
@@ -218,9 +279,16 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfMetadataMarker(string expression, int startIndex, int count)
+            => IndexOfMetadataMarker(expression.AsSegment(), startIndex, count);
+
+        /// <inheritdoc cref="IndexOfMetadataMarker(string, int, int)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <param name="count">The number of characters to scan.</param>
+        public static int IndexOfMetadataMarker(StringSegment expression, int startIndex, int count)
             => IndexOfMarker(expression, '%', startIndex, count);
 
-        private static int IndexOfMarker(string expression, char marker)
+        private static int IndexOfMarker(StringSegment expression, char marker)
         {
             // IndexOf(char) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.
@@ -245,7 +313,7 @@ namespace Microsoft.Build.Evaluation
             return -1;
         }
 
-        private static int IndexOfMarker(string expression, char marker, int startIndex, int count)
+        private static int IndexOfMarker(StringSegment expression, char marker, int startIndex, int count)
         {
             // IndexOf(char, int, int) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.
@@ -287,9 +355,12 @@ namespace Microsoft.Build.Evaluation
         /// <param name="expression">List expression to split</param>
         /// <returns>Array of non-empty strings from split list.</returns>
         internal static SemiColonTokenizer SplitSemiColonSeparatedList(string expression)
-        {
-            return new SemiColonTokenizer(expression);
-        }
+            => SplitSemiColonSeparatedList(expression.AsSegment());
+
+        /// <inheritdoc cref="SplitSemiColonSeparatedList(string)"/>
+        /// <param name="expression">List expression segment to split.</param>
+        internal static SemiColonTokenizer SplitSemiColonSeparatedList(StringSegment expression)
+            => new(expression);
 
         /// <summary>
         /// Given a list of expressions that may contain item list expressions,
@@ -306,7 +377,7 @@ namespace Microsoft.Build.Evaluation
             for (int i = 0; i < expressions.Count; i++)
             {
                 string expression = expressions[i];
-                GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.All);
+                GetReferencedItemNamesAndMetadata(expression.AsSegment(), 0, expression.Length, ref pair, ShredderOptions.All);
             }
 
             return pair;
@@ -319,7 +390,7 @@ namespace Microsoft.Build.Evaluation
         {
             ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
 
-            GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.MetadataOutsideTransforms);
+            GetReferencedItemNamesAndMetadata(expression.AsSegment(), 0, expression.Length, ref pair, ShredderOptions.MetadataOutsideTransforms);
 
             bool result = (pair.Metadata?.Count > 0);
 
@@ -328,6 +399,12 @@ namespace Microsoft.Build.Evaluation
 
         /// <inheritdoc cref="TryGetNextItemVectorExpression(string, int, out ItemExpressionCapture)"/>
         public static bool TryGetNextItemVectorExpression(string expression, out ItemExpressionCapture itemVector)
+            => TryGetNextItemVectorExpression(expression.AsSegment(), startIndex: 0, out itemVector);
+
+        /// <inheritdoc cref="TryGetNextItemVectorExpression(string, out ItemExpressionCapture)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="itemVector">The parsed item-vector expression.</param>
+        public static bool TryGetNextItemVectorExpression(StringSegment expression, out ItemExpressionCapture itemVector)
             => TryGetNextItemVectorExpression(expression, startIndex: 0, out itemVector);
 
         /// <summary>
@@ -341,6 +418,13 @@ namespace Microsoft.Build.Evaluation
         ///  <see langword="false"/>.
         /// </returns>
         public static bool TryGetNextItemVectorExpression(string expression, int startIndex, out ItemExpressionCapture itemVector)
+            => TryGetNextItemVectorExpression(expression.AsSegment(), startIndex, out itemVector);
+
+        /// <inheritdoc cref="TryGetNextItemVectorExpression(string, int, out ItemExpressionCapture)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <param name="itemVector">The parsed item-vector expression.</param>
+        public static bool TryGetNextItemVectorExpression(StringSegment expression, int startIndex, out ItemExpressionCapture itemVector)
         {
             while ((startIndex = IndexOfItemVectorMarker(expression, startIndex)) >= 0)
             {
@@ -356,7 +440,7 @@ namespace Microsoft.Build.Evaluation
             return false;
         }
 
-        private static bool TryParseItemVectorExpression(string expression, int startIndex, out ItemExpressionCapture itemVector)
+        private static bool TryParseItemVectorExpression(StringSegment expression, int startIndex, out ItemExpressionCapture itemVector)
         {
             int end = expression.Length;
             int index = startIndex + 2;
@@ -381,7 +465,7 @@ namespace Microsoft.Build.Evaluation
 
             // Grab the name, but continue to verify it's a well-formed expression
             // before we store it.
-            string itemName = Strings.WeakIntern(expression.AsSpan(startOfName, index - startOfName));
+            StringSegment itemName = expression.Slice(startOfName, index - startOfName);
 
             SinkWhitespace(expression, ref index);
             List<ItemExpressionCapture> transformExpressions = null;
@@ -402,7 +486,10 @@ namespace Microsoft.Build.Evaluation
                         transformExpressions = new List<ItemExpressionCapture>(1);
                     }
 
-                    transformExpressions.Add(new ItemExpressionCapture(startQuoted, endQuoted - startQuoted, expression.Substring(startQuoted, endQuoted - startQuoted)));
+                    transformExpressions.Add(new ItemExpressionCapture(
+                        startQuoted,
+                        endQuoted - startQuoted,
+                        expression.Slice(startQuoted, endQuoted - startQuoted)));
                     SinkWhitespace(expression, ref index);
                     continue;
                 }
@@ -424,7 +511,7 @@ namespace Microsoft.Build.Evaluation
 
             SinkWhitespace(expression, ref index);
 
-            string separator = null;
+            StringSegment separator = default;
             int separatorStart = -1;
 
             // If there's a ',', eat it and the subsequent quoted expression
@@ -446,7 +533,7 @@ namespace Microsoft.Build.Evaluation
                 }
 
                 separatorStart = index - startIndex;
-                separator = expression.Substring(index, closingQuote - index);
+                separator = expression.Slice(index, closingQuote - index);
 
                 index = closingQuote + 1;
             }
@@ -467,7 +554,7 @@ namespace Microsoft.Build.Evaluation
             itemVector = new ItemExpressionCapture(
                 index: startIndex,
                 length,
-                subExpression: Strings.WeakIntern(expression.AsSpan(startIndex, length)),
+                subExpression: expression.Slice(startIndex, length),
                 itemType: itemName,
                 separator,
                 separatorStart,
@@ -484,6 +571,15 @@ namespace Microsoft.Build.Evaluation
         /// We can ignore any semicolons in the expression, since we're not itemizing it.
         /// </remarks>
         internal static void GetReferencedItemNamesAndMetadata(string expression, int start, int end, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
+            => GetReferencedItemNamesAndMetadata(expression.AsSegment(), start, end, ref pair, whatToShredFor);
+
+        /// <inheritdoc cref="GetReferencedItemNamesAndMetadata(string, int, int, ref ItemsAndMetadataPair, ShredderOptions)"/>
+        /// <param name="expression">The expression segment to scan.</param>
+        /// <param name="start">The index at which to begin scanning.</param>
+        /// <param name="end">The exclusive end index of the scan.</param>
+        /// <param name="pair">The accumulated item and metadata references.</param>
+        /// <param name="whatToShredFor">The reference kinds to collect.</param>
+        internal static void GetReferencedItemNamesAndMetadata(StringSegment expression, int start, int end, ref ItemsAndMetadataPair pair, ShredderOptions whatToShredFor)
         {
             int i = start;
 
@@ -608,8 +704,8 @@ namespace Microsoft.Build.Evaluation
                     // well formed, so make sure the name's in the table
                     if ((whatToShredFor & ShredderOptions.ItemTypes) != 0)
                     {
-                        pair.Items ??= new HashSet<string>(MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Items.Add(expression.Substring(startOfName, nameLength));
+                        pair.Items ??= new HashSet<StringSegment>(StringSegmentComparer.OrdinalIgnoreCase);
+                        pair.Items.Add(expression.Slice(startOfName, nameLength));
                     }
 
                     continue;
@@ -617,7 +713,7 @@ namespace Microsoft.Build.Evaluation
 
                 // Start of a possible metadata expression
 
-                if (!TryParseMetadataExpression(expression, ref i, end, out string itemName, out string metadataName))
+                if (!TryParseMetadataExpression(expression, ref i, end, out StringSegment itemName, out StringSegment metadataName))
                 {
                     i = restartPoint;
                     continue;
@@ -625,9 +721,8 @@ namespace Microsoft.Build.Evaluation
 
                 if ((whatToShredFor & ShredderOptions.MetadataOutsideTransforms) != 0)
                 {
-                    string qualifiedMetadataName = itemName != null ? $"{itemName}.{metadataName}" : metadataName;
-                    pair.Metadata ??= new Dictionary<string, MetadataReference>(MSBuildNameIgnoreCaseComparer.Default);
-                    pair.Metadata[qualifiedMetadataName] = new MetadataReference(itemName, metadataName);
+                    pair.Metadata ??= new HashSet<MetadataReference>();
+                    pair.Metadata.Add(new MetadataReference(itemName, metadataName));
                 }
             }
         }
@@ -642,7 +737,7 @@ namespace Microsoft.Build.Evaluation
         ///  On failure, <paramref name="i"/> is at an indeterminate position and the caller
         ///  should restore it from a saved restart point.
         /// </remarks>
-        /// <param name="expression">The expression being scanned.</param>
+        /// <param name="expression">The expression segment being scanned.</param>
         /// <param name="i">Current scan position (just after <c>%(</c>). Advanced on success.</param>
         /// <param name="end">Exclusive end index of the scan range; no character at or beyond this index is read.</param>
         /// <param name="itemType">The item type if qualified; otherwise <see langword="null"/>.</param>
@@ -650,10 +745,15 @@ namespace Microsoft.Build.Evaluation
         /// <returns>
         ///  <see langword="true"/> if a valid metadata expression was parsed.
         /// </returns>
-        internal static bool TryParseMetadataExpression(string expression, ref int i, int end, out string itemType, out string metadataName)
+        internal static bool TryParseMetadataExpression(
+            StringSegment expression,
+            ref int i,
+            int end,
+            out StringSegment itemType,
+            out StringSegment metadataName)
         {
-            itemType = null;
-            metadataName = null;
+            itemType = default;
+            metadataName = default;
 
             SinkWhitespace(expression, ref i, end);
 
@@ -664,7 +764,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            string firstName = Strings.WeakIntern(expression.AsSpan(startOfText, i - startOfText));
+            StringSegment firstName = expression.Slice(startOfText, i - startOfText);
 
             SinkWhitespace(expression, ref i, end);
 
@@ -682,7 +782,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                metadataName = Strings.WeakIntern(expression.AsSpan(startOfText, i - startOfText));
+                metadataName = expression.Slice(startOfText, i - startOfText);
 
                 SinkWhitespace(expression, ref i, end);
             }
@@ -700,7 +800,7 @@ namespace Microsoft.Build.Evaluation
         /// and ends before the specified end index.
         /// Leaves index one past the end of the second quote.
         /// </summary>
-        private static bool SinkSingleQuotedExpression(string expression, ref int i, int end)
+        private static bool SinkSingleQuotedExpression(StringSegment expression, ref int i, int end)
         {
             if (!Sink(expression, ref i, '\''))
             {
@@ -728,87 +828,64 @@ namespace Microsoft.Build.Evaluation
         /// Takes the expression and the index to start at.
         /// Returns the index of the matching parenthesis, or -1 if it was not found.
         /// </summary>
-        private static bool SinkArgumentsInParentheses(string expression, ref int i, int end)
+        private static bool SinkArgumentsInParentheses(StringSegment expression, ref int i, int end)
         {
             int nestLevel = 0;
             int length = expression.Length;
             int restartPoint;
 
-            unsafe
+            if (expression[i] == '(')
             {
-                fixed (char* pchar = expression)
-                {
-                    if (pchar[i] == '(')
-                    {
-                        nestLevel++;
-                        i++;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-
-                    // Scan for our closing ')'
-                    while (i < length && i < end && nestLevel > 0)
-                    {
-                        char character = pchar[i];
-
-                        if (character == '\'' || character == '`' || character == '"')
-                        {
-                            restartPoint = i;
-                            if (!SinkUntilClosingQuote(character, expression, ref i, end))
-                            {
-                                i = restartPoint;
-                                return false;
-                            }
-                        }
-                        else if (character == '(')
-                        {
-                            nestLevel++;
-                        }
-                        else if (character == ')')
-                        {
-                            nestLevel--;
-                        }
-
-                        i++;
-                    }
-                }
-            }
-
-            if (nestLevel == 0)
-            {
-                return true;
+                nestLevel++;
+                i++;
             }
             else
             {
                 return false;
             }
+
+            // Scan for our closing ')'.
+            while (i < length && i < end && nestLevel > 0)
+            {
+                char character = expression[i];
+
+                if (character == '\'' || character == '`' || character == '"')
+                {
+                    restartPoint = i;
+                    if (!SinkUntilClosingQuote(character, expression, ref i, end))
+                    {
+                        i = restartPoint;
+                        return false;
+                    }
+                }
+                else if (character == '(')
+                {
+                    nestLevel++;
+                }
+                else if (character == ')')
+                {
+                    nestLevel--;
+                }
+
+                i++;
+            }
+
+            return nestLevel == 0;
         }
 
         /// <summary>
         /// Skip all characters until we find the matching quote character
         /// </summary>
-        private static bool SinkUntilClosingQuote(char quoteChar, string expression, ref int i, int end)
+        private static bool SinkUntilClosingQuote(char quoteChar, StringSegment expression, ref int i, int end)
         {
-            unsafe
+            // We have already checked the first quote.
+            i++;
+
+            int closingQuote = expression.IndexOf(quoteChar, i, end - i);
+            if (closingQuote >= 0)
             {
-                fixed (char* pchar = expression)
-                {
-                    // We have already checked the first quote
-                    i++;
-
-                    // Scan for our closing quoteChar
-                    while (i < expression.Length && i < end)
-                    {
-                        if (pchar[i] == quoteChar)
-                        {
-                            return true;
-                        }
-
-                        i++;
-                    }
-                }
+                i = closingQuote;
+                return true;
             }
 
             return false;
@@ -819,7 +896,7 @@ namespace Microsoft.Build.Evaluation
         /// and ends before the specified end index.
         /// Leaves index one past the end of the closing paren.
         /// </summary>
-        private static bool TryParseFunctionTransform(string expression, int startTransform, ref int i, int end, out ItemExpressionCapture transform)
+        private static bool TryParseFunctionTransform(StringSegment expression, int startTransform, ref int i, int end, out ItemExpressionCapture transform)
         {
             if (SinkValidName(expression, ref i, end))
             {
@@ -833,14 +910,23 @@ namespace Microsoft.Build.Evaluation
                 {
                     int endFunctionArguments = i - 1;
 
-                    string functionName = expression.Substring(startTransform, endFunctionName - startTransform);
-                    string functionArguments = null;
+                    StringSegment functionName = expression.Slice(startTransform, endFunctionName - startTransform);
+                    StringSegment functionArguments = default;
                     if (endFunctionArguments > startFunctionArguments)
                     {
-                        functionArguments = Strings.WeakIntern(expression.AsSpan(startFunctionArguments, endFunctionArguments - startFunctionArguments));
+                        functionArguments = expression.Slice(startFunctionArguments, endFunctionArguments - startFunctionArguments);
                     }
 
-                    transform = new ItemExpressionCapture(startTransform, i - startTransform, expression.Substring(startTransform, i - startTransform), null, null, -1, null, functionName, functionArguments);
+                    transform = new ItemExpressionCapture(
+                        startTransform,
+                        i - startTransform,
+                        expression.Slice(startTransform, i - startTransform),
+                        default,
+                        default,
+                        -1,
+                        null,
+                        functionName,
+                        functionArguments);
                     return true;
                 }
             }
@@ -862,7 +948,7 @@ namespace Microsoft.Build.Evaluation
         /// item/metadata expressions diverges from the one used to write them back out, expressions could
         /// round-trip incorrectly.
         /// </remarks>
-        private static bool SinkValidName(string expression, ref int i, int end)
+        private static bool SinkValidName(StringSegment expression, ref int i, int end)
         {
             if (end <= i || !XmlUtilities.IsValidInitialElementNameCharacter(expression[i]))
             {
@@ -883,14 +969,14 @@ namespace Microsoft.Build.Evaluation
         ///  Returns <see langword="true"/> if the character at the specified index is the specified char.
         ///  Leaves index one past the character.
         /// </summary>
-        private static bool Sink(string expression, ref int i, char c)
+        private static bool Sink(StringSegment expression, ref int i, char c)
             => Sink(expression, ref i, expression.Length, c);
 
         /// <summary>
         ///  Returns <see langword="true"/> if the character at the specified index (which must be before
         ///  <paramref name="end"/>) is the specified char. Leaves index one past the character.
         /// </summary>
-        private static bool Sink(string expression, ref int i, int end, char c)
+        private static bool Sink(StringSegment expression, ref int i, int end, char c)
         {
             if (i < end && expression[i] == c)
             {
@@ -905,7 +991,7 @@ namespace Microsoft.Build.Evaluation
         ///  Returns <see langword="true"/> if the next two characters at the specified index are the specified sequence.
         ///  Leaves index one past the second character.
         /// </summary>
-        private static bool Sink(string expression, ref int i, int end, char c1, char c2)
+        private static bool Sink(StringSegment expression, ref int i, int end, char c1, char c2)
         {
             if (i < end - 1 && expression[i] == c1 && expression[i + 1] == c2)
             {
@@ -926,7 +1012,7 @@ namespace Microsoft.Build.Evaluation
         ///  <see cref="char.IsWhiteSpace(char)"/> is not identical in behavior to regex's <c>\s</c> character class,
         ///  but it's extremely close, and it's what we use in conditional expressions.
         /// </remarks>
-        private static void SinkWhitespace(string expression, ref int i)
+        private static void SinkWhitespace(StringSegment expression, ref int i)
             => SinkWhitespace(expression, ref i, expression.Length);
 
         /// <summary>
@@ -942,7 +1028,7 @@ namespace Microsoft.Build.Evaluation
         ///  <see cref="char.IsWhiteSpace(char)"/> is not identical in behavior to regex's <c>\s</c> character class,
         ///  but it's extremely close, and it's what we use in conditional expressions.
         /// </remarks>
-        private static void SinkWhitespace(string expression, ref int i, int end)
+        private static void SinkWhitespace(StringSegment expression, ref int i, int end)
         {
             while (i < end && char.IsWhiteSpace(expression[i]))
             {
@@ -953,37 +1039,73 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Represents one substring for a single successful capture.
         /// </summary>
-        internal struct ItemExpressionCapture
+        internal readonly struct ItemExpressionCapture
         {
             /// <summary>
-            /// Create an Expression Capture instance
-            /// Represents a sub expression, shredded from a larger expression
+            ///  Initializes a capture for a subexpression shredded from a larger expression.
             /// </summary>
-            public ItemExpressionCapture(int index, int length, string subExpression)
-                : this(index, length, subExpression, null, null, -1, null, null, null)
-            {
-            }
-
-            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures)
-                : this(index, length, subExpression, itemType, separator, separatorStart, captures, null, null)
+            /// <param name="index">The capture's index in the containing expression.</param>
+            /// <param name="length">The capture's length.</param>
+            /// <param name="subExpression">The captured subexpression.</param>
+            public ItemExpressionCapture(int index, int length, StringSegment subExpression)
+                : this(index, length, subExpression, default, default, -1, null, default, default)
             {
             }
 
             /// <summary>
-            /// Create an Expression Capture instance
-            /// Represents a sub expression, shredded from a larger expression
+            ///  Initializes a capture for an item-vector expression.
             /// </summary>
-            public ItemExpressionCapture(int index, int length, string subExpression, string itemType, string separator, int separatorStart, List<ItemExpressionCapture> captures, string functionName, string functionArguments)
+            /// <param name="index">The capture's index in the containing expression.</param>
+            /// <param name="length">The capture's length.</param>
+            /// <param name="subExpression">The captured subexpression.</param>
+            /// <param name="itemType">The captured item type.</param>
+            /// <param name="separator">The optional captured separator.</param>
+            /// <param name="separatorStart">The separator's index in <paramref name="subExpression"/>.</param>
+            /// <param name="captures">The nested transform captures.</param>
+            public ItemExpressionCapture(
+                int index,
+                int length,
+                StringSegment subExpression,
+                StringSegment itemType,
+                StringSegment separator,
+                int separatorStart,
+                List<ItemExpressionCapture> captures)
+                : this(index, length, subExpression, itemType, separator, separatorStart, captures, default, default)
+            {
+            }
+
+            /// <summary>
+            ///  Initializes a capture for an item-vector or transform expression.
+            /// </summary>
+            /// <param name="index">The capture's index in the containing expression.</param>
+            /// <param name="length">The capture's length.</param>
+            /// <param name="subExpression">The captured subexpression.</param>
+            /// <param name="itemType">The optional captured item type.</param>
+            /// <param name="separator">The optional captured separator.</param>
+            /// <param name="separatorStart">The separator's index in <paramref name="subExpression"/>.</param>
+            /// <param name="captures">The nested transform captures.</param>
+            /// <param name="functionName">The optional transform function name.</param>
+            /// <param name="functionArguments">The optional transform function arguments.</param>
+            public ItemExpressionCapture(
+                int index,
+                int length,
+                StringSegment subExpression,
+                StringSegment itemType,
+                StringSegment separator,
+                int separatorStart,
+                List<ItemExpressionCapture> captures,
+                StringSegment functionName,
+                StringSegment functionArguments)
             {
                 Index = index;
                 Length = length;
-                Value = subExpression;
-                ItemType = itemType;
-                Separator = separator;
+                ValueSegment = subExpression;
+                ItemTypeSegment = itemType;
+                SeparatorSegment = separator;
                 SeparatorStart = separatorStart;
                 Captures = captures;
-                FunctionName = functionName;
-                FunctionArguments = functionArguments;
+                FunctionNameSegment = functionName;
+                FunctionArgumentsSegment = functionArguments;
             }
 
             /// <summary>
@@ -1003,19 +1125,43 @@ namespace Microsoft.Build.Evaluation
             public int Length { get; }
 
             /// <summary>
-            /// Gets the captured substring from the input string.
+            ///  Gets an allocation-free view over the captured substring.
             /// </summary>
-            public string Value { get; }
+            public StringSegment ValueSegment { get; }
 
             /// <summary>
-            /// Gets the captured itemtype.
+            ///  Gets the captured substring as a string.
             /// </summary>
-            public string ItemType { get; }
+            /// <remarks>
+            ///  This realizes partial segments. Expansion code should consume <see cref="ValueSegment"/> directly.
+            /// </remarks>
+            public string Value => ValueSegment.ValueOrEmpty;
 
             /// <summary>
-            /// Gets the captured itemtype.
+            ///  Gets an allocation-free view over the captured item type.
             /// </summary>
-            public string Separator { get; }
+            public StringSegment ItemTypeSegment { get; }
+
+            /// <summary>
+            ///  Gets the captured item type as a string, or <see langword="null"/> when none was captured.
+            /// </summary>
+            /// <remarks>
+            ///  This realizes partial segments. Expansion code should consume <see cref="ItemTypeSegment"/> directly.
+            /// </remarks>
+            public string ItemType => ItemTypeSegment.Value;
+
+            /// <summary>
+            ///  Gets an allocation-free view over the captured separator.
+            /// </summary>
+            public StringSegment SeparatorSegment { get; }
+
+            /// <summary>
+            ///  Gets the captured separator as a string, or <see langword="null"/> when none was captured.
+            /// </summary>
+            /// <remarks>
+            ///  This realizes partial segments. Expansion code should consume <see cref="SeparatorSegment"/> directly.
+            /// </remarks>
+            public string Separator => SeparatorSegment.Value;
 
             /// <summary>
             /// The starting character of the separator.
@@ -1023,22 +1169,37 @@ namespace Microsoft.Build.Evaluation
             public int SeparatorStart { get; }
 
             /// <summary>
-            /// The function name, if any, within this expression
+            ///  Gets an allocation-free view over the function name, if any.
             /// </summary>
-            public string FunctionName { get; }
+            public StringSegment FunctionNameSegment { get; }
 
             /// <summary>
-            /// The function arguments, if any, within this expression
+            ///  Gets the function name as a string, or <see langword="null"/> when none was captured.
             /// </summary>
-            public string FunctionArguments { get; }
+            /// <remarks>
+            ///  This realizes partial segments. Expansion code should consume <see cref="FunctionNameSegment"/> directly.
+            /// </remarks>
+            public string FunctionName => FunctionNameSegment.Value;
+
+            /// <summary>
+            ///  Gets an allocation-free view over the function arguments, if any.
+            /// </summary>
+            public StringSegment FunctionArgumentsSegment { get; }
+
+            /// <summary>
+            ///  Gets the function arguments as a string, or <see langword="null"/> when none were captured.
+            /// </summary>
+            /// <remarks>
+            ///  This realizes partial segments. Expansion code should consume
+            ///  <see cref="FunctionArgumentsSegment"/> directly.
+            /// </remarks>
+            public string FunctionArguments => FunctionArgumentsSegment.Value;
 
             /// <summary>
             /// Gets the captured substring from the input string.
             /// </summary>
             public override string ToString()
-            {
-                return Value;
-            }
+                => Value;
         }
     }
 }

@@ -4,9 +4,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Shouldly;
 using Xunit;
 
@@ -543,7 +546,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <param name="expected"></param>
         private void VerifySplitSemiColonSeparatedList(string input, params string[] expected)
         {
-            var actual = ExpressionShredder.SplitSemiColonSeparatedList(input);
+            string[] actual = ExpressionShredder
+                .SplitSemiColonSeparatedList(input)
+                .Select(segment => segment.ValueOrEmpty)
+                .ToArray();
             Console.WriteLine(input);
 
             if (expected == null)
@@ -552,7 +558,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 expected = Array.Empty<string>();
             }
 
-            Assert.Equal(actual, expected, StringComparer.Ordinal);
+            actual.ShouldBe(expected);
         }
 
         private void VerifyExpression(string test)
@@ -561,8 +567,17 @@ namespace Microsoft.Build.UnitTests.Evaluation
             list.Add(test);
             ItemsAndMetadataPair pair = ExpressionShredder.GetReferencedItemNamesAndMetadata(list);
 
-            HashSet<string> actualItems = pair.Items;
-            Dictionary<string, MetadataReference> actualMetadata = pair.Metadata;
+            HashSet<string> actualItems = pair.Items is null
+                ? null
+                : new HashSet<string>(
+                    pair.Items.Select(item => item.ValueOrEmpty),
+                    MSBuildNameIgnoreCaseComparer.Default);
+            Dictionary<string, MetadataReference> actualMetadata = pair.Metadata is null
+                ? null
+                : pair.Metadata.ToDictionary(
+                    reference => reference.ToString(),
+                    reference => reference,
+                    MSBuildNameIgnoreCaseComparer.Default);
 
             HashSet<string> expectedItems = GetConsumedItemReferences_OriginalImplementation(test);
             Console.WriteLine("verifying item names...");

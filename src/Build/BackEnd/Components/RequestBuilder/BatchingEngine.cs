@@ -114,15 +114,35 @@ namespace Microsoft.Build.BackEnd
 
             ItemsAndMetadataPair pair = ExpressionShredder.GetReferencedItemNamesAndMetadata(batchableObjectParameters);
 
-            // All the @(itemname) item list references in the tag, including transforms, etc.
-            HashSet<string> consumedItemReferences = pair.Items;
+            // Batching stores names in long-lived string-keyed bucket tables. Realize the shredded
+            // segments once at that ownership boundary instead of while scanning each expression.
+            HashSet<string> consumedItemReferences = null;
+            if (pair.Items is { Count: > 0 })
+            {
+                consumedItemReferences = new HashSet<string>(pair.Items.Count, MSBuildNameIgnoreCaseComparer.Default);
+                foreach (var itemReference in pair.Items)
+                {
+                    consumedItemReferences.Add(itemReference.ValueOrEmpty);
+                }
+            }
 
             // All the %(itemname.metadataname) references in the tag (not counting those embedded
             // inside item transforms), and note that the itemname portion is optional.
             // The keys in the returned hash table are the qualified metadata names (e.g. "EmbeddedResource.Culture"
             // or just "Culture").  The values are MetadataReference structs, which simply split out the item
             // name (possibly null) and the actual metadata name.
-            Dictionary<string, MetadataReference> consumedMetadataReferences = pair.Metadata;
+            Dictionary<string, MetadataReference> consumedMetadataReferences = null;
+            if (pair.Metadata is { Count: > 0 })
+            {
+                consumedMetadataReferences = new Dictionary<string, MetadataReference>(
+                    pair.Metadata.Count,
+                    MSBuildNameIgnoreCaseComparer.Default);
+
+                foreach (MetadataReference metadataReference in pair.Metadata)
+                {
+                    consumedMetadataReferences[metadataReference.ToString()] = metadataReference;
+                }
+            }
 
             List<ItemBucket> buckets = null;
             if (consumedMetadataReferences?.Count > 0)
@@ -215,8 +235,10 @@ namespace Microsoft.Build.BackEnd
             // with an item name.
             foreach (MetadataReference consumedMetadataReference in consumedMetadataReferences.Values)
             {
-                if (consumedMetadataReference.ItemName != null)
+                if (consumedMetadataReference.ItemName.HasValue)
                 {
+                    string itemName = consumedMetadataReference.ItemName.ValueOrEmpty;
+
                     // Rule #1.  Qualified metadata reference.
                     // For metadata references that are qualified with an item name
                     // (e.g., %(EmbeddedResource.Culture) ), we add that item name to the list of
@@ -224,7 +246,7 @@ namespace Microsoft.Build.BackEnd
                     // @(...) syntax, and even if every item in the list doesn't necessary contain
                     // a value for this metadata.  This is the special power that you get by qualifying
                     // the metadata reference with an item name.
-                    itemListsToBeBatched[consumedMetadataReference.ItemName] = null;
+                    itemListsToBeBatched[itemName] = null;
 
                     // Also add this qualified item to the consumed item references list, because
                     // %(EmbeddedResource.Culture) effectively means that @(EmbeddedResource) is
@@ -233,15 +255,17 @@ namespace Microsoft.Build.BackEnd
                     // method) to check that every item in this list has a value for each
                     // unqualified metadata reference.
                     consumedItemReferenceNames ??= new HashSet<string>(MSBuildNameIgnoreCaseComparer.Default);
-                    consumedItemReferenceNames.Add(consumedMetadataReference.ItemName);
+                    consumedItemReferenceNames.Add(itemName);
                 }
             }
 
             // Loop through all the metadata references and find the ones that are unqualified.
             foreach (MetadataReference consumedMetadataReference in consumedMetadataReferences.Values)
             {
-                if (consumedMetadataReference.ItemName == null)
+                if (!consumedMetadataReference.ItemName.HasValue)
                 {
+                    string metadataName = consumedMetadataReference.MetadataName.ValueOrEmpty;
+
                     // Rule #2.  Unqualified metadata reference.
                     // For metadata references that are unqualified, every single consumed item
                     // must contain a value for that metadata.  If any item doesn't, it's an error
@@ -259,9 +283,9 @@ namespace Microsoft.Build.BackEnd
                                 foreach (ProjectItemInstance item in items)
                                 {
                                     ProjectErrorUtilities.VerifyThrowInvalidProject(
-                                        item.HasMetadata(consumedMetadataReference.MetadataName),
+                                        item.HasMetadata(metadataName),
                                         elementLocation, "ItemDoesNotContainValueForUnqualifiedMetadata",
-                                        item.EvaluatedInclude, consumedItemName, consumedMetadataReference.MetadataName);
+                                        item.EvaluatedInclude, consumedItemName, metadataName);
                                 }
                             }
 
@@ -401,8 +425,8 @@ namespace Microsoft.Build.BackEnd
             foreach (KeyValuePair<string, MetadataReference> consumedMetadataReference in consumedMetadataReferences)
             {
                 string metadataQualifiedName = consumedMetadataReference.Key;
-                string metadataItemName = consumedMetadataReference.Value.ItemName;
-                string metadataName = consumedMetadataReference.Value.MetadataName;
+                string metadataItemName = consumedMetadataReference.Value.ItemName.Value;
+                string metadataName = consumedMetadataReference.Value.MetadataName.ValueOrEmpty;
 
                 if (
                         (metadataItemName != null) &&

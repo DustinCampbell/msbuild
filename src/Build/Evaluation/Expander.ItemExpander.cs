@@ -10,6 +10,7 @@ using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 #if NET
 using Microsoft.Build.Utilities;
 #endif
@@ -64,7 +65,8 @@ internal partial class Expander<P, I>
     /// </remarks>
     private static partial class ItemExpander
     {
-        private static readonly FrozenDictionary<string, TransformKind> s_intrinsicTransforms = new Dictionary<string, TransformKind>(StringComparer.OrdinalIgnoreCase)
+        private static readonly FrozenDictionary<StringSegment, TransformKind> s_intrinsicTransforms =
+            new Dictionary<StringSegment, TransformKind>(StringSegmentComparer.OrdinalIgnoreCase)
         {
             { "Count", TransformKind.Count },
             { "Exists", TransformKind.Exists },
@@ -82,7 +84,7 @@ internal partial class Expander<P, I>
             { "WithMetadataValue", TransformKind.WithMetadataValue },
             { "WithoutMetadataValue", TransformKind.WithoutMetadataValue },
             { "AnyHaveMetadataValue", TransformKind.AnyHaveMetadataValue },
-        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+        }.ToFrozenDictionary(StringSegmentComparer.OrdinalIgnoreCase);
 
         /// <summary>
         ///  Executes the list of transform functions.
@@ -98,8 +100,7 @@ internal partial class Expander<P, I>
         ///  look like: <c>results = h(g(f(items)))</c>.
         ///  </para>
         ///  <para>
-        ///  If no function name is found, we default to
-        ///  <see cref="Transforms.ExpandQuotedExpressionFunction(List{TransformEntry}, List{TransformEntry}, string, bool, IElementLocation)"/>.
+        ///  If no function name is found, the capture is evaluated as a quoted transform.
         ///  </para>
         /// </remarks>
         /// <returns>
@@ -125,27 +126,31 @@ internal partial class Expander<P, I>
             for (int i = 0; i < captures.Count; i++)
             {
                 ExpressionShredder.ItemExpressionCapture capture = captures[i];
-                string function = capture.Value;
-                string functionName = capture.FunctionName;
-                string argumentsExpression = capture.FunctionArguments;
+                StringSegment function = capture.ValueSegment;
+                StringSegment functionName = capture.FunctionNameSegment;
+                StringSegment argumentsExpression = capture.FunctionArgumentsSegment;
 
                 string[] arguments = null;
                 TransformKind kind;
+                string functionNameString = null;
 
                 // Quoted transforms have no function name. Select their kind directly to avoid synthesizing
                 // a function name and one-element argument array, then performing name-based dispatch.
-                if (functionName is null)
+                if (!functionName.HasValue)
                 {
                     kind = TransformKind.ExpandQuotedExpressionFunction;
                 }
                 else
                 {
-                    if (argumentsExpression is not null)
+                    functionNameString = functionName.ValueOrEmpty;
+
+                    if (argumentsExpression.HasValue)
                     {
-                        arguments = ExtractFunctionArguments(elementLocation, argumentsExpression, argumentsExpression.AsMemory());
+                        string argumentsString = argumentsExpression.ValueOrEmpty;
+                        arguments = ExtractFunctionArguments(elementLocation, argumentsString, argumentsString.AsMemory());
                     }
 
-                    if (ItemSpecModifiers.IsDerivableItemSpecModifier(functionName))
+                    if (ItemSpecModifiers.IsDerivableItemSpecModifier(functionNameString))
                     {
                         kind = TransformKind.ItemSpecModifierFunction;
                     }
@@ -158,68 +163,68 @@ internal partial class Expander<P, I>
                 switch (kind)
                 {
                     case TransformKind.ItemSpecModifierFunction:
-                        Transforms.ItemSpecModifierFunction(input, output, arguments, includeNullEntries, functionName, elementLocation);
+                        Transforms.ItemSpecModifierFunction(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
                         break;
                     case TransformKind.Count:
                         Transforms.Count(input, output);
                         break;
                     case TransformKind.Exists:
-                        Transforms.Exists(input, output, arguments, functionName, elementLocation);
+                        Transforms.Exists(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.Combine:
-                        Transforms.Combine(input, output, arguments, functionName, elementLocation);
+                        Transforms.Combine(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.GetPathsOfAllDirectoriesAbove:
-                        Transforms.GetPathsOfAllDirectoriesAbove(input, output, arguments, functionName, elementLocation);
+                        Transforms.GetPathsOfAllDirectoriesAbove(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.DirectoryName:
-                        Transforms.DirectoryName(input, output, arguments, includeNullEntries, functionName, elementLocation);
+                        Transforms.DirectoryName(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
                         break;
                     case TransformKind.Metadata:
-                        Transforms.Metadata(input, output, arguments, includeNullEntries, functionName, elementLocation);
+                        Transforms.Metadata(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
                         break;
                     case TransformKind.DistinctWithCase:
-                        Transforms.DistinctWithCase(input, output, arguments, functionName, elementLocation);
+                        Transforms.DistinctWithCase(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.Distinct:
-                        Transforms.Distinct(input, output, arguments, functionName, elementLocation);
+                        Transforms.Distinct(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.Reverse:
-                        Transforms.Reverse(input, output, arguments, functionName, elementLocation);
+                        Transforms.Reverse(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.ExpandQuotedExpressionFunction:
-                        // The unnamed form stores the quoted expression in capture.Value. An explicitly named
+                        // The unnamed form stores the quoted expression in capture.ValueSegment. An explicitly named
                         // invocation uses parsed arguments so its existing syntax validation is preserved.
-                        if (functionName is null)
+                        if (!functionName.HasValue)
                         {
                             Transforms.ExpandQuotedExpressionFunction(input, output, function, includeNullEntries, elementLocation);
                         }
                         else
                         {
-                            Transforms.ExpandQuotedExpressionFunction(input, output, arguments, includeNullEntries, functionName, elementLocation);
+                            Transforms.ExpandQuotedExpressionFunction(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
                         }
 
                         break;
                     case TransformKind.ExecuteStringFunction:
-                        Transforms.ExecuteStringFunction(expander, input, output, arguments, includeNullEntries, functionName, elementLocation);
+                        Transforms.ExecuteStringFunction(expander, input, output, arguments, includeNullEntries, functionNameString, elementLocation);
                         break;
                     case TransformKind.ClearMetadata:
-                        Transforms.ClearMetadata(input, output, arguments, includeNullEntries, functionName, elementLocation);
+                        Transforms.ClearMetadata(input, output, arguments, includeNullEntries, functionNameString, elementLocation);
                         break;
                     case TransformKind.HasMetadata:
-                        Transforms.HasMetadata(input, output, arguments, functionName, elementLocation);
+                        Transforms.HasMetadata(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.WithMetadataValue:
-                        Transforms.WithMetadataValue(input, output, arguments, functionName, elementLocation);
+                        Transforms.WithMetadataValue(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.WithoutMetadataValue:
-                        Transforms.WithoutMetadataValue(input, output, arguments, functionName, elementLocation);
+                        Transforms.WithoutMetadataValue(input, output, arguments, functionNameString, elementLocation);
                         break;
                     case TransformKind.AnyHaveMetadataValue:
-                        Transforms.AnyHaveMetadataValue(input, output, arguments, functionName, elementLocation);
+                        Transforms.AnyHaveMetadataValue(input, output, arguments, functionNameString, elementLocation);
                         break;
                     default:
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnknownItemFunction", functionName);
+                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "UnknownItemFunction", functionNameString);
                         break;
                 }
 
@@ -309,6 +314,27 @@ internal partial class Expander<P, I>
             out bool isTransformExpression,
             IElementLocation elementLocation)
             where T : class, IItem
+            => ExpandSingleItemVectorExpressionIntoItems(
+                expander,
+                expression.AsSegment(),
+                items,
+                itemFactory,
+                options,
+                includeNullEntries,
+                out isTransformExpression,
+                elementLocation);
+
+        /// <inheritdoc cref="ExpandSingleItemVectorExpressionIntoItems{T}(Expander{P, I}, string, IItemProvider{I}, IItemFactory{I, T}, ExpanderOptions, bool, out bool, IElementLocation)"/>
+        internal static IList<T> ExpandSingleItemVectorExpressionIntoItems<T>(
+            Expander<P, I> expander,
+            StringSegment expression,
+            IItemProvider<I> items,
+            IItemFactory<I, T> itemFactory,
+            ExpanderOptions options,
+            bool includeNullEntries,
+            out bool isTransformExpression,
+            IElementLocation elementLocation)
+            where T : class, IItem
         {
             isTransformExpression = false;
 
@@ -327,6 +353,14 @@ internal partial class Expander<P, I>
 
         internal static bool TryExpandSingleItemVectorExpression(
             string expression,
+            ExpanderOptions options,
+            IElementLocation elementLocation,
+            out ExpressionShredder.ItemExpressionCapture itemVector)
+            => TryExpandSingleItemVectorExpression(expression.AsSegment(), options, elementLocation, out itemVector);
+
+        /// <inheritdoc cref="TryExpandSingleItemVectorExpression(string, ExpanderOptions, IElementLocation, out ExpressionShredder.ItemExpressionCapture)"/>
+        internal static bool TryExpandSingleItemVectorExpression(
+            StringSegment expression,
             ExpanderOptions options,
             IElementLocation elementLocation,
             out ExpressionShredder.ItemExpressionCapture itemVector)
@@ -350,7 +384,7 @@ internal partial class Expander<P, I>
                 itemVector.Index == 0 && itemVector.Length == expression.Length,
                 elementLocation,
                 "EmbeddedItemVectorCannotBeItemized",
-                expression);
+                expression.ValueOrEmpty);
 
             return true;
         }
@@ -370,11 +404,11 @@ internal partial class Expander<P, I>
             // have the item type "Compile".
             if (itemFactory.ItemType == null)
             {
-                itemFactory.ItemType = expressionCapture.ItemType;
+                itemFactory.ItemType = expressionCapture.ItemTypeSegment.ValueOrEmpty;
             }
 
             IList<T> result;
-            if (expressionCapture.Separator != null)
+            if (expressionCapture.SeparatorSegment.HasValue)
             {
                 // Reference contains a separator, for example @(Compile, ';').
                 // We need to flatten the list into
@@ -478,11 +512,11 @@ internal partial class Expander<P, I>
             Assumed.NotNull(evaluatedItems, "Cannot expand items without providing items");
 
             // An empty item type indicates that the expression could not be parsed correctly.
-            ProjectErrorUtilities.VerifyThrowInvalidProject(!itemVector.ItemType.IsNullOrEmpty(), elementLocation, "InvalidFunctionPropertyExpression");
+            ProjectErrorUtilities.VerifyThrowInvalidProject(!itemVector.ItemTypeSegment.IsNullOrEmpty, elementLocation, "InvalidFunctionPropertyExpression");
 
-            ICollection<I> items = evaluatedItems.GetItems(itemVector.ItemType);
+            ICollection<I> items = evaluatedItems.GetItems(itemVector.ItemTypeSegment.ValueOrEmpty);
             List<ExpressionShredder.ItemExpressionCapture> captures = itemVector.Captures;
-            string separator = itemVector.Separator;
+            string separator = itemVector.SeparatorSegment.Value;
 
             isTransformExpression = captures is not null;
             entries = null;
@@ -555,9 +589,9 @@ internal partial class Expander<P, I>
                 // Count returns zero and AnyHaveMetadataValue returns false for an empty list, so those transforms must still run.
                 foreach (ExpressionShredder.ItemExpressionCapture capture in captures)
                 {
-                    string functionName = capture.FunctionName;
-                    if (string.Equals(functionName, "Count", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(functionName, "AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase))
+                    StringSegment functionName = capture.FunctionNameSegment;
+                    if (functionName.Equals("Count", StringComparison.OrdinalIgnoreCase) ||
+                        functionName.Equals("AnyHaveMetadataValue", StringComparison.OrdinalIgnoreCase))
                     {
                         return true;
                     }
@@ -737,7 +771,7 @@ internal partial class Expander<P, I>
             int startLength = builder.Length;
             bool truncate = IsTruncationEnabled(options);
 
-            // if the capture.Separator is not null, then ExpandExpressionCapture would have joined the items using that separator itself
+            // If the capture has a separator, ExpandExpressionCapture has already joined the items with it.
             for (int i = 0; i < entries.Count; i++)
             {
                 var entry = entries[i];

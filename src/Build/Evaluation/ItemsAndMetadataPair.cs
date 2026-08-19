@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -15,21 +16,21 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// The item set
         /// </summary>
-        private HashSet<string> _items;
+        private HashSet<StringSegment> _items;
 
         /// <summary>
         /// The metadata dictionary.
         /// The key is the possibly qualified metadata name, for example
         /// "EmbeddedResource.Culture" or "Culture"
         /// </summary>
-        private Dictionary<string, MetadataReference> _metadata;
+        private HashSet<MetadataReference> _metadata;
 
         /// <summary>
         /// Constructs a pair from an item set and metadata
         /// </summary>
         /// <param name="items">The item set</param>
         /// <param name="metadata">The metadata dictionary</param>
-        internal ItemsAndMetadataPair(HashSet<string> items, Dictionary<string, MetadataReference> metadata)
+        internal ItemsAndMetadataPair(HashSet<StringSegment> items, HashSet<MetadataReference> metadata)
         {
             _items = items;
             _metadata = metadata;
@@ -38,7 +39,7 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Gets or sets the item set
         /// </summary>
-        internal HashSet<string> Items
+        internal HashSet<StringSegment> Items
         {
             readonly get
             {
@@ -56,7 +57,7 @@ namespace Microsoft.Build.Evaluation
         /// The key is the possibly qualified metadata name, for example
         /// "EmbeddedResource.Culture" or "Culture"
         /// </summary>
-        internal Dictionary<string, MetadataReference> Metadata
+        internal HashSet<MetadataReference> Metadata
         {
             readonly get
             {

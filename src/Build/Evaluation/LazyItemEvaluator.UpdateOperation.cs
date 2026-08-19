@@ -158,7 +158,7 @@ namespace Microsoft.Build.Evaluation
 
                 foreach (var metadataReference in itemsAndMetadataFound.Metadata)
                 {
-                    if (!string.IsNullOrWhiteSpace(metadataReference.Value.ItemName))
+                    if (!metadataReference.ItemName.IsNullOrWhiteSpace())
                     {
                         return true;
                     }

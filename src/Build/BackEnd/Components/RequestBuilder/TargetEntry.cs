@@ -400,8 +400,9 @@ namespace Microsoft.Build.BackEnd
 
             var dependencies = _expander.ExpandIntoStringListLeaveEscaped(_target.DependsOnTargets, ExpanderOptions.ExpandPropertiesAndItems, _target.DependsOnTargetsLocation);
             List<TargetSpecification> dependencyTargets = new List<TargetSpecification>();
-            foreach (string escapedDependency in dependencies)
+            foreach (var escapedDependencySegment in dependencies)
             {
+                string escapedDependency = escapedDependencySegment.ValueOrEmpty;
                 string dependencyTargetName = EscapingUtilities.UnescapeAll(escapedDependency);
                 dependencyTargets.Add(new TargetSpecification(dependencyTargetName, _target.DependsOnTargetsLocation));
             }
@@ -717,8 +718,9 @@ namespace Microsoft.Build.BackEnd
                 {
                     var errorTargets = _expander.ExpandIntoStringListLeaveEscaped(errorTargetInstance.ExecuteTargets, ExpanderOptions.ExpandPropertiesAndItems, errorTargetInstance.ExecuteTargetsLocation);
 
-                    foreach (string escapedErrorTarget in errorTargets)
+                    foreach (var escapedErrorTargetSegment in errorTargets)
                     {
+                        string escapedErrorTarget = escapedErrorTargetSegment.ValueOrEmpty;
                         string errorTargetName = EscapingUtilities.UnescapeAll(escapedErrorTarget);
                         allErrorTargets.Add(new TargetSpecification(errorTargetName, errorTargetInstance.ExecuteTargetsLocation));
                     }

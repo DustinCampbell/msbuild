@@ -1572,9 +1572,16 @@ namespace Microsoft.Build.BackEnd
                 return null;
             }
 
-            return new HashSet<string>(ExpressionShredder.SplitSemiColonSeparatedList(warnings)
-            .SelectMany(w => w.Split([','], StringSplitOptions.RemoveEmptyEntries))
-            .Select(w => w.Trim()), StringComparer.OrdinalIgnoreCase);
+            HashSet<string> warningCodes = new(StringComparer.OrdinalIgnoreCase);
+            foreach (var semicolonSegment in ExpressionShredder.SplitSemiColonSeparatedList(warnings))
+            {
+                foreach (var commaSegment in semicolonSegment.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    warningCodes.Add(commaSegment.Trim().ValueOrEmpty);
+                }
+            }
+
+            return warningCodes;
         }
 
         private sealed class DedicatedThreadsTaskScheduler : TaskScheduler

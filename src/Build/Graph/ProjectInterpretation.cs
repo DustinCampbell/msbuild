@@ -328,11 +328,12 @@ namespace Microsoft.Build.Graph
 
             foreach (var globalPropertyValue in ExpressionShredder.SplitSemiColonSeparatedList(globalPropertyValues))
             {
+                string globalPropertyValueString = globalPropertyValue.ValueOrEmpty;
                 yield return new ProjectItemInstance(
                     project: outerBuild,
                     itemType: InnerBuildReferenceItemName,
                     includeEscaped: outerBuild.FullPath,
-                    directMetadata: [new KeyValuePair<string, string>(ItemMetadataNames.PropertiesMetadataName, $"{globalPropertyName}={globalPropertyValue}")],
+                    directMetadata: [new KeyValuePair<string, string>(ItemMetadataNames.PropertiesMetadataName, $"{globalPropertyName}={globalPropertyValueString}")],
                     definingFileEscaped: outerBuild.FullPath);
             }
         }
@@ -565,15 +566,15 @@ namespace Microsoft.Build.Graph
                             bool targetsAreForOuterBuild = MSBuildStringIsTrue(projectReferenceTarget.GetMetadataValue(ProjectReferenceTargetIsOuterBuildMetadataName));
 
                             // Append directly into the destination list. SemiColonTokenizer is a
-                            // struct enumerator, so foreach avoids boxing it through IEnumerable<string>.
+                            // struct enumerator, so foreach avoids boxing it through IEnumerable<StringSegment>.
                             // This skips the LINQ Select state machine, its captured-locals closure,
                             // and an intermediate TargetSpecification[] vs the previous
                             // .Select(...).ToArray() + AddRange pattern.
                             ref List<TargetSpecification> dest = ref targetsAreForOuterBuild ? ref targetsForOuterBuild : ref targetsForInnerBuild;
-                            foreach (string target in ExpressionShredder.SplitSemiColonSeparatedList(targetsMetadataValue))
+                            foreach (var target in ExpressionShredder.SplitSemiColonSeparatedList(targetsMetadataValue))
                             {
                                 dest ??= [];
-                                dest.Add(new TargetSpecification(target, skipNonexistentTargets));
+                                dest.Add(new TargetSpecification(target.ValueOrEmpty, skipNonexistentTargets));
                             }
                         }
                     }

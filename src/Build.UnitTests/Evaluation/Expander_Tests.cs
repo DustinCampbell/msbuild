@@ -1913,7 +1913,10 @@ namespace Microsoft.Build.UnitTests.Evaluation
             string value = "@(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ; $(NonExistent) ; %(NonExistent) ; " +
                 "$(OutputPath) ; $(TargetPath) ; %(Language)_%(Culture)";
 
-            IList<string> expanded = expander.ExpandIntoStringListLeaveEscaped(value, ExpanderOptions.ExpandAll, MockElementLocation.Instance).ToList();
+            IList<string> expanded = expander
+                .ExpandIntoStringListLeaveEscaped(value, ExpanderOptions.ExpandAll, MockElementLocation.Instance)
+                .Select(segment => segment.ValueOrEmpty)
+                .ToList();
 
             Assert.Equal(9, expanded.Count);
             Assert.Equal(@"string$(p)", expanded[0]);

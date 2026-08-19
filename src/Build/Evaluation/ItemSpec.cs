@@ -8,6 +8,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Globbing;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -222,28 +223,30 @@ namespace Microsoft.Build.Evaluation
                     }
                     else
                     {
+                        string splitEscapedString = splitEscaped.ValueOrEmpty;
+
                         // The expression is not of the form "@(X)". Treat as string
 
                         // Code corresponds to EngineFileUtilities.GetFileList
-                        if (!FileMatcher.HasWildcards(splitEscaped))
+                        if (!FileMatcher.HasWildcards(splitEscapedString))
                         {
                             // No real wildcards means we just return the original string.  Don't even bother
                             // escaping ... it should already be escaped appropriately since it came directly
                             // from the project file
 
-                            fragments.Add(new ValueFragment(splitEscaped, projectDirectory));
+                            fragments.Add(new ValueFragment(splitEscapedString, projectDirectory));
                         }
-                        else if (EscapingUtilities.ContainsEscapedWildcards(splitEscaped))
+                        else if (EscapingUtilities.ContainsEscapedWildcards(splitEscapedString))
                         {
                             // '*' is an illegal character to have in a filename.
                             // todo: file-system assumption on legal path characters: https://github.com/dotnet/msbuild/issues/781
                             // Just return the original string.
-                            fragments.Add(new ValueFragment(splitEscaped, projectDirectory));
+                            fragments.Add(new ValueFragment(splitEscapedString, projectDirectory));
                         }
                         else
                         {
                             // Unescape before handing it to the filesystem.
-                            var filespecUnescaped = EscapingUtilities.UnescapeAll(splitEscaped);
+                            var filespecUnescaped = EscapingUtilities.UnescapeAll(splitEscapedString);
 
                             fragments.Add(new GlobFragment(filespecUnescaped, projectDirectory));
                         }
@@ -255,7 +258,7 @@ namespace Microsoft.Build.Evaluation
         }
 
         private ItemExpressionFragment ProcessItemExpression(
-            string expression,
+            StringSegment expression,
             IElementLocation elementLocation,
             string projectDirectory,
             out bool isItemListExpression)
@@ -270,7 +273,7 @@ namespace Microsoft.Build.Evaluation
             {
                 isItemListExpression = true;
 
-                return new ItemExpressionFragment(itemVector, expression, this, projectDirectory);
+                return new ItemExpressionFragment(itemVector, expression.ValueOrEmpty, this, projectDirectory);
             }
 
             return null;

@@ -284,7 +284,7 @@ namespace Microsoft.Build.Evaluation
 
                 bool needToExpandMetadataForEachItem = false;
 
-                if (itemsAndMetadataFound.Metadata?.Values.Count > 0)
+                if (itemsAndMetadataFound.Metadata?.Count > 0)
                 {
                     // If there is any metadata present, we need to expand items individually.
                     // This ensures correct results for:
@@ -313,7 +313,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                if (!itemExpressionFragment.Capture.ItemType.Equals(referencedItemType, StringComparison.OrdinalIgnoreCase))
+                if (!itemExpressionFragment.Capture.ItemTypeSegment.Equals(referencedItemType, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
