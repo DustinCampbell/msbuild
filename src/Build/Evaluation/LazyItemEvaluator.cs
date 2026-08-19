@@ -627,7 +627,9 @@ namespace Microsoft.Build.Evaluation
             {
                 if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemExpression)
                 {
-                    AddReferencedItemLists(builder, itemExpression.Capture);
+                    AddReferencedItemList(
+                        itemExpression.ItemVector.ItemType.ValueOrEmpty,
+                        builder.ReferencedItemLists);
                 }
             }
         }
@@ -677,25 +679,13 @@ namespace Microsoft.Build.Evaluation
                     expression,
                     ExpanderOptions.ExpandItems,
                     elementLocation,
-                    out ExpressionShredder.ItemExpressionCapture itemVector))
+                    out ItemVector itemVector))
             {
                 AddReferencedItemLists(operationBuilder, itemVector);
             }
         }
 
-        private void AddReferencedItemLists(OperationBuilder operationBuilder, ExpressionShredder.ItemExpressionCapture match)
-        {
-            if (match.ItemTypeSegment.HasValue)
-            {
-                AddReferencedItemList(match.ItemTypeSegment.ValueOrEmpty, operationBuilder.ReferencedItemLists);
-            }
-            if (match.Captures != null)
-            {
-                foreach (var subMatch in match.Captures)
-                {
-                    AddReferencedItemLists(operationBuilder, subMatch);
-                }
-            }
-        }
+        private void AddReferencedItemLists(OperationBuilder operationBuilder, ItemVector itemVector)
+            => AddReferencedItemList(itemVector.ItemType.ValueOrEmpty, operationBuilder.ReferencedItemLists);
     }
 }

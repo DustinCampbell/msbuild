@@ -100,7 +100,7 @@ public class ExpressionShredderBenchmark
             while (ExpressionShredder.TryGetNextItemVectorExpression(
                 scenario.Expression,
                 startIndex,
-                out ExpressionShredder.ItemExpressionCapture itemVector))
+                out ItemVector itemVector))
             {
                 _warmCacheRoots.Add(itemVector);
                 startIndex = itemVector.Index + itemVector.Length;
@@ -169,7 +169,7 @@ public class ExpressionShredderBenchmark
         while (ExpressionShredder.TryGetNextItemVectorExpression(
             scenario.Expression,
             startIndex,
-            out ExpressionShredder.ItemExpressionCapture itemVector))
+            out ItemVector itemVector))
         {
             count++;
             startIndex = itemVector.Index + itemVector.Length;

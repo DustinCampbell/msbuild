@@ -202,7 +202,7 @@ internal partial class Expander<P, I>
                 }
             }
 
-            if (!ExpressionShredder.TryGetNextItemVectorExpression(expression, out ExpressionShredder.ItemExpressionCapture itemVector))
+            if (!ExpressionShredder.TryGetNextItemVectorExpression(expression, out ItemVector itemVector))
             {
                 // No well-formed item vectors in the string — scan for metadata references directly.
                 ScanAndExpandMetadata(
@@ -211,7 +211,7 @@ internal partial class Expander<P, I>
                     expression.Length,
                     _firstMetadataMarkerIndex);
             }
-            else if (itemVector.Index == 0 && itemVector.Length == expression.Length && !itemVector.SeparatorSegment.HasValue)
+            else if (itemVector.Index == 0 && itemVector.Length == expression.Length && !itemVector.HasSeparator)
             {
                 // The entire expression is a single item vector with no separator, so there are
                 // no gaps to expand metadata in — return the expression unchanged.
@@ -230,13 +230,13 @@ internal partial class Expander<P, I>
         /// <summary>
         ///  Expands metadata in the gaps between item vector expressions and within their separators.
         /// </summary>
-        private void ScanAndExpandMetadataInGaps(StringSegment expression, ExpressionShredder.ItemExpressionCapture itemVector)
+        private void ScanAndExpandMetadataInGaps(StringSegment expression, ItemVector itemVector)
         {
             int start = 0;
 
             do
             {
-                start = ProcessItemExpressionCapture(expression, start, itemVector);
+                start = ProcessItemVector(expression, start, itemVector);
             }
             while (ExpressionShredder.TryGetNextItemVectorExpression(expression, start, out itemVector));
 
@@ -247,7 +247,7 @@ internal partial class Expander<P, I>
             }
         }
 
-        private int ProcessItemExpressionCapture(StringSegment expression, int start, ExpressionShredder.ItemExpressionCapture itemVector)
+        private int ProcessItemVector(StringSegment expression, int start, ItemVector itemVector)
         {
             // Expand metadata in the gap before this item vector expression.
             if (itemVector.Index > start)
@@ -256,10 +256,10 @@ internal partial class Expander<P, I>
             }
 
             // Expand metadata that appears in the item vector expression's separator.
-            if (itemVector.SeparatorSegment.HasValue)
+            if (itemVector.HasSeparator)
             {
                 // Append the portion before the separator verbatim, then expand within the separator portion.
-                StringSegment value = itemVector.ValueSegment;
+                StringSegment value = itemVector.Text;
                 int separatorStart = itemVector.SeparatorStart;
 
                 _builder.Append(value.AsMemory(0, separatorStart));
@@ -268,7 +268,7 @@ internal partial class Expander<P, I>
             else
             {
                 // Append the item vector expression as-is.
-                _builder.Append(itemVector.ValueSegment.AsMemory());
+                _builder.Append(itemVector.Text.AsMemory());
             }
 
             // Advance past this item vector expression.

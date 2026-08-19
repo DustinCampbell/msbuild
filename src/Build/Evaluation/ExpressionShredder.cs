@@ -412,14 +412,14 @@ namespace Microsoft.Build.Evaluation
             return result;
         }
 
-        /// <inheritdoc cref="TryGetNextItemVectorExpression(string, int, out ItemExpressionCapture)"/>
-        public static bool TryGetNextItemVectorExpression(string expression, out ItemExpressionCapture itemVector)
+        /// <inheritdoc cref="TryGetNextItemVectorExpression(string, int, out ItemVector)"/>
+        public static bool TryGetNextItemVectorExpression(string expression, out ItemVector itemVector)
             => TryGetNextItemVectorExpression(expression.AsSegment(), startIndex: 0, out itemVector);
 
-        /// <inheritdoc cref="TryGetNextItemVectorExpression(string, out ItemExpressionCapture)"/>
+        /// <inheritdoc cref="TryGetNextItemVectorExpression(string, out ItemVector)"/>
         /// <param name="expression">The expression segment to scan.</param>
         /// <param name="itemVector">The parsed item-vector expression.</param>
-        public static bool TryGetNextItemVectorExpression(StringSegment expression, out ItemExpressionCapture itemVector)
+        public static bool TryGetNextItemVectorExpression(StringSegment expression, out ItemVector itemVector)
             => TryGetNextItemVectorExpression(expression, startIndex: 0, out itemVector);
 
         /// <summary>
@@ -432,14 +432,14 @@ namespace Microsoft.Build.Evaluation
         ///  <see langword="true"/> if a valid item-vector expression is found; otherwise,
         ///  <see langword="false"/>.
         /// </returns>
-        public static bool TryGetNextItemVectorExpression(string expression, int startIndex, out ItemExpressionCapture itemVector)
+        public static bool TryGetNextItemVectorExpression(string expression, int startIndex, out ItemVector itemVector)
             => TryGetNextItemVectorExpression(expression.AsSegment(), startIndex, out itemVector);
 
-        /// <inheritdoc cref="TryGetNextItemVectorExpression(string, int, out ItemExpressionCapture)"/>
+        /// <inheritdoc cref="TryGetNextItemVectorExpression(string, int, out ItemVector)"/>
         /// <param name="expression">The expression segment to scan.</param>
         /// <param name="startIndex">The index at which to begin scanning.</param>
         /// <param name="itemVector">The parsed item-vector expression.</param>
-        public static bool TryGetNextItemVectorExpression(StringSegment expression, int startIndex, out ItemExpressionCapture itemVector)
+        public static bool TryGetNextItemVectorExpression(StringSegment expression, int startIndex, out ItemVector itemVector)
         {
             while ((startIndex = IndexOfItemVectorMarker(expression, startIndex)) >= 0)
             {
@@ -455,7 +455,7 @@ namespace Microsoft.Build.Evaluation
             return false;
         }
 
-        private static bool TryParseItemVectorExpression(StringSegment expression, int startIndex, out ItemExpressionCapture itemVector)
+        private static bool TryParseItemVectorExpression(StringSegment expression, int startIndex, out ItemVector itemVector)
         {
             int end = expression.Length;
             int index = startIndex + 2;
@@ -480,10 +480,10 @@ namespace Microsoft.Build.Evaluation
 
             // Grab the name, but continue to verify it's a well-formed expression
             // before we store it.
-            StringSegment itemName = expression.Slice(startOfName, index - startOfName);
+            StringSegment itemName = expression[startOfName..index];
 
             SinkWhitespace(expression, ref index);
-            List<ItemExpressionCapture> transformExpressions = null;
+            List<ItemTransform> transforms = null;
 
             // If there's an '->' eat it and the subsequent quoted expression or transform function
             while (Sink(expression, ref index, end, '-', '>'))
@@ -495,25 +495,24 @@ namespace Microsoft.Build.Evaluation
                 {
                     int startQuoted = startTransform + 1;
                     int endQuoted = index - 1;
-                    if (transformExpressions == null)
+                    if (transforms is null)
                     {
-                        // PERF: Almost all expressions have only one capture, so optimize for that case
-                        transformExpressions = new List<ItemExpressionCapture>(1);
+                        // PERF: Almost all expressions have only one transform, so optimize for that case.
+                        transforms = new List<ItemTransform>(1);
                     }
 
-                    transformExpressions.Add(new ItemExpressionCapture(
-                        startQuoted,
-                        expression.Slice(startQuoted, endQuoted - startQuoted)));
+                    transforms.Add(ItemTransform.CreateQuotedExpressionTransform(
+                        expression[startQuoted..endQuoted]));
                     SinkWhitespace(expression, ref index);
                     continue;
                 }
 
                 startTransform = index;
-                if (TryParseFunctionTransform(expression, startTransform, ref index, end, out ItemExpressionCapture transform))
+                if (TryParseFunctionTransform(expression, startTransform, ref index, end, out ItemTransform transform))
                 {
-                    // PERF: Almost all expressions have only one capture, so optimize for that case
-                    transformExpressions ??= new List<ItemExpressionCapture>(1);
-                    transformExpressions.Add(transform);
+                    // PERF: Almost all expressions have only one transform, so optimize for that case.
+                    transforms ??= new List<ItemTransform>(1);
+                    transforms.Add(transform);
 
                     SinkWhitespace(expression, ref index);
                     continue;
@@ -526,8 +525,6 @@ namespace Microsoft.Build.Evaluation
             SinkWhitespace(expression, ref index);
 
             StringSegment separator = default;
-            int separatorStart = -1;
-
             // If there's a ',', eat it and the subsequent quoted expression
             if (Sink(expression, ref index, ','))
             {
@@ -546,8 +543,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                separatorStart = index - startIndex;
-                separator = expression.Slice(index, closingQuote - index);
+                separator = expression[index..closingQuote];
 
                 index = closingQuote + 1;
             }
@@ -560,18 +556,13 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            int length = index - startIndex;
-
-            // Create an expression capture that encompasses the entire expression between the @( and the )
-            // with the item name and any separator contained within it
-            // and each transform expression contained within it (i.e. each ->XYZ)
-            itemVector = new ItemExpressionCapture(
+            // Preserve one segment for the complete item vector and relative ranges for its parsed components.
+            itemVector = new ItemVector(
+                text: expression[startIndex..index],
                 index: startIndex,
-                subExpression: expression.Slice(startIndex, length),
                 itemType: itemName,
                 separator,
-                separatorStart,
-                captures: transformExpressions);
+                transforms);
 
             return true;
         }
@@ -581,7 +572,7 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="expression">The expression segment.</param>
         /// <param name="startIndex">The index of the <c>@(</c> marker.</param>
-        /// <param name="itemVector">The parsed item-vector capture.</param>
+        /// <param name="itemVector">The parsed item-vector expression.</param>
         /// <returns>
         ///  <see langword="true"/> when a valid item vector begins at the specified index; otherwise,
         ///  <see langword="false"/>.
@@ -589,7 +580,7 @@ namespace Microsoft.Build.Evaluation
         internal static bool TryGetItemVectorExpressionAt(
             StringSegment expression,
             int startIndex,
-            out ItemExpressionCapture itemVector)
+            out ItemVector itemVector)
             => TryParseItemVectorExpression(expression, startIndex, out itemVector);
 
         /// <summary>
@@ -777,7 +768,7 @@ namespace Microsoft.Build.Evaluation
                     {
                         pair.Items ??= new ReferenceSet<StringSegment>(
                             MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Items.Add(expression.Slice(startOfName, nameLength));
+                        pair.Items.Add(expression[startOfName..(startOfName + nameLength)]);
                     }
 
                     continue;
@@ -850,7 +841,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            StringSegment firstName = expression.Slice(startOfText, i - startOfText);
+            StringSegment firstName = expression[startOfText..i];
 
             SinkWhitespace(expression, ref i, end);
 
@@ -868,7 +859,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                metadataName = expression.Slice(startOfText, i - startOfText);
+                metadataName = expression[startOfText..i];
 
                 SinkWhitespace(expression, ref i, end);
             }
@@ -982,7 +973,7 @@ namespace Microsoft.Build.Evaluation
         /// and ends before the specified end index.
         /// Leaves index one past the end of the closing paren.
         /// </summary>
-        private static bool TryParseFunctionTransform(StringSegment expression, int startTransform, ref int i, int end, out ItemExpressionCapture transform)
+        private static bool TryParseFunctionTransform(StringSegment expression, int startTransform, ref int i, int end, out ItemTransform transform)
         {
             if (SinkValidName(expression, ref i, end))
             {
@@ -996,21 +987,15 @@ namespace Microsoft.Build.Evaluation
                 {
                     int endFunctionArguments = i - 1;
 
-                    StringSegment functionName = expression.Slice(startTransform, endFunctionName - startTransform);
                     StringSegment functionArguments = default;
                     if (endFunctionArguments > startFunctionArguments)
                     {
-                        functionArguments = expression.Slice(startFunctionArguments, endFunctionArguments - startFunctionArguments);
+                        functionArguments = expression[startFunctionArguments..endFunctionArguments];
                     }
 
-                    transform = new ItemExpressionCapture(
-                        startTransform,
-                        expression.Slice(startTransform, i - startTransform),
-                        default,
-                        default,
-                        -1,
-                        null,
-                        functionName,
+                    transform = ItemTransform.CreateFunctionTransform(
+                        expression[startTransform..i],
+                        endFunctionName - startTransform,
                         functionArguments);
                     return true;
                 }
@@ -1119,195 +1104,6 @@ namespace Microsoft.Build.Evaluation
             {
                 i++;
             }
-        }
-
-        /// <summary>
-        /// Represents one substring for a single successful capture.
-        /// </summary>
-        internal readonly struct ItemExpressionCapture
-        {
-            private readonly int _itemTypeOffset;
-            private readonly int _itemTypeLength;
-            private readonly int _separatorOffset;
-            private readonly int _separatorLength;
-            private readonly int _functionNameOffset;
-            private readonly int _functionNameLength;
-            private readonly int _functionArgumentsOffset;
-            private readonly int _functionArgumentsLength;
-
-            /// <summary>
-            ///  Initializes a capture for a subexpression shredded from a larger expression.
-            /// </summary>
-            /// <param name="index">The capture's index in the containing expression.</param>
-            /// <param name="subExpression">The captured subexpression.</param>
-            public ItemExpressionCapture(int index, StringSegment subExpression)
-                : this(index, subExpression, default, default, -1, null, default, default)
-            {
-            }
-
-            /// <summary>
-            ///  Initializes a capture for an item-vector expression.
-            /// </summary>
-            /// <param name="index">The capture's index in the containing expression.</param>
-            /// <param name="subExpression">The captured subexpression.</param>
-            /// <param name="itemType">The captured item type.</param>
-            /// <param name="separator">The optional captured separator.</param>
-            /// <param name="separatorStart">The separator's index in <paramref name="subExpression"/>.</param>
-            /// <param name="captures">The nested transform captures.</param>
-            public ItemExpressionCapture(
-                int index,
-                StringSegment subExpression,
-                StringSegment itemType,
-                StringSegment separator,
-                int separatorStart,
-                List<ItemExpressionCapture> captures)
-                : this(index, subExpression, itemType, separator, separatorStart, captures, default, default)
-            {
-            }
-
-            /// <summary>
-            ///  Initializes a capture for an item-vector or transform expression.
-            /// </summary>
-            /// <param name="index">The capture's index in the containing expression.</param>
-            /// <param name="subExpression">The captured subexpression.</param>
-            /// <param name="itemType">The optional captured item type.</param>
-            /// <param name="separator">The optional captured separator.</param>
-            /// <param name="separatorStart">The separator's index in <paramref name="subExpression"/>.</param>
-            /// <param name="captures">The nested transform captures.</param>
-            /// <param name="functionName">The optional transform function name.</param>
-            /// <param name="functionArguments">The optional transform function arguments.</param>
-            public ItemExpressionCapture(
-                int index,
-                StringSegment subExpression,
-                StringSegment itemType,
-                StringSegment separator,
-                int separatorStart,
-                List<ItemExpressionCapture> captures,
-                StringSegment functionName,
-                StringSegment functionArguments)
-            {
-                Index = index;
-                ValueSegment = subExpression;
-                (_itemTypeOffset, _itemTypeLength) = GetRelativeRange(subExpression, itemType);
-                (_separatorOffset, _separatorLength) = GetRelativeRange(subExpression, separator);
-                SeparatorStart = separatorStart;
-                Captures = captures;
-                (_functionNameOffset, _functionNameLength) = GetRelativeRange(subExpression, functionName);
-                (_functionArgumentsOffset, _functionArgumentsLength) =
-                    GetRelativeRange(subExpression, functionArguments);
-            }
-
-            private static (int Offset, int Length) GetRelativeRange(
-                StringSegment containingSegment,
-                StringSegment nestedSegment)
-                => nestedSegment.HasValue
-                    ? (nestedSegment.Offset - containingSegment.Offset, nestedSegment.Length)
-                    : (-1, 0);
-
-            /// <summary>
-            /// Captures within this capture
-            /// </summary>
-            public List<ItemExpressionCapture> Captures { get; }
-
-            /// <summary>
-            /// The position in the original string where the first character of the captured
-            /// substring was found.
-            /// </summary>
-            public int Index { get; }
-
-            /// <summary>
-            /// The length of the captured substring.
-            /// </summary>
-            public int Length => ValueSegment.Length;
-
-            /// <summary>
-            ///  Gets an allocation-free view over the captured substring.
-            /// </summary>
-            public StringSegment ValueSegment { get; }
-
-            /// <summary>
-            ///  Gets the captured substring as a string.
-            /// </summary>
-            /// <remarks>
-            ///  This realizes partial segments. Expansion code should consume <see cref="ValueSegment"/> directly.
-            /// </remarks>
-            public string Value => ValueSegment.ValueOrEmpty;
-
-            /// <summary>
-            ///  Gets an allocation-free view over the captured item type.
-            /// </summary>
-            public StringSegment ItemTypeSegment
-                => _itemTypeOffset >= 0
-                    ? ValueSegment.Slice(_itemTypeOffset, _itemTypeLength)
-                    : default;
-
-            /// <summary>
-            ///  Gets the captured item type as a string, or <see langword="null"/> when none was captured.
-            /// </summary>
-            /// <remarks>
-            ///  This realizes partial segments. Expansion code should consume <see cref="ItemTypeSegment"/> directly.
-            /// </remarks>
-            public string ItemType => ItemTypeSegment.Value;
-
-            /// <summary>
-            ///  Gets an allocation-free view over the captured separator.
-            /// </summary>
-            public StringSegment SeparatorSegment
-                => _separatorOffset >= 0
-                    ? ValueSegment.Slice(_separatorOffset, _separatorLength)
-                    : default;
-
-            /// <summary>
-            ///  Gets the captured separator as a string, or <see langword="null"/> when none was captured.
-            /// </summary>
-            /// <remarks>
-            ///  This realizes partial segments. Expansion code should consume <see cref="SeparatorSegment"/> directly.
-            /// </remarks>
-            public string Separator => SeparatorSegment.Value;
-
-            /// <summary>
-            /// The starting character of the separator.
-            /// </summary>
-            public int SeparatorStart { get; }
-
-            /// <summary>
-            ///  Gets an allocation-free view over the function name, if any.
-            /// </summary>
-            public StringSegment FunctionNameSegment
-                => _functionNameOffset >= 0
-                    ? ValueSegment.Slice(_functionNameOffset, _functionNameLength)
-                    : default;
-
-            /// <summary>
-            ///  Gets the function name as a string, or <see langword="null"/> when none was captured.
-            /// </summary>
-            /// <remarks>
-            ///  This realizes partial segments. Expansion code should consume <see cref="FunctionNameSegment"/> directly.
-            /// </remarks>
-            public string FunctionName => FunctionNameSegment.Value;
-
-            /// <summary>
-            ///  Gets an allocation-free view over the function arguments, if any.
-            /// </summary>
-            public StringSegment FunctionArgumentsSegment
-                => _functionArgumentsOffset >= 0
-                    ? ValueSegment.Slice(_functionArgumentsOffset, _functionArgumentsLength)
-                    : default;
-
-            /// <summary>
-            ///  Gets the function arguments as a string, or <see langword="null"/> when none were captured.
-            /// </summary>
-            /// <remarks>
-            ///  This realizes partial segments. Expansion code should consume
-            ///  <see cref="FunctionArgumentsSegment"/> directly.
-            /// </remarks>
-            public string FunctionArguments => FunctionArgumentsSegment.Value;
-
-            /// <summary>
-            /// Gets the captured substring from the input string.
-            /// </summary>
-            public override string ToString()
-                => Value;
         }
     }
 }

@@ -96,6 +96,29 @@ internal static partial class Extensions
         => new(text, start, length);
 
     /// <summary>
+    ///  Gets the range of <paramref name="nestedSegment"/> relative to
+    ///  <paramref name="containingSegment"/>.
+    /// </summary>
+    /// <param name="containingSegment">The containing segment.</param>
+    /// <param name="nestedSegment">The optional nested segment.</param>
+    /// <returns>
+    ///  The nested segment's relative range, or the default range when it is <see langword="null"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Range GetRelativeRange(
+        this StringSegment containingSegment,
+        StringSegment nestedSegment)
+    {
+        if (!nestedSegment.HasValue)
+        {
+            return default;
+        }
+
+        int offset = nestedSegment.Offset - containingSegment.Offset;
+        return offset..(offset + nestedSegment.Length);
+    }
+
+    /// <summary>
     ///  Interns the characters of <paramref name="segment"/> into a <see cref="string"/>, or returns
     ///  <see langword="null"/> if the segment has no backing value.
     /// </summary>

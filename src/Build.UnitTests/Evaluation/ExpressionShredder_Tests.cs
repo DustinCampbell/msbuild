@@ -358,37 +358,74 @@ namespace Microsoft.Build.UnitTests.Evaluation
         {
             const string expression = "x@x@(; )@(First);@(Second, '|')";
 
-            ExpressionShredder.TryGetNextItemVectorExpression(expression, out ExpressionShredder.ItemExpressionCapture first).ShouldBeTrue();
-            first.Value.ShouldBe("@(First)");
+            ExpressionShredder.TryGetNextItemVectorExpression(expression, out ItemVector first).ShouldBeTrue();
+            first.Text.Value.ShouldBe("@(First)");
 
             int nextIndex = first.Index + first.Length;
-            ExpressionShredder.TryGetNextItemVectorExpression(expression, nextIndex, out ExpressionShredder.ItemExpressionCapture second).ShouldBeTrue();
-            second.Value.ShouldBe("@(Second, '|')");
+            ExpressionShredder.TryGetNextItemVectorExpression(expression, nextIndex, out ItemVector second).ShouldBeTrue();
+            second.Text.Value.ShouldBe("@(Second, '|')");
 
             nextIndex = second.Index + second.Length;
             ExpressionShredder.TryGetNextItemVectorExpression(expression, nextIndex, out _).ShouldBeFalse();
         }
 
         [Fact]
-        public void ItemVectorCapturesRetainSourceSegments()
+        public void ItemVectorPartsRetainSourceSegments()
         {
             const string expression = "@(Compile->'%(Filename)'->Substring(0, 3), ',')";
 
             ExpressionShredder
                 .TryGetNextItemVectorExpression(
                     expression,
-                    out ExpressionShredder.ItemExpressionCapture capture)
+                    out ItemVector itemVector)
                 .ShouldBeTrue();
 
-            capture.ValueSegment.Buffer.ShouldBeSameAs(expression);
-            capture.ItemTypeSegment.Buffer.ShouldBeSameAs(expression);
-            capture.SeparatorSegment.Buffer.ShouldBeSameAs(expression);
-            capture.Captures.ShouldAllBe(transform =>
-                ReferenceEquals(transform.ValueSegment.Buffer, expression) &&
-                (!transform.FunctionNameSegment.HasValue ||
-                 ReferenceEquals(transform.FunctionNameSegment.Buffer, expression)) &&
-                (!transform.FunctionArgumentsSegment.HasValue ||
-                 ReferenceEquals(transform.FunctionArgumentsSegment.Buffer, expression)));
+            itemVector.Text.Buffer.ShouldBeSameAs(expression);
+            itemVector.ItemType.Buffer.ShouldBeSameAs(expression);
+            itemVector.HasSeparator.ShouldBeTrue();
+            itemVector.Separator.Buffer.ShouldBeSameAs(expression);
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].IsQuotedExpression.ShouldBeTrue();
+            itemVector.Transforms[1].IsFunction.ShouldBeTrue();
+            itemVector.Transforms[1].IsQuotedExpression.ShouldBeFalse();
+            itemVector.Transforms[1].FunctionName.Offset.ShouldBe(itemVector.Transforms[1].Text.Offset);
+            itemVector.Transforms.ShouldAllBe(transform =>
+                ReferenceEquals(transform.Text.Buffer, expression) &&
+                (!transform.FunctionName.HasValue ||
+                 ReferenceEquals(transform.FunctionName.Buffer, expression)) &&
+                (!transform.FunctionArguments.HasValue ||
+                 ReferenceEquals(transform.FunctionArguments.Buffer, expression)));
+        }
+
+        [Fact]
+        public void ItemVectorRangesAreRelativeToText()
+        {
+            const string prefix = "prefix";
+            const string itemVectorText = "@(Compile->Count(), ';')";
+            const string source = prefix + itemVectorText + "suffix";
+            StringSegment expression = source.AsSegment(prefix.Length, itemVectorText.Length);
+
+            ExpressionShredder.TryGetNextItemVectorExpression(expression, out ItemVector itemVector).ShouldBeTrue();
+
+            itemVector.Index.ShouldBe(0);
+            itemVector.Text.Offset.ShouldBe(prefix.Length);
+            itemVector.Text.Value.ShouldBe(itemVectorText);
+            itemVector.Length.ShouldBe(itemVectorText.Length);
+            itemVector.ItemType.Offset.ShouldBe(itemVector.Text.Offset + 2);
+            itemVector.SeparatorStart.ShouldBe(itemVectorText.IndexOf(';'));
+            itemVector.Separator.Offset.ShouldBe(itemVector.Text.Offset + itemVector.SeparatorStart);
+            itemVector.Transforms[0].FunctionName.Offset.ShouldBe(itemVector.Transforms[0].Text.Offset);
+        }
+
+        [Fact]
+        public void EmptyItemVectorPartsRetainPresence()
+        {
+            ItemVector itemVector = GetSingleItemExpression("@(Foo->'', '')");
+
+            itemVector.HasSeparator.ShouldBeTrue();
+            itemVector.Separator.IsEmpty.ShouldBeTrue();
+            itemVector.Transforms[0].Text.IsEmpty.ShouldBeTrue();
+            itemVector.Transforms[0].IsQuotedExpression.ShouldBeTrue();
         }
 
         [Fact]
@@ -714,13 +751,13 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExtractItemVectorTransform1()
         {
             string expression = "@(i->'%(Meta0)'->'%(Filename)'->Substring($(Val)))";
-            ExpressionShredder.ItemExpressionCapture itemVector = GetSingleItemExpression(expression);
+            ItemVector itemVector = GetSingleItemExpression(expression);
 
-            Assert.Null(itemVector.Separator);
-            Assert.Equal("i", itemVector.ItemType);
-            Assert.Equal("%(Meta0)", itemVector.Captures[0].Value);
-            Assert.Equal("%(Filename)", itemVector.Captures[1].Value);
-            Assert.Equal("Substring($(Val))", itemVector.Captures[2].Value);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("i");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Meta0)");
+            itemVector.Transforms[1].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[2].Text.Value.ShouldBe("Substring($(Val))");
         }
 
         /// <summary>
@@ -733,29 +770,29 @@ namespace Microsoft.Build.UnitTests.Evaluation
         {
             foreach (string expression in _medleyTests)
             {
-                List<ExpressionShredder.ItemExpressionCapture> expressions = GetItemExpressions(expression);
+                List<ItemVector> expressions = GetItemVectors(expression);
                 MatchCollection matches = s_itemVectorPattern.Matches(expression);
                 expressions.Count.ShouldBe(matches.Count);
 
                 for (int i = 0; i < expressions.Count; i++)
                 {
                     Match match = matches[i];
-                    ExpressionShredder.ItemExpressionCapture capture = expressions[i];
+                    ItemVector itemVector = expressions[i];
 
-                    Assert.Equal(match.Value, capture.Value);
+                    itemVector.Text.Value.ShouldBe(match.Value);
 
                     Group transformGroup = match.Groups["TRANSFORM"];
 
-                    if (capture.Captures != null)
+                    if (itemVector.Transforms != null)
                     {
                         for (int j = 0; j < transformGroup.Captures.Count; j++)
                         {
-                            Assert.Equal(transformGroup.Captures[j].Value, capture.Captures[j].Value);
+                            itemVector.Transforms[j].Text.Value.ShouldBe(transformGroup.Captures[j].Value);
                         }
                     }
                     else
                     {
-                        Assert.Equal(0, transformGroup.Length);
+                        transformGroup.Length.ShouldBe(0);
                     }
                 }
             }
@@ -764,416 +801,420 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpressionInvalid1()
         {
-            GetItemExpressions("@(type-&gt;'%($(a)), '%'')").ShouldBeEmpty();
+            GetItemVectors("@(type-&gt;'%($(a)), '%'')").ShouldBeEmpty();
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression1()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo)";
-            capture = GetSingleItemExpression(expression);
-            Assert.Null(capture.Separator);
-            Assert.Null(capture.Captures);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Null(capture.Captures);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.SeparatorStart.ShouldBe(-1);
+            itemVector.Transforms.ShouldBeNull();
+            itemVector.ItemType.Value.ShouldBe("Foo");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression2()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo, ';')";
-            capture = GetSingleItemExpression(expression);
-            Assert.Null(capture.Captures);
-            Assert.Equal(";", capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Null(capture.Captures);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.ShouldBeNull();
+            itemVector.HasSeparator.ShouldBeTrue();
+            itemVector.SeparatorStart.ShouldBe(expression.IndexOf(';'));
+            itemVector.Separator.Value.ShouldBe(";");
+            itemVector.ItemType.Value.ShouldBe("Foo");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression3()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Fullpath)')";
-            capture = GetSingleItemExpression(expression);
-            Assert.Single(capture.Captures);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Single(capture.Captures);
-            Assert.Equal("%(Fullpath)", capture.Captures[0].Value);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Fullpath)");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression4()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Fullpath)',';')";
-            capture = GetSingleItemExpression(expression);
-            Assert.Single(capture.Captures);
-            Assert.Equal(";", capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Single(capture.Captures);
-            Assert.Equal("%(Fullpath)", capture.Captures[0].Value);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.HasSeparator.ShouldBeTrue();
+            itemVector.Separator.Value.ShouldBe(";");
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Fullpath)");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression5()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->Bar(a,b))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Single(capture.Captures);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Single(capture.Captures);
-            Assert.Equal("Bar(a,b)", capture.Captures[0].Value);
-            Assert.Equal("Bar", capture.Captures[0].FunctionName);
-            Assert.Equal("a,b", capture.Captures[0].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms[0].IsFunction.ShouldBeTrue();
+            itemVector.Transforms[0].Text.Value.ShouldBe("Bar(a,b)");
+            itemVector.Transforms[0].FunctionName.Value.ShouldBe("Bar");
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBe("a,b");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression6()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->Bar(a,b),';')";
-            capture = GetSingleItemExpression(expression);
-            Assert.Single(capture.Captures);
-            Assert.Equal(";", capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Single(capture.Captures);
-            Assert.Equal("Bar(a,b)", capture.Captures[0].Value);
-            Assert.Equal("Bar", capture.Captures[0].FunctionName);
-            Assert.Equal("a,b", capture.Captures[0].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.HasSeparator.ShouldBeTrue();
+            itemVector.Separator.Value.ShouldBe(";");
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].IsFunction.ShouldBeTrue();
+            itemVector.Transforms[0].Text.Value.ShouldBe("Bar(a,b)");
+            itemVector.Transforms[0].FunctionName.Value.ShouldBe("Bar");
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBe("a,b");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression7()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->Metadata('Meta0')->Directory())";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("Metadata('Meta0')", capture.Captures[0].Value);
-            Assert.Equal("Metadata", capture.Captures[0].FunctionName);
-            Assert.Equal("'Meta0'", capture.Captures[0].FunctionArguments);
-            Assert.Equal("Directory()", capture.Captures[1].Value);
-            Assert.Equal("Directory", capture.Captures[1].FunctionName);
-            Assert.Null(capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("Metadata('Meta0')");
+            itemVector.Transforms[0].FunctionName.Value.ShouldBe("Metadata");
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBe("'Meta0'");
+            itemVector.Transforms[1].Text.Value.ShouldBe("Directory()");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Directory");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBeNull();
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression8()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->Metadata('Meta0')->Directory(),';')";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Equal(";", capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("Metadata('Meta0')", capture.Captures[0].Value);
-            Assert.Equal("Metadata", capture.Captures[0].FunctionName);
-            Assert.Equal("'Meta0'", capture.Captures[0].FunctionArguments);
-            Assert.Equal("Directory()", capture.Captures[1].Value);
-            Assert.Equal("Directory", capture.Captures[1].FunctionName);
-            Assert.Null(capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeTrue();
+            itemVector.Separator.Value.ShouldBe(";");
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("Metadata('Meta0')");
+            itemVector.Transforms[0].FunctionName.Value.ShouldBe("Metadata");
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBe("'Meta0'");
+            itemVector.Transforms[1].Text.Value.ShouldBe("Directory()");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Directory");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBeNull();
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression9()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Fullpath)'->Directory(), '|')";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Equal("|", capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Fullpath)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Directory()", capture.Captures[1].Value);
-            Assert.Equal("Directory", capture.Captures[1].FunctionName);
-            Assert.Null(capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeTrue();
+            itemVector.Separator.Value.ShouldBe("|");
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Fullpath)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Directory()");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Directory");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBeNull();
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression10()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Fullpath)'->Directory(),';')";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Equal(";", capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Fullpath)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Directory()", capture.Captures[1].Value);
-            Assert.Equal("Directory", capture.Captures[1].FunctionName);
-            Assert.Null(capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeTrue();
+            itemVector.Separator.Value.ShouldBe(";");
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Fullpath)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Directory()");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Directory");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBeNull();
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression11()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'$(SOMEPROP)%(Fullpath)')";
-            capture = GetSingleItemExpression(expression);
-            Assert.Single(capture.Captures);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("$(SOMEPROP)%(Fullpath)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("$(SOMEPROP)%(Fullpath)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression12()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Filename)'->Substring($(Val), $(Boo)))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring($(Val), $(Boo))", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("$(Val), $(Boo)", capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring($(Val), $(Boo))");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("$(Val), $(Boo)");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression13()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Filename)'->Substring(\"AA\", 'BB', `cc`))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring(\"AA\", 'BB', `cc`)", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"AA\", 'BB', `cc`", capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring(\"AA\", 'BB', `cc`)");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("\"AA\", 'BB', `cc`");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression14()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Filename)'->Substring('()', $(Boo), ')('))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring('()', $(Boo), ')(')", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("'()', $(Boo), ')('", capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring('()', $(Boo), ')(')");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("'()', $(Boo), ')('");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression15()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \"AA\"))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring(`()`, $(Boo), \"AA\")", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("`()`, $(Boo), \"AA\"", capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring(`()`, $(Boo), \"AA\")");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("`()`, $(Boo), \"AA\"");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression16()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Filename)'->Substring(`()`, $(Boo), \")(\"))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring(`()`, $(Boo), \")(\")", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("`()`, $(Boo), \")(\"", capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring(`()`, $(Boo), \")(\")");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("`()`, $(Boo), \")(\"");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsSingleExpression17()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring(\"()\", $(Boo), `)(`)");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("\"()\", $(Boo), `)(`");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsMultipleExpression1()
         {
             string expression = "@(Bar);@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`))";
-            List<ExpressionShredder.ItemExpressionCapture> expressions = GetItemExpressions(expression);
+            List<ItemVector> expressions = GetItemVectors(expression);
             expressions.Count.ShouldBe(2);
 
-            ExpressionShredder.ItemExpressionCapture firstCapture = expressions[0];
-            ExpressionShredder.ItemExpressionCapture capture = expressions[1];
+            ItemVector firstItemVector = expressions[0];
+            ItemVector itemVector = expressions[1];
 
-            Assert.Equal("Bar", firstCapture.ItemType);
-            Assert.Null(firstCapture.Captures);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments);
+            firstItemVector.ItemType.Value.ShouldBe("Bar");
+            firstItemVector.Transforms.ShouldBeNull();
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring(\"()\", $(Boo), `)(`)");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("\"()\", $(Boo), `)(`");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsMultipleExpression2()
         {
             string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`));@(Bar)";
-            List<ExpressionShredder.ItemExpressionCapture> expressions = GetItemExpressions(expression);
+            List<ItemVector> expressions = GetItemVectors(expression);
             expressions.Count.ShouldBe(2);
 
-            ExpressionShredder.ItemExpressionCapture firstCapture = expressions[0];
-            ExpressionShredder.ItemExpressionCapture secondCapture = expressions[1];
+            ItemVector firstItemVector = expressions[0];
+            ItemVector secondItemVector = expressions[1];
 
-            Assert.Equal("Bar", secondCapture.ItemType);
-            Assert.Null(secondCapture.Captures);
-            Assert.Equal(2, firstCapture.Captures.Count);
-            Assert.Null(firstCapture.Separator);
-            Assert.Equal("Foo", firstCapture.ItemType);
-            Assert.Equal("%(Filename)", firstCapture.Captures[0].Value);
-            Assert.Null(firstCapture.Captures[0].FunctionName);
-            Assert.Null(firstCapture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", firstCapture.Captures[1].Value);
-            Assert.Equal("Substring", firstCapture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", firstCapture.Captures[1].FunctionArguments);
+            secondItemVector.ItemType.Value.ShouldBe("Bar");
+            secondItemVector.Transforms.ShouldBeNull();
+            firstItemVector.Transforms.Count.ShouldBe(2);
+            firstItemVector.HasSeparator.ShouldBeFalse();
+            firstItemVector.ItemType.Value.ShouldBe("Foo");
+            firstItemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            firstItemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            firstItemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            firstItemVector.Transforms[1].Text.Value.ShouldBe("Substring(\"()\", $(Boo), `)(`)");
+            firstItemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            firstItemVector.Transforms[1].FunctionArguments.Value.ShouldBe("\"()\", $(Boo), `)(`");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsMultipleExpression3()
         {
             string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(`));AAAAAA;@(Bar)";
-            List<ExpressionShredder.ItemExpressionCapture> expressions = GetItemExpressions(expression);
+            List<ItemVector> expressions = GetItemVectors(expression);
             expressions.Count.ShouldBe(2);
 
-            ExpressionShredder.ItemExpressionCapture capture = expressions[0];
-            ExpressionShredder.ItemExpressionCapture secondCapture = expressions[1];
+            ItemVector itemVector = expressions[0];
+            ItemVector secondItemVector = expressions[1];
 
-            Assert.Equal("Bar", secondCapture.ItemType);
-            Assert.Null(secondCapture.Captures);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(`)", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(`", capture.Captures[1].FunctionArguments);
+            secondItemVector.ItemType.Value.ShouldBe("Bar");
+            secondItemVector.Transforms.ShouldBeNull();
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring(\"()\", $(Boo), `)(`)");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("\"()\", $(Boo), `)(`");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsMultipleExpression4()
         {
             string expression = "@(Foo->'%(Filename)'->Substring(\"()\", $(Boo), `)(\"`));@(;);@(aaa->;b);@(bbb->'d);@(`Foo->'%(Filename)'->Distinct());@(Bar)";
-            List<ExpressionShredder.ItemExpressionCapture> expressions = GetItemExpressions(expression);
+            List<ItemVector> expressions = GetItemVectors(expression);
             expressions.Count.ShouldBe(2);
 
-            ExpressionShredder.ItemExpressionCapture capture = expressions[0];
-            ExpressionShredder.ItemExpressionCapture secondCapture = expressions[1];
+            ItemVector itemVector = expressions[0];
+            ItemVector secondItemVector = expressions[1];
 
-            Assert.Equal("Bar", secondCapture.ItemType);
-            Assert.Null(secondCapture.Captures);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Null(capture.Separator);
-            Assert.Equal("Foo", capture.ItemType);
-            Assert.Equal("%(Filename)", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
-            Assert.Null(capture.Captures[0].FunctionArguments);
-            Assert.Equal("Substring(\"()\", $(Boo), `)(\"`)", capture.Captures[1].Value);
-            Assert.Equal("Substring", capture.Captures[1].FunctionName);
-            Assert.Equal("\"()\", $(Boo), `)(\"`", capture.Captures[1].FunctionArguments);
+            secondItemVector.ItemType.Value.ShouldBe("Bar");
+            secondItemVector.Transforms.ShouldBeNull();
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.HasSeparator.ShouldBeFalse();
+            itemVector.ItemType.Value.ShouldBe("Foo");
+            itemVector.Transforms[0].Text.Value.ShouldBe("%(Filename)");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBeNull();
+            itemVector.Transforms[1].Text.Value.ShouldBe("Substring(\"()\", $(Boo), `)(\"`)");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Substring");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("\"()\", $(Boo), `)(\"`");
         }
 
         [Fact]
         public void ExtractItemVectorExpressionsMultipleExpression5()
         {
             string expression = "@(foo);@(foo,'-');@(foo);@(foo,',');@(foo)";
-            List<ExpressionShredder.ItemExpressionCapture> expressions = GetItemExpressions(expression);
+            List<ItemVector> expressions = GetItemVectors(expression);
             expressions.Count.ShouldBe(5);
 
-            foreach (ExpressionShredder.ItemExpressionCapture expressionCapture in expressions)
+            foreach (ItemVector itemVector in expressions)
             {
-                expressionCapture.ItemType.ShouldBe("foo");
+                itemVector.ItemType.Value.ShouldBe("foo");
             }
 
-            expressions[0].Separator.ShouldBeNull();
-            expressions[1].Separator.ShouldBe("-");
-            expressions[2].Separator.ShouldBeNull();
-            expressions[3].Separator.ShouldBe(",");
-            expressions[4].Separator.ShouldBeNull();
+            expressions[0].HasSeparator.ShouldBeFalse();
+            expressions[1].Separator.Value.ShouldBe("-");
+            expressions[2].HasSeparator.ShouldBeFalse();
+            expressions[3].Separator.Value.ShouldBe(",");
+            expressions[4].HasSeparator.ShouldBeFalse();
         }
 
         /// <summary>
@@ -1183,51 +1224,51 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExtractItemVectorExpressionsChainedFunctionsWithWhitespace()
         {
             string expression;
-            ExpressionShredder.ItemExpressionCapture capture;
+            ItemVector itemVector;
 
             // Test with space before second arrow: ") ->"
             expression = "@(I -> WithMetadataValue('M', 'T') -> WithMetadataValue('M', 'T'))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal("I", capture.ItemType);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Equal("WithMetadataValue", capture.Captures[0].FunctionName);
-            Assert.Equal("'M', 'T'", capture.Captures[0].FunctionArguments);
-            Assert.Equal("WithMetadataValue", capture.Captures[1].FunctionName);
-            Assert.Equal("'M', 'T'", capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.ItemType.Value.ShouldBe("I");
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms[0].FunctionName.Value.ShouldBe("WithMetadataValue");
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBe("'M', 'T'");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("WithMetadataValue");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("'M', 'T'");
 
             // Test without space before second arrow: ")->"
             expression = "@(I -> WithMetadataValue('M', 'T')-> WithMetadataValue('M', 'T'))";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal("I", capture.ItemType);
-            Assert.Equal(2, capture.Captures.Count);
-            Assert.Equal("WithMetadataValue", capture.Captures[0].FunctionName);
-            Assert.Equal("'M', 'T'", capture.Captures[0].FunctionArguments);
-            Assert.Equal("WithMetadataValue", capture.Captures[1].FunctionName);
-            Assert.Equal("'M', 'T'", capture.Captures[1].FunctionArguments);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.ItemType.Value.ShouldBe("I");
+            itemVector.Transforms.Count.ShouldBe(2);
+            itemVector.Transforms[0].FunctionName.Value.ShouldBe("WithMetadataValue");
+            itemVector.Transforms[0].FunctionArguments.Value.ShouldBe("'M', 'T'");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("WithMetadataValue");
+            itemVector.Transforms[1].FunctionArguments.Value.ShouldBe("'M', 'T'");
 
             // Test with multiple spaces and chained functions
             expression = "@(I->Distinct() -> Reverse() ->Count())";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal("I", capture.ItemType);
-            Assert.Equal(3, capture.Captures.Count);
-            Assert.Equal("Distinct", capture.Captures[0].FunctionName);
-            Assert.Equal("Reverse", capture.Captures[1].FunctionName);
-            Assert.Equal("Count", capture.Captures[2].FunctionName);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.ItemType.Value.ShouldBe("I");
+            itemVector.Transforms.Count.ShouldBe(3);
+            itemVector.Transforms[0].FunctionName.Value.ShouldBe("Distinct");
+            itemVector.Transforms[1].FunctionName.Value.ShouldBe("Reverse");
+            itemVector.Transforms[2].FunctionName.Value.ShouldBe("Count");
 
             // Test trailing whitespace after function call
             expression = "@(I -> Count() )";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal("I", capture.ItemType);
-            Assert.Equal(1, capture.Captures.Count);
-            Assert.Equal("Count", capture.Captures[0].FunctionName);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.ItemType.Value.ShouldBe("I");
+            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms[0].FunctionName.Value.ShouldBe("Count");
 
             // Test trailing whitespace after quoted transform
             expression = "@(I -> 'Replacement' )";
-            capture = GetSingleItemExpression(expression);
-            Assert.Equal("I", capture.ItemType);
-            Assert.Equal(1, capture.Captures.Count);
-            Assert.Equal("Replacement", capture.Captures[0].Value);
-            Assert.Null(capture.Captures[0].FunctionName);
+            itemVector = GetSingleItemExpression(expression);
+            itemVector.ItemType.Value.ShouldBe("I");
+            itemVector.Transforms.Count.ShouldBe(1);
+            itemVector.Transforms[0].Text.Value.ShouldBe("Replacement");
+            itemVector.Transforms[0].IsFunction.ShouldBeFalse();
         }
 
         /// <summary>
@@ -1237,31 +1278,31 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void ExtractItemVectorExpressionsInvalidSyntaxAfterWhitespace()
         {
             // Invalid syntax after whitespace - should not be parsed as item expression
-            GetItemExpressions("@(I -> Count() invalid)").ShouldBeEmpty();
+            GetItemVectors("@(I -> Count() invalid)").ShouldBeEmpty();
         }
 
-        private static List<ExpressionShredder.ItemExpressionCapture> GetItemExpressions(string expression)
+        private static List<ItemVector> GetItemVectors(string expression)
         {
-            List<ExpressionShredder.ItemExpressionCapture> captures = [];
+            List<ItemVector> itemVectors = [];
             int startIndex = 0;
 
             while (ExpressionShredder.TryGetNextItemVectorExpression(
                 expression,
                 startIndex,
-                out ExpressionShredder.ItemExpressionCapture capture))
+                out ItemVector itemVector))
             {
-                captures.Add(capture);
-                startIndex = capture.Index + capture.Length;
+                itemVectors.Add(itemVector);
+                startIndex = itemVector.Index + itemVector.Length;
             }
 
-            return captures;
+            return itemVectors;
         }
 
-        private static ExpressionShredder.ItemExpressionCapture GetSingleItemExpression(string expression)
+        private static ItemVector GetSingleItemExpression(string expression)
         {
-            List<ExpressionShredder.ItemExpressionCapture> captures = GetItemExpressions(expression);
-            captures.Count.ShouldBe(1);
-            return captures[0];
+            List<ItemVector> itemVectors = GetItemVectors(expression);
+            itemVectors.Count.ShouldBe(1);
+            return itemVectors[0];
         }
 
         #region Original code to produce canonical results

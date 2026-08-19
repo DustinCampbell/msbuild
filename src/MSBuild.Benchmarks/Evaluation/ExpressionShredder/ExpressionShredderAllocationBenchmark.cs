@@ -50,7 +50,7 @@ public class ExpressionShredderAllocationBenchmark
             string expression = _itemExpressions[i];
             int startIndex = 0;
 
-            while (ExpressionShredder.TryGetNextItemVectorExpression(expression, startIndex, out ExpressionShredder.ItemExpressionCapture itemVector))
+            while (ExpressionShredder.TryGetNextItemVectorExpression(expression, startIndex, out ItemVector itemVector))
             {
                 count++;
                 startIndex = itemVector.Index + itemVector.Length;
