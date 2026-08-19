@@ -20,7 +20,6 @@ namespace Microsoft.Build.Instance
         where TCached : IKeyed, IItem
     {
         private readonly IDictionary<string, ICollection<TCached>> _itemsByType;
-        private readonly Dictionary<StringSegment, ICollection<TCached>> _itemsByTypeSegments;
         private readonly ICollection<TCached> _allCachedItems;
         private readonly Func<TCached, T?> _getInstance;
 
@@ -38,14 +37,6 @@ namespace Microsoft.Build.Instance
             _allCachedItems = allItems;
             _itemsByType = itemsByType ?? throw new ArgumentNullException(nameof(itemsByType));
             _getInstance = getInstance;
-
-            _itemsByTypeSegments = new Dictionary<StringSegment, ICollection<TCached>>(
-                itemsByType.Count,
-                MSBuildNameIgnoreCaseComparer.Default);
-            foreach (KeyValuePair<string, ICollection<TCached>> pair in itemsByType)
-            {
-                _itemsByTypeSegments.Add(pair.Key, pair.Value);
-            }
         }
 
         /// <inheritdoc />
@@ -142,12 +133,20 @@ namespace Microsoft.Build.Instance
         /// <inheritdoc />
         public ICollection<T> GetItems(StringSegment itemType)
         {
-            if (_itemsByTypeSegments.TryGetValue(itemType, out ICollection<TCached>? items))
+#if NET
+            if (_itemsByType is Dictionary<string, ICollection<TCached>> dictionary &&
+                dictionary.Comparer is IAlternateEqualityComparer<StringSegment, string> &&
+                dictionary.GetAlternateLookup<StringSegment>().TryGetValue(
+                    itemType,
+                    out ICollection<TCached>? items))
             {
                 return new ListConverter(items, _getInstance);
             }
+#endif
 
-            return Array.Empty<T>();
+            // Remoting dictionaries expose only their string-keyed surface and may not implement
+            // enumeration or Count. Realize only at that external collection boundary.
+            return GetItems(itemType.ValueOrEmpty);
         }
 
         /// <inheritdoc />
