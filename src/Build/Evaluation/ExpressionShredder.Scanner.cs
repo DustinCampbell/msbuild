@@ -383,16 +383,16 @@ internal static partial class ExpressionShredder
         /// </remarks>
         public bool TryParseMetadataExpression(out string? itemType, [NotNullWhen(true)] out string? metadataName)
         {
-            if (!TryScanMetadataExpression(out Range? itemTypeRange, out Range metadataNameRange))
+            if (TryScanMetadataExpression(out Range? itemTypeRange, out Range metadataNameRange))
             {
-                itemType = null;
-                metadataName = null;
-                return false;
+                itemType = GetWeakInternedString(itemTypeRange);
+                metadataName = GetWeakInternedString(metadataNameRange);
+                return true;
             }
 
-            itemType = GetWeakInternedString(itemTypeRange);
-            metadataName = GetWeakInternedString(metadataNameRange);
-            return true;
+            itemType = null;
+            metadataName = null;
+            return false;
         }
 
         /// <summary>
@@ -472,15 +472,11 @@ internal static partial class ExpressionShredder
         /// </remarks>
         private bool TryParseQuotedTransform(out ItemTransform transform)
         {
-            int startTransform = _position;
-
-            if (TryScanQuotedTransform())
+            if (TryScanQuotedTransform(out Range transformRange))
             {
-                int startQuoted = startTransform + 1;
-
                 transform = new ItemTransform(
-                    text: _expression.Substring(startQuoted, _position - startQuoted - 1),
-                    index: startQuoted);
+                    text: _expression[transformRange],
+                    index: transformRange.Start.Value);
                 return true;
             }
 
@@ -515,8 +511,70 @@ internal static partial class ExpressionShredder
         }
 
         /// <summary>
+        ///  Scans a quoted item transform beginning at the current position.
+        /// </summary>
+        /// <param name="transformRange">
+        ///  The absolute, from-start range of the transform text, excluding quotes, when successful.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> if a quoted transform was found; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  On success, the position is left one past the closing quote.
+        /// </remarks>
+        private bool TryScanQuotedTransform(out Range transformRange)
+        {
+            if (!TryConsume('\''))
+            {
+                transformRange = default;
+                return false;
+            }
+
+            int startTransform = _position;
+
+            while (_position < _end && _expression[_position] != '\'')
+            {
+                _position++;
+            }
+
+            _position++;
+
+            if (_end <= _position)
+            {
+                transformRange = default;
+                return false;
+            }
+
+            transformRange = startTransform..(_position - 1);
+            return true;
+        }
+
+        /// <summary>
+        ///  Advances past an argument list without reporting its range.
+        /// </summary>
+        /// <returns>
+        ///  <see langword="true"/> if a complete argument list was found; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  On success, the position is left one past the closing parenthesis.
+        /// </remarks>
+        private bool TryScanArgumentList()
+        {
+            if (!TryConsume('('))
+            {
+                return false;
+            }
+
+            return TryScanArgumentListContents();
+        }
+
+        /// <summary>
         ///  Scans an argument list beginning at the current position.
         /// </summary>
+        /// <param name="argumentsRange">
+        ///  The absolute, from-start range of non-empty argument text, excluding parentheses; otherwise,
+        ///  <see langword="null"/>.
+        /// </param>
         /// <returns>
         ///  <see langword="true"/> if a complete argument list was found; otherwise, <see langword="false"/>.
         /// </returns>
@@ -524,14 +582,40 @@ internal static partial class ExpressionShredder
         ///  Nested parentheses are supported. Parentheses inside single quotes, double quotes, and backticks are
         ///  ignored. On success, the position is left one past the closing parenthesis.
         /// </remarks>
-        private bool TryScanArgumentList()
+        private bool TryScanArgumentList(out Range? argumentsRange)
         {
-            Debug.Assert((uint)_end <= (uint)_expression.Length, "The scan end must be within the expression.");
-
             if (!TryConsume('('))
             {
+                argumentsRange = null;
                 return false;
             }
+
+            int startArguments = _position;
+
+            if (!TryScanArgumentListContents())
+            {
+                argumentsRange = null;
+                return false;
+            }
+
+            int endArguments = _position - 1;
+            argumentsRange = startArguments < endArguments ? startArguments..endArguments : null;
+            return true;
+        }
+
+        /// <summary>
+        ///  Scans argument-list contents after the opening parenthesis has been consumed.
+        /// </summary>
+        /// <returns>
+        ///  <see langword="true"/> if the closing parenthesis was found; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  Nested parentheses are supported. Parentheses inside single quotes, double quotes, and backticks are
+        ///  ignored. On success, the position is left one past the closing parenthesis.
+        /// </remarks>
+        private bool TryScanArgumentListContents()
+        {
+            Debug.Assert((uint)_end <= (uint)_expression.Length, "The scan end must be within the expression.");
 
             int nestLevel = 1;
             unsafe
@@ -585,17 +669,11 @@ internal static partial class ExpressionShredder
         /// </remarks>
         private bool TryParseFunctionTransform(out ItemTransform transform)
         {
-            int startTransform = _position;
-
-            if (TryScanFunctionTransform(out int endFunctionName, out int startArguments, out int endArguments))
+            if (TryScanFunctionTransform(out Range functionNameRange, out Range? argumentsRange))
             {
-                string functionName = _expression.Substring(startTransform, endFunctionName - startTransform);
-                string? functionArguments = null;
-                if (endArguments > startArguments)
-                {
-                    functionArguments = Strings.WeakIntern(
-                        _expression.AsSpan(startArguments, endArguments - startArguments));
-                }
+                int startTransform = functionNameRange.Start.Value;
+                string functionName = _expression[functionNameRange];
+                string? functionArguments = GetWeakInternedString(argumentsRange);
 
                 transform = new ItemTransform(
                     text: _expression.Substring(startTransform, _position - startTransform),
@@ -633,36 +711,31 @@ internal static partial class ExpressionShredder
         /// <summary>
         ///  Scans a function item transform and reports the boundaries of its name and arguments.
         /// </summary>
-        /// <param name="endFunctionName">The exclusive end of the function name.</param>
-        /// <param name="startArguments">The start of the argument text, immediately after the opening parenthesis.</param>
-        /// <param name="endArguments">The exclusive end of the argument text.</param>
+        /// <param name="functionNameRange">
+        ///  The absolute, from-start range of the function name when successful.
+        /// </param>
+        /// <param name="argumentsRange">
+        ///  The absolute, from-start range of non-empty argument text, excluding parentheses; otherwise,
+        ///  <see langword="null"/>.
+        /// </param>
         /// <returns>
         ///  <see langword="true"/> if a valid function transform is found; otherwise, <see langword="false"/>.
         /// </returns>
-        private bool TryScanFunctionTransform(out int endFunctionName, out int startArguments, out int endArguments)
+        /// <remarks>
+        ///  On success, the position is left one past the closing parenthesis.
+        /// </remarks>
+        private bool TryScanFunctionTransform(out Range functionNameRange, out Range? argumentsRange)
         {
-            endFunctionName = 0;
-            startArguments = 0;
-            endArguments = 0;
-
-            if (!TryScanName())
+            if (!TryScanName(out functionNameRange))
             {
+                argumentsRange = null;
                 return false;
             }
-
-            endFunctionName = _position;
 
             // Eat any whitespace between the function name and its arguments.
             SkipWhiteSpace();
-            startArguments = _position + 1;
 
-            if (!TryScanArgumentList())
-            {
-                return false;
-            }
-
-            endArguments = _position - 1;
-            return true;
+            return TryScanArgumentList(out argumentsRange);
         }
 
         /// <summary>
