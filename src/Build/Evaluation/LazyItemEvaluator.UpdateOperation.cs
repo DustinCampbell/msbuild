@@ -151,12 +151,13 @@ namespace Microsoft.Build.Evaluation
             {
                 needToExpandMetadataForEachItem = NeedToExpandMetadataForEachItem(metadata, out var itemsAndMetadataFound);
 
-                if (itemsAndMetadataFound.Metadata == null)
+                InlineSet<MetadataReference> metadataReferences = itemsAndMetadataFound.Metadata;
+                if (metadataReferences.Count == 0)
                 {
                     return false;
                 }
 
-                foreach (var metadataReference in itemsAndMetadataFound.Metadata)
+                foreach (MetadataReference metadataReference in metadataReferences)
                 {
                     if (!metadataReference.ItemName.IsNullOrWhiteSpace())
                     {

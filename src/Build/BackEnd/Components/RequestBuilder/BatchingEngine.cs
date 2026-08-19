@@ -12,6 +12,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Internal;
 #endif
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using ElementLocation = Microsoft.Build.Construction.ElementLocation;
 
 #nullable disable
@@ -117,12 +118,13 @@ namespace Microsoft.Build.BackEnd
             // Batching stores names in long-lived string-keyed bucket tables. Realize the shredded
             // segments once at that ownership boundary instead of while scanning each expression.
             HashSet<string> consumedItemReferences = null;
-            if (pair.Items is { Count: > 0 })
+            InlineSet<StringSegment> itemTypes = pair.ItemTypes;
+            if (itemTypes.Count > 0)
             {
-                consumedItemReferences = new HashSet<string>(pair.Items.Count, MSBuildNameIgnoreCaseComparer.Default);
-                foreach (var itemReference in pair.Items)
+                consumedItemReferences = new HashSet<string>(itemTypes.Count, MSBuildNameIgnoreCaseComparer.Default);
+                foreach (StringSegment itemType in itemTypes)
                 {
-                    consumedItemReferences.Add(itemReference.ValueOrEmpty);
+                    consumedItemReferences.Add(itemType.ValueOrEmpty);
                 }
             }
 
@@ -132,13 +134,14 @@ namespace Microsoft.Build.BackEnd
             // or just "Culture").  The values are MetadataReference structs, which simply split out the item
             // name (possibly null) and the actual metadata name.
             Dictionary<string, MetadataReference> consumedMetadataReferences = null;
-            if (pair.Metadata is { Count: > 0 })
+            InlineSet<MetadataReference> metadataReferences = pair.Metadata;
+            if (metadataReferences.Count > 0)
             {
                 consumedMetadataReferences = new Dictionary<string, MetadataReference>(
-                    pair.Metadata.Count,
+                    metadataReferences.Count,
                     MSBuildNameIgnoreCaseComparer.Default);
 
-                foreach (MetadataReference metadataReference in pair.Metadata)
+                foreach (MetadataReference metadataReference in metadataReferences)
                 {
                     consumedMetadataReferences[metadataReference.ToString()] = metadataReference;
                 }

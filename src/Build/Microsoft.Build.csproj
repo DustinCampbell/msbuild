@@ -324,6 +324,7 @@
     <Compile Include="Evaluation\Profiler\EvaluationLocationPrettyPrinterBase.cs" />
     <Compile Include="Evaluation\Profiler\EvaluationLocationTabSeparatedPrettyPrinter.cs" />
     <Compile Include="Evaluation\Profiler\EvaluationProfiler.cs" />
+    <Compile Include="Evaluation\InlineSet.cs" />
     <Compile Include="Evaluation\ItemSpec.cs" />
     <Compile Include="Evaluation\ItemsAndMetadataPair.cs" />
     <Compile Include="Evaluation\LazyItemEvaluator.cs" />

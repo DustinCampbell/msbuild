@@ -635,17 +635,13 @@ namespace Microsoft.Build.UnitTests.Evaluation
             list.Add(test);
             ItemsAndMetadataPair pair = ExpressionShredder.GetReferencedItemNamesAndMetadata(list);
 
-            HashSet<string> actualItems = pair.Items is null
-                ? null
-                : new HashSet<string>(
-                    pair.Items.Select(item => item.ValueOrEmpty),
-                    MSBuildNameIgnoreCaseComparer.Default);
-            Dictionary<string, MetadataReference> actualMetadata = pair.Metadata is null
-                ? null
-                : pair.Metadata.ToDictionary(
-                    reference => reference.ToString(),
-                    reference => reference,
-                    MSBuildNameIgnoreCaseComparer.Default);
+            HashSet<string> actualItems = new(
+                pair.ItemTypes.Select(itemType => itemType.ValueOrEmpty),
+                MSBuildNameIgnoreCaseComparer.Default);
+            Dictionary<string, MetadataReference> actualMetadata = pair.Metadata.ToDictionary(
+                reference => reference.ToString(),
+                reference => reference,
+                MSBuildNameIgnoreCaseComparer.Default);
 
             HashSet<string> expectedItems = GetConsumedItemReferences_OriginalImplementation(test);
             Console.WriteLine("verifying item names...");

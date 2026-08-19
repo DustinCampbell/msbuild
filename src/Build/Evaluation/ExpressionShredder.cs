@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Text;
 
@@ -386,7 +385,7 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal static ItemsAndMetadataPair GetReferencedItemNamesAndMetadata(IReadOnlyList<string> expressions)
         {
-            ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
+            ItemsAndMetadataPair pair = new();
 
             // PERF: Use for to avoid boxing expressions enumerator
             for (int i = 0; i < expressions.Count; i++)
@@ -403,11 +402,11 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         internal static bool ContainsMetadataExpressionOutsideTransform(string expression)
         {
-            ItemsAndMetadataPair pair = new ItemsAndMetadataPair(null, null);
+            ItemsAndMetadataPair pair = new();
 
             GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.MetadataOutsideTransforms);
 
-            bool result = (pair.Metadata?.Count > 0);
+            bool result = pair.Metadata.Count > 0;
 
             return result;
         }
@@ -757,9 +756,7 @@ namespace Microsoft.Build.Evaluation
                     // well formed, so make sure the name's in the table
                     if ((whatToShredFor & ShredderOptions.ItemTypes) != 0)
                     {
-                        pair.Items ??= new ReferenceSet<StringSegment>(
-                            MSBuildNameIgnoreCaseComparer.Default);
-                        pair.Items.Add(expression[startOfName..(startOfName + nameLength)]);
+                        pair.AddItemType(expression[startOfName..(startOfName + nameLength)]);
                     }
 
                     continue;
@@ -775,9 +772,7 @@ namespace Microsoft.Build.Evaluation
 
                 if ((whatToShredFor & ShredderOptions.MetadataOutsideTransforms) != 0)
                 {
-                    pair.Metadata ??= new ReferenceSet<MetadataReference>(
-                        EqualityComparer<MetadataReference>.Default);
-                    pair.Metadata.Add(new MetadataReference(itemName, metadataName));
+                    pair.AddMetadata(new MetadataReference(itemName, metadataName));
                 }
             }
         }

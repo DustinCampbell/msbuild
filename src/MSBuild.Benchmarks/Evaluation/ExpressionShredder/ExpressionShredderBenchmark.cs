@@ -156,7 +156,7 @@ public class ExpressionShredderBenchmark
     public int NamesAndMetadata(ExpressionShredderScenario scenario)
     {
         ItemsAndMetadataPair pair = ExpressionShredder.GetReferencedItemNamesAndMetadata(scenario.Expressions);
-        return (pair.Items?.Count ?? 0) + (pair.Metadata?.Count ?? 0);
+        return pair.ItemTypes.Count + pair.Metadata.Count;
     }
 
     [Benchmark]

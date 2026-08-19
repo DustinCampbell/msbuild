@@ -307,7 +307,7 @@ namespace Microsoft.Build.Evaluation
 
             protected bool NeedToExpandMetadataForEachItem(ImmutableArray<ProjectMetadataElement> metadata, out ItemsAndMetadataPair itemsAndMetadataFound)
             {
-                itemsAndMetadataFound = new ItemsAndMetadataPair(null, null);
+                itemsAndMetadataFound = new();
 
                 foreach (var metadataElement in metadata)
                 {
@@ -320,7 +320,7 @@ namespace Microsoft.Build.Evaluation
 
                 bool needToExpandMetadataForEachItem = false;
 
-                if (itemsAndMetadataFound.Metadata?.Count > 0)
+                if (itemsAndMetadataFound.Metadata.Count > 0)
                 {
                     // If there is any metadata present, we need to expand items individually.
                     // This ensures correct results for:

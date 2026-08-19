@@ -638,7 +638,7 @@ namespace Microsoft.Build.Evaluation
         {
             if (itemElement.HasMetadata)
             {
-                ItemsAndMetadataPair itemsAndMetadataFound = new ItemsAndMetadataPair(null, null);
+                ItemsAndMetadataPair itemsAndMetadataFound = new();
 
                 // Since we're just attempting to expand properties in order to find referenced items and not expanding metadata,
                 // unexpected errors may occur when evaluating property functions on unexpanded metadata. Just ignore them if that happens.
@@ -663,9 +663,10 @@ namespace Microsoft.Build.Evaluation
                     ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
                 }
 
-                if (itemsAndMetadataFound.Items != null)
+                InlineSet<StringSegment> itemTypes = itemsAndMetadataFound.ItemTypes;
+                if (itemTypes.Count > 0)
                 {
-                    foreach (var itemType in itemsAndMetadataFound.Items)
+                    foreach (StringSegment itemType in itemTypes)
                     {
                         AddReferencedItemList(itemType.ValueOrEmpty, operationBuilder.ReferencedItemLists);
                     }
