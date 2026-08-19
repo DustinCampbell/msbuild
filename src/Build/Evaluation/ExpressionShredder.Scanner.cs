@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Collections;
@@ -120,48 +119,17 @@ internal static partial class ExpressionShredder
 
             SkipWhiteSpace();
 
-            // PERF: Most item vectors have one transform, so allocate a builder only when a second is found.
-            ItemTransform firstTransform = default;
-            bool hasTransform = false;
-            ImmutableArray<ItemTransform>.Builder? builder = null;
-
-            // If there's an '->' eat it and the subsequent quoted expression or transform function
-            while (TryConsume('-', '>'))
+            TransformsBuilder builder = default;
+            if (!TryParseItemVectorTransforms(ref builder))
             {
-                SkipWhiteSpace();
-
-                if (!TryParseQuotedTransform(out ItemTransform transform) &&
-                    !TryParseFunctionTransform(out transform))
-                {
-                    _position = startIndex;
-                    itemVector = default;
-                    return false;
-                }
-
-                if (!hasTransform)
-                {
-                    firstTransform = transform;
-                    hasTransform = true;
-                }
-                else
-                {
-                    if (builder is null)
-                    {
-                        builder = ImmutableArray.CreateBuilder<ItemTransform>(2);
-                        builder.Add(firstTransform);
-                    }
-
-                    builder.Add(transform);
-                }
-
-                SkipWhiteSpace();
+                _position = startIndex;
+                itemVector = default;
+                return false;
             }
 
             SkipWhiteSpace();
 
-            (string? separator, int separatorStart) = TryScanItemVectorSeparator(out Range separatorRange)
-                ? (_expression[separatorRange], separatorRange.Start.Value - startIndex)
-                : (null, -1);
+            bool hasSeparator = TryScanItemVectorSeparator(out Range separatorRange);
 
             SkipWhiteSpace();
 
@@ -174,7 +142,10 @@ internal static partial class ExpressionShredder
 
             int length = _position - startIndex;
             string itemType = GetWeakInternedString(itemVectorNameRange);
-            ImmutableArray<ItemTransform> transforms = builder?.DrainToImmutable() ?? (hasTransform ? [firstTransform] : []);
+
+            (string? separator, int separatorStart) = hasSeparator
+                ? (_expression[separatorRange], separatorRange.Start.Value - startIndex)
+                : (null, -1);
 
             // Create an ItemVector that encompasses the entire expression delimited by @( and the )
             // with the item name and any separator contained within it
@@ -185,7 +156,68 @@ internal static partial class ExpressionShredder
                 itemType,
                 separator,
                 separatorStart,
-                transforms);
+                builder.DrainToImmutable());
+
+            return true;
+        }
+
+        /// <summary>
+        ///  Parses the item-vector transform chain beginning at the current position.
+        /// </summary>
+        /// <param name="builder">The builder to which parsed transforms are added.</param>
+        /// <returns>
+        ///  <see langword="true"/> if every transform is valid; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  Zero transforms is valid. On success, the position is left after any whitespace following the last
+        ///  transform. On failure, the position is indeterminate and should be restored by callers that need to
+        ///  recover.
+        /// </remarks>
+        private bool TryParseItemVectorTransforms(ref TransformsBuilder builder)
+        {
+            while (TryConsume('-', '>'))
+            {
+                SkipWhiteSpace();
+
+                if (!TryParseQuotedTransform(out ItemTransform transform) &&
+                    !TryParseFunctionTransform(out transform))
+                {
+                    return false;
+                }
+
+                builder.Add(transform);
+
+                SkipWhiteSpace();
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        ///  Advances past the item-vector transform chain without constructing transforms.
+        /// </summary>
+        /// <returns>
+        ///  <see langword="true"/> if every transform is valid; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  Zero transforms is valid. On success, the position is left after any whitespace following the last
+        ///  transform. On failure, the position is indeterminate and should be restored by callers that need to
+        ///  recover.
+        /// </remarks>
+        private bool TryScanItemVectorTransforms()
+        {
+            while (TryConsume('-', '>'))
+            {
+                SkipWhiteSpace();
+
+                if (!TryScanQuotedTransform() &&
+                    !TryScanFunctionTransform())
+                {
+                    return false;
+                }
+
+                SkipWhiteSpace();
+            }
 
             return true;
         }
@@ -247,31 +279,9 @@ internal static partial class ExpressionShredder
 
                     SkipWhiteSpace();
 
-                    bool transformFound = true;
-
-                    // If there's an '->' eat it and the subsequent quoted expression or transform function
-                    while (TryConsume('-', '>') && transformFound)
+                    if (!TryScanItemVectorTransforms())
                     {
-                        SkipWhiteSpace();
-
-                        if (TryScanQuotedTransform())
-                        {
-                            SkipWhiteSpace();
-                            continue;
-                        }
-
-                        if (TryScanFunctionTransform())
-                        {
-                            SkipWhiteSpace();
-                            continue;
-                        }
-
                         _position = recoveryPosition;
-                        transformFound = false;
-                    }
-
-                    if (!transformFound)
-                    {
                         continue;
                     }
 
