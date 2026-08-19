@@ -158,7 +158,8 @@ internal partial class Expander<P, I>
             // it directly without allocating a builder or scanning for item vectors first.
             if (expression.Length >= 3 &&
                 expression[0] == '%' &&
-                expression[1] == '(')
+                expression[1] == '(' &&
+                expression.IndexOf(')', start: 2) == expression.Length - 1)
             {
                 int end = 2;
                 if (ExpressionShredder.TryParseMetadataExpression(

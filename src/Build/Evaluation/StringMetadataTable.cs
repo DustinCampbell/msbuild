@@ -22,6 +22,10 @@ namespace Microsoft.Build.Evaluation
         /// May be null, if empty.
         /// </summary>
         private Dictionary<string, string> _metadata;
+#if NET
+        private readonly Dictionary<string, string>.AlternateLookup<StringSegment> _metadataSegments;
+        private readonly bool _hasSegmentLookup;
+#endif
 
         /// <summary>
         /// Constructor taking a table of metadata in which keys
@@ -32,6 +36,13 @@ namespace Microsoft.Build.Evaluation
         internal StringMetadataTable(Dictionary<string, string> metadata)
         {
             _metadata = metadata;
+#if NET
+            if (metadata?.Comparer is IAlternateEqualityComparer<StringSegment, string>)
+            {
+                _metadataSegments = metadata.GetAlternateLookup<StringSegment>();
+                _hasSegmentLookup = true;
+            }
+#endif
         }
 
         /// <summary>
@@ -97,8 +108,8 @@ namespace Microsoft.Build.Evaluation
 
 #if NET
             if (!itemType.HasValue &&
-                _metadata.Comparer is IAlternateEqualityComparer<StringSegment, string> &&
-                _metadata.GetAlternateLookup<StringSegment>().TryGetValue(name, out string value))
+                _hasSegmentLookup &&
+                _metadataSegments.TryGetValue(name, out string value))
             {
                 return value;
             }

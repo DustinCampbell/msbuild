@@ -38,7 +38,7 @@ internal partial class Expander<P, I>
     /// This is a private nested type, exposed only through the Expander class.
     /// That allows it to hide its private methods even from Expander.
     /// </remarks>
-    private readonly ref struct PropertyExpander
+    private ref struct PropertyExpander
     {
         private const string RegistryPrefix = "Registry:";
         private const string SolutionsVsVersionProperty = "Solutions.VSVersion";
@@ -51,6 +51,9 @@ internal partial class Expander<P, I>
         private readonly PropertiesUseTracker _propertiesUseTracker;
         private readonly IFileSystem _fileSystem;
         private readonly bool _isTruncationEnabled;
+        private StringSegment _lastPropertyName;
+        private P _lastProperty;
+        private bool _hasLastProperty;
 
         private PropertyExpander(
             IPropertyProvider<P> properties,
@@ -65,6 +68,9 @@ internal partial class Expander<P, I>
             _propertiesUseTracker = propertiesUseTracker;
             _fileSystem = fileSystem;
             _isTruncationEnabled = IsTruncationEnabled(options);
+            _lastPropertyName = default;
+            _lastProperty = default;
+            _hasLastProperty = false;
         }
 
         /// <summary>
@@ -832,7 +838,20 @@ internal partial class Expander<P, I>
             int startIndex = propertyName.Offset;
             int endIndex = startIndex + propertyName.Length - 1;
             string buffer = propertyName.Buffer;
-            P property = _properties.GetProperty(buffer, startIndex, endIndex);
+            P property;
+            if (_hasLastProperty &&
+                _lastPropertyName.Length == propertyName.Length &&
+                _lastPropertyName.Equals(propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                property = _lastProperty;
+            }
+            else
+            {
+                property = _properties.GetProperty(buffer, startIndex, endIndex);
+                _lastPropertyName = propertyName;
+                _lastProperty = property;
+                _hasLastProperty = true;
+            }
 
             bool isArtificial = property == null && propertyName.Length >= 8 &&
                                 MSBuildNameIgnoreCaseComparer.Default.Equals(
@@ -876,7 +895,22 @@ internal partial class Expander<P, I>
         /// <returns>The escaped property value.</returns>
         private object LookupProperty(string propertyName, int startIndex, int endIndex)
         {
-            P property = _properties.GetProperty(propertyName, startIndex, endIndex);
+            StringSegment propertyNameSegment =
+                propertyName.AsSegment(startIndex, endIndex - startIndex + 1);
+            P property;
+            if (_hasLastProperty &&
+                _lastPropertyName.Length == propertyNameSegment.Length &&
+                _lastPropertyName.Equals(propertyNameSegment, StringComparison.OrdinalIgnoreCase))
+            {
+                property = _lastProperty;
+            }
+            else
+            {
+                property = _properties.GetProperty(propertyName, startIndex, endIndex);
+                _lastPropertyName = propertyNameSegment;
+                _lastProperty = property;
+                _hasLastProperty = true;
+            }
             bool isArtificial = property == null &&
                                 endIndex - startIndex >= 7 &&
                                 MSBuildNameIgnoreCaseComparer.Default.Equals(

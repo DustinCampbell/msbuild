@@ -79,13 +79,15 @@ namespace Microsoft.Build.Evaluation
                 bool insideItemList = false;
                 bool insideQuotedPart = false;
                 StringSegment segment;
+                string buffer = _expression.Buffer;
+                int offset = _expression.Offset;
 
                 // Walk along the string, keeping track of whether we are in an item list expression.
                 // If we hit a semi-colon or the end of the string and we aren't in an item list,
                 // add the segment to the list.
                 for (; _index < _expression.Length; _index++)
                 {
-                    switch (_expression[_index])
+                    switch (buffer[offset + _index])
                     {
                         case ';':
                             if (!insideItemList)
@@ -105,7 +107,8 @@ namespace Microsoft.Build.Evaluation
                             break;
                         case '@':
                             // An '@' immediately followed by a '(' is the start of an item list
-                            if (_expression.Length > _index + 1 && _expression[_index + 1] == '(')
+                            if (_expression.Length > _index + 1 &&
+                                buffer[offset + _index + 1] == '(')
                             {
                                 // Start of item expression
                                 insideItemList = true;
@@ -153,11 +156,14 @@ namespace Microsoft.Build.Evaluation
             private StringSegment GetExpressionSubstring(int startIndex, int length)
             {
                 int endIndex = startIndex + length;
-                while (startIndex < endIndex && char.IsWhiteSpace(_expression[startIndex]))
+                string buffer = _expression.Buffer;
+                int offset = _expression.Offset;
+
+                while (startIndex < endIndex && char.IsWhiteSpace(buffer[offset + startIndex]))
                 {
                     startIndex++;
                 }
-                while (startIndex < endIndex && char.IsWhiteSpace(_expression[endIndex - 1]))
+                while (startIndex < endIndex && char.IsWhiteSpace(buffer[offset + endIndex - 1]))
                 {
                     endIndex--;
                 }

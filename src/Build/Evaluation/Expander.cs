@@ -227,7 +227,12 @@ internal partial class Expander<P, I>
     {
         string result = ExpandIntoStringLeaveEscaped(expression, options, elementLocation);
 
-        return (result == null) ? null : EscapingUtilities.UnescapeAll(result);
+        if (result == null || result.IndexOf('%') < 0)
+        {
+            return result;
+        }
+
+        return EscapingUtilities.UnescapeAll(result);
     }
 
     /// <summary>
