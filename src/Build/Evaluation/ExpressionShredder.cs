@@ -478,9 +478,8 @@ namespace Microsoft.Build.Evaluation
                 index--;
             }
 
-            // Grab the name, but continue to verify it's a well-formed expression
-            // before we store it.
-            StringSegment itemName = expression[startOfName..index];
+            // Component ranges are relative to the complete item-vector text retained below.
+            Range itemTypeRange = (startOfName - startIndex)..(index - startIndex);
 
             SinkWhitespace(expression, ref index);
             List<ItemTransform> transforms = null;
@@ -524,7 +523,7 @@ namespace Microsoft.Build.Evaluation
 
             SinkWhitespace(expression, ref index);
 
-            StringSegment separator = default;
+            Range? separatorRange = null;
             // If there's a ',', eat it and the subsequent quoted expression
             if (Sink(expression, ref index, ','))
             {
@@ -543,7 +542,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                separator = expression[index..closingQuote];
+                separatorRange = (index - startIndex)..(closingQuote - startIndex);
 
                 index = closingQuote + 1;
             }
@@ -560,8 +559,8 @@ namespace Microsoft.Build.Evaluation
             itemVector = new ItemVector(
                 text: expression[startIndex..index],
                 index: startIndex,
-                itemType: itemName,
-                separator,
+                itemTypeRange,
+                separatorRange,
                 transforms);
 
             return true;
@@ -987,16 +986,17 @@ namespace Microsoft.Build.Evaluation
                 {
                     int endFunctionArguments = i - 1;
 
-                    StringSegment functionArguments = default;
+                    Range? functionArgumentsRange = null;
                     if (endFunctionArguments > startFunctionArguments)
                     {
-                        functionArguments = expression[startFunctionArguments..endFunctionArguments];
+                        functionArgumentsRange =
+                            (startFunctionArguments - startTransform)..(endFunctionArguments - startTransform);
                     }
 
                     transform = ItemTransform.CreateFunctionTransform(
                         expression[startTransform..i],
                         endFunctionName - startTransform,
-                        functionArguments);
+                        functionArgumentsRange);
                     return true;
                 }
             }

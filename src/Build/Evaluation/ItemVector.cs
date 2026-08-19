@@ -12,19 +12,19 @@ namespace Microsoft.Build.Evaluation;
 /// </summary>
 /// <param name="text">The complete item-vector expression.</param>
 /// <param name="index">The vector's index in the containing expression.</param>
-/// <param name="itemType">The captured item type.</param>
-/// <param name="separator">The optional captured separator.</param>
+/// <param name="itemTypeRange">The item type's range within <paramref name="text"/>.</param>
+/// <param name="separatorRange">The optional separator's range within <paramref name="text"/>.</param>
 /// <param name="transforms">The item transforms, or <see langword="null"/> for a bare vector.</param>
 internal readonly struct ItemVector(
     StringSegment text,
     int index,
-    StringSegment itemType,
-    StringSegment separator,
+    Range itemTypeRange,
+    Range? separatorRange,
     List<ItemTransform>? transforms)
 {
-    private readonly Range _itemTypeRange = text.GetRelativeRange(itemType);
-    private readonly Range _separatorRange = text.GetRelativeRange(separator);
-    private readonly bool _hasSeparator = separator.HasValue;
+    private readonly Range _itemTypeRange = itemTypeRange;
+    private readonly Range _separatorRange = separatorRange.GetValueOrDefault();
+    private readonly bool _hasSeparator = separatorRange.HasValue;
 
     /// <summary>
     ///  Gets the position of this vector in its containing expression.

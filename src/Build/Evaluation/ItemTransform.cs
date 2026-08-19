@@ -27,16 +27,18 @@ internal readonly struct ItemTransform
     /// <param name="functionNameLength">
     ///  The function name's length, or <c>0</c> for a quoted-expression transform.
     /// </param>
-    /// <param name="functionArguments">The optional function arguments.</param>
+    /// <param name="functionArgumentsRange">
+    ///  The optional function arguments' range within <paramref name="text"/>.
+    /// </param>
     private ItemTransform(
         StringSegment text,
         int functionNameLength,
-        StringSegment functionArguments)
+        Range? functionArgumentsRange)
     {
         Text = text;
         _functionNameLength = functionNameLength;
-        _functionArgumentsRange = text.GetRelativeRange(functionArguments);
-        _hasFunctionArguments = functionArguments.HasValue;
+        _functionArgumentsRange = functionArgumentsRange.GetValueOrDefault();
+        _hasFunctionArguments = functionArgumentsRange.HasValue;
     }
 
     /// <summary>
@@ -47,22 +49,24 @@ internal readonly struct ItemTransform
     ///  The quoted-expression transform.
     /// </returns>
     public static ItemTransform CreateQuotedExpressionTransform(StringSegment text)
-        => new(text, functionNameLength: 0, functionArguments: default);
+        => new(text, functionNameLength: 0, functionArgumentsRange: null);
 
     /// <summary>
     ///  Creates a function transform.
     /// </summary>
     /// <param name="text">The complete function transform.</param>
     /// <param name="functionNameLength">The length of the function name at the start of <paramref name="text"/>.</param>
-    /// <param name="functionArguments">The optional function arguments.</param>
+    /// <param name="functionArgumentsRange">
+    ///  The optional function arguments' range within <paramref name="text"/>.
+    /// </param>
     /// <returns>
     ///  The function transform.
     /// </returns>
     public static ItemTransform CreateFunctionTransform(
         StringSegment text,
         int functionNameLength,
-        StringSegment functionArguments)
-        => new(text, functionNameLength, functionArguments);
+        Range? functionArgumentsRange)
+        => new(text, functionNameLength, functionArgumentsRange);
 
     /// <summary>
     ///  Gets a value indicating whether this is a function transform.
