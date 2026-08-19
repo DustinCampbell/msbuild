@@ -51,7 +51,7 @@ namespace Microsoft.Build.Evaluation
                 bool matchingOnMetadata = !_matchOnMetadata.IsEmpty;
                 if (!matchingOnMetadata)
                 {
-                    if (ItemspecContainsASingleBareItemReference(_itemSpec, _itemElement.ItemType))
+                    if (_itemSpec.IsSingleUntransformedItemVector(_itemElement.ItemType))
                     {
                         // Perf optimization: If the Remove operation references itself (e.g. <I Remove="@(I)"/>)
                         // then all items are removed and matching is not necessary

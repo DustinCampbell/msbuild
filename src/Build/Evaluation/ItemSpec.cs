@@ -172,6 +172,26 @@ namespace Microsoft.Build.Evaluation
             Fragments = BuildItemFragments(itemSpecLocation, projectDirectory, expandProperties);
         }
 
+        /// <summary>
+        ///  Determines whether this item specification consists of a single untransformed item vector for
+        ///  <paramref name="itemType"/>, such as <c>@(Compile)</c>.
+        /// </summary>
+        /// <param name="itemType">The item type to match.</param>
+        /// <returns>
+        ///  <see langword="true"/> when this item specification consists of one untransformed item vector for
+        ///  the requested item type; otherwise, <see langword="false"/>.
+        /// </returns>
+        public bool IsSingleUntransformedItemVector(string itemType)
+            => Fragments is [ItemExpressionFragment
+            {
+                ItemVector:
+                {
+                    ItemType: StringSegment referencedItemType,
+                    Transforms: []
+                }
+            }]
+            && referencedItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase);
+
         private List<ItemSpecFragment> BuildItemFragments(IElementLocation itemSpecLocation, string projectDirectory, bool expandProperties)
         {
             // Code corresponds to Evaluator.CreateItemsFromInclude
