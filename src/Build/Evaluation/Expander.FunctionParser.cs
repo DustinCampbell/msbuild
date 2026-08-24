@@ -3,16 +3,12 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-#if !FEATURE_GAC
-using System.IO;
-#endif
 using System.Reflection;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.NET.StringTools;
-using AvailableStaticMethods = Microsoft.Build.Internal.AvailableStaticMethods;
-using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -144,8 +140,7 @@ internal partial class Expander<P, I>
             ParsedFunction parsedFunction = ParseFunction(text, argumentStartIndex, methodStartIndex);
 
             // Locate a type that matches the body of the expression.
-            Type? receiverType = GetTypeForStaticMethod(typeName, parsedFunction.Name);
-            if (receiverType == null)
+            if (!AvailableStaticMembers.TryResolveType(typeName, parsedFunction.Name, out Type? receiverType))
             {
                 _errors.ThrowInvalidFunctionTypeUnavailable(typeName);
             }
@@ -251,7 +246,10 @@ internal partial class Expander<P, I>
         /// <returns>
         ///  The executable function.
         /// </returns>
-        [UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "Receiver type comes from the static-method allowlist (public members preserved by Constants.PropertyFunctionMembers) or a runtime GetType(); only public members are bound.")]
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2067",
+            Justification = "Receiver type comes from the static-member allowlist (public members preserved by AvailableStaticMembers.PropertyFunctionMembers) or a runtime GetType(); only public members are bound.")]
         private Function CreateFunction(
             Type receiverType,
             string text,
@@ -268,196 +266,6 @@ internal partial class Expander<P, I>
                 _propertiesUseTracker,
                 _fileSystem,
                 _loggingContext);
-
-        /// <summary>
-        ///  Resolves the receiver type for a static property function.
-        /// </summary>
-        /// <param name="typeName">The full or assembly-qualified type name.</param>
-        /// <param name="simpleMethodName">The simple member name.</param>
-        /// <returns>
-        ///  The resolved receiver type, or <see langword="null"/> when the type cannot be resolved.
-        /// </returns>
-        [UnconditionalSuppressMessage("Trimming", "IL2096:UnrecognizedReflectionPattern", Justification = "The type name is resolved against the curated AvailableStaticMethods allowlist; the case-insensitive lookup only resolves to allowlist types, whose members are preserved for trimming.")]
-        private static Type? GetTypeForStaticMethod(string typeName, string simpleMethodName)
-        {
-            Type? receiverType;
-            Tuple<string, Type> cachedTypeInformation;
-
-            // If we don't have a type name, we already know that we won't be able to find a type.
-            // Go ahead and return here -- otherwise the Type.GetType() calls below will throw.
-            if (string.IsNullOrWhiteSpace(typeName))
-            {
-                return null;
-            }
-
-            // Check if the type is in the allowlist cache. If it is, use it or load it.
-            cachedTypeInformation = AvailableStaticMethods.GetTypeInformationFromTypeCache(typeName, simpleMethodName);
-            if (cachedTypeInformation != null)
-            {
-                // We need at least one of these set
-                Assumed.True(cachedTypeInformation.Item1 != null || cachedTypeInformation.Item2 != null, "Function type information needs either string or type represented.");
-
-                // If we have the type information in Type form, then just return that
-                if (cachedTypeInformation.Item2 != null)
-                {
-                    return cachedTypeInformation.Item2;
-                }
-
-                if (cachedTypeInformation.Item1 != null)
-                {
-                    // This is a case where the Type is not available at compile time, so
-                    // we are forced to bind by name instead
-                    var assemblyQualifiedTypeName = cachedTypeInformation.Item1;
-
-                    // Get the type from the assembly qualified type name from AvailableStaticMethods
-                    receiverType = Type.GetType(assemblyQualifiedTypeName, throwOnError: false, ignoreCase: true);
-
-                    // If the type information from the cache is not loadable, it means the cache information got corrupted somehow
-                    // Throw here to prevent adding null types in the cache
-                    Assumed.NotNull(receiverType, $"Type information for {typeName} was present in the allowlist cache as {assemblyQualifiedTypeName} but the type could not be loaded.");
-
-                    // If we've used it once, chances are that we'll be using it again
-                    // We can record the type here since we know it's available for calling from the fact that is was in the AvailableStaticMethods table
-                    AvailableStaticMethods.TryAdd(typeName, simpleMethodName, new Tuple<string, Type>(assemblyQualifiedTypeName, receiverType));
-
-                    return receiverType;
-                }
-            }
-
-            // Get the type from mscorlib (or the currently running assembly)
-            receiverType = Type.GetType(typeName, throwOnError: false, ignoreCase: true);
-
-            if (receiverType != null)
-            {
-                // DO NOT CACHE THE TYPE HERE!
-                // We don't add the resolved type here in the AvailableStaticMethods table. This is because that table is used
-                // during function parse, but only later during execution do we check for the ability to call specific methods on specific types.
-                // Caching it here would load any type into the allow list.
-                return receiverType;
-            }
-
-            // The following reflective probing runs only when the EnableAllPropertyFunctions feature
-            // switch is enabled (or, in untrimmed builds, the legacy MSBUILDENABLEALLPROPERTYFUNCTIONS
-            // environment variable is set). That switch is a [FeatureGuard] for RequiresUnreferencedCode,
-            // so the analyzer treats this branch as the trim-unsafe region (no suppression needed). In
-            // trimmed / AOT applications the trimmer substitutes the switch false and removes this branch,
-            // so only the curated allowlist of receiver types is supported.
-            if (FeatureSwitches.EnableAllPropertyFunctions)
-            {
-                // We didn't find the type, so go probing. First in System
-                receiverType = GetTypeFromAssembly(typeName, "System");
-
-                // Next in System.Core
-                if (receiverType == null)
-                {
-                    receiverType = GetTypeFromAssembly(typeName, "System.Core");
-                }
-
-                // We didn't find the type, so try to find it using the namespace
-                if (receiverType == null)
-                {
-                    receiverType = GetTypeFromAssemblyUsingNamespace(typeName);
-                }
-
-                if (receiverType != null)
-                {
-                    // If we've used it once, chances are that we'll be using it again
-                    // We can cache the type here, since all functions are enabled
-                    AvailableStaticMethods.TryAdd(typeName, new Tuple<string, Type>(typeName, receiverType));
-                }
-            }
-
-            return receiverType;
-        }
-
-        /// <summary>
-        ///  Resolves a type by probing assemblies inferred from its namespace.
-        /// </summary>
-        /// <param name="typeName">The full type name.</param>
-        /// <returns>
-        ///  The resolved type, or <see langword="null"/> when no inferred assembly contains it.
-        /// </returns>
-        [RequiresUnreferencedCode("Resolves a property-function receiver type by probing and loading assemblies at runtime; reachable only via the MSBUILDENABLEALLPROPERTYFUNCTIONS feature switch, which is disabled under trimming.")]
-        private static Type? GetTypeFromAssemblyUsingNamespace(string typeName)
-        {
-            string baseName = typeName;
-            int assemblyNameEnd = baseName.Length;
-
-            // If the string has no dot, or is nothing but a dot, we have no
-            // namespace to look for, so we can't help.
-            if (assemblyNameEnd <= 0)
-            {
-                return null;
-            }
-
-            // We will work our way up the namespace looking for an assembly that matches
-            while (assemblyNameEnd > 0)
-            {
-                string candidateAssemblyName = baseName.Substring(0, assemblyNameEnd);
-
-                // Try to load the assembly with the computed name
-                Type? foundType = GetTypeFromAssembly(typeName, candidateAssemblyName);
-
-                if (foundType != null)
-                {
-                    // We have a match, so get the type from that assembly
-                    return foundType;
-                }
-                else
-                {
-                    // Keep looking as we haven't found a match yet
-                    baseName = candidateAssemblyName;
-                    assemblyNameEnd = baseName.LastIndexOf('.');
-                }
-            }
-
-            // We didn't find it, so we need to give up
-            return null;
-        }
-
-        /// <summary>
-        ///  Resolves a type from an assembly partial name.
-        /// </summary>
-        /// <param name="typeName">The full type name.</param>
-        /// <param name="candidateAssemblyName">The partial assembly name to load.</param>
-        /// <returns>
-        ///  The resolved type, or <see langword="null"/> when the assembly or type cannot be found.
-        /// </returns>
-        [SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods", MessageId = "System.Reflection.Assembly.LoadWithPartialName", Justification = "Necessary since we don't have the full assembly name. ")]
-        [RequiresUnreferencedCode("Resolves a property-function receiver type by loading an assembly by partial name at runtime; reachable only via the MSBUILDENABLEALLPROPERTYFUNCTIONS feature switch, which is disabled under trimming.")]
-        private static Type? GetTypeFromAssembly(string typeName, string candidateAssemblyName)
-        {
-            Type? objectType = null;
-
-            // Try to load the assembly with the computed name
-#if FEATURE_GAC
-#pragma warning disable 618, 612
-            // Unfortunately Assembly.Load is not an alternative to LoadWithPartialName, since
-            // Assembly.Load requires the full assembly name to be passed to it.
-            // Therefore we must ignore the deprecated warning.
-            Assembly candidateAssembly = Assembly.LoadWithPartialName(candidateAssemblyName);
-#pragma warning restore 618, 612
-#else
-            Assembly? candidateAssembly = null;
-            try
-            {
-                candidateAssembly = Assembly.Load(new AssemblyName(candidateAssemblyName));
-            }
-            catch (FileNotFoundException)
-            {
-                // Swallow the error; LoadWithPartialName returned null when the partial name
-                // was not found but Load throws.  Either way we'll provide a nice "couldn't
-                // resolve this" error later.
-            }
-#endif
-
-            if (candidateAssembly != null)
-            {
-                objectType = candidateAssembly.GetType(typeName, throwOnError: false, ignoreCase: true);
-            }
-
-            return objectType;
-        }
 
         /// <summary>
         ///  Parses the name, arguments, binding flags, invocation type, and remainder of a static or instance

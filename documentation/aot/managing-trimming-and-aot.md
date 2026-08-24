@@ -528,8 +528,8 @@ internal static bool EnableAllPropertyFunctions =>
 ```
 
 At the probing call site in
-[`GetTypeForStaticMethod`](../../src/Build/Evaluation/Expander.FunctionParser.cs) (in the
-`Expander<P, I>.FunctionParser` partial), the `[FeatureGuard]` lets the trim-unsafe
+[`AvailableStaticMembers.TryResolveType`](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs), the
+`[FeatureGuard]` lets the trim-unsafe
 assembly-probing run with **no per-call `[UnconditionalSuppressMessage]`** — it replaced a
 standing IL2026 suppression; the trimmer removes the whole branch from a trimmed/AOT build
 because the switch folds to `false`. In untrimmed builds the getter preserves the legacy

@@ -15,13 +15,11 @@ using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using AvailableStaticMethods = Microsoft.Build.Internal.AvailableStaticMethods;
-using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
 using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
-// System.IO.File to match the types registered in AvailableStaticMethods.
+// System.IO.File to match the types registered in AvailableStaticMembers.
 using Path = Microsoft.IO.Path;
 #endif
 
@@ -45,7 +43,7 @@ internal partial class Expander<P, I>
         /// <remarks>
         /// Property-function evaluation only ever binds public members (BindingFlags.NonPublic is
         /// never set on this path), so only the public member surface needs to be preserved for
-        /// trimming. Keep in sync with Constants.PropertyFunctionMembers, which preserves the same
+        /// trimming. Keep in sync with AvailableStaticMembers.PropertyFunctionMembers, which preserves the same
         /// set on every allowlisted receiver type.
         /// </remarks>
         [DynamicallyAccessedMembers(
@@ -79,7 +77,7 @@ internal partial class Expander<P, I>
         /// The complete set of <see cref="BindingFlags"/> the property-function binder is permitted
         /// to use. This set intentionally excludes <see cref="BindingFlags.NonPublic"/>: property
         /// functions only ever bind public members. That exclusion is what lets a receiver type
-        /// preserve only its public member surface for trimming (see Constants.PropertyFunctionMembers)
+        /// preserve only its public member surface for trimming (see AvailableStaticMembers.PropertyFunctionMembers)
         /// and keeps the flags handed to <c>TypeExtensions.InvokePublicMember</c> free of
         /// <see cref="BindingFlags.NonPublic"/>.
         /// </summary>
@@ -213,9 +211,13 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Execute the function on the given instance.
         /// </summary>
-        [UnconditionalSuppressMessage("Trimming", "IL2074:UnrecognizedReflectionPattern",
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2074:UnrecognizedReflectionPattern",
             Justification = "_receiverType is reassigned from a runtime property value whose type is restricted to the property-function allowlist, whose members are preserved for trimming.")]
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         internal object Execute(object objectInstance, IPropertyProvider<P> properties, ExpanderOptions options, IElementLocation elementLocation)
         {
@@ -228,7 +230,7 @@ internal partial class Expander<P, I>
                 if (objectInstance == null)
                 {
                     // Check that the function that we're going to call is valid to call
-                    if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
+                    if (!AvailableStaticMembers.IsAvailable(_receiverType, _methodMethodName))
                     {
                         ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
                     }
@@ -274,7 +276,7 @@ internal partial class Expander<P, I>
                         // the function being called. If a file or a directory function, fix the path
                         // Use fully qualified type names because FEATURE_MSIOREDIST aliases
                         // Directory and Path to Microsoft.IO.* in this file, but _receiverType
-                        // from AvailableStaticMethods is always System.IO.*.
+                        // from AvailableStaticMembers is always System.IO.*.
                         if (_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory)
                             || _receiverType == typeof(System.IO.Path))
                         {
@@ -649,29 +651,6 @@ internal partial class Expander<P, I>
             }
         }
 
-        /// <summary>
-        /// Check the property function allowlist whether this method is available.
-        /// </summary>
-        private static bool IsStaticMethodAvailable(Type receiverType, string methodName)
-        {
-            if (receiverType == typeof(IntrinsicFunctions))
-            {
-                // These are our intrinsic functions, so we're OK with those
-                return true;
-            }
-
-            // The escape hatch opens everything. The feature switch also preserves the legacy
-            // MSBUILDENABLEALLPROPERTYFUNCTIONS environment-variable behavior in untrimmed builds; under
-            // trimming it is substituted false, so this wide gate is removed.
-            if (FeatureSwitches.EnableAllPropertyFunctions)
-            {
-                // anything goes
-                return true;
-            }
-
-            return AvailableStaticMethods.GetTypeInformationFromTypeCache(receiverType.FullName, methodName) != null;
-        }
-
         private static bool IsInstanceMethodAvailable(Type receiverType, string methodName)
         {
             // The escape hatch opens everything (this preserves the historical behavior, including
@@ -707,7 +686,9 @@ internal partial class Expander<P, I>
         /// Finds a public method on the receiver type by name (case-insensitive) and exact
         /// parameter-type signature, filtering by the current binding flags (instance/static).
         /// </summary>
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         private MethodInfo FindPublicMethodBySignature(string methodName, Type[] parameterTypes)
         {
@@ -758,9 +739,13 @@ internal partial class Expander<P, I>
         // Enum.GetValues<TEnum>() overload cannot be substituted either. The case is therefore blocked before
         // this invoke (identically on JIT and AOT) and would still fail observably (InvalidProjectFileException)
         // if reached - never silently. Verified under Native AOT by src/aot-validation/PropertyFunctionAotTests.cs.
-        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+        [UnconditionalSuppressMessage(
+            "AOT",
+            "IL3050:RequiresDynamicCode",
             Justification = "The only RDC method reachable here is Enum.GetValues(Type), which is unreachable via property functions; see comment above.")]
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         private object LateBindExecute(Exception ex, BindingFlags bindingFlags, object objectInstance /* null unless instance method */, object[] args, bool isConstructor)
         {

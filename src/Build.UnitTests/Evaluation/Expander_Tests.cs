@@ -18,10 +18,10 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Engine.UnitTests;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Utilities;
@@ -2840,7 +2840,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 }
                 finally
                 {
-                    AvailableStaticMethods.Reset_ForUnitTestsOnly();
+                    AvailableStaticMembers.Reset_ForUnitTestsOnly();
                 }
             }
         }
@@ -2870,7 +2870,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 AppContext.SetSwitch("Microsoft.Build.EnableAllPropertyFunctions", originalSwitch);
-                AvailableStaticMethods.Reset_ForUnitTestsOnly();
+                AvailableStaticMembers.Reset_ForUnitTestsOnly();
             }
         }
 
@@ -2901,7 +2901,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
             finally
             {
                 Environment.SetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS", env);
-                AvailableStaticMethods.Reset_ForUnitTestsOnly();
+                AvailableStaticMembers.Reset_ForUnitTestsOnly();
             }
         }
 
@@ -4331,7 +4331,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public void Medley()
         {
             // Make absolutely sure that the static method cache hasn't been polluted by the other tests.
-            AvailableStaticMethods.Reset_ForUnitTestsOnly();
+            AvailableStaticMembers.Reset_ForUnitTestsOnly();
 
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
             pg.Set(ProjectPropertyInstance.Create("File", @"foo\file.txt"));
