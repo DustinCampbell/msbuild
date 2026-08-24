@@ -53,7 +53,7 @@ internal partial class Expander<P, I>
         ///  <see langword="true"/> when <paramref name="text"/> contains a property function; otherwise,
         ///  <see langword="false"/>.
         /// </returns>
-        /// <exception cref="Microsoft.Build.Exceptions.InvalidProjectFileException">
+        /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has recognized but invalid property-function syntax.
         /// </exception>
         public static bool TryParse(
@@ -111,7 +111,7 @@ internal partial class Expander<P, I>
         /// <returns>
         ///  The parsed function.
         /// </returns>
-        /// <exception cref="Microsoft.Build.Exceptions.InvalidProjectFileException">
+        /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has invalid static property-function syntax or names an unavailable type.
         /// </exception>
         private Function ParseStaticPropertyFunction(string text)
@@ -161,7 +161,7 @@ internal partial class Expander<P, I>
         /// <returns>
         ///  The parsed indexer function.
         /// </returns>
-        /// <exception cref="Microsoft.Build.Exceptions.InvalidProjectFileException">
+        /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has mismatched square brackets.
         /// </exception>
         private Function ParseInstanceIndexerFunction(string text, object propertyValue)
@@ -174,12 +174,12 @@ internal partial class Expander<P, I>
                 _errors.ThrowInvalidFunctionPropertyExpression(ErrorDetail.MismatchedSquareBrackets);
             }
 
-            ReadOnlyMemory<char> argumentsContent = text.AsMemory().Slice(1, indexerEndIndex - 1);
-            string[] functionArguments = !argumentsContent.IsEmpty
-                ? ExtractFunctionArguments(argumentsContent, _errors)
+            ReadOnlySpan<char> argumentsSpan = text.AsSpan(1, indexerEndIndex - 1);
+            string[] arguments = !argumentsSpan.IsEmpty
+                ? ExtractFunctionArguments(argumentsSpan, _errors)
                 : [];
 
-            string functionName = propertyValue switch
+            string name = propertyValue switch
             {
                 Array => "GetValue",
                 string => "get_Chars",
@@ -187,8 +187,8 @@ internal partial class Expander<P, I>
             };
 
             ParsedFunction parsedFunction = new(
-                functionName,
-                functionArguments,
+                name,
+                arguments,
                 BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.InvokeMethod,
                 text.Substring(indexerEndIndex + 1));
 
@@ -204,7 +204,7 @@ internal partial class Expander<P, I>
         ///  The parsed function, or <see langword="null"/> when <paramref name="text"/> does not contain an
         ///  instance member invocation.
         /// </returns>
-        /// <exception cref="Microsoft.Build.Exceptions.InvalidProjectFileException">
+        /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has invalid property-function syntax.
         /// </exception>
         private Function? ParseInstancePropertyFunction(string text, object? propertyValue)
@@ -469,16 +469,16 @@ internal partial class Expander<P, I>
         /// <returns>
         ///  The parsed member invocation.
         /// </returns>
-        /// <exception cref="Microsoft.Build.Exceptions.InvalidProjectFileException">
+        /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has invalid property-function syntax.
         /// </exception>
         private ParsedFunction ParseFunction(string text, int argumentStartIndex, int methodStartIndex)
         {
             // The unevaluated and unexpanded arguments for this function
-            string[] functionArguments;
+            string[] arguments;
 
             // The name of the function that will be invoked
-            ReadOnlySpan<char> functionName;
+            ReadOnlySpan<char> name;
 
             // What's left of the expression once the function has been constructed
             ReadOnlySpan<char> remainder = default;
@@ -490,13 +490,13 @@ internal partial class Expander<P, I>
             if (argumentStartIndex > -1 && text.IndexOf('.', methodStartIndex, argumentStartIndex - methodStartIndex) == -1)
             {
                 // separate the function and the arguments
-                functionName = text.AsSpan(methodStartIndex, argumentStartIndex - methodStartIndex).Trim();
+                name = text.AsSpan(methodStartIndex, argumentStartIndex - methodStartIndex).Trim();
 
                 // Skip the '('
                 argumentStartIndex++;
 
                 // Scan for the matching closing bracket, skipping any nested ones
-                int argumentsEndIndex = ScanForClosingParenthesis(text.AsSpan(), argumentStartIndex);
+                int argumentsEndIndex = ScanForClosingParenthesis(text, argumentStartIndex);
 
                 if (argumentsEndIndex == -1)
                 {
@@ -506,9 +506,9 @@ internal partial class Expander<P, I>
                 // We have been asked for a method invocation
                 defaultBindingFlags |= BindingFlags.InvokeMethod;
 
-                ReadOnlyMemory<char> argumentsContent = text.AsMemory(argumentStartIndex, argumentsEndIndex - argumentStartIndex);
-                functionArguments = !argumentsContent.IsEmpty
-                    ? ExtractFunctionArguments(argumentsContent, _errors)
+                ReadOnlySpan<char> argumentsSpan = text.AsSpan(argumentStartIndex, argumentsEndIndex - argumentStartIndex);
+                arguments = !argumentsSpan.IsEmpty
+                    ? ExtractFunctionArguments(argumentsSpan, _errors)
                     : [];
 
                 remainder = text.AsSpan(argumentsEndIndex + 1).Trim();
@@ -524,7 +524,7 @@ internal partial class Expander<P, I>
                     remainderStartIndex = indexerIndex;
                 }
 
-                functionArguments = [];
+                arguments = [];
 
                 int methodEndIndex;
                 if (remainderStartIndex >= 0)
@@ -537,8 +537,8 @@ internal partial class Expander<P, I>
                     methodEndIndex = text.Length;
                 }
 
-                functionName = text.AsSpan(methodStartIndex, methodEndIndex - methodStartIndex).Trim();
-                _errors.VerifyThrowInvalidFunctionPropertyExpression(!functionName.IsEmpty);
+                name = text.AsSpan(methodStartIndex, methodEndIndex - methodStartIndex).Trim();
+                _errors.VerifyThrowInvalidFunctionPropertyExpression(!name.IsEmpty);
 
                 // We have been asked for a property or a field
                 defaultBindingFlags |= BindingFlags.GetProperty | BindingFlags.GetField;
@@ -547,7 +547,7 @@ internal partial class Expander<P, I>
             // either there are no functions left or what we have is another function or an indexer
             if (remainder is [] or ['.' or '[', ..])
             {
-                return new ParsedFunction(functionName.ToString(), functionArguments, defaultBindingFlags, remainder.ToString());
+                return new ParsedFunction(name.ToString(), arguments, defaultBindingFlags, remainder.ToString());
             }
 
             // We ended up with something other than a function expression

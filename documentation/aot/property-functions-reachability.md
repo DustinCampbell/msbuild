@@ -53,7 +53,7 @@ down predate the split and are approximate; the table here is current.
 | Concern | Member | Location |
 | --- | --- | --- |
 | Parse a `$(...)` body into a function and recurse the chain | `PropertyExpander<T>.ExpandPropertyBody` | [Expander.PropertyExpander.cs#L255](../../src/Build/Evaluation/Expander.PropertyExpander.cs#L255) |
-| Split a comma-separated argument list (atomic `$()` / quotes) | `ExtractFunctionArguments` | [Expander.cs#L606](../../src/Build/Evaluation/Expander.cs#L606) |
+| Split a comma-separated argument list (atomic `$()` / quotes) | `ExtractFunctionArguments` | [Expander.cs#L675](../../src/Build/Evaluation/Expander.cs#L675) |
 | Extract receiver/method/args/remainder; **derive receiver type** | `FunctionParser.TryParse` | [Expander.FunctionParser.cs#L59](../../src/Build/Evaluation/Expander.FunctionParser.cs#L59) |
 | Split method name / arguments / remainder | `FunctionParser.ParseFunction` | [Expander.FunctionParser.cs#L475](../../src/Build/Evaluation/Expander.FunctionParser.cs#L475) |
 | Execute the call, escape the result, recurse the remainder | `Function.Execute` | [Expander.Function.cs#L220](../../src/Build/Evaluation/Expander.Function.cs#L220) |
