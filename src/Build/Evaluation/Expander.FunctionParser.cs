@@ -25,6 +25,7 @@ internal partial class Expander<P, I>
         private readonly PropertiesUseTracker _propertiesUseTracker;
         private readonly IFileSystem _fileSystem;
         private readonly LoggingContext _loggingContext;
+        private readonly IElementLocation _location;
 
         /// <summary>
         ///  Contains the parsed member invocation independent of its receiver.
@@ -98,6 +99,7 @@ internal partial class Expander<P, I>
             _propertiesUseTracker = propertiesUseTracker;
             _fileSystem = fileSystem;
             _loggingContext = loggingContext;
+            _location = location;
         }
 
         /// <summary>
@@ -265,7 +267,8 @@ internal partial class Expander<P, I>
                 parsedFunction.Remainder,
                 _propertiesUseTracker,
                 _fileSystem,
-                _loggingContext);
+                _loggingContext,
+                _location);
 
         /// <summary>
         ///  Parses the name, arguments, binding flags, invocation type, and remainder of a static or instance

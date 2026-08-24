@@ -467,7 +467,7 @@ internal partial class Expander<P, I>
                     // Because of the rich expansion capabilities of MSBuild, we need to keep things
                     // as strings, since property expansion & string embedding can happen anywhere
                     // propertyValue can be null here, when we're invoking a static function
-                    propertyValue = function.Execute(propertyValue, _properties, _options, _elementLocation);
+                    propertyValue = function.Execute(propertyValue, _properties, _options);
                 }
                 catch (Exception) when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
