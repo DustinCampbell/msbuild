@@ -58,9 +58,9 @@ internal partial class Expander<P, I>
         internal void SetReceiverType(Type receiverType) => _receiverType = receiverType;
 
         /// <summary>
-        /// The name of the function.
+        /// The source-backed name of the function.
         /// </summary>
-        public string Name { get; set; }
+        public StringSegment Name { get; set; }
 
         /// <summary>
         /// The arguments for the function.

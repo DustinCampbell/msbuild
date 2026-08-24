@@ -4681,6 +4681,22 @@ $(
             TestPropertyFunction(@"$([System.Version]::Parse('$(X)').ToString(1))", "X", "4.0", "4");
         }
 
+        [Theory]
+        [InlineData("$([System.String]::Concat('a'))", "a")]
+        [InlineData("$([System.String]::Concat('a', 'b'))", "ab")]
+        [InlineData("$([System.String]::Concat('a', 'b', 'c'))", "abc")]
+        [InlineData("$([System.String]::Concat('a', 'b', 'c', 'd'))", "abcd")]
+        public void PropertyFunctionStringConcat(string expression, string expected)
+        {
+            TestPropertyFunction(expression, "_", "_", expected);
+        }
+
+        [Fact]
+        public void PropertyFunctionStringReplace()
+        {
+            TestPropertyFunction("$(Text.Replace('-', '_'))", "Text", "prefix-value", "prefix_value");
+        }
+
         [Fact]
         public void PropertyFunctionGuidNewGuid()
         {

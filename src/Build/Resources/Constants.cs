@@ -211,7 +211,7 @@ namespace Microsoft.Build.Internal
         /// <returns>The cached type information, or <see langword="null"/> when unavailable.</returns>
         internal static Tuple<string, Type> GetTypeInformationFromTypeCache(
             StringSegment typeFullName,
-            string simpleMethodName)
+            StringSegment simpleMethodName)
         {
             if (s_availableStaticMethodsBySegment.TryGetValue(
                     typeFullName,
@@ -222,7 +222,22 @@ namespace Microsoft.Build.Internal
 
             // Method-specific allowlist entries require a composite key. Realize only on this
             // uncommon fallback after the allocation-free type-level lookup misses.
-            return GetValue(CreateQualifiedMethodName(typeFullName.ValueOrEmpty, simpleMethodName));
+            return GetValue(CreateQualifiedMethodName(typeFullName.ValueOrEmpty, simpleMethodName.ValueOrEmpty));
+        }
+
+        /// <summary>
+        ///  Tries to retrieve type information using a source-backed method name.
+        /// </summary>
+        /// <param name="typeFullName">The namespace-qualified type name.</param>
+        /// <param name="simpleMethodName">The method name segment.</param>
+        /// <returns>The cached type information, or <see langword="null"/> when unavailable.</returns>
+        internal static Tuple<string, Type> GetTypeInformationFromTypeCache(
+            string typeFullName,
+            StringSegment simpleMethodName)
+        {
+            Tuple<string, Type> typeInformation = GetValue(typeFullName);
+            return typeInformation ??
+                GetValue(CreateQualifiedMethodName(typeFullName, simpleMethodName.ValueOrEmpty));
         }
 
         /// <summary>

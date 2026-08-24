@@ -191,6 +191,7 @@
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
     <Compile Include="Evaluation\Expander.Function.cs" />
+    <Compile Include="Evaluation\Expander.FunctionArguments.cs" />
     <Compile Include="Evaluation\Expander.FunctionBuilder.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.cs" />
     <Compile Include="Evaluation\Expander.TransformEntry.cs" />

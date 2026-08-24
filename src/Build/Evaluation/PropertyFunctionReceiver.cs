@@ -5,6 +5,7 @@ using System;
 using System.Collections.Frozen;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -71,7 +72,7 @@ internal static class PropertyFunctionReceiver
     /// Returns <see langword="true"/> if an instance member named <paramref name="methodName"/> may
     /// be invoked on a receiver of type <paramref name="receiverType"/> under the restricted mode.
     /// </summary>
-    internal static bool IsAllowed(Type receiverType, string methodName)
+    internal static bool IsAllowed(Type receiverType, StringSegment methodName)
     {
         // Primitives (the numeric types, bool, char), enums, and arrays are permitted in full. These
         // are single flag reads, so they run before the set lookup. Array element access
@@ -95,7 +96,13 @@ internal static class PropertyFunctionReceiver
         // Directory, Root, ...) are always System.IO.*; the Microsoft.IO.Redist variants never surface.
         if (typeof(System.IO.FileSystemInfo).IsAssignableFrom(receiverType))
         {
-            return s_fileSystemInfoMembers.Contains(methodName);
+            foreach (string allowedMember in s_fileSystemInfoMembers)
+            {
+                if (methodName.Equals(allowedMember, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
         }
 
         return false;
