@@ -42,8 +42,9 @@ includes state-mutating members).
 ## 2. Where the code lives
 
 The property-function code lives in the `Expander.*.cs` partial classes - primarily
-[Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs) (the nested type
-`PropertyExpander<T>.Function<T>`), with the outer property expansion in
+[Expander.FunctionParser.cs](../../src/Build/Evaluation/Expander.FunctionParser.cs) and
+[Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs) (the nested
+`Expander<P, I>.FunctionParser` and `Expander<P, I>.Function` types), with the outer property expansion in
 [Expander.PropertyExpander.cs](../../src/Build/Evaluation/Expander.PropertyExpander.cs) and the
 argument splitter in [Expander.cs](../../src/Build/Evaluation/Expander.cs). The monolithic
 `Expander.cs` was later split into these partials, so the inline `Expander.cs#L...` line anchors further
@@ -53,14 +54,14 @@ down predate the split and are approximate; the table here is current.
 | --- | --- | --- |
 | Parse a `$(...)` body into a function and recurse the chain | `PropertyExpander<T>.ExpandPropertyBody` | [Expander.PropertyExpander.cs#L255](../../src/Build/Evaluation/Expander.PropertyExpander.cs#L255) |
 | Split a comma-separated argument list (atomic `$()` / quotes) | `ExtractFunctionArguments` | [Expander.cs#L606](../../src/Build/Evaluation/Expander.cs#L606) |
-| Extract receiver/method/args/remainder; **derive receiver type** | `Function<T>.ExtractPropertyFunction` | [Expander.Function.cs#L206](../../src/Build/Evaluation/Expander.Function.cs#L206) |
-| Split method name / arguments / remainder | `Function<T>.ConstructFunction` | [Expander.Function.cs#L888](../../src/Build/Evaluation/Expander.Function.cs#L888) |
-| Execute the call, escape the result, recurse the remainder | `Function<T>.Execute` | [Expander.Function.cs#L367](../../src/Build/Evaluation/Expander.Function.cs#L367) |
-| Resolve a static receiver `Type` | `GetTypeForStaticMethod` | [Expander.Function.cs#L671](../../src/Build/Evaluation/Expander.Function.cs#L671) |
-| **Static** allow gate | `IsStaticMethodAvailable` | [Expander.Function.cs#L1134](../../src/Build/Evaluation/Expander.Function.cs#L1134) |
-| **Instance** allow gate (only blocks `GetType`) | `IsInstanceMethodAvailable` | [Expander.Function.cs#L1154](../../src/Build/Evaluation/Expander.Function.cs#L1154) |
-| Argument coercion fallback | `CoerceArguments` | [Expander.Function.cs#L999](../../src/Build/Evaluation/Expander.Function.cs#L999) |
-| Late-bound overload resolution | `LateBindExecute` | [Expander.Function.cs#L1244](../../src/Build/Evaluation/Expander.Function.cs#L1244) |
+| Extract receiver/method/args/remainder; **derive receiver type** | `FunctionParser.TryParse` | [Expander.FunctionParser.cs#L59](../../src/Build/Evaluation/Expander.FunctionParser.cs#L59) |
+| Split method name / arguments / remainder | `FunctionParser.ParseFunction` | [Expander.FunctionParser.cs#L475](../../src/Build/Evaluation/Expander.FunctionParser.cs#L475) |
+| Execute the call, escape the result, recurse the remainder | `Function.Execute` | [Expander.Function.cs#L220](../../src/Build/Evaluation/Expander.Function.cs#L220) |
+| Resolve a static receiver `Type` | `FunctionParser.GetTypeForStaticMethod` | [Expander.FunctionParser.cs#L281](../../src/Build/Evaluation/Expander.FunctionParser.cs#L281) |
+| **Static** allow gate | `IsStaticMethodAvailable` | [Expander.Function.cs#L655](../../src/Build/Evaluation/Expander.Function.cs#L655) |
+| **Instance** allow gate (only blocks `GetType`) | `IsInstanceMethodAvailable` | [Expander.Function.cs#L675](../../src/Build/Evaluation/Expander.Function.cs#L675) |
+| Argument coercion fallback | `CoerceArguments` | [Expander.Function.cs#L520](../../src/Build/Evaluation/Expander.Function.cs#L520) |
+| Late-bound overload resolution | `LateBindExecute` | [Expander.Function.cs#L765](../../src/Build/Evaluation/Expander.Function.cs#L765) |
 | Public-only binding invariant | `AllowedBindingFlags` + ctor assert | [Expander.Function.cs#L87](../../src/Build/Evaluation/Expander.Function.cs#L87) |
 | The static allowlist data | `AvailableStaticMethods.InitializeAvailableMethods` | [Constants.cs#L305](../../src/Build/Resources/Constants.cs#L305) |
 | Well-known function fast paths (no reflection) | `WellKnownFunctions.TryExecuteWellKnownFunction` | [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs) |
@@ -72,7 +73,7 @@ down predate the split and are approximate; the table here is current.
 flowchart TD
     A["$(body)"] --> B{IsValidPropertyName?}
     B -->|yes| P[plain property lookup -> string]
-    B -->|"no, contains '.' or '['"| C[ExtractPropertyFunction]
+    B -->|"no, contains '.' or '['"| C[FunctionParser.TryParse]
     C --> D{receiver}
     D -->|"[Type]::M (propertyValue == null)"| E[GetTypeForStaticMethod]
     D -->|"prop.M / chained"| F["receiverType = propertyValue?.GetType() ?? string"]
@@ -105,7 +106,7 @@ remainder is parsed, the next receiver type is
 A static call `[Type]::Method(...)` is checked twice:
 
 1. **Type resolution** in `GetTypeForStaticMethod`
-   ([Expander.cs#L4373](../../src/Build/Evaluation/Expander.cs#L4373)):
+   ([Expander.FunctionParser.cs#L281](../../src/Build/Evaluation/Expander.FunctionParser.cs#L281)):
    - the allowlist cache (`AvailableStaticMethods.GetTypeInformationFromTypeCache`), then
    - `Type.GetType(typeName)` against **corelib / the calling assembly only** (no
      assembly-qualified probing), then
@@ -244,9 +245,9 @@ internal members are unreachable.
 
 | Constraint | Code | Effect |
 | --- | --- | --- |
-| Static type must resolve from allowlist/corelib/(probe) | `GetTypeForStaticMethod` [L4373](../../src/Build/Evaluation/Expander.cs#L4373) | non-corelib, non-allowlisted type → "type unavailable" |
-| Static method must be allowlisted | `IsStaticMethodAvailable` [L4835](../../src/Build/Evaluation/Expander.cs#L4835) | corelib-but-not-allowlisted method → "not available" |
-| Instance method must not be `GetType` | `IsInstanceMethodAvailable` [L4853](../../src/Build/Evaluation/Expander.cs#L4853) | blocks reflection bootstrap via `obj.GetType()` |
+| Static type must resolve from allowlist/corelib/(probe) | `GetTypeForStaticMethod` [L281](../../src/Build/Evaluation/Expander.FunctionParser.cs#L281) | non-corelib, non-allowlisted type → "type unavailable" |
+| Static method must be allowlisted | `IsStaticMethodAvailable` [L655](../../src/Build/Evaluation/Expander.Function.cs#L655) | corelib-but-not-allowlisted method → "not available" |
+| Instance method must not be `GetType` | `IsInstanceMethodAvailable` [L675](../../src/Build/Evaluation/Expander.Function.cs#L675) | blocks reflection bootstrap via `obj.GetType()` |
 | Public-only binding | `AllowedBindingFlags` [L3789](../../src/Build/Evaluation/Expander.cs#L3789) | private/internal members unreachable |
 
 ### 6.2 Inadvertent constraints (things that fail to bind by accident)
@@ -260,7 +261,7 @@ the *practical* reachable set is far smaller than a naive type-graph closure.
 | Reflection (`Type`, `Assembly`, `MethodInfo`, ...) | No argument can be a `System.Type`, so `Enum.GetUnderlyingType(Type)` (the only allowlisted member returning `Type`) can't be called; and `obj.GetType()` is blocked. The reflection graph is unreachable despite being in the type closure. | `ExtractFunctionArguments` [L848](../../src/Build/Evaluation/Expander.cs#L848); `IsInstanceMethodAvailable` [L4853](../../src/Build/Evaluation/Expander.cs#L4853) |
 | `async` overloads returning `Task<T>` | The allowlisted entry points (`File`/`Directory`) don't expose async statics, and reaching async I/O instance methods needs non-string args (`byte[]` buffers) that can't be expressed. | allowlist [Constants.cs#L305](../../src/Build/Resources/Constants.cs#L305); `CoerceArguments` [L4700](../../src/Build/Evaluation/Expander.cs#L4700) |
 | Methods needing a non-coercible parameter (`Stream`, delegate, complex object) | `Convert.ChangeType` throws → caught → overload returns `null` → `MissingMethodException` → error. | `CoerceArguments` [L4743](../../src/Build/Evaluation/Expander.cs#L4743) |
-| Array element access `arr[i]` | There is no indexer syntax. (Workaround: `arr.GetValue(0)` is a normal public method and *does* work - see §7.) | `ConstructFunction` [L4589](../../src/Build/Evaluation/Expander.cs#L4589) |
+| Array element access `arr[i]` | There is no indexer syntax. (Workaround: `arr.GetValue(0)` is a normal public method and *does* work - see §7.) | `ParseFunction` [L475](../../src/Build/Evaluation/Expander.FunctionParser.cs#L475) |
 | Ending a chain on a non-string object | Not an error: the object is `ToString()`-ed into the property, often producing a useless value like `System.Threading.Tasks.Task\`1[...]`. "Works" only if the final value stringifies usefully. | result handling [L4267](../../src/Build/Evaluation/Expander.cs#L4267) |
 
 ## 7. Vetted reachability examples
@@ -326,13 +327,13 @@ detail is that the environment variable is read through the
 `FeatureSwitches.EnableAllPropertyFunctions` property, not directly at the call sites:
 
 - **The gates** `IsStaticMethodAvailable`
-  ([Expander.cs#L4843](../../src/Build/Evaluation/Expander.cs#L4843)) and
+  ([Expander.Function.cs#L655](../../src/Build/Evaluation/Expander.Function.cs#L655)) and
   `IsInstanceMethodAvailable`
-  ([Expander.cs#L4855](../../src/Build/Evaluation/Expander.cs#L4855)) read
+  ([Expander.Function.cs#L675](../../src/Build/Evaluation/Expander.Function.cs#L675)) read
   `FeatureSwitches.EnableAllPropertyFunctions`, so the "anything goes" branch is guarded by a
   trimmer-substitutable property.
 - **Type resolution** `GetTypeForStaticMethod`
-  ([Expander.cs#L4435](../../src/Build/Evaluation/Expander.cs#L4435)) reads
+  ([Expander.FunctionParser.cs#L281](../../src/Build/Evaluation/Expander.FunctionParser.cs#L281)) reads
   `FeatureSwitches.EnableAllPropertyFunctions`
   ([FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs)), a
   `[FeatureSwitchDefinition]` for `Microsoft.Build.EnableAllPropertyFunctions`. In untrimmed builds,

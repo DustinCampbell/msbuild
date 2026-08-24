@@ -528,8 +528,8 @@ internal static bool EnableAllPropertyFunctions =>
 ```
 
 At the probing call site in
-[`GetTypeForStaticMethod`](../../src/Build/Evaluation/Expander.Function.cs) (in the
-de-genericized `Expander<P, I>.Function` partial), the `[FeatureGuard]` lets the trim-unsafe
+[`GetTypeForStaticMethod`](../../src/Build/Evaluation/Expander.FunctionParser.cs) (in the
+`Expander<P, I>.FunctionParser` partial), the `[FeatureGuard]` lets the trim-unsafe
 assembly-probing run with **no per-call `[UnconditionalSuppressMessage]`** — it replaced a
 standing IL2026 suppression; the trimmer removes the whole branch from a trimmed/AOT build
 because the switch folds to `false`. In untrimmed builds the getter preserves the legacy
@@ -804,11 +804,11 @@ flowchart TD
   context** over adding a new suppression (e.g. the `TypeLoader.Create<TInterface>()`
   refactor that avoids an IL2070 suppression — see the suppression tracker).
 - **Localize an unavoidable suppression to the smallest member.** When a
-  `[DynamicallyAccessedMembers]` store genuinely can't be proven, push it into a one-line
-  setter instead of annotating a whole method — e.g. `FunctionBuilder.SetReceiverType` in
-  [Expander.FunctionBuilder.cs](../../src/Build/Evaluation/Expander.FunctionBuilder.cs) owns the
-  single IL2067 suppression for the property-function receiver type, keeping
-  `Function.ExtractPropertyFunction` suppression-free.
+  `[DynamicallyAccessedMembers]` flow genuinely can't be proven, push it into a small factory
+  instead of annotating the parsing methods — e.g. `FunctionParser.CreateFunction` in
+  [Expander.FunctionParser.cs](../../src/Build/Evaluation/Expander.FunctionParser.cs) owns the
+  single IL2067 suppression for the property-function receiver type, keeping the extraction
+  methods suppression-free.
 
 ---
 
@@ -867,5 +867,5 @@ flowchart TD
 - Central feature switches: [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs)
 - Attribute polyfills: [AotTrimmingPolyfills.cs](../../src/Framework/Polyfills/AotTrimmingPolyfills.cs)
 - Property-function reflection, `[FeatureGuard]` probing, and the env-var gates: [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs)
-- Localized IL2067 suppression (`SetReceiverType`): [Expander.FunctionBuilder.cs](../../src/Build/Evaluation/Expander.FunctionBuilder.cs)
+- Localized IL2067 suppression (`CreateFunction`): [Expander.FunctionParser.cs](../../src/Build/Evaluation/Expander.FunctionParser.cs)
 - Curated property-function receiver allowlist: [PropertyFunctionReceiver.cs](../../src/Build/Evaluation/PropertyFunctionReceiver.cs)

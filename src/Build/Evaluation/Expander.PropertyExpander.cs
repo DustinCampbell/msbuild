@@ -404,17 +404,14 @@ internal partial class Expander<P, I>
                         Console.WriteLine("Expanding: {0}", propertyBody);
                     }
 
-                    // This is a function
-                    function = Function.ExtractPropertyFunction(
+                    if (FunctionParser.TryParse(
                         propertyBody,
-                        _elementLocation,
                         propertyValue,
+                        _elementLocation,
                         _propertiesUseTracker,
                         _fileSystem,
-                        _propertiesUseTracker.LoggingContext);
-
-                    // We may not have been able to parse out a function
-                    if (function != null)
+                        _propertiesUseTracker.LoggingContext,
+                        out function))
                     {
                         // We will have either extracted the actual property name
                         // or realized that there is none (static function), and have recorded a null

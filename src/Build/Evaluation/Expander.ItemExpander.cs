@@ -140,10 +140,7 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    if (argumentsExpression is not null)
-                    {
-                        arguments = ExtractFunctionArguments(elementLocation, argumentsExpression, argumentsExpression.AsMemory());
-                    }
+                    arguments = ExtractFunctionArguments(argumentsExpression.AsMemory(), new FunctionParser.ErrorReporter(function, elementLocation));
 
                     if (ItemSpecModifiers.IsDerivableItemSpecModifier(functionName))
                     {

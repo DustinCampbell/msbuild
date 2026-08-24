@@ -578,7 +578,7 @@ internal partial class Expander<P, I>
     /// Returns an array of unexpanded arguments.
     /// If there are no arguments, returns an empty array.
     /// </summary>
-    private static string[] ExtractFunctionArguments(IElementLocation elementLocation, string expressionFunction, ReadOnlyMemory<char> argumentsMemory)
+    private static string[] ExtractFunctionArguments(ReadOnlyMemory<char> argumentsMemory, FunctionParser.ErrorReporter errors)
     {
         int argumentsContentLength = argumentsMemory.Length;
         ReadOnlySpan<char> argumentsSpan = argumentsMemory.Span;
@@ -614,7 +614,7 @@ internal partial class Expander<P, I>
 
                 if (n == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
+                    errors.ThrowInvalidFunctionPropertyExpression(FunctionParser.ErrorDetail.MismatchedParenthesis);
                 }
 
                 FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: nestedPropertyStart);
@@ -629,7 +629,7 @@ internal partial class Expander<P, I>
 
                 if (n == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedQuote"));
+                    errors.ThrowInvalidFunctionPropertyExpression(FunctionParser.ErrorDetail.MismatchedQuote);
                 }
 
                 FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: quoteStart);
