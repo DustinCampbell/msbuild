@@ -57,12 +57,12 @@ down predate the split and are approximate; the table here is current.
 | Parse receiver/member/arguments/remainder syntax | `FunctionParser.TryParse` | [Expander.FunctionParser.cs#L62](../../src/Build/Evaluation/Expander.FunctionParser.cs#L62) |
 | Split member name / arguments / remainder | `FunctionParser.ParseMember` | [Expander.FunctionParser.cs#L231](../../src/Build/Evaluation/Expander.FunctionParser.cs#L231) |
 | Bind runtime receiver, type, and availability | `FunctionBinder.Bind` | [Expander.FunctionBinder.cs#L31](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L31) |
-| Execute the call, escape the result, recurse the remainder | `Function.Execute` | [Expander.Function.cs#L210](../../src/Build/Evaluation/Expander.Function.cs#L210) |
+| Execute the call, escape the result, recurse the remainder | `Function.Execute` | [Expander.Function.cs#L217](../../src/Build/Evaluation/Expander.Function.cs#L217) |
 | Resolve a static receiver `Type` | `AvailableStaticMembers.TryResolveType` | [AvailableStaticMembers.cs#L44](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L44) |
 | **Static** allow gate | `AvailableStaticMembers.IsAvailable` | [AvailableStaticMembers.cs#L99](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L99) |
 | **Instance** allow gate (only blocks `GetType` by default) | `FunctionBinder.VerifyInstanceMemberAvailable` | [Expander.FunctionBinder.cs#L104](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L104) |
-| Argument coercion fallback | `CoerceArguments` | [Expander.Function.cs#L492](../../src/Build/Evaluation/Expander.Function.cs#L492) |
-| Late-bound overload resolution | `LateBindExecute` | [Expander.Function.cs#L689](../../src/Build/Evaluation/Expander.Function.cs#L689) |
+| Argument coercion fallback | `CoerceArguments` | [Expander.Function.cs#L587](../../src/Build/Evaluation/Expander.Function.cs#L587) |
+| Late-bound overload resolution | `LateBindExecute` | [Expander.Function.cs#L784](../../src/Build/Evaluation/Expander.Function.cs#L784) |
 | Public-only binding invariant | `AllowedBindingFlags` + ctor assert | [Expander.Function.cs#L87](../../src/Build/Evaluation/Expander.Function.cs#L87) |
 | The static allowlist data | `AvailableStaticMembers.CreateAvailableMembers` | [AvailableStaticMembers.cs#L250](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L250) |
 | Well-known function fast paths (no reflection) | `WellKnownFunctions.TryExecuteWellKnownFunction` | [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs) |

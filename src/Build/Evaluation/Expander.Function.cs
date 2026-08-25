@@ -37,6 +37,13 @@ internal partial class Expander<P, I>
     /// </summary>
     internal class Function
     {
+        private enum WellKnownExecutionStatus
+        {
+            NotHandled,
+            Handled,
+            ReturnImmediately,
+        }
+
         /// <summary>
         /// The type of this function's receiver.
         /// </summary>
@@ -226,6 +233,29 @@ internal partial class Expander<P, I>
                     }
                 }
 
+                bool wellKnownFunctionAttempted = false;
+                if (!String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                    && CanExecuteWellKnownWithoutExpandingArguments())
+                {
+                    wellKnownFunctionAttempted = true;
+                    WellKnownExecutionStatus status = TryExecuteWellKnownFunction(
+                        properties,
+                        options,
+                        objectInstance,
+                        _arguments,
+                        out functionResult);
+
+                    if (status == WellKnownExecutionStatus.ReturnImmediately)
+                    {
+                        return functionResult;
+                    }
+
+                    if (status == WellKnownExecutionStatus.Handled)
+                    {
+                        return CompleteExecution(functionResult, properties, options);
+                    }
+                }
+
                 // We have a methodinfo match, need to plug in the arguments
                 args = new object[_arguments.Length];
 
@@ -325,33 +355,21 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    bool wellKnownFunctionSuccess = false;
+                    WellKnownExecutionStatus status = wellKnownFunctionAttempted
+                        ? WellKnownExecutionStatus.NotHandled
+                        : TryExecuteWellKnownFunction(
+                            properties,
+                            options,
+                            objectInstance,
+                            args,
+                            out functionResult);
 
-                    try
+                    if (status == WellKnownExecutionStatus.ReturnImmediately)
                     {
-                        // First attempt to recognize some well-known functions to avoid binding
-                        // and potential first-chance MissingMethodExceptions.
-                        wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodMethodName, _receiverType, _fileSystem, out functionResult, objectInstance, args);
-
-                        if (!wellKnownFunctionSuccess)
-                        {
-                            // Some well-known functions need evaluated value from properties.
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(_methodMethodName, _receiverType, _loggingContext, properties, out functionResult, objectInstance, args);
-                        }
-                    }
-                    // we need to preserve the same behavior on exceptions as the actual binder
-                    catch (Exception ex)
-                    {
-                        string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
-                        if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                        {
-                            return partiallyEvaluated;
-                        }
-
-                        ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message.Replace("\r\n", " "));
+                        return functionResult;
                     }
 
-                    if (!wellKnownFunctionSuccess)
+                    if (status == WellKnownExecutionStatus.NotHandled)
                     {
                         // Execute the function given converted arguments
                         // The only exception that we should catch to try a late bind here is missing method
@@ -381,32 +399,7 @@ internal partial class Expander<P, I>
                     }
                 }
 
-                // If the result of the function call is a string, then we need to escape the result
-                // so that we maintain the "engine contains escaped data" state.
-                // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
-                if (functionResult is string functionResultString &&
-                    !String.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
-                    !String.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
-                    !String.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
-                {
-                    functionResult = EscapingUtilities.Escape(functionResultString);
-                }
-
-                // We have nothing left to parse, so we'll return what we have
-                if (String.IsNullOrEmpty(_remainder))
-                {
-                    return functionResult;
-                }
-
-                // Recursively expand the remaining property body after execution
-                return PropertyExpander.ExpandPropertyBody(
-                    _remainder,
-                    functionResult,
-                    properties,
-                    options,
-                    _location,
-                    _propertiesUseTracker,
-                    _fileSystem);
+                return CompleteExecution(functionResult, properties, options);
             }
 
             // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
@@ -441,6 +434,108 @@ internal partial class Expander<P, I>
 
                 return null;
             }
+        }
+
+        private bool CanExecuteWellKnownWithoutExpandingArguments()
+        {
+            if (_receiverType == typeof(IntrinsicFunctions)
+                || _receiverType == typeof(System.IO.File)
+                || _receiverType == typeof(System.IO.Directory)
+                || _receiverType == typeof(System.IO.Path)
+                || String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            foreach (string argument in _arguments)
+            {
+                if (argument is not null && (argument.IndexOf('$') >= 0 || argument.IndexOf('%') >= 0))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private WellKnownExecutionStatus TryExecuteWellKnownFunction(
+            IPropertyProvider<P> properties,
+            ExpanderOptions options,
+            object objectInstance,
+            object[] args,
+            out object functionResult)
+        {
+            try
+            {
+                if (WellKnownFunctions.TryExecuteWellKnownFunction(
+                    _methodMethodName,
+                    _receiverType,
+                    _fileSystem,
+                    out functionResult,
+                    objectInstance,
+                    args)
+                    || WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
+                        _methodMethodName,
+                        _receiverType,
+                        _loggingContext,
+                        properties,
+                        out functionResult,
+                        objectInstance,
+                        args))
+                {
+                    return WellKnownExecutionStatus.Handled;
+                }
+            }
+            catch (Exception ex)
+            {
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                {
+                    functionResult = partiallyEvaluated;
+                    return WellKnownExecutionStatus.ReturnImmediately;
+                }
+
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    _location,
+                    "InvalidFunctionPropertyExpression",
+                    partiallyEvaluated,
+                    ex.Message.Replace("\r\n", " "));
+            }
+
+            functionResult = null;
+            return WellKnownExecutionStatus.NotHandled;
+        }
+
+        private object CompleteExecution(
+            object functionResult,
+            IPropertyProvider<P> properties,
+            ExpanderOptions options)
+        {
+            // If the result of the function call is a string, then we need to escape the result
+            // so that we maintain the "engine contains escaped data" state.
+            // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
+            if (functionResult is string functionResultString
+                && !String.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                && !String.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                && !String.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+            {
+                functionResult = EscapingUtilities.Escape(functionResultString);
+            }
+
+            if (String.IsNullOrEmpty(_remainder))
+            {
+                return functionResult;
+            }
+
+            return PropertyExpander.ExpandPropertyBody(
+                _remainder,
+                functionResult,
+                properties,
+                options,
+                _location,
+                _propertiesUseTracker,
+                _fileSystem);
         }
 
         private object GetMethodResult(object objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)
