@@ -52,19 +52,19 @@ down predate the split and are approximate; the table here is current.
 
 | Concern | Member | Location |
 | --- | --- | --- |
-| Parse a `$(...)` body into a function and recurse the chain | `PropertyExpander<T>.ExpandPropertyBody` | [Expander.PropertyExpander.cs#L255](../../src/Build/Evaluation/Expander.PropertyExpander.cs#L255) |
-| Split a comma-separated argument list (atomic `$()` / quotes) | `ExtractFunctionArguments` | [Expander.cs#L675](../../src/Build/Evaluation/Expander.cs#L675) |
-| Parse root receiver/member/arguments/remainder syntax | `FunctionParser.TryParseRoot` | [Expander.FunctionParser.cs#L133](../../src/Build/Evaluation/Expander.FunctionParser.cs#L133) |
-| Parse chained access syntax | `FunctionParser.TryParseContinuation` | [Expander.FunctionParser.cs#L159](../../src/Build/Evaluation/Expander.FunctionParser.cs#L159) |
-| Split member name / arguments / remainder | `FunctionParser.ParseMember` | [Expander.FunctionParser.cs#L344](../../src/Build/Evaluation/Expander.FunctionParser.cs#L344) |
+| Parse, bind, and execute a `$(...)` body | `PropertyExpander<T>.ExpandPropertyBody` | [Expander.PropertyExpander.cs#L367](../../src/Build/Evaluation/Expander.PropertyExpander.cs#L367) |
+| Split a comma-separated argument list (atomic `$()` / quotes) | `ExtractFunctionArguments` | [Expander.cs#L581](../../src/Build/Evaluation/Expander.cs#L581) |
+| Parse the complete root input into ordered operations | `FunctionParser.TryParse` | [Expander.FunctionParser.cs#L132](../../src/Build/Evaluation/Expander.FunctionParser.cs#L132) |
+| Split a member name and arguments | `FunctionParser.ParseMember` | [Expander.FunctionParser.cs#L257](../../src/Build/Evaluation/Expander.FunctionParser.cs#L257) |
+| Parse element access | `FunctionParser.ParseIndexer` | [Expander.FunctionParser.cs#L306](../../src/Build/Evaluation/Expander.FunctionParser.cs#L306) |
 | Bind runtime receiver, type, and availability | `FunctionBinder.Bind` | [Expander.FunctionBinder.cs#L31](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L31) |
-| Execute the call, escape the result, recurse the remainder | `Function.Execute` | [Expander.Function.cs#L217](../../src/Build/Evaluation/Expander.Function.cs#L217) |
+| Execute one call and escape its result | `Function.Execute` | [Expander.Function.cs#L223](../../src/Build/Evaluation/Expander.Function.cs#L223) |
 | Resolve a static receiver `Type` | `AvailableStaticMembers.TryResolveType` | [AvailableStaticMembers.cs#L44](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L44) |
 | **Static** allow gate | `AvailableStaticMembers.IsAvailable` | [AvailableStaticMembers.cs#L99](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L99) |
-| **Instance** allow gate (only blocks `GetType` by default) | `FunctionBinder.VerifyInstanceMemberAvailable` | [Expander.FunctionBinder.cs#L108](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L108) |
-| Argument coercion fallback | `CoerceArguments` | [Expander.Function.cs#L587](../../src/Build/Evaluation/Expander.Function.cs#L587) |
-| Late-bound overload resolution | `LateBindExecute` | [Expander.Function.cs#L784](../../src/Build/Evaluation/Expander.Function.cs#L784) |
-| Public-only binding invariant | `AllowedBindingFlags` + ctor assert | [Expander.Function.cs#L87](../../src/Build/Evaluation/Expander.Function.cs#L87) |
+| **Instance** allow gate (only blocks `GetType` by default) | `FunctionBinder.VerifyInstanceMemberAvailable` | [Expander.FunctionBinder.cs#L107](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L107) |
+| Argument coercion fallback | `CoerceArguments` | [Expander.Function.cs#L588](../../src/Build/Evaluation/Expander.Function.cs#L588) |
+| Late-bound overload resolution | `LateBindExecute` | [Expander.Function.cs#L785](../../src/Build/Evaluation/Expander.Function.cs#L785) |
+| Public-only binding invariant | `AllowedBindingFlags` + ctor assert | [Expander.Function.cs#L88](../../src/Build/Evaluation/Expander.Function.cs#L88) |
 | The static allowlist data | `AvailableStaticMembers.CreateAvailableMembers` | [AvailableStaticMembers.cs#L250](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L250) |
 | Well-known function fast paths (no reflection) | `WellKnownFunctions.TryExecuteWellKnownFunction` | [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs) |
 | Feature switch / legacy env-var escape hatch (read by **type resolution** and the **gates**) | `FeatureSwitches.EnableAllPropertyFunctions` | [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs) |
@@ -75,33 +75,26 @@ down predate the split and are approximate; the table here is current.
 flowchart TD
     A["$(body)"] --> B{IsValidPropertyName?}
     B -->|yes| P[plain property lookup -> string]
-    B -->|"no, contains '.' or '['"| C["FunctionParser.TryParseRoot / TryParseContinuation"]
-    C --> BIND[FunctionBinder.Bind]
-    BIND --> D{receiver}
-    D -->|"[Type]::M (propertyValue == null)"| E[AvailableStaticMembers.TryResolveType]
-    D -->|"prop.M / chained"| F["receiverType = propertyValue?.GetType() ?? string"]
-    E --> G[Execute]
-    F --> G[Execute]
-    G --> H{objectInstance == null?}
-    H -->|yes static| I[AvailableStaticMembers.IsAvailable]
-    H -->|no instance| J["VerifyInstanceMemberAvailable (only blocks GetType by default)"]
-    I --> K[bind public member, invoke]
-    J --> K
-    K --> L{remainder empty?}
-    L -->|yes| M[return result -> stringified into the property]
-    L -->|"no (.X / [i])"| C2[ExpandPropertyBody on remainder with result as new receiver]
-    C2 --> C
+    B -->|"no, contains '.' or '['"| C["FunctionParser.TryParse -> ParsedFunction[]"]
+    C --> R["Resolve the root MSBuild property receiver, if any"]
+    R --> BIND["FunctionBinder.Bind next operation against current receiver"]
+    BIND --> D{receiver kind}
+    D -->|static| E["TryResolveType + IsAvailable"]
+    D -->|"MSBuild property / chained"| F["GetType + VerifyInstanceMemberAvailable"]
+    E --> G[Function.Execute]
+    F --> G
+    G --> H{another operation?}
+    H -->|yes| BIND
+    H -->|no| M[return result -> stringified into the property]
 ```
 
-The chaining recursion is the crux. `Execute` finishes by calling
-`ExpandPropertyBody(_remainder, functionResult, ...)`
-([Expander.cs#L4277](../../src/Build/Evaluation/Expander.cs#L4277)). The
-`functionResult` is carried as a **live object** - it is only converted to a
-string if it already *is* a string (the escaping branch at
-[Expander.cs#L4267](../../src/Build/Evaluation/Expander.cs#L4267)). When the
-remainder is parsed, the next receiver type is
-`propertyValue?.GetType() ?? typeof(string)`
-([Expander.cs#L4019](../../src/Build/Evaluation/Expander.cs#L4019)) - i.e. the
+The complete root input is parsed before execution. `ExpandPropertyBody` then binds and executes each
+`ParsedFunction` in order, carrying each `functionResult` as the **live object** receiver for the next
+operation ([Expander.PropertyExpander.cs#L428](../../src/Build/Evaluation/Expander.PropertyExpander.cs#L428)).
+Strings are escaped after execution to maintain the engine's escaped-data invariant, then unescaped
+before use as the next receiver. The binder selects
+`receiverValue?.GetType() ?? typeof(string)`
+([Expander.FunctionBinder.cs#L72](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L72)) - i.e. the
 **runtime type** of the previous result, with its full public surface.
 
 ### 3.1 Static call gating is two-stage
@@ -128,7 +121,7 @@ A static call `[Type]::Method(...)` is checked twice:
 ### 3.2 Instance call gating is effectively unbounded by default
 
 In the **unrestricted** configuration (the untrimmed default), `VerifyInstanceMemberAvailable`
-([Expander.FunctionBinder.cs#L108](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L108)) reduces to a single denial:
+([Expander.FunctionBinder.cs#L107](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L107)) reduces to a single denial:
 
 ```csharp
 return !string.Equals("GetType", methodName, StringComparison.OrdinalIgnoreCase);
@@ -250,7 +243,7 @@ internal members are unreachable.
 | --- | --- | --- |
 | Static type must resolve from allowlist/corelib/(probe) | `AvailableStaticMembers.TryResolveType` [L44](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L44) | non-corelib, non-allowlisted type → "type unavailable" |
 | Static method must be allowlisted | `AvailableStaticMembers.IsAvailable` [L99](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L99) | corelib-but-not-allowlisted method → "not available" |
-| Instance method must not be `GetType` | `FunctionBinder.VerifyInstanceMemberAvailable` [L108](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L108) | blocks reflection bootstrap via `obj.GetType()` |
+| Instance method must not be `GetType` | `FunctionBinder.VerifyInstanceMemberAvailable` [L107](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L107) | blocks reflection bootstrap via `obj.GetType()` |
 | Public-only binding | `AllowedBindingFlags` [L3789](../../src/Build/Evaluation/Expander.cs#L3789) | private/internal members unreachable |
 
 ### 6.2 Inadvertent constraints (things that fail to bind by accident)
@@ -264,7 +257,7 @@ the *practical* reachable set is far smaller than a naive type-graph closure.
 | Reflection (`Type`, `Assembly`, `MethodInfo`, ...) | No argument can be a `System.Type`, so `Enum.GetUnderlyingType(Type)` (the only allowlisted member returning `Type`) can't be called; and `obj.GetType()` is blocked. The reflection graph is unreachable despite being in the type closure. | `ExtractFunctionArguments` [L848](../../src/Build/Evaluation/Expander.cs#L848); `IsInstanceMethodAvailable` [L4853](../../src/Build/Evaluation/Expander.cs#L4853) |
 | `async` overloads returning `Task<T>` | The allowlisted entry points (`File`/`Directory`) don't expose async statics, and reaching async I/O instance methods needs non-string args (`byte[]` buffers) that can't be expressed. | allowlist [AvailableStaticMembers.cs#L250](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L250); `CoerceArguments` [L4700](../../src/Build/Evaluation/Expander.cs#L4700) |
 | Methods needing a non-coercible parameter (`Stream`, delegate, complex object) | `Convert.ChangeType` throws → caught → overload returns `null` → `MissingMethodException` → error. | `CoerceArguments` [L4743](../../src/Build/Evaluation/Expander.cs#L4743) |
-| Element access `value[i]` | Bound to `Array.GetValue`, `string.get_Chars`, or the receiver's `get_Item` member. | `ParseIndexerExpression` [L237](../../src/Build/Evaluation/Expander.FunctionParser.cs#L237) |
+| Element access `value[i]` | Bound to `Array.GetValue`, `string.get_Chars`, or the receiver's `get_Item` member. | `ParseIndexer` [L306](../../src/Build/Evaluation/Expander.FunctionParser.cs#L306) |
 | Ending a chain on a non-string object | Not an error: the object is `ToString()`-ed into the property, often producing a useless value like `System.Threading.Tasks.Task\`1[...]`. "Works" only if the final value stringifies usefully. | result handling [L4267](../../src/Build/Evaluation/Expander.cs#L4267) |
 
 ## 7. Vetted reachability examples
@@ -312,7 +305,7 @@ types are unreachable under the restriction.
   constructed; `Uri` does no I/O); there is no reachable network primitive.
 
 The **now-implemented** constraining mode (§10) does exactly this: it hooks `FunctionBinder.VerifyInstanceMemberAvailable`
-([Expander.FunctionBinder.cs#L108](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L108)), giving it the receiver runtime
+([Expander.FunctionBinder.cs#L107](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L107)), giving it the receiver runtime
 `Type`, and enforces an **allowlist of side-effect-free receiver types** (string, primitives, `DateTime`/`TimeSpan`/
 `Version`/`Guid`/`decimal`, `CultureInfo`, `Uri`, `Regex`/`Match`, enums) over a
 member deny-list - a small, statically known set the trimmer can root, rather than the
@@ -332,7 +325,7 @@ detail is that the environment variable is read through the
 - **The gates** `AvailableStaticMembers.IsAvailable`
   ([AvailableStaticMembers.cs#L99](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L99)) and
   `FunctionBinder.VerifyInstanceMemberAvailable`
-  ([Expander.FunctionBinder.cs#L108](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L108)) read
+  ([Expander.FunctionBinder.cs#L107](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L107)) read
   `FeatureSwitches.EnableAllPropertyFunctions`, so the "anything goes" branch is guarded by a
   trimmer-substitutable property.
 - **Type resolution** `AvailableStaticMembers.TryResolveType`

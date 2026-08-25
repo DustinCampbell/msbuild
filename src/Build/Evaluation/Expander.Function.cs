@@ -75,6 +75,8 @@ internal partial class Expander<P, I>
         /// </summary>
         private readonly string _expression;
 
+        private readonly int _expressionStartIndex;
+
         private readonly object _receiverValue;
 
         /// <summary>
@@ -104,11 +106,6 @@ internal partial class Expander<P, I>
         private readonly BindingFlags _bindingFlags;
 
         /// <summary>
-        /// The remainder of the body once the function and arguments have been extracted.
-        /// </summary>
-        private readonly string _remainder;
-
-        /// <summary>
         /// List of properties which have been used but have not been initialized yet.
         /// </summary>
         private PropertiesUseTracker _propertiesUseTracker;
@@ -131,10 +128,10 @@ internal partial class Expander<P, I>
             Type receiverType,
             object receiverValue,
             string expression,
+            int expressionStartIndex,
             string methodName,
             string[] arguments,
             BindingFlags bindingFlags,
-            string remainder,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem,
             LoggingContext loggingContext,
@@ -152,6 +149,7 @@ internal partial class Expander<P, I>
 
             _receiverValue = receiverValue;
             _expression = expression;
+            _expressionStartIndex = expressionStartIndex;
             _receiverType = receiverType;
 
             // Property functions never bind non-public members. Constrain the incoming flags to the
@@ -164,7 +162,6 @@ internal partial class Expander<P, I>
                 $"Property-function binding flags '{bindingFlags}' include flags outside the allowed set; BindingFlags.NonPublic in particular is never permitted.");
             _bindingFlags = bindingFlags & AllowedBindingFlags;
 
-            _remainder = remainder;
             _propertiesUseTracker = propertiesUseTracker;
             _fileSystem = fileSystem;
             _loggingContext = loggingContext;
@@ -204,8 +201,17 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Execute the function on the given instance.
+        ///  Executes the function on its bound receiver.
         /// </summary>
+        /// <param name="properties">The properties available while expanding function arguments.</param>
+        /// <param name="options">The expansion options.</param>
+        /// <param name="succeeded">
+        ///  <see langword="true"/> when execution succeeds; otherwise, <see langword="false"/> when
+        ///  <paramref name="options"/> converts an execution failure to a partially evaluated result.
+        /// </param>
+        /// <returns>
+        ///  The function result.
+        /// </returns>
         [UnconditionalSuppressMessage(
             "Trimming",
             "IL2074:UnrecognizedReflectionPattern",
@@ -214,8 +220,12 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        internal object Execute(IPropertyProvider<P> properties, ExpanderOptions options)
+        internal object Execute(
+            IPropertyProvider<P> properties,
+            ExpanderOptions options,
+            out bool succeeded)
         {
+            succeeded = true;
             object functionResult = String.Empty;
             object[] args = null;
             object objectInstance = _receiverValue;
@@ -247,12 +257,13 @@ internal partial class Expander<P, I>
 
                     if (status == WellKnownExecutionStatus.ReturnImmediately)
                     {
+                        succeeded = false;
                         return functionResult;
                     }
 
                     if (status == WellKnownExecutionStatus.Handled)
                     {
-                        return CompleteExecution(functionResult, properties, options);
+                        return CompleteExecution(functionResult);
                     }
                 }
 
@@ -366,6 +377,7 @@ internal partial class Expander<P, I>
 
                     if (status == WellKnownExecutionStatus.ReturnImmediately)
                     {
+                        succeeded = false;
                         return functionResult;
                     }
 
@@ -399,7 +411,7 @@ internal partial class Expander<P, I>
                     }
                 }
 
-                return CompleteExecution(functionResult, properties, options);
+                return CompleteExecution(functionResult);
             }
 
             // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
@@ -410,6 +422,7 @@ internal partial class Expander<P, I>
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
+                    succeeded = false;
                     return partiallyEvaluated;
                 }
                 ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.InnerException.Message.Replace("\r\n", " "));
@@ -419,11 +432,14 @@ internal partial class Expander<P, I>
             // Any other exception was thrown by trying to call it
             catch (Exception ex) when (!ExceptionHandling.NotExpectedFunctionException(ex))
             {
-                // If there's a :: in the expression, they were probably trying for a static function
-                // invocation. Give them some more relevant info in that case
-                if (s_invariantCompareInfo.IndexOf(_expression, "::", CompareOptions.OrdinalIgnoreCase) > -1)
+                // If there's a :: in this operation, they were probably trying for a static function
+                // invocation. Give them some more relevant info in that case.
+                if (_expression.IndexOf("::", _expressionStartIndex, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionStaticMethodSyntax", _expression, ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
+                    string expression = _expressionStartIndex == 0
+                        ? _expression
+                        : _expression.Substring(_expressionStartIndex);
+                    ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionStaticMethodSyntax", expression, ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
                 }
                 else
                 {
@@ -507,10 +523,7 @@ internal partial class Expander<P, I>
             return WellKnownExecutionStatus.NotHandled;
         }
 
-        private object CompleteExecution(
-            object functionResult,
-            IPropertyProvider<P> properties,
-            ExpanderOptions options)
+        private object CompleteExecution(object functionResult)
         {
             // If the result of the function call is a string, then we need to escape the result
             // so that we maintain the "engine contains escaped data" state.
@@ -523,20 +536,7 @@ internal partial class Expander<P, I>
                 functionResult = EscapingUtilities.Escape(functionResultString);
             }
 
-            if (String.IsNullOrEmpty(_remainder))
-            {
-                return functionResult;
-            }
-
-            return PropertyExpander.ExpandPropertyBody(
-                _remainder,
-                functionResult,
-                properties,
-                options,
-                _location,
-                _propertiesUseTracker,
-                _fileSystem,
-                isContinuation: true);
+            return functionResult;
         }
 
         private object GetMethodResult(object objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)

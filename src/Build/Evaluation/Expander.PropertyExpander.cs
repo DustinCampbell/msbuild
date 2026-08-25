@@ -354,9 +354,7 @@ internal partial class Expander<P, I>
             if (tryExtractPropertyFunction)
             {
                 // This is likely to be a function expression
-                return ExpandPropertyBody(
-                    expression.Substring(startIndex, length),
-                    propertyValue: null);
+                return ExpandPropertyBody(expression.Substring(startIndex, length));
             }
 
             // This is a regular property
@@ -366,26 +364,10 @@ internal partial class Expander<P, I>
         /// <summary>
         /// Expand the body of the property, including any functions that it may contain.
         /// </summary>
-        internal static object ExpandPropertyBody(
-            string propertyBody,
-            object propertyValue,
-            IPropertyProvider<P> properties,
-            ExpanderOptions options,
-            IElementLocation elementLocation,
-            PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem,
-            bool isContinuation = false)
+        private object ExpandPropertyBody(string propertyBody)
         {
-            PropertyExpander expander = new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
-            return expander.ExpandPropertyBody(propertyBody, propertyValue, isContinuation);
-        }
-
-        private object ExpandPropertyBody(
-            string propertyBody,
-            object propertyValue,
-            bool isContinuation = false)
-        {
-            FunctionParser.ParsedFunction parsedFunction = default;
+            object propertyValue = null;
+            FunctionParser.ParsedFunction[] parsedFunctions = null;
             bool hasFunction = false;
             string propertyName = propertyBody;
 
@@ -402,22 +384,18 @@ internal partial class Expander<P, I>
             // if what we have is a function
             if (!IsValidPropertyName(propertyBody))
             {
-                if (propertyBody.Contains('.') || propertyBody[0] == '[')
+                if (propertyBody.Contains('.') || propertyBody.Contains('['))
                 {
                     if (BuildParameters.DebugExpansion)
                     {
                         Console.WriteLine("Expanding: {0}", propertyBody);
                     }
 
-                    bool parsed = isContinuation
-                        ? FunctionParser.TryParseContinuation(propertyBody, _elementLocation, out parsedFunction)
-                        : FunctionParser.TryParseRoot(propertyBody, _elementLocation, out parsedFunction);
-
-                    if (parsed)
+                    if (FunctionParser.TryParse(propertyBody, _elementLocation, out parsedFunctions))
                     {
                         hasFunction = true;
-                        propertyName = parsedFunction.ReceiverKind == FunctionParser.ReceiverKind.MSBuildProperty
-                            ? parsedFunction.Receiver
+                        propertyName = parsedFunctions[0].ReceiverKind == FunctionParser.ReceiverKind.MSBuildProperty
+                            ? parsedFunctions[0].Receiver
                             : null;
                     }
                     else
@@ -426,24 +404,6 @@ internal partial class Expander<P, I>
                         // an invalid function property exception.
                         ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, String.Empty);
                         return null;
-                    }
-                }
-                else if (!isContinuation && propertyBody.Contains('[')) // a single property indexer
-                {
-                    int indexerStart = propertyBody.IndexOf('[');
-                    int indexerEnd = propertyBody.IndexOf(']');
-
-                    if (indexerStart < 0 || indexerEnd < 0)
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
-                    }
-                    else
-                    {
-                        propertyValue = LookupProperty(propertyBody, 0, indexerStart - 1);
-                        propertyBody = propertyBody.Substring(indexerStart);
-
-                        // recurse so that the function representing the indexer can be executed on the property value
-                        return ExpandPropertyBody(propertyBody, propertyValue, isContinuation: true);
                     }
                 }
                 else
@@ -465,22 +425,35 @@ internal partial class Expander<P, I>
 
             if (hasFunction)
             {
-                try
+                foreach (FunctionParser.ParsedFunction parsedFunction in parsedFunctions)
                 {
-                    Function function = FunctionBinder.Bind(
-                        parsedFunction,
-                        propertyValue,
-                        _propertiesUseTracker,
-                        _fileSystem,
-                        _propertiesUseTracker.LoggingContext);
+                    try
+                    {
+                        Function function = FunctionBinder.Bind(
+                            parsedFunction,
+                            propertyValue,
+                            _propertiesUseTracker,
+                            _fileSystem,
+                            _propertiesUseTracker.LoggingContext);
 
-                    // Because of the rich expansion capabilities of MSBuild, we need to keep things
-                    // as strings, since property expansion & string embedding can happen anywhere
-                    propertyValue = function.Execute(_properties, _options);
-                }
-                catch (Exception) when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                {
-                    propertyValue = propertyBody;
+                        // Preserve the live result as the receiver for the next parsed function.
+                        propertyValue = function.Execute(
+                            _properties,
+                            _options,
+                            out bool succeeded);
+
+                        if (!succeeded)
+                        {
+                            break;
+                        }
+                    }
+                    catch (Exception) when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                    {
+                        propertyValue = parsedFunction.StartIndex == 0
+                            ? propertyBody
+                            : propertyBody.Substring(parsedFunction.StartIndex);
+                        break;
+                    }
                 }
             }
 

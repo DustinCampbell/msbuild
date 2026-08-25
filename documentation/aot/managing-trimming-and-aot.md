@@ -866,5 +866,5 @@ flowchart TD
 - Central feature switches: [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs)
 - Attribute polyfills: [AotTrimmingPolyfills.cs](../../src/Framework/Polyfills/AotTrimmingPolyfills.cs)
 - Property-function reflection, `[FeatureGuard]` probing, and the env-var gates: [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs)
-- Localized IL2067 suppression (`CreateFunction`): [Expander.FunctionParser.cs](../../src/Build/Evaluation/Expander.FunctionParser.cs)
+- Localized receiver-flow suppressions: [Expander.FunctionBinder.cs](../../src/Build/Evaluation/Expander.FunctionBinder.cs)
 - Curated property-function receiver allowlist: [PropertyFunctionReceiver.cs](../../src/Build/Evaluation/PropertyFunctionReceiver.cs)

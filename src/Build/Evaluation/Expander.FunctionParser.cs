@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
 
@@ -15,18 +16,16 @@ internal partial class Expander<P, I>
     ///  Parses property-function expressions into syntax independent of runtime receiver values.
     /// </summary>
     /// <remarks>
-    ///  A root input is the content inside the outer <c>$(...)</c>. A continuation input is the
-    ///  unparsed suffix of a preceding function. The parser consumes one member at a time and leaves
-    ///  subsequent access syntax in <see cref="ParsedMember.Remainder"/>.
+    ///  The input is the complete content inside the outer <c>$(...)</c>. The parser returns one
+    ///  <see cref="ParsedFunction"/> for each member or element access, in execution order.
     ///  <code>
     ///   root-input          ::= static | msbuild-property
-    ///   continuation-input  ::= access-suffix
-    ///   static              ::= "[" type-name "]" "::" member
-    ///   msbuild-property    ::= msbuild-property-name member-access
-    ///   member              ::= member-name invocation? access-suffix?
+    ///   static              ::= "[" type-name "]" "::" member access-suffix*
+    ///   msbuild-property    ::= msbuild-property-name access-suffix+
+    ///   member              ::= member-name invocation?
     ///   access-suffix       ::= member-access | element-access
     ///   member-access       ::= "." member
-    ///   element-access      ::= "[" arguments? "]" access-suffix?
+    ///   element-access      ::= "[" arguments? "]"
     ///   invocation          ::= "(" arguments? ")"
     ///   arguments           ::= argument ("," argument)*
     ///  </code>
@@ -93,17 +92,16 @@ internal partial class Expander<P, I>
         /// </param>
         /// <param name="Arguments">The unexpanded argument text.</param>
         /// <param name="Kind">The member-access syntax.</param>
-        /// <param name="Remainder">The unparsed access suffix following this member.</param>
         public readonly record struct ParsedMember(
             string Name,
             string[] Arguments,
-            MemberKind Kind,
-            string Remainder);
+            MemberKind Kind);
 
         /// <summary>
         ///  Describes one parsed property-function operation.
         /// </summary>
         /// <param name="Text">The complete parser input.</param>
+        /// <param name="StartIndex">The start of this operation within <paramref name="Text"/>.</param>
         /// <param name="ReceiverKind">How binding obtains the receiver.</param>
         /// <param name="Receiver">
         ///  The static type name or MSBuild property name, or <see langword="null"/> for a chained receiver.
@@ -112,17 +110,18 @@ internal partial class Expander<P, I>
         /// <param name="Location">The project location used for diagnostics.</param>
         public readonly record struct ParsedFunction(
             string Text,
+            int StartIndex,
             ReceiverKind ReceiverKind,
             string? Receiver,
             ParsedMember Member,
             IElementLocation Location);
 
         /// <summary>
-        ///  Attempts to parse a root property-function expression.
+        ///  Attempts to parse a complete root property-function expression.
         /// </summary>
-        /// <param name="text">The property-function expression.</param>
+        /// <param name="text">The root property-function expression.</param>
         /// <param name="location">The project location used for error reporting.</param>
-        /// <param name="function">The parsed function syntax when this method returns <see langword="true"/>.</param>
+        /// <param name="functions">The ordered function operations when parsing succeeds.</param>
         /// <returns>
         ///  <see langword="true"/> when <paramref name="text"/> contains a property function; otherwise,
         ///  <see langword="false"/>.
@@ -130,46 +129,44 @@ internal partial class Expander<P, I>
         /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has recognized but invalid property-function syntax.
         /// </exception>
-        public static bool TryParseRoot(
+        public static bool TryParse(
             string text,
             IElementLocation location,
-            out ParsedFunction function)
+            out ParsedFunction[] functions)
         {
             FunctionParser parser = new(text, location);
+            using RefArrayBuilder<ParsedFunction> builder = default;
 
+            int nextAccessIndex;
             if (text[0] == '[')
             {
-                function = parser.ParseStaticExpression(text);
-                return true;
+                builder.Add(parser.ParseStaticRoot(text, out nextAccessIndex));
             }
-
-            return parser.TryParseMSBuildPropertyExpression(text, out function);
-        }
-
-        /// <summary>
-        ///  Attempts to parse an access suffix against a receiver produced by a preceding function.
-        /// </summary>
-        /// <param name="text">The continuation text.</param>
-        /// <param name="location">The project location used for error reporting.</param>
-        /// <param name="function">The parsed continuation when this method returns <see langword="true"/>.</param>
-        /// <returns>
-        ///  <see langword="true"/> when <paramref name="text"/> contains an access suffix; otherwise,
-        ///  <see langword="false"/>.
-        /// </returns>
-        public static bool TryParseContinuation(
-            string text,
-            IElementLocation location,
-            out ParsedFunction function)
-        {
-            FunctionParser parser = new(text, location);
-
-            if (text[0] == '[')
+            else if (parser.TryParseMSBuildPropertyRoot(text, out ParsedFunction function, out nextAccessIndex))
             {
-                function = parser.ParseIndexerExpression(text);
-                return true;
+                builder.Add(function);
+            }
+            else
+            {
+                functions = [];
+                return false;
             }
 
-            return parser.TryParseChainedExpression(text, out function);
+            while (nextAccessIndex >= 0)
+            {
+                int accessStartIndex = nextAccessIndex;
+                ParsedMember member = parser.ParseAccessSuffix(text, accessStartIndex, out nextAccessIndex);
+                builder.Add(new ParsedFunction(
+                    text,
+                    accessStartIndex,
+                    ReceiverKind.Chained,
+                    Receiver: null,
+                    member,
+                    location));
+            }
+
+            functions = builder.AsSpan().ToArray();
+            return true;
         }
 
         /// <summary>
@@ -183,114 +180,57 @@ internal partial class Expander<P, I>
             _errors.VerifyThrowInvalidFunctionPropertyExpression(!text.IsNullOrEmpty());
         }
 
-        /// <summary>
-        ///  Parses a static expression.
-        /// </summary>
-        /// <param name="text">The static property-function expression.</param>
-        /// <returns>
-        ///  The parsed function.
-        /// </returns>
-        /// <exception cref="Exceptions.InvalidProjectFileException">
-        ///  <paramref name="text"/> has invalid static property-function syntax.
-        /// </exception>
-        private ParsedFunction ParseStaticExpression(string text)
+        private ParsedFunction ParseStaticRoot(string text, out int nextAccessIndex)
         {
             Assumed.Equal(text[0], '[');
 
-            int argumentStartIndex = text.IndexOf('(');
-            int typeEndIndex = text.IndexOf(']', startIndex: 1);
-
-            if (typeEndIndex < 1 || (argumentStartIndex >= 0 && typeEndIndex > argumentStartIndex))
+            int typeEndIndex = text.IndexOf(']', 1);
+            int invocationStartIndex = text.IndexOf('(');
+            if (typeEndIndex < 1
+                || (invocationStartIndex >= 0 && typeEndIndex > invocationStartIndex))
             {
                 _errors.ThrowInvalidFunctionStaticMethodSyntax();
             }
 
             string typeName = Strings.WeakIntern(text.AsSpan(1, typeEndIndex - 1));
-
-            int methodStartIndex = typeEndIndex + 1;
-            int expressionRootLength = argumentStartIndex >= 0
-                ? argumentStartIndex
-                : text.Length;
-
-            if (expressionRootLength <= methodStartIndex + 2 || text[methodStartIndex] != ':' || text[methodStartIndex + 1] != ':')
+            int memberStartIndex = typeEndIndex + 1;
+            if (memberStartIndex + 2 >= text.Length
+                || text[memberStartIndex] != ':'
+                || text[memberStartIndex + 1] != ':')
             {
                 _errors.ThrowInvalidFunctionStaticMethodSyntax();
             }
 
-            // skip over the "::"
-            methodStartIndex += 2;
-
-            ParsedMember member = ParseMember(text, argumentStartIndex, methodStartIndex);
-            return new ParsedFunction(text, ReceiverKind.Static, typeName, member, _errors.Location);
+            memberStartIndex += 2;
+            ParsedMember member = ParseMember(text, memberStartIndex, out nextAccessIndex);
+            return new ParsedFunction(text, 0, ReceiverKind.Static, typeName, member, _errors.Location);
         }
 
-        /// <summary>
-        ///  Parses an indexer applied to a chained receiver.
-        /// </summary>
-        /// <param name="text">The indexer expression.</param>
-        /// <returns>
-        ///  The parsed indexer syntax.
-        /// </returns>
-        /// <exception cref="Exceptions.InvalidProjectFileException">
-        ///  <paramref name="text"/> has mismatched square brackets.
-        /// </exception>
-        private ParsedFunction ParseIndexerExpression(string text)
-        {
-            Assumed.Equal(text[0], '[');
-
-            int indexerEndIndex = text.IndexOf(']', 1);
-            if (indexerEndIndex < 1)
-            {
-                _errors.ThrowInvalidFunctionPropertyExpression(ErrorDetail.MismatchedSquareBrackets);
-            }
-
-            ReadOnlySpan<char> argumentsSpan = text.AsSpan(1, indexerEndIndex - 1);
-            string[] arguments = !argumentsSpan.IsEmpty
-                ? ExtractFunctionArguments(argumentsSpan, _errors)
-                : [];
-
-            ParsedMember member = new(
-                string.Empty,
-                arguments,
-                MemberKind.Indexer,
-                text.Substring(indexerEndIndex + 1));
-
-            return new ParsedFunction(text, ReceiverKind.Chained, Receiver: null, member, _errors.Location);
-        }
-
-        /// <summary>
-        ///  Attempts to parse an expression whose receiver is an MSBuild property.
-        /// </summary>
-        /// <param name="text">The instance property-function expression.</param>
-        /// <param name="function">The parsed function syntax.</param>
-        /// <returns>
-        ///  <see langword="true"/> when <paramref name="text"/> contains an MSBuild property receiver and
-        ///  member access.
-        /// </returns>
-        /// <exception cref="Exceptions.InvalidProjectFileException">
-        ///  <paramref name="text"/> has invalid property-function syntax.
-        /// </exception>
-        private bool TryParseMSBuildPropertyExpression(string text, out ParsedFunction function)
+        private bool TryParseMSBuildPropertyRoot(
+            string text,
+            out ParsedFunction function,
+            out int nextAccessIndex)
         {
             Assumed.NotEqual(text[0], '[');
 
-            int argumentStartIndex = text.IndexOf('(');
-            int rootEndIndex = text.IndexOf('.');
-            if (rootEndIndex == -1 || (argumentStartIndex >= 0 && rootEndIndex > argumentStartIndex))
+            int firstAccessIndex = GetFirstIndex(text.IndexOf('.'), text.IndexOf('['));
+            if (firstAccessIndex < 0)
             {
                 function = default;
+                nextAccessIndex = -1;
                 return false;
             }
 
-            string propertyName = Strings.WeakIntern(text.AsSpan(0, rootEndIndex).Trim());
+            string propertyName = Strings.WeakIntern(text.AsSpan(0, firstAccessIndex).Trim());
             if (!IsValidPropertyName(propertyName))
             {
                 _errors.ThrowInvalidFunctionPropertyExpression();
             }
 
-            ParsedMember member = ParseMember(text, argumentStartIndex, rootEndIndex + 1);
+            ParsedMember member = ParseAccessSuffix(text, firstAccessIndex, out nextAccessIndex);
             function = new ParsedFunction(
                 text,
+                0,
                 ReceiverKind.MSBuildProperty,
                 propertyName,
                 member,
@@ -298,127 +238,116 @@ internal partial class Expander<P, I>
             return true;
         }
 
-        /// <summary>
-        ///  Attempts to parse a member-access suffix against the result of a preceding function.
-        /// </summary>
-        /// <param name="text">The member-access suffix.</param>
-        /// <param name="function">The parsed function syntax.</param>
-        /// <returns>
-        ///  <see langword="true"/> when <paramref name="text"/> begins with member access; otherwise,
-        ///  <see langword="false"/>.
-        /// </returns>
-        /// <exception cref="Exceptions.InvalidProjectFileException">
-        ///  <paramref name="text"/> has invalid property-function syntax.
-        /// </exception>
-        private bool TryParseChainedExpression(string text, out ParsedFunction function)
+        private ParsedMember ParseAccessSuffix(
+            string text,
+            int accessStartIndex,
+            out int nextAccessIndex)
         {
-            if (text[0] != '.')
+            switch (text[accessStartIndex])
             {
-                function = default;
-                return false;
+                case '.':
+                    return ParseMember(text, accessStartIndex + 1, out nextAccessIndex);
+                case '[':
+                    return ParseIndexer(text, accessStartIndex, out nextAccessIndex);
+                default:
+                    nextAccessIndex = 0;
+                    return Assumed.Unreachable<ParsedMember>();
             }
-
-            int argumentStartIndex = text.IndexOf('(');
-            ParsedMember member = ParseMember(text, argumentStartIndex, memberStartIndex: 1);
-            function = new ParsedFunction(
-                text,
-                ReceiverKind.Chained,
-                Receiver: null,
-                member,
-                _errors.Location);
-            return true;
         }
 
-        /// <summary>
-        ///  Parses a member name, access kind, arguments, and remainder.
-        /// </summary>
-        /// <param name="text">The property-function expression.</param>
-        /// <param name="argumentStartIndex">The index of the opening parenthesis, or <c>-1</c> for property access.</param>
-        /// <param name="memberStartIndex">The index at which the member name begins.</param>
-        /// <returns>
-        ///  The parsed member invocation.
-        /// </returns>
-        /// <exception cref="Exceptions.InvalidProjectFileException">
-        ///  <paramref name="text"/> has invalid property-function syntax.
-        /// </exception>
-        private ParsedMember ParseMember(string text, int argumentStartIndex, int memberStartIndex)
+        private ParsedMember ParseMember(
+            string text,
+            int memberStartIndex,
+            out int nextAccessIndex)
         {
-            // The unevaluated and unexpanded arguments for this function
-            string[] arguments;
+            int invocationStartIndex = text.IndexOf('(', memberStartIndex);
+            int firstAccessIndex = GetFirstIndex(
+                text.IndexOf('.', memberStartIndex),
+                text.IndexOf('[', memberStartIndex));
 
-            // The name of the function that will be invoked
-            ReadOnlySpan<char> name;
-
-            // What's left of the expression once the function has been constructed
-            ReadOnlySpan<char> remainder = default;
-
-            MemberKind memberKind;
-
-            // There are arguments that need to be passed to the function
-            if (argumentStartIndex > -1 && text.IndexOf('.', memberStartIndex, argumentStartIndex - memberStartIndex) == -1)
+            if (invocationStartIndex >= 0
+                && (firstAccessIndex < 0 || invocationStartIndex < firstAccessIndex))
             {
-                // separate the function and the arguments
-                name = text.AsSpan(memberStartIndex, argumentStartIndex - memberStartIndex).Trim();
+                ReadOnlySpan<char> name = text.AsSpan(
+                    memberStartIndex,
+                    invocationStartIndex - memberStartIndex).Trim();
+                _errors.VerifyThrowInvalidFunctionPropertyExpression(!name.IsEmpty);
 
-                // Skip the '('
-                argumentStartIndex++;
-
-                // Scan for the matching closing bracket, skipping any nested ones
-                int argumentsEndIndex = ScanForClosingParenthesis(text, argumentStartIndex);
-
+                int argumentsStartIndex = invocationStartIndex + 1;
+                int argumentsEndIndex = ScanForClosingParenthesis(text, argumentsStartIndex);
                 if (argumentsEndIndex == -1)
                 {
                     _errors.ThrowInvalidFunctionPropertyExpression(ErrorDetail.MismatchedParenthesis);
                 }
 
-                memberKind = MemberKind.Method;
-
-                ReadOnlySpan<char> argumentsSpan = text.AsSpan(argumentStartIndex, argumentsEndIndex - argumentStartIndex);
-                arguments = !argumentsSpan.IsEmpty
+                ReadOnlySpan<char> argumentsSpan = text.AsSpan(
+                    argumentsStartIndex,
+                    argumentsEndIndex - argumentsStartIndex);
+                string[] arguments = !argumentsSpan.IsEmpty
                     ? ExtractFunctionArguments(argumentsSpan, _errors)
                     : [];
 
-                remainder = text.AsSpan(argumentsEndIndex + 1).Trim();
-            }
-            else
-            {
-                int remainderStartIndex = text.IndexOf('.', memberStartIndex);
-                int indexerIndex = text.IndexOf('[', memberStartIndex);
-
-                // We don't want to consume the indexer
-                if (indexerIndex >= 0 && (remainderStartIndex == -1 || indexerIndex < remainderStartIndex))
-                {
-                    remainderStartIndex = indexerIndex;
-                }
-
-                arguments = [];
-
-                int methodEndIndex;
-                if (remainderStartIndex >= 0)
-                {
-                    methodEndIndex = remainderStartIndex;
-                    remainder = text.AsSpan(remainderStartIndex).Trim();
-                }
-                else
-                {
-                    methodEndIndex = text.Length;
-                }
-
-                name = text.AsSpan(memberStartIndex, methodEndIndex - memberStartIndex).Trim();
-                _errors.VerifyThrowInvalidFunctionPropertyExpression(!name.IsEmpty);
-
-                memberKind = MemberKind.PropertyOrField;
+                nextAccessIndex = GetNextAccessIndex(text, argumentsEndIndex + 1);
+                return new ParsedMember(name.ToString(), arguments, MemberKind.Method);
             }
 
-            // either there are no functions left or what we have is another function or an indexer
-            if (remainder is [] or ['.' or '[', ..])
-            {
-                return new ParsedMember(name.ToString(), arguments, memberKind, remainder.ToString());
-            }
+            int memberEndIndex = firstAccessIndex >= 0 ? firstAccessIndex : text.Length;
+            ReadOnlySpan<char> propertyOrFieldName = text.AsSpan(
+                memberStartIndex,
+                memberEndIndex - memberStartIndex).Trim();
+            _errors.VerifyThrowInvalidFunctionPropertyExpression(!propertyOrFieldName.IsEmpty);
 
-            // We ended up with something other than a function expression
-            _errors.ThrowInvalidFunctionPropertyExpression();
-            return default;
+            nextAccessIndex = firstAccessIndex;
+            return new ParsedMember(
+                propertyOrFieldName.ToString(),
+                Arguments: [],
+                MemberKind.PropertyOrField);
         }
+
+        private ParsedMember ParseIndexer(
+            string text,
+            int indexerStartIndex,
+            out int nextAccessIndex)
+        {
+            int indexerEndIndex = text.IndexOf(']', indexerStartIndex + 1);
+            if (indexerEndIndex < 0)
+            {
+                _errors.ThrowInvalidFunctionPropertyExpression(ErrorDetail.MismatchedSquareBrackets);
+            }
+
+            ReadOnlySpan<char> argumentsSpan = text.AsSpan(
+                indexerStartIndex + 1,
+                indexerEndIndex - indexerStartIndex - 1);
+            string[] arguments = !argumentsSpan.IsEmpty
+                ? ExtractFunctionArguments(argumentsSpan, _errors)
+                : [];
+
+            nextAccessIndex = GetNextAccessIndex(text, indexerEndIndex + 1);
+            return new ParsedMember(string.Empty, arguments, MemberKind.Indexer);
+        }
+
+        private int GetNextAccessIndex(string text, int startIndex)
+        {
+            while (startIndex < text.Length && char.IsWhiteSpace(text[startIndex]))
+            {
+                startIndex++;
+            }
+
+            if (startIndex == text.Length)
+            {
+                return -1;
+            }
+
+            if (text[startIndex] is '.' or '[')
+            {
+                return startIndex;
+            }
+
+            _errors.ThrowInvalidFunctionPropertyExpression();
+            return -1;
+        }
+
+        private static int GetFirstIndex(int first, int second)
+            => first < 0 ? second : second < 0 ? first : Math.Min(first, second);
     }
 }
