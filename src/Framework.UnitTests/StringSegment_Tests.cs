@@ -120,6 +120,32 @@ public class StringSegment_Tests
         Should.Throw<InternalErrorException>(() => new StringSegment("ab", 3, 0));
     }
 
+    [Fact]
+    public void Constructor_AcceptsRange()
+    {
+        const string buffer = "prefix-value";
+        StringSegmentRange range = new(offset: 7, length: 5);
+
+        StringSegment segment = new(buffer, range);
+
+        segment.Buffer.ShouldBeSameAs(buffer);
+        segment.Offset.ShouldBe(range.Offset);
+        segment.Length.ShouldBe(range.Length);
+        segment.Value.ShouldBe("value");
+        new StringSegment(buffer, StringSegmentRange.Null).ShouldBe(default);
+        new StringSegment(buffer: null, range).ShouldBe(default);
+    }
+
+    [Theory]
+    [InlineData(3, 0)]
+    [InlineData(1, 2)]
+    public void Constructor_RangeOutsideBuffer_Throws(int offset, int length)
+    {
+        StringSegmentRange range = new(offset, length);
+
+        Should.Throw<InternalErrorException>(() => new StringSegment("ab", range));
+    }
+
     [Theory]
     [InlineData("0", 0)]
     [InlineData("-0", 0)]

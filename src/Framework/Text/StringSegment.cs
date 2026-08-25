@@ -109,6 +109,22 @@ internal readonly partial struct StringSegment :
     }
 
     /// <summary>
+    ///  Initializes a new <see cref="StringSegment"/> over <paramref name="range"/> in
+    ///  <paramref name="buffer"/>.
+    /// </summary>
+    /// <param name="buffer">
+    ///  The string containing <paramref name="range"/>, or <see langword="null"/> to create a null segment.
+    /// </param>
+    /// <param name="range">The range to view. <see cref="StringSegmentRange.Null"/> creates a null segment.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public StringSegment(string? buffer, StringSegmentRange range)
+    {
+        this = buffer is null || range.IsNull
+            ? default
+            : new StringSegment(buffer, range.Offset, range.Length);
+    }
+
+    /// <summary>
     ///  Gets the segment's characters as a <see cref="string"/>, or <see langword="null"/> if this is a null
     ///  segment.
     /// </summary>
