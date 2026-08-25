@@ -38,8 +38,15 @@ internal partial class Expander<P, I>
             FunctionParser.ParsedMember member = parsedFunction.Member;
             Type? receiverType = null;
             string memberName = member.Name;
-            BindingFlags bindingFlags = member.BindingFlags;
+            BindingFlags bindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public;
             var errors = new FunctionParser.ErrorReporter(parsedFunction.Text, parsedFunction.Location);
+
+            bindingFlags |= member.Kind switch
+            {
+                FunctionParser.MemberKind.Method or FunctionParser.MemberKind.Indexer => BindingFlags.InvokeMethod,
+                FunctionParser.MemberKind.PropertyOrField => BindingFlags.GetProperty | BindingFlags.GetField,
+                _ => Assumed.Unreachable<BindingFlags>(),
+            };
 
             switch (parsedFunction.ReceiverKind)
             {
@@ -60,23 +67,20 @@ internal partial class Expander<P, I>
                     bindingFlags |= BindingFlags.Static;
                     break;
 
-                case FunctionParser.ReceiverKind.Indexer:
-                    Assumed.NotNull(receiverValue);
-                    receiverType = receiverValue.GetType();
-                    memberName = receiverValue switch
-                    {
-                        Array => "GetValue",
-                        string => "get_Chars",
-                        _ => "get_Item",
-                    };
-
-                    VerifyInstanceMemberAvailable(receiverType, memberName, errors);
-                    bindingFlags |= BindingFlags.Instance;
-                    break;
-
-                case FunctionParser.ReceiverKind.Property:
-                case FunctionParser.ReceiverKind.Current:
+                case FunctionParser.ReceiverKind.MSBuildProperty:
+                case FunctionParser.ReceiverKind.Chained:
                     receiverType = receiverValue?.GetType() ?? typeof(string);
+                    if (member.Kind == FunctionParser.MemberKind.Indexer)
+                    {
+                        Assumed.NotNull(receiverValue);
+                        memberName = receiverValue switch
+                        {
+                            Array => "GetValue",
+                            string => "get_Chars",
+                            _ => "get_Item",
+                        };
+                    }
+
                     VerifyInstanceMemberAvailable(receiverType, memberName, errors);
                     bindingFlags |= BindingFlags.Instance;
                     break;

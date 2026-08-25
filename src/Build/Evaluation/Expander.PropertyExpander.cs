@@ -373,13 +373,17 @@ internal partial class Expander<P, I>
             ExpanderOptions options,
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem)
+            IFileSystem fileSystem,
+            bool isContinuation = false)
         {
             PropertyExpander expander = new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
-            return expander.ExpandPropertyBody(propertyBody, propertyValue);
+            return expander.ExpandPropertyBody(propertyBody, propertyValue, isContinuation);
         }
 
-        private object ExpandPropertyBody(string propertyBody, object propertyValue)
+        private object ExpandPropertyBody(
+            string propertyBody,
+            object propertyValue,
+            bool isContinuation = false)
         {
             FunctionParser.ParsedFunction parsedFunction = default;
             bool hasFunction = false;
@@ -405,14 +409,14 @@ internal partial class Expander<P, I>
                         Console.WriteLine("Expanding: {0}", propertyBody);
                     }
 
-                    if (FunctionParser.TryParse(
-                        propertyBody,
-                        hasReceiver: propertyValue is not null,
-                        _elementLocation,
-                        out parsedFunction))
+                    bool parsed = isContinuation
+                        ? FunctionParser.TryParseContinuation(propertyBody, _elementLocation, out parsedFunction)
+                        : FunctionParser.TryParseRoot(propertyBody, _elementLocation, out parsedFunction);
+
+                    if (parsed)
                     {
                         hasFunction = true;
-                        propertyName = parsedFunction.ReceiverKind == FunctionParser.ReceiverKind.Property
+                        propertyName = parsedFunction.ReceiverKind == FunctionParser.ReceiverKind.MSBuildProperty
                             ? parsedFunction.Receiver
                             : null;
                     }
@@ -424,7 +428,7 @@ internal partial class Expander<P, I>
                         return null;
                     }
                 }
-                else if (propertyValue == null && propertyBody.Contains('[')) // a single property indexer
+                else if (!isContinuation && propertyBody.Contains('[')) // a single property indexer
                 {
                     int indexerStart = propertyBody.IndexOf('[');
                     int indexerEnd = propertyBody.IndexOf(']');
@@ -439,7 +443,7 @@ internal partial class Expander<P, I>
                         propertyBody = propertyBody.Substring(indexerStart);
 
                         // recurse so that the function representing the indexer can be executed on the property value
-                        return ExpandPropertyBody(propertyBody, propertyValue);
+                        return ExpandPropertyBody(propertyBody, propertyValue, isContinuation: true);
                     }
                 }
                 else

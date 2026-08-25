@@ -535,7 +535,8 @@ internal partial class Expander<P, I>
                 options,
                 _location,
                 _propertiesUseTracker,
-                _fileSystem);
+                _fileSystem,
+                isContinuation: true);
         }
 
         private object GetMethodResult(object objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)
