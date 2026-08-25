@@ -381,7 +381,8 @@ internal partial class Expander<P, I>
 
         private object ExpandPropertyBody(string propertyBody, object propertyValue)
         {
-            Function function = null;
+            FunctionParser.ParsedFunction parsedFunction = default;
+            bool hasFunction = false;
             string propertyName = propertyBody;
 
             // Trim the body for compatibility reasons:
@@ -406,16 +407,14 @@ internal partial class Expander<P, I>
 
                     if (FunctionParser.TryParse(
                         propertyBody,
-                        propertyValue,
+                        hasReceiver: propertyValue is not null,
                         _elementLocation,
-                        _propertiesUseTracker,
-                        _fileSystem,
-                        _propertiesUseTracker.LoggingContext,
-                        out function))
+                        out parsedFunction))
                     {
-                        // We will have either extracted the actual property name
-                        // or realized that there is none (static function), and have recorded a null
-                        propertyName = function.Receiver;
+                        hasFunction = true;
+                        propertyName = parsedFunction.ReceiverKind == FunctionParser.ReceiverKind.Property
+                            ? parsedFunction.Receiver
+                            : null;
                     }
                     else
                     {
@@ -460,14 +459,20 @@ internal partial class Expander<P, I>
                 propertyValue = LookupProperty(propertyName);
             }
 
-            if (function != null)
+            if (hasFunction)
             {
                 try
                 {
+                    Function function = FunctionBinder.Bind(
+                        parsedFunction,
+                        propertyValue,
+                        _propertiesUseTracker,
+                        _fileSystem,
+                        _propertiesUseTracker.LoggingContext);
+
                     // Because of the rich expansion capabilities of MSBuild, we need to keep things
                     // as strings, since property expansion & string embedding can happen anywhere
-                    // propertyValue can be null here, when we're invoking a static function
-                    propertyValue = function.Execute(propertyValue, _properties, _options);
+                    propertyValue = function.Execute(_properties, _options);
                 }
                 catch (Exception) when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {

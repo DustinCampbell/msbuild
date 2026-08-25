@@ -242,7 +242,7 @@ residual to the smallest possible member so the surrounding code stays clean.
 | Where | Annotation |
 | --- | --- |
 | `TypeExtensions.InvokeMemberPublicOnly` (`src/Framework/Utilities/`) | receiver annotated with the exact public-member surface it binds |
-| `Expander.FunctionParser.CreateFunction` (`src/Build/Evaluation/`) | The single residual IL2067 lives in this factory so the property-function parsing methods are suppression-free |
+| `Expander.FunctionBinder.Bind` (`src/Build/Evaluation/`) | The residual IL2067/IL2072 receiver-flow suppressions live at the parse-to-bind boundary |
 | `ITaskFactory.TaskType` (`src/Framework/`) | `[DynamicallyAccessedMembers(PublicProperties)]` on the public property |
 
 ### S7 — Honest `[RequiresUnreferencedCode]` to a stable public boundary (P-B)
@@ -272,7 +272,7 @@ which means they require additional feature work.
 | `TypeExtensions.CreateDefault` (IL2067) | only invoked for value types (guarded by `IsValueType`), which always have a public parameterless ctor |
 | `TypeExtensions.InvokeMemberPublicOnly` (IL2070) | sole caller rejects `BindingFlags.NonPublic`; receiver's public surface preserved via DAM |
 | `TypeExtensions.GetAssemblyPath` (IL3000) | the generic `Assembly.Location` self-discovery primitive, correct in a hosted/JIT layout, hardened to return the empty path rather than throw |
-| Property-function receiver dataflow (`FunctionParser.CreateFunction`, `Function.Execute`, `AvailableStaticMembers.TryResolveType`) | receiver sets are bounded to preserved-member allowlists (`AvailableStaticMembers` and `PropertyFunctionReceiver`), with `RestrictPropertyFunctionReceivers` substituted `true` under trim and `AvailableStaticMembers.PropertyFunctionMembers` preserving the reflected surface |
+| Property-function receiver dataflow (`FunctionBinder.Bind`, `Function.Execute`, `AvailableStaticMembers.TryResolveType`) | receiver sets are bounded to preserved-member allowlists (`AvailableStaticMembers` and `PropertyFunctionReceiver`), with `RestrictPropertyFunctionReceivers` substituted `true` under trim and `AvailableStaticMembers.PropertyFunctionMembers` preserving the reflected surface |
 | `Enum.GetValues(Type)` rooted through property-function allowlists | rooted by `typeof(Enum)` but unreachable via property functions because authors cannot supply a `Type` argument (MSB4185/MSB4186), proven by AOT property-function tests |
 
 > The companion IL4000 `#pragma warning disable` on every `[FeatureGuard]` switch is **not** in this

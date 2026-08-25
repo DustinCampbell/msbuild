@@ -68,10 +68,7 @@ internal partial class Expander<P, I>
         /// </summary>
         private readonly string _expression;
 
-        /// <summary>
-        /// The property name that this function is applied on.
-        /// </summary>
-        private readonly string _receiver;
+        private readonly object _receiverValue;
 
         /// <summary>
         /// The complete set of <see cref="BindingFlags"/> the property-function binder is permitted
@@ -94,11 +91,10 @@ internal partial class Expander<P, I>
         /// The binding flags that will be used during invocation of this function.
         /// </summary>
         /// <remarks>
-        /// Always a subset of <see cref="AllowedBindingFlags"/> - constrained at construction and only
-        /// ever augmented with <see cref="BindingFlags.Static"/> / <see cref="BindingFlags.Instance"/>
-        /// thereafter - so it can never carry <see cref="BindingFlags.NonPublic"/>.
+        ///  Always a subset of <see cref="AllowedBindingFlags"/>, constrained at construction so it can
+        ///  never carry <see cref="BindingFlags.NonPublic"/>.
         /// </remarks>
-        private BindingFlags _bindingFlags;
+        private readonly BindingFlags _bindingFlags;
 
         /// <summary>
         /// The remainder of the body once the function and arguments have been extracted.
@@ -126,8 +122,8 @@ internal partial class Expander<P, I>
                 DynamicallyAccessedMemberTypes.PublicProperties |
                 DynamicallyAccessedMemberTypes.PublicFields)]
             Type receiverType,
+            object receiverValue,
             string expression,
-            string receiver,
             string methodName,
             string[] arguments,
             BindingFlags bindingFlags,
@@ -147,7 +143,7 @@ internal partial class Expander<P, I>
                 _arguments = arguments;
             }
 
-            _receiver = receiver;
+            _receiverValue = receiverValue;
             _expression = expression;
             _receiverType = receiverType;
 
@@ -166,18 +162,6 @@ internal partial class Expander<P, I>
             _fileSystem = fileSystem;
             _loggingContext = loggingContext;
             _location = location;
-        }
-
-        /// <summary>
-        /// Part of the extraction may result in the name of the property
-        /// This accessor is used by the Expander
-        /// Examples of expression root:
-        ///     [System.Diagnostics.Process]::Start
-        ///     SomeMSBuildProperty.
-        /// </summary>
-        internal string Receiver
-        {
-            get { return _receiver; }
         }
 
         /// <summary>
@@ -223,34 +207,16 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        internal object Execute(object objectInstance, IPropertyProvider<P> properties, ExpanderOptions options)
+        internal object Execute(IPropertyProvider<P> properties, ExpanderOptions options)
         {
             object functionResult = String.Empty;
             object[] args = null;
+            object objectInstance = _receiverValue;
 
             try
             {
-                // If there is no object instance, then the method invocation will be a static
-                if (objectInstance == null)
+                if (objectInstance is not null)
                 {
-                    // Check that the function that we're going to call is valid to call
-                    if (!AvailableStaticMembers.IsAvailable(_receiverType, _methodMethodName))
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
-                    }
-
-                    _bindingFlags |= BindingFlags.Static;
-                }
-                else
-                {
-                    // Check that the function that we're going to call is valid to call
-                    if (!IsInstanceMethodAvailable(_receiverType, _methodMethodName))
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
-                    }
-
-                    _bindingFlags |= BindingFlags.Instance;
-
                     // The object that we're about to call methods on may have escaped characters
                     // in it, we want to operate on the unescaped string in the function, just as we
                     // want to pass arguments that are unescaped (see below)
@@ -653,37 +619,6 @@ internal partial class Expander<P, I>
                     return $"{propertyValue}.{name}";
                 }
             }
-        }
-
-        private static bool IsInstanceMethodAvailable(Type receiverType, string methodName)
-        {
-            // The escape hatch opens everything (this preserves the historical behavior, including
-            // allowing GetType). The feature switch also preserves the legacy
-            // MSBUILDENABLEALLPROPERTYFUNCTIONS environment-variable behavior in untrimmed builds; under
-            // trimming it is substituted false, so this wide gate is removed.
-            if (FeatureSwitches.EnableAllPropertyFunctions)
-            {
-                return true;
-            }
-
-            // GetType is excluded outside the escape hatch: it returns an open-ended Type that would
-            // make the reachable member surface unpredictable.
-            if (string.Equals("GetType", methodName, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            // When restriction is on - the default under trimming, opt-in otherwise - instance
-            // "dotting in" is limited to a curated set of receiver types so the members reachable by
-            // reflection are predictable and statically known. Under trimming
-            // RestrictPropertyFunctionReceivers is substituted true, so the unrestricted 'return true'
-            // below is removed, keeping the property-function path trim compatible.
-            if (FeatureSwitches.RestrictPropertyFunctionReceivers)
-            {
-                return PropertyFunctionReceiver.IsAllowed(receiverType, methodName);
-            }
-
-            return true;
         }
 
         /// <summary>

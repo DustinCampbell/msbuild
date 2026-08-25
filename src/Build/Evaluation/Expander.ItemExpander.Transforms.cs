@@ -815,19 +815,19 @@ internal partial class Expander<P, I>
                 foreach (TransformEntry item in input)
                 {
                     Function function = new Function(
-                        receiverType: typeof(string),
-                        expression: item.Value,
-                        receiver: item.Value,
+                        typeof(string),
+                        item.Value,
+                        item.Value,
                         functionName,
                         arguments,
-                        BindingFlags.Public | BindingFlags.InvokeMethod,
+                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod,
                         remainder: string.Empty,
                         expander.PropertiesUseTracker,
                         expander._fileSystem,
                         expander._loggingContext,
                         elementLocation);
 
-                    object result = function.Execute(item.Value, expander._properties, ExpanderOptions.ExpandAll);
+                    object result = function.Execute(expander._properties, ExpanderOptions.ExpandAll);
 
                     string include = PropertyExpander.ConvertToString(result);
 

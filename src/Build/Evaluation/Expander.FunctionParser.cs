@@ -2,12 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 using Microsoft.NET.StringTools;
 
 namespace Microsoft.Build.Evaluation;
@@ -17,35 +13,45 @@ internal partial class Expander<P, I>
     where I : class, IItem
 {
     /// <summary>
-    ///  Parses property-function expressions and creates executable <see cref="Function"/> instances.
+    ///  Parses property-function expressions into syntax independent of runtime receiver values.
     /// </summary>
     private readonly partial struct FunctionParser
     {
         private readonly ErrorReporter _errors;
-        private readonly PropertiesUseTracker _propertiesUseTracker;
-        private readonly IFileSystem _fileSystem;
-        private readonly LoggingContext _loggingContext;
-        private readonly IElementLocation _location;
 
         /// <summary>
-        ///  Contains the parsed member invocation independent of its receiver.
+        ///  Identifies how a parsed function obtains its receiver.
         /// </summary>
-        /// <param name="Name">The member name.</param>
-        /// <param name="Arguments">The unexpanded function arguments.</param>
-        /// <param name="BindingFlags">The flags describing how to bind the member.</param>
-        /// <param name="Remainder">The unparsed expression following the member.</param>
-        private readonly record struct ParsedFunction(string Name, string[] Arguments, BindingFlags BindingFlags, string Remainder);
+        public enum ReceiverKind
+        {
+            Static,
+            Property,
+            Current,
+            Indexer,
+        }
+
+        public readonly record struct ParsedMember(
+            string Name,
+            string[] Arguments,
+            BindingFlags BindingFlags,
+            string Remainder);
+
+        public readonly record struct ParsedFunction(
+            string Text,
+            ReceiverKind ReceiverKind,
+            string? Receiver,
+            ParsedMember Member,
+            IElementLocation Location);
 
         /// <summary>
         ///  Attempts to parse a property-function expression.
         /// </summary>
         /// <param name="text">The property-function expression.</param>
-        /// <param name="propertyValue">The current receiver value, or <see langword="null"/> for an initial expression.</param>
+        /// <param name="hasReceiver">
+        ///  <see langword="true"/> when parsing a chained expression with a current receiver.
+        /// </param>
         /// <param name="location">The project location used for error reporting.</param>
-        /// <param name="propertiesUseTracker">Tracks property reads performed while evaluating the function.</param>
-        /// <param name="fileSystem">The file system used by file and directory property functions.</param>
-        /// <param name="loggingContext">The logging context for the operation.</param>
-        /// <param name="function">The parsed function when this method returns <see langword="true"/>.</param>
+        /// <param name="function">The parsed function syntax when this method returns <see langword="true"/>.</param>
         /// <returns>
         ///  <see langword="true"/> when <paramref name="text"/> contains a property function; otherwise,
         ///  <see langword="false"/>.
@@ -55,27 +61,22 @@ internal partial class Expander<P, I>
         /// </exception>
         public static bool TryParse(
             string text,
-            object? propertyValue,
+            bool hasReceiver,
             IElementLocation location,
-            PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem,
-            LoggingContext loggingContext,
-            [NotNullWhen(true)] out Function? function)
+            out ParsedFunction function)
         {
-            FunctionParser parser = new(text, location, propertiesUseTracker, fileSystem, loggingContext);
+            FunctionParser parser = new(text, location);
 
             if (text[0] == '[')
             {
-                // A static property or function is the content that follows the last "::", the rest being the type.
-                function = propertyValue is null
+                function = !hasReceiver
                     ? parser.ParseStaticPropertyFunction(text)
-                    : parser.ParseInstanceIndexerFunction(text, propertyValue);
+                    : parser.ParseInstanceIndexerFunction(text);
 
                 return true;
             }
 
-            function = parser.ParseInstancePropertyFunction(text, propertyValue);
-            return function is not null;
+            return parser.TryParseInstancePropertyFunction(text, hasReceiver, out function);
         }
 
         /// <summary>
@@ -83,23 +84,10 @@ internal partial class Expander<P, I>
         /// </summary>
         /// <param name="text">The property-function expression.</param>
         /// <param name="location">The project location used for error reporting.</param>
-        /// <param name="propertiesUseTracker">Tracks property reads performed while evaluating the function.</param>
-        /// <param name="fileSystem">The file system used by file and directory property functions.</param>
-        /// <param name="loggingContext">The logging context for the operation.</param>
-        private FunctionParser(
-            string text,
-            IElementLocation location,
-            PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem,
-            LoggingContext loggingContext)
+        private FunctionParser(string text, IElementLocation location)
         {
             _errors = new(text, location);
             _errors.VerifyThrowInvalidFunctionPropertyExpression(!text.IsNullOrEmpty());
-
-            _propertiesUseTracker = propertiesUseTracker;
-            _fileSystem = fileSystem;
-            _loggingContext = loggingContext;
-            _location = location;
         }
 
         /// <summary>
@@ -112,7 +100,7 @@ internal partial class Expander<P, I>
         /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has invalid static property-function syntax or names an unavailable type.
         /// </exception>
-        private Function ParseStaticPropertyFunction(string text)
+        private ParsedFunction ParseStaticPropertyFunction(string text)
         {
             Assumed.Equal(text[0], '[');
 
@@ -139,29 +127,21 @@ internal partial class Expander<P, I>
             // skip over the "::"
             methodStartIndex += 2;
 
-            ParsedFunction parsedFunction = ParseFunction(text, argumentStartIndex, methodStartIndex);
-
-            // Locate a type that matches the body of the expression.
-            if (!AvailableStaticMembers.TryResolveType(typeName, parsedFunction.Name, out Type? receiverType))
-            {
-                _errors.ThrowInvalidFunctionTypeUnavailable(typeName);
-            }
-
-            return CreateFunction(receiverType, text, receiver: null, parsedFunction);
+            ParsedMember member = ParseMember(text, argumentStartIndex, methodStartIndex);
+            return new ParsedFunction(text, ReceiverKind.Static, typeName, member, _errors.Location);
         }
 
         /// <summary>
         ///  Extracts an instance indexer.
         /// </summary>
         /// <param name="text">The indexer expression.</param>
-        /// <param name="propertyValue">The value on which to invoke the indexer.</param>
         /// <returns>
-        ///  The parsed indexer function.
+        ///  The parsed indexer syntax.
         /// </returns>
         /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has mismatched square brackets.
         /// </exception>
-        private Function ParseInstanceIndexerFunction(string text, object propertyValue)
+        private ParsedFunction ParseInstanceIndexerFunction(string text)
         {
             Assumed.Equal(text[0], '[');
 
@@ -176,35 +156,33 @@ internal partial class Expander<P, I>
                 ? ExtractFunctionArguments(argumentsSpan, _errors)
                 : [];
 
-            string name = propertyValue switch
-            {
-                Array => "GetValue",
-                string => "get_Chars",
-                _ => "get_Item",
-            };
-
-            ParsedFunction parsedFunction = new(
-                name,
+            ParsedMember member = new(
+                string.Empty,
                 arguments,
                 BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.InvokeMethod,
                 text.Substring(indexerEndIndex + 1));
 
-            return CreateFunction(propertyValue.GetType(), text, receiver: null, parsedFunction);
+            return new ParsedFunction(text, ReceiverKind.Indexer, Receiver: null, member, _errors.Location);
         }
 
         /// <summary>
         ///  Extracts an instance property or function.
         /// </summary>
         /// <param name="text">The instance property-function expression.</param>
-        /// <param name="propertyValue">The current receiver value, or <see langword="null"/> for an initial expression.</param>
+        /// <param name="hasReceiver">
+        ///  <see langword="true"/> when parsing a chained expression with a current receiver.
+        /// </param>
+        /// <param name="function">The parsed function syntax.</param>
         /// <returns>
-        ///  The parsed function, or <see langword="null"/> when <paramref name="text"/> does not contain an
-        ///  instance member invocation.
+        ///  <see langword="true"/> when <paramref name="text"/> contains an instance member invocation.
         /// </returns>
         /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has invalid property-function syntax.
         /// </exception>
-        private Function? ParseInstancePropertyFunction(string text, object? propertyValue)
+        private bool TryParseInstancePropertyFunction(
+            string text,
+            bool hasReceiver,
+            out ParsedFunction function)
         {
             Assumed.NotEqual(text[0], '[');
 
@@ -215,60 +193,27 @@ internal partial class Expander<P, I>
             if (rootEndIndex == -1 || (argumentStartIndex >= 0 && rootEndIndex > argumentStartIndex))
             {
                 // We don't have a function invocation in the expression root, return null
-                return null;
+                function = default;
+                return false;
             }
 
             // If this is an instance function rather than a static, then we'll capture the name of the property referenced
             string functionReceiver = Strings.WeakIntern(text.AsSpan(0, rootEndIndex).Trim());
 
             // If propertyValue is null (we're not recursing), then we're expecting a valid property name
-            if (propertyValue == null && !IsValidPropertyName(functionReceiver))
+            if (!hasReceiver && !IsValidPropertyName(functionReceiver))
             {
                 // We extracted something that wasn't a valid property name, fail.
                 _errors.ThrowInvalidFunctionPropertyExpression();
             }
 
-            // If we are recursively acting on a type that has been already produced then pass that type inwards (e.g. we are interpreting a function call chain)
-            // Otherwise, the receiver of the function is a string
-            Type receiverType = propertyValue?.GetType() ?? typeof(string);
-
             // Skip over the '.'.
-            ParsedFunction parsedFunction = ParseFunction(text, argumentStartIndex, rootEndIndex + 1);
-
-            return CreateFunction(receiverType, text, functionReceiver, parsedFunction);
+            ParsedMember member = ParseMember(text, argumentStartIndex, rootEndIndex + 1);
+            ReceiverKind receiverKind = hasReceiver ? ReceiverKind.Current : ReceiverKind.Property;
+            string? receiver = hasReceiver ? null : functionReceiver;
+            function = new ParsedFunction(text, receiverKind, receiver, member, _errors.Location);
+            return true;
         }
-
-        /// <summary>
-        ///  Creates a property function from a receiver type whose preserved members are known by invariant.
-        /// </summary>
-        /// <param name="receiverType">The type that declares the member.</param>
-        /// <param name="text">The complete property-function expression.</param>
-        /// <param name="receiver">The property name supplying the receiver, or <see langword="null"/>.</param>
-        /// <param name="parsedFunction">The parsed member invocation.</param>
-        /// <returns>
-        ///  The executable function.
-        /// </returns>
-        [UnconditionalSuppressMessage(
-            "Trimming",
-            "IL2067",
-            Justification = "Receiver type comes from the static-member allowlist (public members preserved by AvailableStaticMembers.PropertyFunctionMembers) or a runtime GetType(); only public members are bound.")]
-        private Function CreateFunction(
-            Type receiverType,
-            string text,
-            string? receiver,
-            ParsedFunction parsedFunction)
-            => new(
-                receiverType,
-                text,
-                receiver,
-                parsedFunction.Name,
-                parsedFunction.Arguments,
-                parsedFunction.BindingFlags,
-                parsedFunction.Remainder,
-                _propertiesUseTracker,
-                _fileSystem,
-                _loggingContext,
-                _location);
 
         /// <summary>
         ///  Parses the name, arguments, binding flags, invocation type, and remainder of a static or instance
@@ -283,7 +228,7 @@ internal partial class Expander<P, I>
         /// <exception cref="Exceptions.InvalidProjectFileException">
         ///  <paramref name="text"/> has invalid property-function syntax.
         /// </exception>
-        private ParsedFunction ParseFunction(string text, int argumentStartIndex, int methodStartIndex)
+        private ParsedMember ParseMember(string text, int argumentStartIndex, int methodStartIndex)
         {
             // The unevaluated and unexpanded arguments for this function
             string[] arguments;
@@ -358,7 +303,7 @@ internal partial class Expander<P, I>
             // either there are no functions left or what we have is another function or an indexer
             if (remainder is [] or ['.' or '[', ..])
             {
-                return new ParsedFunction(name.ToString(), arguments, defaultBindingFlags, remainder.ToString());
+                return new ParsedMember(name.ToString(), arguments, defaultBindingFlags, remainder.ToString());
             }
 
             // We ended up with something other than a function expression

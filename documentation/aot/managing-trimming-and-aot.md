@@ -805,10 +805,9 @@ flowchart TD
   refactor that avoids an IL2070 suppression — see the suppression tracker).
 - **Localize an unavoidable suppression to the smallest member.** When a
   `[DynamicallyAccessedMembers]` flow genuinely can't be proven, push it into a small factory
-  instead of annotating the parsing methods — e.g. `FunctionParser.CreateFunction` in
-  [Expander.FunctionParser.cs](../../src/Build/Evaluation/Expander.FunctionParser.cs) owns the
-  single IL2067 suppression for the property-function receiver type, keeping the extraction
-  methods suppression-free.
+  instead of annotating the parsing methods — e.g. `FunctionBinder.Bind` in
+  [Expander.FunctionBinder.cs](../../src/Build/Evaluation/Expander.FunctionBinder.cs) owns the
+  receiver-type suppressions at the parse-to-bind boundary, keeping parsing suppression-free.
 
 ---
 

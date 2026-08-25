@@ -20,12 +20,18 @@ internal partial class Expander<P, I>
         public readonly struct ErrorReporter(string text, IElementLocation location)
         {
             private const string InvalidFunctionPropertyExpression = nameof(InvalidFunctionPropertyExpression);
+            private const string InvalidFunctionMethodUnavailable = nameof(InvalidFunctionMethodUnavailable);
             private const string InvalidFunctionStaticMethodSyntax = nameof(InvalidFunctionStaticMethodSyntax);
             private const string InvalidFunctionTypeUnavailable = nameof(InvalidFunctionTypeUnavailable);
 
             private const string InvalidFunctionPropertyExpressionDetailMismatchedParenthesis = nameof(InvalidFunctionPropertyExpressionDetailMismatchedParenthesis);
             private const string InvalidFunctionPropertyExpressionDetailMismatchedQuote = nameof(InvalidFunctionPropertyExpressionDetailMismatchedQuote);
             private const string InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets = nameof(InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets);
+
+            /// <summary>
+            ///  Gets the project location associated with the parsed expression.
+            /// </summary>
+            public IElementLocation Location => location;
 
             /// <summary>
             ///  Gets the localized message for an error detail.
@@ -76,6 +82,18 @@ internal partial class Expander<P, I>
             [DoesNotReturn]
             public void ThrowInvalidFunctionPropertyExpression(ErrorDetail detail)
                 => ProjectErrorUtilities.ThrowInvalidProject(location, InvalidFunctionPropertyExpression, text, GetDetailText(detail));
+
+            /// <summary>
+            ///  Throws an unavailable property-function member error.
+            /// </summary>
+            /// <param name="memberName">The unavailable member name.</param>
+            /// <param name="typeName">The receiver type name.</param>
+            /// <exception cref="Exceptions.InvalidProjectFileException">
+            ///  Always thrown.
+            /// </exception>
+            [DoesNotReturn]
+            public void ThrowInvalidFunctionMethodUnavailable(string memberName, string? typeName)
+                => ProjectErrorUtilities.ThrowInvalidProject(location, InvalidFunctionMethodUnavailable, memberName, typeName);
 
             /// <summary>
             ///  Throws an invalid static property-function syntax error.
