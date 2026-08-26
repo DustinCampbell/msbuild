@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -23,7 +24,8 @@ internal static class IntrinsicFunctionOverload
 
     private static IComparer<MemberInfo> LongBeforeDoubleComparer => s_comparerLongBeforeDouble ??= Comparer<MemberInfo>.Create((key0, key1) => SelectTypeOfFirstParameter(key0).CompareTo(SelectTypeOfFirstParameter(key1)));
 
-    internal static bool IsKnownOverloadMethodName(string methodName) => s_knownOverloadName.Any(name => string.Equals(name, methodName, StringComparison.OrdinalIgnoreCase));
+    internal static bool IsKnownOverloadMethodName(StringSegment methodName)
+        => s_knownOverloadName.Any(name => methodName.Equals(name, StringComparison.OrdinalIgnoreCase));
 
     private static TypeCode SelectTypeOfFirstParameter(MemberInfo member)
     {

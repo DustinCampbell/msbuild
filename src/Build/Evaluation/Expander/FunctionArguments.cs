@@ -10,20 +10,20 @@ namespace Microsoft.Build.Evaluation.Expander;
 /// <summary>
 ///  Holds source argument segments and their expanded values.
 /// </summary>
-internal struct FunctionArgumentList
+internal struct FunctionArguments
 {
     private readonly ArgumentList _source;
     private readonly string[]? _sourceStrings;
     private object[]? _materialized;
 
-    public FunctionArgumentList(ArgumentList source)
+    public FunctionArguments(ArgumentList source)
     {
         _source = source;
         _sourceStrings = null;
         _materialized = null;
     }
 
-    public FunctionArgumentList(string[]? values)
+    public FunctionArguments(string[]? values)
     {
         _source = default;
         _sourceStrings = values ?? [];
@@ -112,12 +112,12 @@ internal struct FunctionArgumentList
         return TryGetSegment(0, out arg0);
     }
 
-    public readonly bool TryGetArgs(out string? arg0, out string? arg1, bool enforceLength = true)
+    public readonly bool TryGetArgs(out string? arg0, out string? arg1)
     {
         arg0 = null;
         arg1 = null;
 
-        if ((enforceLength && Count != 2) || Count < 2)
+        if (Count != 2)
         {
             return false;
         }
@@ -126,15 +126,12 @@ internal struct FunctionArgumentList
             && TryGetString(1, out arg1);
     }
 
-    public readonly bool TryGetArgs(
-        out StringSegment arg0,
-        out StringSegment arg1,
-        bool enforceLength = true)
+    public readonly bool TryGetArgs(out StringSegment arg0, out StringSegment arg1)
     {
         arg0 = default;
         arg1 = default;
 
-        if ((enforceLength && Count != 2) || Count < 2)
+        if (Count != 2)
         {
             return false;
         }
@@ -393,7 +390,7 @@ internal struct FunctionArgumentList
     {
         switch (value)
         {
-            case double d when d >= int.MinValue && d <= int.MaxValue:
+            case double d when d is >= int.MinValue and <= int.MaxValue:
                 result = Convert.ToInt32(d);
                 if (Math.Abs(result - d) == 0)
                 {
@@ -401,7 +398,7 @@ internal struct FunctionArgumentList
                 }
 
                 break;
-            case long l when l >= int.MinValue && l <= int.MaxValue:
+            case long l when l is >= int.MinValue and <= int.MaxValue:
                 result = Convert.ToInt32(l);
                 return true;
             case int i:
@@ -419,7 +416,7 @@ internal struct FunctionArgumentList
     {
         switch (value)
         {
-            case double d when d >= long.MinValue && d <= long.MaxValue:
+            case double d when d is >= long.MinValue and <= long.MaxValue:
                 result = (long)d;
                 if (Math.Abs(result - d) == 0)
                 {
@@ -470,69 +467,6 @@ internal struct FunctionArgumentList
                 NumberStyles.Number | NumberStyles.Float,
                 CultureInfo.InvariantCulture.NumberFormat,
                 out _));
-
-    public static bool TryGetArg(FunctionArgumentList args, out string? arg0)
-        => args.TryGetArg(out arg0);
-
-    public static bool TryGetArg(FunctionArgumentList args, out int arg0)
-        => args.TryGetArg(out arg0);
-
-    public static bool TryGetArg(FunctionArgumentList args, out Version? arg0)
-        => args.TryGetArg(out arg0);
-
-    public static bool TryGetArgs(
-        FunctionArgumentList args,
-        out string? arg0,
-        out string? arg1,
-        bool enforceLength = true)
-        => args.TryGetArgs(out arg0, out arg1, enforceLength);
-
-    public static bool TryGetArgs(
-        FunctionArgumentList args,
-        out string? arg0,
-        out string? arg1,
-        out string? arg2)
-        => args.TryGetArgs(out arg0, out arg1, out arg2);
-
-    public static bool TryGetArgs(
-        FunctionArgumentList args,
-        out string? arg0,
-        out string? arg1,
-        out string? arg2,
-        out string? arg3)
-        => args.TryGetArgs(out arg0, out arg1, out arg2, out arg3);
-
-    public static bool TryGetArgs(FunctionArgumentList args, out string? arg0, out int arg1)
-        => args.TryGetArgs(out arg0, out arg1);
-
-    public static bool TryGetArgs(
-        FunctionArgumentList args,
-        out string? arg0,
-        out int arg1,
-        out int arg2)
-        => args.TryGetArgs(out arg0, out arg1, out arg2);
-
-    public static bool TryGetArgs(FunctionArgumentList args, out string? arg0, out StringComparison arg1)
-        => args.TryGetArgs(out arg0, out arg1);
-
-    public static bool TryGetArgs(FunctionArgumentList args, out int arg0)
-        => args.TryGetArgs(out arg0);
-
-    public static bool TryGetArgs(FunctionArgumentList args, out int arg0, out int arg1)
-        => args.TryGetArgs(out arg0, out arg1);
-
-    public static bool TryGetArgs(FunctionArgumentList args, out double arg0, out double arg1)
-        => args.TryGetArgs(out arg0, out arg1);
-
-    public static bool TryGetArgs(FunctionArgumentList args, out int arg0, out string? arg1)
-        => args.TryGetArgs(out arg0, out arg1);
-
-    public static bool TryExecuteArithmeticOverload(
-        FunctionArgumentList args,
-        Func<long, long, long> integerOperation,
-        Func<double, double, double> realOperation,
-        out object? resultValue)
-        => args.TryExecuteArithmeticOverload(integerOperation, realOperation, out resultValue);
 
     private readonly bool TryGetString(int index, out string? value)
     {
