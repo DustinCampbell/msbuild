@@ -441,12 +441,7 @@ internal partial class Expander<P, I>
                             _elementLocation);
 
                         // Preserve the live result as the receiver for the next parsed function.
-                        propertyValue = function.Execute(
-                            _properties,
-                            _options,
-                            out bool succeeded);
-
-                        if (!succeeded)
+                        if (!function.Execute(_properties, _options, out propertyValue))
                         {
                             break;
                         }

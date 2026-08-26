@@ -828,10 +828,10 @@ internal partial class Expander<P, I>
                         expander._loggingContext,
                         elementLocation);
 
-                    object result = function.Execute(
+                    _ = function.Execute(
                         expander._properties,
                         ExpanderOptions.ExpandAll,
-                        out _);
+                        out object result);
 
                     string include = PropertyExpander.ConvertToString(result);
 

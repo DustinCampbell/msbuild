@@ -148,13 +148,23 @@ internal partial class Expander<P, I>
             _location = location;
         }
 
-        private bool IsFileSystemReceiver()
-            => IsFileOrDirectoryReceiver()
-            || _receiverType == typeof(System.IO.Path);
+        private static bool IsFileSystemReceiver(Type receiverType)
+            => IsFileOrDirectoryReceiver(receiverType)
+            || receiverType == typeof(System.IO.Path);
 
-        private bool IsFileOrDirectoryReceiver()
-            => _receiverType == typeof(System.IO.File)
-            || _receiverType == typeof(System.IO.Directory);
+        private static bool IsFileOrDirectoryReceiver(Type receiverType)
+            => receiverType == typeof(System.IO.File)
+            || receiverType == typeof(System.IO.Directory);
+
+        private static bool ShouldMaterializeArgumentsOnAccess(Type receiverType, StringSegment methodName)
+            => receiverType == typeof(System.IO.Path)
+            || methodName.Equals("new", StringComparison.OrdinalIgnoreCase)
+            || methodName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
+            || methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase)
+            || Traits.Instance.LogPropertyFunctionsRequiringReflection;
+
+        private ArgumentMaterializer CreateArgumentMaterializer(IPropertyProvider<P> properties, ExpanderOptions options)
+            => new(properties, options, _location, _propertiesUseTracker, _fileSystem, _receiverType, _methodName);
 
         /// <summary>
         /// Determines whether the argument at <paramref name="argIndex"/> for a System.IO.File
@@ -188,17 +198,62 @@ internal partial class Expander<P, I>
             return false;
         }
 
+        private sealed class ArgumentMaterializer(
+            IPropertyProvider<P> properties,
+            ExpanderOptions options,
+            IElementLocation location,
+            PropertiesUseTracker propertiesUseTracker,
+            IFileSystem fileSystem,
+            Type receiverType,
+            StringSegment methodName) : IFunctionArgumentMaterializer
+        {
+            public object? Materialize(StringSegment source, int index)
+            {
+                object? argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
+                    source.Value,
+                    properties,
+                    options,
+                    location,
+                    propertiesUseTracker,
+                    fileSystem);
+
+                if (argument is not string argumentValue)
+                {
+                    return argument;
+                }
+
+                if (IsFileSystemReceiver(receiverType))
+                {
+                    argumentValue = FileUtilities.FixFilePath(argumentValue);
+                }
+
+                argumentValue = EscapingUtilities.UnescapeAll(argumentValue);
+
+                // In -mt mode, resolve File/Directory path arguments against the thread-local project directory.
+                // Resolve only after unescaping so MSBuild escape processing cannot corrupt the filesystem path.
+                if (IsFileOrDirectoryReceiver(receiverType)
+                    && IsFileOrDirectoryPathArgument(methodName, index))
+                {
+                    AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory(argumentValue);
+                    if (resolved.HasValue)
+                    {
+                        argumentValue = (string)resolved.GetValueOrDefault();
+                    }
+                }
+
+                return argumentValue;
+            }
+        }
+
         /// <summary>
         ///  Executes the function on its bound receiver.
         /// </summary>
         /// <param name="properties">The properties available while expanding function arguments.</param>
         /// <param name="options">The expansion options.</param>
-        /// <param name="succeeded">
+        /// <param name="result">The function result.</param>
+        /// <returns>
         ///  <see langword="true"/> when execution succeeds; otherwise, <see langword="false"/> when
         ///  <paramref name="options"/> converts an execution failure to a partially evaluated result.
-        /// </param>
-        /// <returns>
-        ///  The function result.
         /// </returns>
         [UnconditionalSuppressMessage(
             "Trimming",
@@ -208,12 +263,12 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        internal object? Execute(IPropertyProvider<P> properties, ExpanderOptions options, out bool succeeded)
+        internal bool Execute(IPropertyProvider<P> properties, ExpanderOptions options, out object? result)
         {
-            succeeded = true;
             object? functionResult = string.Empty;
             object?[]? args = null;
             object? objectInstance = _receiverValue;
+            ArgumentMaterializer? argumentMaterializer = null;
             PropertyFunctionExecutionContext<P> context = new(
                 properties,
                 _fileSystem,
@@ -230,79 +285,40 @@ internal partial class Expander<P, I>
                     objectInstance = EscapingUtilities.UnescapeAll(objectInstanceString);
                 }
 
-                bool wellKnownFunctionAttempted = false;
-                if (!_methodName.Equals("new", StringComparison.OrdinalIgnoreCase)
-                    && CanExecuteWellKnownWithoutExpandingArguments())
+                if (_arguments.Count > 0
+                    && (ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName)
+                        || _arguments.ContainsExpandableExpression()))
                 {
-                    wellKnownFunctionAttempted = true;
-                    WellKnownExecutionStatus status = TryExecuteWellKnownFunction(
-                        objectInstance,
-                        _arguments,
-                        in context,
-                        options,
-                        out functionResult);
-
-                    if (status == WellKnownExecutionStatus.ReturnImmediately)
-                    {
-                        succeeded = false;
-                        return functionResult;
-                    }
-
-                    if (status == WellKnownExecutionStatus.Handled)
-                    {
-                        return CompleteExecution(functionResult);
-                    }
+                    argumentMaterializer = CreateArgumentMaterializer(properties, options);
+                    _arguments.ConfigureMaterialization(argumentMaterializer, enablePerArgumentMaterialization: true);
                 }
 
-                // We have a methodinfo match, need to plug in the arguments
-                args = new object?[_arguments.Length];
+                WellKnownExecutionStatus wellKnownStatus = TryExecuteWellKnownFunction(
+                    objectInstance,
+                    _arguments,
+                    in context,
+                    options,
+                    out functionResult);
 
-                // Assemble our arguments ready for passing to our method
-                for (int n = 0; n < _arguments.Length; n++)
+                if (wellKnownStatus == WellKnownExecutionStatus.ReturnImmediately)
                 {
-                    object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                        _arguments.GetSource(n).Value,
-                        properties,
-                        options,
-                        _location,
-                        _propertiesUseTracker,
-                        _fileSystem);
-
-                    if (argument is string argumentValue)
-                    {
-                        // Unescape the value since we're about to send it out of the engine and into
-                        // the function being called. If a file or a directory function, fix the path
-                        // AvailableStaticMembers always registers the System.IO types, including
-                        // in FEATURE_MSIOREDIST builds.
-                        if (IsFileSystemReceiver())
-                        {
-                            argumentValue = FileUtilities.FixFilePath(argumentValue);
-                        }
-
-                        args[n] = EscapingUtilities.UnescapeAll(argumentValue);
-
-                        // In -mt mode, resolve relative path arguments for File/Directory methods
-                        // against the thread-local working directory instead of the process-global
-                        // Environment.CurrentDirectory which may point to a different project's directory.
-                        // In multiprocess mode, CurrentThreadWorkingDirectory is null and
-                        // MakeFullPathFromThreadWorkingDirectory returns null — this is a no-op.
-                        // This must happen AFTER UnescapeAll so that the working directory path
-                        // (a real filesystem path) is not corrupted by MSBuild unescape processing.
-                        if (IsFileOrDirectoryReceiver()
-                            && IsFileOrDirectoryPathArgument(_methodName, n))
-                        {
-                            AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory((string)args[n]!);
-                            if (resolved.HasValue)
-                            {
-                                args[n] = (string)resolved.GetValueOrDefault();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        args[n] = argument;
-                    }
+                    result = functionResult;
+                    return false;
                 }
+
+                if (wellKnownStatus == WellKnownExecutionStatus.Handled)
+                {
+                    result = CompleteExecution(functionResult);
+                    return true;
+                }
+
+                if (argumentMaterializer is null && _arguments.Count > 0)
+                {
+                    argumentMaterializer = CreateArgumentMaterializer(properties, options);
+                    _arguments.ConfigureMaterialization(argumentMaterializer, enablePerArgumentMaterialization: false);
+                }
+
+                args = _arguments.MaterializeAll();
 
                 // Handle special cases where the object type needs to affect the choice of method
                 // The default binder and method invoke, often chooses the incorrect Equals and CompareTo and
@@ -318,9 +334,9 @@ internal partial class Expander<P, I>
                     // Support comparison when the lhs is an integer
                     if (FunctionArguments.IsFloatingPointRepresentation(args[0]))
                     {
-                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
+                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double numericReceiver))
                         {
-                            objectInstance = result;
+                            objectInstance = numericReceiver;
                             _receiverType = objectInstance.GetType();
                         }
                     }
@@ -329,69 +345,47 @@ internal partial class Expander<P, I>
                     args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
                 }
 
-                _arguments.SetMaterialized(args);
-
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
                 if (_methodName.Equals("new", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, _arguments, out functionResult))
-                    {
-                        functionResult = LateBindExecute(ex: null, BindingFlags.Public | BindingFlags.Instance, objectInstance: null, args, isConstructor: true);
-                    }
+                    functionResult = LateBindExecute(ex: null, BindingFlags.Public | BindingFlags.Instance, objectInstance: null, args, isConstructor: true);
                 }
                 else
                 {
-                    WellKnownExecutionStatus status = wellKnownFunctionAttempted
-                        ? WellKnownExecutionStatus.NotHandled
-                        : TryExecuteWellKnownFunction(
-                            objectInstance,
-                            _arguments,
-                            in context,
-                            options,
-                            out functionResult);
-
-                    if (status == WellKnownExecutionStatus.ReturnImmediately)
+                    using RefArrayBuilder<int> outArgIndices = default;
+                    for (int i = 0; i < args.Length; i++)
                     {
-                        succeeded = false;
-                        return functionResult;
+                        if (args[i] is string argument
+                            && argument.Equals("out _", StringComparison.Ordinal))
+                        {
+                            outArgIndices.Add(i);
+                        }
                     }
 
-                    if (status == WellKnownExecutionStatus.NotHandled)
+                    if (!outArgIndices.IsEmpty)
                     {
-                        using RefArrayBuilder<int> outArgIndices = default;
-                        for (int i = 0; i < args.Length; i++)
+                        // Bind out placeholders before invoking so overload probing cannot execute user code.
+                        functionResult = BindAndInvokeMethodWithOutArguments(objectInstance, args, outArgIndices.AsSpan());
+                    }
+                    else
+                    {
+                        // Execute the function given converted arguments. The only exception that should trigger
+                        // late binding is a missing method; otherwise user code could execute twice.
+                        try
                         {
-                            if (args[i] is string argument
-                                && argument.Equals("out _", StringComparison.Ordinal))
-                            {
-                                outArgIndices.Add(i);
-                            }
+                            functionResult = _receiverType.InvokePublicMember(_methodName.ValueOrEmpty, _bindingFlags, objectInstance, args);
                         }
-
-                        if (!outArgIndices.IsEmpty)
+                        catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
                         {
-                            // Bind out placeholders before invoking so overload probing cannot execute user code.
-                            functionResult = BindAndInvokeMethodWithOutArguments(objectInstance, args, outArgIndices.AsSpan());
-                        }
-                        else
-                        {
-                            // Execute the function given converted arguments. The only exception that should trigger
-                            // late binding is a missing method; otherwise user code could execute twice.
-                            try
-                            {
-                                functionResult = _receiverType.InvokePublicMember(_methodName.ValueOrEmpty, _bindingFlags, objectInstance, args);
-                            }
-                            catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                            {
-                                // The standard binder failed, so do our best to coerce types into the arguments for the function.
-                                functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, isConstructor: false);
-                            }
+                            // The standard binder failed, so do our best to coerce types into the arguments for the function.
+                            functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, isConstructor: false);
                         }
                     }
                 }
 
-                return CompleteExecution(functionResult);
+                result = CompleteExecution(functionResult);
+                return true;
             }
 
             // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
@@ -403,8 +397,8 @@ internal partial class Expander<P, I>
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
-                    succeeded = false;
-                    return partiallyEvaluated;
+                    result = partiallyEvaluated;
+                    return false;
                 }
 
                 ProjectErrorUtilities.ThrowInvalidProject(
@@ -412,7 +406,8 @@ internal partial class Expander<P, I>
                     "InvalidFunctionPropertyExpression",
                     partiallyEvaluated,
                     ex.InnerException?.Message.Replace("\r\n", " ") ?? string.Empty);
-                return null;
+                result = null;
+                return false;
             }
 
             // Any other exception was thrown by trying to call it
@@ -432,14 +427,13 @@ internal partial class Expander<P, I>
                     ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
                 }
 
-                return null;
+                result = null;
+                return false;
             }
-
-            bool CanExecuteWellKnownWithoutExpandingArguments()
-                => !IsFileSystemReceiver()
-                && !_methodName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
-                && !_methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase)
-                && !_arguments.ContainsExpandableExpression();
+            finally
+            {
+                _arguments.ClearMaterializer();
+            }
 
             // If the result of the function call is a string, then we need to escape the result
             // so that we maintain the "engine contains escaped data" state.

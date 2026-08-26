@@ -33,7 +33,7 @@ namespace Microsoft.Build.Evaluation.Expander
         {
             string logFile = Path.Combine(Directory.GetCurrentDirectory(), fileName);
 
-            string argSignature = string.Join(", ", args.ToObjectArray().Select(a => a?.GetType().Name ?? "null"));
+            string argSignature = string.Join(", ", args.MaterializeAll().Select(a => a?.GetType().Name ?? "null"));
 
             File.AppendAllText(logFile, $"ReceiverType={receiverType?.FullName}; ObjectInstanceType={objectInstance?.GetType().FullName}; MethodName={methodName.ValueOrEmpty}({argSignature})\n");
         }
@@ -90,7 +90,7 @@ namespace Microsoft.Build.Evaluation.Expander
                     default:
                         if (ElementsOfType(args, typeof(string)))
                         {
-                            result = Path.Combine(Array.ConvertAll(args.ToObjectArray(), o => (string)o!));
+                            result = Path.Combine(Array.ConvertAll(args.MaterializeAll(), o => (string)o!));
                             return true;
                         }
 
@@ -427,7 +427,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (ElementsOfType(args, typeof(string)))
                 {
-                    result = IntrinsicFunctions.NormalizePath(Array.ConvertAll(args.ToObjectArray(), o => (string)o!));
+                    result = IntrinsicFunctions.NormalizePath(Array.ConvertAll(args.MaterializeAll(), o => (string)o!));
                     return true;
                 }
             }
@@ -446,7 +446,7 @@ namespace Microsoft.Build.Evaluation.Expander
                 if (args.Length >= 4 &&
                     args.TryGetArgs(out string? arg0, out string? arg1))
                 {
-                    object?[] values = args.ToObjectArray();
+                    object?[] values = args.MaterializeAll();
                     result = IntrinsicFunctions.GetRegistryValueFromView(arg0, arg1, values[2], new ArraySegment<object?>(values, 3, values.Length - 3));
                     return true;
                 }
@@ -908,6 +908,11 @@ namespace Microsoft.Build.Evaluation.Expander
             out object? result)
             where T : class, IProperty
         {
+            if (methodName.Equals("new", StringComparison.OrdinalIgnoreCase))
+            {
+                return TryExecuteWellKnownConstructor(receiverType, args, out result);
+            }
+
             if (objectInstance is string text)
             {
                 return TryExecuteStringFunction(methodName, text, args, out result);
@@ -1075,13 +1080,12 @@ namespace Microsoft.Build.Evaluation.Expander
 
         /// <summary>
         /// Shortcut to avoid calling into binding if we recognize some most common constructors.
-        /// Analogous to TryExecuteWellKnownFunction but guaranteed to not throw.
         /// </summary>
         /// <param name="receiverType"> Receiver type for the constructor. </param>
         /// <param name="args">Arguments.</param>
         /// <param name="result">The instance as created by the constructor call.</param>
         /// <returns>True if the well known constructor call binding was successful.</returns>
-        internal static bool TryExecuteWellKnownConstructorNoThrow(Type? receiverType, FunctionArguments args, out object? result)
+        internal static bool TryExecuteWellKnownConstructor(Type? receiverType, FunctionArguments args, out object? result)
         {
             if (receiverType == typeof(string))
             {

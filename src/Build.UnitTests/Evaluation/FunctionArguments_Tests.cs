@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Text;
 using Shouldly;
@@ -82,21 +83,6 @@ public class FunctionArguments_Tests
     }
 
     [Fact]
-    public void MaterializedValuesReplaceSourceSegments()
-    {
-        const string text = "1, value";
-        ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
-        FunctionArguments arguments = new(source);
-
-        arguments.SetMaterialized([42, "expanded"]);
-
-        arguments.IsMaterialized.ShouldBeTrue();
-        arguments.TryGetArgs(out int number, out string? value).ShouldBeTrue();
-        number.ShouldBe(42);
-        value.ShouldBe("expanded");
-    }
-
-    [Fact]
     public void WellKnownStringFunctionConsumesRawSegment()
     {
         const string text = "value";
@@ -128,5 +114,75 @@ public class FunctionArguments_Tests
         values[1].ShouldBe(string.Empty);
         values[2].ShouldBe("value");
         arguments.IsMaterialized.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MaterializesOnlyAccessedArguments()
+    {
+        const string text = "$(First), $(Second)";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+        var materializer = new TrackingMaterializer(index => $"expanded-{index}");
+
+        arguments.ConfigureMaterialization(materializer, enablePerArgumentMaterialization: true);
+
+        arguments[0].ShouldBe("expanded-0");
+        materializer.Indices.ShouldBe([0]);
+        arguments.IsMaterialized.ShouldBeFalse();
+
+        arguments[0].ShouldBe("expanded-0");
+        materializer.Indices.ShouldBe([0]);
+
+        arguments[1].ShouldBe("expanded-1");
+        materializer.Indices.ShouldBe([0, 1]);
+        arguments.IsMaterialized.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CachesMaterializedNull()
+    {
+        const string text = "$(Value)";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+        var materializer = new TrackingMaterializer(_ => null);
+
+        arguments.ConfigureMaterialization(materializer, enablePerArgumentMaterialization: true);
+
+        arguments[0].ShouldBeNull();
+        arguments[0].ShouldBeNull();
+        materializer.Indices.ShouldBe([0]);
+        arguments.IsMaterialized.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void WellKnownFunctionMaterializesAccessedArgument()
+    {
+        const string text = "$(Value)";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+        var materializer = new TrackingMaterializer(_ => "value");
+        arguments.ConfigureMaterialization(materializer, enablePerArgumentMaterialization: true);
+
+        bool handled = WellKnownFunctions.TryExecuteStringFunction(
+            nameof(string.StartsWith),
+            "value-suffix",
+            arguments,
+            out object? result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe(true);
+        materializer.Indices.ShouldBe([0]);
+        arguments.IsMaterialized.ShouldBeTrue();
+    }
+
+    private sealed class TrackingMaterializer(Func<int, object?> materialize) : IFunctionArgumentMaterializer
+    {
+        public List<int> Indices { get; } = [];
+
+        public object? Materialize(StringSegment source, int index)
+        {
+            Indices.Add(index);
+            return materialize(index);
+        }
     }
 }
