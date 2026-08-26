@@ -7,20 +7,29 @@ using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
+internal interface IFunctionArgumentMaterializer
+{
+    object? Materialize(StringSegment source, int index);
+}
+
 /// <summary>
 ///  Holds source argument segments and their expanded values.
 /// </summary>
 internal struct FunctionArguments
 {
+    private static readonly object s_unmaterialized = new();
+
     private readonly ArgumentList _source;
     private readonly string[]? _sourceStrings;
     private object?[]? _materialized;
+    private IFunctionArgumentMaterializer? _materializer;
 
     public FunctionArguments(ArgumentList source)
     {
         _source = source;
         _sourceStrings = null;
         _materialized = null;
+        _materializer = null;
     }
 
     public FunctionArguments(string[]? values)
@@ -28,6 +37,7 @@ internal struct FunctionArguments
         _source = default;
         _sourceStrings = values ?? [];
         _materialized = null;
+        _materializer = null;
     }
 
     public readonly int Count
@@ -37,35 +47,83 @@ internal struct FunctionArguments
         => Count;
 
     public readonly object? this[int index]
-        => _materialized is null
-            ? GetSource(index).Value
-            : _materialized[index];
+        => GetValue(index);
 
     public readonly bool IsMaterialized
-        => _materialized is not null;
+    {
+        get
+        {
+            if (_materialized is null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _materialized.Length; i++)
+            {
+                if (ReferenceEquals(_materialized[i], s_unmaterialized))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
 
     public readonly StringSegment GetSource(int index)
         => _sourceStrings is null
             ? _source[index]
             : _sourceStrings[index];
 
-    public void SetMaterialized(object?[] values)
+    public void ConfigureMaterialization(IFunctionArgumentMaterializer materializer, bool enablePerArgumentMaterialization)
     {
-        Assumed.GreaterThanOrEqual(values.Length, Count);
-        _materialized = values;
+        _materializer = materializer;
+
+        if (_materialized is null && Count > 0 && enablePerArgumentMaterialization)
+        {
+            InitializeMaterializedValues();
+        }
+    }
+
+    public void ClearMaterializer()
+        => _materializer = null;
+
+    public object?[] MaterializeAll()
+    {
+        if (_materialized is null)
+        {
+            object?[] materializedValues = new object?[Count];
+            for (int i = 0; i < materializedValues.Length; i++)
+            {
+                materializedValues[i] = Materialize(i);
+            }
+
+            _materialized = materializedValues;
+            return materializedValues;
+        }
+
+        object?[] values = _materialized;
+        for (int i = 0; i < values.Length; i++)
+        {
+            EnsureMaterialized(i);
+        }
+
+        return values;
     }
 
     public readonly object?[] ToObjectArray()
     {
-        if (_materialized is not null)
+        if (IsMaterialized)
         {
-            return _materialized;
+            return _materialized!;
         }
 
-        object[] values = new object[Count];
+        object?[] values = new object?[Count];
         for (int i = 0; i < values.Length; i++)
         {
-            values[i] = GetSource(i).Value!;
+            values[i] = _materialized is not null && !ReferenceEquals(_materialized[i], s_unmaterialized)
+                ? _materialized[i]
+                : GetSource(i).Value;
         }
 
         return values;
@@ -73,13 +131,13 @@ internal struct FunctionArguments
 
     public readonly bool ContainsExpandableExpression()
     {
-        if (_materialized is not null)
-        {
-            return false;
-        }
-
         for (int i = 0; i < Count; i++)
         {
+            if (_materialized is not null && !ReferenceEquals(_materialized[i], s_unmaterialized))
+            {
+                continue;
+            }
+
             StringSegment argument = GetSource(i);
             if (argument.HasValue && argument.ContainsAny('$', '%'))
             {
@@ -197,14 +255,18 @@ internal struct FunctionArguments
             return false;
         }
 
-        if (_materialized is not null && _materialized[1] is char ch)
+        if (!TryConvertToInt(0, out arg0))
         {
-            arg1 = ch.ToString();
-            return TryConvertToInt(0, out arg0);
+            return false;
         }
 
-        return TryConvertToInt(0, out arg0)
-            && TryGetString(1, out arg1);
+        if (_materialized is not null && EnsureMaterialized(1) is char ch)
+        {
+            arg1 = ch.ToString();
+            return true;
+        }
+
+        return TryGetString(1, out arg1);
     }
 
     public readonly bool TryGetArgs(out int arg0, out StringSegment arg1)
@@ -392,7 +454,7 @@ internal struct FunctionArguments
     {
         if (_materialized is not null)
         {
-            value = _materialized[index] as string;
+            value = EnsureMaterialized(index) as string;
             return value is not null;
         }
 
@@ -409,7 +471,7 @@ internal struct FunctionArguments
             return value.HasValue;
         }
 
-        if (_materialized[index] is string text)
+        if (EnsureMaterialized(index) is string text)
         {
             value = text;
             return true;
@@ -443,12 +505,12 @@ internal struct FunctionArguments
     private readonly bool TryConvertToInt(int index, out int result)
         => _materialized is null
             ? int.TryParse(GetSource(index), out result)
-            : TryConvertToInt(_materialized[index], out result);
+            : TryConvertToInt(EnsureMaterialized(index), out result);
 
     private readonly bool TryConvertToLong(int index, out long result)
         => _materialized is null
             ? long.TryParse(GetSource(index), out result)
-            : TryConvertToLong(_materialized[index], out result);
+            : TryConvertToLong(EnsureMaterialized(index), out result);
 
     private readonly bool TryConvertToDouble(int index, out double result)
         => _materialized is null
@@ -457,5 +519,45 @@ internal struct FunctionArguments
                 NumberStyles.Number | NumberStyles.Float,
                 CultureInfo.InvariantCulture.NumberFormat,
                 out result)
-            : TryConvertToDouble(_materialized[index], out result);
+            : TryConvertToDouble(EnsureMaterialized(index), out result);
+
+    private readonly object? GetValue(int index)
+        => _materialized is null
+            ? GetSource(index).Value
+            : EnsureMaterialized(index);
+
+    private readonly object? EnsureMaterialized(int index)
+    {
+        object?[] values = _materialized!;
+        object? value = values[index];
+        if (ReferenceEquals(value, s_unmaterialized))
+        {
+            value = Materialize(index);
+            values[index] = value;
+        }
+
+        return value;
+    }
+
+    private readonly object? Materialize(int index)
+    {
+        StringSegment source = GetSource(index);
+        return _materializer is null
+            ? source.Value
+            : _materializer.Materialize(source, index);
+    }
+
+    private void InitializeMaterializedValues()
+        => _materialized = CreateMaterializedValues();
+
+    private readonly object?[] CreateMaterializedValues()
+    {
+        object?[] values = new object?[Count];
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = s_unmaterialized;
+        }
+
+        return values;
+    }
 }

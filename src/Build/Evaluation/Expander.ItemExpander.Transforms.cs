@@ -867,7 +867,7 @@ internal partial class Expander<P, I>
                         context.WithOptions(ExpanderOptions.ExpandAll),
                         context.LoggingContext);
 
-                    object result = function.Execute(out _);
+                    _ = function.Execute(out object result);
 
                     string include = PropertyExpander.ConvertToString(result);
 

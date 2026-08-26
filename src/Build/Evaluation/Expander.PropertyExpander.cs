@@ -397,9 +397,7 @@ internal partial class Expander<P, I>
                             _context);
 
                         // Preserve the live result as the receiver for the next parsed function.
-                        propertyValue = function.Execute(out bool succeeded);
-
-                        if (!succeeded)
+                        if (!function.Execute(out propertyValue))
                         {
                             break;
                         }

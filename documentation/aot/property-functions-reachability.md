@@ -46,8 +46,8 @@ The property-function code lives primarily in
 [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs), and
 [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs), with outer property expansion
 in [Expander.PropertyExpander.cs](../../src/Build/Evaluation/Expander.PropertyExpander.cs). Parsed argument
-segments remain packed until [FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs)
-materializes expanded values for reflection or an API that requires strings.
+segments remain packed in [FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs), which
+materializes and caches individual expanded values only when a handler or reflection requires them.
 
 | Concern | Member | Location |
 | --- | --- | --- |
@@ -164,8 +164,8 @@ split on `,`, with two kinds of span treated atomically (commas inside them do n
 
 Each raw argument remains a packed `StringSegmentRange` at parse time. Empty entries remain empty,
 while the unquoted `null` literal is represented by a null range. `FunctionArguments` exposes
-those segments directly to well-known handlers and materializes an `object[]` only when expansion
-or reflection requires it. At execution, `ExpandPropertiesLeaveTypedAndEscaped` can turn a nested
+those segments directly to well-known handlers and materializes individual arguments only when expansion
+or reflection requires them. At execution, `ExpandPropertiesLeaveTypedAndEscaped` can turn a nested
 `$()` into a typed object, but a bare literal stays a string (unescaped before being passed out).
 
 Consequence: **you cannot express an arbitrary object argument.** There is no
@@ -207,7 +207,7 @@ Failures are swallowed and turned into "no match": `InvalidCastException`,
   `FileUtilities.FixFilePath`, and `File`/`Directory` path args are made absolute
   against the thread working directory in `-mt` mode
   ([Expander.cs#L4128](../../src/Build/Evaluation/Expander.cs#L4128)).
-- **`new`**: routed to a constructor (`TryExecuteWellKnownConstructorNoThrow` or
+- **`new`**: routed to a constructor (`TryExecuteWellKnownConstructor` or
   `LateBindExecute` as a constructor). Only public constructors on the resolved
   receiver type are eligible, so object construction is limited to allowlisted
   types (e.g. `[System.Globalization.CultureInfo]::new('en-US')`).
