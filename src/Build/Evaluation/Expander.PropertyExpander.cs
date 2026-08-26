@@ -427,21 +427,24 @@ internal partial class Expander<P, I>
 
             if (hasFunction)
             {
+                PropertyFunctionExecutionContext<P> functionContext = new(
+                    _properties,
+                    _options,
+                    _propertiesUseTracker,
+                    _fileSystem,
+                    _propertiesUseTracker.LoggingContext,
+                    _elementLocation);
+
                 foreach (PropertyFunctionInvocation invocation in propertyFunction)
                 {
                     try
                     {
-                        Function function = FunctionBinder.Bind(
-                            invocation,
-                            propertyFunction.Text,
-                            propertyValue,
-                            _propertiesUseTracker,
-                            _fileSystem,
-                            _propertiesUseTracker.LoggingContext,
-                            _elementLocation);
-
                         // Preserve the live result as the receiver for the next parsed function.
-                        if (!function.Execute(_properties, _options, out propertyValue))
+                        if (!PropertyFunctionExecutor.Execute(
+                            invocation,
+                            propertyValue,
+                            in functionContext,
+                            out propertyValue))
                         {
                             break;
                         }

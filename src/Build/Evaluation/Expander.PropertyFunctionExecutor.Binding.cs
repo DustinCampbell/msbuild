@@ -4,10 +4,8 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Text;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
 
@@ -17,11 +15,37 @@ internal partial class Expander<P, I>
     where P : class, IProperty
     where I : class, IItem
 {
-    /// <summary>
-    ///  Binds parsed property-function syntax to a runtime receiver and executable member.
-    /// </summary>
-    private static class FunctionBinder
+    private static partial class PropertyFunctionExecutor
     {
+        public static bool Execute(
+            in PropertyFunctionInvocation invocation,
+            object? receiverValue,
+            in PropertyFunctionExecutionContext<P> context,
+            out object? result)
+        {
+            BoundFunction function = Bind(invocation, receiverValue, context.Location);
+            return function.Execute(in context, out result);
+        }
+
+        public static bool ExecuteStringFunction(
+            string functionName,
+            string[] arguments,
+            string receiverValue,
+            in PropertyFunctionExecutionContext<P> context,
+            out object? result)
+        {
+            var function = new BoundFunction(
+                receiverType: typeof(string),
+                receiverValue,
+                invocationText: default,
+                receiverKind: ReceiverKind.Chained,
+                functionName,
+                new FunctionArguments(arguments),
+                bindingFlags: BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod);
+
+            return function.Execute(in context, out result);
+        }
+
         [UnconditionalSuppressMessage(
             "Trimming",
             "IL2067",
@@ -30,13 +54,9 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2072",
             Justification = "Runtime receiver types are restricted to the property-function receiver allowlist under trimming, whose public members are preserved.")]
-        public static Function Bind(
-            PropertyFunctionInvocation invocation,
-            StringSegment expression,
+        private static BoundFunction Bind(
+            in PropertyFunctionInvocation invocation,
             object? receiverValue,
-            PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem,
-            LoggingContext loggingContext,
             IElementLocation location)
         {
             Type? receiverType = null;
@@ -59,7 +79,7 @@ internal partial class Expander<P, I>
                         ProjectErrorUtilities.ThrowInvalidProject(
                             location,
                             "InvalidFunctionTypeUnavailable",
-                            expression.ValueOrEmpty,
+                            invocation.Text.ValueOrEmpty,
                             staticReceiver.ValueOrEmpty);
                     }
 
@@ -97,18 +117,14 @@ internal partial class Expander<P, I>
             }
 
             Assumed.NotNull(receiverType);
-            return new Function(
+            return new BoundFunction(
                 receiverType,
                 receiverValue,
-                expression,
-                invocation.Text.Offset - expression.Offset,
+                invocation.Text,
+                invocation.ReceiverKind,
                 memberName,
                 new FunctionArguments(invocation.Arguments),
-                bindingFlags,
-                propertiesUseTracker,
-                fileSystem,
-                loggingContext,
-                location);
+                bindingFlags);
         }
 
         private static void VerifyInstanceMemberAvailable(

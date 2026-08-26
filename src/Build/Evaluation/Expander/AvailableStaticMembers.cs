@@ -184,7 +184,7 @@ internal static partial class AvailableStaticMembers
     /// </returns>
     // Preserve the PropertyFunctionMembers set on every type in the property-function allowlist
     // below. Property functions dispatch over the allowlisted receiver type by reflection (see
-    // Expander.Function), and receiver types are restricted to this allowlist unless the
+    // PropertyFunctionExecutor), and receiver types are restricted to this allowlist unless the
     // MSBUILDENABLEALLPROPERTYFUNCTIONS feature switch is enabled. Preserving these members is what
     // makes the IL2072/IL2074/IL2080/IL2096 suppressions in Expander honest under trimming. Keep in
     // sync with the entries added below.

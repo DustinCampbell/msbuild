@@ -17,12 +17,18 @@ namespace Microsoft.Build.Evaluation.Expander;
 /// </summary>
 internal readonly struct PropertyFunctionExecutionContext<T>(
     IPropertyProvider<T> properties,
+    ExpanderOptions options,
+    PropertiesUseTracker propertiesUseTracker,
     IFileSystem fileSystem,
     LoggingContext loggingContext,
     IElementLocation location)
     where T : class, IProperty
 {
     public IPropertyProvider<T> Properties => properties;
+
+    public ExpanderOptions Options => options;
+
+    public PropertiesUseTracker PropertiesUseTracker => propertiesUseTracker;
 
     public IFileSystem FileSystem => fileSystem;
 

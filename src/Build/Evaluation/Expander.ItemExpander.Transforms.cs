@@ -9,7 +9,6 @@ using System.Globalization;
 using System.IO;
 #endif
 using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
@@ -813,24 +812,21 @@ internal partial class Expander<P, I>
             {
                 // Transform: expression is like @(Compile->'%(foo)'), so create completely new items,
                 // using the Include from the source items
+                PropertyFunctionExecutionContext<P> functionContext = new(
+                    expander._properties,
+                    ExpanderOptions.ExpandAll,
+                    expander.PropertiesUseTracker,
+                    expander._fileSystem,
+                    expander._loggingContext,
+                    elementLocation);
+
                 foreach (TransformEntry item in input)
                 {
-                    Function function = new Function(
-                        receiverType: typeof(string),
-                        receiverValue: item.Value,
-                        expression: item.Value,
-                        expressionStartIndex: 0,
+                    _ = PropertyFunctionExecutor.ExecuteStringFunction(
                         functionName,
-                        new FunctionArguments(arguments),
-                        bindingFlags: BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod,
-                        expander.PropertiesUseTracker,
-                        expander._fileSystem,
-                        expander._loggingContext,
-                        elementLocation);
-
-                    _ = function.Execute(
-                        expander._properties,
-                        ExpanderOptions.ExpandAll,
+                        arguments,
+                        item.Value,
+                        in functionContext,
                         out object result);
 
                     string include = PropertyExpander.ConvertToString(result);
