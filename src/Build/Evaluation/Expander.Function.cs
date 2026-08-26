@@ -5,22 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-#if !FEATURE_MSIOREDIST
-using System.IO;
-#endif
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Text;
-#if FEATURE_MSIOREDIST
-// File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
-// System.IO.File to match the types registered in AvailableStaticMembers.
-using Path = Microsoft.IO.Path;
-#endif
 
 #nullable disable
 
@@ -160,6 +153,14 @@ internal partial class Expander<P, I>
             _location = location;
         }
 
+        private bool IsFileSystemReceiver()
+            => IsFileOrDirectoryReceiver()
+                || _receiverType == typeof(System.IO.Path);
+
+        private bool IsFileOrDirectoryReceiver()
+            => _receiverType == typeof(System.IO.File)
+                || _receiverType == typeof(System.IO.Directory);
+
         /// <summary>
         /// Determines whether the argument at <paramref name="argIndex"/> for a System.IO.File
         /// or System.IO.Directory method is a file/directory path that should be resolved
@@ -221,6 +222,11 @@ internal partial class Expander<P, I>
             object functionResult = String.Empty;
             object[] args = null;
             object objectInstance = _receiverValue;
+            PropertyFunctionExecutionContext<P> executionContext = new(
+                properties,
+                _fileSystem,
+                _loggingContext,
+                _location);
 
             try
             {
@@ -241,7 +247,7 @@ internal partial class Expander<P, I>
                 {
                     wellKnownFunctionAttempted = true;
                     WellKnownExecutionStatus status = TryExecuteWellKnownFunction(
-                        properties,
+                        in executionContext,
                         options,
                         objectInstance,
                         _arguments,
@@ -277,11 +283,9 @@ internal partial class Expander<P, I>
                     {
                         // Unescape the value since we're about to send it out of the engine and into
                         // the function being called. If a file or a directory function, fix the path
-                        // Use fully qualified type names because FEATURE_MSIOREDIST aliases
-                        // Directory and Path to Microsoft.IO.* in this file, but _receiverType
-                        // from AvailableStaticMembers is always System.IO.*.
-                        if (_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory)
-                            || _receiverType == typeof(System.IO.Path))
+                        // AvailableStaticMembers always registers the System.IO types, including
+                        // in FEATURE_MSIOREDIST builds.
+                        if (IsFileSystemReceiver())
                         {
                             argumentValue = FileUtilities.FixFilePath(argumentValue);
                         }
@@ -295,7 +299,7 @@ internal partial class Expander<P, I>
                         // MakeFullPathFromThreadWorkingDirectory returns null — this is a no-op.
                         // This must happen AFTER UnescapeAll so that the working directory path
                         // (a real filesystem path) is not corrupted by MSBuild unescape processing.
-                        if ((_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory))
+                        if (IsFileOrDirectoryReceiver()
                             && IsFileOrDirectoryPathArgument(_methodName, n))
                         {
                             AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory((string)args[n]);
@@ -336,20 +340,6 @@ internal partial class Expander<P, I>
                     args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
                 }
 
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    // Special case a few methods that take extra parameters that can't be passed in by the user
-                    if (_methodName.Equals("GetPathOfFileAbove", StringComparison.OrdinalIgnoreCase) && args.Length == 1)
-                    {
-                        // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
-                        // specified the file name.  This is syntactic sugar so they don't have to always
-                        // include $(MSBuildThisFileDirectory) as a parameter.
-                        string startingDirectory = String.IsNullOrWhiteSpace(_location.File) ? String.Empty : Path.GetDirectoryName(_location.File);
-
-                        args = [args[0], startingDirectory];
-                    }
-                }
-
                 _arguments.SetMaterialized(args);
 
                 // If we've been asked to construct an instance, then we
@@ -366,7 +356,7 @@ internal partial class Expander<P, I>
                     WellKnownExecutionStatus status = wellKnownFunctionAttempted
                         ? WellKnownExecutionStatus.NotHandled
                         : TryExecuteWellKnownFunction(
-                            properties,
+                            in executionContext,
                             options,
                             objectInstance,
                             _arguments,
@@ -415,7 +405,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args, in executionContext);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -439,7 +429,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args, in executionContext);
                     ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
                 }
 
@@ -449,12 +439,7 @@ internal partial class Expander<P, I>
 
         private bool CanExecuteWellKnownWithoutExpandingArguments()
         {
-            if (_receiverType == typeof(System.IO.File)
-                || _receiverType == typeof(System.IO.Directory)
-                || _receiverType == typeof(System.IO.Path)
-                || (_receiverType == typeof(IntrinsicFunctions)
-                    && _arguments.Count == 1
-                    && _methodName.Equals("GetPathOfFileAbove", StringComparison.OrdinalIgnoreCase))
+            if (IsFileSystemReceiver()
                 || _methodName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
                 || _methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase))
             {
@@ -465,7 +450,7 @@ internal partial class Expander<P, I>
         }
 
         private WellKnownExecutionStatus TryExecuteWellKnownFunction(
-            IPropertyProvider<P> properties,
+            in PropertyFunctionExecutionContext<P> context,
             ExpanderOptions options,
             object objectInstance,
             FunctionArguments args,
@@ -476,25 +461,21 @@ internal partial class Expander<P, I>
                 if (WellKnownFunctions.TryExecuteWellKnownFunction(
                     _methodName,
                     _receiverType,
-                    _fileSystem,
                     out functionResult,
                     objectInstance,
-                    args)
-                    || WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
-                        _methodName,
-                        _receiverType,
-                        _loggingContext,
-                        properties,
-                        out functionResult,
-                        objectInstance,
-                        args))
+                    args,
+                    in context))
                 {
                     return WellKnownExecutionStatus.Handled;
                 }
             }
             catch (Exception ex)
             {
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args.ToObjectArray());
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(
+                    objectInstance,
+                    _methodName,
+                    args.ToObjectArray(),
+                    in context);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     functionResult = partiallyEvaluated;
@@ -639,69 +620,77 @@ internal partial class Expander<P, I>
         /// Make an attempt to create a string showing what we were trying to execute when we failed.
         /// This will show any intermediate evaluation which may help the user figure out what happened.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(object objectInstance, StringSegment name, object[] args)
+        private string GenerateStringOfMethodExecuted(
+            object objectInstance,
+            StringSegment name,
+            object[] args,
+            in PropertyFunctionExecutionContext<P> context)
         {
-            string parameters = String.Empty;
-            if (args != null)
-            {
-                foreach (object arg in args)
-                {
-                    if (arg == null)
-                    {
-                        parameters += "null";
-                    }
-                    else
-                    {
-                        string argString = arg.ToString();
-                        if (arg is string && argString.Length == 0)
-                        {
-                            parameters += "''";
-                        }
-                        else
-                        {
-                            parameters += arg.ToString();
-                        }
-                    }
-
-                    parameters += ", ";
-                }
-
-                if (parameters.Length > 2)
-                {
-                    parameters = parameters.Substring(0, parameters.Length - 2);
-                }
-            }
-
+            StringBuilder builder = new();
             if (objectInstance == null)
             {
-                string typeName = _receiverType.FullName;
-
-                // We don't want to expose the real type name of our intrinsics
-                // so we'll replace it with "MSBuild"
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    typeName = "MSBuild";
-                }
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                {
-                    return $"[{typeName}]::{name.ValueOrEmpty}({parameters})";
-                }
-                else
-                {
-                    return $"[{typeName}]::{name.ValueOrEmpty}";
-                }
+                builder.Append('[');
+                builder.Append(_receiverType == typeof(IntrinsicFunctions) ? "MSBuild" : _receiverType.FullName);
+                builder.Append("]::");
             }
             else
             {
-                string propertyValue = $"\"{objectInstance as string}\"";
+                builder.Append('"');
+                builder.Append(objectInstance as string);
+                builder.Append("\".");
+            }
 
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            if (name.HasValue)
+            {
+                builder.Append(name.Buffer, name.Offset, name.Length);
+            }
+
+            if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            {
+                builder.Append('(');
+                bool hasArgument = false;
+
+                if (args != null)
                 {
-                    return $"{propertyValue}.{name.ValueOrEmpty}({parameters})";
+                    foreach (object arg in args)
+                    {
+                        if (hasArgument)
+                        {
+                            builder.Append(", ");
+                        }
+
+                        AppendFunctionArgument(builder, arg);
+                        hasArgument = true;
+                    }
+
+                    if (_receiverType == typeof(IntrinsicFunctions)
+                        && name.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase)
+                        && args.Length == 1)
+                    {
+                        // Preserve the effective-call diagnostic without adding the contextual default to the arguments.
+                        builder.Append(", ");
+                        AppendFunctionArgument(builder, context.StartingDirectory);
+                    }
+                }
+
+                builder.Append(')');
+            }
+
+            return builder.ToString();
+
+            static void AppendFunctionArgument(StringBuilder builder, object argument)
+            {
+                if (argument == null)
+                {
+                    builder.Append("null");
+                }
+                else if (argument is string text)
+                {
+                    builder.Append(text.Length == 0 ? "''" : text);
                 }
                 else
                 {
-                    return $"{propertyValue}.{name.ValueOrEmpty}";
+                    builder.Append(argument);
                 }
             }
         }

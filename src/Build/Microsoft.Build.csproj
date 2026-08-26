@@ -209,6 +209,7 @@
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.TypeEntry.cs" />
     <Compile Include="Evaluation\Expander\FunctionArguments.cs" />
     <Compile Include="Evaluation\Expander\MemberKind.cs" />
+    <Compile Include="Evaluation\Expander\PropertyFunctionExecutionContext.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionExpression.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionInvocation.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionParser.cs" />

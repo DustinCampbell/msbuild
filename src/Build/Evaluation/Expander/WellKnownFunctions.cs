@@ -9,7 +9,6 @@ using System.Text.RegularExpressions;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander
@@ -354,7 +353,12 @@ namespace Microsoft.Build.Evaluation.Expander
             return false;
         }
 
-        internal static bool TryExecuteIntrinsicFunction(StringSegment methodName, out object? returnVal, IFileSystem fileSystem, FunctionArguments args)
+        internal static bool TryExecuteIntrinsicFunction<T>(
+            StringSegment methodName,
+            out object? returnVal,
+            FunctionArguments args,
+            in PropertyFunctionExecutionContext<T> context)
+            where T : class, IProperty
         {
             returnVal = default;
             if (methodName.Equals(nameof(IntrinsicFunctions.EnsureTrailingSlash), StringComparison.OrdinalIgnoreCase))
@@ -385,7 +389,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (args.TryGetArgs(out string? arg0, out string? arg1))
                 {
-                    returnVal = IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, fileSystem);
+                    returnVal = IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, context.FileSystem);
                     return true;
                 }
             }
@@ -425,9 +429,26 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (methodName.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase))
             {
-                if (args.TryGetArgs(out string? arg0, out string? arg1))
+                if (args.TryGetArg(out string? arg0))
                 {
-                    returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, fileSystem);
+                    // The one-argument form starts from the directory containing the invoking project file.
+                    returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, context.StartingDirectory, context.FileSystem);
+                    return true;
+                }
+                else if (args.TryGetArgs(out arg0, out string? arg1))
+                {
+                    returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, context.FileSystem);
+                    return true;
+                }
+            }
+            else if (methodName.Equals(nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase))
+            {
+                string projectPath = context.Properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
+                LoggingContext loggingContext = context.LoggingContext;
+                Assumed.NotNull(loggingContext, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
+                if (args.TryGetArg(out string? arg0) && arg0 != null)
+                {
+                    returnVal = IntrinsicFunctions.RegisterBuildCheck(projectPath, arg0, loggingContext);
                     return true;
                 }
             }
@@ -774,12 +795,19 @@ namespace Microsoft.Build.Evaluation.Expander
         /// </summary>
         /// <param name="methodName"> </param>
         /// <param name="receiverType"> </param>
-        /// <param name="fileSystem"> </param>
         /// <param name="returnVal">The value returned from the function call.</param>
         /// <param name="objectInstance">Object that the function is called on.</param>
         /// <param name="args">arguments.</param>
+        /// <param name="context">Context for executing functions that depend on evaluation state.</param>
         /// <returns>True if the well known function call binding was successful.</returns>
-        internal static bool TryExecuteWellKnownFunction(StringSegment methodName, Type receiverType, IFileSystem fileSystem, out object? returnVal, object objectInstance, FunctionArguments args)
+        internal static bool TryExecuteWellKnownFunction<T>(
+            StringSegment methodName,
+            Type receiverType,
+            out object? returnVal,
+            object objectInstance,
+            FunctionArguments args,
+            in PropertyFunctionExecutionContext<T> context)
+            where T : class, IProperty
         {
             returnVal = null;
 
@@ -848,7 +876,7 @@ namespace Microsoft.Build.Evaluation.Expander
                 }
                 else if (receiverType == typeof(IntrinsicFunctions))
                 {
-                    return TryExecuteIntrinsicFunction(methodName, out returnVal, fileSystem, args);
+                    return TryExecuteIntrinsicFunction(methodName, out returnVal, args, in context);
                 }
                 else if (receiverType == typeof(Path))
                 {
@@ -930,29 +958,6 @@ namespace Microsoft.Build.Evaluation.Expander
             if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
             {
                 LogFunctionCall(receiverType, methodName, "PropertyFunctionsRequiringReflection", objectInstance, args);
-            }
-
-            return false;
-        }
-
-        internal static bool TryExecuteWellKnownFunctionWithPropertiesParam<T>(StringSegment methodName, Type receiverType, LoggingContext loggingContext,
-                                                                            IPropertyProvider<T> properties, out object? returnVal, object objectInstance, FunctionArguments args)
-            where T : class, IProperty
-        {
-            returnVal = null;
-
-            if (receiverType == typeof(IntrinsicFunctions))
-            {
-                if (methodName.Equals(nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase))
-                {
-                    string projectPath = properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
-                    Assumed.NotNull(loggingContext, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
-                    if (args.TryGetArg(out string? arg0) && arg0 != null)
-                    {
-                        returnVal = IntrinsicFunctions.RegisterBuildCheck(projectPath, arg0, loggingContext);
-                        return true;
-                    }
-                }
             }
 
             return false;

@@ -56,6 +56,7 @@ materializes expanded values for reflection or an API that requires strings.
 | Split a member name and arguments | `PropertyFunctionParser.ParseMember` | [PropertyFunctionParser.cs#L187](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs#L187) |
 | Parse element access | `PropertyFunctionParser.ParseIndexer` | [PropertyFunctionParser.cs#L233](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs#L233) |
 | Lazily expose source and expanded arguments | `FunctionArguments` | [FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs) |
+| Supply environmental state during execution | `PropertyFunctionExecutionContext` | [PropertyFunctionExecutionContext.cs](../../src/Build/Evaluation/Expander/PropertyFunctionExecutionContext.cs) |
 | Bind runtime receiver, type, and availability | `FunctionBinder.Bind` | [Expander.FunctionBinder.cs#L33](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L33) |
 | Execute one invocation and escape its result | `Function.Execute` | [Expander.Function.cs#L217](../../src/Build/Evaluation/Expander.Function.cs#L217) |
 | Resolve a static receiver `Type` | `AvailableStaticMembers.TryResolveType` | [AvailableStaticMembers.cs#L58](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L58) |
