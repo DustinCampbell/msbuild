@@ -10,8 +10,9 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using ParseArgs = Microsoft.Build.Evaluation.Expander.FunctionArgumentList;
 
 
 namespace Microsoft.Build.Evaluation.Expander
@@ -19,11 +20,11 @@ namespace Microsoft.Build.Evaluation.Expander
     internal class WellKnownFunctions
     {
 
-        internal static bool ElementsOfType(object[] args, Type type)
+        internal static bool ElementsOfType(FunctionArgumentList args, Type type)
         {
             for (var i = 0; i < args.Length; i++)
             {
-                if (args[i].GetType() != type)
+                if (args[i]?.GetType() != type)
                 {
                     return false;
                 }
@@ -33,18 +34,16 @@ namespace Microsoft.Build.Evaluation.Expander
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void LogFunctionCall(Type receiverType, string methodName, string fileName, object? objectInstance, object[] args)
+        internal static void LogFunctionCall(Type receiverType, string methodName, string fileName, object? objectInstance, FunctionArgumentList args)
         {
             var logFile = Path.Combine(Directory.GetCurrentDirectory(), fileName);
 
-            var argSignature = args != null
-                ? string.Join(", ", args.Select(a => a?.GetType().Name ?? "null"))
-                : string.Empty;
+            var argSignature = string.Join(", ", args.ToObjectArray().Select(a => a?.GetType().Name ?? "null"));
 
             File.AppendAllText(logFile, $"ReceiverType={receiverType?.FullName}; ObjectInstanceType={objectInstance?.GetType().FullName}; MethodName={methodName}({argSignature})\n");
         }
 
-        internal static bool TryExecutePathFunction(string methodName, out object? returnVal, object[] args)
+        internal static bool TryExecutePathFunction(string methodName, out object? returnVal, FunctionArgumentList args)
         {
             returnVal = default;
             if (string.Equals(methodName, nameof(Path.Combine), StringComparison.OrdinalIgnoreCase))
@@ -87,7 +86,7 @@ namespace Microsoft.Build.Evaluation.Expander
                     default:
                         if (ElementsOfType(args, typeof(string)))
                         {
-                            returnVal = Path.Combine(Array.ConvertAll(args, o => (string)o));
+                            returnVal = Path.Combine(Array.ConvertAll(args.ToObjectArray(), o => (string)o));
                             return true;
                         }
                         break;
@@ -162,14 +161,15 @@ namespace Microsoft.Build.Evaluation.Expander
         /// <param name="text"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        internal static bool TryExecuteStringFunction(string methodName, out object? returnVal, string text, object[] args)
+        internal static bool TryExecuteStringFunction(string methodName, out object? returnVal, string text, FunctionArgumentList args)
         {
             returnVal = null;
+            StringSegment receiver = text;
             if (string.Equals(methodName, nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (args.TryGetArg(out StringSegment arg0))
                 {
-                    returnVal = text.StartsWith(arg0, StringComparison.CurrentCulture);
+                    returnVal = receiver.StartsWith(arg0, StringComparison.CurrentCulture);
                     return true;
                 }
             }
@@ -183,9 +183,9 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.Contains), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (args.TryGetArg(out StringSegment arg0))
                 {
-                    returnVal = text.Contains(arg0);
+                    returnVal = receiver.Contains(arg0);
                     return true;
                 }
             }
@@ -207,14 +207,14 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.EndsWith), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (args.TryGetArg(out StringSegment arg0))
                 {
-                    returnVal = text.EndsWith(arg0, StringComparison.CurrentCulture);
+                    returnVal = receiver.EndsWith(arg0, StringComparison.CurrentCulture);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out arg0, out StringComparison arg1) && arg0 != null)
+                else if (args.TryGetArgs(out arg0, out StringComparison arg1))
                 {
-                    returnVal = text.EndsWith(arg0, arg1);
+                    returnVal = receiver.EndsWith(arg0, arg1);
                     return true;
                 }
             }
@@ -228,43 +228,43 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.IndexOf), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArgs(args, out string? arg0, out StringComparison arg1) && arg0 != null)
+                if (args.TryGetArgs(out StringSegment arg0, out StringComparison arg1))
                 {
-                    returnVal = text.IndexOf(arg0, arg1);
+                    returnVal = receiver.IndexOf(arg0, arg1);
                     return true;
                 }
             }
             else if (string.Equals(methodName, nameof(string.IndexOfAny), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (args.TryGetArg(out StringSegment arg0))
                 {
-                    returnVal = text.AsSpan().IndexOfAny(arg0.AsSpan());
+                    returnVal = receiver.IndexOfAny(arg0.AsSpan());
                     return true;
                 }
             }
             else if (string.Equals(methodName, nameof(string.LastIndexOf), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (args.TryGetArg(out StringSegment arg0))
                 {
-                    returnVal = text.LastIndexOf(arg0, StringComparison.CurrentCulture);
+                    returnVal = receiver.LastIndexOf(arg0, StringComparison.CurrentCulture);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out arg0, out int startIndex) && arg0 != null)
+                else if (args.TryGetArgs(out arg0, out int startIndex))
                 {
-                    returnVal = text.LastIndexOf(arg0, startIndex, StringComparison.CurrentCulture);
+                    returnVal = receiver.LastIndexOf(arg0, startIndex, StringComparison.CurrentCulture);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out arg0, out StringComparison arg1) && arg0 != null)
+                else if (args.TryGetArgs(out arg0, out StringComparison arg1))
                 {
-                    returnVal = text.LastIndexOf(arg0, arg1);
+                    returnVal = receiver.LastIndexOf(arg0, arg1);
                     return true;
                 }
             }
             else if (string.Equals(methodName, nameof(string.LastIndexOfAny), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                if (args.TryGetArg(out StringSegment arg0))
                 {
-                    returnVal = text.AsSpan().LastIndexOfAny(arg0.AsSpan());
+                    returnVal = receiver.LastIndexOfAny(arg0.AsSpan());
                     return true;
                 }
             }
@@ -291,7 +291,7 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.Split), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? separator) && separator?.Length == 1)
+                if (args.TryGetArg(out StringSegment separator) && separator.Length == 1)
                 {
                     returnVal = text.Split(separator[0]);
                     return true;
@@ -304,7 +304,7 @@ namespace Microsoft.Build.Evaluation.Expander
                     returnVal = text.PadLeft(totalWidth);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out totalWidth, out string? paddingChar) && paddingChar?.Length == 1)
+                else if (args.TryGetArgs(out totalWidth, out StringSegment paddingChar) && paddingChar.Length == 1)
                 {
                     returnVal = text.PadLeft(totalWidth, paddingChar[0]);
                     return true;
@@ -317,7 +317,7 @@ namespace Microsoft.Build.Evaluation.Expander
                     returnVal = text.PadRight(totalWidth);
                     return true;
                 }
-                else if (ParseArgs.TryGetArgs(args, out totalWidth, out string? paddingChar) && paddingChar?.Length == 1)
+                else if (args.TryGetArgs(out totalWidth, out StringSegment paddingChar) && paddingChar.Length == 1)
                 {
                     returnVal = text.PadRight(totalWidth, paddingChar[0]);
                     return true;
@@ -325,17 +325,17 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.TrimStart), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? trimChars) && trimChars?.Length > 0)
+                if (args.TryGetArg(out StringSegment trimChars) && trimChars.Length > 0)
                 {
-                    returnVal = text.TrimStart(trimChars.ToCharArray());
+                    returnVal = text.TrimStart(trimChars.AsSpan().ToArray());
                     return true;
                 }
             }
             else if (string.Equals(methodName, nameof(string.TrimEnd), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? trimChars) && trimChars?.Length > 0)
+                if (args.TryGetArg(out StringSegment trimChars) && trimChars.Length > 0)
                 {
-                    returnVal = text.TrimEnd(trimChars.ToCharArray());
+                    returnVal = text.TrimEnd(trimChars.AsSpan().ToArray());
                     return true;
                 }
             }
@@ -349,16 +349,16 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(string.Equals), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArg(args, out string? arg0))
+                if (args.TryGetArg(out StringSegment arg0))
                 {
-                    returnVal = text.Equals(arg0);
+                    returnVal = receiver.Equals(arg0);
                     return true;
                 }
             }
             return false;
         }
 
-        internal static bool TryExecuteIntrinsicFunction(string methodName, out object? returnVal, IFileSystem fileSystem, object[] args)
+        internal static bool TryExecuteIntrinsicFunction(string methodName, out object? returnVal, IFileSystem fileSystem, FunctionArgumentList args)
         {
             returnVal = default;
             if (string.Equals(methodName, nameof(IntrinsicFunctions.EnsureTrailingSlash), StringComparison.OrdinalIgnoreCase))
@@ -381,7 +381,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (ElementsOfType(args, typeof(string)))
                 {
-                    returnVal = IntrinsicFunctions.NormalizePath(Array.ConvertAll(args, o => (string)o));
+                    returnVal = IntrinsicFunctions.NormalizePath(Array.ConvertAll(args.ToObjectArray(), o => (string)o));
                     return true;
                 }
             }
@@ -398,7 +398,8 @@ namespace Microsoft.Build.Evaluation.Expander
                 if (args.Length >= 4 &&
                     ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
                 {
-                    returnVal = IntrinsicFunctions.GetRegistryValueFromView(arg0, arg1, args[2], new ArraySegment<object>(args, 3, args.Length - 3));
+                    object[] values = args.ToObjectArray();
+                    returnVal = IntrinsicFunctions.GetRegistryValueFromView(arg0, arg1, values[2], new ArraySegment<object>(values, 3, values.Length - 3));
                     return true;
                 }
             }
@@ -782,7 +783,7 @@ namespace Microsoft.Build.Evaluation.Expander
         /// <param name="objectInstance">Object that the function is called on.</param>
         /// <param name="args">arguments.</param>
         /// <returns>True if the well known function call binding was successful.</returns>
-        internal static bool TryExecuteWellKnownFunction(string methodName, Type receiverType, IFileSystem fileSystem, out object? returnVal, object objectInstance, object[] args)
+        internal static bool TryExecuteWellKnownFunction(string methodName, Type receiverType, IFileSystem fileSystem, out object? returnVal, object objectInstance, FunctionArgumentList args)
         {
             returnVal = null;
 
@@ -939,7 +940,7 @@ namespace Microsoft.Build.Evaluation.Expander
         }
 
         internal static bool TryExecuteWellKnownFunctionWithPropertiesParam<T>(string methodName, Type receiverType, LoggingContext loggingContext,
-                                                                            IPropertyProvider<T> properties, out object? returnVal, object objectInstance, object[] args)
+                                                                            IPropertyProvider<T> properties, out object? returnVal, object objectInstance, FunctionArgumentList args)
             where T : class, IProperty
         {
             returnVal = null;
@@ -969,7 +970,7 @@ namespace Microsoft.Build.Evaluation.Expander
         /// <param name="returnVal">The instance as created by the constructor call.</param>
         /// <param name="args">Arguments.</param>
         /// <returns>True if the well known constructor call binding was successful.</returns>
-        internal static bool TryExecuteWellKnownConstructorNoThrow(Type? receiverType, out object? returnVal, object[] args)
+        internal static bool TryExecuteWellKnownConstructorNoThrow(Type? receiverType, out object? returnVal, FunctionArgumentList args)
         {
             returnVal = null;
 

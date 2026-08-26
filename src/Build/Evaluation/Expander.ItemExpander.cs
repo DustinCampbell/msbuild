@@ -140,12 +140,14 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    if (argumentsExpression is not null)
+                    ArgumentList parsedArguments = PropertyFunctionParser.ParseArguments(
+                        argumentsExpression,
+                        function,
+                        context.Location);
+                    arguments = new string[parsedArguments.Count];
+                    for (int argumentIndex = 0; argumentIndex < arguments.Length; argumentIndex++)
                     {
-                        arguments = ExtractFunctionArguments(
-                            argumentsExpression,
-                            argumentsExpression.AsMemory(),
-                            errors);
+                        arguments[argumentIndex] = parsedArguments[argumentIndex].Value;
                     }
 
                     if (ItemSpecModifiers.IsDerivableItemSpecModifier(functionName))

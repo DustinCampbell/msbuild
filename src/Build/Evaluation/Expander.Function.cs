@@ -14,9 +14,8 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.NET.StringTools;
-using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using Microsoft.Build.Text;
+using ParseArgs = Microsoft.Build.Evaluation.Expander.FunctionArgumentList;
 
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
@@ -33,10 +32,18 @@ internal partial class Expander<P, I>
     where I : class, IItem
 {
     /// <summary>
-    ///  Represents a property function extracted from an expression and executes it.
+    /// This class represents the function as extracted from an expression
+    /// It is also responsible for executing the function.
     /// </summary>
     private sealed class Function
     {
+        private enum WellKnownExecutionStatus
+        {
+            NotHandled,
+            Handled,
+            ReturnImmediately,
+        }
+
         /// <summary>
         /// The type of this function's receiver.
         /// </summary>
@@ -56,22 +63,21 @@ internal partial class Expander<P, I>
         /// <summary>
         /// The name of the function.
         /// </summary>
-        private readonly string _methodName;
+        private readonly string _methodMethodName;
 
         /// <summary>
         /// The arguments for the function.
         /// </summary>
-        private readonly string[] _arguments;
+        private FunctionArgumentList _arguments;
 
         /// <summary>
         /// The expression that this function is part of.
         /// </summary>
-        private readonly string _expression;
+        private readonly StringSegment _expression;
 
-        /// <summary>
-        /// The property name that this function is applied on.
-        /// </summary>
-        private readonly string _receiver;
+        private readonly int _expressionStartIndex;
+
+        private readonly object _receiverValue;
 
         /// <summary>
         /// The complete set of <see cref="BindingFlags"/> the property-function binder is permitted
@@ -94,49 +100,40 @@ internal partial class Expander<P, I>
         /// The binding flags that will be used during invocation of this function.
         /// </summary>
         /// <remarks>
-        /// Always a subset of <see cref="AllowedBindingFlags"/> - constrained at construction and only
-        /// ever augmented with <see cref="BindingFlags.Static"/> / <see cref="BindingFlags.Instance"/>
-        /// thereafter - so it can never carry <see cref="BindingFlags.NonPublic"/>.
+        ///  Always a subset of <see cref="AllowedBindingFlags"/>, constrained at construction so it can
+        ///  never carry <see cref="BindingFlags.NonPublic"/>.
         /// </remarks>
-        private BindingFlags _bindingFlags;
-
-        /// <summary>
-        /// The remainder of the body once the function and arguments have been extracted.
-        /// </summary>
-        private readonly string _remainder;
+        private readonly BindingFlags _bindingFlags;
 
         private readonly LoggingContext _loggingContext;
 
+        private readonly ExpansionContext _context;
+
         /// <summary>
-        ///  Initializes a property function that will be executed during property evaluation.
+        /// Construct a function that will be executed during property evaluation.
         /// </summary>
-        /// <param name="receiverType">The runtime type on which the function will be invoked.</param>
-        /// <param name="expression">The complete property-function expression.</param>
-        /// <param name="receiver">The property name that supplies the receiver, or <see langword="null"/>.</param>
-        /// <param name="methodName">The method, property, field, or indexer accessor name.</param>
-        /// <param name="arguments">The unexpanded function arguments.</param>
-        /// <param name="bindingFlags">The reflection binding flags for the invocation.</param>
-        /// <param name="remainder">The unparsed remainder of the property-function chain.</param>
-        /// <param name="loggingContext">The logging context for well-known property functions.</param>
         internal Function(
             [DynamicallyAccessedMembers(
                 DynamicallyAccessedMemberTypes.PublicConstructors |
                 DynamicallyAccessedMemberTypes.PublicMethods |
                 DynamicallyAccessedMemberTypes.PublicProperties |
-                DynamicallyAccessedMemberTypes.PublicFields)] Type receiverType,
-            string expression,
-            string receiver,
+                DynamicallyAccessedMemberTypes.PublicFields)]
+            Type receiverType,
+            object receiverValue,
+            StringSegment expression,
+            int expressionStartIndex,
             string methodName,
-            string[] arguments,
+            FunctionArgumentList arguments,
             BindingFlags bindingFlags,
-            string remainder,
+            ExpansionContext context,
             LoggingContext loggingContext)
         {
-            _methodName = methodName;
-            _arguments = arguments ?? [];
+            _methodMethodName = methodName;
+            _arguments = arguments;
 
-            _receiver = receiver;
+            _receiverValue = receiverValue;
             _expression = expression;
+            _expressionStartIndex = expressionStartIndex;
             _receiverType = receiverType;
 
             // Property functions never bind non-public members. Constrain the incoming flags to the
@@ -149,174 +146,8 @@ internal partial class Expander<P, I>
                 $"Property-function binding flags '{bindingFlags}' include flags outside the allowed set; BindingFlags.NonPublic in particular is never permitted.");
             _bindingFlags = bindingFlags & AllowedBindingFlags;
 
-            _remainder = remainder;
+            _context = context;
             _loggingContext = loggingContext;
-        }
-
-        /// <summary>
-        /// Part of the extraction may result in the name of the property
-        /// This accessor is used by the Expander
-        /// Examples of expression root:
-        ///     [System.Diagnostics.Process]::Start
-        ///     SomeMSBuildProperty.
-        /// </summary>
-        internal string Receiver => _receiver;
-
-        /// <summary>
-        ///  Extracts a property function from an expression.
-        /// </summary>
-        /// <param name="expressionFunction">
-        ///  The property-function body, such as <c>SomeProp.ToLower()</c> or
-        ///  <c>[System.Math]::Max(1, 2)</c>.
-        /// </param>
-        /// <param name="propertyValue">
-        ///  The receiver instance, or <see langword="null"/> for a static function or the first instance
-        ///  function in a chain.
-        /// </param>
-        /// <param name="context">The context for the expansion operation.</param>
-        /// <returns>
-        ///  The extracted function, or <see langword="null"/> when the expression does not contain an invocation.
-        /// </returns>
-        /// <remarks>
-        ///  The receiver type's public member surface is reflected over. The minimized trim suppression for
-        ///  runtime receiver types is maintained by <c>FunctionBuilder.SetReceiverType</c>.
-        /// </remarks>
-        internal static Function ExtractPropertyFunction(
-            string expressionFunction,
-            object propertyValue,
-            ExpansionContext context)
-        {
-            FunctionBuilder functionBuilder = new()
-            {
-                LoggingContext = context.PropertyLoggingContext,
-            };
-
-            ErrorReporter errors = context.Errors;
-
-            // By default the expression root is the whole function expression
-            ReadOnlySpan<char> expressionRoot = expressionFunction == null ? ReadOnlySpan<char>.Empty : expressionFunction.AsSpan();
-
-            // The arguments for this function start at the first '('
-            // If there are no arguments, then we're a property getter
-            var argumentStartIndex = expressionFunction.IndexOf('(');
-
-            // If we have arguments, then we only want the content up to but not including the '('
-            if (argumentStartIndex > -1)
-            {
-                expressionRoot = expressionRoot.Slice(0, argumentStartIndex);
-            }
-
-            // In case we ended up with something we don't understand
-            errors.InvalidPropertyFunction.ThrowIfFalse(!expressionRoot.IsEmpty, expressionFunction);
-
-            functionBuilder.Expression = expressionFunction;
-
-            // This is a static method call
-            // A static method is the content that follows the last "::", the rest being the type
-            if (propertyValue == null && expressionRoot[0] == '[')
-            {
-                var typeEndIndex = expressionRoot.IndexOf(']');
-
-                if (typeEndIndex < 1)
-                {
-                    // We ended up with something other than a function expression
-                    errors.InvalidStaticPropertyFunction.Throw(expressionFunction);
-                }
-
-                var typeName = Strings.WeakIntern(expressionRoot.Slice(1, typeEndIndex - 1));
-                var methodStartIndex = typeEndIndex + 1;
-
-                if (expressionRoot.Length > methodStartIndex + 2 && expressionRoot[methodStartIndex] == ':' && expressionRoot[methodStartIndex + 1] == ':')
-                {
-                    // skip over the "::"
-                    methodStartIndex += 2;
-                }
-                else
-                {
-                    // We ended up with something other than a static function expression
-                    errors.InvalidStaticPropertyFunction.Throw(expressionFunction);
-                }
-
-                ConstructFunction(
-                    expressionFunction,
-                    argumentStartIndex,
-                    methodStartIndex,
-                    ref functionBuilder,
-                    errors);
-
-                // Locate a type that matches the body of the expression.
-                if (!AvailableStaticMembers.TryResolveType(typeName, functionBuilder.Name, out Type receiverType))
-                {
-                    // We ended up with something other than a type
-                    errors.UnavailablePropertyFunctionType.Throw(expressionFunction, typeName);
-                }
-
-                functionBuilder.SetReceiverType(receiverType);
-            }
-            else if (expressionFunction[0] == '[') // We have an indexer
-            {
-                var indexerEndIndex = expressionFunction.IndexOf(']', 1);
-                if (indexerEndIndex < 1)
-                {
-                    // We ended up with something other than a function expression
-                    errors.InvalidPropertyFunction.Throw(
-                        expressionFunction,
-                        PropertyFunctionErrorDetail.MismatchedSquareBrackets);
-                }
-
-                var methodStartIndex = indexerEndIndex + 1;
-
-                functionBuilder.SetReceiverType(propertyValue.GetType());
-
-                ConstructIndexerFunction(
-                    expressionFunction,
-                    propertyValue,
-                    methodStartIndex,
-                    indexerEndIndex,
-                    ref functionBuilder,
-                    errors);
-            }
-            else // This could be a property reference, or a chain of function calls
-            {
-                // Look for an instance function call next, such as in SomeStuff.ToLower()
-                var methodStartIndex = expressionRoot.IndexOf('.');
-                if (methodStartIndex == -1)
-                {
-                    // We don't have a function invocation in the expression root, return null
-                    return null;
-                }
-
-                // skip over the '.';
-                methodStartIndex++;
-
-                var rootEndIndex = expressionRoot.IndexOf('.');
-
-                // If this is an instance function rather than a static, then we'll capture the name of the property referenced
-                var functionReceiver = Strings.WeakIntern(expressionRoot.Slice(0, rootEndIndex).Trim());
-
-                // If propertyValue is null (we're not recursing), then we're expecting a valid property name
-                if (propertyValue == null && !IsValidPropertyName(functionReceiver))
-                {
-                    // We extracted something that wasn't a valid property name, fail.
-                    errors.InvalidPropertyFunction.Throw(expressionFunction);
-                }
-
-                // If we are recursively acting on a type that has been already produced then pass that type inwards (e.g. we are interpreting a function call chain)
-                // Otherwise, the receiver of the function is a string
-                var receiverType = propertyValue?.GetType() ?? typeof(string);
-
-                functionBuilder.Receiver = functionReceiver;
-                functionBuilder.SetReceiverType(receiverType);
-
-                ConstructFunction(
-                    expressionFunction,
-                    argumentStartIndex,
-                    methodStartIndex,
-                    ref functionBuilder,
-                    errors);
-            }
-
-            return functionBuilder.Build();
         }
 
         /// <summary>
@@ -352,55 +183,63 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        ///  Executes the function on the specified receiver.
+        ///  Executes the function on its bound receiver.
         /// </summary>
-        /// <param name="objectInstance">The receiver instance, or <see langword="null"/> for a static function.</param>
-        /// <param name="context">The context for the expansion operation.</param>
+        /// <param name="succeeded">
+        ///  <see langword="true"/> when execution succeeds; otherwise, <see langword="false"/> when
+        ///  the expansion options convert an execution failure to a partially evaluated result.
+        /// </param>
         /// <returns>
         ///  The function result.
         /// </returns>
-        [UnconditionalSuppressMessage("Trimming", "IL2074:UnrecognizedReflectionPattern",
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2074:UnrecognizedReflectionPattern",
             Justification = "_receiverType is reassigned from a runtime property value whose type is restricted to the property-function allowlist, whose members are preserved for trimming.")]
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        internal object Execute(object objectInstance, ExpansionContext context)
+        internal object Execute(
+            out bool succeeded)
         {
+            succeeded = true;
             object functionResult = String.Empty;
             object[] args = null;
+            object objectInstance = _receiverValue;
 
             try
             {
-                // If there is no object instance, then the method invocation will be a static
-                if (objectInstance == null)
+                if (objectInstance is not null)
                 {
-                    // Check that the function that we're going to call is valid to call
-                    if (!AvailableStaticMembers.IsAvailable(_receiverType, _methodName))
-                    {
-                        context.Errors.UnavailablePropertyFunction.Throw(
-                            _methodName,
-                            _receiverType.FullName);
-                    }
-
-                    _bindingFlags |= BindingFlags.Static;
-                }
-                else
-                {
-                    // Check that the function that we're going to call is valid to call
-                    if (!IsInstanceMethodAvailable(_receiverType, _methodName))
-                    {
-                        context.Errors.UnavailablePropertyFunction.Throw(
-                            _methodName,
-                            _receiverType.FullName);
-                    }
-
-                    _bindingFlags |= BindingFlags.Instance;
-
                     // The object that we're about to call methods on may have escaped characters
                     // in it, we want to operate on the unescaped string in the function, just as we
                     // want to pass arguments that are unescaped (see below)
                     if (objectInstance is string objectInstanceString)
                     {
                         objectInstance = EscapingUtilities.UnescapeAll(objectInstanceString);
+                    }
+                }
+
+                bool wellKnownFunctionAttempted = false;
+                if (!String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                    && CanExecuteWellKnownWithoutExpandingArguments())
+                {
+                    wellKnownFunctionAttempted = true;
+                    WellKnownExecutionStatus status = TryExecuteWellKnownFunction(
+                        objectInstance,
+                        _arguments,
+                        out functionResult);
+
+                    if (status == WellKnownExecutionStatus.ReturnImmediately)
+                    {
+                        succeeded = false;
+                        return functionResult;
+                    }
+
+                    if (status == WellKnownExecutionStatus.Handled)
+                    {
+                        return CompleteExecution(functionResult);
                     }
                 }
 
@@ -411,8 +250,8 @@ internal partial class Expander<P, I>
                 for (int n = 0; n < _arguments.Length; n++)
                 {
                     object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                        _arguments[n],
-                        context);
+                        _arguments.GetSource(n).Value,
+                        _context);
 
                     if (argument is string argumentValue)
                     {
@@ -437,7 +276,7 @@ internal partial class Expander<P, I>
                         // This must happen AFTER UnescapeAll so that the working directory path
                         // (a real filesystem path) is not corrupted by MSBuild unescape processing.
                         if ((_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory))
-                            && IsFileOrDirectoryPathArgument(_methodName, n))
+                            && IsFileOrDirectoryPathArgument(_methodMethodName, n))
                         {
                             AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory((string)args[n]);
                             if (resolved.HasValue)
@@ -458,7 +297,7 @@ internal partial class Expander<P, I>
                 // This special casing is to realize that its a comparison that is taking place and handle the
                 // argument type coercion accordingly; effectively pre-preparing the argument type so
                 // that it matches the left hand side ready for the default binder’s method invoke.
-                if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodName, StringComparison.OrdinalIgnoreCase)))
+                if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
                 {
                     // Support comparison when the lhs is an integer
                     if (ParseArgs.IsFloatingPointRepresentation(args[0]))
@@ -477,73 +316,46 @@ internal partial class Expander<P, I>
                 if (_receiverType == typeof(IntrinsicFunctions))
                 {
                     // Special case a few methods that take extra parameters that can't be passed in by the user
-                    if (_methodName.Equals("GetPathOfFileAbove") && args.Length == 1)
+                    if (_methodMethodName.Equals("GetPathOfFileAbove") && args.Length == 1)
                     {
                         // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
                         // specified the file name.  This is syntactic sugar so they don't have to always
                         // include $(MSBuildThisFileDirectory) as a parameter.
-                        string startingDirectory = !context.Location.File.IsNullOrWhiteSpace()
-                            ? Path.GetDirectoryName(context.Location.File)
-                            : string.Empty;
+                        string startingDirectory = String.IsNullOrWhiteSpace(_context.Location.File)
+                            ? String.Empty
+                            : Path.GetDirectoryName(_context.Location.File);
 
                         args = [args[0], startingDirectory];
                     }
                 }
 
+                _arguments.SetMaterialized(args);
+
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
-                if (String.Equals("new", _methodName, StringComparison.OrdinalIgnoreCase))
+                if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, _arguments))
                     {
                         functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
                     }
                 }
                 else
                 {
-                    bool wellKnownFunctionSuccess = false;
-
-                    try
-                    {
-                        // First attempt to recognize some well-known functions to avoid binding
-                        // and potential first-chance MissingMethodExceptions.
-                        wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(
-                            _methodName,
-                            _receiverType,
-                            context.FileSystem,
-                            out functionResult,
+                    WellKnownExecutionStatus status = wellKnownFunctionAttempted
+                        ? WellKnownExecutionStatus.NotHandled
+                        : TryExecuteWellKnownFunction(
                             objectInstance,
-                            args);
+                            _arguments,
+                            out functionResult);
 
-                        if (!wellKnownFunctionSuccess)
-                        {
-                            // Some well-known functions need evaluated value from properties.
-                            wellKnownFunctionSuccess =
-                                WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
-                                _methodName,
-                                _receiverType,
-                                _loggingContext,
-                                context.Properties,
-                                out functionResult,
-                                objectInstance,
-                                args);
-                        }
-                    }
-                    // we need to preserve the same behavior on exceptions as the actual binder
-                    catch (Exception ex)
+                    if (status == WellKnownExecutionStatus.ReturnImmediately)
                     {
-                        string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodName, args);
-                        if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                        {
-                            return partiallyEvaluated;
-                        }
-
-                        context.Errors.InvalidPropertyFunction.Throw(
-                            partiallyEvaluated,
-                            ex.Message.Replace("\r\n", " "));
+                        succeeded = false;
+                        return functionResult;
                     }
 
-                    if (!wellKnownFunctionSuccess)
+                    if (status == WellKnownExecutionStatus.NotHandled)
                     {
                         // Execute the function given converted arguments
                         // The only exception that we should catch to try a late bind here is missing method
@@ -553,13 +365,13 @@ internal partial class Expander<P, I>
                             // If there are any out parameters, try to figure out their type and create defaults for them as appropriate before calling the method.
                             if (args.Any(a => "out _".Equals(a)))
                             {
-                                IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodName) && m.GetParameters().Length == args.Length);
+                                IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodMethodName) && m.GetParameters().Length == args.Length);
                                 functionResult = GetMethodResult(objectInstance, methods, args, 0);
                             }
                             else
                             {
                                 // If there are no out parameters, use InvokeMember using the standard binder - this will match and coerce as needed
-                                functionResult = _receiverType.InvokePublicMember(_methodName, _bindingFlags, objectInstance, args);
+                                functionResult = _receiverType.InvokePublicMember(_methodMethodName, _bindingFlags, objectInstance, args);
                             }
                         }
                         // If we're invoking a method, then there are deeper attempts that can be made to invoke the method.
@@ -573,42 +385,21 @@ internal partial class Expander<P, I>
                     }
                 }
 
-                // If the result of the function call is a string, then we need to escape the result
-                // so that we maintain the "engine contains escaped data" state.
-                // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
-                if (functionResult is string functionResultString &&
-                    !String.Equals("Unescape", _methodName, StringComparison.OrdinalIgnoreCase) &&
-                    !String.Equals("Escape", _methodName, StringComparison.OrdinalIgnoreCase) &&
-                    !String.Equals("ConvertFromBase64", _methodName, StringComparison.OrdinalIgnoreCase))
-                {
-                    functionResult = EscapingUtilities.Escape(functionResultString);
-                }
-
-                // We have nothing left to parse, so we'll return what we have
-                if (String.IsNullOrEmpty(_remainder))
-                {
-                    return functionResult;
-                }
-
-                // Recursively expand the remaining property body after execution
-                return PropertyExpander.ExpandPropertyBody(
-                    _remainder,
-                    functionResult,
-                    context);
+                return CompleteExecution(functionResult);
             }
 
             // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodName, args);
-                if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
+                if (_context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
+                    succeeded = false;
                     return partiallyEvaluated;
                 }
-
-                context.Errors.InvalidPropertyFunction.Throw(
+                _context.Errors.InvalidPropertyFunction.Throw(
                     partiallyEvaluated,
                     ex.InnerException.Message.Replace("\r\n", " "));
                 return null;
@@ -617,23 +408,101 @@ internal partial class Expander<P, I>
             // Any other exception was thrown by trying to call it
             catch (Exception ex) when (!ExceptionHandling.NotExpectedFunctionException(ex))
             {
-                // If there's a :: in the expression, they were probably trying for a static function
-                // invocation. Give them some more relevant info in that case
-                if (s_invariantCompareInfo.IndexOf(_expression, "::", CompareOptions.OrdinalIgnoreCase) > -1)
+                // If there's a :: in this operation, they were probably trying for a static function
+                // invocation. Give them some more relevant info in that case.
+                if (_expression.IndexOf("::", _expressionStartIndex, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    context.Errors.InvalidStaticPropertyFunction.Throw(
-                        _expression,
+                    string expression = _expression[_expressionStartIndex..].ValueOrEmpty;
+                    _context.Errors.InvalidStaticPropertyFunction.Throw(
+                        expression,
                         ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
                 }
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodName, args);
-                    context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
+                    _context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);
                 }
 
                 return null;
             }
+        }
+
+        private bool CanExecuteWellKnownWithoutExpandingArguments()
+        {
+            if (_receiverType == typeof(System.IO.File)
+                || _receiverType == typeof(System.IO.Directory)
+                || _receiverType == typeof(System.IO.Path)
+                || (_receiverType == typeof(IntrinsicFunctions)
+                    && _arguments.Count == 1
+                    && _methodMethodName.Equals("GetPathOfFileAbove", StringComparison.OrdinalIgnoreCase))
+                || String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return !_arguments.ContainsExpandableExpression();
+        }
+
+        private WellKnownExecutionStatus TryExecuteWellKnownFunction(
+            object objectInstance,
+            FunctionArgumentList args,
+            out object functionResult)
+        {
+            try
+            {
+                if (WellKnownFunctions.TryExecuteWellKnownFunction(
+                    _methodMethodName,
+                    _receiverType,
+                    _context.FileSystem,
+                    out functionResult,
+                    objectInstance,
+                    args)
+                    || WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
+                        _methodMethodName,
+                        _receiverType,
+                        _loggingContext,
+                        _context.Properties,
+                        out functionResult,
+                        objectInstance,
+                        args))
+                {
+                    return WellKnownExecutionStatus.Handled;
+                }
+            }
+            catch (Exception ex)
+            {
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args.ToObjectArray());
+                if (_context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                {
+                    functionResult = partiallyEvaluated;
+                    return WellKnownExecutionStatus.ReturnImmediately;
+                }
+
+                _context.Errors.InvalidPropertyFunction.Throw(
+                    partiallyEvaluated,
+                    ex.Message.Replace("\r\n", " "));
+            }
+
+            functionResult = null;
+            return WellKnownExecutionStatus.NotHandled;
+        }
+
+        private object CompleteExecution(object functionResult)
+        {
+            // If the result of the function call is a string, then we need to escape the result
+            // so that we maintain the "engine contains escaped data" state.
+            // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
+            if (functionResult is string functionResultString
+                && !String.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                && !String.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                && !String.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+            {
+                functionResult = EscapingUtilities.Escape(functionResultString);
+            }
+
+            return functionResult;
         }
 
         private object GetMethodResult(object objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)
@@ -657,7 +526,7 @@ internal partial class Expander<P, I>
                             else if (!toReturn.Equals(currentReturnValue))
                             {
                                 // There were multiple methods that seemed viable and gave different results. We can't differentiate between them so throw.
-                                ErrorUtilities.ThrowArgument("CouldNotDifferentiateBetweenCompatibleMethods", _methodName, args.Length);
+                                ErrorUtilities.ThrowArgument("CouldNotDifferentiateBetweenCompatibleMethods", _methodMethodName, args.Length);
                                 return null;
                             }
                         }
@@ -669,163 +538,12 @@ internal partial class Expander<P, I>
 
             try
             {
-                return _receiverType.InvokePublicMember(_methodName, _bindingFlags, objectInstance, args) ?? "null";
+                return _receiverType.InvokePublicMember(_methodMethodName, _bindingFlags, objectInstance, args) ?? "null";
             }
             catch (Exception)
             {
                 // This isn't a viable option, but perhaps another set of parameters will work.
                 return null;
-            }
-        }
-
-        /// <summary>
-        /// Extracts the name, arguments, binding flags, and invocation type for an indexer
-        /// Also extracts the remainder of the expression that is not part of this indexer.
-        /// </summary>
-        private static void ConstructIndexerFunction(
-            string expressionFunction,
-            object propertyValue,
-            int methodStartIndex,
-            int indexerEndIndex,
-            ref FunctionBuilder functionBuilder,
-            ErrorReporter errors)
-        {
-            ReadOnlyMemory<char> argumentsContent = expressionFunction.AsMemory().Slice(1, indexerEndIndex - 1);
-
-            string[] functionArguments = !argumentsContent.IsEmpty
-                ? ExtractFunctionArguments(expressionFunction, argumentsContent, errors)
-                : [];
-
-            // choose the name of the function based on the type of the object that we
-            // are using.
-            string functionName = propertyValue switch
-            {
-                Array => "GetValue",
-                string => "get_Chars",
-                _ => "get_Item",
-            };
-
-            functionBuilder.Name = functionName;
-            functionBuilder.Arguments = functionArguments;
-            functionBuilder.BindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.InvokeMethod;
-            functionBuilder.Remainder = expressionFunction.Substring(methodStartIndex);
-        }
-
-        /// <summary>
-        /// Extracts the name, arguments, binding flags, and invocation type for a static or instance function.
-        /// Also extracts the remainder of the expression that is not part of this function.
-        /// </summary>
-        private static void ConstructFunction(
-            string expressionFunction,
-            int argumentStartIndex,
-            int methodStartIndex,
-            ref FunctionBuilder functionBuilder,
-            ErrorReporter errors)
-        {
-            // The unevaluated and unexpanded arguments for this function
-            string[] functionArguments;
-
-            // The name of the function that will be invoked
-            ReadOnlySpan<char> functionName;
-
-            // What's left of the expression once the function has been constructed
-            ReadOnlySpan<char> remainder = ReadOnlySpan<char>.Empty;
-
-            // The binding flags that we will use for this function's execution
-            BindingFlags defaultBindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public;
-
-            ReadOnlySpan<char> expressionFunctionAsSpan = expressionFunction.AsSpan();
-
-            ReadOnlySpan<char> expressionSubstringAsSpan = argumentStartIndex > -1 ? expressionFunctionAsSpan.Slice(methodStartIndex, argumentStartIndex - methodStartIndex) : ReadOnlySpan<char>.Empty;
-
-            // There are arguments that need to be passed to the function
-            if (argumentStartIndex > -1 && !expressionSubstringAsSpan.Contains(".".AsSpan(), StringComparison.OrdinalIgnoreCase))
-            {
-                // separate the function and the arguments
-                functionName = expressionSubstringAsSpan.Trim();
-
-                // Skip the '('
-                argumentStartIndex++;
-
-                // Scan for the matching closing bracket, skipping any nested ones
-                int argumentsEndIndex = ScanForClosingParenthesis(expressionFunctionAsSpan, argumentStartIndex);
-
-                if (argumentsEndIndex == -1)
-                {
-                    errors.InvalidPropertyFunction.Throw(
-                        expressionFunction,
-                        PropertyFunctionErrorDetail.MismatchedParenthesis);
-                }
-
-                // We have been asked for a method invocation
-                defaultBindingFlags |= BindingFlags.InvokeMethod;
-
-                // It may be that there are '()' but no actual arguments content
-                if (argumentStartIndex == expressionFunction.Length - 1)
-                {
-                    functionArguments = [];
-                }
-                else
-                {
-                    // we have content within the '()' so let's extract and deal with it
-                    ReadOnlyMemory<char> argumentsContent = expressionFunction.AsMemory().Slice(argumentStartIndex, argumentsEndIndex - argumentStartIndex);
-
-                    // If there are no arguments, then just create an empty array
-                    if (argumentsContent.IsEmpty)
-                    {
-                        functionArguments = [];
-                    }
-                    else
-                    {
-                        // We will keep empty entries so that we can treat them as null
-                        functionArguments = ExtractFunctionArguments(expressionFunction, argumentsContent, errors);
-                    }
-
-                    remainder = expressionFunctionAsSpan.Slice(argumentsEndIndex + 1).Trim();
-                }
-            }
-            else
-            {
-                int nextMethodIndex = expressionFunction.IndexOf('.', methodStartIndex);
-                int methodLength = expressionFunction.Length - methodStartIndex;
-                int indexerIndex = expressionFunction.IndexOf('[', methodStartIndex);
-
-                // We don't want to consume the indexer
-                if (indexerIndex >= 0 && indexerIndex < nextMethodIndex)
-                {
-                    nextMethodIndex = indexerIndex;
-                }
-
-                functionArguments = [];
-
-                if (nextMethodIndex > 0)
-                {
-                    methodLength = nextMethodIndex - methodStartIndex;
-                    remainder = expressionFunctionAsSpan.Slice(nextMethodIndex).Trim();
-                }
-
-                ReadOnlySpan<char> netPropertyName = expressionFunctionAsSpan.Slice(methodStartIndex, methodLength).Trim();
-
-                errors.InvalidPropertyFunction.ThrowIfFalse(netPropertyName.Length > 0, expressionFunction);
-
-                // We have been asked for a property or a field
-                defaultBindingFlags |= BindingFlags.GetProperty | BindingFlags.GetField;
-
-                functionName = netPropertyName;
-            }
-
-            // either there are no functions left or what we have is another function or an indexer
-            if (remainder.IsEmpty || remainder[0] == '.' || remainder[0] == '[')
-            {
-                functionBuilder.Name = functionName.ToString();
-                functionBuilder.Arguments = functionArguments;
-                functionBuilder.BindingFlags = defaultBindingFlags;
-                functionBuilder.Remainder = remainder.ToString();
-            }
-            else
-            {
-                // We ended up with something other than a function expression
-                errors.InvalidPropertyFunction.Throw(expressionFunction);
             }
         }
 
@@ -898,7 +616,7 @@ internal partial class Expander<P, I>
         /// Make an attempt to create a string showing what we were trying to execute when we failed.
         /// This will show any intermediate evaluation which may help the user figure out what happened.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(string expression, object objectInstance, string name, object[] args)
+        private string GenerateStringOfMethodExecuted(object objectInstance, string name, object[] args)
         {
             string parameters = String.Empty;
             if (args != null)
@@ -965,42 +683,13 @@ internal partial class Expander<P, I>
             }
         }
 
-        private static bool IsInstanceMethodAvailable(Type receiverType, string methodName)
-        {
-            // The escape hatch opens everything (this preserves the historical behavior, including
-            // allowing GetType). The feature switch also preserves the legacy
-            // MSBUILDENABLEALLPROPERTYFUNCTIONS environment-variable behavior in untrimmed builds; under
-            // trimming it is substituted false, so this wide gate is removed.
-            if (FeatureSwitches.EnableAllPropertyFunctions)
-            {
-                return true;
-            }
-
-            // GetType is excluded outside the escape hatch: it returns an open-ended Type that would
-            // make the reachable member surface unpredictable.
-            if (string.Equals("GetType", methodName, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            // When restriction is on - the default under trimming, opt-in otherwise - instance
-            // "dotting in" is limited to a curated set of receiver types so the members reachable by
-            // reflection are predictable and statically known. Under trimming
-            // RestrictPropertyFunctionReceivers is substituted true, so the unrestricted 'return true'
-            // below is removed, keeping the property-function path trim compatible.
-            if (FeatureSwitches.RestrictPropertyFunctionReceivers)
-            {
-                return PropertyFunctionReceiver.IsAllowed(receiverType, methodName);
-            }
-
-            return true;
-        }
-
         /// <summary>
         /// Finds a public method on the receiver type by name (case-insensitive) and exact
         /// parameter-type signature, filtering by the current binding flags (instance/static).
         /// </summary>
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         private MethodInfo FindPublicMethodBySignature(string methodName, Type[] parameterTypes)
         {
@@ -1051,9 +740,13 @@ internal partial class Expander<P, I>
         // Enum.GetValues<TEnum>() overload cannot be substituted either. The case is therefore blocked before
         // this invoke (identically on JIT and AOT) and would still fail observably (InvalidProjectFileException)
         // if reached - never silently. Verified under Native AOT by src/aot-validation/PropertyFunctionAotTests.cs.
-        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+        [UnconditionalSuppressMessage(
+            "AOT",
+            "IL3050:RequiresDynamicCode",
             Justification = "The only RDC method reachable here is Enum.GetValues(Type), which is unreachable via property functions; see comment above.")]
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         private object LateBindExecute(Exception ex, BindingFlags bindingFlags, object objectInstance /* null unless instance method */, object[] args, bool isConstructor)
         {
@@ -1074,7 +767,7 @@ internal partial class Expander<P, I>
                 // Match a public method by name (case-insensitive) and exact parameter signature.
                 // Equivalent to the prior GetMethod(..., BindingFlags, ...) call but uses the
                 // public-only GetMethods(_bindingFlags) call, since BindingFlags.NonPublic is never set here.
-                memberInfo = FindPublicMethodBySignature(_methodName, types);
+                memberInfo = FindPublicMethodBySignature(_methodMethodName, types);
             }
 
             // If we didn't get a match on all string arguments,
@@ -1087,7 +780,7 @@ internal partial class Expander<P, I>
                 {
                     members = _receiverType.GetConstructors();
                 }
-                else if (_receiverType == typeof(IntrinsicFunctions) && IntrinsicFunctionOverload.IsKnownOverloadMethodName(_methodName))
+                else if (_receiverType == typeof(IntrinsicFunctions) && IntrinsicFunctionOverload.IsKnownOverloadMethodName(_methodMethodName))
                 {
                     // FindMembers is invoked on the statically-known IntrinsicFunctions type (the
                     // only receiver that reaches this branch), so its broad reflection contract is
@@ -1096,13 +789,13 @@ internal partial class Expander<P, I>
                         MemberTypes.Method,
                         bindingFlags,
                         (info, criteria) => string.Equals(info.Name, (string)criteria, StringComparison.OrdinalIgnoreCase),
-                        _methodName);
+                        _methodMethodName);
                     Array.Sort(foundMembers, IntrinsicFunctionOverload.IntrinsicFunctionOverloadMethodComparer);
                     members = foundMembers.Cast<MethodBase>();
                 }
                 else
                 {
-                    members = _receiverType.GetMethods(_bindingFlags).Where(m => string.Equals(m.Name, _methodName, StringComparison.OrdinalIgnoreCase));
+                    members = _receiverType.GetMethods(_bindingFlags).Where(m => string.Equals(m.Name, _methodMethodName, StringComparison.OrdinalIgnoreCase));
                 }
 
                 foreach (MethodBase member in members)

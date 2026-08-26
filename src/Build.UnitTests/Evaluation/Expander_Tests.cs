@@ -4362,6 +4362,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 new string[] {"$(input[1])", "X"},
                 new string[] {"$(listofthings.Split(';')[$(position)])","e"},
                 new string[] {@"$([System.Text.RegularExpressions.Regex]::Match($(Input), `EXPORT\s+(.+)`).Groups[1].Value)","a"},
+                new string[] {@"$([System.Text.RegularExpressions.Regex]::Match($(Input), `EXPORT\s+(.+)`).Groups[1])","a"},
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo(3))", "0"},
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo(3))", "0"},
                 new string[] {"$([MSBuild]::Add(1,2).CompareTo(3.0))", "0"},
