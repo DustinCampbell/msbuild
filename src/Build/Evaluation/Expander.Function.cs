@@ -277,7 +277,7 @@ internal partial class Expander<P, I>
                         || _arguments.ContainsExpandableExpression()))
                 {
                     argumentMaterializer = CreateArgumentMaterializer();
-                    _arguments.ConfigureMaterialization(argumentMaterializer, enablePerArgumentMaterialization: true);
+                    _arguments.ConfigureMaterialization(argumentMaterializer, materializeAllArguments: ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName));
                 }
 
                 WellKnownExecutionStatus wellKnownStatus = TryExecuteWellKnownFunction(
@@ -300,7 +300,7 @@ internal partial class Expander<P, I>
                 if (argumentMaterializer is null && _arguments.Count > 0)
                 {
                     argumentMaterializer = CreateArgumentMaterializer();
-                    _arguments.ConfigureMaterialization(argumentMaterializer, enablePerArgumentMaterialization: false);
+                    _arguments.ConfigureMaterialization(argumentMaterializer, materializeAllArguments: false);
                 }
 
                 args = _arguments.MaterializeAll();

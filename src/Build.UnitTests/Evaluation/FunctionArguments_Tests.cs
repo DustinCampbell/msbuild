@@ -124,7 +124,7 @@ public class FunctionArguments_Tests
         FunctionArguments arguments = new(source);
         var materializer = new TrackingMaterializer(index => $"expanded-{index}");
 
-        arguments.ConfigureMaterialization(materializer, enablePerArgumentMaterialization: true);
+        arguments.ConfigureMaterialization(materializer, materializeAllArguments: false);
 
         arguments[0].ShouldBe("expanded-0");
         materializer.Indices.ShouldBe([0]);
@@ -146,7 +146,7 @@ public class FunctionArguments_Tests
         FunctionArguments arguments = new(source);
         var materializer = new TrackingMaterializer(_ => null);
 
-        arguments.ConfigureMaterialization(materializer, enablePerArgumentMaterialization: true);
+        arguments.ConfigureMaterialization(materializer, materializeAllArguments: false);
 
         arguments[0].ShouldBeNull();
         arguments[0].ShouldBeNull();
@@ -161,7 +161,7 @@ public class FunctionArguments_Tests
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
         FunctionArguments arguments = new(source);
         var materializer = new TrackingMaterializer(_ => "value");
-        arguments.ConfigureMaterialization(materializer, enablePerArgumentMaterialization: true);
+        arguments.ConfigureMaterialization(materializer, materializeAllArguments: false);
 
         bool handled = WellKnownFunctions.TryExecuteStringFunction(
             nameof(string.StartsWith),
