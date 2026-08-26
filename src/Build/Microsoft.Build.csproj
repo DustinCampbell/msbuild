@@ -210,7 +210,7 @@
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.TypeEntry.cs" />
     <Compile Include="Evaluation\Expander\ErrorReporter.cs" />
     <Compile Include="Evaluation\Expander\FunctionArgumentRequirements.cs" />
-    <Compile Include="Evaluation\Expander\FunctionArgumentList.cs" />
+    <Compile Include="Evaluation\Expander\FunctionArguments.cs" />
     <Compile Include="Evaluation\Expander\MemberKind.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionArgument.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionExpression.cs" />

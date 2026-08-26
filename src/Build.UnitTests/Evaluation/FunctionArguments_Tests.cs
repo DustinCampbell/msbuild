@@ -9,14 +9,14 @@ using Xunit;
 
 namespace Microsoft.Build.UnitTests.Evaluation;
 
-public class FunctionArgumentList_Tests
+public class FunctionArguments_Tests
 {
     [Fact]
     public void RawSegmentsRemainUnmaterialized()
     {
         const string text = "42, value";
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
-        FunctionArgumentList arguments = new(source);
+        FunctionArguments arguments = new(source);
 
         arguments.IsMaterialized.ShouldBeFalse();
         arguments.Count.ShouldBe(2);
@@ -33,7 +33,7 @@ public class FunctionArgumentList_Tests
     {
         const string text = "42, value";
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
-        FunctionArgumentList arguments = new(source);
+        FunctionArguments arguments = new(source);
 
         for (int i = 0; i < 100; i++)
         {
@@ -65,7 +65,7 @@ public class FunctionArgumentList_Tests
     public void DetectsExpandableSourceArguments(string text, bool expected)
     {
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
-        FunctionArgumentList arguments = new(source);
+        FunctionArguments arguments = new(source);
 
         arguments.ContainsExpandableExpression().ShouldBe(expected);
     }
@@ -73,7 +73,7 @@ public class FunctionArgumentList_Tests
     [Fact]
     public void SourceStringsRemainUnmaterialized()
     {
-        FunctionArgumentList arguments = new(["42", "value"]);
+        FunctionArguments arguments = new(["42", "value"]);
 
         arguments.IsMaterialized.ShouldBeFalse();
         arguments.TryGetArgs(out int number, out StringSegment value).ShouldBeTrue();
@@ -86,7 +86,7 @@ public class FunctionArgumentList_Tests
     {
         const string text = "1, value";
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
-        FunctionArgumentList arguments = new(source);
+        FunctionArguments arguments = new(source);
 
         arguments.SetMaterialized([42, "expanded"]);
 
@@ -101,7 +101,7 @@ public class FunctionArgumentList_Tests
     {
         const string text = "value";
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
-        FunctionArgumentList arguments = new(source);
+        FunctionArguments arguments = new(source);
 
         bool handled = WellKnownFunctions.TryExecuteStringFunction(
             nameof(string.Contains),
@@ -119,7 +119,7 @@ public class FunctionArgumentList_Tests
     {
         const string text = "null, '', value";
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
-        FunctionArgumentList arguments = new(source);
+        FunctionArguments arguments = new(source);
 
         object[] values = arguments.ToObjectArray();
 

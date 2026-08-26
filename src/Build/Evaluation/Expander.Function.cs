@@ -15,8 +15,6 @@ using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Text;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.FunctionArgumentList;
-
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
 // System.IO.File to match the types registered in AvailableStaticMembers.
@@ -63,12 +61,12 @@ internal partial class Expander<P, I>
         /// <summary>
         /// The name of the function.
         /// </summary>
-        private readonly string _methodMethodName;
+        private readonly StringSegment _methodName;
 
         /// <summary>
         /// The arguments for the function.
         /// </summary>
-        private FunctionArgumentList _arguments;
+        private FunctionArguments _arguments;
 
         /// <summary>
         /// The expression that this function is part of.
@@ -122,13 +120,13 @@ internal partial class Expander<P, I>
             object receiverValue,
             StringSegment expression,
             int expressionStartIndex,
-            string methodName,
-            FunctionArgumentList arguments,
+            StringSegment methodName,
+            FunctionArguments arguments,
             BindingFlags bindingFlags,
             ExpansionContext context,
             LoggingContext loggingContext)
         {
-            _methodMethodName = methodName;
+            _methodName = methodName;
             _arguments = arguments;
 
             _receiverValue = receiverValue;
@@ -155,7 +153,7 @@ internal partial class Expander<P, I>
         /// or System.IO.Directory method is a file/directory path that should be resolved
         /// against the thread-local working directory.
         /// </summary>
-        private static bool IsFileOrDirectoryPathArgument(string methodName, int argIndex)
+        private static bool IsFileOrDirectoryPathArgument(StringSegment methodName, int argIndex)
         {
             // First argument is always a path for all File/Directory static methods.
             if (argIndex == 0)
@@ -168,15 +166,15 @@ internal partial class Expander<P, I>
             // symlink target and relative values are semantically meaningful (stored as-is).
             if (argIndex == 1)
             {
-                return string.Equals(methodName, "Copy", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(methodName, "Move", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(methodName, "Replace", StringComparison.OrdinalIgnoreCase);
+                return methodName.Equals("Copy", StringComparison.OrdinalIgnoreCase)
+                    || methodName.Equals("Move", StringComparison.OrdinalIgnoreCase)
+                    || methodName.Equals("Replace", StringComparison.OrdinalIgnoreCase);
             }
 
             // Third argument is the backup path for Replace.
             if (argIndex == 2)
             {
-                return string.Equals(methodName, "Replace", StringComparison.OrdinalIgnoreCase);
+                return methodName.Equals("Replace", StringComparison.OrdinalIgnoreCase);
             }
 
             return false;
@@ -222,7 +220,7 @@ internal partial class Expander<P, I>
                 }
 
                 bool wellKnownFunctionAttempted = false;
-                if (!String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase)
+                if (!_methodName.Equals("new", StringComparison.OrdinalIgnoreCase)
                     && CanExecuteWellKnownWithoutExpandingArguments())
                 {
                     wellKnownFunctionAttempted = true;
@@ -276,7 +274,7 @@ internal partial class Expander<P, I>
                         // This must happen AFTER UnescapeAll so that the working directory path
                         // (a real filesystem path) is not corrupted by MSBuild unescape processing.
                         if ((_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory))
-                            && IsFileOrDirectoryPathArgument(_methodMethodName, n))
+                            && IsFileOrDirectoryPathArgument(_methodName, n))
                         {
                             AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory((string)args[n]);
                             if (resolved.HasValue)
@@ -297,10 +295,13 @@ internal partial class Expander<P, I>
                 // This special casing is to realize that its a comparison that is taking place and handle the
                 // argument type coercion accordingly; effectively pre-preparing the argument type so
                 // that it matches the left hand side ready for the default binder’s method invoke.
-                if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
+                if (objectInstance != null
+                    && args.Length == 1
+                    && (_methodName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
+                        || _methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase)))
                 {
                     // Support comparison when the lhs is an integer
-                    if (ParseArgs.IsFloatingPointRepresentation(args[0]))
+                    if (FunctionArguments.IsFloatingPointRepresentation(args[0]))
                     {
                         if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
                         {
@@ -316,7 +317,7 @@ internal partial class Expander<P, I>
                 if (_receiverType == typeof(IntrinsicFunctions))
                 {
                     // Special case a few methods that take extra parameters that can't be passed in by the user
-                    if (_methodMethodName.Equals("GetPathOfFileAbove") && args.Length == 1)
+                    if (_methodName.Equals("GetPathOfFileAbove", StringComparison.OrdinalIgnoreCase) && args.Length == 1)
                     {
                         // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
                         // specified the file name.  This is syntactic sugar so they don't have to always
@@ -333,7 +334,7 @@ internal partial class Expander<P, I>
 
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
-                if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+                if (_methodName.Equals("new", StringComparison.OrdinalIgnoreCase))
                 {
                     if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, _arguments))
                     {
@@ -365,13 +366,13 @@ internal partial class Expander<P, I>
                             // If there are any out parameters, try to figure out their type and create defaults for them as appropriate before calling the method.
                             if (args.Any(a => "out _".Equals(a)))
                             {
-                                IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodMethodName) && m.GetParameters().Length == args.Length);
+                                IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => _methodName.Equals(m.Name, StringComparison.OrdinalIgnoreCase) && m.GetParameters().Length == args.Length);
                                 functionResult = GetMethodResult(objectInstance, methods, args, 0);
                             }
                             else
                             {
                                 // If there are no out parameters, use InvokeMember using the standard binder - this will match and coerce as needed
-                                functionResult = _receiverType.InvokePublicMember(_methodMethodName, _bindingFlags, objectInstance, args);
+                                functionResult = _receiverType.InvokePublicMember(_methodName.ValueOrEmpty, _bindingFlags, objectInstance, args);
                             }
                         }
                         // If we're invoking a method, then there are deeper attempts that can be made to invoke the method.
@@ -392,7 +393,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
                 if (_context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -420,7 +421,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
                     _context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);
                 }
 
@@ -435,9 +436,9 @@ internal partial class Expander<P, I>
                 || _receiverType == typeof(System.IO.Path)
                 || (_receiverType == typeof(IntrinsicFunctions)
                     && _arguments.Count == 1
-                    && _methodMethodName.Equals("GetPathOfFileAbove", StringComparison.OrdinalIgnoreCase))
-                || String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase)
-                || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+                    && _methodName.Equals("GetPathOfFileAbove", StringComparison.OrdinalIgnoreCase))
+                || _methodName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
+                || _methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -447,20 +448,20 @@ internal partial class Expander<P, I>
 
         private WellKnownExecutionStatus TryExecuteWellKnownFunction(
             object objectInstance,
-            FunctionArgumentList args,
+            FunctionArguments args,
             out object functionResult)
         {
             try
             {
                 if (WellKnownFunctions.TryExecuteWellKnownFunction(
-                    _methodMethodName,
+                    _methodName,
                     _receiverType,
                     _context.FileSystem,
                     out functionResult,
                     objectInstance,
                     args)
                     || WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
-                        _methodMethodName,
+                        _methodName,
                         _receiverType,
                         _loggingContext,
                         _context.Properties,
@@ -473,7 +474,7 @@ internal partial class Expander<P, I>
             }
             catch (Exception ex)
             {
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args.ToObjectArray());
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args.ToObjectArray());
                 if (_context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     functionResult = partiallyEvaluated;
@@ -495,9 +496,9 @@ internal partial class Expander<P, I>
             // so that we maintain the "engine contains escaped data" state.
             // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
             if (functionResult is string functionResultString
-                && !String.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase)
-                && !String.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase)
-                && !String.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+                && !_methodName.Equals("Unescape", StringComparison.OrdinalIgnoreCase)
+                && !_methodName.Equals("Escape", StringComparison.OrdinalIgnoreCase)
+                && !_methodName.Equals("ConvertFromBase64", StringComparison.OrdinalIgnoreCase))
             {
                 functionResult = EscapingUtilities.Escape(functionResultString);
             }
@@ -526,7 +527,7 @@ internal partial class Expander<P, I>
                             else if (!toReturn.Equals(currentReturnValue))
                             {
                                 // There were multiple methods that seemed viable and gave different results. We can't differentiate between them so throw.
-                                ErrorUtilities.ThrowArgument("CouldNotDifferentiateBetweenCompatibleMethods", _methodMethodName, args.Length);
+                                ErrorUtilities.ThrowArgument("CouldNotDifferentiateBetweenCompatibleMethods", _methodName.ValueOrEmpty, args.Length);
                                 return null;
                             }
                         }
@@ -538,7 +539,7 @@ internal partial class Expander<P, I>
 
             try
             {
-                return _receiverType.InvokePublicMember(_methodMethodName, _bindingFlags, objectInstance, args) ?? "null";
+                return _receiverType.InvokePublicMember(_methodName.ValueOrEmpty, _bindingFlags, objectInstance, args) ?? "null";
             }
             catch (Exception)
             {
@@ -616,7 +617,7 @@ internal partial class Expander<P, I>
         /// Make an attempt to create a string showing what we were trying to execute when we failed.
         /// This will show any intermediate evaluation which may help the user figure out what happened.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(object objectInstance, string name, object[] args)
+        private string GenerateStringOfMethodExecuted(object objectInstance, StringSegment name, object[] args)
         {
             string parameters = String.Empty;
             if (args != null)
@@ -661,11 +662,11 @@ internal partial class Expander<P, I>
                 }
                 if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
                 {
-                    return $"[{typeName}]::{name}({parameters})";
+                    return $"[{typeName}]::{name.ValueOrEmpty}({parameters})";
                 }
                 else
                 {
-                    return $"[{typeName}]::{name}";
+                    return $"[{typeName}]::{name.ValueOrEmpty}";
                 }
             }
             else
@@ -674,11 +675,11 @@ internal partial class Expander<P, I>
 
                 if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
                 {
-                    return $"{propertyValue}.{name}({parameters})";
+                    return $"{propertyValue}.{name.ValueOrEmpty}({parameters})";
                 }
                 else
                 {
-                    return $"{propertyValue}.{name}";
+                    return $"{propertyValue}.{name.ValueOrEmpty}";
                 }
             }
         }
@@ -691,11 +692,11 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        private MethodInfo FindPublicMethodBySignature(string methodName, Type[] parameterTypes)
+        private MethodInfo FindPublicMethodBySignature(StringSegment methodName, Type[] parameterTypes)
         {
             foreach (MethodInfo method in _receiverType.GetMethods(_bindingFlags))
             {
-                if (!string.Equals(method.Name, methodName, StringComparison.OrdinalIgnoreCase))
+                if (!methodName.Equals(method.Name, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -767,7 +768,7 @@ internal partial class Expander<P, I>
                 // Match a public method by name (case-insensitive) and exact parameter signature.
                 // Equivalent to the prior GetMethod(..., BindingFlags, ...) call but uses the
                 // public-only GetMethods(_bindingFlags) call, since BindingFlags.NonPublic is never set here.
-                memberInfo = FindPublicMethodBySignature(_methodMethodName, types);
+                memberInfo = FindPublicMethodBySignature(_methodName, types);
             }
 
             // If we didn't get a match on all string arguments,
@@ -780,7 +781,7 @@ internal partial class Expander<P, I>
                 {
                     members = _receiverType.GetConstructors();
                 }
-                else if (_receiverType == typeof(IntrinsicFunctions) && IntrinsicFunctionOverload.IsKnownOverloadMethodName(_methodMethodName))
+                else if (_receiverType == typeof(IntrinsicFunctions) && IntrinsicFunctionOverload.IsKnownOverloadMethodName(_methodName))
                 {
                     // FindMembers is invoked on the statically-known IntrinsicFunctions type (the
                     // only receiver that reaches this branch), so its broad reflection contract is
@@ -789,13 +790,13 @@ internal partial class Expander<P, I>
                         MemberTypes.Method,
                         bindingFlags,
                         (info, criteria) => string.Equals(info.Name, (string)criteria, StringComparison.OrdinalIgnoreCase),
-                        _methodMethodName);
+                        _methodName.ValueOrEmpty);
                     Array.Sort(foundMembers, IntrinsicFunctionOverload.IntrinsicFunctionOverloadMethodComparer);
                     members = foundMembers.Cast<MethodBase>();
                 }
                 else
                 {
-                    members = _receiverType.GetMethods(_bindingFlags).Where(m => string.Equals(m.Name, _methodMethodName, StringComparison.OrdinalIgnoreCase));
+                    members = _receiverType.GetMethods(_bindingFlags).Where(m => _methodName.Equals(m.Name, StringComparison.OrdinalIgnoreCase));
                 }
 
                 foreach (MethodBase member in members)

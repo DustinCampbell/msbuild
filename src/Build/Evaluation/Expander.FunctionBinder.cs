@@ -94,8 +94,8 @@ internal partial class Expander<P, I>
                 receiverValue,
                 expression,
                 invocation.Text.Offset - expression.Offset,
-                memberName.ValueOrEmpty,
-                new FunctionArgumentList(invocation.Arguments),
+                memberName,
+                new FunctionArguments(invocation.Arguments),
                 bindingFlags,
                 context,
                 context.PropertyLoggingContext);

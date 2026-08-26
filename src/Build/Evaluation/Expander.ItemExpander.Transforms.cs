@@ -862,7 +862,7 @@ internal partial class Expander<P, I>
                         expression: item.Value,
                         expressionStartIndex: 0,
                         functionName,
-                        new FunctionArgumentList(arguments),
+                        new FunctionArguments(arguments),
                         bindingFlags: BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod,
                         context.WithOptions(ExpanderOptions.ExpandAll),
                         context.LoggingContext);

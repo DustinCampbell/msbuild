@@ -46,7 +46,7 @@ The property-function code lives primarily in
 [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs), and
 [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs), with outer property expansion
 in [Expander.PropertyExpander.cs](../../src/Build/Evaluation/Expander.PropertyExpander.cs). Parsed argument
-segments remain packed until [FunctionArgumentList.cs](../../src/Build/Evaluation/Expander/FunctionArgumentList.cs)
+segments remain packed until [FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs)
 materializes expanded values for reflection or an API that requires strings.
 
 | Concern | Member | Location |
@@ -55,7 +55,7 @@ materializes expanded values for reflection or an API that requires strings.
 | Parse the complete root input into ordered invocations | `PropertyFunctionParser.TryParse` | [PropertyFunctionParser.cs#L61](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs#L61) |
 | Split a member name and arguments | `PropertyFunctionParser.ParseMember` | [PropertyFunctionParser.cs#L187](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs#L187) |
 | Parse element access | `PropertyFunctionParser.ParseIndexer` | [PropertyFunctionParser.cs#L233](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs#L233) |
-| Lazily expose source and expanded arguments | `FunctionArgumentList` | [FunctionArgumentList.cs](../../src/Build/Evaluation/Expander/FunctionArgumentList.cs) |
+| Lazily expose source and expanded arguments | `FunctionArguments` | [FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs) |
 | Bind runtime receiver, type, and availability | `FunctionBinder.Bind` | [Expander.FunctionBinder.cs#L33](../../src/Build/Evaluation/Expander.FunctionBinder.cs#L33) |
 | Execute one invocation and escape its result | `Function.Execute` | [Expander.Function.cs#L217](../../src/Build/Evaluation/Expander.Function.cs#L217) |
 | Resolve a static receiver `Type` | `AvailableStaticMembers.TryResolveType` | [AvailableStaticMembers.cs#L58](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L58) |
@@ -163,7 +163,7 @@ split on `,`, with two kinds of span treated atomically (commas inside them do n
 - a quoted span using `` ` ``, `"`, or `'` (scanned by `ScanForClosingQuote`).
 
 Each raw argument remains a packed `StringSegmentRange` at parse time. Empty entries remain empty,
-while the unquoted `null` literal is represented by a null range. `FunctionArgumentList` exposes
+while the unquoted `null` literal is represented by a null range. `FunctionArguments` exposes
 those segments directly to well-known handlers and materializes an `object[]` only when expansion
 or reflection requires it. At execution, `ExpandPropertiesLeaveTypedAndEscaped` can turn a nested
 `$()` into a typed object, but a bare literal stays a string (unescaped before being passed out).
@@ -179,7 +179,7 @@ excludes large swaths of the BCL from being *callable* even though the types are
 Binding happens in `Execute` in three tiers:
 
 1. **Well-known fast path** - `WellKnownFunctions.TryExecuteWellKnownFunction` handles common
-   functions directly from `FunctionArgumentList`, without reflection and often without
+   functions directly from `FunctionArguments`, without reflection and often without
    materializing strings.
 2. **Standard binder** - `_receiverType.InvokePublicMember(name, flags, instance, args)`
    lets the default reflection binder match and coerce after arguments are materialized.
