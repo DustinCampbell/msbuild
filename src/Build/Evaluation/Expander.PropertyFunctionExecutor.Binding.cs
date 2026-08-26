@@ -14,11 +14,37 @@ internal partial class Expander<P, I>
     where P : class, IProperty
     where I : class, IItem
 {
-    /// <summary>
-    ///  Binds parsed property-function syntax to a runtime receiver and executable member.
-    /// </summary>
-    private static class FunctionBinder
+    private static partial class PropertyFunctionExecutor
     {
+        public static bool Execute(
+            in PropertyFunctionInvocation invocation,
+            object? receiverValue,
+            in ExpansionContext context,
+            out object? result)
+        {
+            BoundFunction function = Bind(invocation, receiverValue, context.Errors);
+            return function.Execute(in context, context.PropertyLoggingContext, out result);
+        }
+
+        public static bool ExecuteStringFunction(
+            string functionName,
+            string[] arguments,
+            string receiverValue,
+            in ExpansionContext context,
+            out object? result)
+        {
+            var function = new BoundFunction(
+                receiverType: typeof(string),
+                receiverValue,
+                invocationText: default,
+                receiverKind: ReceiverKind.Chained,
+                functionName,
+                new FunctionArguments(arguments),
+                bindingFlags: BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod);
+
+            return function.Execute(in context, context.LoggingContext, out result);
+        }
+
         [UnconditionalSuppressMessage(
             "Trimming",
             "IL2067",
@@ -27,11 +53,10 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2072",
             Justification = "Runtime receiver types are restricted to the property-function receiver allowlist under trimming, whose public members are preserved.")]
-        public static Function Bind(
-            PropertyFunctionInvocation invocation,
-            StringSegment expression,
+        private static BoundFunction Bind(
+            in PropertyFunctionInvocation invocation,
             object? receiverValue,
-            ExpansionContext context)
+            ErrorReporter errors)
         {
             Type? receiverType = null;
             StringSegment memberName = invocation.MemberName;
@@ -50,15 +75,15 @@ internal partial class Expander<P, I>
                     StringSegment staticReceiver = invocation.Receiver;
                     if (!AvailableStaticMembers.TryResolveType(staticReceiver, memberName, out receiverType))
                     {
-                        context.Errors.UnavailablePropertyFunctionType.Throw(
-                            expression.ValueOrEmpty,
+                        errors.UnavailablePropertyFunctionType.Throw(
+                            invocation.Text.ValueOrEmpty,
                             staticReceiver.ValueOrEmpty);
                     }
 
                     Assumed.NotNull(receiverType);
                     if (!AvailableStaticMembers.IsAvailable(receiverType, memberName))
                     {
-                        context.Errors.UnavailablePropertyFunction.Throw(memberName.ValueOrEmpty, receiverType.FullName);
+                        errors.UnavailablePropertyFunction.Throw(memberName.ValueOrEmpty, receiverType.FullName);
                     }
 
                     receiverValue = null;
@@ -79,7 +104,7 @@ internal partial class Expander<P, I>
                         };
                     }
 
-                    VerifyInstanceMemberAvailable(receiverType, memberName, context);
+                    VerifyInstanceMemberAvailable(receiverType, memberName, errors);
                     bindingFlags |= BindingFlags.Instance;
                     break;
 
@@ -89,22 +114,20 @@ internal partial class Expander<P, I>
             }
 
             Assumed.NotNull(receiverType);
-            return new Function(
+            return new BoundFunction(
                 receiverType,
                 receiverValue,
-                expression,
-                invocation.Text.Offset - expression.Offset,
+                invocation.Text,
+                invocation.ReceiverKind,
                 memberName,
                 new FunctionArguments(invocation.Arguments),
-                bindingFlags,
-                context,
-                context.PropertyLoggingContext);
+                bindingFlags);
         }
 
         private static void VerifyInstanceMemberAvailable(
             Type receiverType,
             StringSegment memberName,
-            ExpansionContext context)
+            ErrorReporter errors)
         {
             if (FeatureSwitches.EnableAllPropertyFunctions)
             {
@@ -113,13 +136,13 @@ internal partial class Expander<P, I>
 
             if (memberName.Equals("GetType", StringComparison.OrdinalIgnoreCase))
             {
-                context.Errors.UnavailablePropertyFunction.Throw(memberName.ValueOrEmpty, receiverType.FullName);
+                errors.UnavailablePropertyFunction.Throw(memberName.ValueOrEmpty, receiverType.FullName);
             }
 
             if (FeatureSwitches.RestrictPropertyFunctionReceivers
                 && !PropertyFunctionReceiver.IsAllowed(receiverType, memberName.ValueOrEmpty))
             {
-                context.Errors.UnavailablePropertyFunction.Throw(memberName.ValueOrEmpty, receiverType.FullName);
+                errors.UnavailablePropertyFunction.Throw(memberName.ValueOrEmpty, receiverType.FullName);
             }
         }
     }

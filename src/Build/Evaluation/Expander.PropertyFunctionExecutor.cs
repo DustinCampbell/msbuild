@@ -29,11 +29,7 @@ internal partial class Expander<P, I>
     where P : class, IProperty
     where I : class, IItem
 {
-    /// <summary>
-    /// This class represents the function as extracted from an expression
-    /// It is also responsible for executing the function.
-    /// </summary>
-    private sealed class Function
+    private struct BoundFunction
     {
         private enum WellKnownExecutionStatus
         {
@@ -68,11 +64,8 @@ internal partial class Expander<P, I>
         /// </summary>
         private FunctionArguments _arguments;
 
-        /// <summary>
-        /// The expression that this function is part of.
-        /// </summary>
-        private readonly StringSegment _expression;
-        private readonly int _expressionStartIndex;
+        private readonly StringSegment _invocationText;
+        private readonly ReceiverKind _receiverKind;
         private readonly object? _receiverValue;
 
         /// <summary>
@@ -101,13 +94,10 @@ internal partial class Expander<P, I>
         /// </remarks>
         private readonly BindingFlags _bindingFlags;
 
-        private readonly ExpansionContext _context;
-        private readonly LoggingContext? _loggingContext;
-
         /// <summary>
-        /// Construct a function that will be executed during property evaluation.
+        /// List of properties which have been used but have not been initialized yet.
         /// </summary>
-        internal Function(
+        internal BoundFunction(
             [DynamicallyAccessedMembers(
                 DynamicallyAccessedMemberTypes.PublicConstructors |
                 DynamicallyAccessedMemberTypes.PublicMethods |
@@ -115,20 +105,18 @@ internal partial class Expander<P, I>
                 DynamicallyAccessedMemberTypes.PublicFields)]
             Type receiverType,
             object? receiverValue,
-            StringSegment expression,
-            int expressionStartIndex,
+            StringSegment invocationText,
+            ReceiverKind receiverKind,
             StringSegment methodName,
             FunctionArguments arguments,
-            BindingFlags bindingFlags,
-            ExpansionContext context,
-            LoggingContext? loggingContext)
+            BindingFlags bindingFlags)
         {
             _methodName = methodName;
             _arguments = arguments;
 
             _receiverValue = receiverValue;
-            _expression = expression;
-            _expressionStartIndex = expressionStartIndex;
+            _invocationText = invocationText;
+            _receiverKind = receiverKind;
             _receiverType = receiverType;
 
             // Property functions never bind non-public members. Constrain the incoming flags to the
@@ -140,9 +128,6 @@ internal partial class Expander<P, I>
                 (bindingFlags & ~AllowedBindingFlags) == 0,
                 $"Property-function binding flags '{bindingFlags}' include flags outside the allowed set; BindingFlags.NonPublic in particular is never permitted.");
             _bindingFlags = bindingFlags & AllowedBindingFlags;
-
-            _context = context;
-            _loggingContext = loggingContext;
         }
 
         private static bool IsFileSystemReceiver(Type receiverType)
@@ -160,13 +145,13 @@ internal partial class Expander<P, I>
             || methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase)
             || Traits.Instance.LogPropertyFunctionsRequiringReflection;
 
-        private ArgumentMaterializer CreateArgumentMaterializer()
-            => new(_context, _receiverType, _methodName);
+        private ArgumentMaterializer CreateArgumentMaterializer(in ExpansionContext context)
+            => new(context, _receiverType, _methodName);
 
-        private string? GetStartingDirectory()
-            => string.IsNullOrWhiteSpace(_context.Location.File)
+        private static string? GetStartingDirectory(in ExpansionContext context)
+            => string.IsNullOrWhiteSpace(context.Location.File)
                 ? string.Empty
-                : Path.GetDirectoryName(_context.Location.File);
+                : Path.GetDirectoryName(context.Location.File);
 
         /// <summary>
         /// Determines whether the argument at <paramref name="argIndex"/> for a System.IO.File
@@ -242,6 +227,8 @@ internal partial class Expander<P, I>
         /// <summary>
         ///  Executes the function on its bound receiver.
         /// </summary>
+        /// <param name="context">The expansion context.</param>
+        /// <param name="loggingContext">The logging context for the invocation.</param>
         /// <param name="result">The function result.</param>
         /// <returns>
         ///  <see langword="true"/> when execution succeeds; otherwise, <see langword="false"/> when
@@ -255,7 +242,7 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        internal bool Execute(out object? result)
+        public bool Execute(in ExpansionContext context, LoggingContext? loggingContext, out object? result)
         {
             object? functionResult = string.Empty;
             object?[]? args = null;
@@ -276,13 +263,15 @@ internal partial class Expander<P, I>
                     && (ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName)
                         || _arguments.ContainsExpandableExpression()))
                 {
-                    argumentMaterializer = CreateArgumentMaterializer();
+                    argumentMaterializer = CreateArgumentMaterializer(in context);
                     _arguments.ConfigureMaterialization(argumentMaterializer, materializeAllArguments: ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName));
                 }
 
                 WellKnownExecutionStatus wellKnownStatus = TryExecuteWellKnownFunction(
                     objectInstance,
                     _arguments,
+                    in context,
+                    loggingContext,
                     out functionResult);
 
                 if (wellKnownStatus == WellKnownExecutionStatus.ReturnImmediately)
@@ -299,7 +288,7 @@ internal partial class Expander<P, I>
 
                 if (argumentMaterializer is null && _arguments.Count > 0)
                 {
-                    argumentMaterializer = CreateArgumentMaterializer();
+                    argumentMaterializer = CreateArgumentMaterializer(in context);
                     _arguments.ConfigureMaterialization(argumentMaterializer, materializeAllArguments: false);
                 }
 
@@ -377,16 +366,16 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args, in context);
 
-                if (_context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
                     result = partiallyEvaluated;
                     return false;
                 }
 
-                _context.Errors.InvalidPropertyFunction.Throw(
+                context.Errors.InvalidPropertyFunction.Throw(
                     partiallyEvaluated,
                     ex.InnerException?.Message.Replace("\r\n", " ") ?? string.Empty);
                 result = null;
@@ -398,18 +387,17 @@ internal partial class Expander<P, I>
             {
                 // If there's a :: in this operation, they were probably trying for a static function
                 // invocation. Give them some more relevant info in that case.
-                if (_expression.IndexOf("::", _expressionStartIndex, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (_receiverKind == ReceiverKind.Static)
                 {
-                    string expression = _expression[_expressionStartIndex..].ValueOrEmpty;
-                    _context.Errors.InvalidStaticPropertyFunction.Throw(
-                        expression,
+                    context.Errors.InvalidStaticPropertyFunction.Throw(
+                        _invocationText,
                         ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
                 }
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args);
-                    _context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args, in context);
+                    context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);
                 }
 
                 result = null;
@@ -419,22 +407,23 @@ internal partial class Expander<P, I>
             {
                 _arguments.ClearMaterializer();
             }
-
-            // If the result of the function call is a string, then we need to escape the result
-            // so that we maintain the "engine contains escaped data" state.
-            // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
-            object? CompleteExecution(object? functionResult)
-                => functionResult is string s
-                && !_methodName.Equals("Unescape", StringComparison.OrdinalIgnoreCase)
-                && !_methodName.Equals("Escape", StringComparison.OrdinalIgnoreCase)
-                && !_methodName.Equals("ConvertFromBase64", StringComparison.OrdinalIgnoreCase)
-                    ? EscapingUtilities.Escape(s)
-                    : functionResult;
         }
+
+        // If the result of the function call is a string, escape it to maintain the engine's escaped-data state.
+        // Escape/Unescape/ConvertFromBase64 already return data in their intended representation.
+        private readonly object? CompleteExecution(object? functionResult)
+            => functionResult is string s
+            && !_methodName.Equals("Unescape", StringComparison.OrdinalIgnoreCase)
+            && !_methodName.Equals("Escape", StringComparison.OrdinalIgnoreCase)
+            && !_methodName.Equals("ConvertFromBase64", StringComparison.OrdinalIgnoreCase)
+                ? EscapingUtilities.Escape(s)
+                : functionResult;
 
         private WellKnownExecutionStatus TryExecuteWellKnownFunction(
             object? objectInstance,
             FunctionArguments args,
+            in ExpansionContext context,
+            LoggingContext? loggingContext,
             out object? functionResult)
         {
             try
@@ -442,16 +431,16 @@ internal partial class Expander<P, I>
                 if (WellKnownFunctions.TryExecuteWellKnownFunction(
                     _methodName,
                     _receiverType,
-                    _context.FileSystem,
-                    GetStartingDirectory(),
+                    context.FileSystem,
+                    GetStartingDirectory(in context),
                     out functionResult,
                     objectInstance,
                     args)
                     || WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
                         _methodName,
                         _receiverType,
-                        _loggingContext,
-                        _context.Properties,
+                        loggingContext,
+                        context.Properties,
                         out functionResult,
                         objectInstance,
                         args))
@@ -461,15 +450,15 @@ internal partial class Expander<P, I>
             }
             catch (Exception ex)
             {
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args.ToObjectArray());
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args.ToObjectArray(), in context);
 
-                if (_context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     functionResult = partiallyEvaluated;
                     return WellKnownExecutionStatus.ReturnImmediately;
                 }
 
-                _context.Errors.InvalidPropertyFunction.Throw(
+                context.Errors.InvalidPropertyFunction.Throw(
                     partiallyEvaluated,
                     ex.Message.Replace("\r\n", " "));
             }
@@ -658,7 +647,8 @@ internal partial class Expander<P, I>
         private string GenerateStringOfMethodExecuted(
             object? objectInstance,
             StringSegment name,
-            object?[]? args)
+            object?[]? args,
+            in ExpansionContext context)
         {
             StringBuilder builder = new();
             if (objectInstance == null)
@@ -704,7 +694,7 @@ internal partial class Expander<P, I>
                         && args.Length == 1)
                     {
                         builder.Append(", ");
-                        AppendFunctionArgument(builder, GetStartingDirectory());
+                        AppendFunctionArgument(builder, GetStartingDirectory(in context));
                     }
                 }
 
@@ -842,7 +832,8 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    members = _receiverType.GetMethods(_bindingFlags).Where(m => _methodName.Equals(m.Name, StringComparison.OrdinalIgnoreCase));
+                    StringSegment methodName = _methodName;
+                    members = _receiverType.GetMethods(_bindingFlags).Where(m => methodName.Equals(m.Name, StringComparison.OrdinalIgnoreCase));
                 }
 
                 foreach (MethodBase member in members)

@@ -390,14 +390,12 @@ internal partial class Expander<P, I>
                 {
                     try
                     {
-                        Function function = FunctionBinder.Bind(
-                            invocation,
-                            propertyFunction.Text,
-                            propertyValue,
-                            _context);
-
                         // Preserve the live result as the receiver for the next parsed function.
-                        if (!function.Execute(out propertyValue))
+                        if (!PropertyFunctionExecutor.Execute(
+                            invocation,
+                            propertyValue,
+                            in _context,
+                            out propertyValue))
                         {
                             break;
                         }

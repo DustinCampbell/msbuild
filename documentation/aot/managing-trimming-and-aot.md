@@ -805,8 +805,8 @@ flowchart TD
   refactor that avoids an IL2070 suppression — see the suppression tracker).
 - **Localize an unavoidable suppression to the smallest member.** When a
   `[DynamicallyAccessedMembers]` flow genuinely can't be proven, push it into a small factory
-  instead of annotating the parsing methods — e.g. `FunctionBinder.Bind` in
-  [Expander.FunctionBinder.cs](../../src/Build/Evaluation/Expander.FunctionBinder.cs) owns the
+  instead of annotating the parsing methods — e.g. `PropertyFunctionExecutor.Bind` in
+  [Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs) owns the
   receiver-type suppressions at the parse-to-bind boundary, keeping parsing suppression-free.
 
 ---
@@ -865,6 +865,6 @@ flowchart TD
 **This repo** — see the [folder README](README.md) for the full document map. Key source:
 - Central feature switches: [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs)
 - Attribute polyfills: [AotTrimmingPolyfills.cs](../../src/Framework/Polyfills/AotTrimmingPolyfills.cs)
-- Property-function reflection, `[FeatureGuard]` probing, and the env-var gates: [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs)
-- Localized receiver-flow suppressions: [Expander.FunctionBinder.cs](../../src/Build/Evaluation/Expander.FunctionBinder.cs)
+- Property-function reflection, `[FeatureGuard]` probing, and the env-var gates: [Expander.PropertyFunctionExecutor.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.cs)
+- Localized receiver-flow suppressions: [Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs)
 - Curated property-function receiver allowlist: [PropertyFunctionReceiver.cs](../../src/Build/Evaluation/PropertyFunctionReceiver.cs)
