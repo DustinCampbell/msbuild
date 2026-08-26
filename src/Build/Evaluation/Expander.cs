@@ -4,12 +4,11 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using Microsoft.NET.StringTools;
+using Microsoft.Build.Text;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 using TaskItemFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.TaskItemFactory;
 
@@ -444,7 +443,7 @@ internal partial class Expander<P, I>
     /// <summary>
     /// Returns true if the supplied string contains a valid property name.
     /// </summary>
-    private static bool IsValidPropertyName(string propertyName)
+    private static bool IsValidPropertyName(StringSegment propertyName)
     {
         if (propertyName.Length == 0 || !XmlUtilities.IsValidInitialElementNameCharacter(propertyName[0]))
         {
@@ -468,180 +467,5 @@ internal partial class Expander<P, I>
     private static bool IsTruncationEnabled(ExpanderOptions options)
     {
         return (options & ExpanderOptions.Truncate) != 0 && !Traits.Instance.EscapeHatches.DoNotTruncateConditions;
-    }
-
-    /// <summary>
-    ///  Finds the closing parenthesis matching the opening parenthesis preceding <paramref name="index"/>.
-    /// </summary>
-    /// <param name="expression">The expression to scan.</param>
-    /// <param name="index">The index at which to begin scanning.</param>
-    /// <returns>
-    ///  The index of the matching parenthesis, or <c>-1</c> when no matching parenthesis exists.
-    /// </returns>
-    private static int ScanForClosingParenthesis(string expression, int index)
-    {
-        int closingOffset = ScanForClosingParenthesis(expression.AsSpan(index));
-        return closingOffset < 0 ? -1 : index + closingOffset;
-    }
-
-    /// <summary>
-    ///  Finds the closing parenthesis matching the opening parenthesis preceding
-    ///  <paramref name="text"/>.
-    /// </summary>
-    /// <param name="text">The text following the opening parenthesis.</param>
-    /// <returns>
-    ///  The index of the matching parenthesis, or <c>-1</c> when no matching parenthesis exists.
-    /// </returns>
-    private static int ScanForClosingParenthesis(ReadOnlySpan<char> text)
-    {
-        int nestLevel = 1;
-        int index = 0;
-
-        while (index < text.Length)
-        {
-            char ch = text[index];
-
-            switch (ch)
-            {
-                case '\'' or '`' or '"':
-                    int closeQuoteIndex = text.Slice(index + 1).IndexOf(ch);
-                    if (closeQuoteIndex < 0)
-                    {
-                        return -1;
-                    }
-
-                    index += closeQuoteIndex + 1;
-
-                    break;
-
-                case '(':
-                    nestLevel++;
-                    break;
-
-                case ')':
-                    nestLevel--;
-
-                    if (nestLevel == 0)
-                    {
-                        return index;
-                    }
-
-                    break;
-            }
-
-            index++;
-        }
-
-        return -1;
-    }
-
-    /// <summary>
-    ///  Extracts an argument, handling nulls and quotes appropriately.
-    /// </summary>
-    /// <param name="argument">The unexpanded argument text.</param>
-    /// <returns>
-    ///  The normalized argument, or <see langword="null"/> for the unquoted <c>null</c> literal.
-    /// </returns>
-    private static string ExtractArgument(ReadOnlySpan<char> argument)
-    {
-        argument = argument.Trim();
-
-        if (argument.IsEmpty)
-        {
-            return string.Empty;
-        }
-
-        // We support passing of null through the argument constant value null
-        if (argument.Equals("null", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        char quoteChar = argument[0];
-
-        if (quoteChar is '\'' or '`' or '"' && argument[^1] == quoteChar)
-        {
-            argument = argument.Trim(quoteChar);
-        }
-
-        return Strings.WeakIntern(argument);
-    }
-
-    /// <summary>
-    ///  Extracts the top-level arguments from a property-function argument list.
-    /// </summary>
-    /// <param name="arguments">The argument-list content without its surrounding parentheses.</param>
-    /// <param name="errors">Reports invalid property-function syntax.</param>
-    /// <returns>
-    ///  The unexpanded arguments.
-    /// </returns>
-    /// <exception cref="Exceptions.InvalidProjectFileException">
-    ///  <paramref name="arguments"/> contains mismatched parentheses or quotes.
-    /// </exception>
-    private static string[] ExtractFunctionArguments(ReadOnlySpan<char> arguments, FunctionParser.ErrorReporter errors)
-    {
-        if (arguments.IsEmpty)
-        {
-            return [];
-        }
-
-        int argumentStartIndex = 0;
-        int index = 0;
-
-        using RefArrayBuilder<string> builder = default;
-
-        while (index < arguments.Length)
-        {
-            char ch = arguments[index];
-
-            switch (ch)
-            {
-                case '$' when index < arguments.Length - 1 && arguments[index + 1] == '(':
-                    // We found a property expression. Skip over all of it.
-                    int closeParenIndex = ScanForClosingParenthesis(arguments[(index + 2)..]);
-                    if (closeParenIndex == -1)
-                    {
-                        errors.ThrowInvalidFunctionPropertyExpression(FunctionParser.ErrorDetail.MismatchedParenthesis);
-                    }
-
-                    index += closeParenIndex + 2;
-                    break;
-
-                case '`' or '"' or '\'':
-                    int closeQuoteIndex = arguments[(index + 1)..].IndexOf(ch);
-                    if (closeQuoteIndex == -1)
-                    {
-                        errors.ThrowInvalidFunctionPropertyExpression(FunctionParser.ErrorDetail.MismatchedQuote);
-                    }
-
-                    index += closeQuoteIndex + 1;
-                    break;
-
-                case ',':
-                    builder.Add(ExtractArgument(arguments[argumentStartIndex..index]));
-                    argumentStartIndex = index + 1;
-                    break;
-            }
-
-            index++;
-        }
-
-        ReadOnlySpan<char> remainder = arguments[argumentStartIndex..];
-
-        if (!remainder.IsEmpty)
-        {
-            // This will either be the one and only argument, or the last one
-            // so add it to our list
-            string finalArgument = ExtractArgument(remainder);
-
-            if (builder.IsEmpty)
-            {
-                return [finalArgument];
-            }
-
-            builder.Add(finalArgument);
-        }
-
-        return builder.AsSpan().ToArray();
     }
 }

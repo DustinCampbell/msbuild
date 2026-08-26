@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -40,7 +41,7 @@ internal static partial class AvailableStaticMembers
     /// <returns>
     ///  <see langword="true"/> when the member is available; otherwise, <see langword="false"/>.
     /// </returns>
-    public static bool IsAvailable(Type receiverType, string memberName)
+    public static bool IsAvailable(Type receiverType, StringSegment memberName)
         => receiverType == typeof(IntrinsicFunctions)
         || FeatureSwitches.EnableAllPropertyFunctions
         || (receiverType.FullName is string typeName && ContainsEntry(typeName, memberName));
@@ -55,8 +56,8 @@ internal static partial class AvailableStaticMembers
     ///  <see langword="true"/> when the receiver type is resolved; otherwise, <see langword="false"/>.
     /// </returns>
     public static bool TryResolveType(
-        string typeName,
-        string memberName,
+        StringSegment typeName,
+        StringSegment memberName,
         [NotNullWhen(true)] out Type? receiverType)
     {
         if (typeName.IsNullOrWhiteSpace())
@@ -72,7 +73,8 @@ internal static partial class AvailableStaticMembers
         }
 
         // Type.GetType resolves core-library types without opening them up in the allowlist.
-        receiverType = ResolveTypeByName(typeName);
+        string typeNameString = typeName.ValueOrEmpty;
+        receiverType = ResolveTypeByName(typeNameString);
         if (receiverType is not null)
         {
             return true;
@@ -80,13 +82,13 @@ internal static partial class AvailableStaticMembers
 
         if (FeatureSwitches.EnableAllPropertyFunctions)
         {
-            receiverType = GetTypeFromAssembly(typeName, "System")
-                ?? GetTypeFromAssembly(typeName, "System.Core")
-                ?? GetTypeFromAssemblyUsingNamespace(typeName);
+            receiverType = GetTypeFromAssembly(typeNameString, "System")
+                ?? GetTypeFromAssembly(typeNameString, "System.Core")
+                ?? GetTypeFromAssemblyUsingNamespace(typeNameString);
 
             if (receiverType is not null)
             {
-                AvailableMembers.TryAdd(new MemberKey(typeName), new TypeEntry(receiverType));
+                AvailableMembers.TryAdd(new MemberKey(typeNameString), new TypeEntry(receiverType));
                 return true;
             }
         }
@@ -94,11 +96,11 @@ internal static partial class AvailableStaticMembers
         return false;
     }
 
-    private static bool ContainsEntry(string typeName, string memberName)
+    private static bool ContainsEntry(StringSegment typeName, StringSegment memberName)
         => AvailableMembers.ContainsKey(new MemberKey(typeName))
         || AvailableMembers.ContainsKey(new MemberKey(typeName, memberName));
 
-    private static bool TryGetEntry(string typeName, string memberName, [NotNullWhen(true)] out TypeEntry? entry)
+    private static bool TryGetEntry(StringSegment typeName, StringSegment memberName, [NotNullWhen(true)] out TypeEntry? entry)
         => AvailableMembers.TryGetValue(new MemberKey(typeName), out entry)
         || AvailableMembers.TryGetValue(new MemberKey(typeName, memberName), out entry);
 

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 #if !NET
 using System.Text;
 #endif
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
@@ -140,7 +141,15 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    arguments = ExtractFunctionArguments(argumentsExpression.AsSpan(), new FunctionParser.ErrorReporter(function, elementLocation));
+                    ArgumentList parsedArguments = PropertyFunctionParser.ParseArguments(
+                        argumentsExpression,
+                        function,
+                        elementLocation);
+                    arguments = new string[parsedArguments.Count];
+                    for (int argumentIndex = 0; argumentIndex < arguments.Length; argumentIndex++)
+                    {
+                        arguments[argumentIndex] = parsedArguments[argumentIndex].Value;
+                    }
 
                     if (ItemSpecModifiers.IsDerivableItemSpecModifier(functionName))
                     {

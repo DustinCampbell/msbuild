@@ -81,6 +81,24 @@ internal partial struct PropertyFunctionParser
         return true;
     }
 
+    /// <summary>
+    ///  Parses an argument list independently of a complete property-function expression.
+    /// </summary>
+    /// <param name="argumentText">The argument-list content without surrounding parentheses.</param>
+    /// <param name="expression">The complete expression used for diagnostics.</param>
+    /// <param name="location">The project location used for diagnostics.</param>
+    /// <returns>
+    ///  The parsed arguments.
+    /// </returns>
+    public static ArgumentList ParseArguments(
+        StringSegment argumentText,
+        StringSegment expression,
+        IElementLocation location)
+    {
+        PropertyFunctionParser parser = new(expression, new ErrorReporter(expression, location));
+        return new ArgumentList(argumentText.Buffer, parser.ParseArguments(argumentText));
+    }
+
     private bool TryParseNext(out PropertyFunctionInvocation invocation)
     {
         if (!_parsedRoot)

@@ -6,7 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Expander;
+using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
 
 namespace Microsoft.Build.Evaluation;
@@ -29,59 +31,63 @@ internal partial class Expander<P, I>
             "IL2072",
             Justification = "Runtime receiver types are restricted to the property-function receiver allowlist under trimming, whose public members are preserved.")]
         public static Function Bind(
-            FunctionParser.ParsedFunction parsedFunction,
+            PropertyFunctionInvocation invocation,
+            StringSegment expression,
             object? receiverValue,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem,
-            LoggingContext loggingContext)
+            LoggingContext loggingContext,
+            IElementLocation location)
         {
-            FunctionParser.ParsedMember member = parsedFunction.Member;
             Type? receiverType = null;
-            string memberName = member.Name;
+            StringSegment memberName = invocation.MemberName;
             BindingFlags bindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public;
-            var errors = new FunctionParser.ErrorReporter(parsedFunction.Text, parsedFunction.Location);
 
-            bindingFlags |= member.Kind switch
+            bindingFlags |= invocation.MemberKind switch
             {
-                FunctionParser.MemberKind.Method or FunctionParser.MemberKind.Indexer => BindingFlags.InvokeMethod,
-                FunctionParser.MemberKind.PropertyOrField => BindingFlags.GetProperty | BindingFlags.GetField,
+                MemberKind.Method or MemberKind.Indexer => BindingFlags.InvokeMethod,
+                MemberKind.PropertyOrField => BindingFlags.GetProperty | BindingFlags.GetField,
                 _ => Assumed.Unreachable<BindingFlags>(),
             };
 
-            switch (parsedFunction.ReceiverKind)
+            switch (invocation.ReceiverKind)
             {
-                case FunctionParser.ReceiverKind.Static:
-                    Assumed.NotNull(parsedFunction.Receiver);
-                    if (!AvailableStaticMembers.TryResolveType(parsedFunction.Receiver, memberName, out receiverType))
+                case ReceiverKind.Static:
+                    StringSegment staticReceiver = invocation.Receiver;
+                    if (!AvailableStaticMembers.TryResolveType(staticReceiver, memberName, out receiverType))
                     {
-                        errors.ThrowInvalidFunctionTypeUnavailable(parsedFunction.Receiver);
+                        ProjectErrorUtilities.ThrowInvalidProject(
+                            location,
+                            "InvalidFunctionTypeUnavailable",
+                            expression.ValueOrEmpty,
+                            staticReceiver.ValueOrEmpty);
                     }
 
                     Assumed.NotNull(receiverType);
                     if (!AvailableStaticMembers.IsAvailable(receiverType, memberName))
                     {
-                        errors.ThrowInvalidFunctionMethodUnavailable(memberName, receiverType.FullName);
+                        ThrowInvalidFunctionMethodUnavailable(location, memberName.ValueOrEmpty, receiverType.FullName);
                     }
 
                     receiverValue = null;
                     bindingFlags |= BindingFlags.Static;
                     break;
 
-                case FunctionParser.ReceiverKind.MSBuildProperty:
-                case FunctionParser.ReceiverKind.Chained:
+                case ReceiverKind.MSBuildProperty:
+                case ReceiverKind.Chained:
                     receiverType = receiverValue?.GetType() ?? typeof(string);
-                    if (member.Kind == FunctionParser.MemberKind.Indexer)
+                    if (invocation.MemberKind == MemberKind.Indexer)
                     {
                         Assumed.NotNull(receiverValue);
                         memberName = receiverValue switch
                         {
-                            Array => "GetValue",
+                            Array => (StringSegment)"GetValue",
                             string => "get_Chars",
                             _ => "get_Item",
                         };
                     }
 
-                    VerifyInstanceMemberAvailable(receiverType, memberName, errors);
+                    VerifyInstanceMemberAvailable(receiverType, memberName, location);
                     bindingFlags |= BindingFlags.Instance;
                     break;
 
@@ -94,37 +100,48 @@ internal partial class Expander<P, I>
             return new Function(
                 receiverType,
                 receiverValue,
-                parsedFunction.Text,
-                parsedFunction.StartIndex,
-                memberName,
-                member.Arguments,
+                expression,
+                invocation.Text.Offset - expression.Offset,
+                memberName.ValueOrEmpty,
+                new FunctionArgumentList(invocation.Arguments),
                 bindingFlags,
                 propertiesUseTracker,
                 fileSystem,
                 loggingContext,
-                parsedFunction.Location);
+                location);
         }
 
         private static void VerifyInstanceMemberAvailable(
             Type receiverType,
-            string memberName,
-            FunctionParser.ErrorReporter errors)
+            StringSegment memberName,
+            IElementLocation location)
         {
             if (FeatureSwitches.EnableAllPropertyFunctions)
             {
                 return;
             }
 
-            if (string.Equals("GetType", memberName, StringComparison.OrdinalIgnoreCase))
+            if (memberName.Equals("GetType", StringComparison.OrdinalIgnoreCase))
             {
-                errors.ThrowInvalidFunctionMethodUnavailable(memberName, receiverType.FullName);
+                ThrowInvalidFunctionMethodUnavailable(location, memberName.ValueOrEmpty, receiverType.FullName);
             }
 
             if (FeatureSwitches.RestrictPropertyFunctionReceivers
-                && !PropertyFunctionReceiver.IsAllowed(receiverType, memberName))
+                && !PropertyFunctionReceiver.IsAllowed(receiverType, memberName.ValueOrEmpty))
             {
-                errors.ThrowInvalidFunctionMethodUnavailable(memberName, receiverType.FullName);
+                ThrowInvalidFunctionMethodUnavailable(location, memberName.ValueOrEmpty, receiverType.FullName);
             }
         }
+
+        [DoesNotReturn]
+        private static void ThrowInvalidFunctionMethodUnavailable(
+            IElementLocation location,
+            string memberName,
+            string? typeName)
+            => ProjectErrorUtilities.ThrowInvalidProject(
+                location,
+                "InvalidFunctionMethodUnavailable",
+                memberName,
+                typeName);
     }
 }

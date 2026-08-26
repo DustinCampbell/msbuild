@@ -192,9 +192,6 @@
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
     <Compile Include="Evaluation\Expander.Function.cs" />
     <Compile Include="Evaluation\Expander.FunctionBinder.cs" />
-    <Compile Include="Evaluation\Expander.FunctionParser.cs" />
-    <Compile Include="Evaluation\Expander.FunctionParser.ErrorDetail.cs" />
-    <Compile Include="Evaluation\Expander.FunctionParser.ErrorReporter.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.cs" />
     <Compile Include="Evaluation\Expander.TransformEntry.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.Transforms.cs" />
@@ -210,6 +207,7 @@
     <Compile Include="Evaluation\ExpanderOptions.cs" />
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.MemberKey.cs" />
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.TypeEntry.cs" />
+    <Compile Include="Evaluation\Expander\FunctionArgumentList.cs" />
     <Compile Include="Evaluation\Expander\MemberKind.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionExpression.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionInvocation.cs" />
@@ -564,7 +562,6 @@
     <Compile Include="Evaluation\GlobResultBuilder.cs" />
     <Compile Include="Evaluation\Expander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
-    <Compile Include="Evaluation\Expander\ArgumentParser.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
     <Compile Include="Globbing\CompositeGlob.cs" />
     <Compile Include="Globbing\Extensions\MSBuildGlobExtensions.cs" />

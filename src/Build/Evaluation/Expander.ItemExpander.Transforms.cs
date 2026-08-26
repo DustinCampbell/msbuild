@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -820,7 +821,7 @@ internal partial class Expander<P, I>
                         expression: item.Value,
                         expressionStartIndex: 0,
                         functionName,
-                        arguments,
+                        new FunctionArgumentList(arguments),
                         bindingFlags: BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod,
                         expander.PropertiesUseTracker,
                         expander._fileSystem,

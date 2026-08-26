@@ -7,7 +7,7 @@ using System.Threading;
 using Shouldly;
 
 using Xunit;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using ParseArgs = Microsoft.Build.Evaluation.Expander.FunctionArgumentList;
 
 namespace Microsoft.Build.Engine.UnitTests.Evaluation
 {

@@ -15,7 +15,8 @@ using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using Microsoft.Build.Text;
+using ParseArgs = Microsoft.Build.Evaluation.Expander.FunctionArgumentList;
 
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
@@ -68,12 +69,12 @@ internal partial class Expander<P, I>
         /// <summary>
         /// The arguments for the function.
         /// </summary>
-        private readonly string[] _arguments;
+        private FunctionArgumentList _arguments;
 
         /// <summary>
         /// The expression that this function is part of.
         /// </summary>
-        private readonly string _expression;
+        private readonly StringSegment _expression;
 
         private readonly int _expressionStartIndex;
 
@@ -127,10 +128,10 @@ internal partial class Expander<P, I>
                 DynamicallyAccessedMemberTypes.PublicFields)]
             Type receiverType,
             object receiverValue,
-            string expression,
+            StringSegment expression,
             int expressionStartIndex,
             string methodName,
-            string[] arguments,
+            FunctionArgumentList arguments,
             BindingFlags bindingFlags,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem,
@@ -138,14 +139,7 @@ internal partial class Expander<P, I>
             IElementLocation location)
         {
             _methodMethodName = methodName;
-            if (arguments == null)
-            {
-                _arguments = [];
-            }
-            else
-            {
-                _arguments = arguments;
-            }
+            _arguments = arguments;
 
             _receiverValue = receiverValue;
             _expression = expression;
@@ -274,7 +268,7 @@ internal partial class Expander<P, I>
                 for (int n = 0; n < _arguments.Length; n++)
                 {
                     object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                        _arguments[n],
+                        _arguments.GetSource(n).Value,
                         properties,
                         options,
                         _location,
@@ -355,11 +349,13 @@ internal partial class Expander<P, I>
                     }
                 }
 
+                _arguments.SetMaterialized(args);
+
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, _arguments))
                     {
                         functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
                     }
@@ -372,7 +368,7 @@ internal partial class Expander<P, I>
                             properties,
                             options,
                             objectInstance,
-                            args,
+                            _arguments,
                             out functionResult);
 
                     if (status == WellKnownExecutionStatus.ReturnImmediately)
@@ -418,7 +414,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -436,15 +432,13 @@ internal partial class Expander<P, I>
                 // invocation. Give them some more relevant info in that case.
                 if (_expression.IndexOf("::", _expressionStartIndex, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    string expression = _expressionStartIndex == 0
-                        ? _expression
-                        : _expression.Substring(_expressionStartIndex);
+                    string expression = _expression[_expressionStartIndex..].ValueOrEmpty;
                     ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionStaticMethodSyntax", expression, ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
                 }
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args);
                     ProjectErrorUtilities.ThrowInvalidProject(_location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
                 }
 
@@ -454,32 +448,26 @@ internal partial class Expander<P, I>
 
         private bool CanExecuteWellKnownWithoutExpandingArguments()
         {
-            if (_receiverType == typeof(IntrinsicFunctions)
-                || _receiverType == typeof(System.IO.File)
+            if (_receiverType == typeof(System.IO.File)
                 || _receiverType == typeof(System.IO.Directory)
                 || _receiverType == typeof(System.IO.Path)
+                || (_receiverType == typeof(IntrinsicFunctions)
+                    && _arguments.Count == 1
+                    && _methodMethodName.Equals("GetPathOfFileAbove", StringComparison.OrdinalIgnoreCase))
                 || String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase)
                 || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
-            foreach (string argument in _arguments)
-            {
-                if (argument is not null && (argument.IndexOf('$') >= 0 || argument.IndexOf('%') >= 0))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return !_arguments.ContainsExpandableExpression();
         }
 
         private WellKnownExecutionStatus TryExecuteWellKnownFunction(
             IPropertyProvider<P> properties,
             ExpanderOptions options,
             object objectInstance,
-            object[] args,
+            FunctionArgumentList args,
             out object functionResult)
         {
             try
@@ -505,7 +493,7 @@ internal partial class Expander<P, I>
             }
             catch (Exception ex)
             {
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodMethodName, args.ToObjectArray());
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     functionResult = partiallyEvaluated;
@@ -650,7 +638,7 @@ internal partial class Expander<P, I>
         /// Make an attempt to create a string showing what we were trying to execute when we failed.
         /// This will show any intermediate evaluation which may help the user figure out what happened.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(string expression, object objectInstance, string name, object[] args)
+        private string GenerateStringOfMethodExecuted(object objectInstance, string name, object[] args)
         {
             string parameters = String.Empty;
             if (args != null)
