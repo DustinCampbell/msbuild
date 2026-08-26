@@ -1331,6 +1331,94 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         [Fact]
+        public void StaticMethodWithThrowawayParameterInvokedOnce()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            PropertyFunctionWithOutParameter.Reset();
+
+            try
+            {
+                string typeName = $"{typeof(PropertyFunctionWithOutParameter).FullName}, {typeof(PropertyFunctionWithOutParameter).Assembly.GetName().Name}";
+                var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+                    new PropertyDictionary<ProjectPropertyInstance>(),
+                    FileSystems.Default);
+
+                string result = expander.ExpandIntoStringLeaveEscaped(
+                    $"$([{typeName}]::Invoke('value', out _))",
+                    ExpanderOptions.ExpandProperties,
+                    MockElementLocation.Instance);
+
+                result.ShouldBe("value");
+                PropertyFunctionWithOutParameter.InvocationCount.ShouldBe(1);
+            }
+            finally
+            {
+                PropertyFunctionWithOutParameter.Reset();
+                AvailableStaticMembers.Reset_ForUnitTestsOnly();
+            }
+        }
+
+        [Fact]
+        public void StaticMethodWithThrowawayParameterPropagatesInvocationFailure()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            PropertyFunctionWithOutParameter.Reset();
+
+            try
+            {
+                string typeName = $"{typeof(PropertyFunctionWithOutParameter).FullName}, {typeof(PropertyFunctionWithOutParameter).Assembly.GetName().Name}";
+                var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+                    new PropertyDictionary<ProjectPropertyInstance>(),
+                    FileSystems.Default);
+
+                InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+                    () => expander.ExpandIntoStringLeaveEscaped(
+                        $"$([{typeName}]::Throw('value', out _))",
+                        ExpanderOptions.ExpandProperties,
+                        MockElementLocation.Instance));
+
+                exception.Message.ShouldContain("out invocation failed");
+                PropertyFunctionWithOutParameter.InvocationCount.ShouldBe(1);
+            }
+            finally
+            {
+                PropertyFunctionWithOutParameter.Reset();
+                AvailableStaticMembers.Reset_ForUnitTestsOnly();
+            }
+        }
+
+        [Fact]
+        public void StaticMethodWithThrowawayParameterDoesNotBindNormalParameter()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            PropertyFunctionWithOutParameter.Reset();
+
+            try
+            {
+                string typeName = $"{typeof(PropertyFunctionWithOutParameter).FullName}, {typeof(PropertyFunctionWithOutParameter).Assembly.GetName().Name}";
+                var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+                    new PropertyDictionary<ProjectPropertyInstance>(),
+                    FileSystems.Default);
+
+                string result = expander.ExpandIntoStringLeaveEscaped(
+                    $"$([{typeName}]::NotOut('value', out _))",
+                    ExpanderOptions.ExpandProperties,
+                    MockElementLocation.Instance);
+
+                result.ShouldBe(string.Empty);
+                PropertyFunctionWithOutParameter.InvocationCount.ShouldBe(0);
+            }
+            finally
+            {
+                PropertyFunctionWithOutParameter.Reset();
+                AvailableStaticMembers.Reset_ForUnitTestsOnly();
+            }
+        }
+
+        [Fact]
         public void StaticMethodWithUnderscoreNotConfusedWithThrowaway()
         {
             MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(@"
@@ -6139,5 +6227,47 @@ $(
         }
 
         #endregion
+    }
+
+    internal static class PropertyFunctionWithOutParameter
+    {
+        public static int InvocationCount { get; private set; }
+
+        public static string Invoke(string value, out int result)
+        {
+            InvocationCount++;
+            result = default;
+            return value;
+        }
+
+        public static string Invoke(int value, out string result)
+        {
+            InvocationCount++;
+            result = string.Empty;
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public static string Throw(string value, out int result)
+        {
+            InvocationCount++;
+            result = default;
+            throw new InvalidOperationException("out invocation failed");
+        }
+
+        public static string Throw(int value, out string result)
+        {
+            InvocationCount++;
+            result = string.Empty;
+            throw new InvalidOperationException("out invocation failed");
+        }
+
+        public static string NotOut(string value, string argument)
+        {
+            InvocationCount++;
+            return value + argument;
+        }
+
+        public static void Reset()
+            => InvocationCount = 0;
     }
 }

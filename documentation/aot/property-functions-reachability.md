@@ -211,7 +211,7 @@ Failures are swallowed and turned into "no match": `InvalidCastException`,
   `LateBindExecute` as a constructor). Only public constructors on the resolved
   receiver type are eligible, so object construction is limited to allowlisted
   types (e.g. `[System.Globalization.CultureInfo]::new('en-US')`).
-- **`out _`**: out-parameters are defaulted and passed through `GetMethodResult`.
+- **`out _`**: overloads are resolved without invocation, then the selected method is invoked once.
 
 ### 5.4 Binding is public-only
 
