@@ -377,6 +377,18 @@ public class PropertyFunctionParser_Tests
         exception.BaseMessage.ShouldContain(input);
     }
 
+    [Fact]
+    public void ReportsMalformedStaticSyntaxWithCompleteInput()
+    {
+        const string input = "System.IO.Path::Combine('a','b')";
+
+        InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+            () => PropertyFunctionParser.TryParse(input, MockElementLocation.Instance, out _));
+
+        exception.ErrorCode.ShouldBe("MSB4186");
+        exception.BaseMessage.ShouldContain(input);
+    }
+
     [Theory]
     [InlineData("Value.Method(", "InvalidFunctionPropertyExpressionDetailMismatchedParenthesis")]
     [InlineData("Value.Method((1)", "InvalidFunctionPropertyExpressionDetailMismatchedParenthesis")]

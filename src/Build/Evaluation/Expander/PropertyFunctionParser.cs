@@ -195,6 +195,7 @@ internal partial struct PropertyFunctionParser
         {
             StringSegment name = memberText[..openParenthesisIndex].Trim();
             _errors.VerifyThrowInvalidFunctionPropertyExpression(!name.IsEmpty);
+            VerifyMemberName(name, receiverKind);
 
             int argumentsStartIndex = openParenthesisIndex + 1;
             int argumentsEndIndex = ScanForClosingParenthesis(memberText, argumentsStartIndex);
@@ -216,6 +217,7 @@ internal partial struct PropertyFunctionParser
         int memberEndIndex = firstAccessIndex >= 0 ? firstAccessIndex : memberText.Length;
         StringSegment propertyOrFieldName = memberText[..memberEndIndex].Trim();
         _errors.VerifyThrowInvalidFunctionPropertyExpression(!propertyOrFieldName.IsEmpty);
+        VerifyMemberName(propertyOrFieldName, receiverKind);
 
         _nextInvocationStartIndex = firstAccessIndex >= 0
             ? memberStartIndex + firstAccessIndex
@@ -425,5 +427,13 @@ internal partial struct PropertyFunctionParser
         }
 
         return true;
+    }
+
+    private readonly void VerifyMemberName(StringSegment memberName, ReceiverKind receiverKind)
+    {
+        if (receiverKind != ReceiverKind.Static && memberName.Contains("::"))
+        {
+            _errors.ThrowInvalidFunctionStaticMethodSyntax();
+        }
     }
 }
