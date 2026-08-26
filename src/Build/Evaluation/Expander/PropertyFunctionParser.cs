@@ -200,7 +200,7 @@ internal partial struct PropertyFunctionParser
             int argumentsEndIndex = ScanForClosingParenthesis(memberText, argumentsStartIndex);
 
             StringSegment argumentsText = memberText[argumentsStartIndex..argumentsEndIndex];
-            OneOrMany<StringSegmentRange> arguments = ParseArguments(argumentsText);
+            OneOrMany<PropertyFunctionArgument> arguments = ParseArguments(argumentsText);
 
             _nextInvocationStartIndex = GetNextInvocationStartIndex(memberStartIndex + argumentsEndIndex + 1);
 
@@ -235,7 +235,7 @@ internal partial struct PropertyFunctionParser
         int indexerEndIndex = ScanForClosingSquareBracket(_text, indexerStartIndex + 1);
 
         StringSegment argumentsText = _text[(indexerStartIndex + 1)..indexerEndIndex];
-        OneOrMany<StringSegmentRange> arguments = ParseArguments(argumentsText);
+        OneOrMany<PropertyFunctionArgument> arguments = ParseArguments(argumentsText);
 
         _nextInvocationStartIndex = GetNextInvocationStartIndex(indexerEndIndex + 1);
         return new PropertyFunctionInvocation(
@@ -321,9 +321,9 @@ internal partial struct PropertyFunctionParser
     /// <returns>
     ///  The validated arguments.
     /// </returns>
-    private readonly OneOrMany<StringSegmentRange> ParseArguments(StringSegment argumentText)
+    private readonly OneOrMany<PropertyFunctionArgument> ParseArguments(StringSegment argumentText)
     {
-        using OneOrMany<StringSegmentRange>.Builder builder = default;
+        using OneOrMany<PropertyFunctionArgument>.Builder builder = default;
         int argumentStartIndex = 0;
         int index = 0;
 
@@ -355,18 +355,18 @@ internal partial struct PropertyFunctionParser
 
         return builder.ToOneOrMany();
 
-        static StringSegmentRange Normalize(StringSegment argument)
+        static PropertyFunctionArgument Normalize(StringSegment argument)
         {
             argument = argument.Trim();
 
             if (argument.IsEmpty)
             {
-                return argument;
+                return new PropertyFunctionArgument(argument, requiresExpansion: false);
             }
 
             if (argument.Equals("null", StringComparison.OrdinalIgnoreCase))
             {
-                return StringSegmentRange.Null;
+                return new PropertyFunctionArgument(StringSegmentRange.Null, requiresExpansion: false);
             }
 
             char quoteChar = argument[0];
@@ -376,7 +376,24 @@ internal partial struct PropertyFunctionParser
                 argument = argument.Trim(quoteChar);
             }
 
-            return argument;
+            return new PropertyFunctionArgument(argument, RequiresExpansion(argument));
+
+            static bool RequiresExpansion(StringSegment argument)
+            {
+                int index = argument.IndexOfAny('$', '%');
+                while (index >= 0)
+                {
+                    if (index + 1 < argument.Length && argument[index + 1] == '(')
+                    {
+                        return true;
+                    }
+
+                    int relativeIndex = argument[(index + 1)..].IndexOfAny('$', '%');
+                    index = relativeIndex < 0 ? -1 : index + relativeIndex + 1;
+                }
+
+                return false;
+            }
         }
     }
 

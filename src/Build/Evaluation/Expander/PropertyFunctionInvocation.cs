@@ -15,11 +15,11 @@ internal readonly struct PropertyFunctionInvocation(
     StringSegmentRange receiver,
     MemberKind memberKind,
     StringSegmentRange memberName,
-    OneOrMany<StringSegmentRange> arguments)
+    OneOrMany<PropertyFunctionArgument> arguments)
 {
     private readonly StringSegmentRange _receiver = receiver;
     private readonly StringSegmentRange _memberName = memberName;
-    private readonly OneOrMany<StringSegmentRange> _arguments = arguments;
+    private readonly OneOrMany<PropertyFunctionArgument> _arguments = arguments;
 
     /// <summary>
     ///  Gets the source text for this invocation.

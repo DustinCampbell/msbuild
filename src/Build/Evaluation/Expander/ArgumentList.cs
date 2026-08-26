@@ -12,9 +12,9 @@ namespace Microsoft.Build.Evaluation.Expander;
 internal readonly struct ArgumentList
 {
     private readonly string? _buffer;
-    private readonly OneOrMany<StringSegmentRange> _arguments;
+    private readonly OneOrMany<PropertyFunctionArgument> _arguments;
 
-    internal ArgumentList(string? buffer, OneOrMany<StringSegmentRange> arguments)
+    internal ArgumentList(string? buffer, OneOrMany<PropertyFunctionArgument> arguments)
     {
         _buffer = buffer;
         _arguments = arguments;
@@ -30,7 +30,23 @@ internal readonly struct ArgumentList
     ///  Gets the argument at the specified index.
     /// </summary>
     public StringSegment this[int index]
-        => _arguments[index].ToSegment(_buffer);
+        => _arguments[index].Range.ToSegment(_buffer);
+
+    public bool RequiresExpansion(int index)
+        => _arguments[index].RequiresExpansion;
+
+    public bool ContainsExpandableExpression()
+    {
+        foreach (PropertyFunctionArgument argument in _arguments)
+        {
+            if (argument.RequiresExpansion)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>
     ///  Returns an allocation-free enumerator over the arguments.
@@ -41,15 +57,15 @@ internal readonly struct ArgumentList
     /// <summary>
     ///  Enumerates the arguments.
     /// </summary>
-    public struct Enumerator(string? buffer, OneOrMany<StringSegmentRange> arguments)
+    public struct Enumerator(string? buffer, OneOrMany<PropertyFunctionArgument> arguments)
     {
-        private OneOrMany<StringSegmentRange>.Enumerator _arguments = arguments.GetEnumerator();
+        private OneOrMany<PropertyFunctionArgument>.Enumerator _arguments = arguments.GetEnumerator();
 
         /// <summary>
         ///  Gets the current argument.
         /// </summary>
         public readonly StringSegment Current
-            => _arguments.Current.ToSegment(buffer);
+            => _arguments.Current.Range.ToSegment(buffer);
 
         /// <summary>
         ///  Advances to the next argument.
