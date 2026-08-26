@@ -22,16 +22,16 @@ internal readonly struct PropertyFunctionExecutionContext<T>(
     IElementLocation location)
     where T : class, IProperty
 {
-    public IPropertyProvider<T> Properties { get; } = properties;
+    public IPropertyProvider<T> Properties => properties;
 
-    public IFileSystem FileSystem { get; } = fileSystem;
+    public IFileSystem FileSystem => fileSystem;
 
-    public LoggingContext LoggingContext { get; } = loggingContext;
+    public LoggingContext LoggingContext => loggingContext;
 
-    public IElementLocation Location { get; } = location;
+    public IElementLocation Location => location;
 
     public string? StartingDirectory
-        => string.IsNullOrWhiteSpace(Location.File)
+        => location.File.IsNullOrWhiteSpace()
             ? string.Empty
-            : Path.GetDirectoryName(Location.File);
+            : Path.GetDirectoryName(location.File);
 }

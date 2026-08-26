@@ -105,9 +105,9 @@ public class FunctionArguments_Tests
 
         bool handled = WellKnownFunctions.TryExecuteStringFunction(
             nameof(string.Contains),
-            out object? result,
             "prefix-value-suffix",
-            arguments);
+            arguments,
+            out object? result);
 
         handled.ShouldBeTrue();
         result.ShouldBe(true);
@@ -121,7 +121,7 @@ public class FunctionArguments_Tests
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
         FunctionArguments arguments = new(source);
 
-        object[] values = arguments.ToObjectArray();
+        object?[] values = arguments.ToObjectArray();
 
         values.Length.ShouldBe(3);
         values[0].ShouldBeNull();
