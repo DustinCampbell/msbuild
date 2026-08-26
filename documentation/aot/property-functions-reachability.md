@@ -162,7 +162,7 @@ split on `,`, with two kinds of span treated atomically (commas inside them do n
 - a nested property expression `$(...)` (scanned by `ScanForClosingParenthesis`), and
 - a quoted span using `` ` ``, `"`, or `'` (scanned by `ScanForClosingQuote`).
 
-Each raw argument remains a packed `StringSegmentRange` at parse time. Empty entries remain empty,
+Each raw argument remains a packed `StringSegmentRange` plus a parser-computed expansion flag. Empty entries remain empty,
 while the unquoted `null` literal is represented by a null range. `FunctionArguments` exposes
 those segments directly to well-known handlers and materializes individual arguments only when expansion
 or reflection requires them. At execution, `ExpandPropertiesLeaveTypedAndEscaped` can turn a nested
@@ -176,7 +176,7 @@ excludes large swaths of the BCL from being *callable* even though the types are
 
 ### 5.2 How a string becomes a typed parameter
 
-Binding happens in `Execute` in three tiers:
+Execution uses three tiers:
 
 1. **Well-known fast path** - `WellKnownFunctions.TryExecuteWellKnownFunction` handles common
    functions directly from `FunctionArguments`, without reflection and often without
@@ -218,7 +218,7 @@ Failures are swallowed and turned into "no match": `InvalidCastException`,
 `AllowedBindingFlags`
 ([Expander.cs#L3789](../../src/Build/Evaluation/Expander.cs#L3789)) is
 `IgnoreCase | Public | Static | Instance | InvokeMethod | GetProperty | GetField`.
-`BindingFlags.NonPublic` is never set; the `Function` constructor masks the
+`BindingFlags.NonPublic` is never set; the `BoundFunction` constructor masks the
 incoming flags and asserts the invariant
 ([Expander.cs#L3853](../../src/Build/Evaluation/Expander.cs#L3853)). Private and
 internal members are unreachable.
