@@ -7,18 +7,13 @@ using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
-internal interface IFunctionArgumentMaterializer
-{
-    object? Materialize(StringSegment source, int index);
-}
-
 /// <summary>
 ///  Holds source argument segments and their expanded values.
 /// </summary>
 internal struct FunctionArguments
 {
     private static readonly object s_source = new();
-    private static readonly object s_requiresExpansion = new();
+    private static readonly object s_requiresMaterialization = new();
 
     private readonly ArgumentList _source;
     private readonly string[]? _sourceStrings;
@@ -82,7 +77,7 @@ internal struct FunctionArguments
 
         if (_materialized is null
             && Count > 0
-            && (materializeAllArguments || ContainsExpandableExpression()))
+            && (materializeAllArguments || ContainsMaterializationRequirement()))
         {
             InitializeMaterializedValues(materializeAllArguments);
         }
@@ -98,7 +93,7 @@ internal struct FunctionArguments
             object?[] materializedValues = new object?[Count];
             for (int i = 0; i < materializedValues.Length; i++)
             {
-                materializedValues[i] = Materialize(i, expandSource: true);
+                materializedValues[i] = Materialize(i, useMaterializer: true);
             }
 
             _materialized = materializedValues;
@@ -110,7 +105,7 @@ internal struct FunctionArguments
         {
             if (IsPending(values[i]))
             {
-                values[i] = Materialize(i, expandSource: true);
+                values[i] = Materialize(i, useMaterializer: true);
             }
         }
 
@@ -135,16 +130,24 @@ internal struct FunctionArguments
         return values;
     }
 
-    public readonly bool ContainsExpandableExpression()
+    /// <summary>
+    ///  Determines whether any pending argument requires expansion or unescaping.
+    /// </summary>
+    /// <returns>
+    ///  <see langword="true"/> when at least one pending argument requires materialization; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    public readonly bool ContainsMaterializationRequirement()
     {
         for (int i = 0; i < Count; i++)
         {
-            if (_materialized is not null && !ReferenceEquals(_materialized[i], s_requiresExpansion))
+            if (_materialized is not null
+                && !ReferenceEquals(_materialized[i], s_requiresMaterialization))
             {
                 continue;
             }
 
-            if (RequiresExpansion(i))
+            if (GetRequirements(i) != FunctionArgumentRequirements.None)
             {
                 return true;
             }
@@ -544,19 +547,19 @@ internal struct FunctionArguments
         object? value = values[index];
         if (IsPending(value))
         {
-            value = Materialize(index, expandSource: ReferenceEquals(value, s_requiresExpansion));
+            value = Materialize(index, useMaterializer: ReferenceEquals(value, s_requiresMaterialization));
             values[index] = value;
         }
 
         return value;
     }
 
-    private readonly object? Materialize(int index, bool expandSource)
+    private readonly object? Materialize(int index, bool useMaterializer)
     {
         StringSegment source = GetSource(index);
-        return !expandSource || _materializer is null
+        return !useMaterializer || _materializer is null
             ? source.Value
-            : _materializer.Materialize(source, index);
+            : _materializer.Materialize(source, index, GetRequirements(index));
     }
 
     private void InitializeMaterializedValues(bool materializeAllArguments)
@@ -567,26 +570,26 @@ internal struct FunctionArguments
         object?[] values = new object?[Count];
         for (int i = 0; i < values.Length; i++)
         {
-            values[i] = materializeAllArguments || RequiresExpansion(i)
-                ? s_requiresExpansion
+            values[i] = materializeAllArguments
+                || GetRequirements(i) != FunctionArgumentRequirements.None
+                ? s_requiresMaterialization
                 : s_source;
         }
 
         return values;
     }
 
-    private readonly bool RequiresExpansion(int index)
+    private readonly FunctionArgumentRequirements GetRequirements(int index)
     {
         if (_sourceStrings is null)
         {
-            return _source.RequiresExpansion(index);
+            return _source.GetRequirements(index);
         }
 
-        StringSegment source = _sourceStrings[index];
-        return source.ContainsAny('$', '%');
+        return PropertyFunctionArgument.GetRequirements(_sourceStrings[index]);
     }
 
     private static bool IsPending(object? value)
         => ReferenceEquals(value, s_source)
-        || ReferenceEquals(value, s_requiresExpansion);
+        || ReferenceEquals(value, s_requiresMaterialization);
 }

@@ -32,21 +32,15 @@ internal readonly struct ArgumentList
     public StringSegment this[int index]
         => _arguments[index].Range.ToSegment(_buffer);
 
-    public bool RequiresExpansion(int index)
-        => _arguments[index].RequiresExpansion;
-
-    public bool ContainsExpandableExpression()
-    {
-        foreach (PropertyFunctionArgument argument in _arguments)
-        {
-            if (argument.RequiresExpansion)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    /// <summary>
+    ///  Gets the materialization requirements for the argument at <paramref name="index"/>.
+    /// </summary>
+    /// <param name="index">The zero-based argument index.</param>
+    /// <returns>
+    ///  The work required before the argument can be consumed.
+    /// </returns>
+    public FunctionArgumentRequirements GetRequirements(int index)
+        => _arguments[index].Requirements;
 
     /// <summary>
     ///  Returns an allocation-free enumerator over the arguments.

@@ -11,6 +11,10 @@ using System.Text;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Utilities;
+using Microsoft.Build.Text;
+#if NET
+using Microsoft.Build.Utilities;
+#endif
 using Microsoft.NET.StringTools;
 
 #pragma warning disable SA1519 // Braces should not be omitted from multi-line child statement
@@ -173,6 +177,95 @@ internal static class EscapingUtilities
             => startIndex == 0 && endIndex == value.Length
                 ? value
                 : value.Substring(startIndex, endIndex - startIndex);
+    }
+
+    /// <summary>
+    ///  Replaces all <c>%XX</c> escape sequences in <paramref name="value"/> without first materializing the
+    ///  segment.
+    /// </summary>
+    /// <param name="value">The segment to unescape.</param>
+    /// <returns>
+    ///  The original segment when it contains no escape sequences; otherwise, a segment over the decoded
+    ///  string.
+    /// </returns>
+    public static StringSegment UnescapeAll(StringSegment value)
+    {
+        int escapeIndex = IndexOfEscapeSequence(value, startIndex: 0, out char unescapedCharacter);
+        if (escapeIndex < 0)
+        {
+            return value;
+        }
+
+#if NET
+        using ValueStringBuilder builder = value.Length <= 256
+            ? new(stackalloc char[value.Length])
+            : new(initialCapacity: value.Length);
+
+        int sourceIndex = 0;
+
+        do
+        {
+            builder.Append(value.AsSpan(sourceIndex, escapeIndex - sourceIndex));
+            builder.Append(unescapedCharacter);
+            sourceIndex = escapeIndex + 3;
+            escapeIndex = IndexOfEscapeSequence(value, sourceIndex, out unescapedCharacter);
+        }
+        while (escapeIndex >= 0);
+
+        builder.Append(value.AsSpan(sourceIndex, value.Length - sourceIndex));
+
+        return builder.ToString();
+#else
+        StringBuilder builder = StringBuilderCache.Acquire(value.Length);
+
+        int sourceIndex = 0;
+
+        do
+        {
+            builder.AppendSegment(value[sourceIndex..escapeIndex]);
+            builder.Append(unescapedCharacter);
+            sourceIndex = escapeIndex + 3;
+            escapeIndex = IndexOfEscapeSequence(value, sourceIndex, out unescapedCharacter);
+        }
+        while (escapeIndex >= 0);
+
+        builder.AppendSegment(value[sourceIndex..]);
+
+        return StringBuilderCache.GetStringAndRelease(builder);
+#endif
+    }
+
+    /// <summary>
+    ///  Determines whether <paramref name="value"/> contains a valid <c>%XX</c> escape sequence.
+    /// </summary>
+    /// <param name="value">The segment to inspect.</param>
+    /// <returns>
+    ///  <see langword="true"/> when an escape sequence is present; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool ContainsEscapeSequence(StringSegment value)
+        => IndexOfEscapeSequence(value, startIndex: 0, out _) >= 0;
+
+    private static int IndexOfEscapeSequence(
+        StringSegment value,
+        int startIndex,
+        out char unescapedCharacter)
+    {
+        int percentIndex = value.IndexOf('%', startIndex);
+        while (percentIndex >= 0)
+        {
+            if (percentIndex <= value.Length - 3
+                && TryDecodeHexDigit(value[percentIndex + 1], out int hi)
+                && TryDecodeHexDigit(value[percentIndex + 2], out int lo))
+            {
+                unescapedCharacter = (char)((hi << 4) + lo);
+                return percentIndex;
+            }
+
+            percentIndex = value.IndexOf('%', percentIndex + 1);
+        }
+
+        unescapedCharacter = default;
+        return -1;
     }
 
     /// <summary>

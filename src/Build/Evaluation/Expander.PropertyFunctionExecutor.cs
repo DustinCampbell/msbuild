@@ -138,7 +138,7 @@ internal partial class Expander<P, I>
             || Traits.Instance.LogPropertyFunctionsRequiringReflection;
 
         private ArgumentMaterializer CreateArgumentMaterializer(in PropertyFunctionExecutionContext<P> context)
-            => new(context, _receiverType, _methodName);
+            => new(_receiverType, _methodName, context);
 
         /// <summary>
         /// Determines whether the argument at <paramref name="argIndex"/> for a System.IO.File
@@ -173,33 +173,58 @@ internal partial class Expander<P, I>
         }
 
         private sealed class ArgumentMaterializer(
-            PropertyFunctionExecutionContext<P> context,
             Type receiverType,
-            StringSegment methodName) : IFunctionArgumentMaterializer
+            StringSegment methodName,
+            PropertyFunctionExecutionContext<P> context) : IFunctionArgumentMaterializer
         {
-            public object? Materialize(StringSegment source, int index)
+            public object? Materialize(StringSegment source, int index, FunctionArgumentRequirements requirements)
             {
-                // Preserve the source segment so property expansion can inspect it before a string is
-                // required.
-                object? argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                    source,
-                    context.Properties,
-                    context.Options,
-                    context.Location,
-                    context.PropertiesUseTracker,
-                    context.FileSystem);
+                StringSegment argument;
 
-                if (argument is not string argumentValue)
+                if ((requirements & FunctionArgumentRequirements.ExpandProperties) != 0)
                 {
-                    return argument;
+                    // Preserve the source segment so property expansion can inspect it before a string is
+                    // required.
+                    object? expandedArgument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
+                        source,
+                        context.Properties,
+                        context.Options,
+                        context.Location,
+                        context.PropertiesUseTracker,
+                        context.FileSystem);
+
+                    if (expandedArgument is not string expandedText)
+                    {
+                        return expandedArgument;
+                    }
+
+                    argument = expandedText;
+                }
+                else
+                {
+                    if (!source.HasValue)
+                    {
+                        return null;
+                    }
+
+                    argument = source;
                 }
 
                 if (IsFileSystemReceiver(receiverType))
                 {
-                    argumentValue = FileUtilities.FixFilePath(argumentValue);
+                    argument = FileUtilities.FixFilePath(argument.ValueOrEmpty);
                 }
 
-                argumentValue = EscapingUtilities.UnescapeAll(argumentValue);
+                if ((requirements
+                    & (FunctionArgumentRequirements.ExpandProperties
+                        | FunctionArgumentRequirements.Unescape)) != 0)
+                {
+                    // Expanded property values remain escaped even when the source contained no literal
+                    // escape sequence.
+                    argument = EscapingUtilities.UnescapeAll(argument);
+                }
+
+                string argumentValue = argument.ValueOrEmpty;
 
                 // In -mt mode, resolve File/Directory path arguments against the thread-local project directory.
                 // Resolve only after unescaping so MSBuild escape processing cannot corrupt the filesystem path.
@@ -254,7 +279,7 @@ internal partial class Expander<P, I>
 
                 if (_arguments.Count > 0
                     && (ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName)
-                        || _arguments.ContainsExpandableExpression()))
+                        || _arguments.ContainsMaterializationRequirement()))
                 {
                     argumentMaterializer = CreateArgumentMaterializer(in context);
                     _arguments.ConfigureMaterialization(argumentMaterializer, materializeAllArguments: ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName));

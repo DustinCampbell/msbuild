@@ -207,7 +207,9 @@
     <Compile Include="Evaluation\ExpanderOptions.cs" />
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.MemberKey.cs" />
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.TypeEntry.cs" />
+    <Compile Include="Evaluation\Expander\FunctionArgumentRequirements.cs" />
     <Compile Include="Evaluation\Expander\FunctionArguments.cs" />
+    <Compile Include="Evaluation\Expander\IFunctionArgumentMaterializer.cs" />
     <Compile Include="Evaluation\Expander\MemberKind.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionArgument.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunctionExecutionContext.cs" />

@@ -363,12 +363,12 @@ internal partial struct PropertyFunctionParser
 
             if (argument.IsEmpty)
             {
-                return new PropertyFunctionArgument(argument, requiresExpansion: false);
+                return new PropertyFunctionArgument(argument, FunctionArgumentRequirements.None);
             }
 
             if (argument.Equals("null", StringComparison.OrdinalIgnoreCase))
             {
-                return new PropertyFunctionArgument(StringSegmentRange.Null, requiresExpansion: false);
+                return new PropertyFunctionArgument(StringSegmentRange.Null, FunctionArgumentRequirements.None);
             }
 
             char quoteChar = argument[0];
@@ -378,24 +378,7 @@ internal partial struct PropertyFunctionParser
                 argument = argument.Trim(quoteChar);
             }
 
-            return new PropertyFunctionArgument(argument, RequiresExpansion(argument));
-
-            static bool RequiresExpansion(StringSegment argument)
-            {
-                int index = argument.IndexOfAny('$', '%');
-                while (index >= 0)
-                {
-                    if (index + 1 < argument.Length && argument[index + 1] == '(')
-                    {
-                        return true;
-                    }
-
-                    int relativeIndex = argument[(index + 1)..].IndexOfAny('$', '%');
-                    index = relativeIndex < 0 ? -1 : index + relativeIndex + 1;
-                }
-
-                return false;
-            }
+            return new PropertyFunctionArgument(argument, PropertyFunctionArgument.GetRequirements(argument));
         }
     }
 

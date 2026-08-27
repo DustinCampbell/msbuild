@@ -4747,6 +4747,21 @@ $(
         }
 
         [Fact]
+        public void PropertyFunctionWellKnownStringFunctionUnescapesArgument()
+        {
+            TestPropertyFunction("$(prop.Contains('%28'))", "prop", "%28value", bool.TrueString);
+            TestPropertyFunction("$(prop.Contains($(prop)))", "prop", "%28value", bool.TrueString);
+        }
+
+        [Theory]
+        [InlineData("$([MSBuild]::Escape('%3b'))", "%3b")]
+        [InlineData("$([MSBuild]::Unescape('%253b'))", ";")]
+        public void PropertyFunctionIntrinsicUnescapesArgumentBeforeExecution(string expression, string expected)
+        {
+            TestPropertyFunction(expression, "_", "_", expected);
+        }
+
+        [Fact]
         public void PropertyFunctionStringLastIndexOf()
         {
             TestPropertyFunction("$(prop.LastIndexOf('y'))", "prop", "x-x-y-y-y-z", "8");
