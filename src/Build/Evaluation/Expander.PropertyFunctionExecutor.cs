@@ -179,8 +179,10 @@ internal partial class Expander<P, I>
         {
             public object? Materialize(StringSegment source, int index)
             {
+                // Preserve the source segment so property expansion can inspect it before a string is
+                // required.
                 object? argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                    source.Value,
+                    source,
                     context.Properties,
                     context.Options,
                     context.Location,
