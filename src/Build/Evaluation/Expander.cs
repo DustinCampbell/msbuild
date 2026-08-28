@@ -10,7 +10,6 @@ using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using Microsoft.Build.Text;
 
 #nullable disable
 
@@ -299,27 +298,6 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
         }
 #endif
         return metadataValue;
-    }
-
-    /// <summary>
-    /// Returns true if the supplied string contains a valid property name.
-    /// </summary>
-    private static bool IsValidPropertyName(StringSegment propertyName)
-    {
-        if (propertyName.Length == 0 || !XmlUtilities.IsValidInitialElementNameCharacter(propertyName[0]))
-        {
-            return false;
-        }
-
-        for (int n = 1; n < propertyName.Length; n++)
-        {
-            if (!XmlUtilities.IsValidSubsequentElementNameCharacter(propertyName[n]))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /// <summary>
