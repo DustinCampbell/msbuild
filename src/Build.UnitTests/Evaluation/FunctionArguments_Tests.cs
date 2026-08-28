@@ -118,6 +118,76 @@ public class FunctionArguments_Tests
         value.Value.ShouldBe("value");
     }
 
+    [Theory]
+    [InlineData("CurrentCulture", StringComparison.CurrentCulture)]
+    [InlineData("CurrentCultureIgnoreCase", StringComparison.CurrentCultureIgnoreCase)]
+    [InlineData("InvariantCulture", StringComparison.InvariantCulture)]
+    [InlineData("InvariantCultureIgnoreCase", StringComparison.InvariantCultureIgnoreCase)]
+    [InlineData("Ordinal", StringComparison.Ordinal)]
+    [InlineData("OrdinalIgnoreCase", StringComparison.OrdinalIgnoreCase)]
+    [InlineData("StringComparison.Ordinal", StringComparison.Ordinal)]
+    [InlineData("StringComparison.4", StringComparison.Ordinal)]
+    [InlineData("System.StringComparison.OrdinalIgnoreCase", StringComparison.OrdinalIgnoreCase)]
+    [InlineData("StringComparison. Ordinal", StringComparison.Ordinal)]
+    public void ParsesStringComparisonWithoutMaterializing(string text, StringComparison expected)
+    {
+        string argumentsText = $"value, {text}";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(argumentsText, argumentsText, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+
+        arguments.TryGetArgs(out StringSegment _, out StringComparison result).ShouldBeTrue();
+
+        result.ShouldBe(expected);
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("4")]
+    [InlineData("ordinal")]
+    [InlineData("StringComparison.ordinal")]
+    [InlineData("NotAStringComparison")]
+    public void RejectsInvalidStringComparison(string text)
+    {
+        string argumentsText = $"value, {text}";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(argumentsText, argumentsText, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+
+        arguments.TryGetArgs(out StringSegment _, out StringComparison _).ShouldBeFalse();
+
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+
+#if NET
+    [Fact]
+    public void ReadingStringComparisonAllocatesNoMemory()
+    {
+        const string text = "value, System.StringComparison.OrdinalIgnoreCase";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+
+        for (int i = 0; i < 100; i++)
+        {
+            arguments.TryGetArgs(out StringSegment _, out StringComparison _).ShouldBeTrue();
+        }
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        bool allSucceeded = true;
+        int checksum = 0;
+        for (int i = 0; i < 1_000; i++)
+        {
+            allSucceeded &= arguments.TryGetArgs(out StringSegment value, out StringComparison comparison);
+            checksum += value.Length + (int)comparison;
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        allSucceeded.ShouldBeTrue();
+        checksum.ShouldBeGreaterThan(0);
+        allocated.ShouldBe(0);
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+#endif
+
     [Fact]
     public void WellKnownStringFunctionConsumesRawSegment()
     {
