@@ -57,6 +57,35 @@ public class FunctionArguments_Tests
         allocated.ShouldBe(0);
         arguments.IsMaterialized.ShouldBeFalse();
     }
+
+    [Fact]
+    public void ReadingDoubleArgumentsAllocatesNoMemory()
+    {
+        const string text = "1.5, 2.5";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+
+        for (int i = 0; i < 100; i++)
+        {
+            arguments.TryGetArgs(out double _, out double _).ShouldBeTrue();
+        }
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        double checksum = 0;
+        bool allSucceeded = true;
+        for (int i = 0; i < 1_000; i++)
+        {
+            allSucceeded &= arguments.TryGetArgs(out double first, out double second);
+            checksum += first + second;
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        allSucceeded.ShouldBeTrue();
+        checksum.ShouldBeGreaterThan(0);
+        allocated.ShouldBe(0);
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
 #endif
 
     [Theory]
