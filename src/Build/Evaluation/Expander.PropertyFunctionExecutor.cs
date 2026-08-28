@@ -458,19 +458,13 @@ internal partial class Expander<P, I>
                 if (WellKnownFunctions.TryExecuteWellKnownFunction(
                     _methodName,
                     _receiverType,
+                    objectInstance,
+                    args,
                     context.FileSystem,
                     GetStartingDirectory(in context),
-                    out functionResult,
-                    objectInstance,
-                    args)
-                    || WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
-                        _methodName,
-                        _receiverType,
-                        loggingContext,
-                        context.Properties,
-                        out functionResult,
-                        objectInstance,
-                        args))
+                    loggingContext,
+                    context.Properties,
+                    out functionResult))
                 {
                     return WellKnownExecutionStatus.Handled;
                 }

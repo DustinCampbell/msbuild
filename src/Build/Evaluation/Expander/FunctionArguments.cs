@@ -233,6 +233,17 @@ internal struct FunctionArguments
         return TryConvertToInt(0, out arg0);
     }
 
+    public readonly bool TryGetArg(out bool arg0)
+    {
+        if (Count != 1)
+        {
+            arg0 = false;
+            return false;
+        }
+
+        return TryConvertToBool(0, out arg0);
+    }
+
     public readonly bool TryGetArgs(out int arg0, out int arg1)
     {
         arg0 = 0;
@@ -307,6 +318,56 @@ internal struct FunctionArguments
             && TryConvertToInt(1, out arg1);
     }
 
+    public readonly bool TryGetArgs(out StringSegment arg0, out int arg1, out int arg2)
+    {
+        arg0 = default;
+        arg1 = 0;
+        arg2 = 0;
+
+        return Count == 3
+            && TryGetSegment(0, out arg0)
+            && TryConvertToInt(1, out arg1)
+            && TryConvertToInt(2, out arg2);
+    }
+
+    public readonly bool TryGetArgs(out StringSegment arg0, out int arg1, out StringComparison arg2)
+    {
+        arg0 = default;
+        arg1 = 0;
+        arg2 = default;
+
+        return Count == 3
+            && TryGetSegment(0, out arg0)
+            && TryConvertToInt(1, out arg1)
+            && TryGetStringComparison(2, out arg2);
+    }
+
+    public readonly bool TryGetArgs(out StringSegment arg0, out int arg1, out int arg2, out StringComparison arg3)
+    {
+        arg0 = default;
+        arg1 = 0;
+        arg2 = 0;
+        arg3 = default;
+
+        return Count == 4
+            && TryGetSegment(0, out arg0)
+            && TryConvertToInt(1, out arg1)
+            && TryConvertToInt(2, out arg2)
+            && TryGetStringComparison(3, out arg3);
+    }
+
+    public readonly bool TryGetArgs(out StringSegment arg0, out StringSegment arg1, out StringComparison arg2)
+    {
+        arg0 = default;
+        arg1 = default;
+        arg2 = default;
+
+        return Count == 3
+            && TryGetSegment(0, out arg0)
+            && TryGetSegment(1, out arg1)
+            && TryGetStringComparison(2, out arg2);
+    }
+
     public readonly bool TryGetArgs(out string? arg0, out int arg1, out int arg2)
     {
         arg0 = null;
@@ -336,6 +397,32 @@ internal struct FunctionArguments
         return Count == 2
             && TryGetSegment(0, out arg0)
             && TryGetStringComparison(1, out arg1);
+    }
+
+    public readonly bool TryGetArgs(out StringSegment arg0, out bool arg1, out CultureInfo? arg2)
+    {
+        arg0 = default;
+        arg1 = false;
+        arg2 = null;
+
+        if (Count != 3 || !TryGetSegment(0, out arg0) || !TryConvertToBool(1, out arg1))
+        {
+            return false;
+        }
+
+        object? culture = GetValue(2);
+        if (culture is null)
+        {
+            return true;
+        }
+
+        if (culture is CultureInfo cultureInfo)
+        {
+            arg2 = cultureInfo;
+            return true;
+        }
+
+        return false;
     }
 
     public readonly bool TryExecuteArithmeticOverload(
@@ -391,6 +478,43 @@ internal struct FunctionArguments
         }
 
         result = 0;
+        return false;
+    }
+
+    private readonly bool TryConvertToBool(int index, out bool result)
+    {
+        if (_materialized is null || ReferenceEquals(_materialized[index], s_source))
+        {
+            StringSegment value = GetSource(index);
+            if (value.Equals(bool.TrueString, StringComparison.OrdinalIgnoreCase))
+            {
+                result = true;
+                return true;
+            }
+
+            if (value.Equals(bool.FalseString, StringComparison.OrdinalIgnoreCase))
+            {
+                result = false;
+                return true;
+            }
+
+            result = false;
+            return false;
+        }
+
+        object? materialized = EnsureMaterialized(index);
+        if (materialized is bool boolean)
+        {
+            result = boolean;
+            return true;
+        }
+
+        if (materialized is string text)
+        {
+            return bool.TryParse(text, out result);
+        }
+
+        result = false;
         return false;
     }
 
@@ -503,7 +627,7 @@ internal struct FunctionArguments
         return false;
     }
 
-    private readonly bool TryGetStringComparison(int index, out StringComparison result)
+    public readonly bool TryGetStringComparison(int index, out StringComparison result)
     {
         result = default;
 

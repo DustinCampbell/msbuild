@@ -4,7 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Reflection;
+using Microsoft.Build.Evaluation;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Text;
 using Shouldly;
@@ -16,6 +18,18 @@ public sealed class WellKnownFunctions_Tests
 {
     private const BindingFlags StaticFunctionFlags =
         BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Static | BindingFlags.InvokeMethod;
+
+    [Fact]
+    public void EveryProductionIntrinsicFunctionHasAWellKnownHandler()
+    {
+        foreach (MethodInfo method in typeof(IntrinsicFunctions).GetMethods(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (!method.Name.StartsWith("__", StringComparison.Ordinal))
+            {
+                WellKnownFunctions.IsIntrinsicFunctionHandled(method.Name).ShouldBeTrue(method.Name);
+            }
+        }
+    }
 
     [Fact]
     public void StringConcatMatchesDefaultBinderForScalarArguments()
@@ -120,6 +134,141 @@ public sealed class WellKnownFunctions_Tests
             result.ShouldBeSameAs(value);
             arguments.IsMaterialized.ShouldBeFalse();
         }
+    }
+
+    [Fact]
+    public void StringJoinConsumesRawSegmentsWithoutMaterializing()
+    {
+        FunctionArguments arguments = new(["-", "a", "b", "c"]);
+
+        bool handled = WellKnownFunctions.TryExecuteStaticStringFunction(
+            nameof(string.Join),
+            arguments,
+            out object? result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe("a-b-c");
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void StringJoinLeavesCollectionArgumentsToDefaultBinder()
+    {
+        FunctionArguments arguments = CreateArguments([",", new[] { "a", "b" }]);
+
+        bool handled = WellKnownFunctions.TryExecuteStaticStringFunction(
+            nameof(string.Join),
+            arguments,
+            out object? result);
+
+        handled.ShouldBeFalse();
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void PathCombineConsumesRawSegments()
+    {
+        string root = Path.GetPathRoot(Environment.CurrentDirectory)!;
+        string rootedPath = Path.Combine(root, "rooted");
+        string[] values = ["ignored", rootedPath, "child", "file.txt"];
+        FunctionArguments arguments = new(values);
+
+        bool handled = WellKnownFunctions.TryExecutePathFunction(nameof(Path.Combine), out object? result, arguments);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe(Path.Combine(values));
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void PathCombineLeavesNullArgumentsToDefaultBinder()
+    {
+        FunctionArguments arguments = CreateArguments(["root", null]);
+
+        bool handled = WellKnownFunctions.TryExecutePathFunction(
+            nameof(Path.Combine),
+            out object? result,
+            arguments);
+
+        handled.ShouldBeFalse();
+        result.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("GetExtension", @"directory\file.txt", ".txt")]
+    [InlineData("GetFileName", @"directory\file.txt", "file.txt")]
+    [InlineData("GetFileNameWithoutExtension", @"directory\file.txt", "file")]
+    [InlineData("HasExtension", @"directory\file.txt", true)]
+    [InlineData("HasExtension", @"directory\file", false)]
+    public void PathFunctionsMatchSystemPath(string methodName, string path, object expected)
+    {
+        FunctionArguments arguments = new([path]);
+
+        bool handled = WellKnownFunctions.TryExecutePathFunction(methodName, out object? result, arguments);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe(expected);
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void VersionFunctionsConsumeRawSegments()
+    {
+        FunctionArguments arguments = new(["1.2.3.4"]);
+
+        bool handled = WellKnownFunctions.TryExecuteStaticVersionFunction(
+            nameof(Version.Parse),
+            arguments,
+            out object? result);
+
+        handled.ShouldBeTrue();
+        Version version = result.ShouldBeOfType<Version>();
+        version.ShouldBe(new Version(1, 2, 3, 4));
+        arguments.IsMaterialized.ShouldBeFalse();
+
+        arguments = new(Array.Empty<string>());
+        handled = WellKnownFunctions.TryExecuteVersionFunction(
+            nameof(Version.Major),
+            version,
+            arguments,
+            out result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ConvertToUInt32ConsumesRawSegments()
+    {
+        const string text = "prefix4294967295suffix";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(
+            new StringSegment(text, 6, 10),
+            text,
+            MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+
+        bool handled = WellKnownFunctions.TryExecuteConvertFunction(
+            nameof(Convert.ToUInt32),
+            arguments,
+            out object? result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe(uint.MaxValue);
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ConvertToUInt32LeavesInvalidTextToDefaultBinder()
+    {
+        FunctionArguments arguments = new(["4294967296"]);
+
+        bool handled = WellKnownFunctions.TryExecuteConvertFunction(
+            nameof(Convert.ToUInt32),
+            arguments,
+            out object? result);
+
+        handled.ShouldBeFalse();
+        result.ShouldBeNull();
     }
 
     private static void AssertStringConcatMatchesDefaultBinder(params object?[] values)

@@ -569,7 +569,13 @@
     <Compile Include="Evaluation\Expander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Common.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Concat.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Convert.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Intrinsic.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Path.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_String.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Version.cs" />
     <Compile Include="Globbing\CompositeGlob.cs" />
     <Compile Include="Globbing\Extensions\MSBuildGlobExtensions.cs" />
     <Compile Include="Globbing\Visitor\GlobVisitor.cs" />
