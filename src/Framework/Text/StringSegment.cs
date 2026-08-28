@@ -108,6 +108,14 @@ internal readonly partial struct StringSegment :
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private StringSegment(string? buffer, int offset, int length, bool skipValidation)
+    {
+        Buffer = buffer;
+        Offset = offset;
+        Length = length;
+    }
+
     /// <summary>
     ///  Initializes a new <see cref="StringSegment"/> over <paramref name="range"/> in
     ///  <paramref name="buffer"/>.
@@ -446,13 +454,16 @@ internal readonly partial struct StringSegment :
     /// <returns>
     ///  A <see cref="StringSegment"/> covering the characters from <paramref name="start"/> to the end.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public StringSegment Slice(int start)
     {
-        Assumed.PositiveOrZero(start);
-        Assumed.LessThanOrEqual(start, Length);
+        if ((uint)start > (uint)Length)
+        {
+            ValidateSlice(start, length: 0, Length);
+        }
 
         // A null segment can only be sliced with (0), which leaves it unchanged.
-        return HasValue ? new StringSegment(Buffer, Offset + start, Length - start) : this;
+        return HasValue ? new StringSegment(Buffer, Offset + start, Length - start, skipValidation: true) : this;
     }
 
     /// <summary>
@@ -466,14 +477,25 @@ internal readonly partial struct StringSegment :
     /// <returns>
     ///  A <see cref="StringSegment"/> covering the requested range.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public StringSegment Slice(int start, int length)
+    {
+        if ((uint)start > (uint)Length || (uint)length > (uint)(Length - start))
+        {
+            ValidateSlice(start, length, Length);
+        }
+
+        // A null segment can only be sliced with (0, 0), which leaves it unchanged.
+        return HasValue ? new StringSegment(Buffer, Offset + start, length, skipValidation: true) : this;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ValidateSlice(int start, int length, int segmentLength)
     {
         Assumed.PositiveOrZero(start);
         Assumed.PositiveOrZero(length);
-        Assumed.LessThanOrEqual(start + length, Length);
-
-        // A null segment can only be sliced with (0, 0), which leaves it unchanged.
-        return HasValue ? new StringSegment(Buffer, Offset + start, length) : this;
+        Assumed.LessThanOrEqual(start, segmentLength);
+        Assumed.LessThanOrEqual(length, segmentLength - start);
     }
 
     /// <summary>
