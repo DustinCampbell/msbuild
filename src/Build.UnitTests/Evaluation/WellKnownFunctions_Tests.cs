@@ -69,7 +69,7 @@ public sealed class WellKnownFunctions_Tests
         // Type.DefaultBinder considers the untyped null ambiguous, but Concat(object?) defines null as empty.
         FunctionArguments arguments = CreateArguments([null]);
 
-        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(ref arguments, out object? result);
 
         handled.ShouldBeTrue();
         result.ShouldBe(string.Empty);
@@ -82,14 +82,14 @@ public sealed class WellKnownFunctions_Tests
         // well-known path applies the documented object-concatenation semantics directly instead.
         FunctionArguments arguments = CreateArguments(["a", 2, true, 4L]);
 
-        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(ref arguments, out object? result);
 
         handled.ShouldBeTrue();
         result.ShouldBe("a2True4");
 
         arguments = CreateArguments(["a", new NullStringValue(), "b", 4]);
 
-        handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out result);
+        handled = WellKnownFunctions.TryExecuteStringConcat(ref arguments, out result);
 
         handled.ShouldBeTrue();
         result.ShouldBe("ab4");
@@ -106,7 +106,7 @@ public sealed class WellKnownFunctions_Tests
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
         FunctionArguments arguments = new(source);
 
-        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(ref arguments, out object? result);
 
         handled.ShouldBeTrue();
         result.ShouldBe(expected);
@@ -128,7 +128,7 @@ public sealed class WellKnownFunctions_Tests
         {
             FunctionArguments arguments = new(values);
 
-            bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+            bool handled = WellKnownFunctions.TryExecuteStringConcat(ref arguments, out object? result);
 
             handled.ShouldBeTrue();
             result.ShouldBeSameAs(value);
@@ -143,7 +143,7 @@ public sealed class WellKnownFunctions_Tests
 
         bool handled = WellKnownFunctions.TryExecuteStaticStringFunction(
             nameof(string.Join),
-            arguments,
+            ref arguments,
             out object? result);
 
         handled.ShouldBeTrue();
@@ -158,7 +158,7 @@ public sealed class WellKnownFunctions_Tests
 
         bool handled = WellKnownFunctions.TryExecuteStaticStringFunction(
             nameof(string.Join),
-            arguments,
+            ref arguments,
             out object? result);
 
         handled.ShouldBeFalse();
@@ -173,7 +173,7 @@ public sealed class WellKnownFunctions_Tests
         string[] values = ["ignored", rootedPath, "child", "file.txt"];
         FunctionArguments arguments = new(values);
 
-        bool handled = WellKnownFunctions.TryExecutePathFunction(nameof(Path.Combine), out object? result, arguments);
+        bool handled = WellKnownFunctions.TryExecutePathFunction(nameof(Path.Combine), out object? result, ref arguments);
 
         handled.ShouldBeTrue();
         result.ShouldBe(Path.Combine(values));
@@ -188,7 +188,7 @@ public sealed class WellKnownFunctions_Tests
         bool handled = WellKnownFunctions.TryExecutePathFunction(
             nameof(Path.Combine),
             out object? result,
-            arguments);
+            ref arguments);
 
         handled.ShouldBeFalse();
         result.ShouldBeNull();
@@ -204,7 +204,7 @@ public sealed class WellKnownFunctions_Tests
     {
         FunctionArguments arguments = new([path]);
 
-        bool handled = WellKnownFunctions.TryExecutePathFunction(methodName, out object? result, arguments);
+        bool handled = WellKnownFunctions.TryExecutePathFunction(methodName, out object? result, ref arguments);
 
         handled.ShouldBeTrue();
         result.ShouldBe(expected);
@@ -218,7 +218,7 @@ public sealed class WellKnownFunctions_Tests
 
         bool handled = WellKnownFunctions.TryExecuteStaticVersionFunction(
             nameof(Version.Parse),
-            arguments,
+            ref arguments,
             out object? result);
 
         handled.ShouldBeTrue();
@@ -230,7 +230,7 @@ public sealed class WellKnownFunctions_Tests
         handled = WellKnownFunctions.TryExecuteVersionFunction(
             nameof(Version.Major),
             version,
-            arguments,
+            ref arguments,
             out result);
 
         handled.ShouldBeTrue();
@@ -249,7 +249,7 @@ public sealed class WellKnownFunctions_Tests
 
         bool handled = WellKnownFunctions.TryExecuteConvertFunction(
             nameof(Convert.ToUInt32),
-            arguments,
+            ref arguments,
             out object? result);
 
         handled.ShouldBeTrue();
@@ -264,7 +264,7 @@ public sealed class WellKnownFunctions_Tests
 
         bool handled = WellKnownFunctions.TryExecuteConvertFunction(
             nameof(Convert.ToUInt32),
-            arguments,
+            ref arguments,
             out object? result);
 
         handled.ShouldBeFalse();
@@ -276,7 +276,7 @@ public sealed class WellKnownFunctions_Tests
         object? expected = InvokeStringConcatWithDefaultBinder((object?[])values.Clone());
         FunctionArguments arguments = CreateArguments(values);
 
-        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(ref arguments, out object? result);
 
         handled.ShouldBeTrue();
         result.ShouldBe(expected);
@@ -286,7 +286,7 @@ public sealed class WellKnownFunctions_Tests
     {
         FunctionArguments arguments = CreateArguments(values);
 
-        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(ref arguments, out object? result);
 
         handled.ShouldBeFalse();
         result.ShouldBeNull();

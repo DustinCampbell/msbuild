@@ -17,7 +17,7 @@ internal partial class WellKnownFunctions
 {
     internal static bool TryExecuteStaticCultureInfoFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (args.Length == 0)
@@ -50,7 +50,7 @@ internal partial class WellKnownFunctions
     internal static bool TryExecuteCultureInfoFunction(
         StringSegment methodName,
         CultureInfo culture,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (args.Length == 0)
@@ -80,7 +80,7 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteRuntimeInformationFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (args.Length == 0)
@@ -116,7 +116,7 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteEnvironmentFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (args.Length == 0)
@@ -160,7 +160,7 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteStaticDateTimeFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (args.Length == 0)
@@ -199,7 +199,7 @@ internal partial class WellKnownFunctions
     internal static bool TryExecuteDateTimeFunction(
         StringSegment methodName,
         DateTime value,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (methodName.Equals(nameof(DateTime.ToString), StringComparison.OrdinalIgnoreCase))
@@ -223,7 +223,7 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteRegexFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (methodName.Equals(nameof(Regex.Match), StringComparison.OrdinalIgnoreCase) &&
@@ -259,7 +259,7 @@ internal partial class WellKnownFunctions
             args.TryGetSegment(0, out StringSegment replaceInput) &&
             args.TryGetSegment(1, out StringSegment replacePattern) &&
             args.TryGetSegment(2, out StringSegment replaceValue) &&
-            TryGetRegexOptions(args, 3, out RegexOptions options))
+            TryGetRegexOptions(ref args, 3, out RegexOptions options))
         {
             result = Regex.Replace(
                 replaceInput.ValueOrEmpty,
@@ -273,7 +273,7 @@ internal partial class WellKnownFunctions
         return false;
     }
 
-    private static bool TryGetRegexOptions(FunctionArguments args, int index, out RegexOptions options)
+    private static bool TryGetRegexOptions(ref FunctionArguments args, int index, out RegexOptions options)
     {
         if (!args.TryGetSegment(index, out StringSegment name))
         {
@@ -307,10 +307,10 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteFileFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
-        if (args.Length == 1 && TryGetFileSystemPath(args, 0, out string? path))
+        if (args.Length == 1 && TryGetFileSystemPath(ref args, 0, out string? path))
         {
             if (methodName.Equals(nameof(File.Exists), StringComparison.OrdinalIgnoreCase))
             {
@@ -373,10 +373,10 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteDirectoryFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
-        if (args.Length >= 1 && TryGetFileSystemPath(args, 0, out string? path))
+        if (args.Length >= 1 && TryGetFileSystemPath(ref args, 0, out string? path))
         {
             if (methodName.Equals(nameof(Directory.Exists), StringComparison.OrdinalIgnoreCase) && args.Length == 1)
             {
@@ -438,7 +438,7 @@ internal partial class WellKnownFunctions
     }
 
     private static bool TryGetFileSystemPath(
-        FunctionArguments args,
+        ref FunctionArguments args,
         int index,
         [NotNullWhen(true)] out string? path)
     {

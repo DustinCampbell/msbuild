@@ -57,7 +57,7 @@ internal partial class WellKnownFunctions
     internal static bool TryExecuteStringFunction(
         StringSegment methodName,
         string text,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         StringFunction function = GetStringFunction(methodName);
@@ -107,14 +107,14 @@ internal partial class WellKnownFunctions
             }
         }
 
-        return TryExecuteStringFunctionCore(function, text, args, out result);
+        return TryExecuteStringFunctionCore(function, text, ref args, out result);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool TryExecuteStringFunctionCore(
         StringFunction function,
         string text,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         StringSegment value = text;
@@ -474,13 +474,13 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteStaticStringFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         switch (GetStringFunction(methodName))
         {
             case StringFunction.Concat:
-                return TryExecuteStringConcat(args, out result);
+                return TryExecuteStringConcat(ref args, out result);
 
             case StringFunction.IsNullOrWhiteSpace when args.Length == 1:
                 if (args.TryGetSegment(0, out StringSegment whiteSpace))
@@ -556,7 +556,7 @@ internal partial class WellKnownFunctions
             case StringFunction.Join:
                 if (args.Length >= 2 &&
                     args.TryGetSegment(0, out StringSegment separator) &&
-                    TryJoin(separator, args, out string? joined))
+                    TryJoin(separator, ref args, out string? joined))
                 {
                     result = joined;
                     return true;
@@ -669,7 +669,7 @@ internal partial class WellKnownFunctions
 
     private static bool TryJoin(
         StringSegment separator,
-        FunctionArguments args,
+        ref FunctionArguments args,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? result)
     {
         for (int i = 1; i < args.Length; i++)

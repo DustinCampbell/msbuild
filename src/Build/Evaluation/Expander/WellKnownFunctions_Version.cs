@@ -23,7 +23,7 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteStaticVersionFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (GetVersionFunction(methodName) == VersionFunction.Parse && args.TryGetArg(out Version? version))
@@ -39,7 +39,7 @@ internal partial class WellKnownFunctions
     internal static bool TryExecuteVersionFunction(
         StringSegment methodName,
         Version version,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         switch (GetVersionFunction(methodName))
@@ -88,7 +88,7 @@ internal partial class WellKnownFunctions
         return false;
     }
 
-    internal static bool TryExecuteVersionConstructor(FunctionArguments args, out object? result)
+    internal static bool TryExecuteVersionConstructor(ref FunctionArguments args, out object? result)
     {
         if (args.Length == 0)
         {

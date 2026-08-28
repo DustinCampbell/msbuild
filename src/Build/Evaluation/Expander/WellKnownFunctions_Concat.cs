@@ -15,7 +15,7 @@ namespace Microsoft.Build.Evaluation.Expander;
 
 internal partial class WellKnownFunctions
 {
-    internal static bool TryExecuteStringConcat(FunctionArguments args, out object? result)
+    internal static bool TryExecuteStringConcat(ref FunctionArguments args, out object? result)
     {
         // Type.DefaultBinder reports an ambiguous match for the zero-argument call. Preserve that behavior by
         // leaving it to reflection.
@@ -27,10 +27,10 @@ internal partial class WellKnownFunctions
 
         if (args.Length == 1)
         {
-            return TryExecuteSingleStringConcatArgument(args, out result);
+            return TryExecuteSingleStringConcatArgument(ref args, out result);
         }
 
-        if (TryConcatSegments(args, out result))
+        if (TryConcatSegments(ref args, out result))
         {
             return true;
         }
@@ -47,11 +47,11 @@ internal partial class WellKnownFunctions
             return true;
         }
 
-        result = ConcatValues(args);
+        result = ConcatValues(ref args);
         return true;
     }
 
-    private static bool TryExecuteSingleStringConcatArgument(FunctionArguments args, out object? result)
+    private static bool TryExecuteSingleStringConcatArgument(ref FunctionArguments args, out object? result)
     {
         if (args.TryGetSegment(0, out StringSegment segment))
         {
@@ -82,7 +82,7 @@ internal partial class WellKnownFunctions
         return true;
     }
 
-    private static bool TryConcatSegments(FunctionArguments args, out object? result)
+    private static bool TryConcatSegments(ref FunctionArguments args, out object? result)
     {
         switch (args.Length)
         {
@@ -124,7 +124,7 @@ internal partial class WellKnownFunctions
         return false;
     }
 
-    private static string ConcatValues(FunctionArguments args)
+    private static string ConcatValues(ref FunctionArguments args)
     {
 #if NET
         using ValueStringBuilder builder = new(stackalloc char[256]);

@@ -211,7 +211,7 @@ public class FunctionArguments_Tests
         bool handled = WellKnownFunctions.TryExecuteStringFunction(
             nameof(string.Contains),
             "prefix-value-suffix",
-            arguments,
+            ref arguments,
             out object? result);
 
         handled.ShouldBeTrue();
@@ -285,7 +285,7 @@ public class FunctionArguments_Tests
         bool handled = WellKnownFunctions.TryExecuteStringFunction(
             nameof(string.StartsWith),
             "value-suffix",
-            arguments,
+            ref arguments,
             out object? result);
 
         handled.ShouldBeTrue();

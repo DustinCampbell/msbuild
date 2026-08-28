@@ -29,15 +29,15 @@ internal partial class Expander<P, I>
     where P : class, IProperty
     where I : class, IItem
 {
+    private enum WellKnownExecutionStatus
+    {
+        NotHandled,
+        Handled,
+        ReturnImmediately,
+    }
+
     private struct BoundFunction
     {
-        private enum WellKnownExecutionStatus
-        {
-            NotHandled,
-            Handled,
-            ReturnImmediately,
-        }
-
         /// <summary>
         /// The type of this function's receiver.
         /// </summary>
@@ -139,8 +139,7 @@ internal partial class Expander<P, I>
             || receiverType == typeof(System.IO.Directory);
 
         private static bool ShouldMaterializeArgumentsOnAccess(Type receiverType, StringSegment methodName)
-            => receiverType == typeof(System.IO.Path)
-            || methodName.Equals("new", StringComparison.OrdinalIgnoreCase)
+            => methodName.Equals("new", StringComparison.OrdinalIgnoreCase)
             || methodName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
             || methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase)
             || Traits.Instance.LogPropertyFunctionsRequiringReflection;
@@ -255,7 +254,6 @@ internal partial class Expander<P, I>
         ///  Executes the function on its bound receiver.
         /// </summary>
         /// <param name="context">The expansion context.</param>
-        /// <param name="loggingContext">The logging context for the invocation.</param>
         /// <param name="result">The function result.</param>
         /// <returns>
         ///  <see langword="true"/> when execution succeeds; otherwise, <see langword="false"/> when
@@ -269,7 +267,7 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        public bool Execute(in ExpansionContext context, LoggingContext? loggingContext, out object? result)
+        public bool Execute(in ExpansionContext context, out object? result)
         {
             object? functionResult = string.Empty;
             object?[]? args = null;
@@ -292,25 +290,6 @@ internal partial class Expander<P, I>
                 {
                     argumentMaterializer = CreateArgumentMaterializer(in context);
                     _arguments.ConfigureMaterialization(argumentMaterializer, materializeAllArguments: ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName));
-                }
-
-                WellKnownExecutionStatus wellKnownStatus = TryExecuteWellKnownFunction(
-                    objectInstance,
-                    _arguments,
-                    in context,
-                    loggingContext,
-                    out functionResult);
-
-                if (wellKnownStatus == WellKnownExecutionStatus.ReturnImmediately)
-                {
-                    result = functionResult;
-                    return false;
-                }
-
-                if (wellKnownStatus == WellKnownExecutionStatus.Handled)
-                {
-                    result = CompleteExecution(functionResult);
-                    return true;
                 }
 
                 if (argumentMaterializer is null && _arguments.Count > 0)
@@ -439,53 +418,128 @@ internal partial class Expander<P, I>
         // If the result of the function call is a string, escape it to maintain the engine's escaped-data state.
         // Escape/Unescape/ConvertFromBase64 already return data in their intended representation.
         private readonly object? CompleteExecution(object? functionResult)
+            => CompleteExecution(_methodName, functionResult);
+
+        private static object? CompleteExecution(StringSegment methodName, object? functionResult)
             => functionResult is string s
-            && !_methodName.Equals("Unescape", StringComparison.OrdinalIgnoreCase)
-            && !_methodName.Equals("Escape", StringComparison.OrdinalIgnoreCase)
-            && !_methodName.Equals("ConvertFromBase64", StringComparison.OrdinalIgnoreCase)
+            && !methodName.Equals("Unescape", StringComparison.OrdinalIgnoreCase)
+            && !methodName.Equals("Escape", StringComparison.OrdinalIgnoreCase)
+            && !methodName.Equals("ConvertFromBase64", StringComparison.OrdinalIgnoreCase)
                 ? EscapingUtilities.Escape(s)
                 : functionResult;
 
-        private WellKnownExecutionStatus TryExecuteWellKnownFunction(
-            object? objectInstance,
-            FunctionArguments args,
+        internal static WellKnownExecutionStatus TryExecuteWellKnownFunction(
+            Type receiverType,
+            object? receiverValue,
+            StringSegment methodName,
+            BindingFlags bindingFlags,
+            ref FunctionArguments arguments,
             in ExpansionContext context,
             LoggingContext? loggingContext,
-            out object? functionResult)
+            out object? result)
         {
+            if (arguments.Count == 0)
+            {
+                return TryExecuteWellKnownFunctionCore(
+                    receiverType,
+                    receiverValue,
+                    methodName,
+                    bindingFlags,
+                    ref arguments,
+                    in context,
+                    loggingContext,
+                    out result);
+            }
+
+            ArgumentMaterializer? argumentMaterializer = null;
+
             try
             {
-                if (WellKnownFunctions.TryExecuteWellKnownFunction(
-                    _methodName,
-                    _receiverType,
+                bool materializeAllArguments = ShouldMaterializeArgumentsOnAccess(receiverType, methodName);
+                if (materializeAllArguments || arguments.ContainsMaterializationRequirement())
+                {
+                    argumentMaterializer = new ArgumentMaterializer(receiverType, methodName, context);
+                    arguments.ConfigureMaterialization(argumentMaterializer, materializeAllArguments);
+                }
+
+                return TryExecuteWellKnownFunctionCore(
+                    receiverType,
+                    receiverValue,
+                    methodName,
+                    bindingFlags,
+                    ref arguments,
+                    in context,
+                    loggingContext,
+                    out result);
+            }
+            finally
+            {
+                if (argumentMaterializer is not null)
+                {
+                    arguments.ClearMaterializer();
+                }
+            }
+        }
+
+        private static WellKnownExecutionStatus TryExecuteWellKnownFunctionCore(
+            Type receiverType,
+            object? receiverValue,
+            StringSegment methodName,
+            BindingFlags bindingFlags,
+            ref FunctionArguments arguments,
+            in ExpansionContext context,
+            LoggingContext? loggingContext,
+            out object? result)
+        {
+            object? objectInstance = receiverValue;
+
+            try
+            {
+                if (objectInstance is string objectInstanceString)
+                {
+                    objectInstance = EscapingUtilities.UnescapeAll(objectInstanceString);
+                }
+
+                if (!WellKnownFunctions.TryExecuteWellKnownFunction(
+                    methodName,
+                    receiverType,
                     objectInstance,
-                    args,
+                    ref arguments,
                     context.FileSystem,
                     GetStartingDirectory(in context),
                     loggingContext,
                     context.Properties,
-                    out functionResult))
+                    out object? functionResult))
                 {
-                    return WellKnownExecutionStatus.Handled;
+                    result = null;
+                    return WellKnownExecutionStatus.NotHandled;
                 }
+
+                result = CompleteExecution(methodName, functionResult);
+                return WellKnownExecutionStatus.Handled;
             }
             catch (Exception ex)
             {
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args.ToObjectArray(), in context);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(
+                    receiverType,
+                    bindingFlags,
+                    objectInstance,
+                    methodName,
+                    arguments.ToObjectArray(),
+                    in context);
 
                 if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
-                    functionResult = partiallyEvaluated;
+                    result = partiallyEvaluated;
                     return WellKnownExecutionStatus.ReturnImmediately;
                 }
 
                 context.Errors.InvalidPropertyFunction.Throw(
                     partiallyEvaluated,
                     ex.Message.Replace("\r\n", " "));
+                result = null;
+                return WellKnownExecutionStatus.NotHandled;
             }
-
-            functionResult = null;
-            return WellKnownExecutionStatus.NotHandled;
         }
 
         /// <summary>
@@ -670,12 +724,21 @@ internal partial class Expander<P, I>
             StringSegment name,
             object?[]? args,
             in ExpansionContext context)
+            => GenerateStringOfMethodExecuted(_receiverType, _bindingFlags, objectInstance, name, args, in context);
+
+        private static string GenerateStringOfMethodExecuted(
+            Type receiverType,
+            BindingFlags bindingFlags,
+            object? objectInstance,
+            StringSegment name,
+            object?[]? arguments,
+            in ExpansionContext context)
         {
             StringBuilder builder = new();
             if (objectInstance == null)
             {
                 builder.Append('[');
-                builder.Append(_receiverType == typeof(IntrinsicFunctions) ? "MSBuild" : _receiverType.FullName);
+                builder.Append(receiverType == typeof(IntrinsicFunctions) ? "MSBuild" : receiverType.FullName);
                 builder.Append("]::");
             }
             else
@@ -690,14 +753,14 @@ internal partial class Expander<P, I>
                 builder.Append(name.Buffer, name.Offset, name.Length);
             }
 
-            if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            if ((bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
             {
                 builder.Append('(');
                 bool hasArgument = false;
 
-                if (args != null)
+                if (arguments != null)
                 {
-                    foreach (object? arg in args)
+                    foreach (object? arg in arguments)
                     {
                         if (hasArgument)
                         {
@@ -710,9 +773,9 @@ internal partial class Expander<P, I>
 
                     // To aid in diagnostics, we include the starting directory as an extra argument to 'GetPathOfFileAbove'
                     // when only one argument is provided.
-                    if (_receiverType == typeof(IntrinsicFunctions)
+                    if (receiverType == typeof(IntrinsicFunctions)
                         && name.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase)
-                        && args.Length == 1)
+                        && arguments.Length == 1)
                     {
                         builder.Append(", ");
                         AppendFunctionArgument(builder, GetStartingDirectory(in context));

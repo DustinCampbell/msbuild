@@ -73,7 +73,7 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteIntrinsicFunction<T>(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         IFileSystem fileSystem,
         string? projectDirectory,
         LoggingContext? loggingContext,
@@ -103,7 +103,7 @@ internal partial class WellKnownFunctions
                 break;
 
             case IntrinsicFunction.NormalizePath:
-                if (TryGetStringArguments(args, out string[]? paths))
+                if (TryGetStringArguments(ref args, out string[]? paths))
                 {
                     result = IntrinsicFunctions.NormalizePath(paths);
                     return true;
@@ -118,7 +118,7 @@ internal partial class WellKnownFunctions
                     return true;
                 }
 
-                if (TryGetStringArguments(args, out paths))
+                if (TryGetStringArguments(ref args, out paths))
                 {
                     result = IntrinsicFunctions.NormalizeDirectory(paths);
                     return true;
@@ -231,19 +231,19 @@ internal partial class WellKnownFunctions
                 break;
 
             case IntrinsicFunction.Add:
-                return TryExecuteArithmetic(args, IntrinsicFunctions.Add, IntrinsicFunctions.Add, out result);
+                return TryExecuteArithmetic(ref args, IntrinsicFunctions.Add, IntrinsicFunctions.Add, out result);
 
             case IntrinsicFunction.Subtract:
-                return TryExecuteArithmetic(args, IntrinsicFunctions.Subtract, IntrinsicFunctions.Subtract, out result);
+                return TryExecuteArithmetic(ref args, IntrinsicFunctions.Subtract, IntrinsicFunctions.Subtract, out result);
 
             case IntrinsicFunction.Multiply:
-                return TryExecuteArithmetic(args, IntrinsicFunctions.Multiply, IntrinsicFunctions.Multiply, out result);
+                return TryExecuteArithmetic(ref args, IntrinsicFunctions.Multiply, IntrinsicFunctions.Multiply, out result);
 
             case IntrinsicFunction.Divide:
-                return TryExecuteArithmetic(args, IntrinsicFunctions.Divide, IntrinsicFunctions.Divide, out result);
+                return TryExecuteArithmetic(ref args, IntrinsicFunctions.Divide, IntrinsicFunctions.Divide, out result);
 
             case IntrinsicFunction.Modulo:
-                return TryExecuteArithmetic(args, IntrinsicFunctions.Modulo, IntrinsicFunctions.Modulo, out result);
+                return TryExecuteArithmetic(ref args, IntrinsicFunctions.Modulo, IntrinsicFunctions.Modulo, out result);
 
             case IntrinsicFunction.GetCurrentToolsDirectory when args.Length == 0:
                 result = IntrinsicFunctions.GetCurrentToolsDirectory();
@@ -426,13 +426,13 @@ internal partial class WellKnownFunctions
                 break;
 
             case IntrinsicFunction.BitwiseOr:
-                return TryExecuteIntegerBinary(args, IntrinsicFunctions.BitwiseOr, out result);
+                return TryExecuteIntegerBinary(ref args, IntrinsicFunctions.BitwiseOr, out result);
 
             case IntrinsicFunction.BitwiseAnd:
-                return TryExecuteIntegerBinary(args, IntrinsicFunctions.BitwiseAnd, out result);
+                return TryExecuteIntegerBinary(ref args, IntrinsicFunctions.BitwiseAnd, out result);
 
             case IntrinsicFunction.BitwiseXor:
-                return TryExecuteIntegerBinary(args, IntrinsicFunctions.BitwiseXor, out result);
+                return TryExecuteIntegerBinary(ref args, IntrinsicFunctions.BitwiseXor, out result);
 
             case IntrinsicFunction.BitwiseNot:
                 if (args.TryGetArg(out int bitwiseOperand))
@@ -444,13 +444,13 @@ internal partial class WellKnownFunctions
                 break;
 
             case IntrinsicFunction.LeftShift:
-                return TryExecuteIntegerBinary(args, IntrinsicFunctions.LeftShift, out result);
+                return TryExecuteIntegerBinary(ref args, IntrinsicFunctions.LeftShift, out result);
 
             case IntrinsicFunction.RightShift:
-                return TryExecuteIntegerBinary(args, IntrinsicFunctions.RightShift, out result);
+                return TryExecuteIntegerBinary(ref args, IntrinsicFunctions.RightShift, out result);
 
             case IntrinsicFunction.RightShiftUnsigned:
-                return TryExecuteIntegerBinary(args, IntrinsicFunctions.RightShiftUnsigned, out result);
+                return TryExecuteIntegerBinary(ref args, IntrinsicFunctions.RightShiftUnsigned, out result);
 
             case IntrinsicFunction.IsOSPlatform:
                 if (args.TryGetArg(out StringSegment platform))
@@ -502,14 +502,14 @@ internal partial class WellKnownFunctions
     }
 
     private static bool TryExecuteArithmetic(
-        FunctionArguments args,
+        ref FunctionArguments args,
         Func<long, long, long> integerOperation,
         Func<double, double, double> realOperation,
         out object? result)
         => args.TryExecuteArithmeticOverload(integerOperation, realOperation, out result);
 
     private static bool TryExecuteIntegerBinary(
-        FunctionArguments args,
+        ref FunctionArguments args,
         Func<int, int, int> operation,
         out object? result)
     {
@@ -524,7 +524,7 @@ internal partial class WellKnownFunctions
     }
 
     private static bool TryGetStringArguments(
-        FunctionArguments args,
+        ref FunctionArguments args,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string[]? values)
     {
         values = new string[args.Length];

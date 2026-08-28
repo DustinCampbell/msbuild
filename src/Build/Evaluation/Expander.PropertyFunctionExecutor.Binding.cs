@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Text;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
@@ -22,8 +23,41 @@ internal partial class Expander<P, I>
             in ExpansionContext context,
             out object? result)
         {
-            BoundFunction function = Bind(invocation, receiverValue, context.Errors);
-            return function.Execute(in context, context.PropertyLoggingContext, out result);
+            Bind(
+                invocation,
+                receiverValue,
+                context.Errors,
+                out Type receiverType,
+                out object? boundReceiverValue,
+                out StringSegment memberName,
+                out BindingFlags bindingFlags);
+
+            FunctionArguments arguments = new(invocation.Arguments);
+            WellKnownExecutionStatus status = BoundFunction.TryExecuteWellKnownFunction(
+                receiverType,
+                boundReceiverValue,
+                memberName,
+                bindingFlags,
+                ref arguments,
+                in context,
+                context.PropertyLoggingContext,
+                out result);
+
+            if (status != WellKnownExecutionStatus.NotHandled)
+            {
+                return status == WellKnownExecutionStatus.Handled;
+            }
+
+            var function = new BoundFunction(
+                receiverType,
+                boundReceiverValue,
+                invocation.Text,
+                invocation.ReceiverKind,
+                memberName,
+                arguments,
+                bindingFlags);
+
+            return function.Execute(in context, out result);
         }
 
         public static bool ExecuteStringFunction(
@@ -33,16 +67,32 @@ internal partial class Expander<P, I>
             in ExpansionContext context,
             out object? result)
         {
+            FunctionArguments argumentsState = new(arguments);
+            WellKnownExecutionStatus status = BoundFunction.TryExecuteWellKnownFunction(
+                typeof(string),
+                receiverValue,
+                functionName,
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod,
+                ref argumentsState,
+                in context,
+                context.LoggingContext,
+                out result);
+
+            if (status != WellKnownExecutionStatus.NotHandled)
+            {
+                return status == WellKnownExecutionStatus.Handled;
+            }
+
             var function = new BoundFunction(
                 receiverType: typeof(string),
                 receiverValue,
                 invocationText: default,
                 receiverKind: ReceiverKind.Chained,
                 functionName,
-                new FunctionArguments(arguments),
+                argumentsState,
                 bindingFlags: BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod);
 
-            return function.Execute(in context, context.LoggingContext, out result);
+            return function.Execute(in context, out result);
         }
 
         [UnconditionalSuppressMessage(
@@ -53,14 +103,56 @@ internal partial class Expander<P, I>
             "Trimming",
             "IL2072",
             Justification = "Runtime receiver types are restricted to the property-function receiver allowlist under trimming, whose public members are preserved.")]
-        private static BoundFunction Bind(
+        private static void Bind(
             in PropertyFunctionInvocation invocation,
             object? receiverValue,
-            ErrorReporter errors)
+            ErrorReporter errors,
+            out Type receiverType,
+            out object? boundReceiverValue,
+            out StringSegment memberName,
+            out BindingFlags bindingFlags)
         {
-            Type? receiverType = null;
-            StringSegment memberName = invocation.MemberName;
-            BindingFlags bindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public;
+            ReceiverKind receiverKind = invocation.ReceiverKind;
+            MemberKind memberKind = invocation.MemberKind;
+
+            if (receiverKind is ReceiverKind.MSBuildProperty or ReceiverKind.Chained
+                && memberKind != MemberKind.Indexer)
+            {
+                receiverType = receiverValue?.GetType() ?? typeof(string);
+                boundReceiverValue = receiverValue;
+                memberName = invocation.MemberName;
+                bindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
+                bindingFlags |= memberKind == MemberKind.Method
+                    ? BindingFlags.InvokeMethod
+                    : BindingFlags.GetProperty | BindingFlags.GetField;
+                VerifyInstanceMemberAvailable(receiverType, memberName, errors);
+                return;
+            }
+
+            BindUncommon(
+                invocation,
+                receiverValue,
+                errors,
+                out receiverType,
+                out boundReceiverValue,
+                out memberName,
+                out bindingFlags);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void BindUncommon(
+            in PropertyFunctionInvocation invocation,
+            object? receiverValue,
+            ErrorReporter errors,
+            out Type receiverType,
+            out object? boundReceiverValue,
+            out StringSegment memberName,
+            out BindingFlags bindingFlags)
+        {
+            Type? resolvedReceiverType = null;
+            boundReceiverValue = receiverValue;
+            memberName = invocation.MemberName;
+            bindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public;
 
             bindingFlags |= invocation.MemberKind switch
             {
@@ -73,30 +165,30 @@ internal partial class Expander<P, I>
             {
                 case ReceiverKind.Static:
                     StringSegment staticReceiver = invocation.Receiver;
-                    if (!AvailableStaticMembers.TryResolveType(staticReceiver, memberName, out receiverType))
+                    if (!AvailableStaticMembers.TryResolveType(staticReceiver, memberName, out resolvedReceiverType))
                     {
                         errors.UnavailablePropertyFunctionType.Throw(
                             invocation.Text.ValueOrEmpty,
                             staticReceiver.ValueOrEmpty);
                     }
 
-                    Assumed.NotNull(receiverType);
-                    if (!AvailableStaticMembers.IsAvailable(receiverType, memberName))
+                    Assumed.NotNull(resolvedReceiverType);
+                    if (!AvailableStaticMembers.IsAvailable(resolvedReceiverType, memberName))
                     {
-                        errors.UnavailablePropertyFunction.Throw(memberName.ValueOrEmpty, receiverType.FullName);
+                        errors.UnavailablePropertyFunction.Throw(memberName.ValueOrEmpty, resolvedReceiverType.FullName);
                     }
 
-                    receiverValue = null;
+                    boundReceiverValue = null;
                     bindingFlags |= BindingFlags.Static;
                     break;
 
                 case ReceiverKind.MSBuildProperty:
                 case ReceiverKind.Chained:
-                    receiverType = receiverValue?.GetType() ?? typeof(string);
+                    resolvedReceiverType = receiverValue?.GetType() ?? typeof(string);
                     if (invocation.MemberKind == MemberKind.Indexer)
                     {
-                        Assumed.NotNull(receiverValue);
-                        memberName = receiverValue switch
+                        Assumed.NotNull(boundReceiverValue);
+                        memberName = boundReceiverValue switch
                         {
                             Array => (StringSegment)"GetValue",
                             string => "get_Chars",
@@ -104,7 +196,7 @@ internal partial class Expander<P, I>
                         };
                     }
 
-                    VerifyInstanceMemberAvailable(receiverType, memberName, errors);
+                    VerifyInstanceMemberAvailable(resolvedReceiverType, memberName, errors);
                     bindingFlags |= BindingFlags.Instance;
                     break;
 
@@ -113,15 +205,8 @@ internal partial class Expander<P, I>
                     break;
             }
 
-            Assumed.NotNull(receiverType);
-            return new BoundFunction(
-                receiverType,
-                receiverValue,
-                invocation.Text,
-                invocation.ReceiverKind,
-                memberName,
-                new FunctionArguments(invocation.Arguments),
-                bindingFlags);
+            Assumed.NotNull(resolvedReceiverType);
+            receiverType = resolvedReceiverType;
         }
 
         private static void VerifyInstanceMemberAvailable(
