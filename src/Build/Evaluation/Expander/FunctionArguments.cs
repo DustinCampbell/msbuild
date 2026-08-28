@@ -538,7 +538,7 @@ internal struct FunctionArguments
     private readonly bool TryConvertToDouble(int index, out double result)
         => _materialized is null || ReferenceEquals(_materialized[index], s_source)
             ? double.TryParse(
-                GetSource(index).Value,
+                GetSource(index),
                 NumberStyles.Number | NumberStyles.Float,
                 CultureInfo.InvariantCulture.NumberFormat,
                 out result)

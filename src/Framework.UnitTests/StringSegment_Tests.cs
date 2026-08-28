@@ -370,6 +370,58 @@ public class StringSegment_Tests
     }
 
     [Theory]
+    [InlineData("")]
+    [InlineData("0")]
+    [InlineData("-0.5")]
+    [InlineData("+1.25E3")]
+    [InlineData("1,234.5")]
+    [InlineData(" NaN ")]
+    [InlineData("Infinity")]
+    [InlineData("-Infinity")]
+    [InlineData("-0")]
+    [InlineData("-0.0")]
+    [InlineData("42-")]
+    [InlineData("9223372036854775807")]
+    [InlineData("-9223372036854775808")]
+    [InlineData("9223372036854775808")]
+    [InlineData("1e500")]
+    [InlineData("1.2.3")]
+    [InlineData("--1")]
+    public void DoubleTryParse_MatchesStringOverload(string text)
+    {
+        const NumberStyles style = NumberStyles.Number | NumberStyles.Float;
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+        bool expectedSuccess = double.TryParse(
+            text,
+            style,
+            CultureInfo.InvariantCulture.NumberFormat,
+            out double expected);
+
+        bool success = double.TryParse(
+            segment,
+            style,
+            CultureInfo.InvariantCulture.NumberFormat,
+            out double result);
+
+        success.ShouldBe(expectedSuccess);
+        result.ShouldBe(expected);
+        BitConverter.DoubleToInt64Bits(result).ShouldBe(BitConverter.DoubleToInt64Bits(expected));
+    }
+
+    [Fact]
+    public void DoubleTryParse_RejectsNullSegment()
+    {
+        StringSegment segment = default;
+
+        double.TryParse(
+            segment,
+            NumberStyles.Number | NumberStyles.Float,
+            CultureInfo.InvariantCulture.NumberFormat,
+            out double result).ShouldBeFalse();
+        result.ShouldBe(0);
+    }
+
+    [Theory]
     [InlineData(null, true)]
     [InlineData("", true)]
     [InlineData("a", false)]

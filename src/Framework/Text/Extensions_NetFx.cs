@@ -96,6 +96,18 @@ internal static partial class Extensions
         return true;
     }
 
+    private static bool TryParseInvariantDouble(StringSegment value, out double result)
+    {
+        if (TryParseInvariantInteger(value, out long integer))
+        {
+            result = integer;
+            return true;
+        }
+
+        result = 0;
+        return false;
+    }
+
     private static bool TryGetInvariantIntegerDigits(
         StringSegment value,
         out StringSegment digits,

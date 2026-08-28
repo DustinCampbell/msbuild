@@ -66,6 +66,24 @@ internal static partial class Extensions
 #endif
     }
 
+    extension(double)
+    {
+        /// <summary>
+        ///  Converts a number represented by a <see cref="StringSegment"/> to a double-precision floating-point
+        ///  number.
+        /// </summary>
+        public static bool TryParse(StringSegment value, NumberStyles style, IFormatProvider? provider, out double result)
+#if NET
+            => double.TryParse(value.AsSpan(), style, provider, out result);
+#else
+            => (style == (NumberStyles.Number | NumberStyles.Float)
+                    && IsInvariantProvider(provider)
+                    && TryParseInvariantDouble(value, out result))
+                || double.TryParse(value.Value, style, provider, out result);
+#endif
+
+    }
+
     /// <summary>
     ///  Creates a <see cref="StringSegment"/> that views the entirety of <paramref name="text"/>.
     /// </summary>
