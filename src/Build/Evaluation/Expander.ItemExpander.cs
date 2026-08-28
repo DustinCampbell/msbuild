@@ -11,9 +11,8 @@ using System.Text;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
-#if NET
+using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
-#endif
 using Microsoft.NET.StringTools;
 
 #nullable disable
@@ -683,44 +682,35 @@ internal partial class Expander<P, I>
 #endif
                 return true; // joined successfully
             }
+        }
 
-            static string JoinEntries(string separator, List<TransformEntry> entries)
+        private static string JoinEntries(string separator, List<TransformEntry> entries)
+        {
+            if (entries.Count == 0)
             {
-                if (entries.Count == 0)
-                {
-                    return string.Empty;
-                }
-
-                if (entries is [{ Value: var value }])
-                {
-                    return value ?? string.Empty;
-                }
-
-                // Use stack- and pool-backed storage on .NET and MSBuild's cached StringBuilder on .NET Framework.
-#if NET
-                using ValueStringBuilder builder = new(stackalloc char[256]);
-#else
-                StringBuilder builder = StringBuilderCache.Acquire();
-#endif
-                bool first = true;
-
-                foreach (TransformEntry entry in entries)
-                {
-                    if (!first)
-                    {
-                        builder.Append(separator);
-                    }
-
-                    first = false;
-                    builder.Append(entry.Value);
-                }
-
-#if NET
-                return builder.ToString();
-#else
-                return StringBuilderCache.GetStringAndRelease(builder);
-#endif
+                return string.Empty;
             }
+
+            if (entries is [{ Value: var value }])
+            {
+                return value ?? string.Empty;
+            }
+
+            using ValueStringBuilder builder = new(stackalloc char[256]);
+            bool first = true;
+
+            foreach (TransformEntry entry in entries)
+            {
+                if (!first)
+                {
+                    builder.Append(separator);
+                }
+
+                first = false;
+                builder.Append(entry.Value);
+            }
+
+            return Strings.WeakIntern(builder.AsSpan());
         }
 
         /// <summary>
@@ -744,6 +734,13 @@ internal partial class Expander<P, I>
             if (!ExpressionShredder.TryGetNextItemVectorExpression(expression, out ExpressionShredder.ItemExpressionCapture currentItem))
             {
                 return expression;
+            }
+
+            if (currentItem.Index == 0 &&
+                currentItem.Length == expression.Length &&
+                (context.Options & (ExpanderOptions.BreakOnNotEmpty | ExpanderOptions.Truncate)) == 0)
+            {
+                return ExpandSingleItemVectorIntoString(currentItem, context);
             }
 
             using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
@@ -782,6 +779,24 @@ internal partial class Expander<P, I>
             builder.Append(expression, lastStringIndex, expression.Length - lastStringIndex);
 
             return builder.ToString();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static string ExpandSingleItemVectorIntoString(
+            ExpressionShredder.ItemExpressionCapture itemVector,
+            ExpansionContext context)
+        {
+            bool brokeEarly = ExpandItemVector(
+                itemVector,
+                context.Items,
+                includeNullEntries: true,
+                out _,
+                out List<TransformEntry> entries,
+                context);
+
+            return brokeEarly
+                ? null
+                : entries is null ? string.Empty : JoinEntries(";", entries);
         }
 
         /// <summary>
