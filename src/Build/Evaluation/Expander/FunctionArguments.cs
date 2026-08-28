@@ -508,21 +508,69 @@ internal struct FunctionArguments
     {
         result = default;
 
-        if (!TryGetString(index, out string? comparisonTypeName)
-            || comparisonTypeName is null
-            || int.TryParse(comparisonTypeName, out _))
+        if (!TryGetSegment(index, out StringSegment comparisonTypeName))
         {
             return false;
         }
 
-        if (comparisonTypeName.IndexOf('.') >= 0)
+        comparisonTypeName = comparisonTypeName.Trim();
+
+        // A bare number represents an integer overload, not a StringComparison value.
+        if (int.TryParse(comparisonTypeName, out _))
         {
-            comparisonTypeName = comparisonTypeName
-                .Replace("System.StringComparison.", string.Empty)
-                .Replace("StringComparison.", string.Empty);
+            return false;
         }
 
-        return Enum.TryParse(comparisonTypeName, out result);
+        while (true)
+        {
+            if (comparisonTypeName.StartsWith("System.StringComparison."))
+            {
+                comparisonTypeName = comparisonTypeName["System.StringComparison.".Length..].TrimStart();
+            }
+            else if (comparisonTypeName.StartsWith("StringComparison."))
+            {
+                comparisonTypeName = comparisonTypeName["StringComparison.".Length..].TrimStart();
+            }
+            else
+            {
+                break;
+            }
+        }
+
+#if NET
+        return Enum.TryParse(comparisonTypeName.AsSpan(), out result);
+#else
+        switch (comparisonTypeName.Length)
+        {
+            case 7 when comparisonTypeName.Equals(nameof(StringComparison.Ordinal)):
+                result = StringComparison.Ordinal;
+                return true;
+
+            case 14 when comparisonTypeName.Equals(nameof(StringComparison.CurrentCulture)):
+                result = StringComparison.CurrentCulture;
+                return true;
+
+            case 16 when comparisonTypeName.Equals(nameof(StringComparison.InvariantCulture)):
+                result = StringComparison.InvariantCulture;
+                return true;
+
+            case 17 when comparisonTypeName.Equals(nameof(StringComparison.OrdinalIgnoreCase)):
+                result = StringComparison.OrdinalIgnoreCase;
+                return true;
+
+            case 24 when comparisonTypeName.Equals(nameof(StringComparison.CurrentCultureIgnoreCase)):
+                result = StringComparison.CurrentCultureIgnoreCase;
+                return true;
+
+            case 26 when comparisonTypeName.Equals(nameof(StringComparison.InvariantCultureIgnoreCase)):
+                result = StringComparison.InvariantCultureIgnoreCase;
+                return true;
+
+            default:
+                // Preserve Enum.TryParse behavior for uncommon inputs such as prefixed numeric or composite values.
+                return Enum.TryParse(comparisonTypeName.Value, out result);
+        }
+#endif
     }
 
     private readonly bool TryConvertToInt(int index, out int result)
