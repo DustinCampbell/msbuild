@@ -49,15 +49,15 @@ internal partial class WellKnownFunctions
     internal static bool TryExecutePathFunction(
         StringSegment methodName,
         out object? result,
-        FunctionArguments args)
+        ref FunctionArguments args)
     {
         switch (GetPathFunction(methodName))
         {
             case PathFunction.Combine:
-                return TryExecutePathCombine(args, out result);
+                return TryExecutePathCombine(ref args, out result);
 
             case PathFunction.Join:
-                return TryExecutePathJoin(args, out result);
+                return TryExecutePathJoin(ref args, out result);
 
             case PathFunction.DirectorySeparatorChar when args.Length == 0:
                 result = PathOperations.DirectorySeparatorChar;
@@ -88,7 +88,7 @@ internal partial class WellKnownFunctions
                 return true;
 
             case PathFunction.GetFullPath:
-                if (args.Length == 1 && TryGetPathArgument(args, 0, out StringSegment fullPath))
+                if (args.Length == 1 && TryGetPathArgument(ref args, 0, out StringSegment fullPath))
                 {
                     string? currentDirectory = FileUtilities.CurrentThreadWorkingDirectory;
                     string path = fullPath.ValueOrEmpty;
@@ -101,7 +101,7 @@ internal partial class WellKnownFunctions
                 break;
 
             case PathFunction.IsPathRooted:
-                if (args.Length == 1 && TryGetPathArgument(args, 0, out StringSegment rootedPath))
+                if (args.Length == 1 && TryGetPathArgument(ref args, 0, out StringSegment rootedPath))
                 {
                     result = IsPathRooted(rootedPath);
                     return true;
@@ -110,7 +110,7 @@ internal partial class WellKnownFunctions
                 break;
 
             case PathFunction.GetFileName:
-                if (args.Length == 1 && TryGetPathArgument(args, 0, out StringSegment fileNamePath))
+                if (args.Length == 1 && TryGetPathArgument(ref args, 0, out StringSegment fileNamePath))
                 {
                     result = GetFileName(fileNamePath);
                     return true;
@@ -119,7 +119,7 @@ internal partial class WellKnownFunctions
                 break;
 
             case PathFunction.GetDirectoryName:
-                if (args.Length == 1 && TryGetPathArgument(args, 0, out StringSegment directoryNamePath))
+                if (args.Length == 1 && TryGetPathArgument(ref args, 0, out StringSegment directoryNamePath))
                 {
                     result = GetDirectoryName(directoryNamePath);
                     return true;
@@ -128,7 +128,7 @@ internal partial class WellKnownFunctions
                 break;
 
             case PathFunction.GetFileNameWithoutExtension:
-                if (args.Length == 1 && TryGetPathArgument(args, 0, out StringSegment fileNameWithoutExtensionPath))
+                if (args.Length == 1 && TryGetPathArgument(ref args, 0, out StringSegment fileNameWithoutExtensionPath))
                 {
                     result = PathOperations.GetFileNameWithoutExtension(fileNameWithoutExtensionPath.ValueOrEmpty);
                     return true;
@@ -137,7 +137,7 @@ internal partial class WellKnownFunctions
                 break;
 
             case PathFunction.GetExtension:
-                if (args.Length == 1 && TryGetPathArgument(args, 0, out StringSegment extensionPath))
+                if (args.Length == 1 && TryGetPathArgument(ref args, 0, out StringSegment extensionPath))
                 {
                     result = GetExtension(extensionPath);
                     return true;
@@ -147,7 +147,7 @@ internal partial class WellKnownFunctions
 
             case PathFunction.ChangeExtension:
                 if (args.Length == 2 &&
-                    TryGetPathArgument(args, 0, out StringSegment changeExtensionPath) &&
+                    TryGetPathArgument(ref args, 0, out StringSegment changeExtensionPath) &&
                     args.TryGetSegment(1, out StringSegment extension))
                 {
                     result = PathOperations.ChangeExtension(changeExtensionPath.ValueOrEmpty, extension.Value);
@@ -157,7 +157,7 @@ internal partial class WellKnownFunctions
                 break;
 
             case PathFunction.GetPathRoot:
-                if (args.Length == 1 && TryGetPathArgument(args, 0, out StringSegment rootPath))
+                if (args.Length == 1 && TryGetPathArgument(ref args, 0, out StringSegment rootPath))
                 {
                     result = GetPathRoot(rootPath);
                     return true;
@@ -166,7 +166,7 @@ internal partial class WellKnownFunctions
                 break;
 
             case PathFunction.HasExtension:
-                if (args.Length == 1 && TryGetPathArgument(args, 0, out StringSegment hasExtensionPath))
+                if (args.Length == 1 && TryGetPathArgument(ref args, 0, out StringSegment hasExtensionPath))
                 {
                     result = HasExtension(hasExtensionPath);
                     return true;
@@ -179,7 +179,7 @@ internal partial class WellKnownFunctions
         return false;
     }
 
-    private static bool TryExecutePathCombine(FunctionArguments args, out object? result)
+    private static bool TryExecutePathCombine(ref FunctionArguments args, out object? result)
     {
         StringSegment path1;
         StringSegment path2;
@@ -188,24 +188,24 @@ internal partial class WellKnownFunctions
 
         switch (args.Length)
         {
-            case 1 when TryGetPathArgument(args, 0, out StringSegment path):
+            case 1 when TryGetPathArgument(ref args, 0, out StringSegment path):
                 result = path.ValueOrEmpty;
                 return true;
 
-            case 2 when TryGetPathArguments(args, out path1, out path2):
+            case 2 when TryGetPathArguments(ref args, out path1, out path2):
                 result = Combine(path1, path2);
                 return true;
 
-            case 3 when TryGetPathArguments(args, out path1, out path2, out path3):
+            case 3 when TryGetPathArguments(ref args, out path1, out path2, out path3):
                 result = Combine(path1, path2, path3);
                 return true;
 
-            case 4 when TryGetPathArguments(args, out path1, out path2, out path3, out path4):
+            case 4 when TryGetPathArguments(ref args, out path1, out path2, out path3, out path4):
                 result = Combine(path1, path2, path3, path4);
                 return true;
 
             default:
-                if (args.Length > 4 && TryGetPathArguments(args, out string[]? paths))
+                if (args.Length > 4 && TryGetPathArguments(ref args, out string[]? paths))
                 {
                     result = PathOperations.Combine(paths);
                     return true;
@@ -218,7 +218,7 @@ internal partial class WellKnownFunctions
         return false;
     }
 
-    private static bool TryExecutePathJoin(FunctionArguments args, out object? result)
+    private static bool TryExecutePathJoin(ref FunctionArguments args, out object? result)
     {
 #if FEATURE_PATH_SPANS
         StringSegment path1;
@@ -228,15 +228,15 @@ internal partial class WellKnownFunctions
 
         switch (args.Length)
         {
-            case 2 when TryGetPathArguments(args, out path1, out path2):
+            case 2 when TryGetPathArguments(ref args, out path1, out path2):
                 result = PathOperations.Join(path1.AsSpan(), path2.AsSpan());
                 return true;
 
-            case 3 when TryGetPathArguments(args, out path1, out path2, out path3):
+            case 3 when TryGetPathArguments(ref args, out path1, out path2, out path3):
                 result = PathOperations.Join(path1.AsSpan(), path2.AsSpan(), path3.AsSpan());
                 return true;
 
-            case 4 when TryGetPathArguments(args, out path1, out path2, out path3, out path4):
+            case 4 when TryGetPathArguments(ref args, out path1, out path2, out path3, out path4):
                 result = PathOperations.Join(path1.AsSpan(), path2.AsSpan(), path3.AsSpan(), path4.AsSpan());
                 return true;
         }
@@ -246,7 +246,7 @@ internal partial class WellKnownFunctions
         return false;
     }
 
-    private static bool TryGetPathArgument(FunctionArguments args, int index, out StringSegment path)
+    private static bool TryGetPathArgument(ref FunctionArguments args, int index, out StringSegment path)
     {
         if (args.TryGetSegment(index, out path))
         {
@@ -264,17 +264,17 @@ internal partial class WellKnownFunctions
     }
 
     private static bool TryGetPathArguments(
-        FunctionArguments args,
+        ref FunctionArguments args,
         out StringSegment path1,
         out StringSegment path2)
     {
         path1 = default;
         path2 = default;
-        return TryGetPathArgument(args, 0, out path1) && TryGetPathArgument(args, 1, out path2);
+        return TryGetPathArgument(ref args, 0, out path1) && TryGetPathArgument(ref args, 1, out path2);
     }
 
     private static bool TryGetPathArguments(
-        FunctionArguments args,
+        ref FunctionArguments args,
         out StringSegment path1,
         out StringSegment path2,
         out StringSegment path3)
@@ -282,13 +282,13 @@ internal partial class WellKnownFunctions
         path1 = default;
         path2 = default;
         path3 = default;
-        return TryGetPathArgument(args, 0, out path1) &&
-               TryGetPathArgument(args, 1, out path2) &&
-               TryGetPathArgument(args, 2, out path3);
+        return TryGetPathArgument(ref args, 0, out path1) &&
+               TryGetPathArgument(ref args, 1, out path2) &&
+               TryGetPathArgument(ref args, 2, out path3);
     }
 
     private static bool TryGetPathArguments(
-        FunctionArguments args,
+        ref FunctionArguments args,
         out StringSegment path1,
         out StringSegment path2,
         out StringSegment path3,
@@ -298,20 +298,20 @@ internal partial class WellKnownFunctions
         path2 = default;
         path3 = default;
         path4 = default;
-        return TryGetPathArgument(args, 0, out path1) &&
-               TryGetPathArgument(args, 1, out path2) &&
-               TryGetPathArgument(args, 2, out path3) &&
-               TryGetPathArgument(args, 3, out path4);
+        return TryGetPathArgument(ref args, 0, out path1) &&
+               TryGetPathArgument(ref args, 1, out path2) &&
+               TryGetPathArgument(ref args, 2, out path3) &&
+               TryGetPathArgument(ref args, 3, out path4);
     }
 
     private static bool TryGetPathArguments(
-        FunctionArguments args,
+        ref FunctionArguments args,
         [NotNullWhen(true)] out string[]? paths)
     {
         paths = new string[args.Length];
         for (int i = 0; i < paths.Length; i++)
         {
-            if (!TryGetPathArgument(args, i, out StringSegment path))
+            if (!TryGetPathArgument(ref args, i, out StringSegment path))
             {
                 paths = null;
                 return false;

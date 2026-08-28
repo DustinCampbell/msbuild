@@ -11,7 +11,7 @@ internal partial class WellKnownFunctions
 {
     internal static bool TryExecuteConvertFunction(
         StringSegment methodName,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (methodName.Equals(nameof(Convert.ToUInt32), StringComparison.OrdinalIgnoreCase) &&

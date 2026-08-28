@@ -21,7 +21,7 @@ internal partial class WellKnownFunctions
         StringSegment methodName,
         string fileName,
         object? objectInstance,
-        FunctionArguments args)
+        ref FunctionArguments args)
     {
         string logFile = Path.Combine(Directory.GetCurrentDirectory(), fileName);
         string argSignature = string.Join(", ", args.MaterializeAll().Select(a => a?.GetType().Name ?? "null"));
@@ -34,34 +34,34 @@ internal partial class WellKnownFunctions
         StringSegment methodName,
         Type receiverType,
         object? objectInstance,
-        FunctionArguments args,
+        ref FunctionArguments args,
         in PropertyFunctionExecutionContext<T> context,
         out object? result)
         where T : class, IProperty
     {
         if (methodName.Equals("new", StringComparison.OrdinalIgnoreCase))
         {
-            return TryExecuteWellKnownConstructor(receiverType, args, out result);
+            return TryExecuteWellKnownConstructor(receiverType, ref args, out result);
         }
 
         if (objectInstance is string text)
         {
-            return TryExecuteStringFunction(methodName, text, args, out result);
+            return TryExecuteStringFunction(methodName, text, ref args, out result);
         }
 
         if (objectInstance is Version version)
         {
-            return TryExecuteVersionFunction(methodName, version, args, out result);
+            return TryExecuteVersionFunction(methodName, version, ref args, out result);
         }
 
         if (objectInstance is CultureInfo culture)
         {
-            return TryExecuteCultureInfoFunction(methodName, culture, args, out result);
+            return TryExecuteCultureInfoFunction(methodName, culture, ref args, out result);
         }
 
         if (objectInstance is DateTime dateTime)
         {
-            return TryExecuteDateTimeFunction(methodName, dateTime, args, out result);
+            return TryExecuteDateTimeFunction(methodName, dateTime, ref args, out result);
         }
 
         if (objectInstance is Array array)
@@ -83,27 +83,27 @@ internal partial class WellKnownFunctions
         {
             if (receiverType == typeof(IntrinsicFunctions))
             {
-                return TryExecuteIntrinsicFunction(methodName, args, in context, out result);
+                return TryExecuteIntrinsicFunction(methodName, ref args, in context, out result);
             }
 
             if (receiverType == typeof(string))
             {
-                return TryExecuteStaticStringFunction(methodName, args, out result);
+                return TryExecuteStaticStringFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(Path))
             {
-                return TryExecutePathFunction(methodName, out result, args);
+                return TryExecutePathFunction(methodName, out result, ref args);
             }
 
             if (receiverType == typeof(File))
             {
-                return TryExecuteFileFunction(methodName, args, out result);
+                return TryExecuteFileFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(Directory))
             {
-                return TryExecuteDirectoryFunction(methodName, args, out result);
+                return TryExecuteDirectoryFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(Math))
@@ -125,32 +125,32 @@ internal partial class WellKnownFunctions
 
             if (receiverType == typeof(Convert))
             {
-                return TryExecuteConvertFunction(methodName, args, out result);
+                return TryExecuteConvertFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(Version))
             {
-                return TryExecuteStaticVersionFunction(methodName, args, out result);
+                return TryExecuteStaticVersionFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(CultureInfo))
             {
-                return TryExecuteStaticCultureInfoFunction(methodName, args, out result);
+                return TryExecuteStaticCultureInfoFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(RuntimeInformation))
             {
-                return TryExecuteRuntimeInformationFunction(methodName, args, out result);
+                return TryExecuteRuntimeInformationFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(Environment))
             {
-                return TryExecuteEnvironmentFunction(methodName, args, out result);
+                return TryExecuteEnvironmentFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(DateTime))
             {
-                return TryExecuteStaticDateTimeFunction(methodName, args, out result);
+                return TryExecuteStaticDateTimeFunction(methodName, ref args, out result);
             }
 
             if (receiverType == typeof(Guid) &&
@@ -179,7 +179,7 @@ internal partial class WellKnownFunctions
 
             if (receiverType == typeof(Regex))
             {
-                return TryExecuteRegexFunction(methodName, args, out result);
+                return TryExecuteRegexFunction(methodName, ref args, out result);
             }
         }
 
@@ -200,7 +200,7 @@ internal partial class WellKnownFunctions
 
         if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
         {
-            LogFunctionCall(receiverType, methodName, "PropertyFunctionsRequiringReflection", objectInstance, args);
+            LogFunctionCall(receiverType, methodName, "PropertyFunctionsRequiringReflection", objectInstance, ref args);
         }
 
         result = null;
@@ -209,12 +209,12 @@ internal partial class WellKnownFunctions
 
     internal static bool TryExecuteWellKnownConstructor(
         Type? receiverType,
-        FunctionArguments args,
+        ref FunctionArguments args,
         out object? result)
     {
         if (receiverType == typeof(Version))
         {
-            return TryExecuteVersionConstructor(args, out result);
+            return TryExecuteVersionConstructor(ref args, out result);
         }
 
         if (receiverType == typeof(string))

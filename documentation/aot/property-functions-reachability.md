@@ -43,11 +43,13 @@ includes state-mutating members).
 
 The property-function code lives primarily in
 [PropertyFunctionParser.cs](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs),
-[Expander.PropertyFunctionExecutor.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.cs), and
-[WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs), with outer property expansion
-in [Expander.PropertyExpander.cs](../../src/Build/Evaluation/Expander.PropertyExpander.cs). Parsed argument
-segments remain packed in [FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs), which
-materializes and caches individual expanded values only when a handler or reflection requires them.
+[Expander.PropertyFunctionExecutor.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.cs), and the
+receiver-partitioned `WellKnownFunctions_*.cs` files rooted at
+[WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs), with outer property
+expansion in [Expander.PropertyExpander.cs](../../src/Build/Evaluation/Expander.PropertyExpander.cs). Parsed
+argument segments remain packed in
+[FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs), which materializes and caches
+individual expanded values only when a handler or reflection requires them.
 
 | Concern | Member | Location |
 | --- | --- | --- |
@@ -57,7 +59,7 @@ materializes and caches individual expanded values only when a handler or reflec
 | Parse element access | `PropertyFunctionParser.ParseIndexer` | [PropertyFunctionParser.cs#L233](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs#L233) |
 | Lazily expose source and expanded arguments | `FunctionArguments` | [FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs) |
 | Supply environmental state during execution | `PropertyFunctionExecutionContext` | [PropertyFunctionExecutionContext.cs](../../src/Build/Evaluation/Expander/PropertyFunctionExecutionContext.cs) |
-| Bind and execute one invocation | `PropertyFunctionExecutor.Execute` | [Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs) |
+| Bind and route one invocation | `PropertyFunctionExecutor.Execute` | [Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs) |
 | Resolve a static receiver `Type` | `AvailableStaticMembers.TryResolveType` | [AvailableStaticMembers.cs#L58](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L58) |
 | **Static** allow gate | `AvailableStaticMembers.IsAvailable` | [AvailableStaticMembers.cs#L44](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L44) |
 | **Instance** allow gate (only blocks `GetType` by default) | `PropertyFunctionExecutor.VerifyInstanceMemberAvailable` | [Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs) |
@@ -72,27 +74,31 @@ materializes and caches individual expanded values only when a handler or reflec
 
 ```mermaid
 flowchart TD
-    A["$(body)"] --> B{IsValidPropertyName?}
-    B -->|yes| P[plain property lookup -> string]
-    B -->|"no, contains '.' or '['"| C["PropertyFunctionParser.TryParse"]
+    A["$(body)"] --> B{function syntax?}
+    B -->|no| P[plain property lookup -> string]
+    B -->|yes| C["PropertyFunctionParser.TryParse"]
     C --> R["Resolve the root MSBuild property receiver, if any"]
     R --> BIND["PropertyFunctionExecutor binds next invocation against current receiver"]
     BIND --> D{receiver kind}
     D -->|static| E["TryResolveType + IsAvailable"]
     D -->|"MSBuild property / chained"| F["GetType + VerifyInstanceMemberAvailable"]
-    E --> G[BoundFunction.Execute]
-    F --> G
+    E --> W{well-known handler?}
+    F --> W
+    W -->|yes| H
+    W -->|no| G["BoundFunction.Execute reflection fallback"]
     G --> H{another invocation?}
     H -->|yes| BIND
     H -->|no| M[return result -> stringified into the property]
 ```
 
 The complete root input is parsed before execution. `ExpandPropertyBody` then binds and executes each
-`PropertyFunctionInvocation` in order, carrying each `functionResult` as the **live object** receiver for the next
-invocation ([Expander.PropertyExpander.cs#L430](../../src/Build/Evaluation/Expander.PropertyExpander.cs#L430)).
-Strings are escaped after execution to maintain the engine's escaped-data invariant, then unescaped
-before use as the next receiver. The binder selects
-`receiverValue?.GetType() ?? typeof(string)`
+`PropertyFunctionInvocation` in order, carrying each `functionResult` as the **live object** receiver for the
+next invocation
+([Expander.PropertyExpander.cs](../../src/Build/Evaluation/Expander.PropertyExpander.cs)). After receiver
+validation, the executor first routes to the receiver-specific well-known dispatcher. It constructs
+`BoundFunction` only when direct dispatch declines the call and reflection is required. Strings are escaped after
+execution to maintain the engine's escaped-data invariant, then unescaped before use as the next receiver. The
+binder selects `receiverValue?.GetType() ?? typeof(string)`
 ([Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs)) - i.e. the
 **runtime type** of the previous result, with its full public surface.
 
