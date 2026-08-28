@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Text;
@@ -64,17 +65,34 @@ internal partial struct PropertyFunctionParser
         errors.VerifyThrowInvalidFunctionPropertyExpression(!text.IsNullOrEmpty);
 
         PropertyFunctionParser parser = new(text, errors);
+        if (!parser.TryParseNext(out PropertyFunctionInvocation invocation))
+        {
+            expression = default;
+            return false;
+        }
+
+        if (parser._nextInvocationStartIndex >= 0)
+        {
+            return ParseMultipleInvocations(ref parser, text, invocation, out expression);
+        }
+
+        expression = new PropertyFunctionExpression(text, new OneOrMany<PropertyFunctionInvocation>(invocation));
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool ParseMultipleInvocations(
+        ref PropertyFunctionParser parser,
+        StringSegment text,
+        PropertyFunctionInvocation firstInvocation,
+        out PropertyFunctionExpression expression)
+    {
         using OneOrMany<PropertyFunctionInvocation>.Builder invocations = default;
+        invocations.Add(firstInvocation);
 
         while (parser.TryParseNext(out PropertyFunctionInvocation invocation))
         {
             invocations.Add(invocation);
-        }
-
-        if (invocations.IsEmpty)
-        {
-            expression = default;
-            return false;
         }
 
         expression = new PropertyFunctionExpression(text, invocations.ToOneOrMany());
@@ -187,17 +205,15 @@ internal partial struct PropertyFunctionParser
     private PropertyFunctionInvocation ParseMember(int invocationStartIndex, int memberStartIndex, ReceiverKind receiverKind, StringSegment receiver)
     {
         StringSegment memberText = _text[memberStartIndex..];
-        int openParenthesisIndex = memberText.IndexOf('(');
-        int firstAccessIndex = memberText.IndexOfAny('.', '[');
+        int firstDelimiterIndex = memberText.IndexOfAny('(', '.', '[');
 
-        if (openParenthesisIndex >= 0
-            && (firstAccessIndex < 0 || openParenthesisIndex < firstAccessIndex))
+        if (firstDelimiterIndex >= 0 && memberText[firstDelimiterIndex] == '(')
         {
-            StringSegment name = memberText[..openParenthesisIndex].Trim();
+            StringSegment name = memberText[..firstDelimiterIndex].Trim();
             _errors.VerifyThrowInvalidFunctionPropertyExpression(!name.IsEmpty);
             VerifyMemberName(name, receiverKind);
 
-            int argumentsStartIndex = openParenthesisIndex + 1;
+            int argumentsStartIndex = firstDelimiterIndex + 1;
             int argumentsEndIndex = ScanForClosingParenthesis(memberText, argumentsStartIndex);
 
             StringSegment argumentsText = memberText[argumentsStartIndex..argumentsEndIndex];
@@ -214,13 +230,13 @@ internal partial struct PropertyFunctionParser
                 arguments);
         }
 
-        int memberEndIndex = firstAccessIndex >= 0 ? firstAccessIndex : memberText.Length;
+        int memberEndIndex = firstDelimiterIndex >= 0 ? firstDelimiterIndex : memberText.Length;
         StringSegment propertyOrFieldName = memberText[..memberEndIndex].Trim();
         _errors.VerifyThrowInvalidFunctionPropertyExpression(!propertyOrFieldName.IsEmpty);
         VerifyMemberName(propertyOrFieldName, receiverKind);
 
-        _nextInvocationStartIndex = firstAccessIndex >= 0
-            ? memberStartIndex + firstAccessIndex
+        _nextInvocationStartIndex = firstDelimiterIndex >= 0
+            ? memberStartIndex + firstDelimiterIndex
             : -1;
 
         return new PropertyFunctionInvocation(
@@ -251,6 +267,11 @@ internal partial struct PropertyFunctionParser
 
     private readonly int GetNextInvocationStartIndex(int startIndex)
     {
+        if (startIndex == _text.Length)
+        {
+            return -1;
+        }
+
         StringSegment remainder = _text[startIndex..].TrimStart();
 
         switch (remainder)
@@ -324,6 +345,12 @@ internal partial struct PropertyFunctionParser
     ///  The validated arguments.
     /// </returns>
     private readonly OneOrMany<PropertyFunctionArgument> ParseArguments(StringSegment argumentText)
+        => argumentText.IsNullOrEmpty
+            ? default
+            : ParseNonEmptyArguments(argumentText);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private readonly OneOrMany<PropertyFunctionArgument> ParseNonEmptyArguments(StringSegment argumentText)
     {
         using OneOrMany<PropertyFunctionArgument>.Builder builder = default;
         int argumentStartIndex = 0;

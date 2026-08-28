@@ -19,7 +19,7 @@ internal readonly struct PropertyFunctionExpression(StringSegment text, OneOrMan
     /// <summary>
     ///  Gets the property-function invocations.
     /// </summary>
-    public OneOrMany<PropertyFunctionInvocation> Invocations { get; } = invocations;
+    public readonly OneOrMany<PropertyFunctionInvocation> Invocations = invocations;
 
     /// <summary>
     ///  Returns an allocation-free enumerator over the property-function invocations.
