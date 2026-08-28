@@ -149,11 +149,66 @@ internal partial class Expander<P, I>
                 return expression;
             }
 
+            int propertyStartIndex = markerIndex + 2;
+
+            // Locate the first marker's matching closing parenthesis up front, skipping nested parentheses.
+            // The single-property fast path and the concatenation path both reuse this scan and its syntax flags.
+            int closingParenIndex = FindClosingParenthesis(
+                expression,
+                propertyStartIndex,
+                out bool isPotentialPropertyFunction,
+                out bool isPotentialRegistryFunction);
+
             PropertyExpander expander = new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
-            return expander.ExpandPropertiesLeaveTypedAndEscaped(expression, markerIndex);
+            if (markerIndex == 0 && closingParenIndex == expression.Length - 1)
+            {
+                object propertyValue = expander.ExpandPropertyValue(
+                    expression,
+                    markerIndex,
+                    closingParenIndex,
+                    isPotentialPropertyFunction,
+                    isPotentialRegistryFunction);
+
+                // Ensure that we provide path adjustment for a single string result.
+                // Normally, SpanBasedConcatenator handles this in ExpandAllProperties.
+                return propertyValue is string stringValue
+                    ? FileUtilities.MaybeAdjustFilePath(stringValue)
+                    : propertyValue ?? string.Empty;
+            }
+
+            return expander.ExpandAllProperties(
+                expression,
+                markerIndex,
+                closingParenIndex,
+                isPotentialPropertyFunction,
+                isPotentialRegistryFunction);
         }
 
-        private object ExpandPropertiesLeaveTypedAndEscaped(string expression, int markerIndex)
+        /// <summary>
+        ///  Expands every property reference in <paramref name="expression"/> and concatenates the expanded values
+        ///  with the literal portions of the expression.
+        /// </summary>
+        /// <param name="expression">The expression containing the properties to expand.</param>
+        /// <param name="markerIndex">The index of the first property marker.</param>
+        /// <param name="closingParenIndex">
+        ///  The index of the first property's matching closing parenthesis, or <c>-1</c> when none was found.
+        /// </param>
+        /// <param name="isPotentialPropertyFunction">Whether the first property might be a property function.</param>
+        /// <param name="isPotentialRegistryFunction">Whether the first property might be a registry function.</param>
+        /// <returns>
+        ///  The expanded, escaped result with literal text preserved.
+        /// </returns>
+        /// <remarks>
+        ///  The caller supplies the scan state for the first property so this method can enter the expansion loop
+        ///  without repeating that work. The loop locates and classifies each subsequent property as it advances.
+        ///  Malformed property references and the text following them are preserved verbatim.
+        /// </remarks>
+        private object ExpandAllProperties(
+            string expression,
+            int markerIndex,
+            int closingParenIndex,
+            bool isPotentialPropertyFunction,
+            bool isPotentialRegistryFunction)
         {
             // We will build our set of results as object components
             // so that we can either maintain the object's type in the event
@@ -175,18 +230,6 @@ internal partial class Expander<P, I>
                     results.Add(expression.AsMemory(index, markerIndex - index));
                 }
 
-                int startIndex = markerIndex + 2;
-
-                // Following the "$(" we need to locate the matching ')'
-                // Scan for the matching closing bracket, skipping any nested ones
-                // This is a very complete, fast validation of parenthesis matching including for nested
-                // function calls.
-                int closingParenIndex = FindClosingParenthesis(
-                    expression,
-                    startIndex,
-                    out bool isPotentialPropertyFunction,
-                    out bool isPotentialRegistryFunction);
-
                 if (closingParenIndex < 0)
                 {
                     // If we didn't find the closing parenthesis, that means this
@@ -196,47 +239,28 @@ internal partial class Expander<P, I>
                     return results.GetResult();
                 }
 
-                // Expand the property body between the "$(" marker and its matching closing parenthesis.
-                int endIndex = closingParenIndex - 1;
-                int length = closingParenIndex - startIndex;
-
-                object propertyValue;
-
-                if (length == 0)
-                {
-                    // Compat: $() should return string.Empty
-                    propertyValue = string.Empty;
-                }
-                else if (!isPotentialPropertyFunction && !isPotentialRegistryFunction)
-                {
-                    propertyValue = LookupProperty(expression, startIndex, endIndex);
-                }
-                else
-                {
-                    propertyValue = ExpandProperty(
-                        expression,
-                        startIndex,
-                        endIndex,
-                        isPotentialRegistryFunction,
-                        isPotentialPropertyFunction);
-                }
+                object propertyValue = ExpandPropertyValue(
+                    expression,
+                    markerIndex,
+                    closingParenIndex,
+                    isPotentialPropertyFunction,
+                    isPotentialRegistryFunction);
 
                 if (propertyValue != null)
                 {
-                    if (_isTruncationEnabled)
-                    {
-                        string value = propertyValue.ToString();
-                        if (value.Length > CharacterLimitPerExpansion)
-                        {
-                            propertyValue = TruncateString(value);
-                        }
-                    }
-
                     results.Add(propertyValue);
                 }
 
                 index = closingParenIndex + 1;
                 markerIndex = ExpressionShredder.IndexOfPropertyMarker(expression, index);
+                if (markerIndex >= 0)
+                {
+                    closingParenIndex = FindClosingParenthesis(
+                        expression,
+                        markerIndex + 2,
+                        out isPotentialPropertyFunction,
+                        out isPotentialRegistryFunction);
+                }
             }
 
             // If we couldn't find any more property markers in the expression just copy the remainder into the result.
@@ -246,6 +270,66 @@ internal partial class Expander<P, I>
             }
 
             return results.GetResult();
+        }
+
+        /// <summary>
+        ///  Expands one property body from <paramref name="expression"/> and applies configured result truncation.
+        /// </summary>
+        /// <param name="expression">The expression containing the property body.</param>
+        /// <param name="markerIndex">The index of the opening <c>$(</c> marker.</param>
+        /// <param name="closingParenIndex">The index of the matching closing <c>)</c>.</param>
+        /// <param name="isPotentialPropertyFunction">Whether the property body might be a property function.</param>
+        /// <param name="isPotentialRegistryFunction">Whether the property body might be a registry function.</param>
+        /// <returns>
+        ///  The typed, escaped property value, or <see langword="null"/> when the property or function has no value.
+        /// </returns>
+        /// <remarks>
+        ///  An empty property body produces <see cref="string.Empty"/>. When <see cref="ExpanderOptions.Truncate"/>
+        ///  is enabled, an oversized value is converted to a truncated string. Concatenation and string path
+        ///  adjustment are intentionally left to the caller.
+        /// </remarks>
+        private object ExpandPropertyValue(
+            string expression,
+            int markerIndex,
+            int closingParenIndex,
+            bool isPotentialPropertyFunction,
+            bool isPotentialRegistryFunction)
+        {
+            // Expand the property body between the "$(" marker and its matching closing parenthesis.
+            int startIndex = markerIndex + 2;
+            int endIndex = closingParenIndex - 1;
+            int length = closingParenIndex - startIndex;
+
+            object propertyValue;
+            if (length == 0)
+            {
+                // Compat: $() should return string.Empty
+                propertyValue = string.Empty;
+            }
+            else if (!isPotentialPropertyFunction && !isPotentialRegistryFunction)
+            {
+                propertyValue = LookupProperty(expression, startIndex, endIndex);
+            }
+            else
+            {
+                propertyValue = ExpandProperty(
+                    expression,
+                    startIndex,
+                    endIndex,
+                    isPotentialRegistryFunction,
+                    isPotentialPropertyFunction);
+            }
+
+            if (propertyValue != null && _isTruncationEnabled)
+            {
+                string value = propertyValue.ToString();
+                if (value.Length > CharacterLimitPerExpansion)
+                {
+                    propertyValue = TruncateString(value);
+                }
+            }
+
+            return propertyValue;
         }
 
         /// <summary>
