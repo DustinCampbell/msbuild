@@ -643,7 +643,6 @@ internal partial class Expander<P, I>
 #endif
                 return true; // joined successfully
             }
-
         }
 
         private static string JoinEntries(string separator, List<TransformEntry> entries)
