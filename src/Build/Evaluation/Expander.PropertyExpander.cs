@@ -143,22 +143,29 @@ internal partial class Expander<P, I>
                             isPotentialRegistryFunction,
                             isPotentialPropertyFunction);
 
+                if (propertyValue != null && _isTruncationEnabled)
+                {
+                    string value = propertyValue.ToString();
+                    if (value.Length > CharacterLimitPerExpansion)
+                    {
+                        propertyValue = TruncateString(value);
+                    }
+                }
+
+                if (markerIndex == 0 && closingParenIndex == expression.Length - 1)
+                {
+                    return propertyValue ?? string.Empty;
+                }
+
                 if (propertyValue != null)
                 {
-                    if (_isTruncationEnabled)
-                    {
-                        string value = propertyValue.ToString();
-                        if (value.Length > CharacterLimitPerExpansion)
-                        {
-                            propertyValue = TruncateString(value);
-                        }
-                    }
-
                     results.Add(propertyValue);
                 }
 
                 index = closingParenIndex + 1;
-                markerIndex = ExpressionShredder.IndexOfPropertyMarker(expression, index);
+                markerIndex = index < expression.Length
+                    ? ExpressionShredder.IndexOfPropertyMarker(expression, index)
+                    : -1;
             }
 
             if (expression.Length - index > 0)
@@ -279,22 +286,29 @@ internal partial class Expander<P, I>
                         ? LookupProperty(propertyBody)
                         : ExpandProperty(propertyBody, isPotentialRegistryFunction, isPotentialPropertyFunction);
 
+                if (propertyValue != null && _isTruncationEnabled)
+                {
+                    string value = propertyValue.ToString();
+                    if (value.Length > CharacterLimitPerExpansion)
+                    {
+                        propertyValue = TruncateString(value);
+                    }
+                }
+
+                if (markerIndex == 0 && closingParenIndex == expression.Length - 1)
+                {
+                    return propertyValue ?? string.Empty;
+                }
+
                 if (propertyValue != null)
                 {
-                    if (_isTruncationEnabled)
-                    {
-                        string value = propertyValue.ToString();
-                        if (value.Length > CharacterLimitPerExpansion)
-                        {
-                            propertyValue = TruncateString(value);
-                        }
-                    }
-
                     results.Add(propertyValue);
                 }
 
                 index = closingParenIndex + 1;
-                markerIndex = IndexOfPropertyMarker(expression, index);
+                markerIndex = index < expression.Length
+                    ? IndexOfPropertyMarker(expression, index)
+                    : -1;
             }
 
             // If we couldn't find any more property markers in the expression just copy the remainder into the result.
