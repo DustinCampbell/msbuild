@@ -471,7 +471,15 @@ internal struct FunctionArguments
         return segment.HasValue;
     }
 
-    private readonly bool TryGetSegment(int index, out StringSegment value)
+    /// <summary>
+    ///  Attempts to retrieve an argument as a segment, materializing it first only when required.
+    /// </summary>
+    /// <param name="index">The zero-based argument index.</param>
+    /// <param name="value">The argument segment when this method returns <see langword="true"/>.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the argument is textual; otherwise, <see langword="false"/>.
+    /// </returns>
+    public readonly bool TryGetSegment(int index, out StringSegment value)
     {
         if (_materialized is null)
         {
@@ -536,7 +544,14 @@ internal struct FunctionArguments
                 out result)
             : TryConvertToDouble(EnsureMaterialized(index), out result);
 
-    private readonly object? GetValue(int index)
+    /// <summary>
+    ///  Gets an argument value, materializing its source when necessary.
+    /// </summary>
+    /// <param name="index">The zero-based argument index.</param>
+    /// <returns>
+    ///  The argument value.
+    /// </returns>
+    public readonly object? GetValue(int index)
         => _materialized is null
             ? GetSource(index).Value
             : EnsureMaterialized(index);
