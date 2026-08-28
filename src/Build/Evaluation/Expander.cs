@@ -32,6 +32,8 @@ internal partial class Expander<P, I>
     where P : class, IProperty
     where I : class, IItem
 {
+    private static readonly char[] s_expansionMarkers = ['$', '@', '%'];
+
     /// <summary>
     /// A limit for truncating string expansions within an evaluated Condition. Properties, item metadata, or item groups will be truncated to N characters such as 'N...'.
     /// Enabled by ExpanderOptions.Truncate.
@@ -245,12 +247,34 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
+        if ((options & ExpanderOptions.ExpandAll) == ExpanderOptions.ExpandAll &&
+            !ContainsExpansionMarker(expression))
+        {
+            return FileUtilities.MaybeAdjustFilePath(expression);
+        }
+
         string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
         result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
         result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, elementLocation);
         result = FileUtilities.MaybeAdjustFilePath(result);
 
         return result;
+    }
+
+    private static bool ContainsExpansionMarker(string expression)
+    {
+        int index = 0;
+        while ((index = expression.IndexOfAny(s_expansionMarkers, index)) >= 0)
+        {
+            if (index < expression.Length - 1 && expression[index + 1] == '(')
+            {
+                return true;
+            }
+
+            index++;
+        }
+
+        return false;
     }
 
     /// <summary>
