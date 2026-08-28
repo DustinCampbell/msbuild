@@ -118,6 +118,19 @@ public class FunctionArguments_Tests
         value.Value.ShouldBe("value");
     }
 
+    [Fact]
+    public void ParsesVersionArgumentWithoutMaterializing()
+    {
+        const string text = "'1.2.3.4'";
+        ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+
+        arguments.TryGetArg(out Version? result).ShouldBeTrue();
+
+        result.ShouldBe(new Version(1, 2, 3, 4));
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+
     [Theory]
     [InlineData("CurrentCulture", StringComparison.CurrentCulture)]
     [InlineData("CurrentCultureIgnoreCase", StringComparison.CurrentCultureIgnoreCase)]

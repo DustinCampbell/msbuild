@@ -601,7 +601,7 @@ namespace Microsoft.Build.Evaluation.Expander
 
             if (methodName.Equals(nameof(IntrinsicFunctions.VersionEquals), StringComparison.OrdinalIgnoreCase))
             {
-                if (args.TryGetArgs(out string? arg0, out string? arg1))
+                if (args.TryGetArgs(out StringSegment arg0, out StringSegment arg1))
                 {
                     result = IntrinsicFunctions.VersionEquals(arg0, arg1);
                     return true;
@@ -610,7 +610,7 @@ namespace Microsoft.Build.Evaluation.Expander
 
             if (methodName.Equals(nameof(IntrinsicFunctions.VersionNotEquals), StringComparison.OrdinalIgnoreCase))
             {
-                if (args.TryGetArgs(out string? arg0, out string? arg1))
+                if (args.TryGetArgs(out StringSegment arg0, out StringSegment arg1))
                 {
                     result = IntrinsicFunctions.VersionNotEquals(arg0, arg1);
                     return true;
@@ -619,7 +619,7 @@ namespace Microsoft.Build.Evaluation.Expander
 
             if (methodName.Equals(nameof(IntrinsicFunctions.VersionGreaterThan), StringComparison.OrdinalIgnoreCase))
             {
-                if (args.TryGetArgs(out string? arg0, out string? arg1))
+                if (args.TryGetArgs(out StringSegment arg0, out StringSegment arg1))
                 {
                     result = IntrinsicFunctions.VersionGreaterThan(arg0, arg1);
                     return true;
@@ -628,7 +628,7 @@ namespace Microsoft.Build.Evaluation.Expander
 
             if (methodName.Equals(nameof(IntrinsicFunctions.VersionGreaterThanOrEquals), StringComparison.OrdinalIgnoreCase))
             {
-                if (args.TryGetArgs(out string? arg0, out string? arg1))
+                if (args.TryGetArgs(out StringSegment arg0, out StringSegment arg1))
                 {
                     result = IntrinsicFunctions.VersionGreaterThanOrEquals(arg0, arg1);
                     return true;
@@ -637,7 +637,7 @@ namespace Microsoft.Build.Evaluation.Expander
 
             if (methodName.Equals(nameof(IntrinsicFunctions.VersionLessThan), StringComparison.OrdinalIgnoreCase))
             {
-                if (args.TryGetArgs(out string? arg0, out string? arg1))
+                if (args.TryGetArgs(out StringSegment arg0, out StringSegment arg1))
                 {
                     result = IntrinsicFunctions.VersionLessThan(arg0, arg1);
                     return true;
@@ -646,7 +646,7 @@ namespace Microsoft.Build.Evaluation.Expander
 
             if (methodName.Equals(nameof(IntrinsicFunctions.VersionLessThanOrEquals), StringComparison.OrdinalIgnoreCase))
             {
-                if (args.TryGetArgs(out string? arg0, out string? arg1))
+                if (args.TryGetArgs(out StringSegment arg0, out StringSegment arg1))
                 {
                     result = IntrinsicFunctions.VersionLessThanOrEquals(arg0, arg1);
                     return true;
