@@ -422,6 +422,40 @@ public class StringSegment_Tests
     }
 
     [Theory]
+    [InlineData("")]
+    [InlineData("1")]
+    [InlineData("1.2")]
+    [InlineData("1.2.3")]
+    [InlineData("1.2.3.4")]
+    [InlineData(" 1 . +2 . 3 . 4 ")]
+    [InlineData("1.2.")]
+    [InlineData("1..2")]
+    [InlineData("1.2.3.4.5")]
+    [InlineData("-1.2")]
+    [InlineData("1.-2")]
+    [InlineData("2147483648.0")]
+    [InlineData("1.a")]
+    public void VersionTryParse_MatchesStringOverload(string text)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+        bool expectedSuccess = Version.TryParse(text, out Version? expected);
+
+        bool success = Version.TryParse(segment, out Version? result);
+
+        success.ShouldBe(expectedSuccess);
+        result.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void VersionTryParse_RejectsNullSegment()
+    {
+        StringSegment segment = default;
+
+        Version.TryParse(segment, out Version? result).ShouldBeFalse();
+        result.ShouldBeNull();
+    }
+
+    [Theory]
     [InlineData(null, true)]
     [InlineData("", true)]
     [InlineData("a", false)]

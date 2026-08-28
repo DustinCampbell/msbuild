@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -34,8 +35,8 @@ internal static partial class Extensions
 #if NET
             => int.TryParse(value.AsSpan(), style, provider, out result);
 #else
-            => style == NumberStyles.Integer && IsInvariantProvider(provider)
-                ? int.TryParse(value, out result)
+            => (style is NumberStyles.Integer or NumberStyles.None) && IsInvariantProvider(provider)
+                ? TryParseInvariantInteger(value, style, out result)
                 : int.TryParse(value.Value, style, provider, out result);
 #endif
     }
@@ -81,7 +82,19 @@ internal static partial class Extensions
                     && TryParseInvariantDouble(value, out result))
                 || double.TryParse(value.Value, style, provider, out result);
 #endif
+    }
 
+    extension(Version)
+    {
+        /// <summary>
+        ///  Converts a version represented by a <see cref="StringSegment"/> to a <see cref="Version"/>.
+        /// </summary>
+        public static bool TryParse(StringSegment value, [NotNullWhen(true)] out Version? result)
+#if NET
+            => Version.TryParse(value.AsSpan(), out result);
+#else
+            => TryParseVersion(value, out result);
+#endif
     }
 
     /// <summary>

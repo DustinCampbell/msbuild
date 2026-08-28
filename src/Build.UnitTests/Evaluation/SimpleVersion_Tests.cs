@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Build.Text;
 using Microsoft.Build.Utilities;
+using Shouldly;
 using Xunit;
 
 #nullable disable
@@ -228,6 +230,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
         public static void Parse_ValidInput_ReturnsExpected(string input, object expected)
         {
             Assert.Equal(expected, SimpleVersion.Parse(input));
+        }
+
+        [Fact]
+        public static void Parse_StringSegmentWithNonZeroOffset_ReturnsExpected()
+        {
+            const string version = "v1.2.3.4-preview+metadata";
+            string buffer = $"prefix{version}suffix";
+            StringSegment segment = new(buffer, "prefix".Length, version.Length);
+
+            SimpleVersion.Parse(segment).ShouldBe(new SimpleVersion(1, 2, 3, 4));
         }
 
         public static IEnumerable<object[]> Parse_Invalid_TestData()

@@ -3,6 +3,7 @@
 
 #if !NET
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace Microsoft.Build.Text;
@@ -28,9 +29,77 @@ internal static partial class Extensions
         => ReferenceEquals(provider, CultureInfo.InvariantCulture) ||
            ReferenceEquals(provider, NumberFormatInfo.InvariantInfo);
 
+    private static bool TryGetInvariantIntegerDigits(
+        StringSegment value,
+        out StringSegment digits,
+        out bool negative)
+    {
+        if (value.IsNullOrEmpty)
+        {
+            digits = default;
+            negative = false;
+            return false;
+        }
+
+        int start = 0;
+        while (start < value.Length && value[start] is ' ' or (>= '\t' and <= '\r'))
+        {
+            start++;
+        }
+
+        int end = value.Length;
+        while (end > start && value[end - 1] is ' ' or (>= '\t' and <= '\r'))
+        {
+            end--;
+        }
+
+        if (start == end)
+        {
+            digits = default;
+            negative = false;
+            return false;
+        }
+
+        switch (value[start])
+        {
+            case '-':
+                negative = true;
+                digits = value[(start + 1)..end];
+                break;
+
+            case '+':
+                negative = false;
+                digits = value[(start + 1)..end];
+                break;
+
+            default:
+                negative = false;
+                digits = value[start..end];
+                break;
+        }
+
+        return !digits.IsEmpty;
+    }
+
     private static bool TryParseInvariantInteger(StringSegment value, out int result)
     {
         if (!TryGetInvariantIntegerDigits(value, out StringSegment digits, out bool negative))
+        {
+            result = 0;
+            return false;
+        }
+
+        return TryParseInvariantIntegerDigits(digits, negative, out result);
+    }
+
+    private static bool TryParseInvariantInteger(StringSegment value, NumberStyles style, out int result)
+        => style == NumberStyles.Integer
+            ? TryParseInvariantInteger(value, out result)
+            : TryParseInvariantIntegerDigits(value, negative: false, out result);
+
+    private static bool TryParseInvariantIntegerDigits(StringSegment digits, bool negative, out int result)
+    {
+        if (digits.IsNullOrEmpty)
         {
             result = 0;
             return false;
@@ -108,56 +177,59 @@ internal static partial class Extensions
         return false;
     }
 
-    private static bool TryGetInvariantIntegerDigits(
-        StringSegment value,
-        out StringSegment digits,
-        out bool negative)
+    private static bool TryParseVersion(StringSegment value, [NotNullWhen(true)] out Version? result)
     {
-        if (value.IsNullOrEmpty)
+        result = null;
+        int major, minor, build, revision;
+
+        int separator = value.IndexOf('.');
+        if (separator < 0 || !TryParseVersionComponent(value[..separator], out major))
         {
-            digits = default;
-            negative = false;
             return false;
         }
 
-        int start = 0;
-        while (start < value.Length && value[start] is ' ' or (>= '\t' and <= '\r'))
+        int componentStart = separator + 1;
+        separator = value.IndexOf('.', componentStart);
+        if (separator < 0)
         {
-            start++;
+            if (!TryParseVersionComponent(value[componentStart..], out minor))
+            {
+                return false;
+            }
+
+            result = new Version(major, minor);
+            return true;
         }
 
-        int end = value.Length;
-        while (end > start && value[end - 1] is ' ' or (>= '\t' and <= '\r'))
+        if (!TryParseVersionComponent(value[componentStart..separator], out minor))
         {
-            end--;
-        }
-
-        if (start == end)
-        {
-            digits = default;
-            negative = false;
             return false;
         }
 
-        switch (value[start])
+        componentStart = separator + 1;
+        separator = value.IndexOf('.', componentStart);
+        if (separator < 0)
         {
-            case '-':
-                negative = true;
-                digits = value[(start + 1)..end];
-                break;
+            if (!TryParseVersionComponent(value[componentStart..], out build))
+            {
+                return false;
+            }
 
-            case '+':
-                negative = false;
-                digits = value[(start + 1)..end];
-                break;
-
-            default:
-                negative = false;
-                digits = value[start..end];
-                break;
+            result = new Version(major, minor, build);
+            return true;
         }
 
-        return !digits.IsEmpty;
+        if (!TryParseVersionComponent(value[componentStart..separator], out build) ||
+            !TryParseVersionComponent(value[(separator + 1)..], out revision))
+        {
+            return false;
+        }
+
+        result = new Version(major, minor, build, revision);
+        return true;
     }
+
+    private static bool TryParseVersionComponent(StringSegment component, out int result)
+        => TryParseInvariantInteger(component, out result) && result >= 0;
 }
 #endif

@@ -324,8 +324,7 @@ internal struct FunctionArguments
         arg0 = null;
 
         return Count == 1
-            && TryGetString(0, out string? value)
-            && !value.IsNullOrEmpty()
+            && TryGetSegment(0, out StringSegment value)
             && Version.TryParse(value, out arg0);
     }
 

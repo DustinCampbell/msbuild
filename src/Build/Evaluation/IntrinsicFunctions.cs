@@ -18,6 +18,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 using Microsoft.Build.Utilities;
 using Microsoft.NET.StringTools;
 using Microsoft.Win32;
@@ -586,34 +587,40 @@ namespace Microsoft.Build.Evaluation
         }
 
         public static bool VersionEquals(string a, string b)
-        {
-            return SimpleVersion.Parse(a) == SimpleVersion.Parse(b);
-        }
+            => SimpleVersion.Parse(a) == SimpleVersion.Parse(b);
 
         public static bool VersionNotEquals(string a, string b)
-        {
-            return SimpleVersion.Parse(a) != SimpleVersion.Parse(b);
-        }
+            => SimpleVersion.Parse(a) != SimpleVersion.Parse(b);
 
         public static bool VersionGreaterThan(string a, string b)
-        {
-            return SimpleVersion.Parse(a) > SimpleVersion.Parse(b);
-        }
+            => SimpleVersion.Parse(a) > SimpleVersion.Parse(b);
 
         public static bool VersionGreaterThanOrEquals(string a, string b)
-        {
-            return SimpleVersion.Parse(a) >= SimpleVersion.Parse(b);
-        }
+            => SimpleVersion.Parse(a) >= SimpleVersion.Parse(b);
 
         public static bool VersionLessThan(string a, string b)
-        {
-            return SimpleVersion.Parse(a) < SimpleVersion.Parse(b);
-        }
+            => SimpleVersion.Parse(a) < SimpleVersion.Parse(b);
 
         public static bool VersionLessThanOrEquals(string a, string b)
-        {
-            return SimpleVersion.Parse(a) <= SimpleVersion.Parse(b);
-        }
+            => SimpleVersion.Parse(a) <= SimpleVersion.Parse(b);
+
+        internal static bool VersionEquals(StringSegment a, StringSegment b)
+            => SimpleVersion.Parse(a) == SimpleVersion.Parse(b);
+
+        internal static bool VersionNotEquals(StringSegment a, StringSegment b)
+            => SimpleVersion.Parse(a) != SimpleVersion.Parse(b);
+
+        internal static bool VersionGreaterThan(StringSegment a, StringSegment b)
+            => SimpleVersion.Parse(a) > SimpleVersion.Parse(b);
+
+        internal static bool VersionGreaterThanOrEquals(StringSegment a, StringSegment b)
+            => SimpleVersion.Parse(a) >= SimpleVersion.Parse(b);
+
+        internal static bool VersionLessThan(StringSegment a, StringSegment b)
+            => SimpleVersion.Parse(a) < SimpleVersion.Parse(b);
+
+        internal static bool VersionLessThanOrEquals(StringSegment a, StringSegment b)
+            => SimpleVersion.Parse(a) <= SimpleVersion.Parse(b);
 
         public static string GetTargetFrameworkIdentifier(string tfm)
         {
