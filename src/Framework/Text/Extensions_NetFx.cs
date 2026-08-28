@@ -165,6 +165,48 @@ internal static partial class Extensions
         return true;
     }
 
+    private static bool TryParseUnsignedIntegerDigits(StringSegment value, out uint result)
+    {
+        int start = 0;
+        while (start < value.Length && value[start] is ' ' or (>= '\t' and <= '\r'))
+        {
+            start++;
+        }
+
+        int end = value.Length;
+        while (end > start && value[end - 1] is ' ' or (>= '\t' and <= '\r'))
+        {
+            end--;
+        }
+
+        if (start == end)
+        {
+            result = 0;
+            return false;
+        }
+
+        uint maxBeforeMultiply = uint.MaxValue / 10;
+        uint maxLastDigit = uint.MaxValue % 10;
+        uint parsed = 0;
+
+        for (int i = start; i < end; i++)
+        {
+            uint digit = (uint)(value[i] - '0');
+            if (digit > 9 ||
+                parsed > maxBeforeMultiply ||
+                (parsed == maxBeforeMultiply && digit > maxLastDigit))
+            {
+                result = 0;
+                return false;
+            }
+
+            parsed = (parsed * 10) + digit;
+        }
+
+        result = parsed;
+        return true;
+    }
+
     private static bool TryParseInvariantDouble(StringSegment value, out double result)
     {
         if (TryParseInvariantInteger(value, out long integer))

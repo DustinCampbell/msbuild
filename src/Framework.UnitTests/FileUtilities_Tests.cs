@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Microsoft.Build.UnitTests;
 using Shouldly;
 using Xunit;
@@ -233,6 +234,25 @@ public class FileUtilities_Tests
 
         // confirm that empty string doesn't barf
         Assert.False(FileUtilities.EndsWithSlash(String.Empty));
+    }
+
+    [Theory]
+    [InlineData("", "")]
+    [InlineData("foo/bar", "foo/bar")]
+    [InlineData(@"foo\bar", null)]
+    public void FixFilePathSegment(string value, string expected)
+    {
+        expected ??= NativeMethodsShared.IsWindows ? value : "foo/bar";
+        string buffer = $"prefix{value}suffix";
+        StringSegment segment = new(buffer, "prefix".Length, value.Length);
+
+        StringSegment result = FileUtilities.FixFilePath(segment);
+
+        result.Value.ShouldBe(expected);
+        if (expected == value)
+        {
+            result.Buffer.ShouldBeSameAs(buffer);
+        }
     }
 
     /// <summary>

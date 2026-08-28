@@ -390,6 +390,9 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
+        internal static string ValueOrDefault(StringSegment conditionValue, StringSegment defaultValue)
+            => conditionValue.IsNullOrEmpty ? defaultValue.ValueOrEmpty : conditionValue.ValueOrEmpty;
+
         /// <summary>
         /// Returns the string after converting all bytes to base 64 (alphanumeric characters plus '+' and '/'), ending in one or two '='.
         /// </summary>
@@ -517,6 +520,8 @@ namespace Microsoft.Build.Evaluation
             return FileUtilities.EnsureTrailingSlash(path);
         }
 
+        internal static string EnsureTrailingSlash(StringSegment path) => FileUtilities.EnsureTrailingSlash(path);
+
         /// <summary>
         /// Gets the canonicalized full path of the provided directory and ensures it contains the correct directory separator characters for the current operating system
         /// while ensuring it has a trailing slash.
@@ -566,6 +571,26 @@ namespace Microsoft.Build.Evaluation
         public static bool IsOSPlatform(string platformString)
         {
             return RuntimeInformation.IsOSPlatform(OSPlatform.Create(platformString.ToUpperInvariant()));
+        }
+
+        internal static bool IsOSPlatform(StringSegment platform)
+        {
+            if (platform.Equals("Windows", StringComparison.OrdinalIgnoreCase))
+            {
+                return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            }
+
+            if (platform.Equals("Linux", StringComparison.OrdinalIgnoreCase))
+            {
+                return RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+            }
+
+            if (platform.Equals("OSX", StringComparison.OrdinalIgnoreCase))
+            {
+                return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+            }
+
+            return IsOSPlatform(platform.ValueOrEmpty);
         }
 
         /// <summary>

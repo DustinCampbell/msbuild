@@ -67,6 +67,20 @@ internal static partial class Extensions
 #endif
     }
 
+    extension(uint)
+    {
+        /// <summary>
+        ///  Converts a number represented by a <see cref="StringSegment"/> to a 32-bit unsigned integer.
+        /// </summary>
+        public static bool TryParse(StringSegment value, NumberStyles style, IFormatProvider? provider, out uint result)
+#if NET
+            => uint.TryParse(value.AsSpan(), style, provider, out result);
+#else
+            => (style == NumberStyles.Integer && TryParseUnsignedIntegerDigits(value, out result))
+                || uint.TryParse(value.Value, style, provider, out result);
+#endif
+    }
+
     extension(double)
     {
         /// <summary>

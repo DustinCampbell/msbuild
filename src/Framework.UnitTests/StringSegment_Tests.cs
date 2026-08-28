@@ -252,6 +252,40 @@ public class StringSegment_Tests
         styledResult.ShouldBe(0);
     }
 
+    [Theory]
+    [InlineData("0", 0u)]
+    [InlineData(" 42 ", 42u)]
+    [InlineData("00000000004294967295", uint.MaxValue)]
+    [InlineData("4294967295", uint.MaxValue)]
+    public void UInt32TryParse_ParsesIntegerSegments(string text, uint expected)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        uint.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out uint result).ShouldBeTrue();
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("-1")]
+    [InlineData("4 2")]
+    [InlineData("4294967296")]
+    public void UInt32TryParse_RejectsInvalidIntegerSegments(string text)
+    {
+        StringSegment segment = new($"prefix{text}suffix", 6, text.Length);
+
+        uint.TryParse(
+            segment,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out uint result).ShouldBeFalse();
+        result.ShouldBe(0u);
+    }
+
     [Fact]
     public void IntegerTryParse_RejectsNullSegments()
     {

@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Text;
 
 #if NETFRAMEWORK
 using NewPath = Microsoft.IO.Path;
@@ -199,6 +200,22 @@ namespace Microsoft.Build.Framework
             return string.IsNullOrEmpty(path) || Path.DirectorySeparatorChar == WindowsDirectorySeparator ? path : path.Replace(WindowsDirectorySeparator, UnixDirectorySeparator);
         }
 
+        internal static StringSegment FixFilePath(StringSegment path)
+        {
+            if (path.IsNullOrEmpty ||
+                Path.DirectorySeparatorChar == WindowsDirectorySeparator ||
+                !path.Contains(WindowsDirectorySeparator))
+            {
+                return path;
+            }
+
+            return string.Create(path.Length, path, static (destination, value) =>
+            {
+                value.CopyTo(destination);
+                destination.Replace(WindowsDirectorySeparator, UnixDirectorySeparator);
+            });
+        }
+
         /// <summary>
         /// If the given path doesn't have a trailing slash then add one.
         /// If the path is an empty string, does not modify it.
@@ -214,6 +231,21 @@ namespace Microsoft.Build.Framework
             }
 
             return fileSpec;
+        }
+
+        internal static string EnsureTrailingSlash(StringSegment fileSpec)
+        {
+            fileSpec = FixFilePath(fileSpec);
+            if (fileSpec.IsEmpty || IsSlash(fileSpec[^1]))
+            {
+                return fileSpec.ValueOrEmpty;
+            }
+
+            return string.Create(fileSpec.Length + 1, fileSpec, static (destination, value) =>
+            {
+                value.CopyTo(destination);
+                destination[^1] = Path.DirectorySeparatorChar;
+            });
         }
 
         /// <summary>
