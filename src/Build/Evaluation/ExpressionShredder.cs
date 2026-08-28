@@ -62,8 +62,19 @@ namespace Microsoft.Build.Evaluation
         private const char ItemVectorMarkerPrefix = '@';
         private const char MetadataMarkerPrefix = '%';
 
-        private static readonly char[] s_itemVectorOrMetadataMarkerPrefixes = [ItemVectorMarkerPrefix, MetadataMarkerPrefix];
-
+#if NET
+        // Modern .NET can expose collection expressions as static-data-backed spans and search them with
+        // MemoryExtensions.IndexOfAny. .NET Framework's string.IndexOfAny overloads require char arrays.
+        private static ReadOnlySpan<char> ItemVectorOrMetadataMarkerPrefixes => [ItemVectorMarkerPrefix, MetadataMarkerPrefix];
+        private static ReadOnlySpan<char> PropertyOrItemMarkerPrefixes => [PropertyMarkerPrefix, ItemVectorMarkerPrefix];
+        private static ReadOnlySpan<char> PropertyOrMetadataMarkerPrefixes => [PropertyMarkerPrefix, MetadataMarkerPrefix];
+        private static ReadOnlySpan<char> AllMarkerPrefixes => [PropertyMarkerPrefix, ItemVectorMarkerPrefix, MetadataMarkerPrefix];
+#else
+        private static readonly char[] ItemVectorOrMetadataMarkerPrefixes = [ItemVectorMarkerPrefix, MetadataMarkerPrefix];
+        private static readonly char[] PropertyOrItemMarkerPrefixes = [PropertyMarkerPrefix, ItemVectorMarkerPrefix];
+        private static readonly char[] PropertyOrMetadataMarkerPrefixes = [PropertyMarkerPrefix, MetadataMarkerPrefix];
+        private static readonly char[] AllMarkerPrefixes = [PropertyMarkerPrefix, ItemVectorMarkerPrefix, MetadataMarkerPrefix];
+#endif
         /// <summary>
         ///  Determines whether <paramref name="expression"/> contains a property marker.
         /// </summary>
@@ -93,6 +104,191 @@ namespace Microsoft.Build.Evaluation
         /// </returns>
         public static bool ContainsMetadataMarker(string expression)
             => IndexOfMetadataMarker(expression) >= 0;
+
+        /// <summary>
+        ///  Determines whether an expression contains a property or item-vector marker.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a marker is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool ContainsPropertyOrItemVectorMarker(string expression)
+            => IndexOfPropertyOrItemVectorMarker(expression) >= 0;
+
+        /// <summary>
+        ///  Determines whether an expression contains a property or metadata marker.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a marker is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool ContainsPropertyOrMetadataMarker(string expression)
+            => IndexOfPropertyOrMetadataMarker(expression) >= 0;
+
+        /// <summary>
+        ///  Determines whether an expression contains an item-vector or metadata marker.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a marker is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool ContainsItemVectorOrMetadataMarker(string expression)
+            => IndexOfItemVectorOrMetadataMarker(expression) >= 0;
+
+        /// <summary>
+        ///  Determines whether an expression contains a property, item-vector, or metadata marker.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a marker is found; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool ContainsAnyExpansionMarker(string expression)
+            => IndexOfAnyExpansionMarker(expression) >= 0;
+
+        /// <summary>
+        ///  Finds the first property or item-vector marker.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfPropertyOrItemVectorMarker(string expression)
+            => IndexOfMarker(expression, PropertyOrItemMarkerPrefixes);
+
+        /// <summary>
+        ///  Finds the first property or item-vector marker at or after <paramref name="startIndex"/>.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfPropertyOrItemVectorMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfPropertyOrItemVectorMarker(string expression, int startIndex)
+            => IndexOfMarker(expression, PropertyOrItemMarkerPrefixes, startIndex, count: expression.Length - startIndex);
+
+        /// <summary>
+        ///  Finds the first property or item-vector marker in the range beginning at
+        ///  <paramref name="startIndex"/> and spanning <paramref name="count"/> characters.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfPropertyOrItemVectorMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <param name="count">The number of characters to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfPropertyOrItemVectorMarker(string expression, int startIndex, int count)
+            => IndexOfMarker(expression, PropertyOrItemMarkerPrefixes, startIndex, count);
+
+        /// <summary>
+        ///  Finds the first property or metadata marker.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfPropertyOrMetadataMarker(string expression)
+            => IndexOfMarker(expression, PropertyOrMetadataMarkerPrefixes);
+
+        /// <summary>
+        ///  Finds the first property or metadata marker at or after <paramref name="startIndex"/>.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfPropertyOrMetadataMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfPropertyOrMetadataMarker(string expression, int startIndex)
+            => IndexOfMarker(expression, PropertyOrMetadataMarkerPrefixes, startIndex, expression.Length - startIndex);
+
+        /// <summary>
+        ///  Finds the first property or metadata marker in the range beginning at
+        ///  <paramref name="startIndex"/> and spanning <paramref name="count"/> characters.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfPropertyOrMetadataMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <param name="count">The number of characters to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfPropertyOrMetadataMarker(string expression, int startIndex, int count)
+            => IndexOfMarker(expression, PropertyOrMetadataMarkerPrefixes, startIndex, count);
+
+        /// <summary>
+        ///  Finds the first item-vector or metadata marker.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfItemVectorOrMetadataMarker(string expression)
+            => IndexOfMarker(expression, ItemVectorOrMetadataMarkerPrefixes);
+
+        /// <summary>
+        ///  Finds the first item-vector or metadata marker at or after <paramref name="startIndex"/>.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfItemVectorOrMetadataMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfItemVectorOrMetadataMarker(string expression, int startIndex)
+            => IndexOfMarker(expression, ItemVectorOrMetadataMarkerPrefixes, startIndex, count: expression.Length - startIndex);
+
+        /// <summary>
+        ///  Finds the first item-vector or metadata marker in the range beginning at
+        ///  <paramref name="startIndex"/> and spanning <paramref name="count"/> characters.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfItemVectorOrMetadataMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <param name="count">The number of characters to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfItemVectorOrMetadataMarker(string expression, int startIndex, int count)
+            => IndexOfMarker(expression, ItemVectorOrMetadataMarkerPrefixes, startIndex, count);
+
+        /// <summary>
+        ///  Finds the first property, item-vector, or metadata marker.
+        /// </summary>
+        /// <param name="expression">The expression to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfAnyExpansionMarker(string expression)
+            => IndexOfMarker(expression, AllMarkerPrefixes);
+
+        /// <summary>
+        ///  Finds the first property, item-vector, or metadata marker at or after
+        ///  <paramref name="startIndex"/>.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfAnyExpansionMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfAnyExpansionMarker(string expression, int startIndex)
+            => IndexOfMarker(expression, AllMarkerPrefixes, startIndex, expression.Length - startIndex);
+
+        /// <summary>
+        ///  Finds the first property, item-vector, or metadata marker in the range beginning at
+        ///  <paramref name="startIndex"/> and spanning <paramref name="count"/> characters.
+        /// </summary>
+        /// <inheritdoc cref="IndexOfAnyExpansionMarker(string)"/>
+        /// <param name="expression">The expression to scan.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
+        /// <param name="count">The number of characters to scan.</param>
+        /// <returns>
+        ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
+        /// </returns>
+        public static int IndexOfAnyExpansionMarker(string expression, int startIndex, int count)
+            => IndexOfMarker(expression, AllMarkerPrefixes, startIndex, count);
 
         /// <summary>
         ///  Finds the first property marker.
@@ -228,6 +424,10 @@ namespace Microsoft.Build.Evaluation
         {
             // IndexOf(char) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.
+            // 
+            // PERF NOTE: On modern .NET, string.IndexOf(char) does not argument checking and
+            // delegates directly to SpanHelpers.IndexOfChar(ref _firstChar, value, Length).
+            // So, it's not necessary to first convert the string to a span.
             int markerIndex = expression.IndexOf(marker);
             if (markerIndex < 0 || markerIndex == expression.Length - 1)
             {
@@ -279,6 +479,103 @@ namespace Microsoft.Build.Evaluation
 
             return -1;
         }
+
+#if NET
+        private static int IndexOfMarker(string expression, ReadOnlySpan<char> markers)
+        {
+            ReadOnlySpan<char> remaining = expression;
+            int offset = 0;
+
+            while (remaining.Length > 1)
+            {
+                int markerIndex = remaining.IndexOfAny(markers);
+                if (markerIndex < 0 || markerIndex == remaining.Length - 1)
+                {
+                    break;
+                }
+
+                if (remaining[markerIndex + 1] == '(')
+                {
+                    return offset + markerIndex;
+                }
+
+                int consumed = markerIndex + 1;
+                remaining = remaining[consumed..];
+                offset += consumed;
+            }
+
+            return -1;
+        }
+#else
+        private static int IndexOfMarker(string expression, char[] markers)
+        {
+            int startIndex = 0;
+            while (startIndex < expression.Length - 1)
+            {
+                int markerIndex = expression.IndexOfAny(markers, startIndex);
+                if (markerIndex < 0 || markerIndex == expression.Length - 1)
+                {
+                    break;
+                }
+
+                if (expression[markerIndex + 1] == '(')
+                {
+                    return markerIndex;
+                }
+
+                startIndex = markerIndex + 1;
+            }
+
+            return -1;
+        }
+#endif
+
+#if NET
+        private static int IndexOfMarker(string expression, ReadOnlySpan<char> markers, int startIndex, int count)
+        {
+            ReadOnlySpan<char> remaining = expression.AsSpan(startIndex, count);
+            int offset = startIndex;
+
+            while (remaining.Length > 1)
+            {
+                int markerIndex = remaining.IndexOfAny(markers);
+                if (markerIndex < 0 || markerIndex == remaining.Length - 1)
+                {
+                    break;
+                }
+
+                if (remaining[markerIndex + 1] == '(')
+                {
+                    return offset + markerIndex;
+                }
+
+                int consumed = markerIndex + 1;
+                remaining = remaining[consumed..];
+                offset += consumed;
+            }
+
+            return -1;
+        }
+#else
+        private static int IndexOfMarker(string expression, char[] markers, int startIndex, int count)
+        {
+            int markerIndex = expression.IndexOfAny(markers, startIndex, count);
+            int endIndex = startIndex + count;
+
+            while (markerIndex >= 0 && markerIndex < endIndex - 1)
+            {
+                if (expression[markerIndex + 1] == '(')
+                {
+                    return markerIndex;
+                }
+
+                int nextIndex = markerIndex + 1;
+                markerIndex = expression.IndexOfAny(markers, nextIndex, endIndex - nextIndex);
+            }
+
+            return -1;
+        }
+#endif
 
         /// <summary>
         /// Splits an expression into fragments at semi-colons, except where the
@@ -493,26 +790,14 @@ namespace Microsoft.Build.Evaluation
 
             while (i < end)
             {
-                int markerIndex = expression.IndexOfAny(s_itemVectorOrMetadataMarkerPrefixes, i, end - i);
+                int markerIndex = IndexOfItemVectorOrMetadataMarker(expression, i, end - i);
                 if (markerIndex < 0)
                 {
                     break;
                 }
 
                 char markerPrefix = expression[markerIndex];
-                i = markerIndex + 1;
-
-                if (i >= end)
-                {
-                    break;
-                }
-
-                if (expression[i] != '(')
-                {
-                    continue;
-                }
-
-                i++;
+                i = markerIndex + 2;
                 int restartPoint = i;
 
                 if (markerPrefix == '@')

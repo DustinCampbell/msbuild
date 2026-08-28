@@ -253,12 +253,56 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
+        // Each expansion pipeline performs its own marker scan. When multiple pipelines are enabled, one combined
+        // scan lets expressions without any selected markers bypass all of them.
+        if (!ShouldRunExpansionPipelines(expression, options))
+        {
+            VerifyExpansionProviders(options);
+            return FileUtilities.MaybeAdjustFilePath(expression);
+        }
+
         string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
         result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
         result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, elementLocation);
         result = FileUtilities.MaybeAdjustFilePath(result);
 
         return result;
+    }
+
+    private static bool ShouldRunExpansionPipelines(string expression, ExpanderOptions options)
+    {
+        bool expandProperties = (options & ExpanderOptions.ExpandProperties) != 0;
+        bool expandItems = (options & ExpanderOptions.ExpandItems) != 0;
+        bool expandMetadata = (options & ExpanderOptions.ExpandMetadata) != 0;
+
+        return (expandProperties, expandItems, expandMetadata) switch
+        {
+            (true, true, true) => ExpressionShredder.ContainsAnyExpansionMarker(expression),
+            (true, true, false) => ExpressionShredder.ContainsPropertyOrItemVectorMarker(expression),
+            (true, false, true) => ExpressionShredder.ContainsPropertyOrMetadataMarker(expression),
+            (false, true, true) => ExpressionShredder.ContainsItemVectorOrMetadataMarker(expression),
+
+            // A single enabled pipeline already uses a specialized single-marker scan, so avoid duplicating it here.
+            _ => true,
+        };
+    }
+
+    private void VerifyExpansionProviders(ExpanderOptions options)
+    {
+        if ((options & ExpanderOptions.ExpandMetadata) != 0)
+        {
+            Assumed.NotNull(_metadata, "Cannot expand metadata without providing metadata");
+        }
+
+        if ((options & ExpanderOptions.ExpandProperties) != 0)
+        {
+            Assumed.NotNull(_properties, "Cannot expand properties without providing properties");
+        }
+
+        if ((options & ExpanderOptions.ExpandItems) != 0)
+        {
+            Assumed.NotNull(_items, "Cannot expand items without providing items");
+        }
     }
 
     /// <summary>
