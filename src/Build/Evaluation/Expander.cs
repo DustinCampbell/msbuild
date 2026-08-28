@@ -9,7 +9,6 @@ using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using Microsoft.Build.Text;
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 using TaskItemFactory = Microsoft.Build.Execution.ProjectItemInstance.TaskItem.TaskItemFactory;
 
@@ -480,27 +479,6 @@ internal partial class Expander<P, I>
         }
 #endif
         return metadataValue;
-    }
-
-    /// <summary>
-    /// Returns true if the supplied string contains a valid property name.
-    /// </summary>
-    private static bool IsValidPropertyName(StringSegment propertyName)
-    {
-        if (propertyName.Length == 0 || !XmlUtilities.IsValidInitialElementNameCharacter(propertyName[0]))
-        {
-            return false;
-        }
-
-        for (int n = 1; n < propertyName.Length; n++)
-        {
-            if (!XmlUtilities.IsValidSubsequentElementNameCharacter(propertyName[n]))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /// <summary>
