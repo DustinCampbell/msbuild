@@ -289,6 +289,16 @@ internal partial class Expander<P, I>
 
     private void VerifyExpansionProviders(ExpanderOptions options)
     {
+        VerifyMetadataAndPropertyProviders(options);
+
+        if ((options & ExpanderOptions.ExpandItems) != 0)
+        {
+            Assumed.NotNull(_items, "Cannot expand items without providing items");
+        }
+    }
+
+    private void VerifyMetadataAndPropertyProviders(ExpanderOptions options)
+    {
         if ((options & ExpanderOptions.ExpandMetadata) != 0)
         {
             Assumed.NotNull(_metadata, "Cannot expand metadata without providing metadata");
@@ -297,11 +307,6 @@ internal partial class Expander<P, I>
         if ((options & ExpanderOptions.ExpandProperties) != 0)
         {
             Assumed.NotNull(_properties, "Cannot expand properties without providing properties");
-        }
-
-        if ((options & ExpanderOptions.ExpandItems) != 0)
-        {
-            Assumed.NotNull(_items, "Cannot expand items without providing items");
         }
     }
 
@@ -349,8 +354,18 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
-        expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
-        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+        bool shouldRunExpansionPipelines = ShouldRunExpansionPipelines(expression, options);
+        if (shouldRunExpansionPipelines)
+        {
+            expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
+            expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+        }
+        else
+        {
+            // Item expansion only requires an item provider after finding an item vector.
+            VerifyMetadataAndPropertyProviders(options);
+        }
+
         expression = FileUtilities.MaybeAdjustFilePath(expression);
 
         List<T> result = new List<T>();
@@ -363,8 +378,9 @@ internal partial class Expander<P, I>
         var splits = ExpressionShredder.SplitSemiColonSeparatedList(expression);
         foreach (string split in splits)
         {
-            bool isTransformExpression;
-            IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, split, _items, itemFactory, options, false /* do not include null items */, out isTransformExpression, elementLocation);
+            IList<T> itemsToAdd = shouldRunExpansionPipelines
+                ? ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, split, _items, itemFactory, options, false /* do not include null items */, out _, elementLocation)
+                : null;
 
             if ((itemsToAdd == null /* broke out early non empty */ || (itemsToAdd.Count > 0)) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
