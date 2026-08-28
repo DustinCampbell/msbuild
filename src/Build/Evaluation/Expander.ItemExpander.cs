@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 #if !NET
 using System.Text;
 #endif
@@ -11,6 +12,7 @@ using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
+using Microsoft.Build.Shared;
 #if NET
 using Microsoft.Build.Utilities;
 #endif
@@ -141,14 +143,9 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    ArgumentList parsedArguments = PropertyFunctionParser.ParseArguments(
-                        argumentsExpression,
-                        function,
-                        context.Location);
-                    arguments = new string[parsedArguments.Count];
-                    for (int argumentIndex = 0; argumentIndex < arguments.Length; argumentIndex++)
+                    if (argumentsExpression is not null)
                     {
-                        arguments[argumentIndex] = parsedArguments[argumentIndex].Value;
+                        arguments = ParseFunctionArguments(argumentsExpression, function, context.Location);
                     }
 
                     if (ItemSpecModifiers.IsDerivableItemSpecModifier(functionName))
@@ -275,6 +272,30 @@ internal partial class Expander<P, I>
 
             result = output;
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static string[] ParseFunctionArguments(
+            string argumentsExpression,
+            string function,
+            IElementLocation elementLocation)
+        {
+            ArgumentList parsedArguments = PropertyFunctionParser.ParseArguments(
+                argumentsExpression,
+                function,
+                elementLocation);
+            if (parsedArguments.Count == 0)
+            {
+                return null;
+            }
+
+            string[] arguments = new string[parsedArguments.Count];
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                arguments[i] = parsedArguments[i].Value;
+            }
+
+            return arguments;
         }
 
         /// <summary>
