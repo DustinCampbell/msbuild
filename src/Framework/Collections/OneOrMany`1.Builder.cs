@@ -38,11 +38,6 @@ internal readonly partial struct OneOrMany<T>
             }
             else
             {
-                if (_count == 1)
-                {
-                    _builder.Add(_firstItem!);
-                }
-
                 _builder.Add(item);
             }
 
@@ -60,7 +55,7 @@ internal readonly partial struct OneOrMany<T>
             {
                 0 => default,
                 1 => new OneOrMany<T>(_firstItem!),
-                _ => OneOrMany.Create(_builder.AsSpan()),
+                _ => new OneOrMany<T>(_firstItem!, _builder.AsSpan()),
             };
 
         /// <summary>

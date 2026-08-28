@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace Microsoft.Build.Collections;
 
 /// <summary>
-///  Stores zero or one value inline, or multiple values in an <see cref="ImmutableArray{T}"/>.
+///  Stores the first value inline and any additional values in an <see cref="ImmutableArray{T}"/>.
 /// </summary>
 /// <typeparam name="T">The type of value to store.</typeparam>
 [CollectionBuilder(typeof(OneOrMany), nameof(OneOrMany.Create))]
@@ -16,7 +16,7 @@ internal readonly partial struct OneOrMany<T>
 {
     private readonly T? _item;
 
-    // default = zero, initialized empty = one inline item, non-empty = many items.
+    // default = zero, initialized empty = one inline item, non-empty = inline first item plus additional items.
     private readonly ImmutableArray<T> _items;
 
     /// <summary>
@@ -50,16 +50,22 @@ internal readonly partial struct OneOrMany<T>
         }
         else
         {
-            _item = default;
-            _items = items;
+            _item = items[0];
+            _items = ImmutableArray.Create(items.AsSpan(1, items.Length - 1));
         }
+    }
+
+    internal OneOrMany(T firstItem, ReadOnlySpan<T> additionalItems)
+    {
+        _item = firstItem;
+        _items = ImmutableArray.Create(additionalItems);
     }
 
     /// <summary>
     ///  Gets the number of stored values.
     /// </summary>
     public int Count
-        => _items.IsDefault ? 0 : Math.Max(1, _items.Length);
+        => _items.IsDefault ? 0 : _items.Length + 1;
 
     /// <summary>
     ///  Gets a value indicating whether the collection is empty.
@@ -81,8 +87,27 @@ internal readonly partial struct OneOrMany<T>
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
 
-            return _items.IsEmpty ? _item! : _items[index];
+            return index == 0 ? _item! : _items[index - 1];
         }
+    }
+
+    /// <summary>
+    ///  Gets a read-only reference to the value at a caller-validated index.
+    /// </summary>
+    /// <param name="values">The collection containing the value.</param>
+    /// <param name="index">The zero-based index of the value to get.</param>
+    /// <returns>
+    ///  A read-only reference to the value at <paramref name="index"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref readonly T ItemRefUnchecked(in OneOrMany<T> values, int index)
+    {
+        if (index == 0)
+        {
+            return ref values._item!;
+        }
+
+        return ref values._items.ItemRef(index - 1);
     }
 
     /// <summary>

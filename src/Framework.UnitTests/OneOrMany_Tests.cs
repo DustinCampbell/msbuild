@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Build.Collections;
 using Shouldly;
 using Xunit;
@@ -99,6 +100,29 @@ public class OneOrMany_Tests
         OneOrMany<string?> values = builder.ToOneOrMany();
         values.Count.ShouldBe(1);
         values[0].ShouldBeNull();
+    }
+
+    [Fact]
+    public void ImmutableArrayConstructorPreservesManyValues()
+    {
+        OneOrMany<int> values = new(ImmutableArray.Create(10, 20, 30));
+
+        values.Count.ShouldBe(3);
+        GetValues(values).ShouldBe([10, 20, 30]);
+    }
+
+    [Fact]
+    public void ItemRefUncheckedReturnsInlineAndAdditionalValues()
+    {
+        string first = new(['f', 'i', 'r', 's', 't']);
+        string second = new(['s', 'e', 'c', 'o', 'n', 'd']);
+        OneOrMany<string> values = [first, second];
+
+        ref readonly string firstReference = ref OneOrMany<string>.ItemRefUnchecked(in values, 0);
+        ref readonly string secondReference = ref OneOrMany<string>.ItemRefUnchecked(in values, 1);
+
+        firstReference.ShouldBeSameAs(first);
+        secondReference.ShouldBeSameAs(second);
     }
 
     private static List<T> GetValues<T>(OneOrMany<T> values)

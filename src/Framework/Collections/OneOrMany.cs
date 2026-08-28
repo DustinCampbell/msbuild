@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Immutable;
 
 namespace Microsoft.Build.Collections;
 
@@ -24,6 +23,6 @@ internal static class OneOrMany
         {
             0 => default,
             1 => new OneOrMany<T>(values[0]),
-            _ => new OneOrMany<T>(ImmutableArray.Create(values)),
+            _ => new OneOrMany<T>(values[0], values[1..]),
         };
 }
