@@ -1,0 +1,173 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
+using Microsoft.Build.Evaluation.Expander;
+using Microsoft.Build.Text;
+using Shouldly;
+using Xunit;
+
+namespace Microsoft.Build.UnitTests.Evaluation;
+
+public sealed class WellKnownFunctions_Tests
+{
+    private const BindingFlags StaticFunctionFlags =
+        BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Static | BindingFlags.InvokeMethod;
+
+    [Fact]
+    public void StringConcatMatchesDefaultBinderForScalarArguments()
+    {
+        AssertStringConcatMatchesDefaultBinder("a");
+        AssertStringConcatMatchesDefaultBinder("a", "b");
+        AssertStringConcatMatchesDefaultBinder("a", "b", "c");
+        AssertStringConcatMatchesDefaultBinder("a", "b", "c", "d");
+        AssertStringConcatMatchesDefaultBinder("a", "b", "c", "d", "e");
+        AssertStringConcatMatchesDefaultBinder(1L, "x");
+        AssertStringConcatMatchesDefaultBinder("a", 2, true);
+        AssertStringConcatMatchesDefaultBinder(null, "b");
+        AssertStringConcatMatchesDefaultBinder(new NullStringValue());
+    }
+
+    [Fact]
+    public void StringConcatMatchesDefaultBinderForCollectionArguments()
+    {
+        AssertStringConcatMatchesDefaultBinder((object)new string?[] { "a", null, "b" });
+        AssertStringConcatMatchesDefaultBinder((object)new object?[] { "a", 1, null });
+        AssertStringConcatMatchesDefaultBinder(new List<string?> { "a", null, "b" });
+
+        // Type.DefaultBinder does not infer T for Concat<T>(IEnumerable<T>), so this must use the List's
+        // parameterless ToString() rather than concatenating its elements.
+        AssertStringConcatMatchesDefaultBinder(new List<int> { 1, 2 });
+    }
+
+    [Fact]
+    public void StringConcatLeavesZeroArgumentCallToDefaultBinder()
+    {
+        AssertStringConcatFallsBackToDefaultBinder([]);
+    }
+
+    [Fact]
+    public void StringConcatTreatsSingleNullAsEmpty()
+    {
+        // Type.DefaultBinder considers the untyped null ambiguous, but Concat(object?) defines null as empty.
+        FunctionArguments arguments = CreateArguments([null]);
+
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void StringConcatDirectlyHandlesMixedParamsArguments()
+    {
+        // Type.DefaultBinder can select a ReadOnlySpan<object?> overload that reflection cannot invoke. The
+        // well-known path applies the documented object-concatenation semantics directly instead.
+        FunctionArguments arguments = CreateArguments(["a", 2, true, 4L]);
+
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe("a2True4");
+
+        arguments = CreateArguments(["a", new NullStringValue(), "b", 4]);
+
+        handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe("ab4");
+    }
+
+    [Theory]
+    [InlineData("a", "a")]
+    [InlineData("a,b", "ab")]
+    [InlineData("a,b,c", "abc")]
+    [InlineData("a,b,c,d", "abcd")]
+    [InlineData("a,b,c,d,e", "abcde")]
+    public void StringConcatConsumesRawSegmentsWithoutMaterializing(string text, string expected)
+    {
+        ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
+        FunctionArguments arguments = new(source);
+
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe(expected);
+        arguments.IsMaterialized.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void StringConcatReturnsTheOnlyNonEmptyStringWithoutCopying()
+    {
+        string value = new string(['v', 'a', 'l', 'u', 'e']);
+        string[][] argumentSets =
+        [
+            [string.Empty, value],
+            [string.Empty, value, string.Empty],
+            [string.Empty, string.Empty, value, string.Empty],
+        ];
+
+        foreach (string[] values in argumentSets)
+        {
+            FunctionArguments arguments = new(values);
+
+            bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+
+            handled.ShouldBeTrue();
+            result.ShouldBeSameAs(value);
+            arguments.IsMaterialized.ShouldBeFalse();
+        }
+    }
+
+    private static void AssertStringConcatMatchesDefaultBinder(params object?[] values)
+    {
+        object? expected = InvokeStringConcatWithDefaultBinder((object?[])values.Clone());
+        FunctionArguments arguments = CreateArguments(values);
+
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+
+        handled.ShouldBeTrue();
+        result.ShouldBe(expected);
+    }
+
+    private static void AssertStringConcatFallsBackToDefaultBinder(object?[] values)
+    {
+        FunctionArguments arguments = CreateArguments(values);
+
+        bool handled = WellKnownFunctions.TryExecuteStringConcat(arguments, out object? result);
+
+        handled.ShouldBeFalse();
+        result.ShouldBeNull();
+        Should.Throw<AmbiguousMatchException>(() => InvokeStringConcatWithDefaultBinder((object?[])values.Clone()));
+    }
+
+    private static object? InvokeStringConcatWithDefaultBinder(object?[] values)
+        => typeof(string).InvokeMember(
+            nameof(string.Concat),
+            StaticFunctionFlags,
+            Type.DefaultBinder,
+            target: null,
+            values,
+            CultureInfo.InvariantCulture);
+
+    private static FunctionArguments CreateArguments(object?[] values)
+    {
+        FunctionArguments arguments = new(new string[values.Length]);
+        arguments.ConfigureMaterialization(new ValueMaterializer(values), materializeAllArguments: true);
+        return arguments;
+    }
+
+    private sealed class ValueMaterializer(object?[] values) : IFunctionArgumentMaterializer
+    {
+        public object? Materialize(StringSegment source, int index, FunctionArgumentRequirements requirements)
+            => values[index];
+    }
+
+    private sealed class NullStringValue
+    {
+        public override string? ToString() => null;
+    }
+}

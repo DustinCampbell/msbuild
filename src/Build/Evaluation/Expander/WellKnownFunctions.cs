@@ -13,7 +13,7 @@ using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander
 {
-    internal class WellKnownFunctions
+    internal partial class WellKnownFunctions
     {
         private static bool ElementsOfType(FunctionArguments args, Type type)
         {
@@ -177,12 +177,13 @@ namespace Microsoft.Build.Evaluation.Expander
         /// <returns></returns>
         internal static bool TryExecuteStringFunction(StringSegment methodName, string text, FunctionArguments args, out object? result)
         {
-            StringSegment receiver = text;
+            StringSegment value = text;
+
             if (methodName.Equals(nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase))
             {
                 if (args.TryGetArg(out StringSegment arg0))
                 {
-                    result = receiver.StartsWith(arg0, StringComparison.CurrentCulture);
+                    result = value.StartsWith(arg0, StringComparison.CurrentCulture);
                     return true;
                 }
             }
@@ -200,7 +201,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (args.TryGetArg(out StringSegment arg0))
                 {
-                    result = receiver.Contains(arg0);
+                    result = value.Contains(arg0);
                     return true;
                 }
             }
@@ -227,13 +228,13 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (args.TryGetArg(out StringSegment arg0))
                 {
-                    result = receiver.EndsWith(arg0, StringComparison.CurrentCulture);
+                    result = value.EndsWith(arg0, StringComparison.CurrentCulture);
                     return true;
                 }
 
                 if (args.TryGetArgs(out arg0, out StringComparison arg1))
                 {
-                    result = receiver.EndsWith(arg0, arg1);
+                    result = value.EndsWith(arg0, arg1);
                     return true;
                 }
             }
@@ -251,7 +252,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (args.TryGetArgs(out StringSegment arg0, out StringComparison arg1))
                 {
-                    result = receiver.IndexOf(arg0, arg1);
+                    result = value.IndexOf(arg0, arg1);
                     return true;
                 }
             }
@@ -260,7 +261,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (args.TryGetArg(out StringSegment arg0))
                 {
-                    result = receiver.IndexOfAny(arg0.AsSpan());
+                    result = value.IndexOfAny(arg0.AsSpan());
                     return true;
                 }
             }
@@ -269,19 +270,19 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (args.TryGetArg(out StringSegment arg0))
                 {
-                    result = receiver.LastIndexOf(arg0, StringComparison.CurrentCulture);
+                    result = value.LastIndexOf(arg0, StringComparison.CurrentCulture);
                     return true;
                 }
 
                 if (args.TryGetArgs(out arg0, out int startIndex))
                 {
-                    result = receiver.LastIndexOf(arg0, startIndex, StringComparison.CurrentCulture);
+                    result = value.LastIndexOf(arg0, startIndex, StringComparison.CurrentCulture);
                     return true;
                 }
 
                 if (args.TryGetArgs(out arg0, out StringComparison arg1))
                 {
-                    result = receiver.LastIndexOf(arg0, arg1);
+                    result = value.LastIndexOf(arg0, arg1);
                     return true;
                 }
             }
@@ -290,7 +291,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (args.TryGetArg(out StringSegment arg0))
                 {
-                    result = receiver.LastIndexOfAny(arg0.AsSpan());
+                    result = value.LastIndexOfAny(arg0.AsSpan());
                     return true;
                 }
             }
@@ -389,7 +390,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (args.TryGetArg(out StringSegment arg0))
                 {
-                    result = receiver.Equals(arg0);
+                    result = value.Equals(arg0);
                     return true;
                 }
             }
@@ -934,6 +935,14 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (receiverType == typeof(string))
                 {
+                    if (methodName.Equals(nameof(string.Concat), StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (TryExecuteStringConcat(args, out result))
+                        {
+                            return true;
+                        }
+                    }
+
                     if (methodName.Equals(nameof(string.IsNullOrWhiteSpace), StringComparison.OrdinalIgnoreCase))
                     {
                         if (args.TryGetArg(out StringSegment arg0))

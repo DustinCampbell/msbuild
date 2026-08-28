@@ -4785,6 +4785,21 @@ $(
                                 "X", "test.designer.cs", "4");
         }
 
+        [Theory]
+        [InlineData("$([System.String]::Concat('a', 'b'))", "ab")]
+        [InlineData("$([System.String]::Concat('a', 'b', 'c'))", "abc")]
+        [InlineData("$([System.String]::Concat('a', 'b', 'c', 'd'))", "abcd")]
+        [InlineData("$([System.String]::Concat('$(X)', '-', '$(X)'))", "a-a")]
+        [InlineData("$([System.String]::Concat($([System.String]::Concat('a', 'b')), 'c'))", "abc")]
+        [InlineData("$([System.String]::Concat('%28', 'x'))", "%28x")]
+        [InlineData("$([System.String]::Concat($([MSBuild]::Add(1, 2)), 'x'))", "3x")]
+        [InlineData("$([System.String]::Concat(null, 'b'))", "b")]
+        [InlineData("$([System.String]::Concat(null))", "")]
+        public void PropertyFunctionStringConcat(string expression, string expected)
+        {
+            TestPropertyFunction(expression, "X", "a", expected);
+        }
+
         [Fact]
         public void PropertyFunctionVersionParse()
         {
