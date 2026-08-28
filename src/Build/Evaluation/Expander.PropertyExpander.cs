@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+#if NET
+using System.Buffers;
+#endif
 using System.Collections;
 using System.Globalization;
 #if !FEATURE_MSIOREDIST
@@ -46,6 +49,10 @@ internal partial class Expander<P, I>
         private const string SolutionsVsVersionProperty = "Solutions.VSVersion";
         private const string SolutionsVsVersionExpression = "$(" + SolutionsVsVersionProperty + ")";
         private const string VstsDbDirectoryProperty = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory";
+
+#if NET
+        private static readonly SearchValues<char> s_propertySyntax = SearchValues.Create(['"', '$', '\'', '(', ')', '.', ':', '[', '`']);
+#endif
 
         private readonly IPropertyProvider<P> _properties;
         private readonly ExpanderOptions _options;
@@ -359,7 +366,19 @@ internal partial class Expander<P, I>
             isPotentialPropertyFunction = false;
             isPotentialRegistryFunction = false;
 
-            // Scan for our closing ')'
+#if NET
+            // Static property functions begin with '[' and have no ordinary property-name characters to skip.
+            if (index < length && expression[index] != '[')
+            {
+                index = IndexOfPropertySyntax(expression, index);
+                if (index < 0)
+                {
+                    return -1;
+                }
+            }
+#endif
+
+            // Scan for our closing ')'.
             while (index < length && nestLevel > 0)
             {
                 char character = expression[index];
@@ -399,6 +418,14 @@ internal partial class Expander<P, I>
 
             // We will have parsed past the ')', so step back one character.
             return nestLevel == 0 ? index - 1 : -1;
+
+#if NET
+            static int IndexOfPropertySyntax(string expression, int startIndex)
+            {
+                int index = expression.AsSpan(startIndex).IndexOfAny(s_propertySyntax);
+                return index < 0 ? index : startIndex + index;
+            }
+#endif
         }
 
         private object ExpandProperty(
