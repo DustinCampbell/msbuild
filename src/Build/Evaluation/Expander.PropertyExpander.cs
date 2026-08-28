@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+#if NET
+using System.Buffers;
+#endif
 using System.Collections;
 using System.Globalization;
 #if !FEATURE_MSIOREDIST
@@ -44,6 +47,10 @@ internal partial class Expander<P, I>
         private const string SolutionsVsVersionProperty = "Solutions.VSVersion";
         private const string SolutionsVsVersionExpression = $"$({SolutionsVsVersionProperty})";
         private const string VstsDbDirectoryProperty = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory";
+
+#if NET
+        private static readonly SearchValues<char> s_propertySyntax = SearchValues.Create("'`\"().[$:");
+#endif
 
         private readonly IPropertyProvider<P> _properties;
         private readonly ExpanderOptions _options;
@@ -403,7 +410,38 @@ internal partial class Expander<P, I>
 
             while (index < length && nestLevel > 0)
             {
+#if NET
+                int nextSyntaxCharacter = expression.AsSpan(index).IndexOfAny(s_propertySyntax);
+                if (nextSyntaxCharacter < 0)
+                {
+                    return -1;
+                }
+                index += nextSyntaxCharacter;
+#endif
                 char character = expression[index];
+
+#if !NET
+                if (character > ':')
+                {
+                    if (character == '[')
+                    {
+                        isPotentialPropertyFunction = true;
+                    }
+                    else if (character == '`')
+                    {
+                        int quoteIndex = expression.IndexOf(character, index + 1);
+                        if (quoteIndex < 0)
+                        {
+                            return -1;
+                        }
+
+                        index = quoteIndex;
+                    }
+
+                    index++;
+                    continue;
+                }
+#endif
 
                 switch (character)
                 {
@@ -472,7 +510,38 @@ internal partial class Expander<P, I>
             // Scan for our closing ')'
             while (index < length && nestLevel > 0)
             {
+#if NET
+                int nextSyntaxCharacter = expression.AsSpan(index).IndexOfAny(s_propertySyntax);
+                if (nextSyntaxCharacter < 0)
+                {
+                    return -1;
+                }
+                index += nextSyntaxCharacter;
+#endif
                 char character = expression[index];
+
+#if !NET
+                if (character > ':')
+                {
+                    if (character == '[')
+                    {
+                        isPotentialPropertyFunction = true;
+                    }
+                    else if (character == '`')
+                    {
+                        int quoteIndex = expression.IndexOf(character, index + 1);
+                        if (quoteIndex < 0)
+                        {
+                            return -1;
+                        }
+
+                        index = quoteIndex;
+                    }
+
+                    index++;
+                    continue;
+                }
+#endif
 
                 switch (character)
                 {
@@ -767,6 +836,7 @@ internal partial class Expander<P, I>
             bool isUninitialized = property is null;
             bool isArtificial = isUninitialized
                 && endIndex - startIndex >= "MSBuild".Length
+                && propertyName[startIndex] is 'M' or 'm'
                 && MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, "MSBuild".Length);
 
             _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, isUninitialized, isArtificial);
@@ -800,6 +870,7 @@ internal partial class Expander<P, I>
             bool isUninitialized = property is null;
             bool isArtificial = isUninitialized
                 && propertyName.Length > "MSBuild".Length
+                && propertyName[0] is 'M' or 'm'
                 && propertyName.StartsWith("MSBuild", StringComparison.OrdinalIgnoreCase);
 
             _propertiesUseTracker.TrackRead(buffer, startIndex, endIndex, _elementLocation, isUninitialized, isArtificial);
