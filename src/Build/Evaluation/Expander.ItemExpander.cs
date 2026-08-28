@@ -664,16 +664,24 @@ internal partial class Expander<P, I>
         /// If the expression is empty, returns empty string.
         /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
         /// </summary>
-        internal static string ExpandItemVectorsIntoString(Expander<P, I> expander, string expression, IItemProvider<I> items, ExpanderOptions options, IElementLocation elementLocation)
+        internal static string ExpandItemVectorsIntoString(
+            Expander<P, I> expander,
+            string expression,
+            int startIndex,
+            IItemProvider<I> items,
+            ExpanderOptions options,
+            IElementLocation elementLocation)
         {
-            if ((options & ExpanderOptions.ExpandItems) == 0 || expression.Length == 0)
+            Assumed.True((options & ExpanderOptions.ExpandItems) != 0);
+
+            if (expression.Length == 0)
             {
                 return expression;
             }
 
             Assumed.NotNull(items, "Cannot expand items without providing items");
 
-            if (!ExpressionShredder.TryGetNextItemVectorExpression(expression, out ExpressionShredder.ItemExpressionCapture currentItem))
+            if (!ExpressionShredder.TryGetNextItemVectorExpression(expression, startIndex, out ExpressionShredder.ItemExpressionCapture currentItem))
             {
                 return expression;
             }

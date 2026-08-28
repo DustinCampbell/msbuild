@@ -88,6 +88,7 @@ internal partial class Expander<P, I>
         /// </summary>
         internal static string ExpandPropertiesLeaveEscaped(
             string expression,
+            int startIndex,
             IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
@@ -102,7 +103,8 @@ internal partial class Expander<P, I>
                         options,
                         elementLocation,
                         propertiesUseTracker,
-                        fileSystem));
+                        fileSystem,
+                        startIndex));
         }
 
         /// <summary>
@@ -128,9 +130,12 @@ internal partial class Expander<P, I>
             ExpanderOptions options,
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem)
+            IFileSystem fileSystem,
+            int startIndex = 0)
         {
-            if (((options & ExpanderOptions.ExpandProperties) == 0) || String.IsNullOrEmpty(expression))
+            Assumed.True((options & ExpanderOptions.ExpandProperties) != 0);
+
+            if (string.IsNullOrEmpty(expression))
             {
                 return expression;
             }
@@ -138,7 +143,7 @@ internal partial class Expander<P, I>
             Assumed.NotNull(properties, "Cannot expand properties without providing properties");
 
             // If there are no substitutions, then just return the string.
-            int markerIndex = ExpressionShredder.IndexOfPropertyMarker(expression);
+            int markerIndex = ExpressionShredder.IndexOfPropertyMarker(expression, startIndex);
             if (markerIndex == -1)
             {
                 return expression;

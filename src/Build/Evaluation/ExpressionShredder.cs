@@ -153,7 +153,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyOrItemVectorMarker(string expression)
-            => IndexOfMarker(expression, PropertyOrItemMarkerPrefixes);
+            => IndexOfAnyMarker(expression, PropertyOrItemMarkerPrefixes);
 
         /// <summary>
         ///  Finds the first property or item-vector marker at or after <paramref name="startIndex"/>.
@@ -165,7 +165,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyOrItemVectorMarker(string expression, int startIndex)
-            => IndexOfMarker(expression, PropertyOrItemMarkerPrefixes, startIndex, count: expression.Length - startIndex);
+            => IndexOfAnyMarker(expression, PropertyOrItemMarkerPrefixes, startIndex, count: expression.Length - startIndex);
 
         /// <summary>
         ///  Finds the first property or item-vector marker in the range beginning at
@@ -179,7 +179,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyOrItemVectorMarker(string expression, int startIndex, int count)
-            => IndexOfMarker(expression, PropertyOrItemMarkerPrefixes, startIndex, count);
+            => IndexOfAnyMarker(expression, PropertyOrItemMarkerPrefixes, startIndex, count);
 
         /// <summary>
         ///  Finds the first property or metadata marker.
@@ -189,7 +189,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyOrMetadataMarker(string expression)
-            => IndexOfMarker(expression, PropertyOrMetadataMarkerPrefixes);
+            => IndexOfAnyMarker(expression, PropertyOrMetadataMarkerPrefixes);
 
         /// <summary>
         ///  Finds the first property or metadata marker at or after <paramref name="startIndex"/>.
@@ -201,7 +201,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyOrMetadataMarker(string expression, int startIndex)
-            => IndexOfMarker(expression, PropertyOrMetadataMarkerPrefixes, startIndex, expression.Length - startIndex);
+            => IndexOfAnyMarker(expression, PropertyOrMetadataMarkerPrefixes, startIndex, expression.Length - startIndex);
 
         /// <summary>
         ///  Finds the first property or metadata marker in the range beginning at
@@ -215,7 +215,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfPropertyOrMetadataMarker(string expression, int startIndex, int count)
-            => IndexOfMarker(expression, PropertyOrMetadataMarkerPrefixes, startIndex, count);
+            => IndexOfAnyMarker(expression, PropertyOrMetadataMarkerPrefixes, startIndex, count);
 
         /// <summary>
         ///  Finds the first item-vector or metadata marker.
@@ -225,7 +225,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfItemVectorOrMetadataMarker(string expression)
-            => IndexOfMarker(expression, ItemVectorOrMetadataMarkerPrefixes);
+            => IndexOfAnyMarker(expression, ItemVectorOrMetadataMarkerPrefixes);
 
         /// <summary>
         ///  Finds the first item-vector or metadata marker at or after <paramref name="startIndex"/>.
@@ -237,7 +237,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfItemVectorOrMetadataMarker(string expression, int startIndex)
-            => IndexOfMarker(expression, ItemVectorOrMetadataMarkerPrefixes, startIndex, count: expression.Length - startIndex);
+            => IndexOfAnyMarker(expression, ItemVectorOrMetadataMarkerPrefixes, startIndex, count: expression.Length - startIndex);
 
         /// <summary>
         ///  Finds the first item-vector or metadata marker in the range beginning at
@@ -251,7 +251,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfItemVectorOrMetadataMarker(string expression, int startIndex, int count)
-            => IndexOfMarker(expression, ItemVectorOrMetadataMarkerPrefixes, startIndex, count);
+            => IndexOfAnyMarker(expression, ItemVectorOrMetadataMarkerPrefixes, startIndex, count);
 
         /// <summary>
         ///  Finds the first property, item-vector, or metadata marker.
@@ -261,7 +261,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfAnyExpansionMarker(string expression)
-            => IndexOfMarker(expression, AllMarkerPrefixes);
+            => IndexOfAnyMarker(expression, AllMarkerPrefixes);
 
         /// <summary>
         ///  Finds the first property, item-vector, or metadata marker at or after
@@ -274,7 +274,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfAnyExpansionMarker(string expression, int startIndex)
-            => IndexOfMarker(expression, AllMarkerPrefixes, startIndex, expression.Length - startIndex);
+            => IndexOfAnyMarker(expression, AllMarkerPrefixes, startIndex, expression.Length - startIndex);
 
         /// <summary>
         ///  Finds the first property, item-vector, or metadata marker in the range beginning at
@@ -288,7 +288,7 @@ namespace Microsoft.Build.Evaluation
         ///  The zero-based index of the marker, or <c>-1</c> if it is not found.
         /// </returns>
         public static int IndexOfAnyExpansionMarker(string expression, int startIndex, int count)
-            => IndexOfMarker(expression, AllMarkerPrefixes, startIndex, count);
+            => IndexOfAnyMarker(expression, AllMarkerPrefixes, startIndex, count);
 
         /// <summary>
         ///  Finds the first property marker.
@@ -422,6 +422,11 @@ namespace Microsoft.Build.Evaluation
 
         private static int IndexOfMarker(string expression, char marker)
         {
+            if (expression.Length < 2)
+            {
+                return -1;
+            }
+
             // IndexOf(char) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.
             // 
@@ -451,6 +456,16 @@ namespace Microsoft.Build.Evaluation
 
         private static int IndexOfMarker(string expression, char marker, int startIndex, int count)
         {
+            if (count < 2)
+            {
+                return -1;
+            }
+
+            if (expression[startIndex] == marker && expression[startIndex + 1] == '(')
+            {
+                return startIndex;
+            }
+
             // IndexOf(char, int, int) is significantly faster than an ordinal two-character search,
             // especially when the marker is absent, so check the opening parenthesis separately.
             int markerIndex = expression.IndexOf(marker, startIndex, count);
@@ -481,7 +496,7 @@ namespace Microsoft.Build.Evaluation
         }
 
 #if NET
-        private static int IndexOfMarker(string expression, ReadOnlySpan<char> markers)
+        private static int IndexOfAnyMarker(string expression, ReadOnlySpan<char> markers)
         {
             ReadOnlySpan<char> remaining = expression;
             int offset = 0;
@@ -507,7 +522,7 @@ namespace Microsoft.Build.Evaluation
             return -1;
         }
 #else
-        private static int IndexOfMarker(string expression, char[] markers)
+        private static int IndexOfAnyMarker(string expression, char[] markers)
         {
             int startIndex = 0;
             while (startIndex < expression.Length - 1)
@@ -531,7 +546,7 @@ namespace Microsoft.Build.Evaluation
 #endif
 
 #if NET
-        private static int IndexOfMarker(string expression, ReadOnlySpan<char> markers, int startIndex, int count)
+        private static int IndexOfAnyMarker(string expression, ReadOnlySpan<char> markers, int startIndex, int count)
         {
             ReadOnlySpan<char> remaining = expression.AsSpan(startIndex, count);
             int offset = startIndex;
@@ -557,7 +572,7 @@ namespace Microsoft.Build.Evaluation
             return -1;
         }
 #else
-        private static int IndexOfMarker(string expression, char[] markers, int startIndex, int count)
+        private static int IndexOfAnyMarker(string expression, char[] markers, int startIndex, int count)
         {
             int markerIndex = expression.IndexOfAny(markers, startIndex, count);
             int endIndex = startIndex + count;

@@ -238,54 +238,98 @@ internal partial class Expander<P, I>
     }
 
     /// <summary>
-    /// Expands embedded item metadata, properties, and embedded item lists (in that order) as specified in the provided options.
-    /// Use this form when the result is going to be processed further, for example by matching against the file system,
-    /// so literals must be distinguished, and you promise to unescape after that.
-    ///
-    /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
+    ///  Expands the marker types selected by <paramref name="options"/> in metadata, property, then item-vector
+    ///  order and leaves the result escaped.
     /// </summary>
+    /// <param name="expression">The expression to expand.</param>
+    /// <param name="options">The expansion pipelines and behavior to enable.</param>
+    /// <param name="elementLocation">The location used to report expansion errors.</param>
+    /// <returns>
+    ///  The expanded, escaped string, or <see langword="null"/> when
+    ///  <see cref="ExpanderOptions.BreakOnNotEmpty"/> stops expansion early.
+    /// </returns>
+    /// <remarks>
+    ///  Only pipelines selected by <paramref name="options"/> are invoked. They run in a fixed order because
+    ///  metadata expansion can produce property syntax, and metadata or property expansion can produce item-vector
+    ///  syntax.
+    ///  <para>
+    ///   A non-empty <paramref name="expression"/> is scanned once for the first selected marker. Its index is reused
+    ///   by each selected pipeline as either a known first marker or the starting point for further scanning. Property
+    ///   expansion can adjust path-like prefixes and change their length, so item scanning restarts at the beginning
+    ///   afterward.
+    ///  </para>
+    ///  <para>
+    ///   When no selected marker is present in a non-empty <paramref name="expression"/>, the pipelines are skipped,
+    ///   but their provider assumptions are still validated and file-path adjustment is still applied.
+    ///  </para>
+    ///  <para>
+    ///   Use this form when the result will be processed further, such as when matching against the file system, so
+    ///   escaped literals remain distinguishable. The caller is responsible for unescaping the result afterward.
+    ///  </para>
+    /// </remarks>
     internal string ExpandIntoStringLeaveEscaped(string expression, ExpanderOptions options, IElementLocation elementLocation)
     {
         if (expression.Length == 0)
         {
-            return String.Empty;
+            return string.Empty;
         }
 
         Assumed.NotNull(elementLocation);
 
-        // Each expansion pipeline performs its own marker scan. When multiple pipelines are enabled, one combined
-        // scan lets expressions without any selected markers bypass all of them.
-        if (!ShouldRunExpansionPipelines(expression, options))
+        bool expandMetadata = (options & ExpanderOptions.ExpandMetadata) != 0;
+        bool expandProperties = (options & ExpanderOptions.ExpandProperties) != 0;
+        bool expandItems = (options & ExpanderOptions.ExpandItems) != 0;
+
+        // Find the first selected marker once so the expansion pipelines can reuse its position.
+        int markerIndex = GetFirstMarkerIndex(expression, expandProperties, expandItems, expandMetadata);
+        if (markerIndex < 0)
         {
+            // Selected pipelines normally validate their providers before scanning for their marker.
             VerifyExpansionProviders(options);
             return FileUtilities.MaybeAdjustFilePath(expression);
         }
 
-        string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
-        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
-        result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, elementLocation);
+        string result = expression;
+
+        // Earlier pipelines can produce syntax consumed by later pipelines, so preserve this order.
+        if (expandMetadata)
+        {
+            result = MetadataExpander.ExpandMetadataLeaveEscaped(result, markerIndex, _metadata, options, elementLocation, _loggingContext);
+        }
+
+        if (expandProperties)
+        {
+            result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, markerIndex, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+
+            // Property expansion may adjust path-like prefixes and change their length.
+            // So, the marker index can't be trusted for the rest of the pipeline.
+            markerIndex = 0;
+        }
+
+        if (expandItems)
+        {
+            result = ItemExpander.ExpandItemVectorsIntoString(this, result, markerIndex, _items, options, elementLocation);
+        }
+
         result = FileUtilities.MaybeAdjustFilePath(result);
 
         return result;
     }
 
-    private static bool ShouldRunExpansionPipelines(string expression, ExpanderOptions options)
-    {
-        bool expandProperties = (options & ExpanderOptions.ExpandProperties) != 0;
-        bool expandItems = (options & ExpanderOptions.ExpandItems) != 0;
-        bool expandMetadata = (options & ExpanderOptions.ExpandMetadata) != 0;
-
-        return (expandProperties, expandItems, expandMetadata) switch
+    private static int GetFirstMarkerIndex(string expression, bool expandProperties, bool expandItems, bool expandMetadata)
+        => (expandProperties, expandItems, expandMetadata) switch
         {
-            (true, true, true) => ExpressionShredder.ContainsAnyExpansionMarker(expression),
-            (true, true, false) => ExpressionShredder.ContainsPropertyOrItemVectorMarker(expression),
-            (true, false, true) => ExpressionShredder.ContainsPropertyOrMetadataMarker(expression),
-            (false, true, true) => ExpressionShredder.ContainsItemVectorOrMetadataMarker(expression),
+            (true, true, true) => ExpressionShredder.IndexOfAnyExpansionMarker(expression),
+            (true, true, false) => ExpressionShredder.IndexOfPropertyOrItemVectorMarker(expression),
+            (true, false, true) => ExpressionShredder.IndexOfPropertyOrMetadataMarker(expression),
+            (false, true, true) => ExpressionShredder.IndexOfItemVectorOrMetadataMarker(expression),
+            (true, false, false) => ExpressionShredder.IndexOfPropertyMarker(expression),
+            (false, true, false) => ExpressionShredder.IndexOfItemVectorMarker(expression),
+            (false, false, true) => ExpressionShredder.IndexOfMetadataMarker(expression),
 
-            // A single enabled pipeline already uses a specialized single-marker scan, so avoid duplicating it here.
-            _ => true,
+            // No expansion pipelines were selected.
+            (false, false, false) => -1,
         };
-    }
 
     private void VerifyExpansionProviders(ExpanderOptions options)
     {
@@ -335,15 +379,33 @@ internal partial class Expander<P, I>
     }
 
     /// <summary>
-    /// Expands embedded item metadata, properties, and embedded item lists (in that order) as specified in the provided options
-    /// and produces a list of items of the type for which it was specialized.
-    /// If the expression is empty, returns an empty list.
-    /// If ExpanderOptions.BreakOnNotEmpty was passed, expression was going to be non-empty, and it broke out early, returns null. Otherwise the result can be trusted.
-    ///
-    /// Use this form when the result is going to be processed further, for example by matching against the file system,
-    /// so literals must be distinguished, and you promise to unescape after that.
+    ///  Expands the marker types selected by <paramref name="options"/> in metadata, property, then item-vector
+    ///  order and creates items of type <typeparamref name="T"/> from the escaped result.
     /// </summary>
-    /// <typeparam name="T">Type of items to return.</typeparam>
+    /// <typeparam name="T">The type of items to return.</typeparam>
+    /// <param name="expression">The expression to expand and split into items.</param>
+    /// <param name="itemFactory">The factory used to create items from expanded item vectors and literals.</param>
+    /// <param name="options">The expansion pipelines and behavior to enable.</param>
+    /// <param name="elementLocation">The location used to report expansion errors and create literal items.</param>
+    /// <returns>
+    ///  The expanded items, an empty list when <paramref name="expression"/> produces no items, or
+    ///  <see langword="null"/> when <see cref="ExpanderOptions.BreakOnNotEmpty"/> stops expansion early.
+    /// </returns>
+    /// <remarks>
+    ///  Metadata and property expansion operate on the complete <paramref name="expression"/> before file-path
+    ///  adjustment and semicolon splitting. Item vectors are then expanded from each non-empty split; splits that
+    ///  are not item vectors are created as literal items.
+    ///  <para>
+    ///   The first selected marker is located once and its index is reused by the metadata and property pipelines.
+    ///   When no selected marker is present, those pipelines are skipped and the adjusted expression is sent directly
+    ///   to the literal-item path. The literal-item path is also used after metadata and property expansion when item
+    ///   expansion is not selected.
+    ///  </para>
+    ///  <para>
+    ///   Use this form when the items will be processed further, such as when matching against the file system, so
+    ///   escaped literals remain distinguishable. The caller is responsible for unescaping item values afterward.
+    ///  </para>
+    /// </remarks>
     internal IList<T> ExpandIntoItemsLeaveEscaped<T>(string expression, IItemFactory<I, T> itemFactory, ExpanderOptions options, IElementLocation elementLocation)
         where T : class, IItem
     {
@@ -354,54 +416,126 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
-        bool shouldRunExpansionPipelines = ShouldRunExpansionPipelines(expression, options);
-        if (shouldRunExpansionPipelines)
+        // The individual pipeline entry points assume that their corresponding option is enabled.
+        bool expandMetadata = (options & ExpanderOptions.ExpandMetadata) != 0;
+        bool expandProperties = (options & ExpanderOptions.ExpandProperties) != 0;
+        bool expandItems = (options & ExpanderOptions.ExpandItems) != 0;
+
+        // Find the first selected marker once so metadata and property expansion can reuse its position.
+        int markerIndex = GetFirstMarkerIndex(expression, expandProperties, expandItems, expandMetadata);
+        if (markerIndex < 0)
         {
-            expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
-            expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
-        }
-        else
-        {
-            // Item expansion only requires an item provider after finding an item vector.
+            // No pipeline can introduce an item vector when the original expression has no selected marker.
+            // Metadata and property providers still require validation, while an item provider is only required
+            // after finding an actual item vector.
             VerifyMetadataAndPropertyProviders(options);
+            expression = FileUtilities.MaybeAdjustFilePath(expression);
+            return CreateLiteralItems(expression, itemFactory, options, elementLocation);
         }
 
-        expression = FileUtilities.MaybeAdjustFilePath(expression);
+        // Expand the complete expression before splitting. Metadata expansion precedes property expansion because
+        // metadata values can contain property syntax.
+        if (expandMetadata)
+        {
+            expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, markerIndex, _metadata, options, elementLocation);
+        }
 
-        List<T> result = new List<T>();
+        if (expandProperties)
+        {
+            expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, markerIndex, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+        }
+
+        // Normalize path-like scalar results before they are split and materialized as items.
+        expression = FileUtilities.MaybeAdjustFilePath(expression);
 
         if (expression.Length == 0)
         {
-            return result;
+            return Array.Empty<T>();
         }
 
-        var splits = ExpressionShredder.SplitSemiColonSeparatedList(expression);
-        foreach (string split in splits)
-        {
-            IList<T> itemsToAdd = shouldRunExpansionPipelines
-                ? ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, split, _items, itemFactory, options, false /* do not include null items */, out _, elementLocation)
-                : null;
+        // With item expansion disabled, item-vector syntax remains literal. Otherwise each split must be checked
+        // because metadata or property expansion may have introduced an item vector.
+        return !expandItems
+            ? CreateLiteralItems(expression, itemFactory, options, elementLocation)
+            : ExpandItems(this, expression, _items, itemFactory, options, elementLocation);
 
-            if ((itemsToAdd == null /* broke out early non empty */ || (itemsToAdd.Count > 0)) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
+        static IList<T> CreateLiteralItems(
+            string expression,
+            IItemFactory<I, T> itemFactory,
+            ExpanderOptions options,
+            IElementLocation elementLocation)
+        {
+            var splitEnumerator = ExpressionShredder.SplitSemiColonSeparatedList(expression).GetEnumerator();
+
+            // Empty splits are discarded, so a non-empty expression can still produce no items.
+            if (!splitEnumerator.MoveNext())
+            {
+                return Array.Empty<T>();
+            }
+
+            // The first yielded split proves that this literal-only path would produce a non-empty result.
+            if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
                 return null;
             }
 
-            if (itemsToAdd != null)
-            {
-                result.AddRange(itemsToAdd);
-            }
-            else
-            {
-                // The expression is not of the form @(itemName).  Therefore, just
-                // treat it as a string, and create a new item from that string.
-                T itemToAdd = itemFactory.CreateItem(split, elementLocation.File);
+            List<T> result = [];
 
-                result.Add(itemToAdd);
+            do
+            {
+                result.Add(itemFactory.CreateItem(splitEnumerator.Current, elementLocation.File));
             }
+            while (splitEnumerator.MoveNext());
+
+            return result;
         }
 
-        return result;
+        static IList<T> ExpandItems(
+            Expander<P, I> expander,
+            string expression,
+            IItemProvider<I> items,
+            IItemFactory<I, T> itemFactory,
+            ExpanderOptions options,
+            IElementLocation elementLocation)
+        {
+            var splitEnumerator = ExpressionShredder.SplitSemiColonSeparatedList(expression).GetEnumerator();
+
+            // Empty splits are discarded, so a non-empty expression can still produce no items.
+            if (!splitEnumerator.MoveNext())
+            {
+                return Array.Empty<T>();
+            }
+
+            bool breakOnNotEmpty = (options & ExpanderOptions.BreakOnNotEmpty) != 0;
+            List<T> result = [];
+
+            do
+            {
+                string split = splitEnumerator.Current;
+                IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(expander, split, items, itemFactory, options, includeNullEntries: false, out _, elementLocation);
+
+                // A null result means either that the split is a non-empty literal or that item expansion already
+                // stopped for BreakOnNotEmpty. A non-empty item result also satisfies BreakOnNotEmpty.
+                if (breakOnNotEmpty && itemsToAdd is null or { Count: > 0 })
+                {
+                    return null;
+                }
+
+                if (itemsToAdd != null)
+                {
+                    result.AddRange(itemsToAdd);
+                }
+                else
+                {
+                    // The expression is not of the form @(itemName). Therefore, treat it as a string
+                    // and create a new item from that string.
+                    result.Add(itemFactory.CreateItem(split, elementLocation.File));
+                }
+            }
+            while (splitEnumerator.MoveNext());
+
+            return result;
+        }
     }
 
     /// <summary>

@@ -47,6 +47,7 @@ internal partial class Expander<P, I>
         ///  Metadata may be qualified, like %(Compile.WarningLevel), or unqualified, like %(Compile).
         /// </summary>
         /// <param name="expression">The expression containing item metadata references.</param>
+        /// <param name="startIndex">The index at which to begin scanning.</param>
         /// <param name="metadata">The metadata to be expanded.</param>
         /// <param name="options">Used to specify what to expand.</param>
         /// <param name="elementLocation">The location information for error reporting purposes.</param>
@@ -56,20 +57,18 @@ internal partial class Expander<P, I>
         /// </returns>
         internal static string ExpandMetadataLeaveEscaped(
             string expression,
+            int startIndex,
             IMetadataTable metadata,
             ExpanderOptions options,
             IElementLocation elementLocation,
             LoggingContext? loggingContext = null)
         {
-            if ((options & ExpanderOptions.ExpandMetadata) == 0)
-            {
-                return expression;
-            }
-
+            Assumed.True((options & ExpanderOptions.ExpandMetadata) != 0);
             Assumed.NotNull(metadata, "Cannot expand metadata without providing metadata");
 
-            // PERF NOTE: pre-scanning the string for "%(" is cheaper than a full scan.
-            int markerIndex = ExpressionShredder.IndexOfMetadataMarker(expression);
+            // PERF NOTE: The marker search reuses the caller's known marker or scans only the
+            // remaining portion of the expression.
+            int markerIndex = ExpressionShredder.IndexOfMetadataMarker(expression, startIndex);
             if (markerIndex < 0)
             {
                 return expression;
