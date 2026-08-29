@@ -17,6 +17,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Text;
+using Microsoft.Build.Utilities;
 using Microsoft.NET.StringTools;
 using Microsoft.Win32;
 
@@ -109,78 +110,174 @@ internal partial class Expander<P, I>
                 return expression;
             }
 
+            int propertyStartIndex = markerIndex + 2;
+            int closingParenIndex = FindClosingParenthesis(
+                expression,
+                propertyStartIndex,
+                out bool isPotentialPropertyFunction,
+                out bool isPotentialRegistryFunction);
+
             PropertyExpander expander = new(context);
-            return expander.ExpandPropertiesLeaveTypedAndEscaped(expression, markerIndex);
+            if (markerIndex == 0 && closingParenIndex == expression.Length - 1)
+            {
+                object propertyValue = expander.ExpandPropertyValue(
+                    expression,
+                    markerIndex,
+                    closingParenIndex,
+                    isPotentialPropertyFunction,
+                    isPotentialRegistryFunction);
+
+                // Ensure that we provide path adjustment for a single string result.
+                // Normally, ExpandAllProperties handles this while appending each component.
+                return propertyValue is string stringValue
+                    ? FileUtilities.MaybeAdjustFilePath(stringValue)
+                    : propertyValue ?? string.Empty;
+            }
+
+            return expander.ExpandAllProperties(
+                expression,
+                markerIndex,
+                closingParenIndex,
+                isPotentialPropertyFunction,
+                isPotentialRegistryFunction);
         }
 
-        private object ExpandPropertiesLeaveTypedAndEscaped(string expression, int markerIndex)
+        /// <summary>
+        ///  Expands every property reference in <paramref name="expression"/> and concatenates the expanded values
+        ///  with the literal portions of the expression.
+        /// </summary>
+        /// <param name="expression">The expression containing the properties to expand.</param>
+        /// <param name="markerIndex">The index of the first property marker.</param>
+        /// <param name="closingParenIndex">
+        ///  The index of the first property's matching closing parenthesis, or <c>-1</c> when none was found.
+        /// </param>
+        /// <param name="isPotentialPropertyFunction">Whether the first property might be a property function.</param>
+        /// <param name="isPotentialRegistryFunction">Whether the first property might be a registry function.</param>
+        /// <returns>
+        ///  The expanded, escaped result with literal text preserved.
+        /// </returns>
+        /// <remarks>
+        ///  The caller supplies the scan state for the first property so this method can enter the expansion loop
+        ///  without repeating that work. The loop locates and classifies each subsequent property as it advances.
+        ///  Malformed property references and the text following them are preserved verbatim.
+        /// </remarks>
+        private string ExpandAllProperties(
+            string expression,
+            int markerIndex,
+            int closingParenIndex,
+            bool isPotentialPropertyFunction,
+            bool isPotentialRegistryFunction)
         {
-            using SpanBasedConcatenator results = new();
+#if NET
+            using ValueStringBuilder results = new(stackalloc char[256]);
+#else
+            using ValueStringBuilder results = new(initialCapacity: 256);
+#endif
             int index = 0;
 
             while (markerIndex >= 0)
             {
                 if (markerIndex - index > 0)
                 {
-                    results.Add(expression.AsMemory(index, markerIndex - index));
+                    results.Append(FileUtilities.MaybeAdjustFilePath(expression.AsMemory(index, markerIndex - index)).Span);
                 }
-
-                int startIndex = markerIndex + 2;
-                int closingParenIndex = FindClosingParenthesis(
-                    expression,
-                    startIndex,
-                    out bool isPotentialPropertyFunction,
-                    out bool isPotentialRegistryFunction);
 
                 if (closingParenIndex < 0)
                 {
-                    results.Add(expression.AsMemory(markerIndex));
-                    return results.GetResult();
+                    results.Append(FileUtilities.MaybeAdjustFilePath(expression.AsMemory(markerIndex)).Span);
+                    return Strings.WeakIntern(results.AsSpan());
                 }
 
-                int length = closingParenIndex - startIndex;
-                object propertyValue = length == 0
-                    ? string.Empty
-                    : !isPotentialPropertyFunction && !isPotentialRegistryFunction
-                        ? LookupProperty(expression, startIndex, closingParenIndex - 1)
-                        : ExpandProperty(
-                            expression,
-                            startIndex,
-                            closingParenIndex - 1,
-                            isPotentialRegistryFunction,
-                            isPotentialPropertyFunction);
-
-                if (propertyValue != null && _isTruncationEnabled)
-                {
-                    string value = propertyValue.ToString();
-                    if (value.Length > CharacterLimitPerExpansion)
-                    {
-                        propertyValue = TruncateString(value);
-                    }
-                }
-
-                if (markerIndex == 0 && closingParenIndex == expression.Length - 1)
-                {
-                    return propertyValue ?? string.Empty;
-                }
+                object propertyValue = ExpandPropertyValue(
+                    expression,
+                    markerIndex,
+                    closingParenIndex,
+                    isPotentialPropertyFunction,
+                    isPotentialRegistryFunction);
 
                 if (propertyValue != null)
                 {
-                    results.Add(propertyValue);
+                    results.Append(FileUtilities.MaybeAdjustFilePath(propertyValue.ToString()));
                 }
 
                 index = closingParenIndex + 1;
                 markerIndex = index < expression.Length
                     ? ExpressionShredder.IndexOfPropertyMarker(expression, index)
                     : -1;
+                if (markerIndex >= 0)
+                {
+                    closingParenIndex = FindClosingParenthesis(
+                        expression,
+                        markerIndex + 2,
+                        out isPotentialPropertyFunction,
+                        out isPotentialRegistryFunction);
+                }
             }
 
             if (expression.Length - index > 0)
             {
-                results.Add(expression.AsMemory(index));
+                results.Append(FileUtilities.MaybeAdjustFilePath(expression.AsMemory(index)).Span);
             }
 
-            return results.GetResult();
+            return Strings.WeakIntern(results.AsSpan());
+        }
+
+        /// <summary>
+        ///  Expands one property body from <paramref name="expression"/> and applies configured result truncation.
+        /// </summary>
+        /// <param name="expression">The expression containing the property body.</param>
+        /// <param name="markerIndex">The index of the opening <c>$(</c> marker.</param>
+        /// <param name="closingParenIndex">The index of the matching closing <c>)</c>.</param>
+        /// <param name="isPotentialPropertyFunction">Whether the property body might be a property function.</param>
+        /// <param name="isPotentialRegistryFunction">Whether the property body might be a registry function.</param>
+        /// <returns>
+        ///  The typed, escaped property value, or <see langword="null"/> when the property or function has no value.
+        /// </returns>
+        /// <remarks>
+        ///  An empty property body produces <see cref="string.Empty"/>. When <see cref="ExpanderOptions.Truncate"/>
+        ///  is enabled, an oversized value is converted to a truncated string. Concatenation and string path
+        ///  adjustment are intentionally left to the caller.
+        /// </remarks>
+        private object ExpandPropertyValue(
+            string expression,
+            int markerIndex,
+            int closingParenIndex,
+            bool isPotentialPropertyFunction,
+            bool isPotentialRegistryFunction)
+        {
+            int startIndex = markerIndex + 2;
+            int endIndex = closingParenIndex - 1;
+            int length = closingParenIndex - startIndex;
+
+            object propertyValue;
+            if (length == 0)
+            {
+                propertyValue = string.Empty;
+            }
+            else if (!isPotentialPropertyFunction && !isPotentialRegistryFunction)
+            {
+                propertyValue = LookupProperty(expression, startIndex, endIndex);
+            }
+            else
+            {
+                propertyValue = ExpandProperty(
+                    expression,
+                    startIndex,
+                    endIndex,
+                    isPotentialRegistryFunction,
+                    isPotentialPropertyFunction);
+            }
+
+            if (propertyValue != null && _isTruncationEnabled)
+            {
+                string value = propertyValue.ToString();
+                if (value.Length > CharacterLimitPerExpansion)
+                {
+                    propertyValue = TruncateString(value);
+                }
+            }
+
+            return propertyValue;
         }
 
         /// <summary>
