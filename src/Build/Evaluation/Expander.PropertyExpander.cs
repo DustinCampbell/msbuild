@@ -17,6 +17,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Utilities;
 using Microsoft.NET.StringTools;
 using Microsoft.Win32;
 using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
@@ -176,7 +177,7 @@ internal partial class Expander<P, I>
                     isPotentialRegistryFunction);
 
                 // Ensure that we provide path adjustment for a single string result.
-                // Normally, SpanBasedConcatenator handles this in ExpandAllProperties.
+                // Normally, ExpandAllProperties handles this while appending each component.
                 return propertyValue is string stringValue
                     ? FileUtilities.MaybeAdjustFilePath(stringValue)
                     : propertyValue ?? string.Empty;
@@ -209,18 +210,18 @@ internal partial class Expander<P, I>
         ///  without repeating that work. The loop locates and classifies each subsequent property as it advances.
         ///  Malformed property references and the text following them are preserved verbatim.
         /// </remarks>
-        private object ExpandAllProperties(
+        private string ExpandAllProperties(
             string expression,
             int markerIndex,
             int closingParenIndex,
             bool isPotentialPropertyFunction,
             bool isPotentialRegistryFunction)
         {
-            // We will build our set of results as object components
-            // so that we can either maintain the object's type in the event
-            // that we have a single component, or convert to a string
-            // if concatenation is required.
-            using SpanBasedConcatenator results = new();
+#if NET
+            using ValueStringBuilder results = new(stackalloc char[256]);
+#else
+            using ValueStringBuilder results = new(initialCapacity: 256);
+#endif
 
             // The index is the zero-based index into the expression,
             // where we've essentially read up to and copied into the target string.
@@ -233,7 +234,7 @@ internal partial class Expander<P, I>
                 // (but not including) the "$(", and advance the index pointer.
                 if (markerIndex - index > 0)
                 {
-                    results.Add(expression.AsMemory(index, markerIndex - index));
+                    results.Append(FileUtilities.MaybeAdjustFilePath(expression.AsMemory(index, markerIndex - index)).Span);
                 }
 
                 if (closingParenIndex < 0)
@@ -241,8 +242,8 @@ internal partial class Expander<P, I>
                     // If we didn't find the closing parenthesis, that means this
                     // isn't really a well-formed property. Copy the remainder of the
                     // expression (starting with the "$(" that we found) into the result, and return.
-                    results.Add(expression.AsMemory(markerIndex));
-                    return results.GetResult();
+                    results.Append(FileUtilities.MaybeAdjustFilePath(expression.AsMemory(markerIndex)).Span);
+                    return Strings.WeakIntern(results.AsSpan());
                 }
 
                 object propertyValue = ExpandPropertyValue(
@@ -254,7 +255,7 @@ internal partial class Expander<P, I>
 
                 if (propertyValue != null)
                 {
-                    results.Add(propertyValue);
+                    results.Append(FileUtilities.MaybeAdjustFilePath(propertyValue.ToString()));
                 }
 
                 index = closingParenIndex + 1;
@@ -272,10 +273,10 @@ internal partial class Expander<P, I>
             // If we couldn't find any more property markers in the expression just copy the remainder into the result.
             if (expression.Length - index > 0)
             {
-                results.Add(expression.AsMemory(index));
+                results.Append(FileUtilities.MaybeAdjustFilePath(expression.AsMemory(index)).Span);
             }
 
-            return results.GetResult();
+            return Strings.WeakIntern(results.AsSpan());
         }
 
         /// <summary>
