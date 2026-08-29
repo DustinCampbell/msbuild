@@ -774,9 +774,13 @@ internal partial class Expander<P, I>
 
                 lastStringIndex = currentItem.Index + currentItem.Length;
             }
-            while (ExpressionShredder.TryGetNextItemVectorExpression(expression, lastStringIndex, out currentItem));
+            while (lastStringIndex < expression.Length &&
+                ExpressionShredder.TryGetNextItemVectorExpression(expression, lastStringIndex, out currentItem));
 
-            builder.Append(expression, lastStringIndex, expression.Length - lastStringIndex);
+            if (lastStringIndex < expression.Length)
+            {
+                builder.Append(expression, lastStringIndex, expression.Length - lastStringIndex);
+            }
 
             return builder.ToString();
         }
