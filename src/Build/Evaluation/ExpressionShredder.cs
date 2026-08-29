@@ -498,6 +498,13 @@ namespace Microsoft.Build.Evaluation
 #if NET
         private static int IndexOfAnyMarker(string expression, ReadOnlySpan<char> markers)
         {
+            if (expression.Length > 1 &&
+                expression[1] == '(' &&
+                markers.IndexOf(expression[0]) >= 0)
+            {
+                return 0;
+            }
+
             ReadOnlySpan<char> remaining = expression;
             int offset = 0;
 
@@ -524,6 +531,18 @@ namespace Microsoft.Build.Evaluation
 #else
         private static int IndexOfAnyMarker(string expression, char[] markers)
         {
+            if (expression.Length > 1 && expression[1] == '(')
+            {
+                char first = expression[0];
+                for (int i = 0; i < markers.Length; i++)
+                {
+                    if (markers[i] == first)
+                    {
+                        return 0;
+                    }
+                }
+            }
+
             int startIndex = 0;
             while (startIndex < expression.Length - 1)
             {
