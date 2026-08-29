@@ -13,7 +13,6 @@ using System.IO;
 #if !NET
 using System.Linq;
 #endif
-using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -724,7 +723,7 @@ internal partial class Expander<P, I>
             return propertyValue;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static bool IsMSBuildProperty(string propertyName, int startIndex, int endIndex)
             => endIndex - startIndex >= "MSBuild".Length &&
                propertyName[startIndex] is 'M' or 'm' &&
