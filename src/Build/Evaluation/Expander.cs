@@ -317,19 +317,32 @@ internal partial class Expander<P, I>
     }
 
     private static int GetFirstMarkerIndex(string expression, bool expandProperties, bool expandItems, bool expandMetadata)
-        => (expandProperties, expandItems, expandMetadata) switch
+    {
+        if (expandProperties)
         {
-            (true, true, true) => ExpressionShredder.IndexOfAnyExpansionMarker(expression),
-            (true, true, false) => ExpressionShredder.IndexOfPropertyOrItemVectorMarker(expression),
-            (true, false, true) => ExpressionShredder.IndexOfPropertyOrMetadataMarker(expression),
-            (false, true, true) => ExpressionShredder.IndexOfItemVectorOrMetadataMarker(expression),
-            (true, false, false) => ExpressionShredder.IndexOfPropertyMarker(expression),
-            (false, true, false) => ExpressionShredder.IndexOfItemVectorMarker(expression),
-            (false, false, true) => ExpressionShredder.IndexOfMetadataMarker(expression),
+            if (expandItems)
+            {
+                return expandMetadata
+                    ? ExpressionShredder.IndexOfAnyExpansionMarker(expression)
+                    : ExpressionShredder.IndexOfPropertyOrItemVectorMarker(expression);
+            }
 
-            // No expansion pipelines were selected.
-            (false, false, false) => -1,
-        };
+            return expandMetadata
+                ? ExpressionShredder.IndexOfPropertyOrMetadataMarker(expression)
+                : ExpressionShredder.IndexOfPropertyMarker(expression);
+        }
+
+        if (expandItems)
+        {
+            return expandMetadata
+                ? ExpressionShredder.IndexOfItemVectorOrMetadataMarker(expression)
+                : ExpressionShredder.IndexOfItemVectorMarker(expression);
+        }
+
+        return expandMetadata
+            ? ExpressionShredder.IndexOfMetadataMarker(expression)
+            : -1;
+    }
 
     private void VerifyExpansionProviders(ExpanderOptions options)
     {
