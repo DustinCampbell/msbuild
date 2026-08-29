@@ -632,7 +632,11 @@ internal partial class Expander<P, I>
                 return value ?? string.Empty;
             }
 
+#if NET
             using ValueStringBuilder builder = new(stackalloc char[256]);
+#else
+            using ValueStringBuilder builder = new(initialCapacity: 256);
+#endif
             bool first = true;
 
             foreach (TransformEntry entry in entries)
@@ -749,7 +753,11 @@ internal partial class Expander<P, I>
                 return entries is null ? string.Empty : JoinEntries(";", entries);
             }
 
+#if NET
             using ValueStringBuilder builder = new(stackalloc char[256]);
+#else
+            using ValueStringBuilder builder = new(initialCapacity: 256);
+#endif
             builder.Append(expression.AsSpan(0, itemVector.Index));
 
             if (entries is not null)
