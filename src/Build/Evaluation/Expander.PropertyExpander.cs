@@ -690,10 +690,7 @@ internal partial class Expander<P, I>
 
             object propertyValue;
 
-            bool isArtificial = property == null &&
-                (endIndex - startIndex) >= "MSBuild".Length &&
-                propertyName[startIndex] is 'M' or 'm' &&
-                MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, "MSBuild".Length);
+            bool isArtificial = property == null && IsMSBuildProperty(propertyName, startIndex, endIndex);
 
             _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, property == null, isArtificial);
 
@@ -726,6 +723,17 @@ internal partial class Expander<P, I>
 
             return propertyValue;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsMSBuildProperty(string propertyName, int startIndex, int endIndex)
+            => endIndex - startIndex >= "MSBuild".Length &&
+               propertyName[startIndex] is 'M' or 'm' &&
+               propertyName[startIndex + 1] is 'S' or 's' &&
+               propertyName[startIndex + 2] is 'B' or 'b' &&
+               propertyName[startIndex + 3] is 'U' or 'u' &&
+               propertyName[startIndex + 4] is 'I' or 'i' &&
+               propertyName[startIndex + 5] is 'L' or 'l' &&
+               propertyName[startIndex + 6] is 'D' or 'd';
 
         /// <summary>
         /// If the property name provided is one of the special
