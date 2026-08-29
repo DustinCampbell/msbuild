@@ -690,8 +690,10 @@ internal partial class Expander<P, I>
 
             object propertyValue;
 
-            bool isArtificial = property == null && ((endIndex - startIndex) >= 7) &&
-                               MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7);
+            bool isArtificial = property == null &&
+                (endIndex - startIndex) >= "MSBuild".Length &&
+                propertyName[startIndex] is 'M' or 'm' &&
+                MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, "MSBuild".Length);
 
             _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, property == null, isArtificial);
 
