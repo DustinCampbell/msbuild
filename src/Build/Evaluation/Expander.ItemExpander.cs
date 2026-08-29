@@ -737,11 +737,10 @@ internal partial class Expander<P, I>
                 return expression;
             }
 
-            if (currentItem.Index == 0 &&
-                currentItem.Length == expression.Length &&
+            if (currentItem.Index + currentItem.Length == expression.Length &&
                 (context.Options & (ExpanderOptions.BreakOnNotEmpty | ExpanderOptions.Truncate)) == 0)
             {
-                return ExpandSingleItemVectorIntoString(currentItem, context);
+                return ExpandTerminalItemVectorIntoString(expression, currentItem, context);
             }
 
             using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
@@ -787,7 +786,8 @@ internal partial class Expander<P, I>
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static string ExpandSingleItemVectorIntoString(
+        private static string ExpandTerminalItemVectorIntoString(
+            string expression,
             ExpressionShredder.ItemExpressionCapture itemVector,
             ExpansionContext context)
         {
@@ -799,9 +799,33 @@ internal partial class Expander<P, I>
                 out List<TransformEntry<I>> entries,
                 context);
 
-            return brokeEarly
-                ? null
-                : entries is null ? string.Empty : JoinEntries(";", entries);
+            if (brokeEarly)
+            {
+                return null;
+            }
+
+            if (itemVector.Index == 0)
+            {
+                return entries is null ? string.Empty : JoinEntries(";", entries);
+            }
+
+            using ValueStringBuilder builder = new(stackalloc char[256]);
+            builder.Append(expression.AsSpan(0, itemVector.Index));
+
+            if (entries is not null)
+            {
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        builder.Append(';');
+                    }
+
+                    builder.Append(entries[i].Value);
+                }
+            }
+
+            return Strings.WeakIntern(builder.AsSpan());
         }
 
         /// <summary>
