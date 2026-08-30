@@ -397,6 +397,20 @@ internal partial class Expander<P, I>
                 // Assemble our arguments ready for passing to our method
                 for (int n = 0; n < _arguments.Length; n++)
                 {
+#if NET
+                    // Bypass the non-inlined property expansion entry point when an argument cannot contain "$(".
+                    // Keep this check RyuJIT-only because putting it in Function.Execute regresses LegacyJIT.
+                    string argumentExpression = _arguments[n];
+                    object argument = argumentExpression == null || argumentExpression.IndexOf('$') < 0
+                        ? argumentExpression
+                        : PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
+                            argumentExpression,
+                            properties,
+                            options,
+                            elementLocation,
+                            _propertiesUseTracker,
+                            _fileSystem);
+#else
                     object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
                         _arguments[n],
                         properties,
@@ -404,6 +418,7 @@ internal partial class Expander<P, I>
                         elementLocation,
                         _propertiesUseTracker,
                         _fileSystem);
+#endif
 
                     if (argument is string argumentValue)
                     {
