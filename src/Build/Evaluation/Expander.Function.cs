@@ -374,22 +374,10 @@ internal partial class Expander<P, I>
                 // If there is no object instance, then the method invocation will be a static
                 if (objectInstance == null)
                 {
-                    // Check that the function that we're going to call is valid to call
-                    if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
-                    }
-
                     _bindingFlags |= BindingFlags.Static;
                 }
                 else
                 {
-                    // Check that the function that we're going to call is valid to call
-                    if (!IsInstanceMethodAvailable(_receiverType, _methodMethodName))
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
-                    }
-
                     _bindingFlags |= BindingFlags.Instance;
 
                     // The object that we're about to call methods on may have escaped characters
@@ -497,6 +485,7 @@ internal partial class Expander<P, I>
                 {
                     if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
                     {
+                        VerifyFunctionIsAvailable(objectInstance, elementLocation);
                         functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
                     }
                 }
@@ -530,6 +519,8 @@ internal partial class Expander<P, I>
 
                     if (!wellKnownFunctionSuccess)
                     {
+                        VerifyFunctionIsAvailable(objectInstance, elementLocation);
+
                         // Execute the function given converted arguments
                         // The only exception that we should catch to try a late bind here is missing method
                         // otherwise there is the potential of running a function twice!
@@ -617,6 +608,22 @@ internal partial class Expander<P, I>
                 }
 
                 return null;
+            }
+        }
+
+        private void VerifyFunctionIsAvailable(object objectInstance, IElementLocation elementLocation)
+        {
+            bool isAvailable = objectInstance == null
+                ? IsStaticMethodAvailable(_receiverType, _methodMethodName)
+                : IsInstanceMethodAvailable(_receiverType, _methodMethodName);
+
+            if (!isAvailable)
+            {
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    elementLocation,
+                    "InvalidFunctionMethodUnavailable",
+                    _methodMethodName,
+                    _receiverType.FullName);
             }
         }
 
