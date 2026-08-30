@@ -913,7 +913,7 @@ internal partial class Expander<P, I>
             ReadOnlySpan<char> expressionSubstringAsSpan = argumentStartIndex > -1 ? expressionFunctionAsSpan.Slice(methodStartIndex, argumentStartIndex - methodStartIndex) : ReadOnlySpan<char>.Empty;
 
             // There are arguments that need to be passed to the function
-            if (argumentStartIndex > -1 && !expressionSubstringAsSpan.Contains(".".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            if (argumentStartIndex > -1 && expressionSubstringAsSpan.IndexOf('.') < 0)
             {
                 // separate the function and the arguments
                 functionName = expressionSubstringAsSpan.Trim();
