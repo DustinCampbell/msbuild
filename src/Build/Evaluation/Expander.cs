@@ -166,8 +166,55 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
         ExpansionContext context = new(this, options, location);
 
-        expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, context);
-        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, context);
+#if !NET
+        int expansionOptions = (int)(options & ExpanderOptions.ExpandAll);
+        bool expandLiteralDirectly = false;
+
+        if (expansionOptions > (int)ExpanderOptions.ExpandProperties &&
+            expansionOptions != (int)ExpanderOptions.ExpandItems)
+        {
+            bool containsSelectedMarker;
+            if ((expansionOptions & (int)ExpanderOptions.ExpandProperties) != 0)
+            {
+                if ((expansionOptions & (int)ExpanderOptions.ExpandItems) != 0)
+                {
+                    containsSelectedMarker = (expansionOptions & (int)ExpanderOptions.ExpandMetadata) != 0
+                        ? ExpressionShredder.ContainsAnyExpansionMarker(expression)
+                        : ExpressionShredder.ContainsPropertyOrItemVectorMarker(expression);
+                }
+                else
+                {
+                    containsSelectedMarker = ExpressionShredder.ContainsPropertyOrMetadataMarker(expression);
+                }
+            }
+            else
+            {
+                containsSelectedMarker = ExpressionShredder.ContainsItemVectorOrMetadataMarker(expression);
+            }
+
+            expandLiteralDirectly = !containsSelectedMarker;
+        }
+
+        if (expandLiteralDirectly)
+        {
+            if ((options & ExpanderOptions.ExpandMetadata) != 0)
+            {
+                Assumed.NotNull(context.Metadata, "Cannot expand metadata without providing metadata");
+            }
+
+            if ((options & ExpanderOptions.ExpandProperties) != 0)
+            {
+                Assumed.NotNull(context.Properties, "Cannot expand properties without providing properties");
+            }
+        }
+        else
+        {
+#endif
+            expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, context);
+            expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, context);
+#if !NET
+        }
+#endif
         expression = FileUtilities.MaybeAdjustFilePath(expression);
 
         List<T> result = [];
@@ -179,12 +226,23 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
         foreach (string split in ExpressionShredder.SplitSemiColonSeparatedList(expression))
         {
+#if !NET
+            IList<T> itemsToAdd = expandLiteralDirectly
+                ? null
+                : ItemExpander.ExpandSingleItemVectorExpressionIntoItems(
+                    split,
+                    itemFactory,
+                    includeNullEntries: false,
+                    out _,
+                    context);
+#else
             IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(
                 split,
                 itemFactory,
                 includeNullEntries: false,
                 out _,
                 context);
+#endif
 
             if ((itemsToAdd == null /* broke out early non empty */ || (itemsToAdd.Count > 0)) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
