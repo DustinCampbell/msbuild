@@ -817,7 +817,13 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (receiverType == typeof(string))
                 {
-                    if (string.Equals(methodName, nameof(string.IsNullOrWhiteSpace), StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(methodName, nameof(string.Concat), StringComparison.OrdinalIgnoreCase) &&
+                        args is [string first, string second])
+                    {
+                        returnVal = string.Concat(first, second);
+                        return true;
+                    }
+                    else if (string.Equals(methodName, nameof(string.IsNullOrWhiteSpace), StringComparison.OrdinalIgnoreCase))
                     {
                         if (ParseArgs.TryGetArg(args, out string? arg0))
                         {
