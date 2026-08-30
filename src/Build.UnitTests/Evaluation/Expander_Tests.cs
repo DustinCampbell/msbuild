@@ -82,6 +82,45 @@ public class Expander_Tests(ITestOutputHelper output)
             """, GetTaskArrayFromItemList(itemsOut));
     }
 
+    [Theory]
+    [InlineData((int)ExpanderOptions.ExpandPropertiesAndItems)]
+    [InlineData((int)ExpanderOptions.ExpandPropertiesAndMetadata)]
+    [InlineData((int)(ExpanderOptions.ExpandMetadata | ExpanderOptions.ExpandItems))]
+    [InlineData((int)ExpanderOptions.ExpandAll)]
+    public void MultiPipelineLiteralExpansionIntoItemsPreservesResults(int optionsValue)
+    {
+        ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
+        IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateItemFunctionExpander();
+        ProjectItemInstanceFactory itemFactory = new(project, "i");
+        ExpanderOptions options = (ExpanderOptions)optionsValue;
+
+        IList<ProjectItemInstance> items = expander.ExpandIntoItemsLeaveEscaped(
+            "foo;bar",
+            itemFactory,
+            options,
+            MockElementLocation.Instance);
+
+        items.Count.ShouldBe(2);
+        items[0].EvaluatedInclude.ShouldBe("foo");
+        items[1].EvaluatedInclude.ShouldBe("bar");
+    }
+
+    [Fact]
+    public void MultiPipelineLiteralExpansionIntoItemsHonorsBreakOnNotEmpty()
+    {
+        ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
+        IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateItemFunctionExpander();
+        ProjectItemInstanceFactory itemFactory = new(project, "i");
+
+        IList<ProjectItemInstance> items = expander.ExpandIntoItemsLeaveEscaped(
+            "foo",
+            itemFactory,
+            ExpanderOptions.ExpandAll | ExpanderOptions.BreakOnNotEmpty,
+            MockElementLocation.Instance);
+
+        items.ShouldBeNull();
+    }
+
     [Fact]
     public void ExpandAllIntoTaskItems3()
     {
