@@ -350,6 +350,119 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 };
         }
 
+        [Theory]
+        [InlineData("$@")]
+        [InlineData("$%")]
+        [InlineData("@%")]
+        [InlineData("$@%")]
+        public void CombinedMarkerSearchesReturnExpectedIndexes(string markers)
+        {
+            string firstMarker = $"{markers[0]}(";
+            string lastMarker = $"{markers[^1]}(";
+            string expression = $"x{firstMarker}y{lastMarker}z";
+
+            IndexOfCombinedMarker(markers, string.Empty).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, "value").ShouldBe(-1);
+            IndexOfCombinedMarker(markers, expression).ShouldBe(1);
+            IndexOfCombinedMarker(markers, string.Empty, 0).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, "value", 0).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, expression, 0).ShouldBe(1);
+            IndexOfCombinedMarker(markers, expression, 2).ShouldBe(4);
+            IndexOfCombinedMarker(markers, expression, 4).ShouldBe(4);
+            IndexOfCombinedMarker(markers, expression, 6).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, $"{markers[0]}x{lastMarker}", 0).ShouldBe(2);
+            IndexOfCombinedMarker(markers, $"value{markers[0]}", 0).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, firstMarker, firstMarker.Length).ShouldBe(-1);
+
+            foreach (char marker in "$@%")
+            {
+                int expected = markers.IndexOf(marker) >= 0 ? 1 : -1;
+                IndexOfCombinedMarker(markers, $"x{marker}(y", 0).ShouldBe(expected);
+            }
+        }
+
+        [Theory]
+        [InlineData("$@")]
+        [InlineData("$%")]
+        [InlineData("@%")]
+        [InlineData("$@%")]
+        public void BoundedCombinedMarkerSearchesReturnExpectedIndexes(string markers)
+        {
+            string firstMarker = $"{markers[0]}(";
+            string lastMarker = $"{markers[^1]}(";
+            string expression = $"x{firstMarker}y{lastMarker}z";
+
+            IndexOfCombinedMarker(markers, expression, 0, 0).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, expression, 0, 2).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, expression, 0, 3).ShouldBe(1);
+            IndexOfCombinedMarker(markers, expression, 2, 3).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, expression, 2, 4).ShouldBe(4);
+            IndexOfCombinedMarker(markers, expression, 4, 2).ShouldBe(4);
+            IndexOfCombinedMarker(markers, expression, expression.Length, 0).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, $"{markers[0]}x{lastMarker}", 0, 3).ShouldBe(-1);
+            IndexOfCombinedMarker(markers, $"{markers[0]}x{lastMarker}", 0, 4).ShouldBe(2);
+        }
+
+        [Theory]
+        [InlineData("$@")]
+        [InlineData("$%")]
+        [InlineData("@%")]
+        [InlineData("$@%")]
+        public void CombinedMarkerContainsChecksReturnExpectedResults(string markers)
+        {
+            string lastMarker = $"{markers[^1]}(";
+
+            ContainsCombinedMarker(markers, string.Empty).ShouldBeFalse();
+            ContainsCombinedMarker(markers, "value").ShouldBeFalse();
+            ContainsCombinedMarker(markers, $"value{markers[0]}").ShouldBeFalse();
+            ContainsCombinedMarker(markers, $"{markers[0]}x{lastMarker}").ShouldBeTrue();
+
+            foreach (char marker in "$@%")
+            {
+                ContainsCombinedMarker(markers, $"{marker}(").ShouldBe(markers.IndexOf(marker) >= 0);
+            }
+        }
+
+        private static bool ContainsCombinedMarker(string markers, string expression)
+            => markers switch
+            {
+                "$@" => ExpressionShredder.ContainsPropertyOrItemVectorMarker(expression),
+                "$%" => ExpressionShredder.ContainsPropertyOrMetadataMarker(expression),
+                "@%" => ExpressionShredder.ContainsItemVectorOrMetadataMarker(expression),
+                "$@%" => ExpressionShredder.ContainsAnyExpansionMarker(expression),
+                _ => Assumed.Unreachable<bool>($"Unexpected markers: {markers}"),
+            };
+
+        private static int IndexOfCombinedMarker(string markers, string expression)
+            => markers switch
+            {
+                "$@" => ExpressionShredder.IndexOfPropertyOrItemVectorMarker(expression),
+                "$%" => ExpressionShredder.IndexOfPropertyOrMetadataMarker(expression),
+                "@%" => ExpressionShredder.IndexOfItemVectorOrMetadataMarker(expression),
+                "$@%" => ExpressionShredder.IndexOfAnyExpansionMarker(expression),
+                _ => Assumed.Unreachable<int>($"Unexpected markers: {markers}"),
+            };
+
+        private static int IndexOfCombinedMarker(string markers, string expression, int startIndex)
+            => markers switch
+            {
+                "$@" => ExpressionShredder.IndexOfPropertyOrItemVectorMarker(expression, startIndex),
+                "$%" => ExpressionShredder.IndexOfPropertyOrMetadataMarker(expression, startIndex),
+                "@%" => ExpressionShredder.IndexOfItemVectorOrMetadataMarker(expression, startIndex),
+                "$@%" => ExpressionShredder.IndexOfAnyExpansionMarker(expression, startIndex),
+                _ => Assumed.Unreachable<int>($"Unexpected markers: {markers}"),
+            };
+
+        private static int IndexOfCombinedMarker(string markers, string expression, int startIndex, int count)
+            => markers switch
+            {
+                "$@" => ExpressionShredder.IndexOfPropertyOrItemVectorMarker(expression, startIndex, count),
+                "$%" => ExpressionShredder.IndexOfPropertyOrMetadataMarker(expression, startIndex, count),
+                "@%" => ExpressionShredder.IndexOfItemVectorOrMetadataMarker(expression, startIndex, count),
+                "$@%" => ExpressionShredder.IndexOfAnyExpansionMarker(expression, startIndex, count),
+                _ => Assumed.Unreachable<int>($"Unexpected markers: {markers}"),
+            };
+
         [Fact]
         public void TryGetNextItemVectorExpressionFindsValidExpressions()
         {
