@@ -402,7 +402,9 @@ internal partial class Expander<P, I>
                 }
 
                 // We have a methodinfo match, need to plug in the arguments
-                args = new object[_arguments.Length];
+                args = _arguments.Length == 0
+                    ? Array.Empty<object>()
+                    : new object[_arguments.Length];
 
                 // Assemble our arguments ready for passing to our method
                 for (int n = 0; n < _arguments.Length; n++)
