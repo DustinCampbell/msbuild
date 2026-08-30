@@ -125,6 +125,25 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         [Fact]
+        public void MultiPipelineLiteralExpansionIntoItemsDoesNotRequireItemProvider()
+        {
+            ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
+            PropertyDictionary<ProjectPropertyInstance> properties = new PropertyDictionary<ProjectPropertyInstance>();
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+                properties,
+                FileSystems.Default);
+            ProjectItemInstanceFactory itemFactory = new ProjectItemInstanceFactory(project, "i");
+
+            IList<ProjectItemInstance> items = expander.ExpandIntoItemsLeaveEscaped(
+                "foo",
+                itemFactory,
+                ExpanderOptions.ExpandPropertiesAndItems,
+                MockElementLocation.Instance);
+
+            items.ShouldHaveSingleItem().EvaluatedInclude.ShouldBe("foo");
+        }
+
+        [Fact]
         public void ExpandAllIntoTaskItems3()
         {
             ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
