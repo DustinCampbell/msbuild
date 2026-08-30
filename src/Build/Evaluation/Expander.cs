@@ -253,6 +253,15 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
+#if !NET
+        if (options == ExpanderOptions.ExpandAll &&
+            !ExpressionShredder.ContainsAnyExpansionMarker(expression))
+        {
+            VerifyStringExpansionProviders();
+            return FileUtilities.MaybeAdjustFilePath(expression);
+        }
+#endif
+
         string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
         result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
         result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, elementLocation);
@@ -260,6 +269,16 @@ internal partial class Expander<P, I>
 
         return result;
     }
+
+#if !NET
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void VerifyStringExpansionProviders()
+    {
+        Assumed.NotNull(_metadata, "Cannot expand metadata without providing metadata");
+        Assumed.NotNull(_properties, "Cannot expand properties without providing properties");
+        Assumed.NotNull(_items, "Cannot expand items without providing items");
+    }
+#endif
 
     /// <summary>
     /// Used only for unit tests. Expands the property expression (including any metadata expressions) and returns
