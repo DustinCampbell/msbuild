@@ -324,16 +324,46 @@ internal partial class Expander<P, I>
 
 #if !NET
         int expansionOptions = (int)(options & ExpanderOptions.ExpandAll);
+        bool expandLiteralDirectly = false;
+
         if (expansionOptions > (int)ExpanderOptions.ExpandProperties &&
-            expansionOptions != (int)ExpanderOptions.ExpandItems &&
-            !ContainsSelectedExpansionMarker(expression, expansionOptions))
+            expansionOptions != (int)ExpanderOptions.ExpandItems)
         {
-            return CreateLiteralItems(expression, itemFactory, options, elementLocation);
+            bool containsSelectedMarker;
+            if ((expansionOptions & (int)ExpanderOptions.ExpandProperties) != 0)
+            {
+                if ((expansionOptions & (int)ExpanderOptions.ExpandItems) != 0)
+                {
+                    containsSelectedMarker = (expansionOptions & (int)ExpanderOptions.ExpandMetadata) != 0
+                        ? ExpressionShredder.ContainsAnyExpansionMarker(expression)
+                        : ExpressionShredder.ContainsPropertyOrItemVectorMarker(expression);
+                }
+                else
+                {
+                    containsSelectedMarker = ExpressionShredder.ContainsPropertyOrMetadataMarker(expression);
+                }
+            }
+            else
+            {
+                containsSelectedMarker = ExpressionShredder.ContainsItemVectorOrMetadataMarker(expression);
+            }
+
+            expandLiteralDirectly = !containsSelectedMarker;
+        }
+
+        if (expandLiteralDirectly)
+        {
+            Assumed.NotNull(_metadata, "Cannot expand metadata without providing metadata");
+            Assumed.NotNull(_properties, "Cannot expand properties without providing properties");
+        }
+        else
+        {
+#endif
+            expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
+            expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+#if !NET
         }
 #endif
-
-        expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
-        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
         expression = FileUtilities.MaybeAdjustFilePath(expression);
 
         List<T> result = new List<T>();
@@ -347,7 +377,13 @@ internal partial class Expander<P, I>
         foreach (string split in splits)
         {
             bool isTransformExpression;
+#if !NET
+            IList<T> itemsToAdd = expandLiteralDirectly
+                ? null
+                : ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, split, _items, itemFactory, options, false /* do not include null items */, out isTransformExpression, elementLocation);
+#else
             IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(this, split, _items, itemFactory, options, false /* do not include null items */, out isTransformExpression, elementLocation);
+#endif
 
             if ((itemsToAdd == null /* broke out early non empty */ || (itemsToAdd.Count > 0)) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
@@ -370,72 +406,6 @@ internal partial class Expander<P, I>
 
         return result;
     }
-
-#if !NET
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static bool ContainsSelectedExpansionMarker(string expression, int expansionOptions)
-    {
-        if ((expansionOptions & (int)ExpanderOptions.ExpandProperties) != 0)
-        {
-            if ((expansionOptions & (int)ExpanderOptions.ExpandItems) != 0)
-            {
-                return (expansionOptions & (int)ExpanderOptions.ExpandMetadata) != 0
-                    ? ExpressionShredder.ContainsAnyExpansionMarker(expression)
-                    : ExpressionShredder.ContainsPropertyOrItemVectorMarker(expression);
-            }
-
-            return ExpressionShredder.ContainsPropertyOrMetadataMarker(expression);
-        }
-
-        return ExpressionShredder.ContainsItemVectorOrMetadataMarker(expression);
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private IList<T> CreateLiteralItems<T>(
-        string expression,
-        IItemFactory<I, T> itemFactory,
-        ExpanderOptions options,
-        IElementLocation elementLocation)
-        where T : class, IItem
-    {
-        if ((options & ExpanderOptions.ExpandMetadata) != 0)
-        {
-            Assumed.NotNull(_metadata, "Cannot expand metadata without providing metadata");
-        }
-
-        if ((options & ExpanderOptions.ExpandProperties) != 0)
-        {
-            Assumed.NotNull(_properties, "Cannot expand properties without providing properties");
-        }
-
-        expression = FileUtilities.MaybeAdjustFilePath(expression);
-
-        List<T> result = new List<T>();
-        if (expression.Length == 0)
-        {
-            return result;
-        }
-
-        var splitEnumerator = ExpressionShredder.SplitSemiColonSeparatedList(expression).GetEnumerator();
-        if (!splitEnumerator.MoveNext())
-        {
-            return result;
-        }
-
-        if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
-        {
-            return null;
-        }
-
-        do
-        {
-            result.Add(itemFactory.CreateItem(splitEnumerator.Current, elementLocation.File));
-        }
-        while (splitEnumerator.MoveNext());
-
-        return result;
-    }
-#endif
 
     /// <summary>
     /// This is a specialized method for the use of TargetUpToDateChecker and Evaluator.EvaluateItemXml only.
