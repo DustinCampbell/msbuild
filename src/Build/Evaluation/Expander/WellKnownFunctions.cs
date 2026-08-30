@@ -165,47 +165,6 @@ namespace Microsoft.Build.Evaluation.Expander
         internal static bool TryExecuteStringFunction(string methodName, out object? returnVal, string text, object[] args)
         {
             returnVal = null;
-            switch (methodName[0])
-            {
-                case 'R' or 'r' when
-                    methodName.Length == nameof(string.Replace).Length &&
-                    string.Equals(methodName, nameof(string.Replace), StringComparison.OrdinalIgnoreCase):
-                    if (ParseArgs.TryGetArgs(args, out string? oldValue, out string? newValue) && oldValue != null)
-                    {
-                        returnVal = text.Replace(oldValue, newValue);
-                        return true;
-                    }
-
-                    return false;
-
-                case 'S' or 's' when
-                    methodName.Length == nameof(string.Substring).Length &&
-                    string.Equals(methodName, nameof(string.Substring), StringComparison.OrdinalIgnoreCase):
-                    if (ParseArgs.TryGetArg(args, out int startIndex))
-                    {
-                        returnVal = text.Substring(startIndex);
-                        return true;
-                    }
-                    else if (ParseArgs.TryGetArgs(args, out startIndex, out int length))
-                    {
-                        returnVal = text.Substring(startIndex, length);
-                        return true;
-                    }
-
-                    return false;
-
-                case 'T' or 't' when
-                    methodName.Length == nameof(string.ToUpperInvariant).Length &&
-                    string.Equals(methodName, nameof(string.ToUpperInvariant), StringComparison.OrdinalIgnoreCase):
-                    if (args.Length == 0)
-                    {
-                        returnVal = text.ToUpperInvariant();
-                        return true;
-                    }
-
-                    return false;
-            }
-
             if (string.Equals(methodName, nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase))
             {
                 if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
@@ -214,11 +173,27 @@ namespace Microsoft.Build.Evaluation.Expander
                     return true;
                 }
             }
+            else if (string.Equals(methodName, nameof(string.Replace), StringComparison.OrdinalIgnoreCase))
+            {
+                if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1) && arg0 != null)
+                {
+                    returnVal = text.Replace(arg0, arg1);
+                    return true;
+                }
+            }
             else if (string.Equals(methodName, nameof(string.Contains), StringComparison.OrdinalIgnoreCase))
             {
                 if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
                 {
                     returnVal = text.Contains(arg0);
+                    return true;
+                }
+            }
+            else if (string.Equals(methodName, nameof(string.ToUpperInvariant), StringComparison.OrdinalIgnoreCase))
+            {
+                if (args.Length == 0)
+                {
+                    returnVal = text.ToUpperInvariant();
                     return true;
                 }
             }
@@ -298,6 +273,19 @@ namespace Microsoft.Build.Evaluation.Expander
                 if (args.Length == 0)
                 {
                     returnVal = text.Length;
+                    return true;
+                }
+            }
+            else if (string.Equals(methodName, nameof(string.Substring), StringComparison.OrdinalIgnoreCase))
+            {
+                if (ParseArgs.TryGetArg(args, out int startIndex))
+                {
+                    returnVal = text.Substring(startIndex);
+                    return true;
+                }
+                else if (ParseArgs.TryGetArgs(args, out startIndex, out int length))
+                {
+                    returnVal = text.Substring(startIndex, length);
                     return true;
                 }
             }
