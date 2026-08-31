@@ -275,6 +275,39 @@ public class StringSegmentParsing_Tests
         AssertProviderSigns(numberFormat);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("1")]
+    [InlineData("1.2")]
+    [InlineData("1.2.3")]
+    [InlineData("1.2.3.4")]
+    [InlineData(" 1 . +2 . 3 . 4 ")]
+    [InlineData("1.2.")]
+    [InlineData("1..2")]
+    [InlineData("1.2.3.4.5")]
+    [InlineData("-1.2")]
+    [InlineData("1.-2")]
+    [InlineData("2147483648.0")]
+    [InlineData("1.a")]
+    public void VersionTryParse_MatchesStringParsing(string text)
+    {
+        StringSegment segment = CreateSegment(text);
+
+        Version.TryParse(segment, out Version? result)
+            .ShouldBe(Version.TryParse(text, out Version? expected));
+
+        result.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void VersionTryParse_RejectsNullSegment()
+    {
+        StringSegment segment = default;
+
+        Version.TryParse(segment, out Version? result).ShouldBeFalse();
+        result.ShouldBeNull();
+    }
+
     private static void AssertProviderSigns(IFormatProvider provider)
     {
         StringSegment positive = CreateSegment("positive42");
