@@ -19,7 +19,7 @@ using Microsoft.NET.StringTools;
 
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
-// System.IO.File to match the types registered in AvailableStaticMethods.
+// System.IO.File to match the types registered in AvailableStaticMembers.
 using Directory = Microsoft.IO.Directory;
 using Path = Microsoft.IO.Path;
 #endif

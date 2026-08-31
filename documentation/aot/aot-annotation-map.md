@@ -79,7 +79,7 @@ exact members the code touches.
 
 | Family | Members | Requested member types | Correct? |
 | --- | --- | --- | --- |
-| **Property-function receivers** | [`Function._receiverType` + ctor param](../../src/Build/Evaluation/Expander.Function.cs); [`FunctionBuilder.SetReceiverType`](../../src/Build/Evaluation/Expander.FunctionBuilder.cs) | `PublicConstructors \| PublicMethods \| PublicProperties \| PublicFields` | **Yes** - property functions invoke constructors (`new`), call methods, read properties **and** fields (`MaxValue`); kept in sync with `Constants.PropertyFunctionMembers`. Narrowing would break field/constructor access. |
+| **Property-function receivers** | [`Function._receiverType` + ctor param](../../src/Build/Evaluation/Expander.Function.cs); [`FunctionBuilder.SetReceiverType`](../../src/Build/Evaluation/Expander.FunctionBuilder.cs) | `PublicConstructors \| PublicMethods \| PublicProperties \| PublicFields` | **Yes** - property functions invoke constructors (`new`), call methods, read properties **and** fields (`MaxValue`); kept in sync with `AvailableStaticMembers.PropertyFunctionMembers`. Narrowing would break field/constructor access. |
 | **Loaded task types** | [`LoadedType` ctor + `TaskType`](../../src/Framework/Loader/LoadedType.cs); [`IntrinsicTaskFactory` ctor](../../src/Build/BackEnd/Components/RequestBuilder/IntrinsicTasks/IntrinsicTaskFactory.cs); [`TaskExecutionHost.CreateIntrinsicTaskFactoryWrapper`](../../src/Build/BackEnd/TaskExecutionHost/TaskExecutionHost.cs) | `PublicParameterlessConstructor \| PublicProperties` | **Yes** - construct (`new`) + bind public properties; no fields/methods reflected. |
 | **Registration generics** | [`TaskClassRegistry.Register<T>` / `CreateLoadedType`](../../src/Framework/TaskClassRegistry.cs); [`Utilities.Task.RegisterTask<T>`](../../src/Utilities/Task.cs); [`TaskParameterTypeRegistry.RegisterValueType<T>`](../../src/Framework/TaskParameterTypeRegistry.cs); [`TaskItem.RegisterTaskParameterValueType<T>`](../../src/Utilities/TaskItem.cs) | `PublicParameterlessConstructor \| PublicProperties` (task types) / `All` (parameter value types) | **Yes** - the generic type parameter carries the DAM so `typeof(T)` flows it to the `LoadedType` build; `All` for value-type parameters is deliberately conservative (any member can be marshalled). |
 | **Plugin types** | [`ProjectCacheService.CreatePluginInstanceFromType` / `GetTypeFromAssemblyPath`](../../src/Build/BackEnd/Components/ProjectCache/ProjectCacheService.cs) | `PublicParameterlessConstructor` | **Yes** - plugin is only `Activator.CreateInstance`d. |
@@ -116,11 +116,11 @@ behavior or contradict the proven analysis:
   functions invoke constructors and read fields (e.g. `$([System.Int32]::MaxValue)`), and the allowed
   binding flags include `GetField`; the set must stay
   `PublicConstructors | PublicMethods | PublicProperties | PublicFields`, matching
-  `Constants.PropertyFunctionMembers`.
+  `AvailableStaticMembers.PropertyFunctionMembers`.
 - **Do not remove RUC from `LoggerDescription.CreateLogger()` / `CreateForwardingLogger()`.** Both delegate
   to the private reflective `CreateLogger(bool)`, so calling either reaches reflection - the RUC is honest;
   removing it would resurface IL2026 at the call.
-- **Do not add `[RequiresDynamicCode]` to `Constants.InitializeAvailableMethods`.** Its IL3050 is a
+- **Do not add `[RequiresDynamicCode]` to `AvailableStaticMembers.CreateAvailableMembers`.** Its IL3050 is a
   *rooted-but-unreachable* `Enum.GetValues(Type)` (kept only because `typeof(Enum)` roots the allowlist),
   not a live dynamic-code call; an author cannot supply a `Type` argument (MSB4185/MSB4186), proven under
   Native AOT by `PropertyFunctionAotTests`. The suppression with that justification is the correct marker.

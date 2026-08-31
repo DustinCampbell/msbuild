@@ -91,7 +91,7 @@ internal static class PropertyFunctionReceiver
 
         // FileSystemInfo (DirectoryInfo / FileInfo): read-only navigation/metadata members only.
         // The file/directory static functions are registered against the real System.IO types (see
-        // Constants.InitializeAvailableMethods), so receivers reached by dotting in (GetParent, Parent,
+        // AvailableStaticMembers.CreateAvailableMembers), so receivers reached by dotting in (GetParent, Parent,
         // Directory, Root, ...) are always System.IO.*; the Microsoft.IO.Redist variants never surface.
         if (typeof(System.IO.FileSystemInfo).IsAssignableFrom(receiverType))
         {
