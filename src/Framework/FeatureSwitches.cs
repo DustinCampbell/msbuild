@@ -51,7 +51,7 @@ internal static class FeatureSwitches
     /// <summary>
     /// Whether MSBuild may probe and load assemblies at run time to resolve arbitrary property-function
     /// receiver types. When <see langword="false"/> (the default in a trimmed or AOT application),
-    /// receiver types are restricted to the curated allowlist in <c>AvailableStaticMethods</c>, all of
+    /// receiver types are restricted to the curated allowlist in <c>AvailableStaticMembers</c>, all of
     /// which are statically known and preserved. When <see langword="true"/>, MSBuild additionally probes
     /// assemblies at run time - reflection that is incompatible with trimming.
     /// </summary>

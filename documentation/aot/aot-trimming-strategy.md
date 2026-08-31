@@ -272,7 +272,7 @@ which means they require additional feature work.
 | `TypeExtensions.CreateDefault` (IL2067) | only invoked for value types (guarded by `IsValueType`), which always have a public parameterless ctor |
 | `TypeExtensions.InvokeMemberPublicOnly` (IL2070) | sole caller rejects `BindingFlags.NonPublic`; receiver's public surface preserved via DAM |
 | `TypeExtensions.GetAssemblyPath` (IL3000) | the generic `Assembly.Location` self-discovery primitive, correct in a hosted/JIT layout, hardened to return the empty path rather than throw |
-| Property-function receiver dataflow (`FunctionBuilder.SetReceiverType`, `Function.Execute`, `Function.GetTypeForStaticMethod`) | receiver sets are bounded to preserved-member allowlists (`AvailableStaticMethods` and `PropertyFunctionReceiver`), with `RestrictPropertyFunctionReceivers` substituted `true` under trim and `Constants.PropertyFunctionMembers` preserving the reflected surface |
+| Property-function receiver dataflow (`FunctionBuilder.SetReceiverType`, `Function.Execute`, `AvailableStaticMembers.TryResolveType`) | receiver sets are bounded to preserved-member allowlists (`AvailableStaticMembers` and `PropertyFunctionReceiver`), with `RestrictPropertyFunctionReceivers` substituted `true` under trim and `AvailableStaticMembers.PropertyFunctionMembers` preserving the reflected surface |
 | `Enum.GetValues(Type)` rooted through property-function allowlists | rooted by `typeof(Enum)` but unreachable via property functions because authors cannot supply a `Type` argument (MSB4185/MSB4186), proven by AOT property-function tests |
 
 > The companion IL4000 `#pragma warning disable` on every `[FeatureGuard]` switch is **not** in this
