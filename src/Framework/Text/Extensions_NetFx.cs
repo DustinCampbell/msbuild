@@ -3,6 +3,7 @@
 
 #if !NET
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace Microsoft.Build.Text;
@@ -154,6 +155,7 @@ internal static partial class Extensions
             result = 0;
             return false;
         }
+
         uint maxBeforeMultiply = limit / 10;
         uint maxLastDigit = limit % 10;
         uint parsed = 0;
@@ -220,6 +222,61 @@ internal static partial class Extensions
 
         result = 0;
         return false;
+    }
+
+    private static bool TryParseVersion(StringSegment value, [NotNullWhen(true)] out Version? result)
+    {
+        result = null;
+        int major, minor, build, revision;
+
+        int separator = value.IndexOf('.');
+        if (separator < 0 || !TryParseComponent(value[..separator], out major))
+        {
+            return false;
+        }
+
+        int componentStart = separator + 1;
+        separator = value.IndexOf('.', componentStart);
+        if (separator < 0)
+        {
+            if (!TryParseComponent(value[componentStart..], out minor))
+            {
+                return false;
+            }
+
+            result = new Version(major, minor);
+            return true;
+        }
+
+        if (!TryParseComponent(value[componentStart..separator], out minor))
+        {
+            return false;
+        }
+
+        componentStart = separator + 1;
+        separator = value.IndexOf('.', componentStart);
+        if (separator < 0)
+        {
+            if (!TryParseComponent(value[componentStart..], out build))
+            {
+                return false;
+            }
+
+            result = new Version(major, minor, build);
+            return true;
+        }
+
+        if (!TryParseComponent(value[componentStart..separator], out build) ||
+            !TryParseComponent(value[(separator + 1)..], out revision))
+        {
+            return false;
+        }
+
+        result = new Version(major, minor, build, revision);
+        return true;
+
+        static bool TryParseComponent(StringSegment component, out int result)
+            => TryParseInt32(component, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out result) && result >= 0;
     }
 }
 #endif
