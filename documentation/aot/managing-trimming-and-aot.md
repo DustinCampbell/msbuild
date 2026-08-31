@@ -528,14 +528,13 @@ internal static bool EnableAllPropertyFunctions =>
 ```
 
 At the probing call site in
-[`GetTypeForStaticMethod`](../../src/Build/Evaluation/Expander.Function.cs) (in the
-de-genericized `Expander<P, I>.Function` partial), the `[FeatureGuard]` lets the trim-unsafe
-assembly-probing run with **no per-call `[UnconditionalSuppressMessage]`** — it replaced a
-standing IL2026 suppression; the trimmer removes the whole branch from a trimmed/AOT build
-because the switch folds to `false`. In untrimmed builds the getter preserves the legacy
-`MSBUILDENABLEALLPROPERTYFUNCTIONS` behavior when the AppContext switch is unset; in trimmed/AOT
-builds the getter body is replaced with `false`, so the environment variable cannot re-enable the
-removed probing path.
+[`AvailableStaticMembers.TryResolveType`](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs), the
+`[FeatureGuard]` lets the trim-unsafe assembly-probing run with **no per-call
+`[UnconditionalSuppressMessage]`** — it replaced a standing IL2026 suppression; the trimmer removes
+the whole branch from a trimmed/AOT build because the switch folds to `false`. In untrimmed builds
+the getter preserves the legacy `MSBUILDENABLEALLPROPERTYFUNCTIONS` behavior when the AppContext
+switch is unset; in trimmed/AOT builds the getter body is replaced with `false`, so the environment
+variable cannot re-enable the removed probing path.
 
 ### 6.4 The IL4000 gotcha (the definitive explanation)
 
