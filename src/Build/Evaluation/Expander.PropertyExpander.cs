@@ -21,7 +21,7 @@ using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
-// System.IO.File to match the types registered in AvailableStaticMethods.
+// System.IO.File to match the types registered in AvailableStaticMembers.
 using Path = Microsoft.IO.Path;
 #endif
 
