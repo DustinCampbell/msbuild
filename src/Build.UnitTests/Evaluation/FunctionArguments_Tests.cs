@@ -60,15 +60,22 @@ public class FunctionArguments_Tests
 #endif
 
     [Theory]
-    [InlineData("value", false)]
-    [InlineData("$(Value)", true)]
-    [InlineData("%(Identity)", true)]
-    public void DetectsExpandableSourceArguments(string text, bool expected)
+    [InlineData("value", FunctionArgumentRequirements.None)]
+    [InlineData("$(Value)", FunctionArgumentRequirements.ExpandProperties)]
+    [InlineData("%(Identity)", FunctionArgumentRequirements.None)]
+    [InlineData("%28", FunctionArgumentRequirements.Unescape)]
+    [InlineData("%ZZ", FunctionArgumentRequirements.None)]
+    [InlineData("%24(Value)", FunctionArgumentRequirements.Unescape)]
+    [InlineData("$(Value)%28", FunctionArgumentRequirements.ExpandProperties | FunctionArgumentRequirements.Unescape)]
+    internal void DetectsMaterializationRequirements(string text, FunctionArgumentRequirements expected)
     {
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
         FunctionArguments arguments = new(source);
+        FunctionArguments stringArguments = new([text]);
 
-        arguments.ContainsExpandableExpression().ShouldBe(expected);
+        source.GetRequirements(0).ShouldBe(expected);
+        arguments.ContainsMaterializationRequirement().ShouldBe(expected != FunctionArgumentRequirements.None);
+        stringArguments.ContainsMaterializationRequirement().ShouldBe(expected != FunctionArgumentRequirements.None);
     }
 
     [Fact]
@@ -179,7 +186,7 @@ public class FunctionArguments_Tests
     {
         public List<int> Indices { get; } = [];
 
-        public object? Materialize(StringSegment source, int index)
+        public object? Materialize(StringSegment source, int index, FunctionArgumentRequirements requirements)
         {
             Indices.Add(index);
             return materialize(index);
