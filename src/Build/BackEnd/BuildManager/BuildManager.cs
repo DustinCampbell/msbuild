@@ -1635,7 +1635,7 @@ namespace Microsoft.Build.Execution
                         }
 
                         submission.BuildRequestData.ProjectFullPath = Path.Combine(
-                            submission.BuildRequestData.ProjectInstance!.GetProperty(ReservedPropertyNames.projectDirectory)!.EvaluatedValue,
+                            submission.BuildRequestData.ProjectInstance!.GetProperty(ReservedPropertyNames.ProjectDirectory)!.EvaluatedValue,
                             tempName);
                     }
 
