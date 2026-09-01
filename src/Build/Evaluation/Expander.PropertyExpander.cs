@@ -10,14 +10,13 @@ using System.IO;
 #if !NET
 using System.Linq;
 #endif
-using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.NET.StringTools;
 using Microsoft.Win32;
-using ReservedPropertyNames = Microsoft.Build.Internal.ReservedPropertyNames;
 
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
@@ -558,108 +557,102 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
+        ///  Looks up a simple property reference by its complete name.
         /// </summary>
-        private object LookupProperty(string propertyName)
-        {
-            return LookupProperty(propertyName, 0, propertyName.Length - 1);
-        }
+        /// <param name="propertyName">The property name to look up.</param>
+        /// <returns>
+        ///  The resolved property value, or <see cref="string.Empty"/> when the property is undefined.
+        /// </returns>
+        private string LookupProperty(string propertyName)
+            => LookupProperty(propertyName, 0, propertyName.Length - 1);
 
         /// <summary>
-        /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
+        ///  Looks up a simple property reference within a region of a string.
         /// </summary>
-        private object LookupProperty(string propertyName, int startIndex, int endIndex)
+        /// <param name="propertyName">The string containing the property name.</param>
+        /// <param name="startIndex">The inclusive index at which the property name begins.</param>
+        /// <param name="endIndex">The inclusive index at which the property name ends.</param>
+        /// <returns>
+        ///  The resolved property value, or <see cref="string.Empty"/> when the property is undefined.
+        /// </returns>
+        private string LookupProperty(string propertyName, int startIndex, int endIndex)
         {
             P property = _properties.GetProperty(propertyName, startIndex, endIndex);
 
-            object propertyValue;
+            _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, isUninitialized: property is null);
 
-            bool isArtificial = property == null && ((endIndex - startIndex) >= 7) &&
-                               MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7);
-
-            _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, property == null, isArtificial);
-
-            if (isArtificial)
+            if (property is null)
             {
-                // It could be one of the MSBuildThisFileXXXX properties,
-                // whose values vary according to the file they are in.
-                if (startIndex != 0 || endIndex != propertyName.Length)
-                {
-                    propertyValue = ExpandMSBuildThisFileProperty(propertyName.Substring(startIndex, endIndex - startIndex + 1));
-                }
-                else
-                {
-                    propertyValue = ExpandMSBuildThisFileProperty(propertyName);
-                }
-            }
-            else if (property == null)
-            {
-                propertyValue = String.Empty;
-            }
-            else
-            {
-                if (property is ProjectPropertyInstance.EnvironmentDerivedProjectPropertyInstance environmentDerivedProperty)
-                {
-                    environmentDerivedProperty.loggingContext = _propertiesUseTracker.LoggingContext;
-                }
-
-                propertyValue = property.GetEvaluatedValueEscaped(_elementLocation);
+                // It could be one of the MSBuildThisFileXXXX properties, whose values vary according to the file they are in.
+                return TryExpandMSBuildThisFileProperty(propertyName, startIndex, endIndex - startIndex + 1, out string thisFilePropertyValue)
+                    ? thisFilePropertyValue
+                    : string.Empty;
             }
 
-            return propertyValue;
+            if (property is ProjectPropertyInstance.EnvironmentDerivedProjectPropertyInstance environmentDerivedProperty)
+            {
+                environmentDerivedProperty.loggingContext = _propertiesUseTracker.LoggingContext;
+            }
+
+            return property.GetEvaluatedValueEscaped(_elementLocation);
         }
 
         /// <summary>
-        /// If the property name provided is one of the special
-        /// per file properties named "MSBuildThisFileXXXX" then returns the value of that property.
-        /// If the location provided does not have a path (eg., if it comes from a file that has
-        /// never been saved) then returns empty string.
-        /// If the property name is not one of those properties, returns empty string.
+        ///  Attempts to expand an <c>MSBuildThisFile*</c> property for the current element location.
         /// </summary>
-        private object ExpandMSBuildThisFileProperty(string propertyName)
+        /// <param name="propertyName">The string containing the property name.</param>
+        /// <param name="offset">The zero-based offset at which the property name begins.</param>
+        /// <param name="length">The number of characters in the property name.</param>
+        /// <param name="result">
+        ///  When this method returns <see langword="true"/>, the expanded property value; otherwise,
+        ///  <see langword="null"/>.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> when the name identifies an <c>MSBuildThisFile*</c> property and the current
+        ///  element location has a file path; otherwise, <see langword="false"/>.
+        /// </returns>
+        private bool TryExpandMSBuildThisFileProperty(string propertyName, int offset, int length, out string result)
         {
-            if (!ReservedPropertyNames.IsReservedProperty(propertyName))
+            string filePath = _elementLocation.File;
+
+            if (filePath.IsNullOrEmpty() ||
+                !ReservedPropertyNames.TryGetThisFileProperty(propertyName, offset, length, out ReservedPropertyKind kind))
             {
-                return String.Empty;
+                result = null;
+                return false;
             }
 
-            if (_elementLocation.File.Length == 0)
+            switch (kind)
             {
-                return String.Empty;
+                case ReservedPropertyKind.ThisFile:
+                    result = Path.GetFileName(filePath);
+                    return true;
+
+                case ReservedPropertyKind.ThisFileName:
+                    result = Path.GetFileNameWithoutExtension(filePath);
+                    return true;
+
+                case ReservedPropertyKind.ThisFileFullPath:
+                    result = FileUtilities.NormalizePath(filePath);
+                    return true;
+
+                case ReservedPropertyKind.ThisFileExtension:
+                    result = Path.GetExtension(filePath);
+                    return true;
+
+                case ReservedPropertyKind.ThisFileDirectory:
+                    result = FileUtilities.EnsureTrailingSlash(Path.GetDirectoryName(filePath));
+                    return true;
+
+                case ReservedPropertyKind.ThisFileDirectoryNoRoot:
+                    string directory = Path.GetDirectoryName(filePath);
+                    int rootLength = Path.GetPathRoot(directory).Length;
+                    result = FileUtilities.EnsureTrailingNoLeadingSlash(directory, rootLength);
+                    return true;
             }
 
-            string value = String.Empty;
-
-            // Because String.Equals checks the length first, and these strings are almost
-            // all different lengths, this sequence is efficient.
-            if (String.Equals(propertyName, ReservedPropertyNames.ThisFile, StringComparison.OrdinalIgnoreCase))
-            {
-                value = Path.GetFileName(_elementLocation.File);
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.ThisFileName, StringComparison.OrdinalIgnoreCase))
-            {
-                value = Path.GetFileNameWithoutExtension(_elementLocation.File);
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.ThisFileFullPath, StringComparison.OrdinalIgnoreCase))
-            {
-                value = FileUtilities.NormalizePath(_elementLocation.File);
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.ThisFileExtension, StringComparison.OrdinalIgnoreCase))
-            {
-                value = Path.GetExtension(_elementLocation.File);
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.ThisFileDirectory, StringComparison.OrdinalIgnoreCase))
-            {
-                value = FileUtilities.EnsureTrailingSlash(Path.GetDirectoryName(_elementLocation.File));
-            }
-            else if (String.Equals(propertyName, ReservedPropertyNames.ThisFileDirectoryNoRoot, StringComparison.OrdinalIgnoreCase))
-            {
-                string directory = Path.GetDirectoryName(_elementLocation.File);
-                int rootLength = Path.GetPathRoot(directory).Length;
-                value = FileUtilities.EnsureTrailingNoLeadingSlash(directory, rootLength);
-            }
-
-            return value;
+            result = null;
+            return false;
         }
 
         /// <summary>
