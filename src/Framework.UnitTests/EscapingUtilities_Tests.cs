@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Shouldly;
 using Xunit;
 
@@ -27,6 +28,26 @@ public sealed class EscapingUtilities_Tests
     [InlineData("%2aStar%2Acraft%20or %2aWar%2Acr%40ft%3f%3F", "*Star*craft or *War*cr@ft??")]
     public void Unescape(string value, string result)
         => EscapingUtilities.UnescapeAll(value).ShouldBe(result);
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("foo", false)]
+    [InlineData("%", false)]
+    [InlineData("%3", false)]
+    [InlineData("%ZZ", false)]
+    [InlineData("%20", true)]
+    [InlineData("before%%3fafter", true)]
+    public void DetectsEscapeSequenceInSegment(string value, bool expected)
+    {
+        string buffer = $"prefix{value}suffix";
+        StringSegment segment = new(buffer, "prefix".Length, value.Length);
+
+        EscapingUtilities.ContainsEscapeSequence(segment).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void NullSegmentDoesNotContainEscapeSequence()
+        => EscapingUtilities.ContainsEscapeSequence(default).ShouldBeFalse();
 
     [Theory]
     [InlineData("", "")]
