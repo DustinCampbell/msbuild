@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -222,6 +223,23 @@ internal readonly struct ErrorReporter(IElementLocation location)
             => Throw(expression, string.Empty);
 
         /// <summary>
+        ///  Throws the error without additional detail.
+        /// </summary>
+        /// <param name="expression">The invalid expression.</param>
+        [DoesNotReturn]
+        public void Throw(StringSegment expression)
+            => Throw(expression.ValueOrEmpty);
+
+        /// <summary>
+        ///  Throws the error with additional detail.
+        /// </summary>
+        /// <param name="expression">The invalid expression.</param>
+        /// <param name="message">The detail describing the failure.</param>
+        [DoesNotReturn]
+        public void Throw(StringSegment expression, string message)
+            => Throw(expression.ValueOrEmpty, message);
+
+        /// <summary>
         ///  Throws the error with additional detail.
         /// </summary>
         /// <param name="expression">The invalid expression.</param>
@@ -249,6 +267,14 @@ internal readonly struct ErrorReporter(IElementLocation location)
             => _error.Throw(expression);
 
         /// <summary>
+        ///  Throws the error without additional detail.
+        /// </summary>
+        /// <param name="expression">The invalid expression.</param>
+        [DoesNotReturn]
+        public void Throw(StringSegment expression)
+            => _error.Throw(expression);
+
+        /// <summary>
         ///  Throws the error with localized detail.
         /// </summary>
         /// <param name="expression">The invalid expression.</param>
@@ -256,6 +282,15 @@ internal readonly struct ErrorReporter(IElementLocation location)
         [DoesNotReturn]
         public void Throw(string expression, ErrorDetail detail)
             => _error.Throw(expression, GetDetailText(detail));
+
+        /// <summary>
+        ///  Throws the error with localized detail.
+        /// </summary>
+        /// <param name="expression">The invalid expression.</param>
+        /// <param name="detail">The localized detail to include.</param>
+        [DoesNotReturn]
+        public void Throw(StringSegment expression, ErrorDetail detail)
+            => Throw(expression.ValueOrEmpty, detail);
 
         /// <summary>
         ///  Throws the error with additional detail.
@@ -279,6 +314,19 @@ internal readonly struct ErrorReporter(IElementLocation location)
             }
         }
 
+        /// <summary>
+        ///  Throws the error when <paramref name="condition"/> is <see langword="false"/> without materializing
+        ///  the expression segment when the condition is <see langword="true"/>.
+        /// </summary>
+        /// <param name="condition">The condition that must be <see langword="true"/>.</param>
+        /// <param name="expression">The invalid expression.</param>
+        public void ThrowIfFalse([DoesNotReturnIf(false)] bool condition, StringSegment expression)
+        {
+            if (!condition)
+            {
+                Throw(expression);
+            }
+        }
     }
 
     /// <summary>
