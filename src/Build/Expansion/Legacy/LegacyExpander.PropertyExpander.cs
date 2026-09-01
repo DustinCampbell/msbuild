@@ -576,7 +576,7 @@ internal partial class LegacyExpander<P, I>
             bool isArtificial = property == null && ((endIndex - startIndex) >= 7) &&
                                MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7);
 
-            _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, property == null, isArtificial);
+            _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, isUninitialized: property == null);
 
             if (isArtificial)
             {

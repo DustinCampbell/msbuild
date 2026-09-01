@@ -37,10 +37,13 @@ internal sealed class PropertiesUseTracker
     /// </summary>
     private Dictionary<string, IElementLocation>? _properties;
 
-    internal void TrackRead(string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, bool isUninitialized, bool isArtificial)
+    internal void TrackRead(string propertyName, int startIndex, int endIndex, IElementLocation elementLocation, bool isUninitialized)
     {
-        if (isArtificial)
+        if (isUninitialized &&
+            (endIndex - startIndex >= 7) &&
+            MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7))
         {
+            // Don't track artificial properties.
             return;
         }
 
