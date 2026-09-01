@@ -864,7 +864,7 @@ namespace Microsoft.Build.BackEnd
                     // The main use of this is if ContinueOnError is true -- so that the next task can consult the result.
                     // So we want it to be "false" even if ContinueOnError is true.
                     // The constants "true" and "false" should NOT be localized. They become property values.
-                    bucket.Lookup.SetProperty(ProjectPropertyInstance.Create(ReservedPropertyNames.lastTaskResult, taskResult ? "true" : "false", true/* may be reserved */, _buildRequestEntry.RequestConfiguration.Project.IsImmutable));
+                    bucket.Lookup.SetProperty(ProjectPropertyInstance.Create(ReservedPropertyNames.LastTaskResult, taskResult ? "true" : "false", true/* may be reserved */, _buildRequestEntry.RequestConfiguration.Project.IsImmutable));
                 }
                 else
                 {

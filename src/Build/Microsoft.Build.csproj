@@ -222,6 +222,8 @@
     <Compile Include="Logging\BuildEventArgsExtensions.cs" />
     <Compile Include="Logging\TerminalLogger\**\*.cs" />
     <Compile Include="Logging\ReusableLogger.cs" />
+    <Compile Include="ReservedPropertyKind.cs" />
+    <Compile Include="ReservedPropertyNames.cs" />
     <Compile Include="TelemetryInfra\InternalTelemetryConsumingLogger.cs" />
     <Compile Include="TelemetryInfra\ITelemetryCollector.cs" />
     <Compile Include="TelemetryInfra\TasksDetailsTelemetry.cs" />
@@ -638,7 +640,6 @@
     <Compile Include="ObjectModelRemoting\ConstructionObjectLinks\ProjectTaskElementLink.cs" />
     <Compile Include="ObjectModelRemoting\ConstructionObjectLinks\ProjectUsingTaskBodyElementLink.cs" />
     <Compile Include="Resources\AssemblyResources.cs" />
-    <Compile Include="Resources\Constants.cs" />
     <Compile Include="Resources\MSBuildAssemblyFileVersion.cs" />
     <!-- ######################## -->
     <!-- ######################## -->
