@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Shared.FileSystem;
 
 #nullable disable
 
@@ -86,15 +85,17 @@ internal partial class Expander<P, I>
         /// </summary>
         public string Remainder { get; set; }
 
-        public IFileSystem FileSystem { get; set; }
-
+        /// <summary>
+        ///  Gets or sets the logging context used by well-known property functions.
+        /// </summary>
         public LoggingContext LoggingContext { get; set; }
 
         /// <summary>
-        /// List of properties which have been used but have not been initialized yet.
+        ///  Creates a function from the accumulated binding state.
         /// </summary>
-        public PropertiesUseTracker PropertiesUseTracker { get; set; }
-
+        /// <returns>
+        ///  The constructed function.
+        /// </returns>
         internal readonly Function Build()
         {
             return new Function(
@@ -105,8 +106,6 @@ internal partial class Expander<P, I>
                 Arguments,
                 BindingFlags,
                 Remainder,
-                PropertiesUseTracker,
-                FileSystem,
                 LoggingContext);
         }
     }
