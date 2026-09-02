@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
@@ -20,24 +19,20 @@ internal partial class Expander<P, I>
     /// </remarks>
     private ref struct MetadataExpander
     {
-        private readonly IMetadataTable _metadata;
-        private readonly ExpanderOptions _options;
-        private readonly IElementLocation _elementLocation;
-        private readonly LoggingContext? _loggingContext;
+        private readonly ExpansionContext _context;
         private readonly SpanBasedStringBuilder _builder;
         private bool _metadataExpanded;
 
         private MetadataExpander(
-            IMetadataTable metadata,
-            ExpanderOptions options,
-            IElementLocation elementLocation,
-            LoggingContext? loggingContext,
+            ExpansionContext context,
             SpanBasedStringBuilder builder)
         {
-            _metadata = metadata;
-            _options = options & (ExpanderOptions.ExpandMetadata | ExpanderOptions.Truncate | ExpanderOptions.LogOnItemMetadataSelfReference);
-            _elementLocation = elementLocation;
-            _loggingContext = loggingContext;
+            ExpanderOptions options = context.Options
+                & (ExpanderOptions.ExpandMetadata
+                    | ExpanderOptions.Truncate
+                    | ExpanderOptions.LogOnItemMetadataSelfReference);
+
+            _context = context.WithOptions(options);
             _builder = builder;
             _metadataExpanded = false;
         }
@@ -47,26 +42,18 @@ internal partial class Expander<P, I>
         ///  Metadata may be qualified, like %(Compile.WarningLevel), or unqualified, like %(Compile).
         /// </summary>
         /// <param name="expression">The expression containing item metadata references.</param>
-        /// <param name="metadata">The metadata to be expanded.</param>
-        /// <param name="options">Used to specify what to expand.</param>
-        /// <param name="elementLocation">The location information for error reporting purposes.</param>
-        /// <param name="loggingContext">The logging context for this operation.</param>
+        /// <param name="context">The context for the expansion operation.</param>
         /// <returns>
         ///  The string with item metadata expanded in-place, escaped.
         /// </returns>
-        internal static string ExpandMetadataLeaveEscaped(
-            string expression,
-            IMetadataTable metadata,
-            ExpanderOptions options,
-            IElementLocation elementLocation,
-            LoggingContext? loggingContext = null)
+        internal static string ExpandMetadataLeaveEscaped(string expression, ExpansionContext context)
         {
-            if ((options & ExpanderOptions.ExpandMetadata) == 0)
+            if ((context.Options & ExpanderOptions.ExpandMetadata) == 0)
             {
                 return expression;
             }
 
-            Assumed.NotNull(metadata, "Cannot expand metadata without providing metadata");
+            Assumed.NotNull(context.Metadata, "Cannot expand metadata without providing metadata");
 
             // PERF NOTE: pre-scanning the string for "%(" is cheaper than a full scan.
             int markerIndex = ExpressionShredder.IndexOfMetadataMarker(expression);
@@ -78,13 +65,13 @@ internal partial class Expander<P, I>
             try
             {
                 using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
-                MetadataExpander expander = new(metadata, options, elementLocation, loggingContext, builder);
+                MetadataExpander expander = new(context, builder);
 
                 return expander.Expand(expression, markerIndex);
             }
             catch (InvalidOperationException ex)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "CannotExpandItemMetadata", expression, ex.Message);
+                context.Errors.CannotExpandMetadata.Throw(expression, ex.Message);
             }
 
             return Assumed.Unreachable<string>();
@@ -202,26 +189,26 @@ internal partial class Expander<P, I>
                 // Determine whether to expand this metadata reference.
                 bool isBuiltInMetadata = ItemSpecModifiers.IsItemSpecModifier(metadataName);
 
-                if ((isBuiltInMetadata && ((_options & ExpanderOptions.ExpandBuiltInMetadata) != 0)) ||
-                   (!isBuiltInMetadata && ((_options & ExpanderOptions.ExpandCustomMetadata) != 0)))
+                if ((isBuiltInMetadata && ((_context.Options & ExpanderOptions.ExpandBuiltInMetadata) != 0)) ||
+                   (!isBuiltInMetadata && ((_context.Options & ExpanderOptions.ExpandCustomMetadata) != 0)))
                 {
-                    string expanded = _metadata.GetEscapedValue(itemType, metadataName);
+                    string expanded = _context.Metadata.GetEscapedValue(itemType, metadataName);
 
-                    if ((_options & ExpanderOptions.LogOnItemMetadataSelfReference) != 0 &&
-                        _loggingContext != null &&
+                    if ((_context.Options & ExpanderOptions.LogOnItemMetadataSelfReference) != 0 &&
+                        _context.LoggingContext is { } loggingContext &&
                         !string.IsNullOrEmpty(metadataName) &&
-                        _metadata is IItemTypeDefinition itemMetadata &&
+                        _context.Metadata is IItemTypeDefinition itemMetadata &&
                         (string.IsNullOrEmpty(itemType) || string.Equals(itemType, itemMetadata.ItemType, StringComparison.Ordinal)))
                     {
-                        _loggingContext.LogComment(
+                        loggingContext.LogComment(
                             MessageImportance.Low,
-                            new BuildEventFileInfo(_elementLocation),
+                            new BuildEventFileInfo(_context.Location),
                             "ItemReferencingSelfInTarget",
                             itemMetadata.ItemType,
                             metadataName);
                     }
 
-                    if (IsTruncationEnabled(_options) && expanded.Length > CharacterLimitPerExpansion)
+                    if (IsTruncationEnabled(_context.Options) && expanded.Length > CharacterLimitPerExpansion)
                     {
                         expanded = TruncateString(expanded);
                     }
