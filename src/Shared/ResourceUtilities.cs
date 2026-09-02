@@ -19,7 +19,7 @@ namespace Microsoft.Build.Shared
         /// </summary>
         /// <param name="resourceName">Resource string to get the MSBuild F1-keyword for.</param>
         /// <returns>The MSBuild F1-help keyword string.</returns>
-        private static string GetHelpKeyword(string resourceName)
+        internal static string GetHelpKeyword(string resourceName)
             => "MSBuild." + resourceName;
 
         /// <summary>
