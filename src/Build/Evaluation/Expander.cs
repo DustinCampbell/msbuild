@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Context;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -140,9 +141,11 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
         Assumed.NotNull(location);
 
-        string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, location, _loggingContext);
-        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, location, _propertiesUseTracker, _fileSystem);
-        result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, location);
+        ExpansionContext context = new(this, options, location);
+
+        string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, context);
+        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, context);
+        result = ItemExpander.ExpandItemVectorsIntoString(result, context);
         result = FileUtilities.MaybeAdjustFilePath(result);
 
         return result;
@@ -169,8 +172,10 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
         Assumed.NotNull(location);
 
-        expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, location);
-        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, location, _propertiesUseTracker, _fileSystem);
+        ExpansionContext context = new(this, options, location);
+
+        expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, context);
+        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, context);
         expression = FileUtilities.MaybeAdjustFilePath(expression);
 
         List<T> result = [];
@@ -183,14 +188,11 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
         foreach (string split in ExpressionShredder.SplitSemiColonSeparatedList(expression))
         {
             IList<T> itemsToAdd = ItemExpander.ExpandSingleItemVectorExpressionIntoItems(
-                expander: this,
                 split,
-                _items,
                 itemFactory,
-                options,
                 includeNullEntries: false,
                 out _,
-                location);
+                context);
 
             if ((itemsToAdd == null /* broke out early non empty */ || (itemsToAdd.Count > 0)) && (options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
@@ -232,14 +234,11 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
         Assumed.NotNull(location);
 
         return ItemExpander.ExpandSingleItemVectorExpressionIntoItems(
-            expander: this,
             expression,
-            _items,
             itemFactory,
-            options,
             includeNullItems,
             out isTransformExpression,
-            location);
+            new ExpansionContext(this, options, location));
     }
 
     public bool TryExpandSingleItemVectorExpression(
@@ -247,7 +246,11 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
         ExpanderOptions options,
         IElementLocation elementLocation,
         out ExpressionShredder.ItemExpressionCapture itemVector)
-        => ItemExpander.TryExpandSingleItemVectorExpression(expression, options, elementLocation, out itemVector);
+        => ItemExpander.TryExpandSingleItemVectorExpression(
+            expression,
+            options,
+            new ErrorReporter(elementLocation),
+            out itemVector);
 
     public IList<T> ExpandItemVectorIntoItems<T>(
         ExpressionShredder.ItemExpressionCapture itemVector,
@@ -258,15 +261,16 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
         out bool isTransformExpression,
         IElementLocation location)
         where T : class, IItem
-        => ItemExpander.ExpandItemVectorIntoItems(
+    {
+        ExpansionContext context = new(this, options, location);
+        return ItemExpander.ExpandItemVectorIntoItems(
             itemVector,
-            expander: this,
             items,
             itemFactory,
-            options,
             includeNullEntries,
             out isTransformExpression,
-            location);
+            context);
+    }
 
     public bool ExpandItemVector(
         ExpressionShredder.ItemExpressionCapture itemVector,
@@ -276,14 +280,12 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
         out bool isTransformExpression,
         out List<TransformEntry<I>> entries)
         => ItemExpander.ExpandItemVector(
-            expander: this,
             itemVector,
             _items,
-            location,
-            options,
             includeNullEntries,
             out isTransformExpression,
-            out entries);
+            out entries,
+            new ExpansionContext(this, options, location));
 
     private static string TruncateString(string metadataValue)
     {
@@ -435,7 +437,10 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
     /// Returns an array of unexpanded arguments.
     /// If there are no arguments, returns an empty array.
     /// </summary>
-    private static string[] ExtractFunctionArguments(IElementLocation elementLocation, string expressionFunction, ReadOnlyMemory<char> argumentsMemory)
+    private static string[] ExtractFunctionArguments(
+        string expressionFunction,
+        ReadOnlyMemory<char> argumentsMemory,
+        ErrorReporter errors)
     {
         int argumentsContentLength = argumentsMemory.Length;
         ReadOnlySpan<char> argumentsSpan = argumentsMemory.Span;
@@ -471,7 +476,9 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
                 if (n == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
+                    errors.InvalidPropertyFunction.Throw(
+                        expressionFunction,
+                        ErrorDetail.MismatchedParenthesis);
                 }
 
                 FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: nestedPropertyStart);
@@ -486,7 +493,9 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
                 if (n == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedQuote"));
+                    errors.InvalidPropertyFunction.Throw(
+                        expressionFunction,
+                        ErrorDetail.MismatchedQuote);
                 }
 
                 FlushCurrentArgumentToArgumentBuilder(argumentEndIndex: quoteStart);
