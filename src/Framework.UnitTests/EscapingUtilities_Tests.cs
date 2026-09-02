@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
@@ -70,6 +71,68 @@ public sealed class EscapingUtilities_Tests
 
         exception.ParamName.ShouldBe(parameterName);
     }
+
+    [Theory]
+    [InlineData("", "", false)]
+    [InlineData("foo", "foo", false)]
+    [InlineData("foo%", "foo%", false)]
+    [InlineData("foo%3", "foo%3", false)]
+    [InlineData("  foo  ", "  foo  ", false)]
+    [InlineData("  %ZZ  ", "  %ZZ  ", false)]
+    [InlineData("foo%20space", "foo space", true)]
+    [InlineData("  %3B  ", "  ;  ", true)]
+    [InlineData("%3b%3B;%3b%3B", ";;;;;", true)]
+    [InlineData("===%ZZ%20%%%===", "===%ZZ %%%===", true)]
+    public void UnescapeSegment(string value, string expected, bool changed)
+    {
+        const string Prefix = "prefix";
+        string buffer = $"{Prefix}{value}suffix";
+        StringSegment segment = new(buffer, Prefix.Length, value.Length);
+
+        StringSegment result = EscapingUtilities.UnescapeAll(segment);
+
+        result.Value.ShouldBe(expected);
+        if (changed)
+        {
+            result.Buffer.ShouldNotBeSameAs(buffer);
+            result.Offset.ShouldBe(0);
+            result.Length.ShouldBe(expected.Length);
+        }
+        else
+        {
+            result.Buffer.ShouldBeSameAs(buffer);
+            result.Offset.ShouldBe(segment.Offset);
+            result.Length.ShouldBe(segment.Length);
+        }
+    }
+
+    [Fact]
+    public void UnescapeNullSegmentPreservesNull()
+    {
+        StringSegment result = EscapingUtilities.UnescapeAll(default(StringSegment));
+
+        result.HasValue.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("foo", false)]
+    [InlineData("%", false)]
+    [InlineData("%3", false)]
+    [InlineData("%ZZ", false)]
+    [InlineData("%20", true)]
+    [InlineData("before%%3fafter", true)]
+    public void DetectsEscapeSequenceInSegment(string value, bool expected)
+    {
+        string buffer = $"prefix{value}suffix";
+        StringSegment segment = new(buffer, "prefix".Length, value.Length);
+
+        EscapingUtilities.ContainsEscapeSequence(segment).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void NullSegmentDoesNotContainEscapeSequence()
+        => EscapingUtilities.ContainsEscapeSequence(default).ShouldBeFalse();
 
     [Theory]
     [InlineData("", "")]

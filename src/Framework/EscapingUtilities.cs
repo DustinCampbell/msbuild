@@ -8,10 +8,15 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+#if !NET
 using System.Text;
+#endif
 using Microsoft.Build.Collections;
+#if !NET
 using Microsoft.Build.Framework;
+#endif
 using Microsoft.Build.Framework.Utilities;
+using Microsoft.Build.Text;
 using Microsoft.Build.Utilities;
 using Microsoft.NET.StringTools;
 
@@ -169,51 +174,125 @@ internal static class EscapingUtilities
         if (percentIndex == -1)
         {
             // value contains no escape sequences.
-            return GetDefaultResult(value, startIndex, length);
+            return ValueOrSubstring(value, startIndex, length);
         }
 
-        StringBuilder? sb = null;
+        return TryUnescape(value, percentIndex, startIndex, length, out string? result)
+            ? result
+            : ValueOrSubstring(value, startIndex, length);
+    }
+
+    /// <summary>
+    ///  Replaces all <c>%XX</c> escape sequences in <paramref name="value"/> without first materializing the
+    ///  segment.
+    /// </summary>
+    /// <param name="value">The segment to unescape.</param>
+    /// <returns>
+    ///  The original segment when it contains no escape sequences; otherwise, a segment over the decoded
+    ///  string.
+    /// </returns>
+    public static StringSegment UnescapeAll(StringSegment value)
+    {
+        if (value.IsNullOrEmpty)
+        {
+            return value;
+        }
+
+        int percentIndex = value.IndexOf('%');
+        if (percentIndex == -1)
+        {
+            return value;
+        }
+
+        return TryUnescape(value.Buffer, value.Offset + percentIndex, value.Offset, value.Length, out string? result)
+            ? result
+            : value;
+    }
+
+    private static bool TryUnescape(
+        string value,
+        int percentIndex,
+        int startIndex,
+        int length,
+        [NotNullWhen(true)] out string? result)
+    {
+        int index = startIndex;
+        int endIndex = startIndex + length;
+
+#if NET
+        using ValueStringBuilder builder = length <= 256
+            ? new(stackalloc char[length])
+            : new(initialCapacity: length);
+
+        bool decodedEscapeSequence = false;
 
         do
         {
-            int index = percentIndex - startIndex;
-
             // There must be two hex characters following the percent sign.
-            if (index <= length - 3 &&
+            if (percentIndex <= endIndex - 3 &&
                 TryDecodeHexDigit(value[percentIndex + 1], out int hi) &&
                 TryDecodeHexDigit(value[percentIndex + 2], out int lo))
             {
-                sb ??= StringBuilderCache.Acquire(length);
-
-                sb.Append(value, startIndex, index);
-                sb.Append((char)((hi << 4) + lo));
-
-                int consumed = index + 3;
-                startIndex += consumed;
-                length -= consumed;
+                builder.Append(value.AsSpan(index, percentIndex - index));
+                builder.Append((char)((hi << 4) + lo));
+                index = percentIndex + 3;
+                decodedEscapeSequence = true;
             }
 
-            int nextIndex = Math.Max(percentIndex + 1, startIndex);
-            percentIndex = value.IndexOf('%', nextIndex, length - (nextIndex - startIndex));
+            int nextIndex = percentIndex + 1;
+            percentIndex = value.IndexOf('%', nextIndex, endIndex - nextIndex);
         }
         while (percentIndex >= 0);
 
-        if (sb is null)
+        if (!decodedEscapeSequence)
         {
-            // No escape sequences were decoded; return the original string, or the trimmed
-            // slice if trim was requested.
-            return GetDefaultResult(value, startIndex, length);
+            result = null;
+            return false;
         }
 
-        sb.Append(value, startIndex, length);
+        builder.Append(value.AsSpan(index, endIndex - index));
 
-        return StringBuilderCache.GetStringAndRelease(sb);
+        result = builder.ToString();
+        return true;
+#else
+        StringBuilder? builder = null;
 
-        static string GetDefaultResult(string value, int startIndex, int length)
-            => startIndex == 0 && length == value.Length
-                ? value
-                : value.Substring(startIndex, length);
+        do
+        {
+            // There must be two hex characters following the percent sign.
+            if (percentIndex <= endIndex - 3 &&
+                TryDecodeHexDigit(value[percentIndex + 1], out int hi) &&
+                TryDecodeHexDigit(value[percentIndex + 2], out int lo))
+            {
+                builder ??= StringBuilderCache.Acquire(length);
+
+                builder.Append(value, index, percentIndex - index);
+                builder.Append((char)((hi << 4) + lo));
+                index = percentIndex + 3;
+            }
+
+            int nextIndex = percentIndex + 1;
+            percentIndex = value.IndexOf('%', nextIndex, endIndex - nextIndex);
+        }
+        while (percentIndex >= 0);
+
+        if (builder is null)
+        {
+            result = null;
+            return false;
+        }
+
+        builder.Append(value, index, endIndex - index);
+
+        result = StringBuilderCache.GetStringAndRelease(builder);
+        return true;
+#endif
     }
+
+    private static string ValueOrSubstring(string value, int startIndex, int length)
+        => startIndex == 0 && length == value.Length
+            ? value
+            : value.Substring(startIndex, length);
 
     /// <summary>
     ///  Escapes special characters in the input string by replacing them with their <c>%XX</c> equivalents.
@@ -357,6 +436,31 @@ internal static class EscapingUtilities
         }
     }
 #endif
+
+    /// <summary>
+    ///  Determines whether <paramref name="value"/> contains a valid <c>%XX</c> escape sequence.
+    /// </summary>
+    /// <param name="value">The segment to inspect.</param>
+    /// <returns>
+    ///  <see langword="true"/> when an escape sequence is present; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool ContainsEscapeSequence(StringSegment value)
+    {
+        int percentIndex = value.IndexOf('%');
+        while (percentIndex >= 0)
+        {
+            if (percentIndex <= value.Length - 3 &&
+                HexConverter.IsHexChar(value[percentIndex + 1]) &&
+                HexConverter.IsHexChar(value[percentIndex + 2]))
+            {
+                return true;
+            }
+
+            percentIndex = value.IndexOf('%', percentIndex + 1);
+        }
+
+        return false;
+    }
 
     /// <summary>
     ///  Determines whether <paramref name="value"/> contains the escaped form of
