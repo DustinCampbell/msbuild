@@ -6,6 +6,7 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Expansion.Legacy;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Expansion;
@@ -15,6 +16,12 @@ namespace Microsoft.Build.Expansion;
 /// </summary>
 internal static class ExpanderFactory
 {
+    /// <summary>
+    ///  Gets whether expansion should use the legacy implementation.
+    /// </summary>
+    public static bool UseLegacyExpander
+        => !ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave18_12) || Traits.Instance.UseLegacyExpander;
+
     private static IExpander<TProperty, TItem> CreateCore<TProperty, TItem>(
         IPropertyProvider<TProperty>? properties,
         IItemProvider<TItem>? items,
@@ -24,13 +31,9 @@ internal static class ExpanderFactory
         EvaluationContext? evaluationContext)
         where TProperty : class, IProperty
         where TItem : class, IItem
-        => new LegacyExpander<TProperty, TItem>(
-            properties,
-            items,
-            metadata,
-            fileSystem ?? evaluationContext?.FileSystem ?? FileSystems.Default,
-            loggingContext,
-            evaluationContext);
+        => !UseLegacyExpander
+            ? new Expander<TProperty, TItem>(properties, items, metadata, fileSystem, loggingContext, evaluationContext)
+            : new LegacyExpander<TProperty, TItem>(properties, items, metadata, fileSystem, loggingContext, evaluationContext);
 
     private static IExpander<ProjectPropertyInstance, ProjectItemInstance> CreateCore(
         IPropertyProvider<ProjectPropertyInstance>? properties,
