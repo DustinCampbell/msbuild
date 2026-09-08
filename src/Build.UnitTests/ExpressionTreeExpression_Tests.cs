@@ -10,6 +10,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Shared.FileSystem;
 using Xunit;
 
@@ -24,7 +25,7 @@ namespace Microsoft.Build.UnitTests
 
         private static readonly string[] FilesWithExistenceChecks = { "a", "c", "a;b", "a'b", ";", "'" };
 
-        private readonly Expander<ProjectPropertyInstance, ProjectItemInstance> _expander;
+        private readonly IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander;
 
         public static readonly IEnumerable<object[]> TrueTests = new[]
         {
@@ -400,7 +401,7 @@ namespace Microsoft.Build.UnitTests
             metadataDictionary["Culture"] = "french";
             StringMetadataTable itemMetadata = new StringMetadataTable(metadataDictionary);
 
-            _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(propertyBag, itemBag, itemMetadata, FileSystems.Default);
+            _expander = ExpanderFactory.Create(propertyBag, itemBag, itemMetadata);
 
             foreach (string file in FilesWithExistenceChecks)
             {

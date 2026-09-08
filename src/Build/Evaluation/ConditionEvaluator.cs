@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Threading;
 
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Shared.FileSystem;
 using BuildEventContext = Microsoft.Build.Framework.BuildEventContext;
 using ElementLocation = Microsoft.Build.Construction.ElementLocation;
@@ -180,7 +181,7 @@ namespace Microsoft.Build.Evaluation
         internal static bool EvaluateCondition<P, I>(
             string condition,
             ParserOptions options,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             ExpanderOptions expanderOptions,
             string evaluationDirectory,
             ElementLocation elementLocation,
@@ -213,7 +214,7 @@ namespace Microsoft.Build.Evaluation
         internal static bool EvaluateConditionCollectingConditionedProperties<P, I>(
             string condition,
             ParserOptions options,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             ExpanderOptions expanderOptions,
             Dictionary<string, List<string>>? conditionedPropertiesTable,
             string evaluationDirectory,
@@ -365,7 +366,7 @@ namespace Microsoft.Build.Evaluation
             ///     May return null if the expression would expand to non-empty and it broke out early.
             ///     Otherwise, returns the correctly expanded expression.
             /// </summary>
-            string ExpandIntoStringBreakEarly(string expression);
+            string? ExpandIntoStringBreakEarly(string expression);
 
             /// <summary>
             ///     Expands the specified expression into a list of TaskItem's.
@@ -393,7 +394,7 @@ namespace Microsoft.Build.Evaluation
             where P : class, IProperty
             where I : class, IItem
         {
-            private readonly Expander<P, I> _expander;
+            private readonly IExpander<P, I> _expander;
             private readonly ExpanderOptions _expanderOptions;
 
             /// <summary>
@@ -425,7 +426,7 @@ namespace Microsoft.Build.Evaluation
 
             internal ConditionEvaluationState(
                 string condition,
-                Expander<P, I> expander,
+                IExpander<P, I> expander,
                 ExpanderOptions expanderOptions,
                 Dictionary<string, List<string>>? conditionedPropertiesInProject,
                 string evaluationDirectory,
@@ -452,12 +453,8 @@ namespace Microsoft.Build.Evaluation
             /// May return null if the expression would expand to non-empty and it broke out early.
             /// Otherwise, returns the correctly expanded expression.
             /// </summary>
-            public string ExpandIntoStringBreakEarly(string expression)
-            {
-                expression = _expander.ExpandIntoStringAndUnescape(expression, _expanderOptions | ExpanderOptions.BreakOnNotEmpty, ElementLocation);
-
-                return expression;
-            }
+            public string? ExpandIntoStringBreakEarly(string expression)
+                => _expander.ExpandIntoStringAndUnescape(expression, _expanderOptions | ExpanderOptions.BreakOnNotEmpty, ElementLocation);
 
             /// <summary>
             /// Expands the properties and items in the specified expression into a list of taskitems.
@@ -465,11 +462,7 @@ namespace Microsoft.Build.Evaluation
             /// <param name="expression">The expression to expand.</param>
             /// <returns>A list of items.</returns>
             public IList<TaskItem> ExpandIntoTaskItems(string expression)
-            {
-                var items = _expander.ExpandIntoTaskItemsLeaveEscaped(expression, _expanderOptions, ElementLocation);
-
-                return items;
-            }
+                => _expander.ExpandIntoTaskItemsLeaveEscaped(expression, _expanderOptions, ElementLocation)!;
 
             /// <summary>
             /// Expands the specified expression into a string.
@@ -477,11 +470,7 @@ namespace Microsoft.Build.Evaluation
             /// <param name="expression">The expression to expand.</param>
             /// <returns>The expanded string.</returns>
             public string ExpandIntoString(string expression)
-            {
-                expression = _expander.ExpandIntoStringAndUnescape(expression, _expanderOptions, ElementLocation);
-
-                return expression;
-            }
+                => _expander.ExpandIntoStringAndUnescape(expression, _expanderOptions, ElementLocation)!;
         }
     }
 }
