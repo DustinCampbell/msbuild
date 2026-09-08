@@ -50,35 +50,35 @@ public class MixedExpansionBenchmark
         => _fixture.Dispose();
 
     [Benchmark(Baseline = true)]
-    public string NoExpansion()
+    public string? NoExpansion()
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             Literal,
             ExpanderOptions.ExpandAll,
             ElementLocation.EmptyLocation);
 
     [Benchmark]
-    public string PropertyAndItem()
+    public string? PropertyAndItem()
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             PropertyAndItemExpression,
             ExpanderOptions.ExpandPropertiesAndItems,
             ElementLocation.EmptyLocation);
 
     [Benchmark]
-    public string PropertyAndMetadata()
+    public string? PropertyAndMetadata()
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             PropertyAndMetadataExpression,
             ExpanderOptions.ExpandPropertiesAndMetadata,
             ElementLocation.EmptyLocation);
 
     [Benchmark]
-    public string All()
+    public string? All()
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             AllExpression,
             ExpanderOptions.ExpandAll,
             ElementLocation.EmptyLocation);
 
     [Benchmark]
-    public string AllAndUnescape()
+    public string? AllAndUnescape()
         => _fixture.Expander.ExpandIntoStringAndUnescape(
             AllExpression,
             ExpanderOptions.ExpandAll,

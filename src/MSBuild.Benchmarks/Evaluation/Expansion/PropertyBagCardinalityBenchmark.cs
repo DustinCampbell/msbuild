@@ -59,26 +59,26 @@ public class PropertyBagCardinalityBenchmark
         => _fixture.Dispose();
 
     [Benchmark(Baseline = true)]
-    public string NoExpansion()
+    public string? NoExpansion()
         => Expand(Literal);
 
     [Benchmark]
-    public string Single()
+    public string? Single()
         => Expand(SingleProperty);
 
     [Benchmark]
-    public string Multiple()
+    public string? Multiple()
         => Expand(MultipleProperties);
 
     [Benchmark]
-    public string Adjacent()
+    public string? Adjacent()
         => Expand(AdjacentProperties);
 
     [Benchmark]
-    public string Concatenation()
+    public string? Concatenation()
         => Expand(ConcatenatedProperties);
 
-    private string Expand(string expression)
+    private string? Expand(string expression)
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             expression,
             ExpanderOptions.ExpandProperties,
