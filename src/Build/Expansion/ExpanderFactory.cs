@@ -5,6 +5,7 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion.Legacy;
 using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Expansion;
@@ -23,7 +24,7 @@ internal static class ExpanderFactory
         EvaluationContext? evaluationContext)
         where TProperty : class, IProperty
         where TItem : class, IItem
-        => new Expander<TProperty, TItem>(
+        => new LegacyExpander<TProperty, TItem>(
             properties,
             items,
             metadata,
