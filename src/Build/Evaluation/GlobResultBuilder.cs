@@ -9,6 +9,7 @@ using System.Linq;
 using System.Buffers;
 #endif
 using Microsoft.Build.Construction;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Globbing;
 
@@ -48,7 +49,7 @@ internal static class GlobResultBuilder
     /// <see cref="GlobResult"/> already folds in its own excludes and applicable removes, membership can be
     /// decided by testing a file against the union of the results regardless of their order.
     /// </remarks>
-    public static List<GlobResult> BuildGlobResults<P, I>(IReadOnlyList<ProjectItemElement> projectItemElements, Expander<P, I> expander)
+    public static List<GlobResult> BuildGlobResults<P, I>(IReadOnlyList<ProjectItemElement> projectItemElements, IExpander<P, I> expander)
         where P : class, IProperty
         where I : class, IItem, IMetadataTable
     {
@@ -104,7 +105,10 @@ internal static class GlobResultBuilder
         return globResults;
     }
 
-    private static GlobResult? BuildGlobResultFromIncludeItem<P, I>(ProjectItemElement itemElement, IReadOnlyDictionary<string, CumulativeRemoveElementData> removeElementCache, Expander<P, I> expander)
+    private static GlobResult? BuildGlobResultFromIncludeItem<P, I>(
+        ProjectItemElement itemElement,
+        IReadOnlyDictionary<string, CumulativeRemoveElementData> removeElementCache,
+        IExpander<P, I> expander)
         where P : class, IProperty
         where I : class, IItem, IMetadataTable
     {
@@ -169,7 +173,10 @@ internal static class GlobResultBuilder
         };
     }
 
-    private static void CacheInformationFromRemoveItem<P, I>(ProjectItemElement itemElement, Dictionary<string, CumulativeRemoveElementData> removeElementCache, Expander<P, I> expander)
+    private static void CacheInformationFromRemoveItem<P, I>(
+        ProjectItemElement itemElement,
+        Dictionary<string, CumulativeRemoveElementData> removeElementCache,
+        IExpander<P, I> expander)
         where P : class, IProperty
         where I : class, IItem, IMetadataTable
     {

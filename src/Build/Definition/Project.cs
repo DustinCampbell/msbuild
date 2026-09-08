@@ -17,6 +17,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.FileSystem;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Globbing;
@@ -4090,7 +4091,7 @@ namespace Microsoft.Build.Evaluation
             /// For example, to expand the values of any properties added at design time.
             /// It's convenient to store it here.
             /// </summary>
-            internal Expander<ProjectProperty, ProjectItem> Expander { get; private set; }
+            internal IExpander<ProjectProperty, ProjectItem> Expander { get; private set; }
 
             /// <summary>
             /// Whether something in this data has been modified since evaluation.
@@ -4154,7 +4155,7 @@ namespace Microsoft.Build.Evaluation
                 Items = new ItemDictionary<ProjectItem>();
                 ItemsIgnoringCondition = new ItemDictionary<ProjectItem>();
                 ItemsByEvaluatedIncludeCache = new MultiDictionary<string, ProjectItem>(StringComparer.OrdinalIgnoreCase);
-                Expander = new Expander<ProjectProperty, ProjectItem>(Properties, Items, evaluationContext, loggingContext);
+                Expander = ExpanderFactory.Create(Properties, Items, evaluationContext, loggingContext);
                 ItemDefinitions = new RetrievableEntryHashSet<ProjectItemDefinition>(MSBuildNameIgnoreCaseComparer.Default);
                 Targets = new RetrievableEntryHashSet<ProjectTargetInstance>(StringComparer.OrdinalIgnoreCase);
                 ImportClosure = new List<ResolvedImport>();

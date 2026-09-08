@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -84,16 +85,16 @@ internal partial class Expander<P, I>
             /// <summary>
             /// Intrinsic function that adds the number of items in the list.
             /// </summary>
-            internal static void Count(List<TransformEntry> input, List<TransformEntry> output)
-                => output.Add(new TransformEntry(input.Count.ToString(CultureInfo.InvariantCulture), item: null));
+            internal static void Count(List<TransformEntry<I>> input, List<TransformEntry<I>> output)
+                => output.Add(new TransformEntry<I>(input.Count.ToString(CultureInfo.InvariantCulture), item: null));
 
             /// <summary>
             /// Intrinsic function that adds the specified built-in modifer value of the items in input
             /// Each entry pairs the current item include with the item under transformation.
             /// </summary>
             internal static void ItemSpecModifierFunction(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 bool includeNullEntries,
                 string functionName,
@@ -101,7 +102,7 @@ internal partial class Expander<P, I>
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     // If the item include has become empty,
                     // this is the end of the pipeline for this item
@@ -135,11 +136,11 @@ internal partial class Expander<P, I>
                     {
                         // GetItemSpecModifier will have returned us an escaped string
                         // there is nothing more to do than yield it into the pipeline
-                        output.Add(new TransformEntry(result, item.Item));
+                        output.Add(new TransformEntry<I>(result, item.Item));
                     }
                     else if (includeNullEntries)
                     {
-                        output.Add(new TransformEntry(null, item.Item));
+                        output.Add(new TransformEntry<I>(null, item.Item));
                     }
                 }
             }
@@ -148,15 +149,15 @@ internal partial class Expander<P, I>
             /// Intrinsic function that adds the subset of items that actually exist on disk.
             /// </summary>
             internal static void Exists(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     if (String.IsNullOrEmpty(item.Value))
                     {
@@ -202,8 +203,8 @@ internal partial class Expander<P, I>
             /// Intrinsic function that combines the existing paths of the input items with a given relative path.
             /// </summary>
             internal static void Combine(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -212,7 +213,7 @@ internal partial class Expander<P, I>
 
                 string relativePath = arguments[0];
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     if (String.IsNullOrEmpty(item.Value))
                     {
@@ -223,7 +224,7 @@ internal partial class Expander<P, I>
                     string unescapedPath = EscapingUtilities.UnescapeAll(item.Value);
                     string combinedPath = Path.Combine(unescapedPath, relativePath);
                     string escapedPath = EscapingUtilities.Escape(combinedPath);
-                    output.Add(new TransformEntry(escapedPath, null));
+                    output.Add(new TransformEntry<I>(escapedPath, null));
                 }
             }
 
@@ -231,8 +232,8 @@ internal partial class Expander<P, I>
             /// Intrinsic function that adds all ancestor directories of the given items.
             /// </summary>
             internal static void GetPathsOfAllDirectoriesAbove(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -243,7 +244,7 @@ internal partial class Expander<P, I>
 
                 SortedSet<string> directories = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     if (String.IsNullOrEmpty(item.Value))
                     {
@@ -305,7 +306,7 @@ internal partial class Expander<P, I>
                 foreach (string directoryPath in directories)
                 {
                     string escapedDirectoryPath = EscapingUtilities.Escape(directoryPath);
-                    output.Add(new TransformEntry(escapedDirectoryPath, null));
+                    output.Add(new TransformEntry<I>(escapedDirectoryPath, null));
                 }
             }
 
@@ -314,8 +315,8 @@ internal partial class Expander<P, I>
             /// UNDONE: This can be removed in favor of a built-in %(DirectoryName) metadata in future.
             /// </summary>
             internal static void DirectoryName(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 bool includeNullEntries,
                 string functionName,
@@ -325,7 +326,7 @@ internal partial class Expander<P, I>
 
                 Dictionary<string, string> directoryNameTable = new Dictionary<string, string>(input.Count, StringComparer.OrdinalIgnoreCase);
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     // If the item include has become empty,
                     // this is the end of the pipeline for this item
@@ -376,11 +377,11 @@ internal partial class Expander<P, I>
                     if (!String.IsNullOrEmpty(directoryName))
                     {
                         // return a result through the enumerator
-                        output.Add(new TransformEntry(directoryName, item.Item));
+                        output.Add(new TransformEntry<I>(directoryName, item.Item));
                     }
                     else if (includeNullEntries)
                     {
-                        output.Add(new TransformEntry(null, item.Item));
+                        output.Add(new TransformEntry<I>(null, item.Item));
                     }
                 }
             }
@@ -389,8 +390,8 @@ internal partial class Expander<P, I>
             /// Intrinsic function that adds the contents of the metadata in specified in argument[0].
             /// </summary>
             internal static void Metadata(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 bool includeNullEntries,
                 string functionName,
@@ -400,7 +401,7 @@ internal partial class Expander<P, I>
 
                 string metadataName = arguments[0];
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     if (item.Item != null)
                     {
@@ -427,18 +428,18 @@ internal partial class Expander<P, I>
                                 foreach (string itemSpec in splits)
                                 {
                                     // return a result through the enumerator
-                                    output.Add(new TransformEntry(itemSpec, item.Item));
+                                    output.Add(new TransformEntry<I>(itemSpec, item.Item));
                                 }
                             }
                             else
                             {
                                 // return a result through the enumerator
-                                output.Add(new TransformEntry(metadataValue, item.Item));
+                                output.Add(new TransformEntry<I>(metadataValue, item.Item));
                             }
                         }
                         else if (metadataValue != String.Empty && includeNullEntries)
                         {
-                            output.Add(new TransformEntry(metadataValue, item.Item));
+                            output.Add(new TransformEntry<I>(metadataValue, item.Item));
                         }
                     }
                 }
@@ -449,8 +450,8 @@ internal partial class Expander<P, I>
             /// Using a case sensitive comparison.
             /// </summary>
             internal static void DistinctWithCase(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -461,8 +462,8 @@ internal partial class Expander<P, I>
             /// Using a case insensitive comparison.
             /// </summary>
             internal static void Distinct(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -473,8 +474,8 @@ internal partial class Expander<P, I>
             /// using the specified comparer.
             /// </summary>
             private static void DistinctWithComparer(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 StringComparer comparer,
                 string functionName,
@@ -485,7 +486,7 @@ internal partial class Expander<P, I>
                 // This dictionary will ensure that we only return one result per unique itemspec
                 HashSet<string> seenItems = new HashSet<string>(input.Count, comparer);
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     if (item.Value != null && seenItems.Add(item.Value))
                     {
@@ -498,8 +499,8 @@ internal partial class Expander<P, I>
             /// Intrinsic function reverses the item list.
             /// </summary>
             internal static void Reverse(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -516,8 +517,8 @@ internal partial class Expander<P, I>
             ///  Intrinsic function that transforms expressions like the %(foo) in @(Compile->'%(foo)').
             /// </summary>
             internal static void ExpandQuotedExpressionFunction(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 bool includeNullEntries,
                 string functionName,
@@ -529,8 +530,8 @@ internal partial class Expander<P, I>
             }
 
             internal static void ExpandQuotedExpressionFunction(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string text,
                 bool includeNullEntries,
                 IElementLocation elementLocation)
@@ -558,25 +559,25 @@ internal partial class Expander<P, I>
             }
 
             private static void ExpandLiteralTransform(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string literal,
                 bool includeNullEntries)
             {
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     AddTransformResult(output, item.Value is null ? null : literal, item.Item, includeNullEntries);
                 }
             }
 
             private static void ExpandExactMetadataTransform(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 MetadataMatch match,
                 bool includeNullEntries,
                 IElementLocation elementLocation)
             {
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     string include = null;
                     if (item.Value is not null)
@@ -589,8 +590,8 @@ internal partial class Expander<P, I>
             }
 
             private static void ExpandSingleMetadataTransform(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string text,
                 MetadataMatch match,
                 bool includeNullEntries,
@@ -603,7 +604,7 @@ internal partial class Expander<P, I>
                 int suffixIndex = match.Index + match.Length;
                 int suffixLength = text.Length - suffixIndex;
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     string include = null;
                     if (item.Value is not null)
@@ -631,8 +632,8 @@ internal partial class Expander<P, I>
             }
 
             private static void ExpandMultipleMetadataTransform(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string text,
                 List<MetadataMatch> matches,
                 bool includeNullEntries,
@@ -641,7 +642,7 @@ internal partial class Expander<P, I>
                 SpanBasedStringBuilder includeBuilder = s_includeBuilder ?? new SpanBasedStringBuilder();
                 s_includeBuilder = null;
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     string include = null;
                     if (item.Value is not null)
@@ -666,17 +667,17 @@ internal partial class Expander<P, I>
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static void AddTransformResult(List<TransformEntry> output, string include, I item, bool includeNullEntries)
+            private static void AddTransformResult(List<TransformEntry<I>> output, string include, I item, bool includeNullEntries)
             {
                 // Empty transforms are optionally retained as null entries so callers can correlate
                 // transform results with their source items.
                 if (!include.IsNullOrEmpty())
                 {
-                    output.Add(new TransformEntry(include, item));
+                    output.Add(new TransformEntry<I>(include, item));
                 }
                 else if (includeNullEntries)
                 {
-                    output.Add(new TransformEntry(value: null, item));
+                    output.Add(new TransformEntry<I>(value: null, item));
                 }
             }
 
@@ -803,8 +804,8 @@ internal partial class Expander<P, I>
             /// </summary>
             internal static void ExecuteStringFunction(
                 Expander<P, I> expander,
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 bool includeNullEntries,
                 string functionName,
@@ -812,7 +813,7 @@ internal partial class Expander<P, I>
             {
                 // Transform: expression is like @(Compile->'%(foo)'), so create completely new items,
                 // using the Include from the source items
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     Function function = new Function(
                         typeof(string),
@@ -833,11 +834,11 @@ internal partial class Expander<P, I>
                     // We pass in the existing item so we can copy over its metadata
                     if (include.Length > 0)
                     {
-                        output.Add(new TransformEntry(include, item.Item));
+                        output.Add(new TransformEntry<I>(include, item.Item));
                     }
                     else if (includeNullEntries)
                     {
-                        output.Add(new TransformEntry(null, item.Item));
+                        output.Add(new TransformEntry<I>(null, item.Item));
                     }
                 }
             }
@@ -846,8 +847,8 @@ internal partial class Expander<P, I>
             /// Intrinsic function that adds the items from input with their metadata cleared, i.e. only the itemspec is retained.
             /// </summary>
             internal static void ClearMetadata(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 bool includeNullEntries,
                 string functionName,
@@ -855,11 +856,11 @@ internal partial class Expander<P, I>
             {
                 ProjectErrorUtilities.VerifyThrowInvalidProject(arguments == null || arguments.Length == 0, elementLocation, "InvalidItemFunctionSyntax", functionName, arguments == null ? 0 : arguments.Length);
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     if (includeNullEntries || item.Value != null)
                     {
-                        output.Add(new TransformEntry(item.Value, null));
+                        output.Add(new TransformEntry<I>(item.Value, null));
                     }
                 }
             }
@@ -869,8 +870,8 @@ internal partial class Expander<P, I>
             /// Using a case insensitive comparison.
             /// </summary>
             internal static void HasMetadata(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -879,7 +880,7 @@ internal partial class Expander<P, I>
 
                 string metadataName = arguments[0];
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     string metadataValue = null;
 
@@ -908,8 +909,8 @@ internal partial class Expander<P, I>
             /// Using a case insensitive comparison.
             /// </summary>
             internal static void WithMetadataValue(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -919,7 +920,7 @@ internal partial class Expander<P, I>
                 string metadataName = arguments[0];
                 string metadataValueToFind = arguments[1];
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     string metadataValue = null;
 
@@ -946,8 +947,8 @@ internal partial class Expander<P, I>
             /// Using a case insensitive comparison.
             /// </summary>
             internal static void WithoutMetadataValue(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -957,7 +958,7 @@ internal partial class Expander<P, I>
                 string metadataName = arguments[0];
                 string metadataValueToFind = arguments[1];
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     string metadataValue = null;
 
@@ -984,8 +985,8 @@ internal partial class Expander<P, I>
             /// Using a case insensitive comparison.
             /// </summary>
             internal static void AnyHaveMetadataValue(
-                List<TransformEntry> input,
-                List<TransformEntry> output,
+                List<TransformEntry<I>> input,
+                List<TransformEntry<I>> output,
                 string[] arguments,
                 string functionName,
                 IElementLocation elementLocation)
@@ -996,7 +997,7 @@ internal partial class Expander<P, I>
                 string metadataValueToFind = arguments[1];
                 bool metadataFound = false;
 
-                foreach (TransformEntry item in input)
+                foreach (TransformEntry<I> item in input)
                 {
                     if (item.Item != null)
                     {
@@ -1017,7 +1018,7 @@ internal partial class Expander<P, I>
                             metadataFound = true;
 
                             // return a result through the enumerator
-                            output.Add(new TransformEntry("true", item.Item));
+                            output.Add(new TransformEntry<I>("true", item.Item));
 
                             // break out as soon as we found a match
                             return;
@@ -1028,7 +1029,7 @@ internal partial class Expander<P, I>
                 if (!metadataFound)
                 {
                     // We did not locate an item with the required metadata
-                    output.Add(new TransformEntry("false", null));
+                    output.Add(new TransformEntry<I>("false", null));
                 }
             }
 

@@ -15,6 +15,7 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -244,7 +245,7 @@ namespace Microsoft.Build.Execution
             LoggingContext loggingContext,
             IEnumerable<(ProjectUsingTaskElement projectUsingTaskXml, string directoryOfImportingFile)> registrations,
             TaskRegistry taskRegistry,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             ExpanderOptions expanderOptions,
             IFileSystem fileSystem)
             where P : class, IProperty
@@ -278,7 +279,7 @@ namespace Microsoft.Build.Execution
             string directoryOfImportingFile,
             ProjectUsingTaskElement projectUsingTaskXml,
             TaskRegistry taskRegistry,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             ExpanderOptions expanderOptions,
             IFileSystem fileSystem)
             where P : class, IProperty
@@ -1675,7 +1676,7 @@ namespace Microsoft.Build.Execution
                 /// </summary>
                 /// <typeparam name="P">Property type</typeparam>
                 /// <typeparam name="I">Item Type</typeparam>
-                internal void ExpandUsingTask<P, I>(ProjectUsingTaskElement projectUsingTaskXml, Expander<P, I> expander, ExpanderOptions expanderOptions)
+                internal void ExpandUsingTask<P, I>(ProjectUsingTaskElement projectUsingTaskXml, IExpander<P, I> expander, ExpanderOptions expanderOptions)
                     where P : class, IProperty
                     where I : class, IItem
                 {
@@ -1701,7 +1702,7 @@ namespace Microsoft.Build.Execution
                 /// </summary>
                 /// <typeparam name="P">IProperttyTypes</typeparam>
                 /// <typeparam name="I">IItems</typeparam>
-                private void EvaluateTaskBody<P, I>(Expander<P, I> expander, ProjectUsingTaskBodyElement taskElement, ExpanderOptions expanderOptions)
+                private void EvaluateTaskBody<P, I>(IExpander<P, I> expander, ProjectUsingTaskBodyElement taskElement, ExpanderOptions expanderOptions)
                     where P : class, IProperty
                     where I : class, IItem
                 {
@@ -1761,7 +1762,7 @@ namespace Microsoft.Build.Execution
                 /// </summary>
                 /// <typeparam name="P">Property type</typeparam>
                 /// <typeparam name="I">Item types</typeparam>
-                private void ParseUsingTaskParameterGroupElement<P, I>(UsingTaskParameterGroupElement usingTaskParameterGroup, Expander<P, I> expander, ExpanderOptions expanderOptions)
+                private void ParseUsingTaskParameterGroupElement<P, I>(UsingTaskParameterGroupElement usingTaskParameterGroup, IExpander<P, I> expander, ExpanderOptions expanderOptions)
                     where P : class, IProperty
                     where I : class, IItem
                 {

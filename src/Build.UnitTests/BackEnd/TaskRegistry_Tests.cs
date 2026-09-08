@@ -14,6 +14,7 @@ using Microsoft.Build.Engine.UnitTests;
 using Microsoft.Build.Engine.UnitTests.TestComparers;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -39,11 +40,6 @@ namespace Microsoft.Build.UnitTests.BackEnd
     /// </summary>
     public class TaskRegistry_Tests
     {
-        /// <summary>
-        /// Expander to expand the registry entires
-        /// </summary>
-        private static Expander<ProjectPropertyInstance, ProjectItemInstance> s_registryExpander;
-
         /// <summary>
         /// Name of the test task built into the test
         /// assembly at testTaskLocation.
@@ -2008,7 +2004,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Accessor to the expander
         /// </summary>
-        internal static Expander<ProjectPropertyInstance, ProjectItemInstance> RegistryExpander => s_registryExpander ?? (s_registryExpander = GetExpander());
+        internal static IExpander<ProjectPropertyInstance, ProjectItemInstance> RegistryExpander => field ??= GetExpander();
 
         /// <summary>
         /// Count the number of registry records which exist in the task registry
@@ -2042,7 +2038,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <summary>
         /// Create an expander with some property values which can be used for testing.
         /// </summary>
-        internal static Expander<ProjectPropertyInstance, ProjectItemInstance> GetExpander()
+        internal static IExpander<ProjectPropertyInstance, ProjectItemInstance> GetExpander()
         {
             ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
@@ -2093,11 +2089,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
             secondaryItemsByName.ImportItems(thirdItemGroup);
             secondaryItemsByName.ImportItems(trueItemGroup);
 
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = ExpanderFactory.Create(
                 pg,
                 secondaryItemsByName,
-                FileSystems.Default,
-                new TestLoggingContext(null!, new BuildEventContext(1, 2, 3, 4)));
+                new TestLoggingContext(null, new BuildEventContext(1, 2, 3, 4)));
             return expander;
         }
 

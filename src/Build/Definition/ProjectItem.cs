@@ -8,10 +8,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 
 #nullable disable
 
@@ -495,9 +495,10 @@ namespace Microsoft.Build.Evaluation
             {
                 ProjectMetadata metadatum = GetItemDefinitionMetadata(name);
 
-                if (metadatum != null && Expander<ProjectProperty, ProjectItem>.ExpressionMayContainExpandableExpressions(metadatum.EvaluatedValueEscaped))
+                if (metadatum != null && ExpressionShredder.ExpressionMayContainExpandableExpressions(metadatum.EvaluatedValueEscaped))
                 {
-                    Expander<ProjectProperty, ProjectItem> expander = new Expander<ProjectProperty, ProjectItem>(null, null, new BuiltInMetadataTable(this), FileSystems.Default);
+                    IExpander<ProjectProperty, ProjectItem> expander = ExpanderFactory.Create<ProjectProperty, ProjectItem>(
+                        new BuiltInMetadataTable(item: this));
 
                     value = expander.ExpandIntoStringLeaveEscaped(metadatum.EvaluatedValueEscaped, ExpanderOptions.ExpandBuiltInMetadata, metadatum.Location);
                 }

@@ -12,6 +12,7 @@ using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -116,7 +117,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// The expander used to expand item and property markup to evaluated values.
         /// </summary>
-        private Expander<ProjectPropertyInstance, ProjectItemInstance> _expander;
+        private IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander;
 
         /// <summary>
         /// The lookup containing our environment.
@@ -181,7 +182,7 @@ namespace Microsoft.Build.BackEnd
             _targetSpecification = targetSpecification;
             _parentTarget = parentTarget;
             _buildReason = buildReason;
-            _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(baseLookup, baseLookup, FileSystems.Default, loggingContext);
+            _expander = ExpanderFactory.Create(baseLookup, baseLookup, loggingContext);
             _state = TargetEntryState.Dependencies;
             _baseLookup = baseLookup;
             _host = host;

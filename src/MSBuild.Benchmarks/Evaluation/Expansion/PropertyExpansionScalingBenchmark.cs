@@ -50,23 +50,23 @@ public class PropertyExpansionScalingBenchmark
 
     [Benchmark]
     [ArgumentsSource(nameof(ReferenceCounts))]
-    public string MultipleDistinct(int referenceCount)
+    public string? MultipleDistinct(int referenceCount)
         => Expand(_distinctExpressions[referenceCount]);
 
     [Benchmark]
     [ArgumentsSource(nameof(ReferenceCounts))]
-    public string MultipleRepeated(int referenceCount)
+    public string? MultipleRepeated(int referenceCount)
         => Expand(_repeatedExpressions[referenceCount]);
 
     [Benchmark]
-    public string Adjacent()
+    public string? Adjacent()
         => Expand("$(Property0).$(Property1)");
 
     [Benchmark]
-    public string EmbeddedMultiple()
+    public string? EmbeddedMultiple()
         => Expand("prefix_$(Property0)_$(Property1)_$(Property2)_suffix");
 
-    private string Expand(string expression)
+    private string? Expand(string expression)
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             expression,
             ExpanderOptions.ExpandProperties,

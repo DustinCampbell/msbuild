@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -455,7 +456,7 @@ namespace Microsoft.Build.Evaluation
 
             IEnumerable<ToolsetPropertyDefinition> rawProperties = GetPropertyDefinitions(toolsVersion.Name);
 
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(initialProperties, FileSystems.Default);
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = ExpanderFactory.Create(initialProperties);
 
             foreach (ToolsetPropertyDefinition property in rawProperties)
             {
@@ -524,7 +525,15 @@ namespace Microsoft.Build.Evaluation
         /// <param name="toolsPath">If this toolset property is the "MSBuildToolsPath" property, we will return the value in this parameter.</param>
         /// <param name="binPath">If this toolset property is the "MSBuildBinPath" property, we will return the value in this parameter.</param>
         /// <param name="expander">The expander used to expand the value of the properties.  Ref because if we are accumulating the properties, we need to re-create the expander to account for the new property value.</param>
-        private void EvaluateAndSetProperty(ToolsetPropertyDefinition property, PropertyDictionary<ProjectPropertyInstance> properties, PropertyDictionary<ProjectPropertyInstance> globalProperties, PropertyDictionary<ProjectPropertyInstance> initialProperties, bool accumulateProperties, ref string toolsPath, ref string binPath, ref Expander<ProjectPropertyInstance, ProjectItemInstance> expander)
+        private void EvaluateAndSetProperty(
+            ToolsetPropertyDefinition property,
+            PropertyDictionary<ProjectPropertyInstance> properties,
+            PropertyDictionary<ProjectPropertyInstance> globalProperties,
+            PropertyDictionary<ProjectPropertyInstance> initialProperties,
+            bool accumulateProperties,
+            ref string toolsPath,
+            ref string binPath,
+            ref IExpander<ProjectPropertyInstance, ProjectItemInstance> expander)
         {
             if (String.Equals(property.Name, ReservedPropertyNames.toolsPath, StringComparison.OrdinalIgnoreCase))
             {
@@ -573,7 +582,7 @@ namespace Microsoft.Build.Evaluation
 
             if (accumulateProperties)
             {
-                expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(initialProperties, FileSystems.Default);
+                expander = ExpanderFactory.Create(initialProperties);
             }
         }
 
@@ -581,7 +590,7 @@ namespace Microsoft.Build.Evaluation
         /// Expands the given unexpanded property expression using the properties in the
         /// given expander.
         /// </summary>
-        private string ExpandPropertyUnescaped(ToolsetPropertyDefinition property, Expander<ProjectPropertyInstance, ProjectItemInstance> expander)
+        private string ExpandPropertyUnescaped(ToolsetPropertyDefinition property, IExpander<ProjectPropertyInstance, ProjectItemInstance> expander)
         {
             try
             {

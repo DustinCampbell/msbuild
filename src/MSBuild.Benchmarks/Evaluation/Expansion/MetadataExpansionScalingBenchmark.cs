@@ -49,15 +49,15 @@ public class MetadataExpansionScalingBenchmark
 
     [Benchmark]
     [ArgumentsSource(nameof(ReferenceCounts))]
-    public string MultipleDistinct(int referenceCount)
+    public string? MultipleDistinct(int referenceCount)
         => Expand(_distinctExpressions[referenceCount]);
 
     [Benchmark]
     [ArgumentsSource(nameof(ReferenceCounts))]
-    public string MultipleRepeated(int referenceCount)
+    public string? MultipleRepeated(int referenceCount)
         => Expand(_repeatedExpressions[referenceCount]);
 
-    private string Expand(string expression)
+    private string? Expand(string expression)
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             expression,
             ExpanderOptions.ExpandMetadata,

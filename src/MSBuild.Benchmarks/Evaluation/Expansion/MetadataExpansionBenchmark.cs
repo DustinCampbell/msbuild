@@ -36,29 +36,29 @@ public class MetadataExpansionBenchmark
         => _fixture.Dispose();
 
     [Benchmark(Baseline = true)]
-    public string NoExpansion()
+    public string? NoExpansion()
         => Expand(Literal);
 
     [Benchmark]
-    public string Unqualified()
+    public string? Unqualified()
         => Expand(UnqualifiedMetadata);
 
     [Benchmark]
-    public string Qualified()
+    public string? Qualified()
         => Expand(QualifiedMetadata);
 
     [Benchmark]
-    public string Multiple()
+    public string? Multiple()
         => Expand(MultipleMetadata);
 
     [Benchmark]
-    public string MultipleAndUnescape()
+    public string? MultipleAndUnescape()
         => _fixture.Expander.ExpandIntoStringAndUnescape(
             MultipleMetadata,
             ExpanderOptions.ExpandMetadata,
             ElementLocation.EmptyLocation);
 
-    private string Expand(string expression)
+    private string? Expand(string expression)
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             expression,
             ExpanderOptions.ExpandMetadata,

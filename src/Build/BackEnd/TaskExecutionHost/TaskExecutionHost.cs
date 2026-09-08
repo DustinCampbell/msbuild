@@ -31,6 +31,7 @@ using Microsoft.Build.Shared;
 
 using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 using Task = System.Threading.Tasks.Task;
+using Microsoft.Build.Expansion;
 
 #nullable disable
 

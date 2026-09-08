@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Eventing;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
@@ -26,7 +27,7 @@ namespace Microsoft.Build.Evaluation
             protected readonly ProjectItemElement _itemElement;
             protected readonly ItemSpec<P, I> _itemSpec;
             protected readonly EvaluatorData _evaluatorData;
-            protected readonly Expander<P, I> _expander;
+            protected readonly IExpander<P, I> _expander;
             protected readonly bool _conditionResult;
 
             // This is used only when evaluating an expression, which instantiates
@@ -46,7 +47,7 @@ namespace Microsoft.Build.Evaluation
 
                 _evaluatorData = new EvaluatorData(_lazyEvaluator._outerEvaluatorData, _referencedItemLists);
                 _itemFactory = new ItemFactoryWrapper(_itemElement, _lazyEvaluator._itemFactory);
-                _expander = new Expander<P, I>(_evaluatorData, _evaluatorData, _lazyEvaluator.EvaluationContext, _lazyEvaluator._loggingContext);
+                _expander = ExpanderFactory.Create(_evaluatorData, _evaluatorData, _lazyEvaluator.EvaluationContext, _lazyEvaluator._loggingContext);
 
                 _itemSpec.Expander = _expander;
             }

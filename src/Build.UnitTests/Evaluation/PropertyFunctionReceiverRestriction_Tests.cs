@@ -7,6 +7,7 @@ using System.Runtime.Versioning;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Win32;
 using Shouldly;
@@ -31,7 +32,7 @@ public class PropertyFunctionReceiverRestriction_Tests
     private const string RestrictSwitch = "Microsoft.Build.RestrictPropertyFunctionReceivers";
     private const string RestrictEnvVar = "MSBUILDRESTRICTPROPERTYFUNCTIONS";
 
-    private static string Evaluate(string expression, params (string name, string value)[] properties)
+    private static string? Evaluate(string expression, params (string name, string value)[] properties)
     {
         var propertyDictionary = new PropertyDictionary<ProjectPropertyInstance>();
         foreach ((string name, string value) in properties)
@@ -39,7 +40,7 @@ public class PropertyFunctionReceiverRestriction_Tests
             propertyDictionary.Set(ProjectPropertyInstance.Create(name, value));
         }
 
-        var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(propertyDictionary, FileSystems.Default);
+        var expander = ExpanderFactory.Create(propertyDictionary);
         return expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
     }
 
@@ -257,6 +258,7 @@ public class PropertyFunctionReceiverRestriction_Tests
             // Reading the property through property-access syntax (the getter) is allowed; only the
             // matching setter is blocked.
             Evaluate("$([System.IO.Directory]::GetParent($(File)).Attributes)", ("File", file))
+                .ShouldNotBeNull()
                 .ShouldContain("Directory");
         }
     }
@@ -287,6 +289,7 @@ public class PropertyFunctionReceiverRestriction_Tests
             // With the restriction off, get_/set_ special method names are genuinely invocable as
             // methods - which is exactly why the blocked-setter tests above are meaningful.
             Evaluate("$([System.IO.Directory]::GetParent($(File)).get_Attributes())", ("File", file))
+                .ShouldNotBeNull()
                 .ShouldContain("Directory");
         }
     }

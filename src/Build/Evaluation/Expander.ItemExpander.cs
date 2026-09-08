@@ -7,6 +7,7 @@ using System.Collections.Generic;
 #if !NET
 using System.Text;
 #endif
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
@@ -89,7 +90,7 @@ internal partial class Expander<P, I>
         /// </summary>
         /// <remarks>
         ///  <para>
-        ///  Each captured transform function will be mapped to either a static method on
+        ///  Each parsed transform function is mapped to either a static method on
         ///  <see cref="Transforms"/> or a known item spec modifier which operates on the item path.
         ///  </para>
         ///  <para>
@@ -99,7 +100,7 @@ internal partial class Expander<P, I>
         ///  </para>
         ///  <para>
         ///  If no function name is found, we default to
-        ///  <see cref="Transforms.ExpandQuotedExpressionFunction(List{TransformEntry}, List{TransformEntry}, string, bool, IElementLocation)"/>.
+        ///  <see cref="Transforms.ExpandQuotedExpressionFunction(List{TransformEntry{I}}, List{TransformEntry{I}}, string, bool, IElementLocation)"/>.
         ///  </para>
         /// </remarks>
         /// <returns>
@@ -113,12 +114,12 @@ internal partial class Expander<P, I>
             bool includeNullEntries,
             List<ExpressionShredder.ItemExpressionCapture> captures,
             ICollection<I> itemsOfType,
-            out List<TransformEntry> result)
+            out List<TransformEntry<I>> result)
         {
             // Each transform runs on the full set of transformed items from the previous result.
             // We can reuse our buffers by just swapping the references after each transform.
-            List<TransformEntry> input = CreateEntries(itemsOfType);
-            List<TransformEntry> output = new(itemsOfType.Count);
+            List<TransformEntry<I>> input = CreateEntries(itemsOfType);
+            List<TransformEntry<I>> output = new(itemsOfType.Count);
 
             // Create a TransformFunction for each transform in the chain by extracting the relevant information
             // from the regex parsing results
@@ -234,7 +235,7 @@ internal partial class Expander<P, I>
             // Check for break on non-empty only after ALL transforms are complete
             if ((options & ExpanderOptions.BreakOnNotEmpty) != 0)
             {
-                foreach (TransformEntry entry in output)
+                foreach (TransformEntry<I> entry in output)
                 {
                     if (!string.IsNullOrEmpty(entry.Value))
                     {
@@ -251,9 +252,9 @@ internal partial class Expander<P, I>
         /// <summary>
         ///  Creates transform entries from the given items, pairing each with its evaluated include.
         /// </summary>
-        private static List<TransformEntry> CreateEntries(ICollection<I> items)
+        private static List<TransformEntry<I>> CreateEntries(ICollection<I> items)
         {
-            List<TransformEntry> entries = new(items.Count);
+            List<TransformEntry<I>> entries = new(items.Count);
 
             foreach (I item in items)
             {
@@ -265,12 +266,12 @@ internal partial class Expander<P, I>
                             item.EvaluatedIncludeEscaped,
                             forceEvaluate: true))
                     {
-                        entries.Add(new TransformEntry(resultantItem, item));
+                        entries.Add(new TransformEntry<I>(resultantItem, item));
                     }
                 }
                 else
                 {
-                    entries.Add(new TransformEntry(item.EvaluatedIncludeEscaped, item));
+                    entries.Add(new TransformEntry<I>(item.EvaluatedIncludeEscaped, item));
                 }
             }
 
@@ -313,7 +314,7 @@ internal partial class Expander<P, I>
             isTransformExpression = false;
 
             return TryExpandSingleItemVectorExpression(expression, options, elementLocation, out ExpressionShredder.ItemExpressionCapture itemVector)
-                ? ExpandExpressionCaptureIntoItems(
+                ? ExpandItemVectorIntoItems(
                     itemVector,
                     expander,
                     items,
@@ -355,7 +356,7 @@ internal partial class Expander<P, I>
             return true;
         }
 
-        internal static IList<T> ExpandExpressionCaptureIntoItems<T>(
+        internal static IList<T> ExpandItemVectorIntoItems<T>(
             ExpressionShredder.ItemExpressionCapture expressionCapture, Expander<P, I> expander, IItemProvider<I> items, IItemFactory<I, T> itemFactory,
             ExpanderOptions options, bool includeNullEntries, out bool isTransformExpression, IElementLocation elementLocation)
             where T : class, IItem
@@ -403,7 +404,7 @@ internal partial class Expander<P, I>
                 return result;
             }
 
-            List<TransformEntry> entries;
+            List<TransformEntry<I>> entries;
             brokeEarlyNonEmpty = ExpandItemVector(expander, expressionCapture, items, elementLocation /* including null items */, options, true, out isTransformExpression, out entries);
 
             if (brokeEarlyNonEmpty)
@@ -458,7 +459,7 @@ internal partial class Expander<P, I>
         /// </param>
         /// <param name="entries">
         ///  The expanded entries, or <see langword="null"/> when the expression produces no entries.
-        ///  <see cref="TransformEntry.Value"/> contains the escaped value, and <see cref="TransformEntry.Item"/>
+        ///  <see cref="TransformEntry{TItem}.Value"/> contains the escaped value, and <see cref="TransformEntry{TItem}.Item"/>
         ///  identifies the item from which the value was derived, when available.
         /// </param>
         /// <returns>
@@ -473,7 +474,7 @@ internal partial class Expander<P, I>
             ExpanderOptions options,
             bool includeNullEntries,
             out bool isTransformExpression,
-            out List<TransformEntry> entries)
+            out List<TransformEntry<I>> entries)
         {
             Assumed.NotNull(evaluatedItems, "Cannot expand items without providing items");
 
@@ -518,8 +519,8 @@ internal partial class Expander<P, I>
                         return true; // broke early
                     }
 
-                    entries ??= new List<TransformEntry>(items.Count);
-                    entries.Add(new TransformEntry(evaluatedIncludeEscaped, item));
+                    entries ??= new List<TransformEntry<I>>(items.Count);
+                    entries.Add(new TransformEntry<I>(evaluatedIncludeEscaped, item));
                 }
 
                 return false; // did not break early
@@ -545,7 +546,7 @@ internal partial class Expander<P, I>
                 string joinedItems = JoinEntries(separator, entries);
 
                 entries.Clear();
-                entries.Add(new TransformEntry(joinedItems, null));
+                entries.Add(new TransformEntry<I>(joinedItems, null));
             }
 
             return false; // did not break early
@@ -620,7 +621,7 @@ internal partial class Expander<P, I>
                 return true; // joined successfully
             }
 
-            static string JoinEntries(string separator, List<TransformEntry> entries)
+            static string JoinEntries(string separator, List<TransformEntry<I>> entries)
             {
                 if (entries.Count == 0)
                 {
@@ -640,7 +641,7 @@ internal partial class Expander<P, I>
 #endif
                 bool first = true;
 
-                foreach (TransformEntry entry in entries)
+                foreach (TransformEntry<I> entry in entries)
                 {
                     if (!first)
                     {
@@ -724,7 +725,7 @@ internal partial class Expander<P, I>
             SpanBasedStringBuilder builder,
             ExpanderOptions options)
         {
-            List<TransformEntry> entries;
+            List<TransformEntry<I>> entries;
             bool throwaway;
             var brokeEarlyNonEmpty = ExpandItemVector(expander, capture, evaluatedItems, elementLocation /* including null items */, options, true, out throwaway, out entries);
 
