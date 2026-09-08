@@ -29,7 +29,7 @@ namespace Microsoft.Build.Evaluation;
 /// </remarks>
 /// <typeparam name="P">Type of the properties used.</typeparam>
 /// <typeparam name="I">Type of the items used.</typeparam>
-internal partial class Expander<P, I> : IExpander<P, I>
+internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
     where P : class, IProperty
     where I : class, IItem
 {
@@ -66,6 +66,8 @@ internal partial class Expander<P, I> : IExpander<P, I>
     /// </summary>
     private IMetadataTable _metadata;
 
+    private int _metadataScopeDepth;
+
     /// <summary>
     /// Set of properties which are null during expansion.
     /// </summary>
@@ -97,13 +99,28 @@ internal partial class Expander<P, I> : IExpander<P, I>
         EvaluationContext = evaluationContext;
     }
 
-    public IMetadataTable Metadata
+    public IMetadataTable CurrentMetadata => _metadata;
+
+    public MetadataScope EnterMetadataScope(IMetadataTable metadata)
     {
-        get => _metadata;
-        set => _metadata = value;
+        ArgumentNullException.ThrowIfNull(metadata);
+
+        IMetadataTable previousMetadata = _metadata;
+        int depth = ++_metadataScopeDepth;
+        _metadata = metadata;
+
+        return new MetadataScope(this, previousMetadata, depth);
     }
 
     public PropertiesUseTracker PropertiesUseTracker => _propertiesUseTracker;
+
+    void IMetadataScopeOwner.LeaveMetadataScope(int depth, IMetadataTable previousMetadata)
+    {
+        Assumed.True(depth == _metadataScopeDepth, "Metadata scopes must be disposed in reverse order.");
+
+        _metadata = previousMetadata;
+        _metadataScopeDepth--;
+    }
 
     public string ExpandIntoStringAndUnescape(string expression, ExpanderOptions options, IElementLocation location)
     {

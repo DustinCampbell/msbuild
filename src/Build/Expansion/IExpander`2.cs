@@ -28,9 +28,22 @@ internal interface IExpander<TProperty, TItem>
     EvaluationContext? EvaluationContext { get; }
 
     /// <summary>
-    ///  Gets or sets the metadata available during expansion.
+    ///  Gets the metadata available in the current metadata scope.
     /// </summary>
-    IMetadataTable? Metadata { get; set; }
+    IMetadataTable? CurrentMetadata { get; }
+
+    /// <summary>
+    ///  Temporarily uses the specified metadata table during expansion.
+    /// </summary>
+    /// <param name="metadata">The metadata table to use until the returned scope is disposed.</param>
+    /// <returns>
+    ///  A scope that restores the previously active metadata table when disposed.
+    /// </returns>
+    /// <remarks>
+    ///  Scopes may be nested and must be disposed in reverse order. The expander must not be used concurrently
+    ///  while a metadata scope is active.
+    /// </remarks>
+    MetadataScope EnterMetadataScope(IMetadataTable metadata);
 
     /// <summary>
     ///  Gets the tracker that records property reads during expansion.

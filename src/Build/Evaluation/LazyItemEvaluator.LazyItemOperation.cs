@@ -201,23 +201,21 @@ namespace Microsoft.Build.Evaluation
                     {
                         foreach (var itemContext in itemBatchingContexts)
                         {
-                            _expander.Metadata = itemContext.GetMetadataTable();
-
-                            foreach (var metadataElement in metadata)
+                            using (_expander.EnterMetadataScope(itemContext.GetMetadataTable()))
                             {
-                                if (!EvaluateCondition(metadataElement.Condition, metadataElement, metadataExpansionOptions, ParserOptions.AllowAll, _expander, _lazyEvaluator))
+                                foreach (var metadataElement in metadata)
                                 {
-                                    continue;
+                                    if (!EvaluateCondition(metadataElement.Condition, metadataElement, metadataExpansionOptions, ParserOptions.AllowAll, _expander, _lazyEvaluator))
+                                    {
+                                        continue;
+                                    }
+
+                                    string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, metadataExpansionOptions, metadataElement.Location);
+
+                                    itemContext.OperationItem.SetMetadata(metadataElement, FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath));
                                 }
-
-                                string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, metadataExpansionOptions, metadataElement.Location);
-
-                                itemContext.OperationItem.SetMetadata(metadataElement, FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath));
                             }
                         }
-
-                        // End of legal area for metadata expressions.
-                        _expander.Metadata = null;
                     }
                     // End of pseudo batching
                     ////////////////////////////////////////////////////
@@ -227,7 +225,7 @@ namespace Microsoft.Build.Evaluation
                         // Metadata expressions are allowed here.
                         // Temporarily gather and expand these in a table so they can reference other metadata elements above.
                         EvaluatorMetadataTable metadataTable = new EvaluatorMetadataTable(_itemType, capacity: metadata.Length);
-                        _expander.Metadata = metadataTable;
+                        using var _ = _expander.EnterMetadataScope(metadataTable);
 
                         // Also keep a list of everything so we can get the predecessor objects correct.
                         List<KeyValuePair<ProjectMetadataElement, string>> metadataList = new(metadata.Length);
@@ -236,8 +234,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             // Because of the checking above, it should be safe to expand metadata in conditions; the condition
                             // will be true for either all the items or none
-                            if (
-                                !EvaluateCondition(
+                            if (!EvaluateCondition(
                                     metadataElement.Condition,
                                     metadataElement,
                                     metadataExpansionOptions,
@@ -263,9 +260,6 @@ namespace Microsoft.Build.Evaluation
                         // many items (either by semicolon or wildcards)
                         // and that item also has the same piece/s of metadata for each item.
                         _itemFactory.SetMetadata(metadataList, itemBatchingContexts.Select(i => i.OperationItem));
-
-                        // End of legal area for metadata expressions.
-                        _expander.Metadata = null;
                     }
                 }
             }
