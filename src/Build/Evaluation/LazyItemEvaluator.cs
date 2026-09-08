@@ -6,6 +6,7 @@ using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Eventing;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -30,9 +31,9 @@ namespace Microsoft.Build.Evaluation
         where D : class, IItemDefinition<M>
     {
         private readonly IEvaluatorData<P, I, M, D> _outerEvaluatorData;
-        private readonly Expander<P, I> _outerExpander;
+        private readonly IExpander<P, I> _outerExpander;
         private readonly IEvaluatorData<P, I, M, D> _evaluatorData;
-        private readonly Expander<P, I> _expander;
+        private readonly IExpander<P, I> _expander;
         private readonly IItemFactory<I, I> _itemFactory;
         private readonly LoggingContext _loggingContext;
         private readonly EvaluationProfiler _evaluationProfiler;
@@ -52,9 +53,9 @@ namespace Microsoft.Build.Evaluation
         public LazyItemEvaluator(IEvaluatorData<P, I, M, D> data, IItemFactory<I, I> itemFactory, LoggingContext loggingContext, EvaluationProfiler evaluationProfiler, EvaluationContext evaluationContext)
         {
             _outerEvaluatorData = data;
-            _outerExpander = new Expander<P, I>(_outerEvaluatorData, _outerEvaluatorData, evaluationContext, loggingContext);
+            _outerExpander = ExpanderFactory.Create(_outerEvaluatorData, _outerEvaluatorData, evaluationContext, loggingContext);
             _evaluatorData = new EvaluatorData(_outerEvaluatorData, _itemLists);
-            _expander = new Expander<P, I>(_evaluatorData, _evaluatorData, evaluationContext, loggingContext);
+            _expander = ExpanderFactory.Create(_evaluatorData, _evaluatorData, evaluationContext, loggingContext);
             _itemFactory = itemFactory;
             _loggingContext = loggingContext;
             _evaluationProfiler = evaluationProfiler;
@@ -72,7 +73,7 @@ namespace Microsoft.Build.Evaluation
             ProjectElement element,
             ExpanderOptions expanderOptions,
             ParserOptions parserOptions,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             LazyItemEvaluator<P, I, M, D> lazyEvaluator)
         {
             if (condition?.Length == 0)
@@ -666,7 +667,7 @@ namespace Microsoft.Build.Evaluation
 
         private void AddItemReferences(string expression, OperationBuilder operationBuilder, IElementLocation elementLocation)
         {
-            if (Expander<P, I>.TryExpandSingleItemVectorExpression(
+            if (_expander.TryExpandSingleItemVectorExpression(
                     expression,
                     ExpanderOptions.ExpandItems,
                     elementLocation,

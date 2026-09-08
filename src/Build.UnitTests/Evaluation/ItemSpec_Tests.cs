@@ -6,17 +6,17 @@ using System.IO;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Engine.UnitTests;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.UnitTests.BackEnd;
 using Shouldly;
 using Xunit;
-using ProjectInstanceExpander =
-    Microsoft.Build.Evaluation.Expander<Microsoft.Build.Execution.ProjectPropertyInstance, Microsoft.Build.Execution.ProjectItemInstance>;
+using IProjectInstanceExpander =
+    Microsoft.Build.Expansion.IExpander<Microsoft.Build.Execution.ProjectPropertyInstance, Microsoft.Build.Execution.ProjectItemInstance>;
 using ProjectInstanceItemSpec =
     Microsoft.Build.Evaluation.ItemSpec<Microsoft.Build.Execution.ProjectPropertyInstance, Microsoft.Build.Execution.ProjectItemInstance>;
-
 
 #nullable disable
 
@@ -78,22 +78,21 @@ namespace Microsoft.Build.UnitTests.OM.Evaluation
             Assert.True(itemSpecGlob.IsMatch("e"));
         }
 
-        private ProjectInstanceItemSpec CreateItemSpecFrom(string itemSpec, ProjectInstanceExpander expander, IElementLocation location = null)
+        private ProjectInstanceItemSpec CreateItemSpecFrom(string itemSpec, IProjectInstanceExpander expander, IElementLocation location = null)
         {
             location ??= MockElementLocation.Instance;
 
             return new ProjectInstanceItemSpec(itemSpec, expander, location, Path.GetDirectoryName(location.File));
         }
 
-        private ProjectInstanceExpander CreateExpander(Dictionary<string, string[]> items)
+        private IProjectInstanceExpander CreateExpander(Dictionary<string, string[]> items)
         {
             var itemDictionary = ToItemDictionary(items);
 
-            return new ProjectInstanceExpander(
+            return ExpanderFactory.Create(
                 new PropertyDictionary<ProjectPropertyInstance>(),
                 itemDictionary,
-                (IFileSystem)FileSystems.Default,
-                new TestLoggingContext(null!, new BuildEventContext(1, 2, 3, 4)));
+                new TestLoggingContext(null, new BuildEventContext(1, 2, 3, 4)));
         }
 
         private static ItemDictionary<ProjectItemInstance> ToItemDictionary(Dictionary<string, string[]> itemTypes)

@@ -16,10 +16,10 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Instance;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 
 #nullable disable
 
@@ -1434,9 +1434,10 @@ namespace Microsoft.Build.Execution
 
                 escapedValue = GetItemDefinitionMetadataEscaped(metadataName);
 
-                if (escapedValue != null && Expander<ProjectProperty, ProjectItem>.ExpressionMayContainExpandableExpressions(escapedValue))
+                if (escapedValue != null && ExpressionShredder.ExpressionMayContainExpandableExpressions(escapedValue))
                 {
-                    Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(null, null, new BuiltInMetadataTable(null, this), FileSystems.Default);
+                    IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = ExpanderFactory.Create<ProjectPropertyInstance, ProjectItemInstance>(
+                        new BuiltInMetadataTable(itemType: null, item: this));
 
                     // We don't have a location to use, but this is very unlikely to error
                     return expander.ExpandIntoStringLeaveEscaped(escapedValue, ExpanderOptions.ExpandBuiltInMetadata, ElementLocation.EmptyLocation);
@@ -2138,7 +2139,7 @@ namespace Microsoft.Build.Execution
                 {
                     foreach (KeyValuePair<string, string> kvp in item.BackingMetadata)
                     {
-                        if (Expander<ProjectProperty, ProjectItem>.ExpressionMayContainExpandableExpressions(kvp.Value))
+                        if (ExpressionShredder.ExpressionMayContainExpandableExpressions(kvp.Value))
                         {
                             return true;
                         }
@@ -2354,9 +2355,9 @@ namespace Microsoft.Build.Execution
             internal class TaskItemFactory : IItemFactory<ProjectItem, TaskItem>, IItemFactory<ProjectItemInstance, TaskItem>
             {
                 /// <summary>
-                /// The singleton instance.
+                /// The singleton instance. Can be cast to the interface required.
                 /// </summary>
-                private static readonly TaskItemFactory s_instance = new TaskItemFactory();
+                internal static TaskItemFactory Instance { get; } = new();
 
                 /// <summary>
                 /// Private constructor for singleton creation.
@@ -2381,14 +2382,6 @@ namespace Microsoft.Build.Execution
                 public ProjectItemElement ItemElement
                 {
                     set { /* ignore */ }
-                }
-
-                /// <summary>
-                /// The singleton instance. Can be cast to the interface required.
-                /// </summary>
-                internal static TaskItemFactory Instance
-                {
-                    get { return s_instance; }
                 }
 
                 /// <summary>

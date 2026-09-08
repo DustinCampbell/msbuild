@@ -45,58 +45,58 @@ public class PropertyFunctionExpansionBenchmark
         => _fixture.Dispose();
 
     [Benchmark(Baseline = true)]
-    public string Property()
+    public string? Property()
         => Expand(PropertyBaseline);
 
     [Benchmark]
-    public string Static()
+    public string? Static()
         => Expand(StaticMethod);
 
     [Benchmark]
-    public string StaticWithPropertyArguments()
+    public string? StaticWithPropertyArguments()
         => Expand(StaticMethodWithPropertyArguments);
 
     [Benchmark]
-    public string StaticPath()
+    public string? StaticPath()
         => Expand(StaticPathFunctionExpression);
 
     [Benchmark]
-    public string Instance()
+    public string? Instance()
         => Expand(InstanceMethod);
 
     [Benchmark]
-    public string InstanceWithArgument()
+    public string? InstanceWithArgument()
         => Expand(InstanceSubstringExpression);
 
     [Benchmark]
-    public string InstanceWithOverload()
+    public string? InstanceWithOverload()
         => Expand(InstanceReplaceExpression);
 
     [Benchmark]
-    public string InstanceWithPropertyArgument()
+    public string? InstanceWithPropertyArgument()
         => Expand(InstanceWithPropertyArgumentExpression);
 
     [Benchmark]
-    public string ChainedInstance()
+    public string? ChainedInstance()
         => Expand(ChainedInstanceMethods);
 
     [Benchmark]
-    public string Nested()
+    public string? Nested()
         => Expand(NestedFunctions);
 
     [Benchmark]
-    public string Intrinsic()
+    public string? Intrinsic()
         => Expand(IntrinsicFunction);
 
     [Benchmark]
-    public string IntrinsicArithmetic()
+    public string? IntrinsicArithmetic()
         => Expand(IntrinsicAddExpression);
 
     [Benchmark]
-    public string Multiple()
+    public string? Multiple()
         => Expand(MultipleFunctions);
 
-    private string Expand(string expression)
+    private string? Expand(string expression)
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             expression,
             ExpanderOptions.ExpandProperties,

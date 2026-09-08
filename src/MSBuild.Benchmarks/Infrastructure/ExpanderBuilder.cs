@@ -4,6 +4,7 @@
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Shared.FileSystem;
 
 namespace MSBuild.Benchmarks;
@@ -102,29 +103,19 @@ internal sealed class ExpanderBuilder : IDisposable
         VerifyNotComplete();
         _isComplete = true;
 
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander;
+        IExpander<ProjectPropertyInstance, ProjectItemInstance> expander;
 
         if (_metadata.Count > 0)
         {
-            expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
-                _properties,
-                _items,
-                new StringMetadataTable(_metadata),
-                FileSystems.Default);
+            expander = ExpanderFactory.Create(_properties, _items, new StringMetadataTable(_metadata));
         }
         else if (_items.Count > 0)
         {
-            expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
-                _properties,
-                _items,
-                FileSystems.Default,
-                loggingContext: null);
+            expander = ExpanderFactory.Create(_properties, _items);
         }
         else
         {
-            expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(
-                _properties,
-                FileSystems.Default);
+            expander = ExpanderFactory.Create(_properties);
         }
 
         BenchmarkProject? benchmarkProject = _benchmarkProject;

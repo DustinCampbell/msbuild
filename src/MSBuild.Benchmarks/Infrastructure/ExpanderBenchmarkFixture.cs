@@ -3,6 +3,7 @@
 
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 
 namespace MSBuild.Benchmarks;
 
@@ -21,7 +22,7 @@ internal sealed class ExpanderBenchmarkFixture : IDisposable
     ///  The project to keep alive for the fixture lifetime, or <see langword="null"/> when the expander has no items.
     /// </param>
     public ExpanderBenchmarkFixture(
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander,
+        IExpander<ProjectPropertyInstance, ProjectItemInstance> expander,
         BenchmarkProject? benchmarkProject)
     {
         Expander = expander;
@@ -31,7 +32,7 @@ internal sealed class ExpanderBenchmarkFixture : IDisposable
     /// <summary>
     ///  Gets the configured expander.
     /// </summary>
-    public Expander<ProjectPropertyInstance, ProjectItemInstance> Expander { get; }
+    public IExpander<ProjectPropertyInstance, ProjectItemInstance> Expander { get; }
 
     /// <summary>
     ///  Disposes the benchmark project, when present.
