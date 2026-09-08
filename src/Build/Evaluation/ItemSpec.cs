@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Globbing;
 using Microsoft.Build.Internal;
@@ -36,7 +37,7 @@ namespace Microsoft.Build.Evaluation
         internal class ItemExpressionFragment : ItemSpecFragment
         {
             private readonly ItemSpec<P, I> _containingItemSpec;
-            private Expander<P, I> _expander;
+            private IExpander<P, I> _expander;
 
             private IMSBuildGlob _msbuildGlob;
 
@@ -117,7 +118,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     _expander = _containingItemSpec.Expander;
 
-                    _expander.ExpandExpressionCapture(
+                    _expander.ExpandItemVector(
                         Capture,
                         _containingItemSpec.ItemSpecLocation,
                         ExpanderOptions.ExpandItems,
@@ -145,7 +146,7 @@ namespace Microsoft.Build.Evaluation
         ///     The expander needs to have a default item factory set.
         /// </summary>
         // todo Make this type immutable. Dealing with an Expander change is painful. See the ItemExpressionFragment
-        public Expander<P, I> Expander { get; set; }
+        public IExpander<P, I> Expander { get; set; }
 
         /// <summary>
         ///     The xml attribute where this itemspec comes from
@@ -159,7 +160,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="expandProperties">Expand properties before breaking down fragments. Defaults to true</param>
         public ItemSpec(
             string itemSpec,
-            Expander<P, I> expander,
+            IExpander<P, I> expander,
             IElementLocation itemSpecLocation,
             string projectDirectory,
             bool expandProperties = true)
@@ -262,7 +263,7 @@ namespace Microsoft.Build.Evaluation
         {
             isItemListExpression = false;
 
-            if (Expander<P, I>.TryExpandSingleItemVectorExpression(
+            if (Expander.TryExpandSingleItemVectorExpression(
                     expression,
                     ExpanderOptions.ExpandItems,
                     elementLocation,

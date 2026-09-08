@@ -13,8 +13,8 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
-
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -131,7 +131,7 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Expander to expand the properties and items in the using tasks files
         /// </summary>
-        private Expander<ProjectPropertyInstance, ProjectItemInstance> _expander;
+        private IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander;
 
         /// <summary>
         /// SubToolsets that map to this toolset.
@@ -859,7 +859,7 @@ namespace Microsoft.Build.Evaluation
 
                 propertyBag.ImportProperties(_globalProperties);
 
-                _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(propertyBag, FileSystems.Default, loggingContext);
+                _expander = ExpanderFactory.Create(propertyBag, loggingContext);
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {

@@ -18,11 +18,12 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Execution;
-using Microsoft.Build.ProjectCache;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.FileSystem;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
 using Microsoft.Build.Internal;
+using Microsoft.Build.ProjectCache;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using static Microsoft.Build.Execution.ProjectPropertyInstance;
@@ -66,7 +67,7 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Expander for evaluating conditions
         /// </summary>
-        private readonly Expander<P, I> _expander;
+        private readonly IExpander<P, I> _expander;
 
         /// <summary>
         /// Data containing the ProjectRootElement to evaluate and the slots for
@@ -270,7 +271,7 @@ namespace Microsoft.Build.Evaluation
             // Create containers for the evaluation results
             data.InitializeForEvaluation(toolsetProvider, _evaluationContext, _evaluationLoggingContext);
 
-            _expander = new Expander<P, I>(data, data, _evaluationContext, _evaluationLoggingContext);
+            _expander = ExpanderFactory.Create(data, data, _evaluationContext, _evaluationLoggingContext);
 
             _data = data;
             _itemGroupElements = new List<ProjectItemGroupElement>();
@@ -409,7 +410,7 @@ namespace Microsoft.Build.Evaluation
         /// Helper that creates a list of ProjectItem's given an unevaluated Include and a ProjectRootElement.
         /// Used by both Evaluator.EvaluateItemElement and by Project.AddItem.
         /// </summary>
-        internal static List<I> CreateItemsFromInclude(string rootDirectory, ProjectItemElement itemElement, IItemFactory<I, I> itemFactory, string unevaluatedIncludeEscaped, Expander<P, I> expander, ILoggingService loggingService, string buildEventFileInfoFullPath, BuildEventContext buildEventContext)
+        internal static List<I> CreateItemsFromInclude(string rootDirectory, ProjectItemElement itemElement, IItemFactory<I, I> itemFactory, string unevaluatedIncludeEscaped, IExpander<P, I> expander, ILoggingService loggingService, string buildEventFileInfoFullPath, BuildEventContext buildEventContext)
         {
             ArgumentException.ThrowIfNullOrEmpty(unevaluatedIncludeEscaped);
 
@@ -1846,8 +1847,11 @@ namespace Microsoft.Build.Evaluation
                             mode = SdkReferencePropertyExpansionMode.ExpandUnescape;
                         }
 
-                        static string EvaluateProperty(string value, IElementLocation location,
-                            Expander<P, I> expander, SdkReferencePropertyExpansionMode mode)
+                        static string EvaluateProperty(
+                            string value,
+                            IElementLocation location,
+                            IExpander<P, I> expander,
+                            SdkReferencePropertyExpansionMode mode)
                         {
                             if (value == null)
                             {

@@ -41,41 +41,41 @@ public class PropertyExpansionBenchmark
         => _fixture.Dispose();
 
     [Benchmark(Baseline = true)]
-    public string NoExpansion()
+    public string? NoExpansion()
         => Expand(Literal);
 
     [Benchmark]
-    public string Single()
+    public string? Single()
         => Expand(SingleProperty);
 
     [Benchmark]
-    public string Embedded()
+    public string? Embedded()
         => Expand(EmbeddedProperty);
 
     [Benchmark]
-    public string MultipleDistinct()
+    public string? MultipleDistinct()
         => Expand(MultipleProperties);
 
     [Benchmark]
-    public string MultipleRepeated()
+    public string? MultipleRepeated()
         => Expand(RepeatedProperty);
 
     [Benchmark]
-    public string Undefined()
+    public string? Undefined()
         => Expand(UndefinedProperty);
 
     [Benchmark]
-    public string LongValue()
+    public string? LongValue()
         => Expand(LongProperty);
 
     [Benchmark]
-    public string MultipleAndUnescape()
+    public string? MultipleAndUnescape()
         => _fixture.Expander.ExpandIntoStringAndUnescape(
             MultipleProperties,
             ExpanderOptions.ExpandProperties,
             ElementLocation.EmptyLocation);
 
-    private string Expand(string expression)
+    private string? Expand(string expression)
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             expression,
             ExpanderOptions.ExpandProperties,

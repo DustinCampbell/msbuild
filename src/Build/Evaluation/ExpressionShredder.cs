@@ -330,6 +330,20 @@ namespace Microsoft.Build.Evaluation
             return result;
         }
 
+        /// <summary>
+        ///  Tests to see if the expression may contain expandable expressions, i.e.
+        ///  contains $, % or @.
+        /// </summary>
+        public static bool ExpressionMayContainExpandableExpressions(string expression)
+            => expression.AsSpan().IndexOfAny('$', '%', '@') >= 0;
+
+        /// <summary>
+        ///  Returns true if the expression contains an item vector pattern, else returns false.
+        ///  Used to flag use of item expressions where they are illegal.
+        /// </summary>
+        public static bool ExpressionContainsItemVector(string expression)
+            => TryGetNextItemVectorExpression(expression, out _);
+
         /// <inheritdoc cref="TryGetNextItemVectorExpression(string, int, out ItemExpressionCapture)"/>
         public static bool TryGetNextItemVectorExpression(string expression, out ItemExpressionCapture itemVector)
             => TryGetNextItemVectorExpression(expression, startIndex: 0, out itemVector);
