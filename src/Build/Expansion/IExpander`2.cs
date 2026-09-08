@@ -75,17 +75,6 @@ internal interface IExpander<TProperty, TItem>
     string? ExpandIntoStringLeaveEscaped(string expression, ExpanderOptions options, IElementLocation location);
 
     /// <summary>
-    ///  Expands metadata and property expressions while preserving the runtime type of a property-function result.
-    /// </summary>
-    /// <param name="expression">The expression to expand.</param>
-    /// <param name="options">The kinds of expressions to expand and any expansion behavior modifiers.</param>
-    /// <param name="location">The project location associated with the expression.</param>
-    /// <returns>
-    ///  The expanded escaped value.
-    /// </returns>
-    object ExpandPropertiesLeaveTypedAndEscaped(string expression, ExpanderOptions options, IElementLocation location);
-
-    /// <summary>
     ///  Expands the selected expressions while leaving the result escaped, then tokenizes the result on semicolons.
     /// </summary>
     /// <param name="expression">The expression to expand and tokenize.</param>
