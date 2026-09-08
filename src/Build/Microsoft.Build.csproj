@@ -210,6 +210,8 @@
     <Compile Include="Expansion\ExpanderFactory.cs" />
     <Compile Include="Expansion\IExpanderExtensions.cs" />
     <Compile Include="Expansion\IExpander`2.cs" />
+    <Compile Include="Expansion\IMetadataScopeOwner.cs" />
+    <Compile Include="Expansion\MetadataScope.cs" />
     <Compile Include="Expansion\TransformEntry`1.cs" />
     <Compile Include="FileAccess\DesiredAccess.cs" />
     <Compile Include="FileAccess\FileAccessData.cs" />
