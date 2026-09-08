@@ -3436,13 +3436,14 @@ namespace Microsoft.Build.Evaluation
             /// </remarks>
             public string ExpandMetadataValueBestEffortLeaveEscaped(IMetadataTable metadataTable, string unevaluatedValue, ElementLocation metadataLocation)
             {
-                Assumed.Null(_data.Expander.Metadata, "Should be null");
+                Assumed.Null(_data.Expander.CurrentMetadata, "Should be null");
 
-                _data.Expander.Metadata = metadataTable;
-                string evaluatedValueEscaped = _data.Expander.ExpandIntoStringLeaveEscaped(unevaluatedValue, ExpanderOptions.ExpandAll, metadataLocation);
-                _data.Expander.Metadata = null;
+                using var _ = _data.Expander.EnterMetadataScope(metadataTable);
 
-                return evaluatedValueEscaped;
+                return _data.Expander.ExpandIntoStringLeaveEscaped(
+                    unevaluatedValue,
+                    ExpanderOptions.ExpandAll,
+                    metadataLocation);
             }
 
             /// <summary>
