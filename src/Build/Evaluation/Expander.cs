@@ -148,19 +148,6 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
         return result;
     }
 
-    public object ExpandPropertiesLeaveTypedAndEscaped(string expression, ExpanderOptions options, IElementLocation location)
-    {
-        if (expression.Length == 0)
-        {
-            return string.Empty;
-        }
-
-        Assumed.NotNull(location);
-
-        string metaExpanded = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, location);
-        return PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(metaExpanded, _properties, options, location, _propertiesUseTracker, _fileSystem);
-    }
-
     public SemiColonTokenizer ExpandIntoStringListLeaveEscaped(string expression, ExpanderOptions options, IElementLocation location)
     {
         Assumed.True((options & ExpanderOptions.BreakOnNotEmpty) == 0, "not supported");
