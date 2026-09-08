@@ -20,6 +20,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Evaluation.Context;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.FileSystem;
 using Microsoft.Build.Framework;
@@ -2390,7 +2391,7 @@ namespace Microsoft.Build.Execution
         /// </comment>
         public string ExpandString(string unexpandedValue)
         {
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(this, this, FileSystems.Default, _loggingContext);
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = ExpanderFactory.Create(properties: this, items: this, _loggingContext);
 
             string result = expander.ExpandIntoStringAndUnescape(unexpandedValue, ExpanderOptions.ExpandPropertiesAndItems, ProjectFileLocation);
 
@@ -2408,7 +2409,7 @@ namespace Microsoft.Build.Execution
         /// </comment>
         public bool EvaluateCondition(string condition)
         {
-            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(this, this, FileSystems.Default, _loggingContext);
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = ExpanderFactory.Create(properties: this, items: this, _loggingContext);
 
             bool result = ConditionEvaluator.EvaluateCondition(
                 condition,

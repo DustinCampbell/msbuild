@@ -9,7 +9,7 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
-using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Expansion;
 
 #nullable disable
 
@@ -27,7 +27,7 @@ namespace Microsoft.Build.BackEnd
         /// This single object contains all of the data necessary to perform expansion of metadata, properties,
         /// and items.
         /// </summary>
-        private Expander<ProjectPropertyInstance, ProjectItemInstance> _expander;
+        private IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander;
 
         /// <summary>
         /// Metadata in this bucket
@@ -102,7 +102,7 @@ namespace Microsoft.Build.BackEnd
         /// <param name="loggingContext"></param>
         internal void Initialize(LoggingContext loggingContext)
         {
-            _expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(_lookup, _lookup, new StringMetadataTable(_metadata), FileSystems.Default, loggingContext);
+            _expander = ExpanderFactory.Create(_lookup, _lookup, new StringMetadataTable(_metadata), loggingContext);
         }
 
         #endregion
@@ -147,7 +147,7 @@ namespace Microsoft.Build.BackEnd
         /// <summary>
         /// Returns the object that knows how to handle all kinds of expansion for this bucket.
         /// </summary>
-        internal Expander<ProjectPropertyInstance, ProjectItemInstance> Expander
+        internal IExpander<ProjectPropertyInstance, ProjectItemInstance> Expander
         {
             get
             {

@@ -5,6 +5,7 @@ using BenchmarkDotNet.Attributes;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Shared.FileSystem;
 using static MSBuild.Benchmarks.ConditionStrings;
 
@@ -21,7 +22,7 @@ namespace MSBuild.Benchmarks;
 [MemoryDiagnoser]
 public class ConditionEvaluationBenchmark
 {
-    private Expander<ProjectPropertyInstance, ProjectItemInstance> _expander = null!;
+    private IExpander<ProjectPropertyInstance, ProjectItemInstance> _expander = null!;
     private ExpanderBenchmarkFixture _fixture = null!;
     private ElementLocation _elementLocation = null!;
     private string _evaluationDirectory = null!;

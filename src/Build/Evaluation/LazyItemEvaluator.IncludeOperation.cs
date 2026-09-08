@@ -45,7 +45,11 @@ namespace Microsoft.Build.Evaluation
                     // STEP 4: Evaluate, split, expand and subtract any Exclude
                     foreach (string exclude in _excludes)
                     {
-                        string excludeExpanded = _expander.ExpandIntoStringLeaveEscaped(exclude, ExpanderOptions.ExpandPropertiesAndItems, _itemElement.ExcludeLocation);
+                        string excludeExpanded = _expander.ExpandIntoStringLeaveEscaped(
+                            exclude,
+                            ExpanderOptions.ExpandPropertiesAndItems,
+                            _itemElement.ExcludeLocation)!;
+
                         var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(excludeExpanded);
                         excludePatterns.AddRange(excludeSplits);
                     }
@@ -59,32 +63,35 @@ namespace Microsoft.Build.Evaluation
                     if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemReferenceFragment)
                     {
                         // STEP 3: If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
-                        var itemsFromExpression = _expander.ExpandExpressionCaptureIntoItems(
+                        var itemsFromExpression = _expander.ExpandItemVectorIntoItems(
                             itemReferenceFragment.Capture,
                             _evaluatorData,
                             _itemFactory,
                             ExpanderOptions.ExpandItems,
                             includeNullEntries: false,
                             isTransformExpression: out _,
-                            elementLocation: _itemElement.IncludeLocation);
+                            location: _itemElement.IncludeLocation);
 
-                        itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
-
-                        if (excludePatterns.Count > 0)
+                        if (itemsFromExpression != null)
                         {
-                            matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
+                            itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
 
-                            foreach (var item in itemsFromExpression)
+                            if (excludePatterns.Count > 0)
                             {
-                                if (!ExcludeTester(_rootDirectory, excludePatterns, matchers, item.EvaluatedInclude))
+                                matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
+
+                                foreach (var item in itemsFromExpression)
                                 {
-                                    itemsToAdd.Add(item);
+                                    if (!ExcludeTester(_rootDirectory, excludePatterns, matchers, item.EvaluatedInclude))
+                                    {
+                                        itemsToAdd.Add(item);
+                                    }
                                 }
                             }
-                        }
-                        else
-                        {
-                            itemsToAdd.AddRange(itemsFromExpression);
+                            else
+                            {
+                                itemsToAdd.AddRange(itemsFromExpression);
+                            }
                         }
                     }
                     else if (fragment is ValueFragment valueFragment)

@@ -51,29 +51,29 @@ public class ItemExpansionBenchmark
         => _fixture.Dispose();
 
     [Benchmark(Baseline = true)]
-    public string NoExpansion()
+    public string? NoExpansion()
         => Expand(Literal);
 
     [Benchmark]
-    public string Simple()
+    public string? Simple()
         => Expand(SimpleItemList);
 
     [Benchmark]
-    public string WithQuotedTransform()
+    public string? WithQuotedTransform()
         => Expand(QuotedTransform);
 
     [Benchmark]
-    public string WithSeparator()
+    public string? WithSeparator()
         => Expand(ItemListWithSeparator);
 
     [Benchmark]
-    public string WithQuotedTransformAndUnescape()
+    public string? WithQuotedTransformAndUnescape()
         => _fixture.Expander.ExpandIntoStringAndUnescape(
             QuotedTransform,
             ExpanderOptions.ExpandItems,
             ElementLocation.EmptyLocation);
 
-    private string Expand(string expression)
+    private string? Expand(string expression)
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             expression,
             ExpanderOptions.ExpandItems,

@@ -50,22 +50,22 @@ public class ItemFunctionExpansionBenchmark
         => _fixture.Dispose();
 
     [Benchmark(Baseline = true)]
-    public string Function()
+    public string? Function()
         => Expand(FunctionTransform);
 
     [Benchmark]
-    public string FunctionWithArguments()
+    public string? FunctionWithArguments()
         => Expand(FunctionTransformWithArguments);
 
     [Benchmark]
-    public string StringFunction()
+    public string? StringFunction()
         => Expand(StringFunctionTransform);
 
     [Benchmark]
-    public string ChainedFunctions()
+    public string? ChainedFunctions()
         => Expand(ChainedTransforms);
 
-    private string Expand(string expression)
+    private string? Expand(string expression)
         => _fixture.Expander.ExpandIntoStringLeaveEscaped(
             expression,
             ExpanderOptions.ExpandItems,

@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -163,7 +164,7 @@ internal sealed partial class TaskRegistry
         /// </remarks>
         public static UsingTaskInfo Create<TProperty, TItem>(
             ProjectUsingTaskElement projectUsingTaskXml,
-            Expander<TProperty, TItem> expander,
+            IExpander<TProperty, TItem> expander,
             ExpanderOptions expanderOptions,
             IFileSystem fileSystem,
             string directoryOfImportingFile)
@@ -297,7 +298,7 @@ internal sealed partial class TaskRegistry
         /// </remarks>
         private readonly ref struct Processor<TProperty, TItem>(
             ProjectUsingTaskElement projectUsingTaskXml,
-            Expander<TProperty, TItem> expander,
+            IExpander<TProperty, TItem> expander,
             ExpanderOptions expanderOptions,
             IFileSystem fileSystem,
             string directoryOfImportingFile)
