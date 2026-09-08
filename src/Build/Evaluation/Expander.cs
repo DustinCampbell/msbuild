@@ -94,7 +94,7 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
         _items = items;
         _metadata = metadata;
         _propertiesUseTracker = new PropertiesUseTracker(loggingContext);
-        _fileSystem = fileSystem;
+        _fileSystem = fileSystem ?? evaluationContext?.FileSystem ?? FileSystems.Default;
         _loggingContext = loggingContext;
         EvaluationContext = evaluationContext;
     }

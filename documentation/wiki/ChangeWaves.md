@@ -37,6 +37,7 @@ Change wave checks around features will be removed in the release that accompani
 
 ### 18.13
 - [ResolveAssemblyReference discovers redist and subset lists relative to the project directory when `TargetFrameworkDirectories` contains relative paths.](https://github.com/dotnet/msbuild/pull/15089)
+- Use the modern expression expansion engine by default. Set `MSBUILDDISABLEFEATURESFROMVERSION=18.13` to use the legacy engine, or set `MSBUILDUSELEGACYEXPANDER=1` (or `true`) to use the legacy engine without disabling other features in the same wave.
 
 ### 18.12
 - [Multi-threaded builds use an empty sentinel current directory, check CWD after tasks, and detect unresolved relative-path writes at project/build completion.](https://github.com/dotnet/msbuild/pull/14917)
