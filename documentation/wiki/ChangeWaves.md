@@ -35,6 +35,9 @@ Change wave checks around features will be removed in the release that accompani
 
 ## Current Rotation of Change Waves
 
+### 18.13
+- Use the modern expression expansion engine by default. Set `MSBUILDDISABLEFEATURESFROMVERSION=18.13` to use the legacy engine, or set `MSBUILDUSELEGACYEXPANDER=1` (or `true`) to use the legacy engine without disabling other features in the same wave.
+
 ### 18.12
 - [Multi-threaded builds use an empty sentinel current directory, check CWD after tasks, and detect unresolved relative-path writes at project/build completion.](https://github.com/dotnet/msbuild/pull/14917)
 - [TaskHosts used to run a task out of process under `-mt` stay connected to the process that launched them and exit with it, instead of remaining available for any other process to reuse. TaskHosts of a different runtime or architecture are unaffected.](https://github.com/dotnet/msbuild/pull/14584)

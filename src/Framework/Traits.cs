@@ -60,6 +60,12 @@ namespace Microsoft.Build.Framework
         public readonly bool UseLegacyCultureSensitiveFileGlobs = Environment.GetEnvironmentVariable("MSBUILDUSELEGACYCULTURESENSITIVEFILEGLOBS") == "1";
 
         /// <summary>
+        ///  Use the legacy expression expansion engine without disabling other features in the same change wave when
+        ///  <c>MSBUILDUSELEGACYEXPANDER</c> is set to <c>1</c> or <c>true</c>.
+        /// </summary>
+        public readonly bool UseLegacyExpander = EnvironmentUtilities.IsValueOneOrTrue("MSBUILDUSELEGACYEXPANDER");
+
+        /// <summary>
         /// Cache file existence for the entire process
         /// </summary>
         public readonly bool CacheFileExistence = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MsBuildCacheFileExistence"));
@@ -208,7 +214,7 @@ namespace Microsoft.Build.Framework
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MSBuildDebugEngine")) ||
             // some CI systems force env vars to uppercase and that's also the standard in MSBuild, so allow it here
             (!NativeMethods.IsWindows && // Windows env vars are case-insensitive so no need to explicitly check
-             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MSBUILDDEBUGENGINE"))); 
+             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MSBUILDDEBUGENGINE")));
         public readonly bool DebugScheduler;
         public readonly bool DebugNodeCommunication;
         public readonly bool DebugUnitTests = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MSBuildDebugUnitTests"));
