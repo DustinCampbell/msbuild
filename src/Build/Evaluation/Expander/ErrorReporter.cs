@@ -278,7 +278,6 @@ internal readonly struct ErrorReporter(IElementLocation location)
                 Throw(expression);
             }
         }
-
     }
 
     /// <summary>
