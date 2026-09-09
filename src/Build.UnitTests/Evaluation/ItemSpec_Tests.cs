@@ -22,6 +22,7 @@ using ProjectInstanceItemSpec =
 
 namespace Microsoft.Build.UnitTests.OM.Evaluation
 {
+    [Trait("Category", "expansion")]
     public class ItemSpec_Tests
     {
         [Fact]
