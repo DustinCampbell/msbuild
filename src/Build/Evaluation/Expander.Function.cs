@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -10,7 +10,6 @@ using System.IO;
 #endif
 using System.Linq;
 using System.Reflection;
-using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -105,8 +104,6 @@ internal partial class Expander<P, I>
         /// </summary>
         private readonly string _remainder;
 
-        private readonly LoggingContext _loggingContext;
-
         /// <summary>
         ///  Initializes a property function that will be executed during property evaluation.
         /// </summary>
@@ -117,7 +114,6 @@ internal partial class Expander<P, I>
         /// <param name="arguments">The unexpanded function arguments.</param>
         /// <param name="bindingFlags">The reflection binding flags for the invocation.</param>
         /// <param name="remainder">The unparsed remainder of the property-function chain.</param>
-        /// <param name="loggingContext">The logging context for well-known property functions.</param>
         internal Function(
             [DynamicallyAccessedMembers(
                 DynamicallyAccessedMemberTypes.PublicConstructors |
@@ -129,8 +125,7 @@ internal partial class Expander<P, I>
             string methodName,
             string[] arguments,
             BindingFlags bindingFlags,
-            string remainder,
-            LoggingContext loggingContext)
+            string remainder)
         {
             _methodName = methodName;
             _arguments = arguments ?? [];
@@ -150,7 +145,6 @@ internal partial class Expander<P, I>
             _bindingFlags = bindingFlags & AllowedBindingFlags;
 
             _remainder = remainder;
-            _loggingContext = loggingContext;
         }
 
         /// <summary>
@@ -186,10 +180,7 @@ internal partial class Expander<P, I>
             object propertyValue,
             ExpansionContext context)
         {
-            FunctionBuilder functionBuilder = new()
-            {
-                LoggingContext = context.PropertyLoggingContext,
-            };
+            FunctionBuilder functionBuilder = new();
 
             ErrorReporter errors = context.Errors;
 
@@ -410,9 +401,7 @@ internal partial class Expander<P, I>
                 // Assemble our arguments ready for passing to our method
                 for (int n = 0; n < _arguments.Length; n++)
                 {
-                    object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                        _arguments[n],
-                        context);
+                    object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(_arguments[n], context);
 
                     if (argument is string argumentValue)
                     {
@@ -490,13 +479,20 @@ internal partial class Expander<P, I>
                     }
                 }
 
+                ExecutionContext executionContext = new(context.Properties, context.FileSystem, context.LoggingContext);
+
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, args, in executionContext, out functionResult))
                     {
-                        functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
+                        functionResult = LateBindExecute(
+                            ex: null, // no previous exception
+                            BindingFlags.Public | BindingFlags.Instance,
+                            objectInstance: null, // no instance for a constructor
+                            args,
+                            isConstructor: true);
                     }
                 }
                 else
@@ -508,26 +504,7 @@ internal partial class Expander<P, I>
                         // First attempt to recognize some well-known functions to avoid binding
                         // and potential first-chance MissingMethodExceptions.
                         wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(
-                            _methodName,
-                            _receiverType,
-                            context.FileSystem,
-                            out functionResult,
-                            objectInstance,
-                            args);
-
-                        if (!wellKnownFunctionSuccess)
-                        {
-                            // Some well-known functions need evaluated value from properties.
-                            wellKnownFunctionSuccess =
-                                WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
-                                _methodName,
-                                _receiverType,
-                                _loggingContext,
-                                context.Properties,
-                                out functionResult,
-                                objectInstance,
-                                args);
-                        }
+                            _methodName, _receiverType, objectInstance, args, in executionContext, out functionResult);
                     }
                     // we need to preserve the same behavior on exceptions as the actual binder
                     catch (Exception ex)

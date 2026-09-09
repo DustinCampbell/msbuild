@@ -553,7 +553,7 @@ internal partial class Expander<P, I>
 
             if (property is ProjectPropertyInstance.EnvironmentDerivedProjectPropertyInstance environmentDerivedProperty)
             {
-                environmentDerivedProperty.loggingContext = _context.PropertyLoggingContext;
+                environmentDerivedProperty.loggingContext = _context.PropertiesUseTracker.LoggingContext;
             }
 
             return property.GetEvaluatedValueEscaped(_context.Location);
