@@ -13,6 +13,7 @@ using Xunit;
 
 namespace Microsoft.Build.UnitTests.Expansion;
 
+[Trait("Category", "expansion")]
 public sealed class MetadataScope_Tests
 {
     [Fact]
