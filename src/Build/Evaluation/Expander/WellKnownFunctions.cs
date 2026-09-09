@@ -9,7 +9,6 @@ using System.Text.RegularExpressions;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 
 using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
@@ -44,7 +43,11 @@ namespace Microsoft.Build.Evaluation.Expander
             File.AppendAllText(logFile, $"ReceiverType={receiverType?.FullName}; ObjectInstanceType={objectInstance?.GetType().FullName}; MethodName={methodName}({argSignature})\n");
         }
 
-        internal static bool TryExecutePathFunction(string methodName, out object? returnVal, object[] args)
+        internal static bool TryExecutePathFunction(
+            string methodName,
+            object[] args,
+            ref readonly ExecutionContext context,
+            out object? returnVal)
         {
             returnVal = default;
             if (string.Equals(methodName, nameof(Path.Combine), StringComparison.OrdinalIgnoreCase))
@@ -155,14 +158,22 @@ namespace Microsoft.Build.Evaluation.Expander
         }
 
         /// <summary>
-        /// Handler for executing well known string functions
+        ///  Executes a well-known <see cref="string"/> function.
         /// </summary>
-        /// <param name="methodName"></param>
-        /// <param name="returnVal"></param>
-        /// <param name="text"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        internal static bool TryExecuteStringFunction(string methodName, out object? returnVal, string text, object[] args)
+        /// <param name="methodName">The function name.</param>
+        /// <param name="text">The receiver value.</param>
+        /// <param name="args">The function arguments.</param>
+        /// <param name="context">Dependencies used to execute contextual functions.</param>
+        /// <param name="returnVal">The function result.</param>
+        /// <returns>
+        ///  <see langword="true"/> when the function was handled; otherwise, <see langword="false"/>.
+        /// </returns>
+        internal static bool TryExecuteStringFunction(
+            string methodName,
+            string text,
+            object[] args,
+            ref readonly ExecutionContext context,
+            out object? returnVal)
         {
             returnVal = null;
             if (string.Equals(methodName, nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase))
@@ -358,7 +369,11 @@ namespace Microsoft.Build.Evaluation.Expander
             return false;
         }
 
-        internal static bool TryExecuteIntrinsicFunction(string methodName, out object? returnVal, IFileSystem fileSystem, object[] args)
+        internal static bool TryExecuteIntrinsicFunction(
+            string methodName,
+            object[] args,
+            ref readonly ExecutionContext context,
+            out object? returnVal)
         {
             returnVal = default;
             if (string.Equals(methodName, nameof(IntrinsicFunctions.EnsureTrailingSlash), StringComparison.OrdinalIgnoreCase))
@@ -389,7 +404,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
                 {
-                    returnVal = IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, fileSystem);
+                    returnVal = IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, context.FileSystem);
                     return true;
                 }
             }
@@ -398,7 +413,8 @@ namespace Microsoft.Build.Evaluation.Expander
                 if (args.Length >= 4 &&
                     ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
                 {
-                    returnVal = IntrinsicFunctions.GetRegistryValueFromView(arg0, arg1, args[2], new ArraySegment<object>(args, 3, args.Length - 3));
+                    returnVal = IntrinsicFunctions.GetRegistryValueFromView(
+                        arg0, arg1, args[2], new ArraySegment<object>(args, 3, args.Length - 3));
                     return true;
                 }
             }
@@ -430,7 +446,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
                 {
-                    returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, fileSystem);
+                    returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, context.FileSystem);
                     return true;
                 }
             }
@@ -764,6 +780,20 @@ namespace Microsoft.Build.Evaluation.Expander
                     return true;
                 }
             }
+            else if (string.Equals(methodName, nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase))
+            {
+                string projectPath = context.Properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
+                LoggingContext? loggingContext = context.LoggingContext;
+                Assumed.NotNull(
+                    loggingContext, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
+
+                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                {
+                    returnVal = IntrinsicFunctions.RegisterBuildCheck(projectPath, arg0, loggingContext);
+                    return true;
+                }
+            }
+
             return false;
         }
 
@@ -777,18 +807,24 @@ namespace Microsoft.Build.Evaluation.Expander
         /// </summary>
         /// <param name="methodName"> </param>
         /// <param name="receiverType"> </param>
-        /// <param name="fileSystem"> </param>
-        /// <param name="returnVal">The value returned from the function call.</param>
         /// <param name="objectInstance">Object that the function is called on.</param>
         /// <param name="args">arguments.</param>
+        /// <param name="context">Dependencies used to execute contextual functions.</param>
+        /// <param name="returnVal">The value returned from the function call.</param>
         /// <returns>True if the well known function call binding was successful.</returns>
-        internal static bool TryExecuteWellKnownFunction(string methodName, Type receiverType, IFileSystem fileSystem, out object? returnVal, object objectInstance, object[] args)
+        internal static bool TryExecuteWellKnownFunction(
+            string methodName,
+            Type receiverType,
+            object? objectInstance,
+            object[] args,
+            ref readonly ExecutionContext context,
+            out object? returnVal)
         {
             returnVal = null;
 
             if (objectInstance is string text)
             {
-                return TryExecuteStringFunction(methodName, out returnVal, text, args);
+                return TryExecuteStringFunction(methodName, text, args, in context, out returnVal);
             }
             else if (objectInstance is string[] stringArray)
             {
@@ -851,11 +887,11 @@ namespace Microsoft.Build.Evaluation.Expander
                 }
                 else if (receiverType == typeof(IntrinsicFunctions))
                 {
-                    return TryExecuteIntrinsicFunction(methodName, out returnVal, fileSystem, args);
+                    return TryExecuteIntrinsicFunction(methodName, args, in context, out returnVal);
                 }
                 else if (receiverType == typeof(Path))
                 {
-                    return TryExecutePathFunction(methodName, out returnVal, args);
+                    return TryExecutePathFunction(methodName, args, in context, out returnVal);
                 }
                 else if (receiverType == typeof(Version))
                 {
@@ -938,38 +974,20 @@ namespace Microsoft.Build.Evaluation.Expander
             return false;
         }
 
-        internal static bool TryExecuteWellKnownFunctionWithPropertiesParam<T>(string methodName, Type receiverType, LoggingContext loggingContext,
-                                                                            IPropertyProvider<T> properties, out object? returnVal, object objectInstance, object[] args)
-            where T : class, IProperty
-        {
-            returnVal = null;
-
-            if (receiverType == typeof(IntrinsicFunctions))
-            {
-                if (string.Equals(methodName, nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase))
-                {
-                    string projectPath = properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
-                    Assumed.NotNull(loggingContext, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
-                    if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
-                    {
-                        returnVal = IntrinsicFunctions.RegisterBuildCheck(projectPath, arg0, loggingContext);
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
         /// <summary>
         /// Shortcut to avoid calling into binding if we recognize some most common constructors.
         /// Analogous to TryExecuteWellKnownFunction but guaranteed to not throw.
         /// </summary>
         /// <param name="receiverType"> Receiver type for the constructor. </param>
-        /// <param name="returnVal">The instance as created by the constructor call.</param>
         /// <param name="args">Arguments.</param>
+        /// <param name="context">Dependencies used to execute contextual functions.</param>
+        /// <param name="returnVal">The instance as created by the constructor call.</param>
         /// <returns>True if the well known constructor call binding was successful.</returns>
-        internal static bool TryExecuteWellKnownConstructorNoThrow(Type? receiverType, out object? returnVal, object[] args)
+        internal static bool TryExecuteWellKnownConstructorNoThrow(
+            Type? receiverType,
+            object[] args,
+            ref readonly ExecutionContext context,
+            out object? returnVal)
         {
             returnVal = null;
 

@@ -78,11 +78,6 @@ internal partial class Expander<P, I>
         public IPropertyProvider<P> Properties => _expander._properties;
 
         /// <summary>
-        ///  Gets the logging context associated with property tracking.
-        /// </summary>
-        public LoggingContext? PropertyLoggingContext => _expander._propertiesUseTracker.LoggingContext;
-
-        /// <summary>
         ///  Gets the property-use tracker used during expansion.
         /// </summary>
         public PropertiesUseTracker PropertiesUseTracker => _expander._propertiesUseTracker;
