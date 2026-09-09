@@ -39,6 +39,7 @@ using TaskItem = Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 
 namespace Microsoft.Build.UnitTests.Evaluation
 {
+    [Trait("Category", "expansion")]
     public class Expander_Tests
     {
         private readonly ITestOutputHelper _output;

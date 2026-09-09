@@ -27,6 +27,7 @@ namespace Microsoft.Build.UnitTests.Evaluation;
 /// an AppContext switch, once set, cannot be returned to the "unset" state in process. The new
 /// restriction switch intentionally has no environment variable.
 /// </remarks>
+[Trait("Category", "expansion")]
 public class PropertyFunctionReceiverRestriction_Tests
 {
     private const string RestrictSwitch = "Microsoft.Build.RestrictPropertyFunctionReceivers";
