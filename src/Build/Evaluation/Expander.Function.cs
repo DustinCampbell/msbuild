@@ -5,23 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-#if !FEATURE_MSIOREDIST
-using System.IO;
-#endif
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
 using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
-
-#if FEATURE_MSIOREDIST
-// File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
-// System.IO.File to match the types registered in AvailableStaticMembers.
-using Path = Microsoft.IO.Path;
-#endif
 
 #nullable disable
 
@@ -358,6 +350,7 @@ internal partial class Expander<P, I>
         {
             object functionResult = String.Empty;
             object[] args = null;
+            ExecutionContext executionContext = new(context.Properties, context.Location, context.FileSystem, context.LoggingContext);
 
             try
             {
@@ -407,9 +400,8 @@ internal partial class Expander<P, I>
                     {
                         // Unescape the value since we're about to send it out of the engine and into
                         // the function being called. If a file or a directory function, fix the path
-                        // Use fully qualified type names because FEATURE_MSIOREDIST aliases
-                        // Directory and Path to Microsoft.IO.* in this file, but _receiverType
-                        // from AvailableStaticMembers is always System.IO.*.
+                        // Use fully qualified type names because receiver types from
+                        // AvailableStaticMembers are always System.IO.*.
                         if (_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory)
                             || _receiverType == typeof(System.IO.Path))
                         {
@@ -463,24 +455,6 @@ internal partial class Expander<P, I>
                     args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
                 }
 
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    // Special case a few methods that take extra parameters that can't be passed in by the user
-                    if (_methodName.Equals("GetPathOfFileAbove") && args.Length == 1)
-                    {
-                        // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
-                        // specified the file name.  This is syntactic sugar so they don't have to always
-                        // include $(MSBuildThisFileDirectory) as a parameter.
-                        string startingDirectory = !context.Location.File.IsNullOrWhiteSpace()
-                            ? Path.GetDirectoryName(context.Location.File)
-                            : string.Empty;
-
-                        args = [args[0], startingDirectory];
-                    }
-                }
-
-                ExecutionContext executionContext = new(context.Properties, context.FileSystem, context.LoggingContext);
-
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodName, StringComparison.OrdinalIgnoreCase))
@@ -506,10 +480,10 @@ internal partial class Expander<P, I>
                         wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(
                             _methodName, _receiverType, objectInstance, args, in executionContext, out functionResult);
                     }
-                    // we need to preserve the same behavior on exceptions as the actual binder
                     catch (Exception ex)
                     {
-                        string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodName, args);
+                        // we need to preserve the same behavior on exceptions as the actual binder
+                        string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, args, in executionContext);
                         if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                         {
                             return partiallyEvaluated;
@@ -578,7 +552,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodName, args);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, args, in executionContext);
                 if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -605,7 +579,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodName, args);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, args, in executionContext);
                     context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);
                 }
 
@@ -872,72 +846,93 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Make an attempt to create a string showing what we were trying to execute when we failed.
-        /// This will show any intermediate evaluation which may help the user figure out what happened.
+        ///  Formats the attempted property-function invocation for diagnostics.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(string expression, object objectInstance, string name, object[] args)
+        /// <param name="objectInstance">The instance receiver, or <see langword="null"/> for a static invocation.</param>
+        /// <param name="args">
+        ///  The materialized function arguments, or <see langword="null"/> when materialization did not begin.
+        /// </param>
+        /// <param name="context">Dependencies used to reconstruct implicit diagnostic arguments.</param>
+        /// <returns>
+        ///  A diagnostic representation of the attempted invocation.
+        /// </returns>
+        /// <remarks>
+        ///  For the one-argument <see cref="IntrinsicFunctions.GetPathOfFileAbove"/> form, the returned text includes
+        ///  the implicit starting directory supplied during well-known-function execution.
+        /// </remarks>
+        private string GenerateStringOfMethodExecuted(object objectInstance, object[] args, ref readonly ExecutionContext context)
         {
-            string parameters = String.Empty;
-            if (args != null)
-            {
-                foreach (object arg in args)
-                {
-                    if (arg == null)
-                    {
-                        parameters += "null";
-                    }
-                    else
-                    {
-                        string argString = arg.ToString();
-                        if (arg is string && argString.Length == 0)
-                        {
-                            parameters += "''";
-                        }
-                        else
-                        {
-                            parameters += arg.ToString();
-                        }
-                    }
-
-                    parameters += ", ";
-                }
-
-                if (parameters.Length > 2)
-                {
-                    parameters = parameters.Substring(0, parameters.Length - 2);
-                }
-            }
+            StringBuilder builder = StringBuilderCache.Acquire();
 
             if (objectInstance == null)
             {
-                string typeName = _receiverType.FullName;
+                builder.Append('[');
 
-                // We don't want to expose the real type name of our intrinsics
-                // so we'll replace it with "MSBuild"
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    typeName = "MSBuild";
-                }
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                {
-                    return $"[{typeName}]::{name}({parameters})";
-                }
-                else
-                {
-                    return $"[{typeName}]::{name}";
-                }
+                // Do not expose the real type name of intrinsics; property functions use the public "MSBuild" name.
+                builder.Append(_receiverType == typeof(IntrinsicFunctions) ? "MSBuild" : _receiverType.FullName);
+                builder.Append("]::");
             }
             else
             {
-                string propertyValue = $"\"{objectInstance as string}\"";
+                builder.Append('"');
+                builder.Append(objectInstance as string);
+                builder.Append("\".");
+            }
 
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            builder.Append(_methodName);
+
+            if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            {
+                builder.Append('(');
+
+                if (args != null)
                 {
-                    return $"{propertyValue}.{name}({parameters})";
+                    bool isFirst = true;
+
+                    foreach (object arg in args)
+                    {
+                        AppendFunctionArgument(builder, arg, ref isFirst);
+                    }
+
+                    // Well-known execution supplies the starting directory implicitly for the one-argument form of "GetPathOfFileAbove".
+                    // Render that hidden argument here to preserve the historical diagnostic without recreating args.
+                    if (_receiverType == typeof(IntrinsicFunctions) &&
+                        _methodName.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase) &&
+                        args.Length == 1)
+                    {
+                        AppendFunctionArgument(builder, context.GetStartingDirectory(), ref isFirst);
+                    }
+                }
+
+                builder.Append(')');
+            }
+
+            return StringBuilderCache.GetStringAndRelease(builder);
+
+            static void AppendFunctionArgument(StringBuilder builder, object argument, ref bool isFirst)
+            {
+                if (isFirst)
+                {
+                    isFirst = false;
                 }
                 else
                 {
-                    return $"{propertyValue}.{name}";
+                    builder.Append(", ");
+                }
+
+                switch (argument)
+                {
+                    case null:
+                        builder.Append("null");
+                        break;
+
+                    case "":
+                        builder.Append("''");
+                        break;
+
+                    default:
+                        builder.Append(argument);
+                        break;
                 }
             }
         }

@@ -444,7 +444,13 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase))
             {
-                if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
+                if (ParseArgs.TryGetArg(args, out string? arg0))
+                {
+                    returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, context.GetStartingDirectory(), context.FileSystem);
+                    return true;
+                }
+
+                if (ParseArgs.TryGetArgs(args, out arg0, out string? arg1))
                 {
                     returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, context.FileSystem);
                     return true;
