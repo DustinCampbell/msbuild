@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Microsoft.Build.BackEnd.Logging;
 
 #nullable disable
 
@@ -86,11 +85,6 @@ internal partial class Expander<P, I>
         public string Remainder { get; set; }
 
         /// <summary>
-        ///  Gets or sets the logging context used by well-known property functions.
-        /// </summary>
-        public LoggingContext LoggingContext { get; set; }
-
-        /// <summary>
         ///  Creates a function from the accumulated binding state.
         /// </summary>
         /// <returns>
@@ -105,8 +99,7 @@ internal partial class Expander<P, I>
                 Name,
                 Arguments,
                 BindingFlags,
-                Remainder,
-                LoggingContext);
+                Remainder);
         }
     }
 }

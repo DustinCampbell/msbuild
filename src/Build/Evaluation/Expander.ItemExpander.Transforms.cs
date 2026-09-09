@@ -857,15 +857,14 @@ internal partial class Expander<P, I>
                 // using the Include from the source items
                 foreach (TransformEntry<I> item in input)
                 {
-                    Function function = new Function(
-                        typeof(string),
-                        item.Value,
-                        item.Value,
-                        functionName,
-                        arguments,
-                        BindingFlags.Public | BindingFlags.InvokeMethod,
-                        string.Empty,
-                        context.LoggingContext);
+                    Function function = new(
+                        receiverType: typeof(string),
+                        expression: item.Value,
+                        receiver: item.Value,
+                        methodName: functionName,
+                        arguments: arguments,
+                        bindingFlags: BindingFlags.Public | BindingFlags.InvokeMethod,
+                        remainder: string.Empty);
 
                     object result = function.Execute(item.Value, context.WithOptions(ExpanderOptions.ExpandAll));
 
