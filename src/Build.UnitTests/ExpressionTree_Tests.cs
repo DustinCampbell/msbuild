@@ -19,6 +19,7 @@ using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
+    [Trait("Category", "expansion")]
     public class ExpressionTreeTest
     {
         /// <summary>
