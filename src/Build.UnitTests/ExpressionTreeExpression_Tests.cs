@@ -18,6 +18,7 @@ using Xunit;
 
 namespace Microsoft.Build.UnitTests
 {
+    [Trait("Category", "expansion")]
     public class ExpressionTest : IDisposable
     {
         private readonly ITestOutputHelper output;

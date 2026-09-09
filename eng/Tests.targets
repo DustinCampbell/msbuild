@@ -1,0 +1,67 @@
+<!-- Licensed to the .NET Foundation under one or more agreements. The .NET Foundation licenses this file to you under the MIT license. -->
+<Project>
+
+  <!--
+    Run the focused expansion suite a second time in a fresh process using LegacyExpander. Arcade's RunTests
+    target provides TestToRun metadata during repo builds.
+  -->
+  <Target Name="_PrepareLegacyExpanderTests"
+          BeforeTargets="RunTests"
+          Condition="'$(RunQuarantinedTests)' != 'true'
+                     and '$(MSBuildProjectName)' == 'Microsoft.Build.Engine.UnitTests'">
+    <ItemGroup>
+      <_LegacyExpanderTest Include="@(TestToRun)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_RunLegacyExpanderTests"
+          AfterTargets="RunTests"
+          Outputs="%(_LegacyExpanderTest.Identity).LegacyExpander"
+          Condition="'@(_LegacyExpanderTest)' != ''">
+    <PropertyGroup>
+      <_LegacyExpanderTestRunner>%(_LegacyExpanderTest.RunCommand)</_LegacyExpanderTestRunner>
+      <_LegacyExpanderTestArguments>%(_LegacyExpanderTest.RunArguments) %(_LegacyExpanderTest.TestRunnerAdditionalArguments)</_LegacyExpanderTestArguments>
+      <_LegacyExpanderResultName>%(_LegacyExpanderTest.ResultsFilePathWithoutExtension)_LegacyExpander</_LegacyExpanderResultName>
+      <_LegacyExpanderResultDirectory>$([System.IO.Path]::GetDirectoryName('%(_LegacyExpanderTest.ResultsTrxPath)'))</_LegacyExpanderResultDirectory>
+      <_LegacyExpanderLogDirectory>$([System.IO.Path]::GetDirectoryName('%(_LegacyExpanderTest.ResultsStdOutPath)'))</_LegacyExpanderLogDirectory>
+      <_LegacyExpanderTrxPath>$([System.IO.Path]::Combine('$(_LegacyExpanderResultDirectory)', '$(_LegacyExpanderResultName).trx'))</_LegacyExpanderTrxPath>
+      <_LegacyExpanderLogPath>$([System.IO.Path]::Combine('$(_LegacyExpanderLogDirectory)', '$(_LegacyExpanderResultName).log'))</_LegacyExpanderLogPath>
+      <_LegacyExpanderTestArguments>$(_LegacyExpanderTestArguments) --filter-trait Category=expansion --ignore-exit-code 8 --no-progress --report-trx --report-trx-filename "$([System.IO.Path]::GetFileName('$(_LegacyExpanderTrxPath)'))" --results-directory "$(_LegacyExpanderResultDirectory)"</_LegacyExpanderTestArguments>
+      <_LegacyExpanderTestCommand>"$(_LegacyExpanderTestRunner)" $(_LegacyExpanderTestArguments)</_LegacyExpanderTestCommand>
+      <_LegacyExpanderTestCommand Condition="'$(TestCaptureOutput)' != 'false'">$(_LegacyExpanderTestCommand) &gt; "$(_LegacyExpanderLogPath)" 2&gt;&amp;1</_LegacyExpanderTestCommand>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_LegacyExpanderResultDirectory);$(_LegacyExpanderLogDirectory)" />
+    <Delete Files="$(_LegacyExpanderTrxPath);$(_LegacyExpanderLogPath)" />
+
+    <Message Text="Running LegacyExpander tests: %(_LegacyExpanderTest.Identity) [%(_LegacyExpanderTest.EnvironmentDisplay)]"
+             Importance="high" />
+
+    <Exec Command='$(_LegacyExpanderTestCommand)'
+          EnvironmentVariables="MSBUILDUSELEGACYEXPANDER=1;MSBUILDUSESERVER=0"
+          WorkingDirectory="$([System.IO.Path]::GetDirectoryName('%(_LegacyExpanderTest.Identity)'))"
+          LogStandardErrorAsError="false"
+          IgnoreExitCode="true"
+          Timeout="%(_LegacyExpanderTest.TestTimeout)"
+          ContinueOnError="WarnAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="_LegacyExpanderTestErrorCode" />
+    </Exec>
+
+    <WriteLinesToFile File="$(_LegacyExpanderLogPath)"
+                      Overwrite="false"
+                      Lines=";=== COMMAND LINE ===;$(_LegacyExpanderTestCommand)"
+                      Condition="'$(TestCaptureOutput)' != 'false'" />
+
+    <Message Text="LegacyExpander tests succeeded: %(_LegacyExpanderTest.Identity) [%(_LegacyExpanderTest.EnvironmentDisplay)]"
+             Condition="'$(_LegacyExpanderTestErrorCode)' == '0'"
+             Importance="high" />
+    <Error Text="LegacyExpander tests failed: $(_LegacyExpanderLogPath) [%(_LegacyExpanderTest.EnvironmentDisplay)]"
+           Condition="'$(_LegacyExpanderTestErrorCode)' != '0' and '$(_ErrorOnTestFailure)' != 'false'"
+           File="Microsoft.Testing.Platform" />
+
+    <ItemGroup>
+      <FileWrites Include="$(_LegacyExpanderTrxPath);$(_LegacyExpanderLogPath)" />
+    </ItemGroup>
+  </Target>
+
+</Project>
