@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -496,30 +497,38 @@ internal partial class Expander<P, I>
 
                     if (!wellKnownFunctionSuccess)
                     {
-                        // Execute the function given converted arguments
-                        // The only exception that we should catch to try a late bind here is missing method
-                        // otherwise there is the potential of running a function twice!
-                        try
+                        using RefArrayBuilder<int> outArgIndices = new(stackalloc int[4]);
+                        for (int i = 0; i < args.Length; i++)
                         {
-                            // If there are any out parameters, try to figure out their type and create defaults for them as appropriate before calling the method.
-                            if (args.Any(a => "out _".Equals(a)))
+                            if (args[i] is "out _")
                             {
-                                IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodName) && m.GetParameters().Length == args.Length);
-                                functionResult = GetMethodResult(objectInstance, methods, args, 0);
-                            }
-                            else
-                            {
-                                // If there are no out parameters, use InvokeMember using the standard binder - this will match and coerce as needed
-                                functionResult = _receiverType.InvokePublicMember(_methodName, _bindingFlags, objectInstance, args);
+                                outArgIndices.Add(i);
                             }
                         }
-                        // If we're invoking a method, then there are deeper attempts that can be made to invoke the method.
-                        // If not, we were asked to get a property or field but found that we cannot locate it. No further argument coercion is possible, so throw.
-                        catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+
+                        if (!outArgIndices.IsEmpty)
                         {
-                            // The standard binder failed, so do our best to coerce types into the arguments for the function
-                            // This may happen if the types need coercion, but it may also happen if the object represents a type that contains open type parameters, that is, ContainsGenericParameters returns true.
-                            functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, false /* is not constructor */);
+                            functionResult = TryBindAndInvokeMethodWithOutArguments(
+                                objectInstance,
+                                args,
+                                outArgIndices.AsSpan(),
+                                out object result)
+                                ? result
+                                : null;
+                        }
+                        else
+                        {
+                            // Execute the function given converted arguments. The only exception that should trigger
+                            // late binding is a missing method; otherwise user code could execute twice.
+                            try
+                            {
+                                functionResult = _receiverType.InvokePublicMember(_methodName, _bindingFlags, objectInstance, args);
+                            }
+                            catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+                            {
+                                // The standard binder failed, so do our best to coerce types into the arguments for the function.
+                                functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, isConstructor: false);
+                            }
                         }
                     }
                 }
@@ -587,45 +596,114 @@ internal partial class Expander<P, I>
             }
         }
 
-        private object GetMethodResult(object objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)
+        /// <summary>
+        ///  Attempts to bind and invoke a method call containing discarded <c>out</c> arguments.
+        /// </summary>
+        /// <param name="objectInstance">The instance receiver, or <see langword="null"/> for a static method.</param>
+        /// <param name="args">The materialized method arguments.</param>
+        /// <param name="outArgIndices">The indices of arguments written as <c>out _</c>.</param>
+        /// <param name="functionResult">
+        ///  When this method returns <see langword="true"/>, the method result, including <see langword="null"/>;
+        ///  otherwise, <see langword="null"/>.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> when a compatible method was bound and invoked; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  Candidate discovery and binding do not execute user code. Only the method selected by the default binder
+        ///  is invoked.
+        /// </remarks>
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2080:UnrecognizedReflectionPattern",
+            Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
+        private bool TryBindAndInvokeMethodWithOutArguments(
+            object objectInstance,
+            object[] args,
+            ReadOnlySpan<int> outArgIndices,
+            out object functionResult)
         {
-            for (int i = index; i < args.Length; i++)
-            {
-                if (args[i].Equals("out _"))
-                {
-                    object toReturn = null;
-                    foreach (MethodInfo method in methods)
-                    {
-                        Type t = method.GetParameters()[i].ParameterType;
-                        args[i] = t.CreateDefault();
-                        object currentReturnValue = GetMethodResult(objectInstance, methods, args, i + 1);
-                        if (currentReturnValue is not null)
-                        {
-                            if (toReturn is null)
-                            {
-                                toReturn = currentReturnValue;
-                            }
-                            else if (!toReturn.Equals(currentReturnValue))
-                            {
-                                // There were multiple methods that seemed viable and gave different results. We can't differentiate between them so throw.
-                                ErrorUtilities.ThrowArgument("CouldNotDifferentiateBetweenCompatibleMethods", _methodName, args.Length);
-                                return null;
-                            }
-                        }
-                    }
+            functionResult = null;
 
-                    return toReturn;
+            MethodInfo[] candidates = _receiverType.GetMethods(_bindingFlags);
+            int candidateCount = 0;
+
+            // Compact compatible declarations in place so the binder cannot consider another member name,
+            // arity, or a normal parameter at a discarded-out position.
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                MethodInfo candidate = candidates[i];
+                if (!_methodName.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                ParameterInfo[] parameters = candidate.GetParameters();
+                if (parameters.Length == args.Length &&
+                    HasOutParameters(parameters, outArgIndices))
+                {
+                    candidates[candidateCount++] = candidate;
                 }
             }
 
+            if (candidateCount == 0)
+            {
+                return false;
+            }
+
+            Array.Resize(ref candidates, candidateCount);
+
+            // BindToMethod may mutate or replace its argument array. Clone it so the original materialized values
+            // remain available for diagnostics.
+            object[] boundArgs = (object[])args.Clone();
+            foreach (int index in outArgIndices)
+            {
+                // An out argument has no input value. Null leaves its type unconstrained so the binder can use the
+                // candidate parameter metadata and the remaining arguments to select an overload.
+                boundArgs[index] = null;
+            }
+
+            MethodBase method;
             try
             {
-                return _receiverType.InvokePublicMember(_methodName, _bindingFlags, objectInstance, args) ?? "null";
+                method = Type.DefaultBinder.BindToMethod(
+                    _bindingFlags,
+                    candidates,
+                    ref boundArgs,
+                    modifiers: null,
+                    culture: CultureInfo.InvariantCulture,
+                    names: null,
+                    out _);
             }
-            catch (Exception)
+            catch (MissingMethodException)
             {
-                // This isn't a viable option, but perhaps another set of parameters will work.
-                return null;
+                return false;
+            }
+            catch (AmbiguousMatchException)
+            {
+                return false;
+            }
+
+            if (method is null)
+            {
+                return false;
+            }
+
+            // Invoke exactly once after binding; method-body exceptions must propagate to the normal error path.
+            functionResult = method.Invoke(objectInstance, boundArgs);
+            return true;
+
+            static bool HasOutParameters(ParameterInfo[] parameters, ReadOnlySpan<int> outArgIndices)
+            {
+                foreach (int index in outArgIndices)
+                {
+                    if (!parameters[index].IsOut)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
         }
 
