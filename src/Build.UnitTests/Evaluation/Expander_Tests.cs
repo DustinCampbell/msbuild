@@ -1301,15 +1301,16 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         public void StaticMethodWithThrowawayParameterSupported()
         {
-            MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(@"
-<Project>
-  <PropertyGroup>
-    <MyProperty>Value is $([System.Int32]::TryParse(""3"", out _))</MyProperty>
-  </PropertyGroup>
-  <Target Name='Build'>
-    <Message Text='$(MyProperty)' />
-  </Target>
-</Project>");
+            MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess("""
+                <Project>
+                  <PropertyGroup>
+                    <MyProperty>Value is $([System.Int32]::TryParse("3", out _))</MyProperty>
+                  </PropertyGroup>
+                  <Target Name='Build'>
+                    <Message Text='$(MyProperty)' />
+                  </Target>
+                </Project>
+                """);
 
             logger.FullLog.ShouldContain("Value is True");
         }
@@ -1317,17 +1318,329 @@ namespace Microsoft.Build.UnitTests.Evaluation
         [Fact]
         public void StaticMethodWithThrowawayParameterSupported2()
         {
-            MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(@"
-<Project>
-  <PropertyGroup>
-    <MyProperty>Value is $([System.Int32]::TryParse(""notANumber"", out _))</MyProperty>
-  </PropertyGroup>
-  <Target Name='Build'>
-    <Message Text='$(MyProperty)' />
-  </Target>
-</Project>");
+            MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess("""
+                <Project>
+                  <PropertyGroup>
+                    <MyProperty>Value is $([System.Int32]::TryParse("notANumber", out _))</MyProperty>
+                  </PropertyGroup>
+                  <Target Name='Build'>
+                    <Message Text='$(MyProperty)' />
+                  </Target>
+                </Project>
+                """);
 
             logger.FullLog.ShouldContain("Value is False");
+        }
+
+        /// <summary>
+        ///  Modern-only: LegacyExpander invokes the compatible method repeatedly while probing overloads.
+        /// </summary>
+        [ModernExpanderOnlyFact]
+        public void InstanceMethodWithThrowawayParameterInvokedOnce()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::new().Invoke('value', out _))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe("1");
+        }
+
+        /// <summary>
+        ///  Modern-only: LegacyExpander swallows method-body exceptions while probing overloads.
+        /// </summary>
+        [ModernExpanderOnlyFact]
+        public void InstanceMethodWithThrowawayParameterPropagatesInvocationFailure()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+                () => expander.ExpandIntoStringLeaveEscaped(
+                    $"$([{typeName}]::new().Throw('value', out _))",
+                    ExpanderOptions.ExpandProperties,
+                    MockElementLocation.Instance));
+
+            exception.Message.ShouldContain("out invocation failed");
+        }
+
+        /// <summary>
+        ///  Modern-only: LegacyExpander treats any parameter at an <c>out _</c> position as a potential out parameter.
+        /// </summary>
+        [ModernExpanderOnlyFact]
+        public void InstanceMethodWithThrowawayParameterDoesNotBindNormalParameter()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::new().NotOut('value', out _))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe(string.Empty);
+        }
+
+        /// <summary>
+        ///  Parity: Non-out arguments must disambiguate overloads when the out argument has no input value.
+        /// </summary>
+        [Fact]
+        public void InstanceMethodWithThrowawayParameterSelectsCompatibleOverload()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::new().Select('value', out _))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe("string");
+        }
+
+        /// <summary>
+        ///  Parity: Multiple discarded out arguments must bind and execute normally.
+        /// </summary>
+        [Fact]
+        public void InstanceMethodWithMultipleThrowawayParametersSupported()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::new().Multiple('value', out _, out _))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe("value");
+        }
+
+        /// <summary>
+        ///  Legacy-only: Preserves the compatibility behavior in which overload probing leaks its <c>"null"</c>
+        ///  sentinel into the expansion result.
+        /// </summary>
+        [LegacyExpanderOnlyFact]
+        public void LegacyInstanceMethodWithThrowawayParameterExpandsNullResultAsLiteralNull()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::new().ReturnNull('value', out _))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe("null");
+        }
+
+        /// <summary>
+        ///  Modern-only: A successfully invoked method returning <see langword="null"/> expands to an empty string.
+        /// </summary>
+        [ModernExpanderOnlyFact]
+        public void InstanceMethodWithThrowawayParameterExpandsNullResultAsEmpty()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::new().ReturnNull('value', out _))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe(string.Empty);
+        }
+
+        /// <summary>
+        ///  Legacy-only: Preserves the compatibility behavior in which a nested property function passes the leaked
+        ///  <c>"null"</c> sentinel to an outer function as a string.
+        /// </summary>
+        [LegacyExpanderOnlyFact]
+        public void LegacyNestedMethodWithThrowawayParameterPassesNullResultAsString()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::ClassifyNullResult($([{typeName}]::new().ReturnNull('value', out _))))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe("null string");
+        }
+
+        /// <summary>
+        ///  Modern-only: Property expansion omits a nested property function's <see langword="null"/> result, so
+        ///  the outer function receives an empty string rather than the legacy <c>"null"</c> sentinel.
+        /// </summary>
+        [ModernExpanderOnlyFact]
+        public void NestedMethodWithThrowawayParameterPassesNullResultAsEmptyString()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::ClassifyNullResult($([{typeName}]::new().ReturnNull('value', out _))))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe("empty string");
+        }
+
+        /// <summary>
+        ///  Parity: Overloads that differ only by discarded out-parameter type remain unbindable.
+        /// </summary>
+        [Fact]
+        public void InstanceMethodWithThrowawayParameterDoesNotBindAmbiguousOverloads()
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+            env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+
+            string typeName = typeof(OutArgumentProbe).AssemblyQualifiedName;
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
+                ExpanderFactory.Create(new PropertyDictionary<ProjectPropertyInstance>());
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::new().Ambiguous('value', out _))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe(string.Empty);
+        }
+
+        public sealed class OutArgumentProbe
+        {
+            private int _invocationCount;
+
+            public int Invoke(string value, out int result)
+            {
+                result = default;
+                return ++_invocationCount;
+            }
+
+            public int Invoke(int value, out string result)
+            {
+                result = string.Empty;
+                return ++_invocationCount;
+            }
+
+            public string Throw(string value, out int result)
+            {
+                result = default;
+                throw new InvalidOperationException("out invocation failed");
+            }
+
+            public string Throw(int value, out string result)
+            {
+                result = string.Empty;
+                throw new InvalidOperationException("out invocation failed");
+            }
+
+            public string NotOut(string value, string argument)
+                => value + argument;
+
+            public string Select(string value, out int result)
+            {
+                result = default;
+                return "string";
+            }
+
+            public string Select(int value, out string result)
+            {
+                result = string.Empty;
+                return "int";
+            }
+
+            public string Multiple(string value, out int number, out string text)
+            {
+                number = default;
+                text = string.Empty;
+                return value;
+            }
+
+            public string ReturnNull(string value, out string result)
+            {
+                result = null;
+                return null;
+            }
+
+            public static string ClassifyNullResult(object value)
+                => value switch
+                {
+                    null => "null reference",
+                    "" => "empty string",
+                    "null" => "null string",
+                    _ => "other"
+                };
+
+            public string Ambiguous(string value, out int result)
+            {
+                result = default;
+                return "int";
+            }
+
+            public string Ambiguous(string value, out DateTime result)
+            {
+                result = default;
+                return "DateTime";
+            }
+        }
+
+        private sealed class TransientAvailableStaticMembersCache : TransientTestState
+        {
+            public TransientAvailableStaticMembersCache()
+                => AvailableStaticMembers.Reset_ForUnitTestsOnly();
+
+            public override void Revert()
+                => AvailableStaticMembers.Reset_ForUnitTestsOnly();
         }
 
         [Fact]
