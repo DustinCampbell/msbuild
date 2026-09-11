@@ -493,10 +493,9 @@ internal partial class Expander<P, I>
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(
+                    if (WellKnownFunctions.TryInvokeConstructor(
                             _receiverType,
                             ref arguments,
-                            in executionContext,
                             out functionResult) == WellKnownFunctionResult.NotRecognized)
                     {
                         if (args == null)
@@ -526,8 +525,11 @@ internal partial class Expander<P, I>
                     {
                         // First attempt to recognize some well-known functions to avoid binding
                         // and potential first-chance MissingMethodExceptions.
-                        wellKnownFunctionResult = WellKnownFunctions.TryExecuteWellKnownFunction(
-                            _methodName, _receiverType, objectInstance, ref arguments, in executionContext, out functionResult);
+                        wellKnownFunctionResult = objectInstance is null
+                            ? WellKnownFunctions.TryInvokeStatic(
+                                _receiverType, _methodName, ref arguments, in executionContext, out functionResult)
+                            : WellKnownFunctions.TryInvokeInstance(
+                                objectInstance, _methodName, ref arguments, out functionResult);
                     }
                     catch (Exception ex)
                     {
