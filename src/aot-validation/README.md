@@ -251,9 +251,10 @@ exemptions**: every warning is driven to zero, so a regression cannot slip in as
 
 Everything else is driven to zero too: the SDK-resolution and property-function reflective paths are gated
 behind feature switches baked off here, the `Enum.GetValues(Type)` IL3050 is a vetted false positive (see
-above), and the property-function receiver `IL2078` was fixed by annotating the `FunctionBuilder` backing
-field. The `System.Configuration.ConfigurationManager` dependency (previously an exempted **IL2104**) is
-now trimmed out entirely: the config-file toolset reader is gated behind the
+above), and the property-function receiver dataflow is localized to the vetted
+`FunctionBinder.Bind` IL2067/IL2072 suppressions. The `System.Configuration.ConfigurationManager`
+dependency (previously an exempted **IL2104**) is now trimmed out entirely: the config-file toolset reader is
+gated behind the
 `Microsoft.Build.EnableConfigurationFileToolsets` feature switch, baked off here so ILC dead-strips the
 `ToolsetConfigurationReader` subtree and `System.Configuration` leaves the closure.
 

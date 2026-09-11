@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -11,7 +12,7 @@ internal static partial class WellKnownFunctions
     private sealed class IntrinsicHandler
     {
         internal bool TryInvokeStatic(
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             ref readonly ExecutionContext context,
             out object? result)

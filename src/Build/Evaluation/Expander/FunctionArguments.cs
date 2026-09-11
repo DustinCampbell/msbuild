@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -14,22 +15,32 @@ internal struct FunctionArguments
 {
     private static readonly object s_unmaterialized = new();
 
-    private readonly string?[] _arguments;
+    private readonly ArgumentList _argumentList;
+    private readonly string?[]? _arguments;
     private object?[]? _materializedArguments;
     private IFunctionArgumentMaterializer? _materializer;
 
     public FunctionArguments(string[]? arguments)
     {
+        _argumentList = default;
         _arguments = arguments ?? [];
         _materializedArguments = null;
         _materializer = null;
     }
 
-    public readonly int Count => _arguments.Length;
+    public FunctionArguments(ArgumentList argumentList)
+    {
+        _argumentList = argumentList;
+        _arguments = null;
+        _materializedArguments = null;
+        _materializer = null;
+    }
+
+    public readonly int Count => _arguments?.Length ?? _argumentList.Count;
 
     public readonly object? this[int index]
         => _materializedArguments is null
-            ? _arguments[index]
+            ? GetSource(index).Value
             : EnsureMaterialized(index);
 
     [MemberNotNullWhen(true, nameof(_materializedArguments))]
@@ -103,7 +114,7 @@ internal struct FunctionArguments
         {
             values[i] = _materializedArguments is not null && !ReferenceEquals(_materializedArguments[i], s_unmaterialized)
                 ? _materializedArguments[i]
-                : _arguments[i];
+                : GetSource(i).Value;
         }
 
         return values;
@@ -111,11 +122,24 @@ internal struct FunctionArguments
 
     public readonly bool ContainsExpandableExpression()
     {
-        foreach (string? argument in _arguments)
+        if (_arguments is not null)
         {
-            if (argument is not null && (argument.IndexOf('$') >= 0 || argument.IndexOf('%') >= 0))
+            foreach (string? argument in _arguments)
             {
-                return true;
+                if (argument is not null && (argument.IndexOf('$') >= 0 || argument.IndexOf('%') >= 0))
+                {
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < _argumentList.Count; i++)
+            {
+                if (_argumentList.GetFlags(i) != ArgumentFlags.None)
+                {
+                    return true;
+                }
             }
         }
 
@@ -537,6 +561,11 @@ internal struct FunctionArguments
 
     private readonly object? Materialize(int index)
         => _materializer is null
-            ? _arguments[index]
-            : _materializer.Materialize(_arguments[index], index);
+            ? GetSource(index).Value
+            : _materializer.Materialize(GetSource(index), index);
+
+    private readonly StringSegment GetSource(int index)
+        => _arguments is null
+            ? _argumentList[index]
+            : _arguments[index];
 }
