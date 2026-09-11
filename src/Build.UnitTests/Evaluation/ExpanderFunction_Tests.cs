@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Threading;
 
 using Microsoft.Build.Evaluation.Expander;
+using Microsoft.Build.Text;
 
 using Shouldly;
 
@@ -330,7 +331,7 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
 
             internal List<int> Indices { get; } = [];
 
-            public object? Materialize(string? source, int index)
+            public object? Materialize(StringSegment source, int index)
             {
                 Indices.Add(index);
                 return _materialize(index);

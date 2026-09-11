@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 using Microsoft.Build.Utilities;
 
 namespace Microsoft.Build.Evaluation.Expander;
@@ -23,7 +24,7 @@ internal static partial class WellKnownFunctions
 
     internal static bool TryInvokeStatic(
         Type receiverType,
-        string methodName,
+        StringSegment methodName,
         ref FunctionArguments args,
         ref readonly ExecutionContext context,
         out object? returnVal)
@@ -91,7 +92,7 @@ internal static partial class WellKnownFunctions
         return NotHandled(out returnVal);
     }
 
-    internal static bool TryInvokeInstance(object objectInstance, string methodName, ref FunctionArguments args, out object? returnVal)
+    internal static bool TryInvokeInstance(object objectInstance, StringSegment methodName, ref FunctionArguments args, out object? returnVal)
     {
         // UNDONE: Directly returning false from the string handler bypasses reflection-fallback logging below.
         // Preserve that behavior until logging is made consistent while adding more well-known functions.
@@ -158,7 +159,7 @@ internal static partial class WellKnownFunctions
         return false;
     }
 
-    private static void LogFunctionCall(bool isStatic, Type receiverType, string methodName, ref FunctionArguments args)
+    private static void LogFunctionCall(bool isStatic, Type receiverType, StringSegment methodName, ref FunctionArguments args)
     {
         string logFile = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
 

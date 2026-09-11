@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -12,7 +13,7 @@ internal static partial class WellKnownFunctions
     private sealed class PathHandler
     {
         internal bool TryInvokeStatic(
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
