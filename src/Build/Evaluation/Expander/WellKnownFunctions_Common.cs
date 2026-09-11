@@ -3,6 +3,7 @@
 
 using System;
 using System.Text.RegularExpressions;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -12,7 +13,7 @@ internal static partial class WellKnownFunctions
     {
         internal bool TryInvokeInstance(
             string[] receiver,
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -42,7 +43,7 @@ internal static partial class WellKnownFunctions
     private sealed class MathHandler
     {
         internal bool TryInvokeStatic(
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -88,7 +89,7 @@ internal static partial class WellKnownFunctions
     private sealed class GuidHandler
     {
         internal bool TryInvokeStatic(
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -115,7 +116,7 @@ internal static partial class WellKnownFunctions
     private sealed class CharHandler
     {
         internal bool TryInvokeStatic(
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -148,7 +149,7 @@ internal static partial class WellKnownFunctions
     private sealed class RegexHandler
     {
         internal bool TryInvokeStatic(
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -176,7 +177,7 @@ internal static partial class WellKnownFunctions
     {
         internal bool TryInvokeInstance(
             int receiver,
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {

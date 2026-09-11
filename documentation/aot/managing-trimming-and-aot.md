@@ -529,12 +529,13 @@ internal static bool EnableAllPropertyFunctions =>
 
 At the probing call site in
 [`AvailableStaticMembers.TryResolveType`](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs), the
-`[FeatureGuard]` lets the trim-unsafe assembly-probing run with **no per-call
-`[UnconditionalSuppressMessage]`** — it replaced a standing IL2026 suppression; the trimmer removes
-the whole branch from a trimmed/AOT build because the switch folds to `false`. In untrimmed builds
-the getter preserves the legacy `MSBUILDENABLEALLPROPERTYFUNCTIONS` behavior when the AppContext
-switch is unset; in trimmed/AOT builds the getter body is replaced with `false`, so the environment
-variable cannot re-enable the removed probing path.
+`[FeatureGuard]` lets the trim-unsafe
+assembly-probing run with **no per-call `[UnconditionalSuppressMessage]`** — it replaced a
+standing IL2026 suppression; the trimmer removes the whole branch from a trimmed/AOT build
+because the switch folds to `false`. In untrimmed builds the getter preserves the legacy
+`MSBUILDENABLEALLPROPERTYFUNCTIONS` behavior when the AppContext switch is unset; in trimmed/AOT
+builds the getter body is replaced with `false`, so the environment variable cannot re-enable the
+removed probing path.
 
 ### 6.4 The IL4000 gotcha (the definitive explanation)
 
@@ -803,11 +804,10 @@ flowchart TD
   context** over adding a new suppression (e.g. the `TypeLoader.Create<TInterface>()`
   refactor that avoids an IL2070 suppression — see the suppression tracker).
 - **Localize an unavoidable suppression to the smallest member.** When a
-  `[DynamicallyAccessedMembers]` store genuinely can't be proven, push it into a one-line
-  setter instead of annotating a whole method — e.g. `FunctionBuilder.SetReceiverType` in
-  [Expander.FunctionBuilder.cs](../../src/Build/Evaluation/Expander.FunctionBuilder.cs) owns the
-  single IL2067 suppression for the property-function receiver type, keeping
-  `Function.ExtractPropertyFunction` suppression-free.
+  `[DynamicallyAccessedMembers]` flow genuinely can't be proven, push it into a small factory
+  instead of annotating the parsing methods — e.g. `PropertyFunctionExecutor.Bind` in
+  [Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs) owns the
+  receiver-type suppressions at the parse-to-bind boundary, keeping parsing suppression-free.
 
 ---
 
@@ -865,7 +865,7 @@ flowchart TD
 **This repo** — see the [folder README](README.md) for the full document map. Key source:
 - Central feature switches: [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs)
 - Attribute polyfills: [AotTrimmingPolyfills.cs](../../src/Framework/Polyfills/AotTrimmingPolyfills.cs)
+- Property-function execution, `[FeatureGuard]` probing, and the env-var gates: [Expander.PropertyFunctionExecutor.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.cs)
 - Property-function reflection: [PropertyFunctionInvoker.cs](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs)
-- Property-function `[FeatureGuard]` probing and env-var gates: [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs)
-- Localized IL2067 suppression (`SetReceiverType`): [Expander.FunctionBuilder.cs](../../src/Build/Evaluation/Expander.FunctionBuilder.cs)
+- Localized receiver-flow suppressions: [Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs)
 - Curated property-function receiver allowlist: [PropertyFunctionReceiver.cs](../../src/Build/Evaluation/PropertyFunctionReceiver.cs)

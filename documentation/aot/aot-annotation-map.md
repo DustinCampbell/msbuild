@@ -43,7 +43,7 @@ the suppression row.
 | Category | Microsoft.Build | Microsoft.Build.Framework | Microsoft.Build.Utilities | Total |
 | --- | --- | --- | --- | --- |
 | `[RequiresUnreferencedCode]` | 116 | 17 | 0 | **133** |
-| `[DynamicallyAccessedMembers]` | 16 | 10 | 2 | **28** |
+| `[DynamicallyAccessedMembers]` | 14 | 10 | 2 | **26** |
 | `[RequiresDynamicCode]` | 0 | 0 | 0 | **0** |
 | `[FeatureSwitchDefinition]` | 0 | 8 | 0 | **8** |
 | `[FeatureGuard]` (subset of the above) | 0 | 6 | 0 | **6** |
@@ -74,12 +74,12 @@ either propagates to an honest boundary or is held behind a feature guard.
 
 ## Where the `[DynamicallyAccessedMembers]` annotations live
 
-The 28 DAM annotations are the *positive* trim fixes - they make a reflective access safe by preserving the
+The 26 DAM annotations are the *positive* trim fixes - they make a reflective access safe by preserving the
 exact members the code touches.
 
 | Family | Members | Requested member types | Correct? |
 | --- | --- | --- | --- |
-| **Property-function receivers** | [`Function._receiverType` + ctor param](../../src/Build/Evaluation/Expander.Function.cs); [`FunctionBuilder.SetReceiverType`](../../src/Build/Evaluation/Expander.FunctionBuilder.cs); [`PropertyFunctionInvoker` receiver parameters](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs) | `PublicConstructors \| PublicMethods \| PublicProperties \| PublicFields` | **Yes** - property functions invoke constructors (`new`), call methods, read properties **and** fields (`MaxValue`); kept in sync with `AvailableStaticMembers.PropertyFunctionMembers`. Narrowing would break field/constructor access. |
+| **Property-function receivers** | [`BoundFunction._receiverType` + ctor param](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.cs); [`PropertyFunctionInvoker` receiver parameters](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs) | `PublicConstructors \| PublicMethods \| PublicProperties \| PublicFields` | **Yes** - property functions invoke constructors (`new`), call methods, read properties **and** fields (`MaxValue`); kept in sync with `AvailableStaticMembers.PropertyFunctionMembers`. Narrowing would break field/constructor access. |
 | **Loaded task types** | [`LoadedType` ctor + `TaskType`](../../src/Framework/Loader/LoadedType.cs); [`IntrinsicTaskFactory` ctor](../../src/Build/BackEnd/Components/RequestBuilder/IntrinsicTasks/IntrinsicTaskFactory.cs); [`TaskExecutionHost.CreateIntrinsicTaskFactoryWrapper`](../../src/Build/BackEnd/TaskExecutionHost/TaskExecutionHost.cs) | `PublicParameterlessConstructor \| PublicProperties` | **Yes** - construct (`new`) + bind public properties; no fields/methods reflected. |
 | **Registration generics** | [`TaskClassRegistry.Register<T>` / `CreateLoadedType`](../../src/Framework/TaskClassRegistry.cs); [`Utilities.Task.RegisterTask<T>`](../../src/Utilities/Task.cs); [`TaskParameterTypeRegistry.RegisterValueType<T>`](../../src/Framework/TaskParameterTypeRegistry.cs); [`TaskItem.RegisterTaskParameterValueType<T>`](../../src/Utilities/TaskItem.cs) | `PublicParameterlessConstructor \| PublicProperties` (task types) / `All` (parameter value types) | **Yes** - the generic type parameter carries the DAM so `typeof(T)` flows it to the `LoadedType` build; `All` for value-type parameters is deliberately conservative (any member can be marshalled). |
 | **Plugin types** | [`ProjectCacheService.CreatePluginInstanceFromType` / `GetTypeFromAssemblyPath`](../../src/Build/BackEnd/Components/ProjectCache/ProjectCacheService.cs) | `PublicParameterlessConstructor` | **Yes** - plugin is only `Activator.CreateInstance`d. |

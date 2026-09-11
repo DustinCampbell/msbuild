@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Reflection;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -23,7 +24,7 @@ internal static class PropertyFunctionInvoker
         object?[] args)
         => LateBind(
             receiverType,
-            memberName: null,
+            memberName: default,
             previousException: null,
             BindingFlags.Public | BindingFlags.Instance,
             receiver: null,
@@ -32,7 +33,7 @@ internal static class PropertyFunctionInvoker
 
     public static object? InvokeMember(
         [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
-        string memberName,
+        StringSegment memberName,
         BindingFlags bindingFlags,
         object? receiver,
         object?[] args)
@@ -66,7 +67,7 @@ internal static class PropertyFunctionInvoker
 
         try
         {
-            return receiverType.InvokePublicMember(memberName, bindingFlags, receiver, args);
+            return receiverType.InvokePublicMember(memberName.ValueOrEmpty, bindingFlags, receiver, args);
         }
         catch (MissingMethodException ex) when ((bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
         {
@@ -87,7 +88,7 @@ internal static class PropertyFunctionInvoker
         Justification = "InvokeMember rejects BindingFlags.NonPublic before reaching this private helper; receiverType preserves the public property-function member surface.")]
     private static bool TryBindAndInvokeMethodWithOutArguments(
         [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
-        string memberName,
+        StringSegment memberName,
         BindingFlags bindingFlags,
         object? receiver,
         object?[] args,
@@ -232,13 +233,13 @@ internal static class PropertyFunctionInvoker
         Justification = "InvokeMember rejects BindingFlags.NonPublic before reaching this private helper; receiverType preserves the public property-function member surface.")]
     private static MethodInfo? FindPublicMethodBySignature(
         [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
-        string memberName,
+        StringSegment memberName,
         BindingFlags bindingFlags,
         Type[] parameterTypes)
     {
         foreach (MethodInfo method in receiverType.GetMethods(bindingFlags))
         {
-            if (!string.Equals(method.Name, memberName, StringComparison.OrdinalIgnoreCase))
+            if (!memberName.Equals(method.Name, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -280,7 +281,7 @@ internal static class PropertyFunctionInvoker
         Justification = "InvokeMember rejects BindingFlags.NonPublic before reaching this private helper; constructor binding supplies public-only flags; receiverType preserves the public property-function member surface.")]
     private static object? LateBind(
         [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
-        string? memberName,
+        StringSegment memberName,
         MissingMethodException? previousException,
         BindingFlags bindingFlags,
         object? receiver,
@@ -294,17 +295,14 @@ internal static class PropertyFunctionInvoker
         }
 
         MethodBase? memberInfo;
-        string resolvedMemberName;
         if (isConstructor)
         {
-            resolvedMemberName = string.Empty;
             memberInfo = receiverType.GetConstructor(types);
         }
         else
         {
-            Assumed.NotNull(memberName);
-            resolvedMemberName = memberName;
-            memberInfo = FindPublicMethodBySignature(receiverType, resolvedMemberName, bindingFlags, types);
+            Assumed.True(memberName.HasValue);
+            memberInfo = FindPublicMethodBySignature(receiverType, memberName, bindingFlags, types);
         }
 
         if (memberInfo is null)
@@ -318,13 +316,13 @@ internal static class PropertyFunctionInvoker
                 filterByName = false;
             }
             else if (receiverType == typeof(IntrinsicFunctions) &&
-                     IntrinsicFunctionOverload.IsKnownOverloadMethodName(resolvedMemberName))
+                     IntrinsicFunctionOverload.IsKnownOverloadMethodName(memberName.ValueOrEmpty))
             {
                 MemberInfo[] foundMembers = typeof(IntrinsicFunctions).FindMembers(
                     MemberTypes.Method,
                     bindingFlags,
                     (info, criteria) => string.Equals(info.Name, (string?)criteria, StringComparison.OrdinalIgnoreCase),
-                    resolvedMemberName);
+                    memberName.ValueOrEmpty);
                 Array.Sort(foundMembers, IntrinsicFunctionOverload.IntrinsicFunctionOverloadMethodComparer);
                 members = foundMembers;
                 filterByName = false;
@@ -337,7 +335,7 @@ internal static class PropertyFunctionInvoker
 
             foreach (MemberInfo candidate in members)
             {
-                if (filterByName && !string.Equals(candidate.Name, resolvedMemberName, StringComparison.OrdinalIgnoreCase))
+                if (filterByName && !memberName.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }

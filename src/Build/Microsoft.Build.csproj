@@ -191,8 +191,8 @@
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
     <Compile Include="Evaluation\Expander.ExpansionContext.cs" />
-    <Compile Include="Evaluation\Expander.Function.cs" />
-    <Compile Include="Evaluation\Expander.FunctionBuilder.cs" />
+    <Compile Include="Evaluation\Expander.PropertyFunctionExecutor.cs" />
+    <Compile Include="Evaluation\Expander.PropertyFunctionExecutor.Binding.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.Transforms.cs" />
     <Compile Include="Evaluation\Expander.ItemExpander.Transforms.MetadataMatch.cs" />
@@ -210,6 +210,8 @@
     <Compile Include="Evaluation\Expander\ErrorReporter.cs" />
     <Compile Include="Evaluation\Expander\ArgumentFlags.cs" />
     <Compile Include="Evaluation\Expander\IFunctionArgumentMaterializer.cs" />
+    <Compile Include="Evaluation\Expander\FunctionArguments.cs" />
+    <Compile Include="Evaluation\Expander\ExecutionContext.cs" />
     <Compile Include="Evaluation\Expander\MemberKind.cs" />
     <Compile Include="Evaluation\Expander\Argument.cs" />
     <Compile Include="Evaluation\Expander\PropertyFunction.cs" />
@@ -587,8 +589,6 @@
     <Compile Include="Evaluation\GlobResultBuilder.cs" />
     <Compile Include="Evaluation\Expander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
-    <Compile Include="Evaluation\Expander\FunctionArguments.cs" />
-    <Compile Include="Evaluation\Expander\ExecutionContext.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Common.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Intrinsic.cs" />

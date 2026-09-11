@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -10,7 +11,7 @@ internal static partial class WellKnownFunctions
     private sealed class StringHandler
     {
         internal bool TryInvokeStatic(
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -31,7 +32,7 @@ internal static partial class WellKnownFunctions
 
         internal bool TryInvokeInstance(
             string receiver,
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
