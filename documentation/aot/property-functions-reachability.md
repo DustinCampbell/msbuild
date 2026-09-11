@@ -59,8 +59,8 @@ down predate the split and are approximate; the table here is current.
 | Resolve a static receiver `Type` | `AvailableStaticMembers.TryResolveType` | [AvailableStaticMembers.cs#L58](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L58) |
 | **Static** allow gate | `AvailableStaticMembers.IsAvailable` | [AvailableStaticMembers.cs#L44](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L44) |
 | **Instance** allow gate (only blocks `GetType`) | `IsInstanceMethodAvailable` | [Expander.Function.cs#L964](../../src/Build/Evaluation/Expander.Function.cs#L964) |
-| Argument coercion fallback | `CoerceArguments` | [Expander.Function.cs#L832](../../src/Build/Evaluation/Expander.Function.cs#L832) |
-| Late-bound overload resolution | `LateBindExecute` | [Expander.Function.cs#L1054](../../src/Build/Evaluation/Expander.Function.cs#L1054) |
+| Argument coercion fallback | `PropertyFunctionInvoker.CoerceArguments` | [PropertyFunctionInvoker.cs](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs) |
+| Late-bound overload resolution | `PropertyFunctionInvoker.LateBind` | [PropertyFunctionInvoker.cs](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs) |
 | Public-only binding invariant | `AllowedBindingFlags` + ctor assert | [Expander.Function.cs#L86](../../src/Build/Evaluation/Expander.Function.cs#L86) |
 | The static allowlist data | `AvailableStaticMembers.CreateAvailableMembers` | [AvailableStaticMembers.cs#L252](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L252) |
 | Well-known function fast paths (no reflection) | `WellKnownFunctions.TryInvokeStatic` / `TryInvokeInstance` | [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs) |
@@ -190,16 +190,16 @@ Binding happens in `Execute` in three tiers:
    `WellKnownFunctions.TryInvokeInstance`
    handles common functions without reflection
    ([Expander.cs#L4209](../../src/Build/Evaluation/Expander.cs#L4209)).
-2. **Standard binder** - `_receiverType.InvokePublicMember(name, flags, instance, args)`
-   ([Expander.cs#L4245](../../src/Build/Evaluation/Expander.cs#L4245)) lets the
+2. **Standard binder** - `PropertyFunctionInvoker.InvokeMember(...)`
+   ([PropertyFunctionInvoker.cs](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs)) lets the
    default reflection binder match and coerce.
-3. **Late bind** - on `MissingMethodException`, `LateBindExecute`
-   ([Expander.cs#L4907](../../src/Build/Evaluation/Expander.cs#L4907)) tries an
+3. **Late bind** - on `MissingMethodException`, `PropertyFunctionInvoker.LateBind`
+   ([PropertyFunctionInvoker.cs](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs)) tries an
    all-`string` signature, then matches by name + argument count and runs
-   `CoerceArguments`.
+   `PropertyFunctionInvoker.CoerceArguments`.
 
-`CoerceArguments`
-([Expander.cs#L4700](../../src/Build/Evaluation/Expander.cs#L4700)) is the
+`PropertyFunctionInvoker.CoerceArguments`
+([PropertyFunctionInvoker.cs](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs)) is the
 explicit conversion table:
 
 | Parameter type | Conversion |
@@ -224,7 +224,7 @@ the overload silently fail to bind.
   against the thread working directory in `-mt` mode
   ([Expander.cs#L4128](../../src/Build/Evaluation/Expander.cs#L4128)).
 - **`new`**: routed to a constructor (`TryInvokeConstructor` or
-  `LateBindExecute` as a constructor). Only public constructors on the resolved
+  `PropertyFunctionInvoker.InvokeConstructor`). Only public constructors on the resolved
   receiver type are eligible, so object construction is limited to allowlisted
   types (e.g. `[System.Globalization.CultureInfo]::new('en-US')`).
 - **`out _`**: overloads are resolved without invocation, then the selected method is invoked once.
@@ -259,8 +259,8 @@ the *practical* reachable set is far smaller than a naive type-graph closure.
 | Apparent capability | Why it actually fails | Code |
 | --- | --- | --- |
 | Reflection (`Type`, `Assembly`, `MethodInfo`, ...) | No argument can be a `System.Type`, so `Enum.GetUnderlyingType(Type)` (the only allowlisted member returning `Type`) can't be called; and `obj.GetType()` is blocked. The reflection graph is unreachable despite being in the type closure. | `ExtractFunctionArguments` [L848](../../src/Build/Evaluation/Expander.cs#L848); `IsInstanceMethodAvailable` [L4853](../../src/Build/Evaluation/Expander.cs#L4853) |
-| `async` overloads returning `Task<T>` | The allowlisted entry points (`File`/`Directory`) don't expose async statics, and reaching async I/O instance methods needs non-string args (`byte[]` buffers) that can't be expressed. | allowlist [AvailableStaticMembers.cs#L252](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L252); `CoerceArguments` [L832](../../src/Build/Evaluation/Expander.Function.cs#L832) |
-| Methods needing a non-coercible parameter (`Stream`, delegate, complex object) | `Convert.ChangeType` throws → caught → overload returns `null` → `MissingMethodException` → error. | `CoerceArguments` [L4743](../../src/Build/Evaluation/Expander.cs#L4743) |
+| `async` overloads returning `Task<T>` | The allowlisted entry points (`File`/`Directory`) don't expose async statics, and reaching async I/O instance methods needs non-string args (`byte[]` buffers) that can't be expressed. | allowlist [AvailableStaticMembers.cs#L252](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L252); [`PropertyFunctionInvoker.CoerceArguments`](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs) |
+| Methods needing a non-coercible parameter (`Stream`, delegate, complex object) | `Convert.ChangeType` throws → caught → overload returns `null` → `MissingMethodException` → error. | [`PropertyFunctionInvoker.CoerceArguments`](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs) |
 | Array element access `arr[i]` | There is no indexer syntax. (Workaround: `arr.GetValue(0)` is a normal public method and *does* work - see §7.) | `ConstructFunction` [L4589](../../src/Build/Evaluation/Expander.cs#L4589) |
 | Ending a chain on a non-string object | Not an error: the object is `ToString()`-ed into the property, often producing a useless value like `System.Threading.Tasks.Task\`1[...]`. "Works" only if the final value stringifies usefully. | result handling [L4267](../../src/Build/Evaluation/Expander.cs#L4267) |
 
