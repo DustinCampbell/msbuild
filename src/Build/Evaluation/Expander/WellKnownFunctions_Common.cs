@@ -3,6 +3,7 @@
 
 using System;
 using System.Text.RegularExpressions;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -10,9 +11,9 @@ internal static partial class WellKnownFunctions
 {
     private sealed class StringArrayHandler
     {
-        internal WellKnownFunctionResult TryInvokeInstance(
+        internal bool TryInvokeInstance(
             string[] receiver,
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -21,10 +22,10 @@ internal static partial class WellKnownFunctions
                 return TryInvokeGetValue(receiver, ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetValue(
+        private static bool TryInvokeGetValue(
             string[] receiver,
             ref FunctionArguments arguments,
             out object? result)
@@ -33,17 +34,17 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int index))
             {
                 result = receiver[index];
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
     }
 
     private sealed class MathHandler
     {
-        internal WellKnownFunctionResult TryInvokeStatic(
-            string name,
+        internal bool TryInvokeStatic(
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -60,40 +61,40 @@ internal static partial class WellKnownFunctions
                 }
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeMax(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeMax(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out double left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out double right))
             {
                 result = Math.Max(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeMin(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeMin(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out double left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out double right))
             {
                 result = Math.Min(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
     }
 
     private sealed class GuidHandler
     {
-        internal WellKnownFunctionResult TryInvokeStatic(
-            string name,
+        internal bool TryInvokeStatic(
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -102,25 +103,25 @@ internal static partial class WellKnownFunctions
                 return TryInvokeNewGuid(ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeNewGuid(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeNewGuid(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = Guid.NewGuid();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
     }
 
     private sealed class CharHandler
     {
-        internal WellKnownFunctionResult TryInvokeStatic(
-            string name,
+        internal bool TryInvokeStatic(
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -129,33 +130,33 @@ internal static partial class WellKnownFunctions
                 return TryInvokeIsDigit(ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeIsDigit(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeIsDigit(ref FunctionArguments arguments, out object? result)
         {
             switch (arguments.Count)
             {
                 case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out char value):
                     result = char.IsDigit(value);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case 2 when
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int index):
                     result = char.IsDigit(value, index);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 default:
-                    return NotRecognized(out result);
+                    return NotHandled(out result);
             }
         }
     }
 
     private sealed class RegexHandler
     {
-        internal WellKnownFunctionResult TryInvokeStatic(
-            string name,
+        internal bool TryInvokeStatic(
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -164,10 +165,10 @@ internal static partial class WellKnownFunctions
                 return TryInvokeReplace(ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeReplace(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeReplace(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 3 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? input) &&
@@ -175,18 +176,18 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(2), out string? replacement))
             {
                 result = Regex.Replace(input, pattern, replacement);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
     }
 
     private sealed class Int32Handler
     {
-        internal WellKnownFunctionResult TryInvokeInstance(
+        internal bool TryInvokeInstance(
             int receiver,
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -195,10 +196,10 @@ internal static partial class WellKnownFunctions
                 return TryInvokeToString(receiver, ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeToString(
+        private static bool TryInvokeToString(
             int receiver,
             ref FunctionArguments arguments,
             out object? result)
@@ -207,10 +208,10 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? format))
             {
                 result = receiver.ToString(format);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
     }
 }

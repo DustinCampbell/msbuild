@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -10,8 +11,8 @@ internal static partial class WellKnownFunctions
 {
     private sealed class IntrinsicHandler
     {
-        internal WellKnownFunctionResult TryInvokeStatic(
-            string name,
+        internal bool TryInvokeStatic(
+            StringSegment name,
             ref FunctionArguments arguments,
             ref readonly ExecutionContext context,
             out object? result)
@@ -294,52 +295,52 @@ internal static partial class WellKnownFunctions
                     return TryInvokeGetTargetFrameworkIdentifier(ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeEnsureTrailingSlash(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeEnsureTrailingSlash(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = IntrinsicFunctions.EnsureTrailingSlash(path);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeValueOrDefault(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeValueOrDefault(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? defaultValue))
             {
                 result = IntrinsicFunctions.ValueOrDefault(value, defaultValue);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeNormalizePath(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeNormalizePath(ref FunctionArguments arguments, out object? result)
         {
             string[] paths = new string[arguments.Count];
             for (int i = 0; i < paths.Length; i++)
             {
                 if (!FunctionArgumentCoercion.TryCoerce(arguments.GetValue(i), out string? path))
                 {
-                    return NotRecognized(out result);
+                    return NotHandled(out result);
                 }
 
                 paths[i] = path;
             }
 
             result = IntrinsicFunctions.NormalizePath(paths);
-            return WellKnownFunctionResult.Handled;
+            return true;
         }
 
-        private static WellKnownFunctionResult TryInvokeGetDirectoryNameOfFileAbove(
+        private static bool TryInvokeGetDirectoryNameOfFileAbove(
             ref FunctionArguments arguments,
             ref readonly ExecutionContext context,
             out object? result)
@@ -349,13 +350,13 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? fileName))
             {
                 result = IntrinsicFunctions.GetDirectoryNameOfFileAbove(startingDirectory, fileName, context.FileSystem);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetRegistryValueFromView(
+        private static bool TryInvokeGetRegistryValueFromView(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -370,51 +371,51 @@ internal static partial class WellKnownFunctions
                 if (keyName is not null && valueName is not null)
                 {
                     result = IntrinsicFunctions.GetRegistryValueFromView(keyName, valueName, defaultValue, views);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
                 }
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeIsRunningFromVisualStudio(
+        private static bool TryInvokeIsRunningFromVisualStudio(
             ref FunctionArguments arguments,
             out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = IntrinsicFunctions.IsRunningFromVisualStudio();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeEscape(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeEscape(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = IntrinsicFunctions.Escape(value);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeUnescape(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeUnescape(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = IntrinsicFunctions.Unescape(value);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetPathOfFileAbove(
+        private static bool TryInvokeGetPathOfFileAbove(
             ref FunctionArguments arguments,
             ref readonly ExecutionContext context,
             out object? result)
@@ -423,214 +424,198 @@ internal static partial class WellKnownFunctions
             {
                 case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? file):
                     result = IntrinsicFunctions.GetPathOfFileAbove(file, context.GetStartingDirectory(), context.FileSystem);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case 2 when
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? file) &&
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? startingDirectory):
                     result = IntrinsicFunctions.GetPathOfFileAbove(file, startingDirectory, context.FileSystem);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 default:
-                    return NotRecognized(out result);
+                    return NotHandled(out result);
             }
         }
 
-        private static WellKnownFunctionResult TryInvokeAdd(ref FunctionArguments arguments, out object? result)
-        {
-            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
-            {
-                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
-                    ? (object)IntrinsicFunctions.Add(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
-                    : IntrinsicFunctions.Add(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
-                return WellKnownFunctionResult.Handled;
-            }
+        private static bool TryInvokeAdd(ref FunctionArguments arguments, out object? result)
+            => TryInvokeArithmetic(ref arguments, ArithmeticOperation.Add, out result);
 
-            return NotRecognized(out result);
-        }
+        private static bool TryInvokeSubtract(ref FunctionArguments arguments, out object? result)
+            => TryInvokeArithmetic(ref arguments, ArithmeticOperation.Subtract, out result);
 
-        private static WellKnownFunctionResult TryInvokeSubtract(ref FunctionArguments arguments, out object? result)
-        {
-            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
-            {
-                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
-                    ? (object)IntrinsicFunctions.Subtract(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
-                    : IntrinsicFunctions.Subtract(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
-                return WellKnownFunctionResult.Handled;
-            }
+        private static bool TryInvokeMultiply(ref FunctionArguments arguments, out object? result)
+            => TryInvokeArithmetic(ref arguments, ArithmeticOperation.Multiply, out result);
 
-            return NotRecognized(out result);
-        }
+        private static bool TryInvokeDivide(ref FunctionArguments arguments, out object? result)
+            => TryInvokeArithmetic(ref arguments, ArithmeticOperation.Divide, out result);
 
-        private static WellKnownFunctionResult TryInvokeMultiply(ref FunctionArguments arguments, out object? result)
-        {
-            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
-            {
-                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
-                    ? (object)IntrinsicFunctions.Multiply(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
-                    : IntrinsicFunctions.Multiply(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
-                return WellKnownFunctionResult.Handled;
-            }
+        private static bool TryInvokeModulo(ref FunctionArguments arguments, out object? result)
+            => TryInvokeArithmetic(ref arguments, ArithmeticOperation.Modulo, out result);
 
-            return NotRecognized(out result);
-        }
-
-        private static WellKnownFunctionResult TryInvokeDivide(ref FunctionArguments arguments, out object? result)
-        {
-            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
-            {
-                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
-                    ? (object)IntrinsicFunctions.Divide(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
-                    : IntrinsicFunctions.Divide(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
-                return WellKnownFunctionResult.Handled;
-            }
-
-            return NotRecognized(out result);
-        }
-
-        private static WellKnownFunctionResult TryInvokeModulo(ref FunctionArguments arguments, out object? result)
-        {
-            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
-            {
-                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
-                    ? (object)IntrinsicFunctions.Modulo(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
-                    : IntrinsicFunctions.Modulo(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
-                return WellKnownFunctionResult.Handled;
-            }
-
-            return NotRecognized(out result);
-        }
-
-        private static bool TryGetArithmeticArguments(ref FunctionArguments arguments, out ArithmeticArguments result)
+        private static bool TryInvokeArithmetic(ref FunctionArguments arguments, ArithmeticOperation operation, out object? result)
         {
             if (arguments.Count == 2)
             {
                 object? left = arguments.GetValue(0);
                 object? right = arguments.GetValue(1);
-                return FunctionArgumentCoercion.TryCoerceArithmetic(left, right, out result);
+                if (FunctionArgumentCoercion.TryCoerceArithmetic(left, right, out ArithmeticArguments arithmeticArguments))
+                {
+                    if (arithmeticArguments.Kind == ArithmeticArgumentKind.Int64)
+                    {
+                        result = operation switch
+                        {
+                            ArithmeticOperation.Add => IntrinsicFunctions.Add(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64),
+                            ArithmeticOperation.Subtract => IntrinsicFunctions.Subtract(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64),
+                            ArithmeticOperation.Multiply => IntrinsicFunctions.Multiply(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64),
+                            ArithmeticOperation.Divide => IntrinsicFunctions.Divide(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64),
+                            _ => IntrinsicFunctions.Modulo(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64),
+                        };
+                    }
+                    else
+                    {
+                        result = operation switch
+                        {
+                            ArithmeticOperation.Add => IntrinsicFunctions.Add(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble),
+                            ArithmeticOperation.Subtract => IntrinsicFunctions.Subtract(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble),
+                            ArithmeticOperation.Multiply => IntrinsicFunctions.Multiply(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble),
+                            ArithmeticOperation.Divide => IntrinsicFunctions.Divide(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble),
+                            _ => IntrinsicFunctions.Modulo(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble),
+                        };
+                    }
+
+                    return true;
+                }
             }
 
-            result = default;
-            return false;
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetCurrentToolsDirectory(ref FunctionArguments arguments, out object? result)
+        private enum ArithmeticOperation
+        {
+            Add,
+            Subtract,
+            Multiply,
+            Divide,
+            Modulo,
+        }
+
+        private static bool TryInvokeGetCurrentToolsDirectory(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = IntrinsicFunctions.GetCurrentToolsDirectory();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetToolsDirectory32(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeGetToolsDirectory32(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = IntrinsicFunctions.GetToolsDirectory32();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetToolsDirectory64(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeGetToolsDirectory64(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = IntrinsicFunctions.GetToolsDirectory64();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetMSBuildSDKsPath(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeGetMSBuildSDKsPath(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = IntrinsicFunctions.GetMSBuildSDKsPath();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetVsInstallRoot(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeGetVsInstallRoot(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = IntrinsicFunctions.GetVsInstallRoot();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetMSBuildExtensionsPath(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeGetMSBuildExtensionsPath(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = IntrinsicFunctions.GetMSBuildExtensionsPath();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetProgramFiles32(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeGetProgramFiles32(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = IntrinsicFunctions.GetProgramFiles32();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeVersionEquals(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeVersionEquals(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionEquals(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeVersionNotEquals(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeVersionNotEquals(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionNotEquals(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeVersionGreaterThan(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeVersionGreaterThan(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionGreaterThan(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeVersionGreaterThanOrEquals(
+        private static bool TryInvokeVersionGreaterThanOrEquals(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -639,26 +624,26 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionGreaterThanOrEquals(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeVersionLessThan(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeVersionLessThan(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionLessThan(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeVersionLessThanOrEquals(
+        private static bool TryInvokeVersionLessThanOrEquals(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -667,13 +652,13 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionLessThanOrEquals(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetTargetFrameworkIdentifier(
+        private static bool TryInvokeGetTargetFrameworkIdentifier(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -681,13 +666,13 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework))
             {
                 result = IntrinsicFunctions.GetTargetFrameworkIdentifier(targetFramework);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetTargetFrameworkVersion(
+        private static bool TryInvokeGetTargetFrameworkVersion(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -695,20 +680,20 @@ internal static partial class WellKnownFunctions
             {
                 case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework):
                     result = IntrinsicFunctions.GetTargetFrameworkVersion(targetFramework);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case 2 when
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework) &&
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int versionPartCount):
                     result = IntrinsicFunctions.GetTargetFrameworkVersion(targetFramework, versionPartCount);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 default:
-                    return NotRecognized(out result);
+                    return NotHandled(out result);
             }
         }
 
-        private static WellKnownFunctionResult TryInvokeIsTargetFrameworkCompatible(
+        private static bool TryInvokeIsTargetFrameworkCompatible(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -717,13 +702,13 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? candidateTargetFramework))
             {
                 result = IntrinsicFunctions.IsTargetFrameworkCompatible(targetFramework, candidateTargetFramework);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetTargetPlatformIdentifier(
+        private static bool TryInvokeGetTargetPlatformIdentifier(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -731,13 +716,13 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework))
             {
                 result = IntrinsicFunctions.GetTargetPlatformIdentifier(targetFramework);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetTargetPlatformVersion(
+        private static bool TryInvokeGetTargetPlatformVersion(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -745,50 +730,50 @@ internal static partial class WellKnownFunctions
             {
                 case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework):
                     result = IntrinsicFunctions.GetTargetPlatformVersion(targetFramework);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case 2 when
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework) &&
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int versionPartCount):
                     result = IntrinsicFunctions.GetTargetPlatformVersion(targetFramework, versionPartCount);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 default:
-                    return NotRecognized(out result);
+                    return NotHandled(out result);
             }
         }
 
-        private static WellKnownFunctionResult TryInvokeConvertToBase64(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeConvertToBase64(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = IntrinsicFunctions.ConvertToBase64(value);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeConvertFromBase64(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeConvertFromBase64(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = IntrinsicFunctions.ConvertFromBase64(value);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeStableStringHash(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeStableStringHash(ref FunctionArguments arguments, out object? result)
         {
             switch (arguments.Count)
             {
                 case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value):
                     result = IntrinsicFunctions.StableStringHash(value);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case 2 when
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
@@ -798,26 +783,26 @@ internal static partial class WellKnownFunctions
                                 ignoreCase: true,
                                 out IntrinsicFunctions.StringHashingAlgorithm algorithm):
                     result = IntrinsicFunctions.StableStringHash(value, algorithm);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 default:
-                    return NotRecognized(out result);
+                    return NotHandled(out result);
             }
         }
 
-        private static WellKnownFunctionResult TryInvokeAreFeaturesEnabled(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeAreFeaturesEnabled(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out Version? version))
             {
                 result = IntrinsicFunctions.AreFeaturesEnabled(version);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeSubstringByAsciiChars(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeSubstringByAsciiChars(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 3 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
@@ -825,13 +810,13 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(2), out int length))
             {
                 result = IntrinsicFunctions.SubstringByAsciiChars(value, start, length);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeCheckFeatureAvailability(
+        private static bool TryInvokeCheckFeatureAvailability(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -839,151 +824,151 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? featureName))
             {
                 result = IntrinsicFunctions.CheckFeatureAvailability(featureName);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeBitwiseOr(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeBitwiseOr(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int right))
             {
                 result = IntrinsicFunctions.BitwiseOr(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeBitwiseAnd(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeBitwiseAnd(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int right))
             {
                 result = IntrinsicFunctions.BitwiseAnd(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeBitwiseXor(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeBitwiseXor(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int left) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int right))
             {
                 result = IntrinsicFunctions.BitwiseXor(left, right);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeBitwiseNot(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeBitwiseNot(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int value))
             {
                 result = IntrinsicFunctions.BitwiseNot(value);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeLeftShift(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeLeftShift(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int value) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int count))
             {
                 result = IntrinsicFunctions.LeftShift(value, count);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeRightShift(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeRightShift(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int value) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int count))
             {
                 result = IntrinsicFunctions.RightShift(value, count);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeRightShiftUnsigned(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeRightShiftUnsigned(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 2 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int value) &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int count))
             {
                 result = IntrinsicFunctions.RightShiftUnsigned(value, count);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeNormalizeDirectory(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeNormalizeDirectory(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? directory))
             {
                 result = IntrinsicFunctions.NormalizeDirectory(directory);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeIsOSPlatform(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeIsOSPlatform(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? platform))
             {
                 result = IntrinsicFunctions.IsOSPlatform(platform);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeFileExists(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeFileExists(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? file))
             {
                 result = IntrinsicFunctions.FileExists(file);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeDirectoryExists(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeDirectoryExists(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? directory))
             {
                 result = IntrinsicFunctions.DirectoryExists(directory);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeRegisterBuildCheck(
+        private static bool TryInvokeRegisterBuildCheck(
             ref FunctionArguments arguments,
             ref readonly ExecutionContext context,
             out object? result)
@@ -998,10 +983,10 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? checkName))
             {
                 result = IntrinsicFunctions.RegisterBuildCheck(projectPath, checkName, loggingContext);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
     }
 }

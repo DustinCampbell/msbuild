@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -11,8 +12,8 @@ internal static partial class WellKnownFunctions
 {
     private sealed class PathHandler
     {
-        internal WellKnownFunctionResult TryInvokeStatic(
-            string name,
+        internal bool TryInvokeStatic(
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -52,30 +53,30 @@ internal static partial class WellKnownFunctions
                     return TryInvokeGetFileNameWithoutExtension(ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeCombine(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeCombine(ref FunctionArguments arguments, out object? result)
         {
             // Combine has specialized implementations for up to four arguments.
             switch (arguments.Count)
             {
                 case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? arg0):
                     result = Path.Combine(arg0);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case 2 when
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? arg0) &&
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? arg1):
                     result = Path.Combine(arg0, arg1);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case 3 when
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? arg0) &&
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? arg1) &&
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(2), out string? arg2):
                     result = Path.Combine(arg0, arg1, arg2);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case 4 when
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? arg0) &&
@@ -83,7 +84,7 @@ internal static partial class WellKnownFunctions
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(2), out string? arg2) &&
                     FunctionArgumentCoercion.TryCoerce(arguments.GetValue(3), out string? arg3):
                     result = Path.Combine(arg0, arg1, arg2, arg3);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
 
                 case > 4:
                     string[] paths = new string[arguments.Count];
@@ -91,33 +92,33 @@ internal static partial class WellKnownFunctions
                     {
                         if (!FunctionArgumentCoercion.TryCoerce(arguments.GetValue(i), out string? path))
                         {
-                            return NotRecognized(out result);
+                            return NotHandled(out result);
                         }
 
                         paths[i] = path;
                     }
 
                     result = Path.Combine(paths);
-                    return WellKnownFunctionResult.Handled;
+                    return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeDirectorySeparatorChar(
+        private static bool TryInvokeDirectorySeparatorChar(
             ref FunctionArguments arguments,
             out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = Path.DirectorySeparatorChar;
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetFullPath(
+        private static bool TryInvokeGetFullPath(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -127,13 +128,13 @@ internal static partial class WellKnownFunctions
                 result = !string.IsNullOrEmpty(FileUtilities.CurrentThreadWorkingDirectory)
                     ? Path.GetFullPath(Path.Combine(FileUtilities.CurrentThreadWorkingDirectory, path))
                     : Path.GetFullPath(path);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeIsPathRooted(
+        private static bool TryInvokeIsPathRooted(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -141,26 +142,26 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = Path.IsPathRooted(path);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetTempPath(
+        private static bool TryInvokeGetTempPath(
             ref FunctionArguments arguments,
             out object? result)
         {
             if (arguments.Count == 0)
             {
                 result = Path.GetTempPath();
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetFileName(
+        private static bool TryInvokeGetFileName(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -168,13 +169,13 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = Path.GetFileName(path);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetDirectoryName(
+        private static bool TryInvokeGetDirectoryName(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -182,13 +183,13 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = Path.GetDirectoryName(path);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeGetFileNameWithoutExtension(
+        private static bool TryInvokeGetFileNameWithoutExtension(
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -196,10 +197,10 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = Path.GetFileNameWithoutExtension(path);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
     }
 }

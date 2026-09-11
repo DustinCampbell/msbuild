@@ -3,6 +3,8 @@
 
 using System.Runtime.CompilerServices;
 
+using Microsoft.Build.Text;
+
 namespace Microsoft.Build.Evaluation.Expander;
 
 /// <summary>
@@ -12,18 +14,28 @@ internal struct FunctionArguments
 {
     private static readonly object s_unmaterialized = new();
 
-    private readonly string?[] _arguments;
+    private readonly ArgumentList _argumentList;
+    private readonly string?[]? _arguments;
     private object?[]? _materializedArguments;
     private IFunctionArgumentMaterializer? _materializer;
 
     public FunctionArguments(string[]? arguments)
     {
+        _argumentList = default;
         _arguments = arguments ?? [];
         _materializedArguments = null;
         _materializer = null;
     }
 
-    public readonly int Count => _arguments.Length;
+    public FunctionArguments(ArgumentList argumentList)
+    {
+        _argumentList = argumentList;
+        _arguments = null;
+        _materializedArguments = null;
+        _materializer = null;
+    }
+
+    public readonly int Count => _arguments?.Length ?? _argumentList.Count;
 
     /// <summary>
     ///  Sets the service used to materialize source arguments when their values are requested.
@@ -54,10 +66,10 @@ internal struct FunctionArguments
             }
         }
 
-        string? source = _arguments[index];
+        StringSegment source = GetSource(index);
         if (_materializer is null)
         {
-            return source;
+            return source.Value;
         }
 
         materializedArguments ??= InitializeMaterializedArguments();
@@ -79,9 +91,10 @@ internal struct FunctionArguments
             object?[] values = new object?[Count];
             for (int i = 0; i < values.Length; i++)
             {
+                StringSegment source = GetSource(i);
                 values[i] = _materializer is null
-                    ? _arguments[i]
-                    : _materializer.Materialize(_arguments[i], i);
+                    ? source.Value
+                    : _materializer.Materialize(source, i);
             }
 
             _materializedArguments = values;
@@ -92,7 +105,7 @@ internal struct FunctionArguments
         {
             if (ReferenceEquals(_materializedArguments[i], s_unmaterialized))
             {
-                _materializedArguments[i] = _materializer!.Materialize(_arguments[i], i);
+                _materializedArguments[i] = _materializer!.Materialize(GetSource(i), i);
             }
         }
 
@@ -131,7 +144,7 @@ internal struct FunctionArguments
             values[i] = _materializedArguments is not null &&
                 !ReferenceEquals(_materializedArguments[i], s_unmaterialized)
                     ? _materializedArguments[i]
-                    : _arguments[i];
+                    : GetSource(i).Value;
         }
 
         return values;
@@ -139,11 +152,24 @@ internal struct FunctionArguments
 
     public readonly bool ContainsExpandableExpression()
     {
-        foreach (string? argument in _arguments)
+        if (_arguments is not null)
         {
-            if (argument is not null && (argument.IndexOf('$') >= 0 || argument.IndexOf('%') >= 0))
+            foreach (string? argument in _arguments)
             {
-                return true;
+                if (argument is not null && (argument.IndexOf('$') >= 0 || argument.IndexOf('%') >= 0))
+                {
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < _argumentList.Count; i++)
+            {
+                if (_argumentList.GetFlags(i) != ArgumentFlags.None)
+                {
+                    return true;
+                }
             }
         }
 
@@ -161,4 +187,9 @@ internal struct FunctionArguments
         _materializedArguments = values;
         return values;
     }
+
+    private readonly StringSegment GetSource(int index)
+        => _arguments is null
+            ? _argumentList[index]
+            : _arguments[index];
 }

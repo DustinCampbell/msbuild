@@ -1557,6 +1557,74 @@ public class Expander_Tests(ITestOutputHelper output)
             => AvailableStaticMembers.Reset_ForUnitTestsOnly();
     }
 
+    [ModernExpanderOnlyFact]
+    public void StaticMethodWithThrowawayParameterInvokedOnce()
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+        PropertyFunctionWithOutParameter.Reset();
+
+        try
+        {
+            string typeName = typeof(PropertyFunctionWithOutParameter).AssemblyQualifiedName;
+
+            ExpandProperties($"$([{typeName}]::Invoke('value', out _))", allowReflection: true)
+                .ShouldBe("value");
+            PropertyFunctionWithOutParameter.InvocationCount.ShouldBe(1);
+        }
+        finally
+        {
+            PropertyFunctionWithOutParameter.Reset();
+        }
+    }
+
+    [ModernExpanderOnlyFact]
+    public void StaticMethodWithThrowawayParameterPropagatesInvocationFailure()
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+        PropertyFunctionWithOutParameter.Reset();
+
+        try
+        {
+            string typeName = typeof(PropertyFunctionWithOutParameter).AssemblyQualifiedName;
+
+            InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+                () => ExpandProperties($"$([{typeName}]::Throw('value', out _))", allowReflection: true));
+
+            exception.Message.ShouldContain("out invocation failed");
+            PropertyFunctionWithOutParameter.InvocationCount.ShouldBe(1);
+        }
+        finally
+        {
+            PropertyFunctionWithOutParameter.Reset();
+        }
+    }
+
+    [ModernExpanderOnlyFact]
+    public void StaticMethodWithThrowawayParameterDoesNotBindNormalParameter()
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.WithTransientTestState(new TransientAvailableStaticMembersCache());
+        PropertyFunctionWithOutParameter.Reset();
+
+        try
+        {
+            string typeName = typeof(PropertyFunctionWithOutParameter).AssemblyQualifiedName;
+
+            ExpandProperties($"$([{typeName}]::NotOut('value', out _))", allowReflection: true)
+                .ShouldBe(string.Empty);
+            PropertyFunctionWithOutParameter.InvocationCount.ShouldBe(0);
+        }
+        finally
+        {
+            PropertyFunctionWithOutParameter.Reset();
+        }
+    }
+
     [Fact]
     public void StaticMethodWithUnderscoreNotConfusedWithThrowaway()
     {
@@ -1572,6 +1640,48 @@ public class Expander_Tests(ITestOutputHelper output)
             """);
 
         logger.FullLog.ShouldContain("Value is asdf_jkl");
+    }
+
+    internal static class PropertyFunctionWithOutParameter
+    {
+        public static int InvocationCount { get; private set; }
+
+        public static string Invoke(string value, out int result)
+        {
+            InvocationCount++;
+            result = default;
+            return value;
+        }
+
+        public static string Invoke(int value, out string result)
+        {
+            InvocationCount++;
+            result = string.Empty;
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public static string Throw(string value, out int result)
+        {
+            InvocationCount++;
+            result = default;
+            throw new InvalidOperationException("out invocation failed");
+        }
+
+        public static string Throw(int value, out string result)
+        {
+            InvocationCount++;
+            result = string.Empty;
+            throw new InvalidOperationException("out invocation failed");
+        }
+
+        public static string NotOut(string value, string argument)
+        {
+            InvocationCount++;
+            return value + argument;
+        }
+
+        public static void Reset()
+            => InvocationCount = 0;
     }
 
     /// <summary>
@@ -4016,6 +4126,13 @@ public class Expander_Tests(ITestOutputHelper output)
     public void TestExplicitFromBase64Conversion(string plaintext, string base64)
         => ExpandProperties($"$([MSBuild]::ConvertFromBase64('{base64}'))")
             .ShouldBe(plaintext);
+
+    [ModernExpanderOnlyFact]
+    public void PropertyFunctionIndexerCanProduceTerminalResult()
+        => ExpandProperties(
+                @"$([System.Text.RegularExpressions.Regex]::Match($(Input), `EXPORT\s+(.+)`).Groups[1])",
+                ("Input", "EXPORT a"))
+            .ShouldBe("a");
 
     /// <summary>
     ///  A whole bunch error check tests.

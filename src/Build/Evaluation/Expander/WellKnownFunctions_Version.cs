@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Microsoft.Build.Text;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -9,8 +10,8 @@ internal static partial class WellKnownFunctions
 {
     private sealed class VersionHandler
     {
-        internal WellKnownFunctionResult TryInvokeStatic(
-            string name,
+        internal bool TryInvokeStatic(
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -19,12 +20,12 @@ internal static partial class WellKnownFunctions
                 return TryInvokeParse(ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        internal WellKnownFunctionResult TryInvokeInstance(
+        internal bool TryInvokeInstance(
             Version receiver,
-            string name,
+            StringSegment name,
             ref FunctionArguments arguments,
             out object? result)
         {
@@ -33,22 +34,22 @@ internal static partial class WellKnownFunctions
                 return TryInvokeToString(receiver, ref arguments, out result);
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeParse(ref FunctionArguments arguments, out object? result)
+        private static bool TryInvokeParse(ref FunctionArguments arguments, out object? result)
         {
             if (arguments.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = Version.Parse(value);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
 
-        private static WellKnownFunctionResult TryInvokeToString(
+        private static bool TryInvokeToString(
             Version receiver,
             ref FunctionArguments arguments,
             out object? result)
@@ -57,10 +58,10 @@ internal static partial class WellKnownFunctions
                 FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int fieldCount))
             {
                 result = receiver.ToString(fieldCount);
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
-            return NotRecognized(out result);
+            return NotHandled(out result);
         }
     }
 }

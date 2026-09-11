@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Text;
 using Microsoft.Build.Utilities;
 
 namespace Microsoft.Build.Evaluation.Expander;
@@ -21,14 +22,14 @@ internal static partial class WellKnownFunctions
     private static readonly StringHandler s_stringHandler = new();
     private static readonly VersionHandler s_versionHandler = new();
 
-    internal static WellKnownFunctionResult TryInvokeStatic(
+    internal static bool TryInvokeStatic(
         Type receiverType,
-        string methodName,
+        StringSegment methodName,
         ref FunctionArguments args,
         ref readonly ExecutionContext context,
         out object? returnVal)
     {
-        // UNDONE: Directly returning NotRecognized from some handlers bypasses reflection-fallback logging below.
+        // UNDONE: Directly returning false from some handlers bypasses reflection-fallback logging below.
         // Preserve that behavior until logging is made consistent while adding more well-known functions.
         if (receiverType == typeof(IntrinsicFunctions))
         {
@@ -42,56 +43,44 @@ internal static partial class WellKnownFunctions
 
         if (receiverType == typeof(string))
         {
-            WellKnownFunctionResult result = s_stringHandler.TryInvokeStatic(methodName, ref args, out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_stringHandler.TryInvokeStatic(methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
         else if (receiverType == typeof(Math))
         {
-            WellKnownFunctionResult result = s_mathHandler.TryInvokeStatic(methodName, ref args, out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_mathHandler.TryInvokeStatic(methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
         else if (receiverType == typeof(Version))
         {
-            WellKnownFunctionResult result = s_versionHandler.TryInvokeStatic(methodName, ref args, out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_versionHandler.TryInvokeStatic(methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
         else if (receiverType == typeof(Guid))
         {
-            WellKnownFunctionResult result = s_guidHandler.TryInvokeStatic(methodName, ref args, out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_guidHandler.TryInvokeStatic(methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
         else if (receiverType == typeof(char))
         {
-            WellKnownFunctionResult result = s_charHandler.TryInvokeStatic(methodName, ref args, out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_charHandler.TryInvokeStatic(methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
         else if (receiverType == typeof(System.Text.RegularExpressions.Regex))
         {
-            WellKnownFunctionResult result = s_regexHandler.TryInvokeStatic(methodName, ref args, out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_regexHandler.TryInvokeStatic(methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
 
@@ -100,16 +89,12 @@ internal static partial class WellKnownFunctions
             LogFunctionCall(isStatic: true, receiverType: receiverType, methodName: methodName, args: ref args);
         }
 
-        return NotRecognized(out returnVal);
+        return NotHandled(out returnVal);
     }
 
-    internal static WellKnownFunctionResult TryInvokeInstance(
-        object objectInstance,
-        string methodName,
-        ref FunctionArguments args,
-        out object? returnVal)
+    internal static bool TryInvokeInstance(object objectInstance, StringSegment methodName, ref FunctionArguments args, out object? returnVal)
     {
-        // UNDONE: Directly returning NotRecognized from the string handler bypasses reflection-fallback logging below.
+        // UNDONE: Directly returning false from the string handler bypasses reflection-fallback logging below.
         // Preserve that behavior until logging is made consistent while adding more well-known functions.
         if (objectInstance is string text)
         {
@@ -118,33 +103,23 @@ internal static partial class WellKnownFunctions
 
         if (objectInstance is string[] stringArray)
         {
-            WellKnownFunctionResult result = s_stringArrayHandler.TryInvokeInstance(
-                stringArray,
-                methodName,
-                ref args,
-                out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_stringArrayHandler.TryInvokeInstance(stringArray, methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
         else if (objectInstance is int integer)
         {
-            WellKnownFunctionResult result = s_int32Handler.TryInvokeInstance(integer, methodName, ref args, out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_int32Handler.TryInvokeInstance(integer, methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
         else if (objectInstance is Version version)
         {
-            WellKnownFunctionResult result = s_versionHandler.TryInvokeInstance(version, methodName, ref args, out returnVal);
-
-            if (result != WellKnownFunctionResult.NotRecognized)
+            if (s_versionHandler.TryInvokeInstance(version, methodName, ref args, out returnVal))
             {
-                return result;
+                return true;
             }
         }
 
@@ -153,13 +128,10 @@ internal static partial class WellKnownFunctions
             LogFunctionCall(isStatic: false, receiverType: objectInstance.GetType(), methodName: methodName, args: ref args);
         }
 
-        return NotRecognized(out returnVal);
+        return NotHandled(out returnVal);
     }
 
-    internal static WellKnownFunctionResult TryInvokeConstructor(
-        Type receiverType,
-        ref FunctionArguments args,
-        out object? returnVal)
+    internal static bool TryInvokeConstructor(Type receiverType, ref FunctionArguments args, out object? returnVal)
     {
         // UNDONE: Constructor calls that fall back to reflection are not recorded in the
         // PropertyFunctionsRequiringReflection log.
@@ -168,27 +140,27 @@ internal static partial class WellKnownFunctions
             if (args.Count == 0)
             {
                 returnVal = string.Empty;
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
 
             if (args.Count == 1 &&
                 FunctionArgumentCoercion.TryCoerce(args.GetValue(0), out string? value))
             {
                 returnVal = value;
-                return WellKnownFunctionResult.Handled;
+                return true;
             }
         }
 
-        return NotRecognized(out returnVal);
+        return NotHandled(out returnVal);
     }
 
-    private static WellKnownFunctionResult NotRecognized(out object? result)
+    private static bool NotHandled(out object? result)
     {
         result = null;
-        return WellKnownFunctionResult.NotRecognized;
+        return false;
     }
 
-    private static void LogFunctionCall(bool isStatic, Type receiverType, string methodName, ref FunctionArguments args)
+    private static void LogFunctionCall(bool isStatic, Type receiverType, StringSegment methodName, ref FunctionArguments args)
     {
         string logFile = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
 
