@@ -207,6 +207,7 @@
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.MemberKey.cs" />
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.TypeEntry.cs" />
     <Compile Include="Evaluation\Expander\ErrorReporter.cs" />
+    <Compile Include="Evaluation\Expander\IFunctionArgumentMaterializer.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\IntrinsicFunctionOverload.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
@@ -577,7 +578,7 @@
     <Compile Include="Evaluation\GlobResultBuilder.cs" />
     <Compile Include="Evaluation\Expander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
-    <Compile Include="Evaluation\Expander\ArgumentParser.cs" />
+    <Compile Include="Evaluation\Expander\FunctionArguments.cs" />
     <Compile Include="Evaluation\Expander\ExecutionContext.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
     <Compile Include="Globbing\CompositeGlob.cs" />

@@ -1,13 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
+
+using Microsoft.Build.Evaluation.Expander;
 
 using Shouldly;
 
 using Xunit;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
+using ParseArgs = Microsoft.Build.Evaluation.Expander.FunctionArguments;
 
 namespace Microsoft.Build.Engine.UnitTests.Evaluation
 {
@@ -269,6 +273,67 @@ namespace Microsoft.Build.Engine.UnitTests.Evaluation
                 currentThread.CurrentCulture = originalCulture;
                 CultureInfo.CurrentCulture = originalCulture;
                 CultureInfo.DefaultThreadCurrentCulture = originalCulture;
+            }
+        }
+
+        [Fact]
+        public void FunctionArgumentsReadRawArgumentsWithoutMaterializing()
+        {
+            ParseArgs arguments = new(["first", "second"]);
+
+            arguments.TryGetArgs(out string? first, out string? second).ShouldBeTrue();
+            first.ShouldBe("first");
+            second.ShouldBe("second");
+            arguments.IsMaterialized.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void FunctionArgumentsMaterializeOnDemand()
+        {
+            ParseArgs arguments = new(["first", "second"]);
+            var materializer = new TrackingMaterializer(index => $"expanded-{index}");
+
+            arguments.ConfigureMaterialization(materializer, materializeOnAccess: true);
+
+            arguments.IsMaterialized.ShouldBeFalse();
+            arguments[1].ShouldBe("expanded-1");
+            materializer.Indices.ShouldBe([1]);
+            arguments.IsMaterialized.ShouldBeFalse();
+
+            arguments[0].ShouldBe("expanded-0");
+            materializer.Indices.ShouldBe([1, 0]);
+            arguments.IsMaterialized.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void FunctionArgumentsMaterializeAllArgumentsOnce()
+        {
+            ParseArgs arguments = new(["first", "second"]);
+            var materializer = new TrackingMaterializer(index => $"expanded-{index}");
+
+            arguments.ConfigureMaterialization(materializer, materializeOnAccess: false);
+
+            arguments.MaterializeAll().ShouldBe(["expanded-0", "expanded-1"]);
+            arguments.MaterializeAll().ShouldBe(["expanded-0", "expanded-1"]);
+            materializer.Indices.ShouldBe([0, 1]);
+            arguments.IsMaterialized.ShouldBeTrue();
+        }
+
+        private sealed class TrackingMaterializer : IFunctionArgumentMaterializer
+        {
+            private readonly Func<int, object?> _materialize;
+
+            internal TrackingMaterializer(Func<int, object?> materialize)
+            {
+                _materialize = materialize;
+            }
+
+            internal List<int> Indices { get; } = [];
+
+            public object? Materialize(string? source, int index)
+            {
+                Indices.Add(index);
+                return _materialize(index);
             }
         }
     }
