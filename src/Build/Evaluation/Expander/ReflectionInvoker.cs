@@ -1,0 +1,424 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Reflection;
+using System.Text;
+using Microsoft.Build.Collections;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Shared;
+
+namespace Microsoft.Build.Evaluation.Expander;
+
+internal static class ReflectionInvoker
+{
+    private const DynamicallyAccessedMemberTypes PublicMemberSurface =
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.PublicMethods |
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicFields;
+
+    public static object? InvokeConstructor(
+        [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
+        object?[] args)
+        => InvokeWithArgumentCoercion(
+            receiverType,
+            memberName: null,
+            previousException: null,
+            BindingFlags.Public | BindingFlags.Instance,
+            receiver: null,
+            args,
+            isConstructor: true);
+
+    public static object? InvokeMember(
+        [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
+        string memberName,
+        BindingFlags bindingFlags,
+        object? receiver,
+        object?[] args)
+    {
+        Assumed.Zero(
+            (int)(bindingFlags & BindingFlags.NonPublic),
+            $"'{BindingFlags.NonPublic}' is not permitted for {nameof(InvokeMember)}; only public members may be bound.");
+
+        using RefArrayBuilder<int> outArgIndices = new(stackalloc int[4]);
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] is "out _")
+            {
+                outArgIndices.Add(i);
+            }
+        }
+
+        if (!outArgIndices.IsEmpty)
+        {
+            return TryBindAndInvokeMethodWithOutArguments(
+                receiverType,
+                memberName,
+                bindingFlags,
+                receiver,
+                args,
+                outArgIndices.AsSpan(),
+                out object? result)
+                ? result
+                : null;
+        }
+
+        try
+        {
+            return receiverType.InvokePublicMember(memberName, bindingFlags, receiver, args);
+        }
+        catch (MissingMethodException ex) when ((bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+        {
+            return InvokeWithArgumentCoercion(receiverType, memberName, ex, bindingFlags, receiver, args, isConstructor: false);
+        }
+    }
+
+    /// <summary>
+    ///  Attempts to bind and invoke a method call containing discarded <c>out</c> arguments.
+    /// </summary>
+    /// <remarks>
+    ///  Candidate discovery and binding do not execute user code. Only the method selected by the default binder
+    ///  is invoked.
+    /// </remarks>
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2070:UnrecognizedReflectionPattern",
+        Justification = "InvokeMember rejects BindingFlags.NonPublic before reaching this private helper; receiverType preserves the public property-function member surface.")]
+    private static bool TryBindAndInvokeMethodWithOutArguments(
+        [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
+        string memberName,
+        BindingFlags bindingFlags,
+        object? receiver,
+        object?[] args,
+        ReadOnlySpan<int> outArgIndices,
+        out object? result)
+    {
+        result = null;
+
+        MethodInfo[] candidates = receiverType.GetMethods(bindingFlags);
+        int candidateCount = 0;
+
+        // Compact compatible declarations in place so the binder cannot consider another member name,
+        // arity, or a normal parameter at a discarded-out position.
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            MethodInfo candidate = candidates[i];
+            if (!memberName.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            ParameterInfo[] parameters = candidate.GetParameters();
+            if (parameters.Length == args.Length && HasOutParameters(parameters, outArgIndices))
+            {
+                candidates[candidateCount++] = candidate;
+            }
+        }
+
+        if (candidateCount == 0)
+        {
+            return false;
+        }
+
+        Array.Resize(ref candidates, candidateCount);
+
+        // BindToMethod may mutate or replace its argument array. Clone it so the original materialized values
+        // remain available for diagnostics.
+        object?[] boundArgs = (object?[])args.Clone();
+        foreach (int index in outArgIndices)
+        {
+            // An out argument has no input value. Null leaves its type unconstrained so the binder can use the
+            // candidate parameter metadata and the remaining arguments to select an overload.
+            boundArgs[index] = null;
+        }
+
+        MethodBase? method;
+        try
+        {
+            method = Type.DefaultBinder.BindToMethod(
+                bindingFlags,
+                candidates,
+                ref boundArgs,
+                modifiers: null,
+                culture: CultureInfo.InvariantCulture,
+                names: null,
+                out _);
+        }
+        catch (MissingMethodException)
+        {
+            return false;
+        }
+        catch (AmbiguousMatchException)
+        {
+            return false;
+        }
+
+        if (method is null)
+        {
+            return false;
+        }
+
+        // Invoke exactly once after binding; method-body exceptions must propagate to the normal error path.
+        result = method.Invoke(receiver, boundArgs);
+        return true;
+    }
+
+    private static bool HasOutParameters(ParameterInfo[] parameters, ReadOnlySpan<int> outArgIndices)
+    {
+        foreach (int index in outArgIndices)
+        {
+            if (!parameters[index].IsOut)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryCoerceArguments(object?[] args, ParameterInfo[] parameters, [NotNullWhen(true)] out object?[]? result)
+    {
+        if (parameters.Length != args.Length)
+        {
+            result = null;
+            return false;
+        }
+
+        result = new object?[args.Length];
+
+        try
+        {
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                object? arg = args[i];
+                if (arg is null)
+                {
+                    continue;
+                }
+
+                Type type = parameters[i].ParameterType;
+
+                result[i] = type == typeof(char[])
+                    ? arg.ToString()!.ToCharArray()
+                    : type.IsEnum && arg is string value && value.IndexOf('.') >= 0
+                        ? Enum.Parse(type, NormalizeEnumArgument(type, value))
+                        : Convert.ChangeType(arg, type, CultureInfo.InvariantCulture);
+            }
+        }
+        catch (InvalidCastException)
+        {
+            result = null;
+            return false;
+        }
+        catch (FormatException)
+        {
+            result = null;
+            return false;
+        }
+        catch (OverflowException)
+        {
+            result = null;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string NormalizeEnumArgument(Type enumType, string value)
+    {
+        string? fullName = enumType.FullName;
+        Assumed.NotNull(fullName);
+
+        string leafName = enumType.Name;
+        StringBuilder builder = StringBuilderCache.Acquire(value.Length);
+
+        int copyStart = 0;
+        int index = 0;
+
+        while (index < value.Length)
+        {
+            if (value[index] == '|')
+            {
+                builder.Append(value, copyStart, index - copyStart);
+                builder.Append(',');
+                copyStart = ++index;
+            }
+            else if (TryGetEnumQualifierLength(value, index, fullName, out int qualifierLength) ||
+                     TryGetEnumQualifierLength(value, index, leafName, out qualifierLength))
+            {
+                builder.Append(value, copyStart, index - copyStart);
+                index += qualifierLength;
+                copyStart = index;
+            }
+            else
+            {
+                index++;
+            }
+        }
+
+        builder.Append(value, copyStart, value.Length - copyStart);
+        return StringBuilderCache.GetStringAndRelease(builder);
+    }
+
+    private static bool TryGetEnumQualifierLength(string value, int startIndex, string typeName, out int result)
+    {
+        if (value.Length - startIndex > typeName.Length &&
+            value[startIndex + typeName.Length] == '.' &&
+            string.CompareOrdinal(value, startIndex, typeName, 0, typeName.Length) == 0)
+        {
+            result = typeName.Length + 1;
+            return true;
+        }
+
+        result = 0;
+        return false;
+    }
+
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2070:UnrecognizedReflectionPattern",
+        Justification = "InvokeMember rejects BindingFlags.NonPublic before reaching this private helper; receiverType preserves the public property-function member surface.")]
+    private static MethodInfo? FindPublicMethodBySignature(
+        [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
+        string memberName,
+        BindingFlags bindingFlags,
+        Type[] parameterTypes)
+    {
+        foreach (MethodInfo method in receiverType.GetMethods(bindingFlags))
+        {
+            if (!string.Equals(method.Name, memberName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            ParameterInfo[] parameters = method.GetParameters();
+            if (parameters.Length != parameterTypes.Length)
+            {
+                continue;
+            }
+
+            bool match = true;
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                if (parameters[i].ParameterType != parameterTypes[i])
+                {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (match)
+            {
+                return method;
+            }
+        }
+
+        return null;
+    }
+
+    // This argument-coercion fallback can in principle reach any public method of an allowlisted receiver type.
+    // The only such method carrying [RequiresDynamicCode] is Enum.GetValues(Type) (on System.Enum).
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050:RequiresDynamicCode",
+        Justification = "The only RDC method reachable here is Enum.GetValues(Type), which is unreachable via property functions.")]
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2070:UnrecognizedReflectionPattern",
+        Justification = "InvokeMember rejects BindingFlags.NonPublic before reaching this private helper; constructor binding supplies public-only flags; receiverType preserves the public property-function member surface.")]
+    private static object? InvokeWithArgumentCoercion(
+        [DynamicallyAccessedMembers(PublicMemberSurface)] Type receiverType,
+        string? memberName,
+        MissingMethodException? previousException,
+        BindingFlags bindingFlags,
+        object? receiver,
+        object?[] args,
+        bool isConstructor)
+    {
+        Type[] types = new Type[args.Length];
+        for (int i = 0; i < args.Length; i++)
+        {
+            types[i] = typeof(string);
+        }
+
+        MethodBase? memberInfo;
+        string resolvedMemberName;
+        if (isConstructor)
+        {
+            resolvedMemberName = string.Empty;
+            memberInfo = receiverType.GetConstructor(types);
+        }
+        else
+        {
+            Assumed.NotNull(memberName);
+            resolvedMemberName = memberName;
+            memberInfo = FindPublicMethodBySignature(receiverType, resolvedMemberName, bindingFlags, types);
+        }
+
+        if (memberInfo is null)
+        {
+            MemberInfo[] members;
+            bool filterByName;
+
+            if (isConstructor)
+            {
+                members = receiverType.GetConstructors();
+                filterByName = false;
+            }
+            else if (receiverType == typeof(IntrinsicFunctions) &&
+                     IntrinsicFunctionOverload.IsKnownOverloadMethodName(resolvedMemberName))
+            {
+                MemberInfo[] foundMembers = typeof(IntrinsicFunctions).FindMembers(
+                    MemberTypes.Method,
+                    bindingFlags,
+                    (info, criteria) => string.Equals(info.Name, (string?)criteria, StringComparison.OrdinalIgnoreCase),
+                    resolvedMemberName);
+                Array.Sort(foundMembers, IntrinsicFunctionOverload.IntrinsicFunctionOverloadMethodComparer);
+                members = foundMembers;
+                filterByName = false;
+            }
+            else
+            {
+                members = receiverType.GetMethods(bindingFlags);
+                filterByName = true;
+            }
+
+            foreach (MemberInfo candidate in members)
+            {
+                if (filterByName && !string.Equals(candidate.Name, resolvedMemberName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                MethodBase member = (MethodBase)candidate;
+                if (TryCoerceArguments(args, member.GetParameters(), out object?[]? coercedArguments))
+                {
+                    memberInfo = member;
+                    args = coercedArguments;
+                    break;
+                }
+            }
+        }
+
+        if (memberInfo is null)
+        {
+            if (isConstructor)
+            {
+                throw NewTargetInvocationException();
+            }
+
+            Assumed.NotNull(previousException);
+            throw previousException;
+        }
+
+        return isConstructor
+            ? ((ConstructorInfo)memberInfo).Invoke(args) ?? throw NewTargetInvocationException()
+            : ((MethodInfo)memberInfo).Invoke(receiver, args);
+
+        static TargetInvocationException NewTargetInvocationException()
+            => new(new MissingMethodException());
+    }
+}
