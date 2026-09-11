@@ -208,6 +208,7 @@
     <Compile Include="Evaluation\Expander\AvailableStaticMembers.TypeEntry.cs" />
     <Compile Include="Evaluation\Expander\ErrorReporter.cs" />
     <Compile Include="Evaluation\Expander\IFunctionArgumentMaterializer.cs" />
+    <Compile Include="Evaluation\Expander\PropertyFunctionInvoker.cs" />
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\IntrinsicFunctionOverload.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />

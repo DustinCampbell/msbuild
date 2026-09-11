@@ -865,6 +865,7 @@ flowchart TD
 **This repo** — see the [folder README](README.md) for the full document map. Key source:
 - Central feature switches: [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs)
 - Attribute polyfills: [AotTrimmingPolyfills.cs](../../src/Framework/Polyfills/AotTrimmingPolyfills.cs)
-- Property-function reflection, `[FeatureGuard]` probing, and the env-var gates: [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs)
+- Property-function reflection: [PropertyFunctionInvoker.cs](../../src/Build/Evaluation/Expander/PropertyFunctionInvoker.cs)
+- Property-function `[FeatureGuard]` probing and env-var gates: [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs)
 - Localized IL2067 suppression (`SetReceiverType`): [Expander.FunctionBuilder.cs](../../src/Build/Evaluation/Expander.FunctionBuilder.cs)
 - Curated property-function receiver allowlist: [PropertyFunctionReceiver.cs](../../src/Build/Evaluation/PropertyFunctionReceiver.cs)
