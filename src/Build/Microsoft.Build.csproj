@@ -581,6 +581,11 @@
     <Compile Include="Evaluation\Expander\FunctionArguments.cs" />
     <Compile Include="Evaluation\Expander\ExecutionContext.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Common.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Intrinsic.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Path.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_String.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Version.cs" />
     <Compile Include="Globbing\CompositeGlob.cs" />
     <Compile Include="Globbing\Extensions\MSBuildGlobExtensions.cs" />
     <Compile Include="Globbing\Visitor\GlobVisitor.cs" />
