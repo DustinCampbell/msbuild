@@ -14,7 +14,6 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 #nullable disable
 
@@ -303,6 +302,22 @@ internal partial class Expander<P, I>
             return functionBuilder.Build();
         }
 
+        private static bool IsFileSystemReceiver(Type receiverType)
+            => receiverType == typeof(System.IO.File)
+            || receiverType == typeof(System.IO.Directory)
+            || receiverType == typeof(System.IO.Path);
+
+        private static bool IsFileOrDirectoryReceiver(Type receiverType)
+            => receiverType == typeof(System.IO.File)
+            || receiverType == typeof(System.IO.Directory);
+
+        private static bool ShouldMaterializeArgumentsOnAccess(Type receiverType, string methodName)
+            => receiverType == typeof(System.IO.Path)
+            || string.Equals(methodName, "new", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(methodName, "Equals", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(methodName, "CompareTo", StringComparison.OrdinalIgnoreCase)
+            || Traits.Instance.LogPropertyFunctionsRequiringReflection;
+
         /// <summary>
         /// Determines whether the argument at <paramref name="argIndex"/> for a System.IO.File
         /// or System.IO.Directory method is a file/directory path that should be resolved
@@ -335,6 +350,51 @@ internal partial class Expander<P, I>
             return false;
         }
 
+        private sealed class ArgumentMaterializer : IFunctionArgumentMaterializer
+        {
+            private readonly ExpansionContext _context;
+            private readonly string _methodName;
+            private readonly Type _receiverType;
+
+            internal ArgumentMaterializer(ExpansionContext context, Type receiverType, string methodName)
+            {
+                _context = context;
+                _receiverType = receiverType;
+                _methodName = methodName;
+            }
+
+            public object Materialize(string source, int index)
+            {
+                object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(source, _context);
+
+                if (argument is not string argumentValue)
+                {
+                    return argument;
+                }
+
+                if (IsFileSystemReceiver(_receiverType))
+                {
+                    argumentValue = FileUtilities.FixFilePath(argumentValue);
+                }
+
+                argumentValue = EscapingUtilities.UnescapeAll(argumentValue);
+
+                // In -mt mode, resolve File/Directory path arguments against the thread-local project directory.
+                // Resolve only after unescaping so MSBuild escape processing cannot corrupt the filesystem path.
+                if (IsFileOrDirectoryReceiver(_receiverType)
+                    && IsFileOrDirectoryPathArgument(_methodName, index))
+                {
+                    AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory(argumentValue);
+                    if (resolved.HasValue)
+                    {
+                        argumentValue = (string)resolved.GetValueOrDefault();
+                    }
+                }
+
+                return argumentValue;
+            }
+        }
+
         /// <summary>
         ///  Executes the function on the specified receiver.
         /// </summary>
@@ -352,6 +412,7 @@ internal partial class Expander<P, I>
             object functionResult = String.Empty;
             object[] args = null;
             ExecutionContext executionContext = new(context.Properties, context.Location, context.FileSystem, context.LoggingContext);
+            FunctionArguments arguments = new(_arguments);
 
             try
             {
@@ -389,49 +450,12 @@ internal partial class Expander<P, I>
                     }
                 }
 
-                // We have a methodinfo match, need to plug in the arguments
-                args = new object[_arguments.Length];
-
-                // Assemble our arguments ready for passing to our method
-                for (int n = 0; n < _arguments.Length; n++)
+                ArgumentMaterializer argumentMaterializer = null;
+                if (arguments.Count > 0 &&
+                    (ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName) || arguments.ContainsExpandableExpression()))
                 {
-                    object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(_arguments[n], context);
-
-                    if (argument is string argumentValue)
-                    {
-                        // Unescape the value since we're about to send it out of the engine and into
-                        // the function being called. If a file or a directory function, fix the path
-                        // Use fully qualified type names because receiver types from
-                        // AvailableStaticMembers are always System.IO.*.
-                        if (_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory)
-                            || _receiverType == typeof(System.IO.Path))
-                        {
-                            argumentValue = FileUtilities.FixFilePath(argumentValue);
-                        }
-
-                        args[n] = EscapingUtilities.UnescapeAll(argumentValue);
-
-                        // In -mt mode, resolve relative path arguments for File/Directory methods
-                        // against the thread-local working directory instead of the process-global
-                        // Environment.CurrentDirectory which may point to a different project's directory.
-                        // In multiprocess mode, CurrentThreadWorkingDirectory is null and
-                        // MakeFullPathFromThreadWorkingDirectory returns null — this is a no-op.
-                        // This must happen AFTER UnescapeAll so that the working directory path
-                        // (a real filesystem path) is not corrupted by MSBuild unescape processing.
-                        if ((_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory))
-                            && IsFileOrDirectoryPathArgument(_methodName, n))
-                        {
-                            AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory((string)args[n]);
-                            if (resolved.HasValue)
-                            {
-                                args[n] = (string)resolved.GetValueOrDefault();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        args[n] = argument;
-                    }
+                    argumentMaterializer = new ArgumentMaterializer(context, _receiverType, _methodName);
+                    arguments.ConfigureMaterialization(argumentMaterializer, materializeOnAccess: true);
                 }
 
                 // Handle special cases where the object type needs to affect the choice of method
@@ -440,12 +464,21 @@ internal partial class Expander<P, I>
                 // This special casing is to realize that its a comparison that is taking place and handle the
                 // argument type coercion accordingly; effectively pre-preparing the argument type so
                 // that it matches the left hand side ready for the default binder’s method invoke.
-                if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodName, StringComparison.OrdinalIgnoreCase)))
+                if (objectInstance != null &&
+                    arguments.Count == 1 &&
+                    (String.Equals("Equals", _methodName, StringComparison.OrdinalIgnoreCase) ||
+                     String.Equals("CompareTo", _methodName, StringComparison.OrdinalIgnoreCase)))
                 {
+                    args = arguments.MaterializeAll();
+
                     // Support comparison when the lhs is an integer
-                    if (ParseArgs.IsFloatingPointRepresentation(args[0]))
+                    if (FunctionArguments.IsFloatingPointRepresentation(args[0]))
                     {
-                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
+                        if (double.TryParse(
+                            objectInstance.ToString(),
+                            NumberStyles.Number | NumberStyles.Float,
+                            CultureInfo.InvariantCulture.NumberFormat,
+                            out double result))
                         {
                             objectInstance = result;
                             _receiverType = objectInstance.GetType();
@@ -460,8 +493,23 @@ internal partial class Expander<P, I>
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, args, in executionContext, out functionResult))
+                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(
+                        _receiverType,
+                        ref arguments,
+                        in executionContext,
+                        out functionResult))
                     {
+                        if (args == null)
+                        {
+                            if (argumentMaterializer == null && arguments.Count > 0)
+                            {
+                                argumentMaterializer = new ArgumentMaterializer(context, _receiverType, _methodName);
+                                arguments.ConfigureMaterialization(argumentMaterializer, materializeOnAccess: false);
+                            }
+
+                            args = arguments.MaterializeAll();
+                        }
+
                         functionResult = LateBindExecute(
                             ex: null, // no previous exception
                             BindingFlags.Public | BindingFlags.Instance,
@@ -479,12 +527,16 @@ internal partial class Expander<P, I>
                         // First attempt to recognize some well-known functions to avoid binding
                         // and potential first-chance MissingMethodExceptions.
                         wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(
-                            _methodName, _receiverType, objectInstance, args, in executionContext, out functionResult);
+                            _methodName, _receiverType, objectInstance, ref arguments, in executionContext, out functionResult);
                     }
                     catch (Exception ex)
                     {
                         // we need to preserve the same behavior on exceptions as the actual binder
-                        string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, args, in executionContext);
+                        string partiallyEvaluated = GenerateStringOfMethodExecuted(
+                            objectInstance,
+                            args ?? arguments.ToObjectArray(),
+                            in executionContext);
+
                         if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                         {
                             return partiallyEvaluated;
@@ -497,6 +549,17 @@ internal partial class Expander<P, I>
 
                     if (!wellKnownFunctionSuccess)
                     {
+                        if (args == null)
+                        {
+                            if (argumentMaterializer == null && arguments.Count > 0)
+                            {
+                                argumentMaterializer = new ArgumentMaterializer(context, _receiverType, _methodName);
+                                arguments.ConfigureMaterialization(argumentMaterializer, materializeOnAccess: false);
+                            }
+
+                            args = arguments.MaterializeAll();
+                        }
+
                         using RefArrayBuilder<int> outArgIndices = new(stackalloc int[4]);
                         for (int i = 0; i < args.Length; i++)
                         {
@@ -561,7 +624,11 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, args, in executionContext);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(
+                    objectInstance,
+                    args ?? arguments.ToObjectArray(),
+                    in executionContext);
+
                 if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -588,7 +655,11 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, args, in executionContext);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(
+                        objectInstance,
+                        args ?? arguments.ToObjectArray(),
+                        in executionContext);
+
                     context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);
                 }
 
