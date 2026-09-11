@@ -3,9 +3,8 @@
 
 using System;
 using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -22,92 +21,86 @@ internal static partial class WellKnownFunctions
     private static readonly StringHandler s_stringHandler = new();
     private static readonly VersionHandler s_versionHandler = new();
 
-    /// <summary>
-    /// Shortcut to avoid calling into binding if we recognize some most common functions.
-    /// Binding is expensive and throws first-chance MissingMethodExceptions, which is
-    /// bad for debugging experience and has a performance cost.
-    /// A typical binding operation with exception can take ~1.500 ms; this call is ~0.050 ms
-    /// (rough numbers just for comparison).
-    /// See https://github.com/dotnet/msbuild/issues/2217.
-    /// </summary>
-    /// <param name="methodName"> </param>
-    /// <param name="receiverType"> </param>
-    /// <param name="objectInstance">Object that the function is called on.</param>
-    /// <param name="args">arguments.</param>
-    /// <param name="context">Dependencies used to execute contextual functions.</param>
-    /// <param name="returnVal">The value returned from the function call.</param>
-    /// <returns>True if the well known function call binding was successful.</returns>
-    internal static bool TryExecuteWellKnownFunction(
-        string methodName,
+    internal static bool TryInvokeStatic(
         Type receiverType,
-        object? objectInstance,
+        string methodName,
         ref FunctionArguments args,
         ref readonly ExecutionContext context,
         out object? returnVal)
     {
         // UNDONE: Directly returning false from some handlers bypasses reflection-fallback logging below.
         // Preserve that behavior until logging is made consistent while adding more well-known functions.
+        if (receiverType == typeof(IntrinsicFunctions))
+        {
+            return s_intrinsicHandler.TryInvokeStatic(methodName, ref args, in context, out returnVal);
+        }
+
+        if (receiverType == typeof(Path))
+        {
+            return s_pathHandler.TryInvokeStatic(methodName, ref args, out returnVal);
+        }
+
+        if (receiverType == typeof(string))
+        {
+            if (s_stringHandler.TryInvokeStatic(methodName, ref args, out returnVal))
+            {
+                return true;
+            }
+        }
+        else if (receiverType == typeof(Math))
+        {
+            if (s_mathHandler.TryInvokeStatic(methodName, ref args, out returnVal))
+            {
+                return true;
+            }
+        }
+        else if (receiverType == typeof(Version))
+        {
+            if (s_versionHandler.TryInvokeStatic(methodName, ref args, out returnVal))
+            {
+                return true;
+            }
+        }
+        else if (receiverType == typeof(Guid))
+        {
+            if (s_guidHandler.TryInvokeStatic(methodName, ref args, out returnVal))
+            {
+                return true;
+            }
+        }
+        else if (receiverType == typeof(char))
+        {
+            if (s_charHandler.TryInvokeStatic(methodName, ref args, out returnVal))
+            {
+                return true;
+            }
+        }
+        else if (receiverType == typeof(System.Text.RegularExpressions.Regex))
+        {
+            if (s_regexHandler.TryInvokeStatic(methodName, ref args, out returnVal))
+            {
+                return true;
+            }
+        }
+
+        if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
+        {
+            LogFunctionCall(isStatic: true, receiverType: receiverType, methodName: methodName, args: ref args);
+        }
+
+        return NotHandled(out returnVal);
+    }
+
+    internal static bool TryInvokeInstance(object objectInstance, string methodName, ref FunctionArguments args, out object? returnVal)
+    {
+        // UNDONE: Directly returning false from the string handler bypasses reflection-fallback logging below.
+        // Preserve that behavior until logging is made consistent while adding more well-known functions.
         if (objectInstance is string text)
         {
             return s_stringHandler.TryInvokeInstance(text, methodName, ref args, out returnVal);
         }
 
-        if (objectInstance is null)
-        {
-            if (receiverType == typeof(IntrinsicFunctions))
-            {
-                return s_intrinsicHandler.TryInvokeStatic(methodName, ref args, in context, out returnVal);
-            }
-
-            if (receiverType == typeof(Path))
-            {
-                return s_pathHandler.TryInvokeStatic(methodName, ref args, out returnVal);
-            }
-
-            if (receiverType == typeof(string))
-            {
-                if (s_stringHandler.TryInvokeStatic(methodName, ref args, out returnVal))
-                {
-                    return true;
-                }
-            }
-            else if (receiverType == typeof(Math))
-            {
-                if (s_mathHandler.TryInvokeStatic(methodName, ref args, out returnVal))
-                {
-                    return true;
-                }
-            }
-            else if (receiverType == typeof(Version))
-            {
-                if (s_versionHandler.TryInvokeStatic(methodName, ref args, out returnVal))
-                {
-                    return true;
-                }
-            }
-            else if (receiverType == typeof(Guid))
-            {
-                if (s_guidHandler.TryInvokeStatic(methodName, ref args, out returnVal))
-                {
-                    return true;
-                }
-            }
-            else if (receiverType == typeof(char))
-            {
-                if (s_charHandler.TryInvokeStatic(methodName, ref args, out returnVal))
-                {
-                    return true;
-                }
-            }
-            else if (receiverType == typeof(System.Text.RegularExpressions.Regex))
-            {
-                if (s_regexHandler.TryInvokeStatic(methodName, ref args, out returnVal))
-                {
-                    return true;
-                }
-            }
-        }
-        else if (objectInstance is string[] stringArray)
+        if (objectInstance is string[] stringArray)
         {
             if (s_stringArrayHandler.TryInvokeInstance(stringArray, methodName, ref args, out returnVal))
             {
@@ -131,26 +124,13 @@ internal static partial class WellKnownFunctions
 
         if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
         {
-            LogFunctionCall(receiverType, methodName, "PropertyFunctionsRequiringReflection", objectInstance, ref args);
+            LogFunctionCall(isStatic: false, receiverType: objectInstance.GetType(), methodName: methodName, args: ref args);
         }
 
         return NotHandled(out returnVal);
     }
 
-    /// <summary>
-    /// Shortcut to avoid calling into binding if we recognize some most common constructors.
-    /// Analogous to TryExecuteWellKnownFunction but guaranteed to not throw.
-    /// </summary>
-    /// <param name="receiverType"> Receiver type for the constructor. </param>
-    /// <param name="args">Arguments.</param>
-    /// <param name="context">Dependencies used to execute contextual functions.</param>
-    /// <param name="returnVal">The instance as created by the constructor call.</param>
-    /// <returns>True if the well known constructor call binding was successful.</returns>
-    internal static bool TryExecuteWellKnownConstructorNoThrow(
-        Type? receiverType,
-        ref FunctionArguments args,
-        ref readonly ExecutionContext context,
-        out object? returnVal)
+    internal static bool TryInvokeConstructor(Type receiverType, ref FunctionArguments args, out object? returnVal)
     {
         // UNDONE: Constructor calls that fall back to reflection are not recorded in the
         // PropertyFunctionsRequiringReflection log.
@@ -178,19 +158,45 @@ internal static partial class WellKnownFunctions
         return false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void LogFunctionCall(
-        Type receiverType,
-        string methodName,
-        string fileName,
-        object? objectInstance,
-        ref FunctionArguments args)
+    private static void LogFunctionCall(bool isStatic, Type receiverType, string methodName, ref FunctionArguments args)
     {
-        var logFile = Path.Combine(Directory.GetCurrentDirectory(), fileName);
-        var argSignature = string.Join(", ", args.MaterializeAll().Select(a => a?.GetType().Name ?? "null"));
+        string logFile = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
 
-        File.AppendAllText(
-            logFile,
-            $"ReceiverType={receiverType?.FullName}; ObjectInstanceType={objectInstance?.GetType().FullName}; MethodName={methodName}({argSignature})\n");
+        using var builder = new ValueStringBuilder(initialCapacity: 256);
+
+        if (isStatic)
+        {
+            builder.Append("[static] Type=");
+        }
+        else
+        {
+            builder.Append("[instance] Type=");
+        }
+
+        builder.Append(receiverType.FullName);
+        builder.Append("; ");
+
+        builder.Append("MethodName=");
+        builder.Append(methodName);
+        builder.Append("(");
+
+        bool isFirst = true;
+        foreach (object? arg in args.MaterializeAll())
+        {
+            if (!isFirst)
+            {
+                builder.Append(", ");
+            }
+            else
+            {
+                isFirst = false;
+            }
+
+            builder.Append(arg?.GetType().Name ?? "null");
+        }
+
+        builder.Append(")\n");
+
+        File.AppendAllText(logFile, builder.ToString());
     }
 }
