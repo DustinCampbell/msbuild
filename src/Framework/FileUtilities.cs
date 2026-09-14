@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Utilities;
 
 #if NETFRAMEWORK
 using NewPath = Microsoft.IO.Path;
@@ -714,39 +715,57 @@ namespace Microsoft.Build.Framework
         }
 
         /// <summary>
-        /// If on Unix, convert backslashes to slashes for strings that resemble paths.
-        /// The heuristic is if something resembles paths (contains slashes) check if the
-        /// first segment exists and is a directory.
-        /// Use a native shared method to massage file path. If the file is adjusted,
-        /// that qualifies is as a path.
-        ///
-        /// @baseDirectory is just passed to LooksLikeUnixFilePath, to help with the check
+        ///  Converts backslashes to forward slashes and collapses consecutive slashes when
+        ///  <paramref name="value"/> resembles a Unix file path.
         /// </summary>
+        /// <param name="value">The value to inspect and potentially adjust.</param>
+        /// <param name="baseDirectory">
+        ///  The base directory used to resolve the first relative path segment. When empty, the thread-local
+        ///  working directory is used when available.
+        /// </param>
+        /// <returns>
+        ///  The adjusted path on Unix when <paramref name="value"/> contains a backslash and passes the filesystem
+        ///  path heuristic; otherwise, the original <paramref name="value"/>.
+        /// </returns>
+        /// <remarks>
+        ///  Property expressions, item expressions, and backslash-prefixed network paths are returned unchanged.
+        /// </remarks>
         internal static string MaybeAdjustFilePath(string value, string baseDirectory = "")
         {
-            var comparisonType = StringComparison.Ordinal;
-
-            // Don't bother with arrays or properties or network paths, or those that
-            // have no slashes.
-            if (NativeMethods.IsWindows || string.IsNullOrEmpty(value)
-                || value.StartsWith("$(", comparisonType) || value.StartsWith("@(", comparisonType)
-                || value.StartsWith("\\\\", comparisonType))
+            if (NativeMethods.IsWindows || value.IsNullOrEmpty())
             {
                 return value;
             }
 
-            // For Unix-like systems, we may want to convert backslashes to slashes
-            Span<char> newValue = ConvertToUnixSlashes(value.ToCharArray());
+            if (value is ['$', '(', ..] or ['@', '(', ..] or ['\\', '\\', ..])
+            {
+                return value;
+            }
 
-            // Find the part of the name we want to check, that is remove quotes, if present
-            bool shouldAdjust = newValue.IndexOf('/') != -1 && LooksLikeUnixFilePath(RemoveQuotes(newValue), baseDirectory);
-            return shouldAdjust ? newValue.ToString() : value;
+            using BufferScope<char> buffer = new(value.Length);
+            Span<char> newValue = buffer;
+
+            return CollapseSlashes(value, ref newValue) && LooksLikeUnixFilePath(RemoveQuotes(newValue), baseDirectory)
+                ? newValue.ToString()
+                : value;
         }
 
         /// <summary>
-        /// If on Unix, convert backslashes to slashes for strings that resemble paths.
-        /// This overload takes and returns ReadOnlyMemory of characters.
+        ///  Converts backslashes to forward slashes and collapses consecutive slashes when
+        ///  <paramref name="value"/> resembles a Unix file path.
         /// </summary>
+        /// <param name="value">The character memory to inspect and potentially adjust.</param>
+        /// <param name="baseDirectory">
+        ///  The base directory used to resolve the first relative path segment. When empty, the thread-local
+        ///  working directory is used when available.
+        /// </param>
+        /// <returns>
+        ///  Memory containing the adjusted path on Unix when <paramref name="value"/> contains a backslash and its
+        ///  filesystem path heuristic succeeds; otherwise, the original <paramref name="value"/>.
+        /// </returns>
+        /// <remarks>
+        ///  Property expressions, item expressions, and backslash-prefixed network paths are returned unchanged.
+        /// </remarks>
         internal static ReadOnlyMemory<char> MaybeAdjustFilePath(ReadOnlyMemory<char> value, string baseDirectory = "")
         {
             if (NativeMethods.IsWindows || value.IsEmpty)
@@ -754,104 +773,124 @@ namespace Microsoft.Build.Framework
                 return value;
             }
 
-            // Don't bother with arrays or properties or network paths.
-            if (value.Length >= 2)
-            {
-                var span = value.Span;
+            ReadOnlySpan<char> source = value.Span;
 
-                // The condition is equivalent to span.StartsWith("$(") || span.StartsWith("@(") || span.StartsWith("\\\\")
-                if ((span[1] == '(' && (span[0] == '$' || span[0] == '@')) ||
-                    (span[1] == '\\' && span[0] == '\\'))
-                {
-                    return value;
-                }
+            if (source is ['$', '(', ..] or ['@', '(', ..] or ['\\', '\\', ..])
+            {
+                return value;
             }
 
-            // For Unix-like systems, we may want to convert backslashes to slashes
-            Span<char> newValue = ConvertToUnixSlashes(value.ToArray());
+            using BufferScope<char> buffer = new(value.Length);
+            Span<char> newValue = buffer;
 
-            // Find the part of the name we want to check, that is remove quotes, if present
-            bool shouldAdjust = newValue.IndexOf('/') != -1 && LooksLikeUnixFilePath(RemoveQuotes(newValue), baseDirectory);
-            return shouldAdjust ? newValue.ToString().AsMemory() : value;
-        }
-
-        private static Span<char> ConvertToUnixSlashes(Span<char> path)
-        {
-            return path.IndexOf('\\') == -1 ? path : CollapseSlashes(path);
+            return CollapseSlashes(source, ref newValue) && LooksLikeUnixFilePath(RemoveQuotes(newValue), baseDirectory)
+                ? newValue.ToString().AsMemory()
+                : value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Span<char> CollapseSlashes(Span<char> str)
+        private static bool CollapseSlashes(ReadOnlySpan<char> source, ref Span<char> destination)
         {
-            int sliceLength = 0;
+            int writeIndex = 0;
+            bool previousWasSlash = false;
+            bool containsBackslash = false;
 
-            // Performs Regex.Replace(str, @"[\\/]+", "/")
-            for (int i = 0; i < str.Length; i++)
+            // Performs Regex.Replace(source, @"[\\/]+", "/")
+            foreach (char character in source)
             {
-                bool isCurSlash = IsAnySlash(str[i]);
-                bool isPrevSlash = i > 0 && IsAnySlash(str[i - 1]);
-
-                if (!isCurSlash || !isPrevSlash)
+                if (IsAnySlash(character))
                 {
-                    str[sliceLength] = str[i] == '\\' ? '/' : str[i];
-                    sliceLength++;
+                    containsBackslash |= character == '\\';
+
+                    if (!previousWasSlash)
+                    {
+                        destination[writeIndex++] = '/';
+                    }
+
+                    previousWasSlash = true;
+                }
+                else
+                {
+                    destination[writeIndex++] = character;
+                    previousWasSlash = false;
                 }
             }
 
-            return str.Slice(0, sliceLength);
+            destination = destination[..writeIndex];
+            return containsBackslash;
         }
 
-        private static Span<char> RemoveQuotes(Span<char> path)
-        {
-            int endId = path.Length - 1;
-            char singleQuote = '\'';
-            char doubleQuote = '\"';
-
-            bool hasQuotes = path.Length > 2
-                && ((path[0] == singleQuote && path[endId] == singleQuote)
-                || (path[0] == doubleQuote && path[endId] == doubleQuote));
-
-            return hasQuotes ? path.Slice(1, endId - 1) : path;
-        }
+        private static ReadOnlySpan<char> RemoveQuotes(ReadOnlySpan<char> path)
+            => path switch
+            {
+                ['\'', .. var trimmed, '\''] => trimmed,
+                ['"', .. var trimmed, '"'] => trimmed,
+                _ => path,
+            };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool IsAnySlash(char c) => c == '/' || c == '\\';
+        internal static bool IsAnySlash(char c) => c is '/' or '\\';
 
         /// <summary>
-        /// If on Unix, check if the string looks like a file path.
-        /// The heuristic is if something resembles paths (contains slashes) check if the
-        /// first segment exists and is a directory.
-        ///
-        /// If @baseDirectory is not null, then look for the first segment exists under
-        /// that
+        ///  Determines whether <paramref name="value"/> resembles a file path on Unix.
         /// </summary>
+        /// <param name="value">The value to inspect.</param>
+        /// <param name="baseDirectory">
+        ///  The base directory beneath which to check the first segment of a relative path. When empty, the
+        ///  thread-local working directory is used when available.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> on Unix when the first directory segment or root-level path exists; otherwise,
+        ///  <see langword="false"/>.
+        /// </returns>
         internal static bool LooksLikeUnixFilePath(string value, string baseDirectory = "")
-            => LooksLikeUnixFilePath(value.AsSpan(), baseDirectory);
+            => !NativeMethods.IsWindows
+            && !value.IsNullOrEmpty()
+            && LooksLikeUnixFilePath(value.AsSpan(), baseDirectory);
 
+        /// <summary>
+        ///  Determines whether <paramref name="value"/> resembles a file path on Unix.
+        /// </summary>
+        /// <param name="value">The value to inspect.</param>
+        /// <param name="baseDirectory">
+        ///  The base directory beneath which to check the first segment of a relative path. When empty, the
+        ///  thread-local working directory is used when available.
+        /// </param>
+        /// <returns>
+        ///  <see langword="true"/> on Unix when the first directory segment or root-level path exists; otherwise,
+        ///  <see langword="false"/>.
+        /// </returns>
         internal static bool LooksLikeUnixFilePath(ReadOnlySpan<char> value, string baseDirectory = "")
+            => !NativeMethods.IsWindows
+            && !value.IsEmpty
+            && LooksLikeUnixFilePathCore(value, baseDirectory);
+
+        private static bool LooksLikeUnixFilePathCore(ReadOnlySpan<char> value, string baseDirectory)
         {
-            if (NativeMethods.IsWindows)
+            // The first slash will either be at the beginning of the string or after the first directory name
+            int directoryLength = value[1..].IndexOf('/') + 1;
+
+            if (directoryLength == 0)
             {
-                return false;
+                // Check for actual files or directories directly under /.
+                return value[0] == '/' && DefaultFileSystem.FileOrDirectoryExists(value.ToString());
+            }
+
+            ReadOnlySpan<char> directory = value[..directoryLength];
+
+            if (value[0] == '/')
+            {
+                return DefaultFileSystem.DirectoryExists(directory.ToString());
             }
 
             // In MT mode the process CWD should not be used when resolving the first relative path segment. Use the
             // thread-local working directory so the directory existence heuristic runs against the correct project directory.
-            if (string.IsNullOrEmpty(baseDirectory))
+            if (baseDirectory.IsNullOrEmpty())
             {
-                baseDirectory = CurrentThreadWorkingDirectory ?? "";
+                baseDirectory = CurrentThreadWorkingDirectory ?? string.Empty;
             }
 
-            // The first slash will either be at the beginning of the string or after the first directory name
-            int directoryLength = value.Slice(1).IndexOf('/') + 1;
-            bool shouldCheckDirectory = directoryLength != 0;
-
-            // Check for actual files or directories under / that get missed by the above logic
-            bool shouldCheckFileOrDirectory = !shouldCheckDirectory && value.Length > 0 && value[0] == '/';
-            ReadOnlySpan<char> directory = value.Slice(0, directoryLength);
-
-            return (shouldCheckDirectory && DefaultFileSystem.DirectoryExists(Path.Combine(baseDirectory, directory.ToString())))
-                || (shouldCheckFileOrDirectory && DefaultFileSystem.FileOrDirectoryExists(value.ToString()));
+            return DefaultFileSystem.DirectoryExists(NewPath.Join(baseDirectory.AsSpan(), directory));
         }
 
         /// <summary>
