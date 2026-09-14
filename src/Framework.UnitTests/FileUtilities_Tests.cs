@@ -862,6 +862,13 @@ public class FileUtilities_Tests
         });
     }
 
+    [Fact]
+    public void EmptyPathDoesNotLookLikeUnixPath()
+    {
+        FileUtilities.LooksLikeUnixFilePath(string.Empty).ShouldBeFalse();
+        FileUtilities.LooksLikeUnixFilePath(ReadOnlySpan<char>.Empty).ShouldBeFalse();
+    }
+
     [UnixOnlyFact]
     public void AbsolutePathLooksLikeUnixPathOnUnix()
     {
@@ -930,6 +937,7 @@ public class FileUtilities_Tests
 
             // .. but if we have baseDirectory:firstDirectory, then it will
             Assert.Equal("second/file.txt", FileUtilities.MaybeAdjustFilePath("second\\file.txt", firstDirectory));
+            FileUtilities.MaybeAdjustFilePath("second\\file.txt".AsMemory(), firstDirectory).ToString().ShouldBe("second/file.txt");
         }
         finally
         {
