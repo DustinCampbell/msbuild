@@ -788,6 +788,40 @@ namespace Microsoft.Build.Framework
                 : value;
         }
 
+        /// <summary>
+        ///  Copies <paramref name="value"/> to <paramref name="destination"/>, adjusting it as a Unix file path
+        ///  when appropriate.
+        /// </summary>
+        /// <param name="value">The characters to copy and potentially adjust.</param>
+        /// <param name="destination">
+        ///  The destination buffer. Its length must be at least the length of <paramref name="value"/>.
+        /// </param>
+        /// <param name="baseDirectory">
+        ///  The base directory used to resolve the first relative path segment. When empty, the thread-local
+        ///  working directory is used when available.
+        /// </param>
+        /// <returns>The number of characters written to <paramref name="destination"/>.</returns>
+        internal static int MaybeAdjustFilePathAndCopyTo(ReadOnlySpan<char> value, Span<char> destination, string baseDirectory = "")
+        {
+            Assumed.GreaterThanOrEqual(destination.Length, value.Length);
+
+            if (!NativeMethods.IsWindows
+                && !value.IsEmpty
+                && value is not (['$', '(', ..] or ['@', '(', ..] or ['\\', '\\', ..]))
+            {
+                Span<char> adjustedValue = destination[..value.Length];
+
+                if (CollapseSlashes(value, ref adjustedValue)
+                    && LooksLikeUnixFilePath(RemoveQuotes(adjustedValue), baseDirectory))
+                {
+                    return adjustedValue.Length;
+                }
+            }
+
+            value.CopyTo(destination);
+            return value.Length;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool CollapseSlashes(ReadOnlySpan<char> source, ref Span<char> destination)
         {
