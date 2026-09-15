@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using Microsoft.Build.Shared;
 using Shouldly;
 using Xunit;
@@ -27,6 +28,47 @@ public sealed class EscapingUtilities_Tests
     [InlineData("%2aStar%2Acraft%20or %2aWar%2Acr%40ft%3f%3F", "*Star*craft or *War*cr@ft??")]
     public void Unescape(string value, string result)
         => EscapingUtilities.UnescapeAll(value).ShouldBe(result);
+
+    [Theory]
+    [InlineData("prefixfoosuffix", 6, 3, "foo")]
+    [InlineData("prefix%20suffix", 6, 3, " ")]
+    [InlineData("prefixfoo%20suffix", 6, 6, "foo ")]
+    [InlineData("prefix%ZZsuffix", 6, 3, "%ZZ")]
+    [InlineData("prefixfoo%20suffix", 6, 4, "foo%")]
+    [InlineData("prefix%20suffix", 7, 2, "20")]
+    public void UnescapeRange(string value, int startIndex, int length, string expected)
+        => EscapingUtilities.UnescapeAll(value, startIndex, length).ShouldBe(expected);
+
+    [Fact]
+    public void UnescapeFullRangeWithoutEscapesReturnsOriginalString()
+    {
+        string value = new('x', 3);
+
+        EscapingUtilities.UnescapeAll(value, 0, value.Length).ShouldBeSameAs(value);
+    }
+
+    [Fact]
+    public void UnescapeEmptyRanges()
+    {
+        string value = string.Empty;
+
+        EscapingUtilities.UnescapeAll(value, 0, 0).ShouldBeSameAs(value);
+        EscapingUtilities.UnescapeAll("value", 2, 0).ShouldBe(string.Empty);
+        EscapingUtilities.UnescapeAll(null, 0, 0).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(-1, 0, "startIndex")]
+    [InlineData(4, 0, "startIndex")]
+    [InlineData(0, -1, "length")]
+    [InlineData(2, 2, "length")]
+    public void UnescapeRangeRejectsInvalidBounds(int startIndex, int length, string parameterName)
+    {
+        ArgumentOutOfRangeException exception =
+            Should.Throw<ArgumentOutOfRangeException>(() => EscapingUtilities.UnescapeAll("abc", startIndex, length));
+
+        exception.ParamName.ShouldBe(parameterName);
+    }
 
     [Theory]
     [InlineData("", "")]

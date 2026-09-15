@@ -1,10 +1,9 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#if !NET
 using System;
-#endif
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Microsoft.Build;
 
@@ -17,6 +16,77 @@ internal static class StringExtensions
     /// <inheritdoc cref="string.IsNullOrWhiteSpace(string)"/>
     public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value)
         => string.IsNullOrWhiteSpace(value);
+
+    /// <summary>
+    ///  Gets the bounds of <paramref name="value"/> after trimming leading and trailing white-space characters.
+    /// </summary>
+    /// <param name="value">The string whose trim bounds to compute.</param>
+    /// <param name="startIndex">The index at which the trimmed value begins.</param>
+    /// <param name="length">The length of the trimmed value.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
+    public static void GetTrimBounds(this string value, out int startIndex, out int length)
+    {
+        if (value is null)
+        {
+            ThrowInvalidTrimBounds(value, 0, 0);
+        }
+
+        GetTrimBoundsCore(value, 0, value.Length, out startIndex, out length);
+    }
+
+    /// <summary>
+    ///  Gets the bounds of a range within <paramref name="value"/> after trimming leading and trailing white-space
+    ///  characters.
+    /// </summary>
+    /// <param name="value">The string containing the range whose trim bounds to compute.</param>
+    /// <param name="startIndex">The index at which the range begins.</param>
+    /// <param name="length">The length of the range.</param>
+    /// <param name="trimmedStartIndex">The index at which the trimmed range begins.</param>
+    /// <param name="trimmedLength">The length of the trimmed range.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///  <paramref name="startIndex"/> or <paramref name="length"/> does not identify a valid range within
+    ///  <paramref name="value"/>.
+    /// </exception>
+    public static void GetTrimBounds(this string value, int startIndex, int length, out int trimmedStartIndex, out int trimmedLength)
+    {
+        if (value is null ||
+            (uint)startIndex > (uint)value.Length ||
+            (uint)length > (uint)(value.Length - startIndex))
+        {
+            ThrowInvalidTrimBounds(value, startIndex, length);
+        }
+
+        GetTrimBoundsCore(value, startIndex, length, out trimmedStartIndex, out trimmedLength);
+    }
+
+    private static void GetTrimBoundsCore(string value, int startIndex, int length, out int trimmedStartIndex, out int trimmedLength)
+    {
+        int endIndex = startIndex + length;
+
+        while (startIndex < endIndex && char.IsWhiteSpace(value[startIndex]))
+        {
+            startIndex++;
+        }
+
+        while (endIndex > startIndex && char.IsWhiteSpace(value[endIndex - 1]))
+        {
+            endIndex--;
+        }
+
+        trimmedStartIndex = startIndex;
+        trimmedLength = endIndex - startIndex;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowInvalidTrimBounds([NotNull] string? value, int startIndex, int length)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(startIndex, value.Length);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, value.Length - startIndex);
+    }
 
     extension(string)
     {
