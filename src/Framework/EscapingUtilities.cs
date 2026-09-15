@@ -109,52 +109,85 @@ internal static class EscapingUtilities
         }
 
         int startIndex = 0;
-        int endIndex = value.Length;
+        int length = value.Length;
 
         if (trim)
         {
-            while (startIndex < endIndex && char.IsWhiteSpace(value[startIndex]))
-            {
-                startIndex++;
-            }
-
-            if (startIndex == endIndex)
-            {
-                return string.Empty;
-            }
-
-            while (char.IsWhiteSpace(value[endIndex - 1]))
-            {
-                endIndex--;
-            }
+            value.GetTrimBounds(out startIndex, out length);
         }
 
-        // Search only within the active [startIndex, endIndex) window.
-        int percentIndex = value.IndexOf('%', startIndex, endIndex - startIndex);
+        return UnescapeAllCore(value, startIndex, length);
+    }
+
+    /// <summary>
+    ///  Replaces every valid <c>%XX</c> escape sequence in the specified range with the character represented by
+    ///  the hexadecimal value <c>XX</c>.
+    /// </summary>
+    /// <param name="value">The string containing the range to unescape, or <see langword="null"/>.</param>
+    /// <param name="startIndex">The zero-based index at which the range begins.</param>
+    /// <param name="length">The number of characters in the range.</param>
+    /// <returns>
+    ///  The unescaped range, or <see langword="null"/> when <paramref name="value"/> is <see langword="null"/>.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///  <paramref name="startIndex"/> or <paramref name="length"/> does not identify a valid range within
+    ///  <paramref name="value"/>.
+    /// </exception>
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? UnescapeAll(string? value, int startIndex, int length)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if ((uint)startIndex > (uint)value.Length ||
+            (uint)length > (uint)(value.Length - startIndex))
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(startIndex, value.Length);
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(length, value.Length - startIndex);
+        }
+
+        return length > 0
+            ? UnescapeAllCore(value, startIndex, length)
+            : value.Length == 0 ? value : string.Empty;
+    }
+
+    private static string UnescapeAllCore(string value, int startIndex, int length)
+    {
+        // Search only within the active [startIndex, startIndex + length) window.
+        int percentIndex = value.IndexOf('%', startIndex, length);
         if (percentIndex == -1)
         {
             // value contains no escape sequences.
-            return GetDefaultResult(value, startIndex, endIndex);
+            return GetDefaultResult(value, startIndex, length);
         }
 
         StringBuilder? sb = null;
 
         do
         {
+            int index = percentIndex - startIndex;
+
             // There must be two hex characters following the percent sign.
-            if (percentIndex <= endIndex - 3 &&
+            if (index <= length - 3 &&
                 TryDecodeHexDigit(value[percentIndex + 1], out int hi) &&
                 TryDecodeHexDigit(value[percentIndex + 2], out int lo))
             {
-                sb ??= StringBuilderCache.Acquire(value.Length);
+                sb ??= StringBuilderCache.Acquire(length);
 
-                sb.Append(value, startIndex, percentIndex - startIndex);
+                sb.Append(value, startIndex, index);
                 sb.Append((char)((hi << 4) + lo));
-                startIndex = percentIndex + 3;
+
+                int consumed = index + 3;
+                startIndex += consumed;
+                length -= consumed;
             }
 
-            int nextIndex = percentIndex + 1;
-            percentIndex = value.IndexOf('%', nextIndex, endIndex - nextIndex);
+            int nextIndex = Math.Max(percentIndex + 1, startIndex);
+            percentIndex = value.IndexOf('%', nextIndex, length - (nextIndex - startIndex));
         }
         while (percentIndex >= 0);
 
@@ -162,17 +195,17 @@ internal static class EscapingUtilities
         {
             // No escape sequences were decoded; return the original string, or the trimmed
             // slice if trim was requested.
-            return GetDefaultResult(value, startIndex, endIndex);
+            return GetDefaultResult(value, startIndex, length);
         }
 
-        sb.Append(value, startIndex, endIndex - startIndex);
+        sb.Append(value, startIndex, length);
 
         return StringBuilderCache.GetStringAndRelease(sb);
 
-        static string GetDefaultResult(string value, int startIndex, int endIndex)
-            => startIndex == 0 && endIndex == value.Length
+        static string GetDefaultResult(string value, int startIndex, int length)
+            => startIndex == 0 && length == value.Length
                 ? value
-                : value.Substring(startIndex, endIndex - startIndex);
+                : value.Substring(startIndex, length);
     }
 
     /// <summary>
