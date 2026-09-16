@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections;
-using System.Globalization;
 #if !FEATURE_MSIOREDIST
 using System.IO;
 #endif
@@ -11,6 +9,7 @@ using System.IO;
 using System.Linq;
 #endif
 using Microsoft.Build.Execution;
+using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
@@ -92,17 +91,14 @@ internal partial class Expander<P, I>
             IElementLocation elementLocation,
             PropertiesUseTracker propertiesUseTracker,
             IFileSystem fileSystem)
-        {
-            return
-                ConvertToString(
-                    ExpandPropertiesLeaveTypedAndEscaped(
-                        expression,
-                        properties,
-                        options,
-                        elementLocation,
-                        propertiesUseTracker,
-                        fileSystem));
-        }
+            => PropertyValueConverter.ToString(
+                ExpandPropertiesLeaveTypedAndEscaped(
+                    expression,
+                    properties,
+                    options,
+                    elementLocation,
+                    propertiesUseTracker,
+                    fileSystem));
 
         /// <summary>
         /// This method takes a string which may contain any number of
@@ -565,83 +561,6 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Convert the object into an MSBuild friendly string
-        /// Arrays are supported.
-        /// Will not return NULL.
-        /// </summary>
-        internal static string ConvertToString(object valueToConvert)
-        {
-            if (valueToConvert == null)
-            {
-                return string.Empty;
-            }
-
-            // If the value is a string, then there is nothing to do
-            if (valueToConvert is string stringValue)
-            {
-                return stringValue;
-            }
-
-            string convertedString;
-            if (valueToConvert is IDictionary dictionary)
-            {
-                // If the return type is an IDictionary, then we convert this to
-                // a semi-colon delimited set of A=B pairs.
-                // Key and Value are converted to string and escaped
-                if (dictionary.Count > 0)
-                {
-                    using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
-
-                    foreach (DictionaryEntry entry in dictionary)
-                    {
-                        if (builder.Length > 0)
-                        {
-                            builder.Append(";");
-                        }
-
-                        // convert and escape each key and value in the dictionary entry
-                        builder.Append(EscapingUtilities.Escape(ConvertToString(entry.Key)));
-                        builder.Append("=");
-                        builder.Append(EscapingUtilities.Escape(ConvertToString(entry.Value)));
-                    }
-
-                    convertedString = builder.ToString();
-                }
-                else
-                {
-                    convertedString = string.Empty;
-                }
-            }
-            else if (valueToConvert is IEnumerable enumerable)
-            {
-                // If the return is enumerable, then we'll convert to semi-colon delimited elements
-                // each of which must be converted, so we'll recurse for each element
-                using SpanBasedStringBuilder builder = Strings.GetSpanBasedStringBuilder();
-
-                foreach (object element in enumerable)
-                {
-                    if (builder.Length > 0)
-                    {
-                        builder.Append(";");
-                    }
-
-                    // we need to convert and escape each element of the array
-                    builder.Append(EscapingUtilities.Escape(ConvertToString(element)));
-                }
-
-                convertedString = builder.ToString();
-            }
-            else
-            {
-                // The fall back is always to just convert to a string directly.
-                // Issue: https://github.com/dotnet/msbuild/issues/9757
-                convertedString = Convert.ToString(valueToConvert, CultureInfo.InvariantCulture);
-            }
-
-            return convertedString;
-        }
-
-        /// <summary>
         ///  Looks up a simple property reference by its complete name.
         /// </summary>
         /// <param name="propertyName">The property name to look up.</param>
@@ -814,7 +733,7 @@ internal partial class Expander<P, I>
                 object value = Registry.GetValue(keyName, valueName, defaultValue: null);
 
                 // Convert the result to a string that is reasonable for MSBuild
-                return ConvertToString(value);
+                return PropertyValueConverter.ToString(value);
             }
             catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
             {

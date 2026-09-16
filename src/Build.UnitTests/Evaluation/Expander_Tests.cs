@@ -2492,6 +2492,42 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         /// <summary>
+        ///  Verifies conversion of property-function results across scalar, collection, and nested collection values.
+        /// </summary>
+        /// <param name="scenario">The property-value conversion scenario to exercise.</param>
+        /// <param name="expected">The expected escaped string representation.</param>
+        [Theory]
+        [InlineData("Null", "")]
+        [InlineData("EmptyString", "")]
+        [InlineData("String", "a%3bb")]
+        [InlineData("Scalar", "42")]
+        [InlineData("EmptyDictionary", "")]
+        [InlineData("EmptyArray", "")]
+        [InlineData("EmptyEnumerable", "")]
+        [InlineData("Dictionary", "a%3bb=c%25d")]
+        [InlineData("EnumerableWithEmptyElements", "a;;b%3bc")]
+        [InlineData("NonzeroLowerBoundArray", "a;b")]
+        [InlineData("MultidimensionalArray", "a;b;c;d")]
+        [InlineData("NestedEnumerable", "a%25253bb%253bc")]
+        [InlineData("NestedDictionary", "key=a%253bb%3bc")]
+        public void PropertyFunctionConvertsComplexValues(string scenario, string expected)
+        {
+            using TestEnvironment env = TestEnvironment.Create(_output);
+            env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+
+            PropertyDictionary<ProjectPropertyInstance> properties = new();
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = ExpanderFactory.Create(properties);
+            string typeName = typeof(PropertyValueConversionTestData).AssemblyQualifiedName;
+
+            string result = expander.ExpandIntoStringLeaveEscaped(
+                $"$([{typeName}]::GetValue(`{scenario}`))",
+                ExpanderOptions.ExpandProperties,
+                MockElementLocation.Instance);
+
+            result.ShouldBe(expected);
+        }
+
+        /// <summary>
         /// Expand property function that returns an array
         /// </summary>
         [Fact]
