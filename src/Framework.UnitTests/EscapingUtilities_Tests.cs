@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.Build.Shared;
+using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
 
@@ -102,6 +103,101 @@ public sealed class EscapingUtilities_Tests
     [InlineData("%*?*%*", "%25%2a%3f%2a%25%2a")]
     public void Escape(string value, string result)
         => EscapingUtilities.Escape(value).ShouldBe(result);
+
+    [Theory]
+    [InlineData(null, 3)]
+    [InlineData("", 3)]
+    [InlineData("plain", 3)]
+    [InlineData("a;b", 0)]
+    [InlineData("a;b", 1)]
+    [InlineData("a;b", 2)]
+    [InlineData("a;b", 3)]
+    [InlineData("%*?@$();'", 1)]
+    [InlineData("%*?@$();'", 2)]
+    [InlineData("%*?@$();'", 3)]
+    public void AppendEscapedMatchesRepeatedEscaping(string? value, int escapeCount)
+    {
+        string? expected = value;
+        for (int i = 0; i < escapeCount; i++)
+        {
+            expected = EscapingUtilities.Escape(expected);
+        }
+
+        ValueStringBuilder builder = new(initialCapacity: 16);
+        try
+        {
+            builder.Append("prefix:");
+            builder.AppendEscaped(value, escapeCount);
+            builder.Append(":suffix");
+
+            builder.ToString().ShouldBe($"prefix:{expected}:suffix");
+        }
+        finally
+        {
+            builder.Dispose();
+        }
+    }
+
+    [Theory]
+    [InlineData(';', 0, ";")]
+    [InlineData(';', 1, "%3b")]
+    [InlineData(';', 2, "%253b")]
+    [InlineData(';', 3, "%25253b")]
+    [InlineData('%', 2, "%2525")]
+    [InlineData('a', 0, "a")]
+    [InlineData('a', 1, "a")]
+    [InlineData('a', 3, "a")]
+    public void AppendEscapedCharacter(char value, int escapeCount, string expected)
+    {
+        ValueStringBuilder builder = new(initialCapacity: 16);
+        try
+        {
+            builder.Append("prefix:");
+            builder.AppendEscaped(value, escapeCount);
+            builder.Append(":suffix");
+
+            builder.ToString().ShouldBe($"prefix:{expected}:suffix");
+        }
+        finally
+        {
+            builder.Dispose();
+        }
+    }
+
+    [Fact]
+    public void AppendEscapedRejectsNegativeEscapeCount()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(AppendStringWithNegativeEscapeCount)
+            .ParamName.ShouldBe("escapeCount");
+        Should.Throw<ArgumentOutOfRangeException>(AppendCharacterWithNegativeEscapeCount)
+            .ParamName.ShouldBe("escapeCount");
+
+        static void AppendStringWithNegativeEscapeCount()
+        {
+            ValueStringBuilder builder = new(initialCapacity: 16);
+            try
+            {
+                builder.AppendEscaped("value", -1);
+            }
+            finally
+            {
+                builder.Dispose();
+            }
+        }
+
+        static void AppendCharacterWithNegativeEscapeCount()
+        {
+            ValueStringBuilder builder = new(initialCapacity: 16);
+            try
+            {
+                builder.AppendEscaped(';', -1);
+            }
+            finally
+            {
+                builder.Dispose();
+            }
+        }
+    }
 
     [Theory]
     [InlineData("*")]
