@@ -2613,6 +2613,40 @@ namespace Microsoft.Build.UnitTests.Evaluation
         }
 
         /// <summary>
+        ///  Verifies that a property indexer's closing bracket must follow its opening bracket.
+        /// </summary>
+        [ModernExpanderOnlyFact]
+        public void PropertyIndexerRejectsClosingBracketBeforeOpeningBracket()
+        {
+            const string expression = "$(SomeStuff][0])";
+            PropertyDictionary<ProjectPropertyInstance> properties = new PropertyDictionary<ProjectPropertyInstance>();
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = ExpanderFactory.Create(properties);
+
+            InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+                () => expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance));
+
+            exception.BaseMessage.ShouldContain("SomeStuff][0]");
+            exception.BaseMessage.ShouldContain(AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
+        }
+
+        /// <summary>
+        ///  Verifies the legacy behavior for a property indexer whose closing bracket precedes its opening bracket.
+        /// </summary>
+        [LegacyExpanderOnlyFact]
+        public void PropertyIndexerClosingBracketBeforeOpeningBracketPreservesLegacyError()
+        {
+            const string expression = "$(SomeStuff][0])";
+            PropertyDictionary<ProjectPropertyInstance> properties = new PropertyDictionary<ProjectPropertyInstance>();
+            IExpander<ProjectPropertyInstance, ProjectItemInstance> expander = ExpanderFactory.Create(properties);
+
+            InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+                () => expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance));
+
+            exception.BaseMessage.ShouldContain("\"\".get_Chars(0)");
+            exception.BaseMessage.ShouldNotContain(AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
+        }
+
+        /// <summary>
         /// Expand property function that is invalid - properties don't take arguments
         /// </summary>
         [Fact]

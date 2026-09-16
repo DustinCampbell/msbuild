@@ -307,18 +307,39 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
     }
 
     /// <summary>
-    /// Returns true if the supplied string contains a valid property name.
+    ///  Determines whether <paramref name="text"/> is a valid property name.
     /// </summary>
-    private static bool IsValidPropertyName(string propertyName)
+    /// <param name="text">The property name to validate.</param>
+    /// <returns>
+    ///  <see langword="true"/> when <paramref name="text"/> is valid; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    private static bool IsValidPropertyName(string text)
+        => IsValidPropertyName(text, 0, text.Length);
+
+    /// <summary>
+    ///  Determines whether a range within <paramref name="text"/> is a valid property name.
+    /// </summary>
+    /// <param name="text">The string containing the property name to validate.</param>
+    /// <param name="startIndex">The index at which the property name begins.</param>
+    /// <param name="length">The length of the property name.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the specified range is a valid property name; otherwise,
+    ///  <see langword="false"/>.
+    /// </returns>
+    private static bool IsValidPropertyName(string text, int startIndex, int length)
     {
-        if (propertyName.Length == 0 || !XmlUtilities.IsValidInitialElementNameCharacter(propertyName[0]))
+        if (length == 0 || !XmlUtilities.IsValidInitialElementNameCharacter(text[startIndex]))
         {
             return false;
         }
 
-        for (int n = 1; n < propertyName.Length; n++)
+        int index = startIndex;
+        int endIndex = startIndex + length;
+
+        while (++index < endIndex)
         {
-            if (!XmlUtilities.IsValidSubsequentElementNameCharacter(propertyName[n]))
+            if (!XmlUtilities.IsValidSubsequentElementNameCharacter(text[index]))
             {
                 return false;
             }

@@ -5,9 +5,6 @@ using System;
 #if !FEATURE_MSIOREDIST
 using System.IO;
 #endif
-#if !NET
-using System.Linq;
-#endif
 using Microsoft.Build.Execution;
 using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
@@ -317,9 +314,29 @@ internal partial class Expander<P, I>
                 return true;
             }
 
-            propertyValue = isPotentialPropertyFunction || isPotentialRegistryFunction
-                ? ExpandProperty(text, startIndex, closingParenIndex - 1, isPotentialRegistryFunction, isPotentialPropertyFunction)
-                : LookupProperty(text, startIndex, closingParenIndex - 1);
+            // Compat: v10.0\TeamData\Microsoft.Data.Schema.Common.targets shipped with this malformed registry
+            // reference. Preserve its legacy empty result only when the complete property body matches.
+            if (length == VstsDbDirectoryProperty.Length &&
+                string.Compare(text, startIndex, VstsDbDirectoryProperty, 0, VstsDbDirectoryProperty.Length, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                propertyValue = string.Empty;
+                return true;
+            }
+
+            if (isPotentialRegistryFunction &&
+                length >= RegistryPrefix.Length &&
+                string.Compare(text, startIndex, RegistryPrefix, 0, RegistryPrefix.Length, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                // This is a registry reference, like $(Registry:HKEY_LOCAL_MACHINE\Software\Vendor\Tools@TaskLocation).
+                // ExpandRegistryValue returns an empty string if not on Windows.
+                propertyValue = ExpandRegistryValue(text, startIndex, length);
+            }
+            else
+            {
+                propertyValue = isPotentialPropertyFunction
+                    ? ExpandPropertyBody(text, startIndex, length, receiverValue: null)
+                    : LookupProperty(text, startIndex, length);
+            }
 
             if (propertyValue != null && _isTruncationEnabled)
             {
@@ -402,52 +419,12 @@ internal partial class Expander<P, I>
             return nestLevel == 0 ? index - 1 : -1;
         }
 
-        private object ExpandProperty(
-            string expression,
-            int startIndex,
-            int endIndex,
-            bool tryExtractRegistryFunction,
-            bool tryExtractPropertyFunction)
-        {
-            // startIndex and endIndex inclusively delimit the property body.
-            int length = endIndex - startIndex + 1;
-
-            // Compat hack: as a special case, $(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory) should return string.Empty
-            // Note that very few properties have this exact length, so this check should be fast.
-            if (length == VstsDbDirectoryProperty.Length &&
-                string.Compare(expression, startIndex, VstsDbDirectoryProperty, 0, VstsDbDirectoryProperty.Length, StringComparison.OrdinalIgnoreCase) == 0)
-            {
-                return string.Empty;
-            }
-
-            if (tryExtractRegistryFunction &&
-                length >= RegistryPrefix.Length &&
-                string.Compare(expression, startIndex, RegistryPrefix, 0, RegistryPrefix.Length, StringComparison.OrdinalIgnoreCase) == 0)
-            {
-                // If the property body starts with any of our special objects, then deal with them
-                // This is a registry reference, like $(Registry:HKEY_LOCAL_MACHINE\Software\Vendor\Tools@TaskLocation)
-                // Note: ExpandRegistryValue returns an empty string if not on Windows.
-                return ExpandRegistryValue(expression, startIndex, length);
-            }
-
-            if (tryExtractPropertyFunction)
-            {
-                // This is likely to be a function expression
-                return ExpandPropertyBody(
-                    expression.Substring(startIndex, length),
-                    propertyValue: null);
-            }
-
-            // This is a regular property
-            return LookupProperty(expression, startIndex, endIndex);
-        }
-
         /// <summary>
         /// Expand the body of the property, including any functions that it may contain.
         /// </summary>
         internal static object ExpandPropertyBody(
             string propertyBody,
-            object propertyValue,
+            object receiverValue,
             IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
@@ -455,109 +432,115 @@ internal partial class Expander<P, I>
             IFileSystem fileSystem)
         {
             PropertyExpander expander = new(properties, options, elementLocation, propertiesUseTracker, fileSystem);
-            return expander.ExpandPropertyBody(propertyBody, propertyValue);
+            return expander.ExpandPropertyBody(propertyBody, 0, propertyBody.Length, receiverValue);
         }
 
-        private object ExpandPropertyBody(string propertyBody, object propertyValue)
+        /// <summary>
+        ///  Expands a property body, including any functions that it contains.
+        /// </summary>
+        /// <param name="text">The string containing the property body.</param>
+        /// <param name="startIndex">The index at which the property body begins.</param>
+        /// <param name="length">The length of the property body.</param>
+        /// <param name="receiverValue">The current receiver value, or <see langword="null"/>.</param>
+        /// <returns>
+        ///  The expanded property value.
+        /// </returns>
+        private object ExpandPropertyBody(string text, int startIndex, int length, object receiverValue)
         {
-            Function function = null;
-            string propertyName = propertyBody;
-
             // Trim the body for compatibility reasons:
             // Spaces are not valid property name chars, but $( Foo ) is allowed, and should always expand to BLANK.
-            // Do a very fast check for leading and trailing whitespace, and trim them from the property body if we have any.
-            // But we will do a property name lookup on the propertyName that we held onto.
-            if (char.IsWhiteSpace(propertyBody[0]) || char.IsWhiteSpace(propertyBody[^1]))
+            // The property lookup still uses the original, untrimmed range.
+            text.GetTrimBounds(startIndex, length, out int bodyStartIndex, out int bodyLength);
+
+            if (IsValidPropertyName(text, bodyStartIndex, bodyLength))
             {
-                propertyBody = propertyBody.Trim();
+                // Find the property value in our property collection.  This
+                // will automatically return "" (empty string) if the property
+                // doesn't exist in the collection, and we're not executing a static function
+                return LookupProperty(text, startIndex, length);
             }
 
             // If we don't have a clean propertybody then we'll do deeper checks to see
             // if what we have is a function
-            if (!IsValidPropertyName(propertyBody))
+            int indexerStartIndex = text.IndexOf('[', bodyStartIndex, bodyLength);
+
+            if (indexerStartIndex == bodyStartIndex || text.IndexOf('.', bodyStartIndex, bodyLength) >= 0)
             {
-                if (propertyBody.Contains('.') || propertyBody[0] == '[')
+                string propertyBody = text.Substring(bodyStartIndex, bodyLength);
+
+                if (BuildParameters.DebugExpansion)
                 {
-                    if (BuildParameters.DebugExpansion)
+                    Console.WriteLine("Expanding: {0}", propertyBody);
+                }
+
+                // This is a function
+                Function function = Function.ExtractPropertyFunction(
+                    propertyBody,
+                    _elementLocation,
+                    receiverValue,
+                    _propertiesUseTracker,
+                    _fileSystem,
+                    _propertiesUseTracker.LoggingContext);
+
+                // We may not have been able to parse out a function
+                if (function is not null)
+                {
+                    if (!function.Receiver.IsNullOrEmpty())
                     {
-                        Console.WriteLine("Expanding: {0}", propertyBody);
+                        receiverValue = LookupProperty(function.Receiver);
                     }
 
-                    // This is a function
-                    function = Function.ExtractPropertyFunction(
-                        propertyBody,
-                        _elementLocation,
-                        propertyValue,
-                        _propertiesUseTracker,
-                        _fileSystem,
-                        _propertiesUseTracker.LoggingContext);
-
-                    // We may not have been able to parse out a function
-                    if (function != null)
+                    try
                     {
-                        // We will have either extracted the actual property name
-                        // or realized that there is none (static function), and have recorded a null
-                        propertyName = function.Receiver;
+                        // Because of the rich expansion capabilities of MSBuild, we need to keep things
+                        // as strings, since property expansion & string embedding can happen anywhere
+                        // receiverValue can be null here, when we're invoking a static function
+                        return function.Execute(receiverValue, _properties, _options, _elementLocation);
                     }
-                    else
+                    catch when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                     {
-                        // In the event that we have been handed an unrecognized property body, throw
-                        // an invalid function property exception.
-                        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, String.Empty);
-                        return null;
+                        return propertyBody;
                     }
                 }
-                else if (propertyValue == null && propertyBody.Contains('[')) // a single property indexer
-                {
-                    int indexerStart = propertyBody.IndexOf('[');
-                    int indexerEnd = propertyBody.IndexOf(']');
 
-                    if (indexerStart < 0 || indexerEnd < 0)
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
-                    }
-                    else
-                    {
-                        propertyValue = LookupProperty(propertyBody, 0, indexerStart - 1);
-                        propertyBody = propertyBody.Substring(indexerStart);
-
-                        // recurse so that the function representing the indexer can be executed on the property value
-                        return ExpandPropertyBody(propertyBody, propertyValue);
-                    }
-                }
-                else
-                {
-                    // In the event that we have been handed an unrecognized property body, throw
-                    // an invalid function property exception.
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, string.Empty);
-                    return null;
-                }
+                // In the event that we have been handed an unrecognized property body, throw
+                // an invalid function property exception.
+                ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, string.Empty);
+                return Assumed.Unreachable<string>();
             }
 
-            // Find the property value in our property collection.  This
-            // will automatically return "" (empty string) if the property
-            // doesn't exist in the collection, and we're not executing a static function
-            if (!string.IsNullOrEmpty(propertyName))
+            if (receiverValue is null && indexerStartIndex >= 0) // a single property indexer
             {
-                propertyValue = LookupProperty(propertyName);
+                int indexerEndIndex = text.IndexOf(']', bodyStartIndex, bodyLength);
+
+                if (indexerEndIndex > indexerStartIndex)
+                {
+                    int propertyNameLength = indexerStartIndex - bodyStartIndex;
+                    object indexedPropertyValue = LookupProperty(text, bodyStartIndex, propertyNameLength);
+
+                    // recurse so that the function representing the indexer can be executed on the property value
+                    int indexerLength = bodyLength - propertyNameLength;
+                    return ExpandPropertyBody(text, indexerStartIndex, indexerLength, indexedPropertyValue);
+                }
+
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    _elementLocation,
+                    "InvalidFunctionPropertyExpression",
+                    text.Substring(bodyStartIndex, bodyLength),
+                    AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
+
+                return Assumed.Unreachable<string>();
             }
 
-            if (function != null)
-            {
-                try
-                {
-                    // Because of the rich expansion capabilities of MSBuild, we need to keep things
-                    // as strings, since property expansion & string embedding can happen anywhere
-                    // propertyValue can be null here, when we're invoking a static function
-                    propertyValue = function.Execute(propertyValue, _properties, _options, _elementLocation);
-                }
-                catch (Exception) when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                {
-                    propertyValue = propertyBody;
-                }
-            }
+            // In the event that we have been handed an unrecognized property body, throw
+            // an invalid function property exception.
+            ProjectErrorUtilities.ThrowInvalidProject(
+                _elementLocation,
+                "InvalidFunctionPropertyExpression",
+                text.Substring(bodyStartIndex, bodyLength),
+                string.Empty);
 
-            return propertyValue;
+            return Assumed.Unreachable<string>();
         }
 
         /// <summary>
@@ -568,19 +551,20 @@ internal partial class Expander<P, I>
         ///  The resolved property value, or <see cref="string.Empty"/> when the property is undefined.
         /// </returns>
         private string LookupProperty(string propertyName)
-            => LookupProperty(propertyName, 0, propertyName.Length - 1);
+            => LookupProperty(propertyName, 0, propertyName.Length);
 
         /// <summary>
         ///  Looks up a simple property reference within a region of a string.
         /// </summary>
         /// <param name="propertyName">The string containing the property name.</param>
-        /// <param name="startIndex">The inclusive index at which the property name begins.</param>
-        /// <param name="endIndex">The inclusive index at which the property name ends.</param>
+        /// <param name="startIndex">The index at which the property name begins.</param>
+        /// <param name="length">The length of the property name.</param>
         /// <returns>
         ///  The resolved property value, or <see cref="string.Empty"/> when the property is undefined.
         /// </returns>
-        private string LookupProperty(string propertyName, int startIndex, int endIndex)
+        private string LookupProperty(string propertyName, int startIndex, int length)
         {
+            int endIndex = startIndex + length - 1;
             P property = _properties.GetProperty(propertyName, startIndex, endIndex);
 
             _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, isUninitialized: property is null);
@@ -588,7 +572,7 @@ internal partial class Expander<P, I>
             if (property is null)
             {
                 // It could be one of the MSBuildThisFileXXXX properties, whose values vary according to the file they are in.
-                return TryExpandMSBuildThisFileProperty(propertyName, startIndex, endIndex - startIndex + 1, out string thisFilePropertyValue)
+                return TryExpandMSBuildThisFileProperty(propertyName, startIndex, length, out string thisFilePropertyValue)
                     ? thisFilePropertyValue
                     : string.Empty;
             }
