@@ -60,23 +60,43 @@ internal static partial class WellKnownFunctions
             // Combine has specialized implementations for up to four arguments.
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out string? arg0):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? arg0):
                     result = Path.Combine(arg0);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out string? arg0, out string? arg1):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? arg0) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? arg1):
                     result = Path.Combine(arg0, arg1);
                     return WellKnownFunctionResult.Handled;
 
-                case 3 when arguments.TryGetArgs(out string? arg0, out string? arg1, out string? arg2):
+                case 3 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? arg0) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? arg1) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(2), out string? arg2):
                     result = Path.Combine(arg0, arg1, arg2);
                     return WellKnownFunctionResult.Handled;
 
-                case 4 when arguments.TryGetArgs(out string? arg0, out string? arg1, out string? arg2, out string? arg3):
+                case 4 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? arg0) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? arg1) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(2), out string? arg2) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(3), out string? arg3):
                     result = Path.Combine(arg0, arg1, arg2, arg3);
                     return WellKnownFunctionResult.Handled;
 
-                case > 4 when arguments.TryGetArgs(out string[]? paths):
+                case > 4:
+                    string[] paths = new string[arguments.Count];
+                    for (int i = 0; i < paths.Length; i++)
+                    {
+                        if (!FunctionArgumentCoercion.TryCoerce(arguments.GetValue(i), out string? path))
+                        {
+                            return NotRecognized(out result);
+                        }
+
+                        paths[i] = path;
+                    }
+
                     result = Path.Combine(paths);
                     return WellKnownFunctionResult.Handled;
             }
@@ -101,7 +121,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? path))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = !string.IsNullOrEmpty(FileUtilities.CurrentThreadWorkingDirectory)
                     ? Path.GetFullPath(Path.Combine(FileUtilities.CurrentThreadWorkingDirectory, path))
@@ -116,7 +137,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? path))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = Path.IsPathRooted(path);
                 return WellKnownFunctionResult.Handled;
@@ -142,7 +164,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? path))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = Path.GetFileName(path);
                 return WellKnownFunctionResult.Handled;
@@ -155,7 +178,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? path))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = Path.GetDirectoryName(path);
                 return WellKnownFunctionResult.Handled;
@@ -168,7 +192,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? path))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = Path.GetFileNameWithoutExtension(path);
                 return WellKnownFunctionResult.Handled;

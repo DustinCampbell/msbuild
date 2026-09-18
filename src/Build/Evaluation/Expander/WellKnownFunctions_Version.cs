@@ -38,7 +38,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeParse(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = Version.Parse(value);
                 return WellKnownFunctionResult.Handled;
@@ -52,7 +53,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out int fieldCount))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int fieldCount))
             {
                 result = receiver.ToString(fieldCount);
                 return WellKnownFunctionResult.Handled;

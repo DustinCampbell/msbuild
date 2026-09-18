@@ -450,7 +450,7 @@ internal partial class Expander<P, I>
                     (ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName) || arguments.ContainsExpandableExpression()))
                 {
                     argumentMaterializer = new ArgumentMaterializer(context, _receiverType, _methodName);
-                    arguments.ConfigureMaterialization(argumentMaterializer, materializeOnAccess: true);
+                    arguments.SetMaterializer(argumentMaterializer);
                 }
 
                 // Handle special cases where the object type needs to affect the choice of method
@@ -467,7 +467,7 @@ internal partial class Expander<P, I>
                     args = arguments.MaterializeAll();
 
                     // Support comparison when the lhs is an integer
-                    if (FunctionArguments.IsFloatingPointRepresentation(args[0]))
+                    if (FunctionArgumentCoercion.IsFloatingPointRepresentation(args[0]))
                     {
                         if (double.TryParse(
                             objectInstance.ToString(),
@@ -498,7 +498,7 @@ internal partial class Expander<P, I>
                             if (argumentMaterializer == null && arguments.Count > 0)
                             {
                                 argumentMaterializer = new ArgumentMaterializer(context, _receiverType, _methodName);
-                                arguments.ConfigureMaterialization(argumentMaterializer, materializeOnAccess: false);
+                                arguments.SetMaterializer(argumentMaterializer);
                             }
 
                             args = arguments.MaterializeAll();
@@ -526,7 +526,7 @@ internal partial class Expander<P, I>
                         // we need to preserve the same behavior on exceptions as the actual binder
                         string partiallyEvaluated = GenerateStringOfMethodExecuted(
                             objectInstance,
-                            args ?? arguments.ToObjectArray(),
+                            args ?? arguments.SnapshotValues(),
                             in executionContext);
 
                         if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
@@ -554,7 +554,7 @@ internal partial class Expander<P, I>
                             if (argumentMaterializer == null && arguments.Count > 0)
                             {
                                 argumentMaterializer = new ArgumentMaterializer(context, _receiverType, _methodName);
-                                arguments.ConfigureMaterialization(argumentMaterializer, materializeOnAccess: false);
+                                arguments.SetMaterializer(argumentMaterializer);
                             }
 
                             args = arguments.MaterializeAll();
@@ -594,7 +594,7 @@ internal partial class Expander<P, I>
                 // We ended up with something other than a function expression
                 string partiallyEvaluated = GenerateStringOfMethodExecuted(
                     objectInstance,
-                    args ?? arguments.ToObjectArray(),
+                    args ?? arguments.SnapshotValues(),
                     in executionContext);
 
                 if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
@@ -625,7 +625,7 @@ internal partial class Expander<P, I>
                     // We ended up with something other than a function expression
                     string partiallyEvaluated = GenerateStringOfMethodExecuted(
                         objectInstance,
-                        args ?? arguments.ToObjectArray(),
+                        args ?? arguments.SnapshotValues(),
                         in executionContext);
 
                     context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);

@@ -580,6 +580,7 @@
     <Compile Include="Evaluation\GlobResultBuilder.cs" />
     <Compile Include="Evaluation\Expander.cs" />
     <Compile Include="Evaluation\ToolsetProvider.cs" />
+    <Compile Include="Evaluation\Expander\FunctionArgumentCoercion.cs" />
     <Compile Include="Evaluation\Expander\FunctionArguments.cs" />
     <Compile Include="Evaluation\Expander\ExecutionContext.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctionResult.cs" />

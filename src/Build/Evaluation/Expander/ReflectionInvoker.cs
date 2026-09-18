@@ -5,9 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
-using System.Text;
 using Microsoft.Build.Collections;
-using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation.Expander;
@@ -189,92 +187,16 @@ internal static class ReflectionInvoker
 
         result = new object?[args.Length];
 
-        try
+        for (int i = 0; i < parameters.Length; i++)
         {
-            for (int i = 0; i < parameters.Length; i++)
+            if (!FunctionArgumentCoercion.TryCoerceForReflection(args[i], parameters[i].ParameterType, out result[i]))
             {
-                object? arg = args[i];
-                if (arg is null)
-                {
-                    continue;
-                }
-
-                Type type = parameters[i].ParameterType;
-
-                result[i] = type == typeof(char[])
-                    ? arg.ToString()!.ToCharArray()
-                    : type.IsEnum && arg is string value && value.IndexOf('.') >= 0
-                        ? Enum.Parse(type, NormalizeEnumArgument(type, value))
-                        : Convert.ChangeType(arg, type, CultureInfo.InvariantCulture);
+                result = null;
+                return false;
             }
-        }
-        catch (InvalidCastException)
-        {
-            result = null;
-            return false;
-        }
-        catch (FormatException)
-        {
-            result = null;
-            return false;
-        }
-        catch (OverflowException)
-        {
-            result = null;
-            return false;
         }
 
         return true;
-    }
-
-    private static string NormalizeEnumArgument(Type enumType, string value)
-    {
-        string? fullName = enumType.FullName;
-        Assumed.NotNull(fullName);
-
-        string leafName = enumType.Name;
-        StringBuilder builder = StringBuilderCache.Acquire(value.Length);
-
-        int copyStart = 0;
-        int index = 0;
-
-        while (index < value.Length)
-        {
-            if (value[index] == '|')
-            {
-                builder.Append(value, copyStart, index - copyStart);
-                builder.Append(',');
-                copyStart = ++index;
-            }
-            else if (TryGetEnumQualifierLength(value, index, fullName, out int qualifierLength) ||
-                     TryGetEnumQualifierLength(value, index, leafName, out qualifierLength))
-            {
-                builder.Append(value, copyStart, index - copyStart);
-                index += qualifierLength;
-                copyStart = index;
-            }
-            else
-            {
-                index++;
-            }
-        }
-
-        builder.Append(value, copyStart, value.Length - copyStart);
-        return StringBuilderCache.GetStringAndRelease(builder);
-    }
-
-    private static bool TryGetEnumQualifierLength(string value, int startIndex, string typeName, out int result)
-    {
-        if (value.Length - startIndex > typeName.Length &&
-            value[startIndex + typeName.Length] == '.' &&
-            string.CompareOrdinal(value, startIndex, typeName, 0, typeName.Length) == 0)
-        {
-            result = typeName.Length + 1;
-            return true;
-        }
-
-        result = 0;
-        return false;
     }
 
     [UnconditionalSuppressMessage(

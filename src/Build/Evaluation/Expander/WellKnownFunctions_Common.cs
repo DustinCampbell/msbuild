@@ -29,7 +29,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out int index))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int index))
             {
                 result = receiver[index];
                 return WellKnownFunctionResult.Handled;
@@ -64,7 +65,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeMax(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out double left, out double right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out double left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out double right))
             {
                 result = Math.Max(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -75,7 +78,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeMin(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out double left, out double right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out double left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out double right))
             {
                 result = Math.Min(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -131,11 +136,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out char value):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out char value):
                     result = char.IsDigit(value);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out string? value, out int index):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int index):
                     result = char.IsDigit(value, index);
                     return WellKnownFunctionResult.Handled;
 
@@ -162,7 +169,10 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeReplace(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out string? input, out string? pattern, out string? replacement))
+            if (arguments.Count == 3 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? input) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? pattern) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(2), out string? replacement))
             {
                 result = Regex.Replace(input, pattern, replacement);
                 return WellKnownFunctionResult.Handled;
@@ -193,7 +203,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? format))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? format))
             {
                 result = receiver.ToString(format);
                 return WellKnownFunctionResult.Handled;

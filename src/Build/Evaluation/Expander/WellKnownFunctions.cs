@@ -171,7 +171,8 @@ internal static partial class WellKnownFunctions
                 return WellKnownFunctionResult.Handled;
             }
 
-            if (args.TryGetArg(out string? value))
+            if (args.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(args.GetValue(0), out string? value))
             {
                 returnVal = value;
                 return WellKnownFunctionResult.Handled;

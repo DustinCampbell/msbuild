@@ -299,7 +299,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeEnsureTrailingSlash(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? path))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? path))
             {
                 result = IntrinsicFunctions.EnsureTrailingSlash(path);
                 return WellKnownFunctionResult.Handled;
@@ -310,7 +311,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeValueOrDefault(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out string? value, out string? defaultValue))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? defaultValue))
             {
                 result = IntrinsicFunctions.ValueOrDefault(value, defaultValue);
                 return WellKnownFunctionResult.Handled;
@@ -321,13 +324,19 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeNormalizePath(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out string[]? paths))
+            string[] paths = new string[arguments.Count];
+            for (int i = 0; i < paths.Length; i++)
             {
-                result = IntrinsicFunctions.NormalizePath(paths);
-                return WellKnownFunctionResult.Handled;
+                if (!FunctionArgumentCoercion.TryCoerce(arguments.GetValue(i), out string? path))
+                {
+                    return NotRecognized(out result);
+                }
+
+                paths[i] = path;
             }
 
-            return NotRecognized(out result);
+            result = IntrinsicFunctions.NormalizePath(paths);
+            return WellKnownFunctionResult.Handled;
         }
 
         private static WellKnownFunctionResult TryInvokeGetDirectoryNameOfFileAbove(
@@ -335,7 +344,9 @@ internal static partial class WellKnownFunctions
             ref readonly ExecutionContext context,
             out object? result)
         {
-            if (arguments.TryGetArgs(out string? startingDirectory, out string? fileName))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? startingDirectory) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? fileName))
             {
                 result = IntrinsicFunctions.GetDirectoryNameOfFileAbove(startingDirectory, fileName, context.FileSystem);
                 return WellKnownFunctionResult.Handled;
@@ -381,7 +392,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeEscape(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = IntrinsicFunctions.Escape(value);
                 return WellKnownFunctionResult.Handled;
@@ -392,7 +404,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeUnescape(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = IntrinsicFunctions.Unescape(value);
                 return WellKnownFunctionResult.Handled;
@@ -408,11 +421,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out string? file):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? file):
                     result = IntrinsicFunctions.GetPathOfFileAbove(file, context.GetStartingDirectory(), context.FileSystem);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out string? file, out string? startingDirectory):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? file) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? startingDirectory):
                     result = IntrinsicFunctions.GetPathOfFileAbove(file, startingDirectory, context.FileSystem);
                     return WellKnownFunctionResult.Handled;
 
@@ -423,8 +438,11 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeAdd(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryExecuteArithmeticOverload(IntrinsicFunctions.Add, IntrinsicFunctions.Add, out result))
+            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
             {
+                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
+                    ? (object)IntrinsicFunctions.Add(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
+                    : IntrinsicFunctions.Add(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
                 return WellKnownFunctionResult.Handled;
             }
 
@@ -433,11 +451,11 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeSubtract(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryExecuteArithmeticOverload(
-                    IntrinsicFunctions.Subtract,
-                    IntrinsicFunctions.Subtract,
-                    out result))
+            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
             {
+                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
+                    ? (object)IntrinsicFunctions.Subtract(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
+                    : IntrinsicFunctions.Subtract(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
                 return WellKnownFunctionResult.Handled;
             }
 
@@ -446,11 +464,11 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeMultiply(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryExecuteArithmeticOverload(
-                    IntrinsicFunctions.Multiply,
-                    IntrinsicFunctions.Multiply,
-                    out result))
+            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
             {
+                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
+                    ? (object)IntrinsicFunctions.Multiply(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
+                    : IntrinsicFunctions.Multiply(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
                 return WellKnownFunctionResult.Handled;
             }
 
@@ -459,11 +477,11 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeDivide(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryExecuteArithmeticOverload(
-                    IntrinsicFunctions.Divide,
-                    IntrinsicFunctions.Divide,
-                    out result))
+            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
             {
+                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
+                    ? (object)IntrinsicFunctions.Divide(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
+                    : IntrinsicFunctions.Divide(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
                 return WellKnownFunctionResult.Handled;
             }
 
@@ -472,12 +490,28 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeModulo(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryExecuteArithmeticOverload(IntrinsicFunctions.Modulo, IntrinsicFunctions.Modulo, out result))
+            if (TryGetArithmeticArguments(ref arguments, out ArithmeticArguments arithmeticArguments))
             {
+                result = arithmeticArguments.Kind == ArithmeticArgumentKind.Int64
+                    ? (object)IntrinsicFunctions.Modulo(arithmeticArguments.LeftInt64, arithmeticArguments.RightInt64)
+                    : IntrinsicFunctions.Modulo(arithmeticArguments.LeftDouble, arithmeticArguments.RightDouble);
                 return WellKnownFunctionResult.Handled;
             }
 
             return NotRecognized(out result);
+        }
+
+        private static bool TryGetArithmeticArguments(ref FunctionArguments arguments, out ArithmeticArguments result)
+        {
+            if (arguments.Count == 2)
+            {
+                object? left = arguments.GetValue(0);
+                object? right = arguments.GetValue(1);
+                return FunctionArgumentCoercion.TryCoerceArithmetic(left, right, out result);
+            }
+
+            result = default;
+            return false;
         }
 
         private static WellKnownFunctionResult TryInvokeGetCurrentToolsDirectory(ref FunctionArguments arguments, out object? result)
@@ -559,7 +593,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeVersionEquals(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out string? left, out string? right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionEquals(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -570,7 +606,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeVersionNotEquals(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out string? left, out string? right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionNotEquals(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -581,7 +619,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeVersionGreaterThan(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out string? left, out string? right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionGreaterThan(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -594,7 +634,9 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArgs(out string? left, out string? right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionGreaterThanOrEquals(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -605,7 +647,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeVersionLessThan(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out string? left, out string? right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionLessThan(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -618,7 +662,9 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArgs(out string? left, out string? right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? right))
             {
                 result = IntrinsicFunctions.VersionLessThanOrEquals(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -631,7 +677,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? targetFramework))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework))
             {
                 result = IntrinsicFunctions.GetTargetFrameworkIdentifier(targetFramework);
                 return WellKnownFunctionResult.Handled;
@@ -646,11 +693,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out string? targetFramework):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework):
                     result = IntrinsicFunctions.GetTargetFrameworkVersion(targetFramework);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out string? targetFramework, out int versionPartCount):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int versionPartCount):
                     result = IntrinsicFunctions.GetTargetFrameworkVersion(targetFramework, versionPartCount);
                     return WellKnownFunctionResult.Handled;
 
@@ -663,7 +712,9 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArgs(out string? targetFramework, out string? candidateTargetFramework))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? candidateTargetFramework))
             {
                 result = IntrinsicFunctions.IsTargetFrameworkCompatible(targetFramework, candidateTargetFramework);
                 return WellKnownFunctionResult.Handled;
@@ -676,7 +727,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? targetFramework))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework))
             {
                 result = IntrinsicFunctions.GetTargetPlatformIdentifier(targetFramework);
                 return WellKnownFunctionResult.Handled;
@@ -691,11 +743,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out string? targetFramework):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework):
                     result = IntrinsicFunctions.GetTargetPlatformVersion(targetFramework);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out string? targetFramework, out int versionPartCount):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? targetFramework) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int versionPartCount):
                     result = IntrinsicFunctions.GetTargetPlatformVersion(targetFramework, versionPartCount);
                     return WellKnownFunctionResult.Handled;
 
@@ -706,7 +760,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeConvertToBase64(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = IntrinsicFunctions.ConvertToBase64(value);
                 return WellKnownFunctionResult.Handled;
@@ -717,7 +772,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeConvertFromBase64(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = IntrinsicFunctions.ConvertFromBase64(value);
                 return WellKnownFunctionResult.Handled;
@@ -730,11 +786,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out string? value):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value):
                     result = IntrinsicFunctions.StableStringHash(value);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out string? value, out string? algorithmName) &&
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? algorithmName) &&
                             Enum.TryParse(
                                 algorithmName,
                                 ignoreCase: true,
@@ -749,7 +807,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeAreFeaturesEnabled(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out Version? version))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out Version? version))
             {
                 result = IntrinsicFunctions.AreFeaturesEnabled(version);
                 return WellKnownFunctionResult.Handled;
@@ -760,7 +819,10 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeSubstringByAsciiChars(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out string? value, out int start, out int length))
+            if (arguments.Count == 3 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int start) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(2), out int length))
             {
                 result = IntrinsicFunctions.SubstringByAsciiChars(value, start, length);
                 return WellKnownFunctionResult.Handled;
@@ -773,7 +835,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? featureName))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? featureName))
             {
                 result = IntrinsicFunctions.CheckFeatureAvailability(featureName);
                 return WellKnownFunctionResult.Handled;
@@ -784,7 +847,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeBitwiseOr(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out int left, out int right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int right))
             {
                 result = IntrinsicFunctions.BitwiseOr(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -795,7 +860,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeBitwiseAnd(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out int left, out int right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int right))
             {
                 result = IntrinsicFunctions.BitwiseAnd(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -806,7 +873,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeBitwiseXor(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out int left, out int right))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int left) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int right))
             {
                 result = IntrinsicFunctions.BitwiseXor(left, right);
                 return WellKnownFunctionResult.Handled;
@@ -817,7 +886,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeBitwiseNot(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out int value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int value))
             {
                 result = IntrinsicFunctions.BitwiseNot(value);
                 return WellKnownFunctionResult.Handled;
@@ -828,7 +898,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeLeftShift(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out int value, out int count))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int value) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int count))
             {
                 result = IntrinsicFunctions.LeftShift(value, count);
                 return WellKnownFunctionResult.Handled;
@@ -839,7 +911,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeRightShift(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out int value, out int count))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int value) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int count))
             {
                 result = IntrinsicFunctions.RightShift(value, count);
                 return WellKnownFunctionResult.Handled;
@@ -850,7 +924,9 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeRightShiftUnsigned(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArgs(out int value, out int count))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int value) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int count))
             {
                 result = IntrinsicFunctions.RightShiftUnsigned(value, count);
                 return WellKnownFunctionResult.Handled;
@@ -861,7 +937,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeNormalizeDirectory(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? directory))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? directory))
             {
                 result = IntrinsicFunctions.NormalizeDirectory(directory);
                 return WellKnownFunctionResult.Handled;
@@ -872,7 +949,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeIsOSPlatform(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? platform))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? platform))
             {
                 result = IntrinsicFunctions.IsOSPlatform(platform);
                 return WellKnownFunctionResult.Handled;
@@ -883,7 +961,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeFileExists(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? file))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? file))
             {
                 result = IntrinsicFunctions.FileExists(file);
                 return WellKnownFunctionResult.Handled;
@@ -894,7 +973,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeDirectoryExists(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? directory))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? directory))
             {
                 result = IntrinsicFunctions.DirectoryExists(directory);
                 return WellKnownFunctionResult.Handled;
@@ -914,7 +994,8 @@ internal static partial class WellKnownFunctions
                 loggingContext,
                 $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
 
-            if (arguments.TryGetArg(out string? checkName))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? checkName))
             {
                 result = IntrinsicFunctions.RegisterBuildCheck(projectPath, checkName, loggingContext);
                 return WellKnownFunctionResult.Handled;

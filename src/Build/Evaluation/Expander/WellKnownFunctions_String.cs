@@ -155,7 +155,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeIsNullOrWhiteSpace(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = string.IsNullOrWhiteSpace(value);
                 return WellKnownFunctionResult.Handled;
@@ -166,7 +167,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeIsNullOrEmpty(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = string.IsNullOrEmpty(value);
                 return WellKnownFunctionResult.Handled;
@@ -177,7 +179,8 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeCopy(ref FunctionArguments arguments, out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = value;
                 return WellKnownFunctionResult.Handled;
@@ -191,7 +194,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = receiver.StartsWith(value, StringComparison.CurrentCulture);
                 return WellKnownFunctionResult.Handled;
@@ -205,7 +209,9 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArgs(out string? oldValue, out string? newValue))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? oldValue) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out string? newValue))
             {
                 result = receiver.Replace(oldValue, newValue);
                 return WellKnownFunctionResult.Handled;
@@ -219,7 +225,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = receiver.Contains(value);
                 return WellKnownFunctionResult.Handled;
@@ -263,11 +270,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out string? value):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value):
                     result = receiver.EndsWith(value, StringComparison.CurrentCulture);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out string? value, out StringComparison comparison):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out StringComparison comparison):
                     result = receiver.EndsWith(value, comparison);
                     return WellKnownFunctionResult.Handled;
             }
@@ -294,7 +303,9 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArgs(out string? value, out StringComparison comparison))
+            if (arguments.Count == 2 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value) &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out StringComparison comparison))
             {
                 result = receiver.IndexOf(value, comparison);
                 return WellKnownFunctionResult.Handled;
@@ -308,7 +319,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? values))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? values))
             {
                 result = receiver.AsSpan().IndexOfAny(values.AsSpan());
                 return WellKnownFunctionResult.Handled;
@@ -324,17 +336,39 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out string? value):
-                    result = receiver.LastIndexOf(value, StringComparison.CurrentCulture);
-                    return WellKnownFunctionResult.Handled;
+                case 1:
+                {
+                    if (FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
+                    {
+                        result = receiver.LastIndexOf(value, StringComparison.CurrentCulture);
+                        return WellKnownFunctionResult.Handled;
+                    }
 
-                case 2 when arguments.TryGetArgs(out string? value, out int startIndex):
-                    result = receiver.LastIndexOf(value, startIndex, StringComparison.CurrentCulture);
-                    return WellKnownFunctionResult.Handled;
+                    break;
+                }
+                case 2:
+                {
+                    object? valueArgument = arguments.GetValue(0);
+                    object? secondArgument = arguments.GetValue(1);
+                    if (!FunctionArgumentCoercion.TryCoerce(valueArgument, out string? value))
+                    {
+                        break;
+                    }
 
-                case 2 when arguments.TryGetArgs(out string? value, out StringComparison comparison):
-                    result = receiver.LastIndexOf(value, comparison);
-                    return WellKnownFunctionResult.Handled;
+                    if (FunctionArgumentCoercion.TryCoerce(secondArgument, out int startIndex))
+                    {
+                        result = receiver.LastIndexOf(value, startIndex, StringComparison.CurrentCulture);
+                        return WellKnownFunctionResult.Handled;
+                    }
+
+                    if (FunctionArgumentCoercion.TryCoerce(secondArgument, out StringComparison comparison))
+                    {
+                        result = receiver.LastIndexOf(value, comparison);
+                        return WellKnownFunctionResult.Handled;
+                    }
+
+                    break;
+                }
             }
 
             return NotRecognized(out result);
@@ -345,7 +379,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? values))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? values))
             {
                 result = receiver.AsSpan().LastIndexOfAny(values.AsSpan());
                 return WellKnownFunctionResult.Handled;
@@ -375,11 +410,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out int startIndex):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int startIndex):
                     result = receiver.Substring(startIndex);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out int startIndex, out int length):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int startIndex) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out int length):
                     result = receiver.Substring(startIndex, length);
                     return WellKnownFunctionResult.Handled;
             }
@@ -392,7 +429,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out char separator))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out char separator))
             {
                 result = receiver.Split(separator);
                 return WellKnownFunctionResult.Handled;
@@ -408,11 +446,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out int totalWidth):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int totalWidth):
                     result = receiver.PadLeft(totalWidth);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out int totalWidth, out char paddingChar):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int totalWidth) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out char paddingChar):
                     result = receiver.PadLeft(totalWidth, paddingChar);
                     return WellKnownFunctionResult.Handled;
             }
@@ -427,11 +467,13 @@ internal static partial class WellKnownFunctions
         {
             switch (arguments.Count)
             {
-                case 1 when arguments.TryGetArg(out int totalWidth):
+                case 1 when FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int totalWidth):
                     result = receiver.PadRight(totalWidth);
                     return WellKnownFunctionResult.Handled;
 
-                case 2 when arguments.TryGetArgs(out int totalWidth, out char paddingChar):
+                case 2 when
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int totalWidth) &&
+                    FunctionArgumentCoercion.TryCoerce(arguments.GetValue(1), out char paddingChar):
                     result = receiver.PadRight(totalWidth, paddingChar);
                     return WellKnownFunctionResult.Handled;
             }
@@ -444,7 +486,9 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? trimChars) && trimChars.Length > 0)
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? trimChars) &&
+                trimChars.Length > 0)
             {
                 result = receiver.TrimStart(trimChars.ToCharArray());
                 return WellKnownFunctionResult.Handled;
@@ -458,7 +502,9 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? trimChars) && trimChars.Length > 0)
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? trimChars) &&
+                trimChars.Length > 0)
             {
                 result = receiver.TrimEnd(trimChars.ToCharArray());
                 return WellKnownFunctionResult.Handled;
@@ -472,7 +518,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out int index))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out int index))
             {
                 result = receiver[index];
                 return WellKnownFunctionResult.Handled;
@@ -486,7 +533,8 @@ internal static partial class WellKnownFunctions
             ref FunctionArguments arguments,
             out object? result)
         {
-            if (arguments.TryGetArg(out string? value))
+            if (arguments.Count == 1 &&
+                FunctionArgumentCoercion.TryCoerce(arguments.GetValue(0), out string? value))
             {
                 result = receiver.Equals(value);
                 return WellKnownFunctionResult.Handled;
