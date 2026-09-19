@@ -55,14 +55,13 @@ public class FunctionArguments_Tests
         ArgumentList source = PropertyFunctionParser.ParseArguments(text, text, MockElementLocation.Instance);
         FunctionArguments arguments = new(source);
 
-        bool handled = WellKnownFunctions.TryInvokeInstance(
+        WellKnownMemberResult invocation = WellKnownMembers.TryInvokeInstance(
             "prefix-value-suffix",
             nameof(string.Contains),
-            ref arguments,
-            out object? result);
+            ref arguments);
 
-        handled.ShouldBeTrue();
-        result.ShouldBe(true);
+        invocation.Status.ShouldBe(WellKnownMemberStatus.Handled);
+        invocation.Value.ShouldBe(true);
     }
 
     [Fact]
@@ -117,14 +116,13 @@ public class FunctionArguments_Tests
         var materializer = new TrackingMaterializer(_ => "value");
         arguments.SetMaterializer(materializer);
 
-        bool handled = WellKnownFunctions.TryInvokeInstance(
+        WellKnownMemberResult invocation = WellKnownMembers.TryInvokeInstance(
             "value-suffix",
             nameof(string.StartsWith),
-            ref arguments,
-            out object? result);
+            ref arguments);
 
-        handled.ShouldBeTrue();
-        result.ShouldBe(true);
+        invocation.Status.ShouldBe(WellKnownMemberStatus.Handled);
+        invocation.Value.ShouldBe(true);
         materializer.Indices.ShouldBe([0]);
     }
 

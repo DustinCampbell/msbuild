@@ -4,22 +4,22 @@
 namespace Microsoft.Build.Evaluation.Expander;
 
 /// <summary>
-///  Describes the result of attempting to execute a well-known function.
+///  Describes the outcome of attempting to access a well-known member.
 /// </summary>
-internal enum WellKnownFunctionResult
+internal enum WellKnownMemberStatus
 {
     /// <summary>
-    ///  The function or overload was not recognized and may fall back to reflection.
+    ///  The member or overload was not recognized and may fall back to reflection.
     /// </summary>
     NotRecognized,
 
     /// <summary>
-    ///  The function was executed successfully.
+    ///  The member was accessed successfully.
     /// </summary>
     Handled,
 
     /// <summary>
-    ///  The function was recognized, but its arguments were invalid and must not fall back to reflection.
+    ///  The member was recognized, but its arguments were invalid and must not fall back to reflection.
     /// </summary>
     InvalidArguments,
 }

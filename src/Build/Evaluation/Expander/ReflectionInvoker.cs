@@ -288,18 +288,6 @@ internal static class ReflectionInvoker
                 members = receiverType.GetConstructors();
                 filterByName = false;
             }
-            else if (receiverType == typeof(IntrinsicFunctions) &&
-                     IntrinsicFunctionOverload.IsKnownOverloadMethodName(memberName.ValueOrEmpty))
-            {
-                MemberInfo[] foundMembers = typeof(IntrinsicFunctions).FindMembers(
-                    MemberTypes.Method,
-                    bindingFlags,
-                    (info, criteria) => string.Equals(info.Name, (string?)criteria, StringComparison.OrdinalIgnoreCase),
-                    memberName.ValueOrEmpty);
-                Array.Sort(foundMembers, IntrinsicFunctionOverload.IntrinsicFunctionOverloadMethodComparer);
-                members = foundMembers;
-                filterByName = false;
-            }
             else
             {
                 members = receiverType.GetMethods(bindingFlags);

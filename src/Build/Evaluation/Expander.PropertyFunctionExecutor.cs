@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 #if !FEATURE_MSIOREDIST
@@ -51,9 +52,9 @@ internal partial class Expander<P, I>
         private Type _receiverType;
 
         /// <summary>
-        /// The name of the function.
+        /// The name of the member.
         /// </summary>
-        private readonly StringSegment _methodName;
+        private readonly StringSegment _memberName;
 
         /// <summary>
         /// The arguments for the function.
@@ -103,11 +104,11 @@ internal partial class Expander<P, I>
             object? receiverValue,
             StringSegment invocationText,
             ReceiverKind receiverKind,
-            StringSegment methodName,
+            StringSegment memberName,
             FunctionArguments arguments,
             BindingFlags bindingFlags)
         {
-            _methodName = methodName;
+            _memberName = memberName;
             _arguments = arguments;
 
             _receiverValue = receiverValue;
@@ -134,15 +135,14 @@ internal partial class Expander<P, I>
             => receiverType == typeof(System.IO.File)
             || receiverType == typeof(System.IO.Directory);
 
-        private static bool ShouldMaterializeArgumentsOnAccess(Type receiverType, StringSegment methodName)
-            => receiverType == typeof(System.IO.Path)
-            || methodName.Equals("new", StringComparison.OrdinalIgnoreCase)
-            || methodName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
-            || methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase)
-            || Traits.Instance.LogPropertyFunctionsRequiringReflection;
+        private static bool ShouldMaterializeArgumentsOnAccess(Type receiverType, StringSegment memberName)
+            => IsFileSystemReceiver(receiverType)
+            || memberName.Equals("new", StringComparison.OrdinalIgnoreCase)
+            || memberName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
+            || memberName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase);
 
         private ArgumentMaterializer CreateArgumentMaterializer(in ExpansionContext context)
-            => new(context, _receiverType, _methodName);
+            => new(context, _receiverType, _memberName);
 
         private static string? GetStartingDirectory(in ExpansionContext context)
             => string.IsNullOrWhiteSpace(context.Location.File)
@@ -252,25 +252,51 @@ internal partial class Expander<P, I>
                 }
 
                 if (_arguments.Count > 0
-                    && (ShouldMaterializeArgumentsOnAccess(_receiverType, _methodName)
+                    && (ShouldMaterializeArgumentsOnAccess(_receiverType, _memberName)
                         || _arguments.ContainsExpandableExpression()))
                 {
                     argumentMaterializer = CreateArgumentMaterializer(in context);
                     _arguments.SetMaterializer(argumentMaterializer);
                 }
 
-                bool isConstructor = _methodName.Equals("new", StringComparison.OrdinalIgnoreCase);
+                // Prepare comparison arguments before well-known dispatch so the receiver and argument types
+                // match the overload that the reflection path would select.
+                if (objectInstance is not null &&
+                    _arguments.Count == 1 &&
+                    (_memberName.Equals("Equals", StringComparison.OrdinalIgnoreCase) ||
+                     _memberName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase)))
+                {
+                    args = _arguments.MaterializeAll();
+
+                    if (FunctionArgumentCoercion.IsFloatingPointRepresentation(args[0]) &&
+                        double.TryParse(
+                            objectInstance.ToString(),
+                            NumberStyles.Number | NumberStyles.Float,
+                            CultureInfo.InvariantCulture.NumberFormat,
+                            out double numericReceiver))
+                    {
+                        objectInstance = numericReceiver;
+                        _receiverType = objectInstance.GetType();
+                    }
+
+                    args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
+                }
+
+                bool isConstructor = _memberName.Equals("new", StringComparison.OrdinalIgnoreCase);
                 if (isConstructor)
                 {
-                    if (WellKnownFunctions.TryInvokeConstructor(_receiverType, ref _arguments, out functionResult))
+                    WellKnownMemberResult wellKnownMemberResult =
+                        WellKnownMembers.TryInvokeConstructor(_receiverType, ref _arguments);
+
+                    if (wellKnownMemberResult.Status == WellKnownMemberStatus.Handled)
                     {
-                        result = CompleteExecution(functionResult);
+                        result = CompleteExecution(wellKnownMemberResult.Value);
                         return true;
                     }
                 }
                 else
                 {
-                    WellKnownExecutionStatus wellKnownStatus = TryExecuteWellKnownFunction(
+                    WellKnownExecutionStatus wellKnownStatus = TryExecuteWellKnownMember(
                         objectInstance,
                         ref _arguments,
                         in context,
@@ -298,41 +324,18 @@ internal partial class Expander<P, I>
 
                 args = _arguments.MaterializeAll();
 
-                // Handle special cases where the object type needs to affect the choice of method
-                // The default binder and method invoke, often chooses the incorrect Equals and CompareTo and
-                // fails the comparison, because what we have on the right is generally a string.
-                // This special casing is to realize that its a comparison that is taking place and handle the
-                // argument type coercion accordingly; effectively pre-preparing the argument type so
-                // that it matches the left hand side ready for the default binder’s method invoke.
-                if (objectInstance != null
-                    && args.Length == 1
-                    && (_methodName.Equals("Equals", StringComparison.OrdinalIgnoreCase)
-                        || _methodName.Equals("CompareTo", StringComparison.OrdinalIgnoreCase)))
-                {
-                    // Support comparison when the lhs is an integer
-                    if (FunctionArgumentCoercion.IsFloatingPointRepresentation(args[0]))
-                    {
-                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double numericReceiver))
-                        {
-                            objectInstance = numericReceiver;
-                            _receiverType = objectInstance.GetType();
-                        }
-                    }
-
-                    // change the type of the final unescaped string into the destination
-                    args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
-                }
-
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
                 if (isConstructor)
                 {
+                    LogReflectionFallback(objectInstance: null, args, isConstructor: true);
                     functionResult = ReflectionInvoker.InvokeConstructor(_receiverType, args);
                 }
                 else
                 {
+                    LogReflectionFallback(objectInstance, args, isConstructor: false);
                     functionResult = ReflectionInvoker.InvokeMember(
-                        _receiverType, _methodName, _bindingFlags, objectInstance, args);
+                        _receiverType, _memberName, _bindingFlags, objectInstance, args);
                 }
 
                 result = CompleteExecution(functionResult);
@@ -343,7 +346,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args, in context);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _memberName, args, in context);
 
                 if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
@@ -373,7 +376,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args, in context);
+                    string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _memberName, args, in context);
                     context.Errors.InvalidPropertyFunction.Throw(partiallyEvaluated, ex.Message);
                 }
 
@@ -386,34 +389,41 @@ internal partial class Expander<P, I>
         // Escape/Unescape/ConvertFromBase64 already return data in their intended representation.
         private readonly object? CompleteExecution(object? functionResult)
             => functionResult is string s
-            && !_methodName.Equals("Unescape", StringComparison.OrdinalIgnoreCase)
-            && !_methodName.Equals("Escape", StringComparison.OrdinalIgnoreCase)
-            && !_methodName.Equals("ConvertFromBase64", StringComparison.OrdinalIgnoreCase)
+            && !_memberName.Equals("Unescape", StringComparison.OrdinalIgnoreCase)
+            && !_memberName.Equals("Escape", StringComparison.OrdinalIgnoreCase)
+            && !_memberName.Equals("ConvertFromBase64", StringComparison.OrdinalIgnoreCase)
                 ? EscapingUtilities.Escape(s)
                 : functionResult;
 
-        private WellKnownExecutionStatus TryExecuteWellKnownFunction(
+        private WellKnownExecutionStatus TryExecuteWellKnownMember(
             object? objectInstance,
             ref FunctionArguments args,
             in ExpansionContext context,
             LoggingContext? loggingContext,
             out object? functionResult)
         {
+            WellKnownMemberResult wellKnownMemberResult = WellKnownMemberResult.NotRecognized;
+
             try
             {
                 ExecutionContext executionContext = new(context.Properties, context.Location, context.FileSystem, loggingContext);
-                bool handled = objectInstance is null
-                    ? WellKnownFunctions.TryInvokeStatic(_receiverType, _methodName, ref args, in executionContext, out functionResult)
-                    : WellKnownFunctions.TryInvokeInstance(objectInstance, _methodName, ref args, out functionResult);
+                bool invokeMethod = (_bindingFlags & BindingFlags.InvokeMethod) != 0;
+                bool getMember = (_bindingFlags & (BindingFlags.GetProperty | BindingFlags.GetField)) != 0;
 
-                if (handled)
-                {
-                    return WellKnownExecutionStatus.Handled;
-                }
+                Debug.Assert(invokeMethod ^ getMember);
+                Debug.Assert(invokeMethod || args.Count == 0);
+
+                wellKnownMemberResult = objectInstance is null
+                    ? invokeMethod
+                        ? WellKnownMembers.TryInvokeStatic(_receiverType, _memberName, ref args, in executionContext)
+                        : WellKnownMembers.TryGetStatic(_receiverType, _memberName)
+                    : invokeMethod
+                        ? WellKnownMembers.TryInvokeInstance(objectInstance, _memberName, ref args)
+                        : WellKnownMembers.TryGetInstance(objectInstance, _memberName);
             }
             catch (Exception ex)
             {
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _methodName, args.SnapshotValues(), in context);
+                string partiallyEvaluated = GenerateStringOfMethodExecuted(objectInstance, _memberName, args.SnapshotValues(), in context);
 
                 if (context.Options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
@@ -426,8 +436,86 @@ internal partial class Expander<P, I>
                     ex.Message.Replace("\r\n", " "));
             }
 
+            if (wellKnownMemberResult.Status == WellKnownMemberStatus.InvalidArguments)
+            {
+                MissingMethodException exception = new(_receiverType.FullName, _memberName.ValueOrEmpty);
+                context.Errors.InvalidStaticPropertyFunction.Throw(
+                    _invocationText,
+                    exception.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
+            }
+
+            if (wellKnownMemberResult.Status == WellKnownMemberStatus.Handled)
+            {
+                functionResult = wellKnownMemberResult.Value;
+                return WellKnownExecutionStatus.Handled;
+            }
+
             functionResult = null;
             return WellKnownExecutionStatus.NotHandled;
+        }
+
+        private readonly void LogReflectionFallback(object? objectInstance, object?[] args, bool isConstructor)
+        {
+            if (!Traits.Instance.LogPropertyFunctionsRequiringReflection)
+            {
+                return;
+            }
+
+            string logFile = System.IO.Path.Combine(
+                System.IO.Directory.GetCurrentDirectory(),
+                "PropertyFunctionsRequiringReflection");
+            StringBuilder builder = StringBuilderCache.Acquire();
+
+            if (isConstructor)
+            {
+                builder.Append("[constructor] Type=");
+            }
+            else if (objectInstance is null)
+            {
+                builder.Append("[static] Type=");
+            }
+            else
+            {
+                builder.Append("[instance] Type=");
+            }
+
+            builder.Append(_receiverType.FullName);
+            builder.Append("; ");
+
+            bool invokeMethod = (_bindingFlags & BindingFlags.InvokeMethod) != 0;
+            if (isConstructor || invokeMethod)
+            {
+                builder.Append("MethodName=");
+                if (isConstructor)
+                {
+                    builder.Append(".ctor");
+                }
+                else
+                {
+                    builder.Append(_memberName.Buffer, _memberName.Offset, _memberName.Length);
+                }
+
+                builder.Append('(');
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (i > 0)
+                    {
+                        builder.Append(", ");
+                    }
+
+                    builder.Append(args[i]?.GetType().Name ?? "null");
+                }
+
+                builder.Append(')');
+            }
+            else
+            {
+                builder.Append("MemberName=");
+                builder.Append(_memberName.Buffer, _memberName.Offset, _memberName.Length);
+            }
+
+            builder.Append('\n');
+            System.IO.File.AppendAllText(logFile, StringBuilderCache.GetStringAndRelease(builder));
         }
 
         /// <summary>
