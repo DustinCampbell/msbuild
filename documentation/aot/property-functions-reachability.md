@@ -44,7 +44,7 @@ includes state-mutating members).
 The property-function code lives primarily in
 [PropertyFunctionParser.cs](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs),
 [Expander.PropertyFunctionExecutor.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.cs), and
-[WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs), with outer property expansion
+[WellKnownMembers.cs](../../src/Build/Evaluation/Expander/WellKnownMembers.cs), with outer property expansion
 in [Expander.PropertyExpander.cs](../../src/Build/Evaluation/Expander.PropertyExpander.cs). Parsed argument
 segments remain packed in [FunctionArguments.cs](../../src/Build/Evaluation/Expander/FunctionArguments.cs), which
 materializes and caches individual expanded values only when a handler or reflection requires them.
@@ -61,11 +61,11 @@ materializes and caches individual expanded values only when a handler or reflec
 | Resolve a static receiver `Type` | `AvailableStaticMembers.TryResolveType` | [AvailableStaticMembers.cs#L58](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L58) |
 | **Static** allow gate | `AvailableStaticMembers.IsAvailable` | [AvailableStaticMembers.cs#L44](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L44) |
 | **Instance** allow gate (only blocks `GetType` by default) | `PropertyFunctionExecutor.VerifyInstanceMemberAvailable` | [Expander.PropertyFunctionExecutor.Binding.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.Binding.cs) |
-| Argument coercion fallback | `FunctionArgumentCoercion.TryCoerceForReflection` | [ReflectionInvoker.cs](../../src/Build/Evaluation/Expander/ReflectionInvoker.cs) |
-| Late-bound overload resolution | `ReflectionInvoker.LateBind` | [ReflectionInvoker.cs](../../src/Build/Evaluation/Expander/ReflectionInvoker.cs) |
+| Argument coercion fallback | `FunctionArgumentCoercion.TryCoerceForReflection` | [FunctionArgumentCoercion.cs](../../src/Build/Evaluation/Expander/FunctionArgumentCoercion.cs) |
+| Late-bound overload resolution | `ReflectionInvoker.InvokeWithArgumentCoercion` | [ReflectionInvoker.cs](../../src/Build/Evaluation/Expander/ReflectionInvoker.cs) |
 | Public-only binding invariant | `AllowedBindingFlags` + ctor assert | [Expander.PropertyFunctionExecutor.cs](../../src/Build/Evaluation/Expander.PropertyFunctionExecutor.cs) |
 | The static allowlist data | `AvailableStaticMembers.CreateAvailableMembers` | [AvailableStaticMembers.cs#L252](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L252) |
-| Well-known function fast paths (no reflection) | `WellKnownFunctions.TryInvokeStatic` / `TryInvokeInstance` | [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs) |
+| Well-known member fast paths (no reflection) | `WellKnownMembers.TryInvokeStatic` / `TryGetStatic` / `TryInvokeInstance` / `TryGetInstance` | [WellKnownMembers.cs](../../src/Build/Evaluation/Expander/WellKnownMembers.cs) |
 | Feature switch / legacy env-var escape hatch (read by **type resolution** and the **gates**) | `FeatureSwitches.EnableAllPropertyFunctions` | [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs) |
 
 ## 3. Execution model
@@ -178,12 +178,11 @@ excludes large swaths of the BCL from being *callable* even though the types are
 
 Execution uses three tiers:
 
-1. **Well-known fast path** - `WellKnownFunctions.TryInvokeStatic` or `TryInvokeInstance` handles common
-   functions directly from `FunctionArguments`, without reflection and often without
-   materializing strings.
+1. **Well-known fast path** - the applicable `WellKnownMembers.TryInvoke*` or `TryGet*` entry point handles
+   common members directly from `FunctionArguments`, without reflection and often without materializing strings.
 2. **Standard binder** - `ReflectionInvoker.InvokeMember(...)`
    lets the default reflection binder match and coerce after arguments are materialized.
-3. **Late bind** - on `MissingMethodException`, `ReflectionInvoker.LateBind` tries an all-`string`
+3. **Late bind** - on `MissingMethodException`, `ReflectionInvoker.InvokeWithArgumentCoercion` tries an all-`string`
    signature, then matches by name + argument count and runs `FunctionArgumentCoercion.TryCoerceForReflection`.
 
 `FunctionArgumentCoercion.TryCoerceForReflection` is the explicit conversion table:
@@ -195,8 +194,19 @@ Execution uses three tiers:
 | anything else | `Convert.ChangeType(arg, paramType, InvariantCulture)` |
 
 Failures are swallowed and turned into "no match": `InvalidCastException`,
-`FormatException`, and `OverflowException` all return `null`. A parameter type that is not
+`FormatException`, and `OverflowException` all return `false`. A parameter type that is not
 `IConvertible`-coercible from a string therefore makes the overload silently fail to bind.
+
+`WellKnownMemberResult` flows through the complete well-known-member handler stack and carries both a
+`WellKnownMemberStatus` and the handled value. `Handled` reports successful execution, while `NotRecognized`
+permits reflection to handle an unknown member or an overload intentionally omitted from a partial fast path.
+The five `[MSBuild]` arithmetic intrinsics (`Add`, `Subtract`, `Multiply`, `Divide`, and `Modulo`) are terminal
+well-known functions. Their handlers preserve the historical numeric coercion order directly and return
+`InvalidArguments` when coercion fails, reporting the static-function diagnostic without entering reflection.
+
+When reflection tracking is enabled, `BoundFunction.Execute` records a fallback immediately before invoking
+`ReflectionInvoker`. This covers methods, properties, fields, and constructors consistently without coupling
+logging to individual well-known-member handlers.
 
 ### 5.3 Special-case argument handling (in `Execute`)
 
@@ -207,7 +217,7 @@ Failures are swallowed and turned into "no match": `InvalidCastException`,
   `FileUtilities.FixFilePath`, and `File`/`Directory` path args are made absolute
   against the thread working directory in `-mt` mode
   ([Expander.cs#L4128](../../src/Build/Evaluation/Expander.cs#L4128)).
-- **`new`**: routed to a constructor (`WellKnownFunctions.TryInvokeConstructor` or
+- **`new`**: routed to a constructor (`WellKnownMembers.TryInvokeConstructor` or
   `ReflectionInvoker.InvokeConstructor`). Only public constructors on the resolved
   receiver type are eligible, so object construction is limited to allowlisted
   types (e.g. `[System.Globalization.CultureInfo]::new('en-US')`).
@@ -243,8 +253,8 @@ the *practical* reachable set is far smaller than a naive type-graph closure.
 | Apparent capability | Why it actually fails | Code |
 | --- | --- | --- |
 | Reflection (`Type`, `Assembly`, `MethodInfo`, ...) | No argument can be a `System.Type`, so `Enum.GetUnderlyingType(Type)` (the only allowlisted member returning `Type`) can't be called; and `obj.GetType()` is blocked. The reflection graph is unreachable despite being in the type closure. | `PropertyFunctionParser.ParseArguments`; `PropertyFunctionExecutor.VerifyInstanceMemberAvailable` |
-| `async` overloads returning `Task<T>` | The allowlisted entry points (`File`/`Directory`) don't expose async statics, and reaching async I/O instance methods needs non-string args (`byte[]` buffers) that can't be expressed. | allowlist [AvailableStaticMembers.cs#L250](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L250); [`FunctionArgumentCoercion.TryCoerceForReflection`](../../src/Build/Evaluation/Expander/ReflectionInvoker.cs) |
-| Methods needing a non-coercible parameter (`Stream`, delegate, complex object) | `Convert.ChangeType` throws → caught → overload returns `null` → `MissingMethodException` → error. | [`FunctionArgumentCoercion.TryCoerceForReflection`](../../src/Build/Evaluation/Expander/ReflectionInvoker.cs) |
+| `async` overloads returning `Task<T>` | The allowlisted entry points (`File`/`Directory`) don't expose async statics, and reaching async I/O instance methods needs non-string args (`byte[]` buffers) that can't be expressed. | allowlist [AvailableStaticMembers.cs#L250](../../src/Build/Evaluation/Expander/AvailableStaticMembers.cs#L250); [`FunctionArgumentCoercion.TryCoerceForReflection`](../../src/Build/Evaluation/Expander/FunctionArgumentCoercion.cs) |
+| Methods needing a non-coercible parameter (`Stream`, delegate, complex object) | `Convert.ChangeType` throws → caught → overload returns `false` → `MissingMethodException` → error. | [`FunctionArgumentCoercion.TryCoerceForReflection`](../../src/Build/Evaluation/Expander/FunctionArgumentCoercion.cs) |
 | Element access `value[i]` | Bound to `Array.GetValue`, `string.get_Chars`, or the receiver's `get_Item` member. | `ParseIndexer` [L233](../../src/Build/Evaluation/Expander/PropertyFunctionParser.cs#L233) |
 | Ending a chain on a non-string object | Not an error: the object is `ToString()`-ed into the property, often producing a useless value like `System.Threading.Tasks.Task\`1[...]`. "Works" only if the final value stringifies usefully. | result handling [L4267](../../src/Build/Evaluation/Expander.cs#L4267) |
 
