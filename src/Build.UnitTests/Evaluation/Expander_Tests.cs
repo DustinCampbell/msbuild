@@ -2706,7 +2706,7 @@ public class Expander_Tests(ITestOutputHelper output)
 
         string typeName = typeof(PropertyValueConversionTestData).AssemblyQualifiedName;
 
-        ExpandProperties($"$([{typeName}]::GetValue(`{scenario}`))")
+        ExpandProperties($"$([{typeName}]::GetValue(`{scenario}`))", allowReflection: true)
             .ShouldBe(expected);
     }
 
@@ -2950,7 +2950,7 @@ public class Expander_Tests(ITestOutputHelper output)
 
             try
             {
-                ExpandProperties("$([System.Type]::GetType(`System.Type`))")
+                ExpandProperties("$([System.Type]::GetType(`System.Type`))", allowReflection: true)
                     .ShouldBe("System.Type");
             }
             finally
@@ -2972,7 +2972,7 @@ public class Expander_Tests(ITestOutputHelper output)
         {
             AppContext.SetSwitch("Microsoft.Build.EnableAllPropertyFunctions", true);
 
-            ExpandProperties("$([System.Diagnostics.Process]::GetCurrentProcess().Id)")
+            ExpandProperties("$([System.Diagnostics.Process]::GetCurrentProcess().Id)", allowReflection: true)
                 .ShouldBe(System.Diagnostics.Process.GetCurrentProcess().Id.ToString());
         }
         finally
@@ -3120,12 +3120,8 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void PropertyFunctionStaticMethodChained()
-    {
-        string dateTime = "'" + _dateToParse + "'";
-
-        ExpandProperties(@"$([System.DateTime]::Parse(" + dateTime + ").ToString(`yyyy/MM/dd HH:mm:ss`))")
+        => ExpandProperties(@$"$([System.DateTime]::Parse('{_dateToParse}').ToString(`yyyy/MM/dd HH:mm:ss`))")
             .ShouldBe(DateTime.Parse(_dateToParse).ToString("yyyy/MM/dd HH:mm:ss"));
-    }
 
     /// <summary>
     /// Expand property function that calls a static method available only on net46 (Environment.GetFolderPath)
@@ -4135,17 +4131,275 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBe("a");
 
     /// <summary>
-    ///  A whole bunch error check tests.
+    ///  Gets valid property-function expressions and their expected results.
     /// </summary>
-    [Fact]
-    public void Medley()
+    /// <value>
+    ///  The valid expressions and expected results.
+    /// </value>
+    public static TheoryData<string, string> PropertyFunctionExpressionCases
     {
-        // Make absolutely sure that the static method cache hasn't been polluted by the other tests.
-        AvailableStaticMembers.Reset_ForUnitTestsOnly();
+        get
+        {
+            List<(string input, string result)> validTests = [
+                ("$(input.ToString()[1])", "X"),
+                ("$(input[1])", "X"),
+                ("$(listofthings.Split(';')[$(position)])", "e"),
+                (@"$([System.Text.RegularExpressions.Regex]::Match($(Input), `EXPORT\s+(.+)`).Groups[1].Value)", "a"),
+                ("$([MSBuild]::Add(1,2).CompareTo(3))", "0"),
+                ("$([MSBuild]::Add(1,2).CompareTo(3.0))", "0"),
+                ("$([MSBuild]::Add(1,2.0).CompareTo(3.0))", "0"),
+                ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.0))", "0"),
+                ("$([MSBuild]::Add(1,2).CompareTo('3'))", "0"),
+                ("$([MSBuild]::Add(1,2).CompareTo(3.1))", "-1"),
+                ("$([MSBuild]::Add(1,2.0).CompareTo(3.1))", "-1"),
+                ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.1))", "-1"),
+                ("$([MSBuild]::Add(1,2).CompareTo(2))", "1"),
+                ("$([MSBuild]::Add(1,2).Equals(3))", "True"),
+                ("$([MSBuild]::Add(1,2).Equals(3.0))", "True"),
+                ("$([MSBuild]::Add(1,2.0).Equals(3.0))", "True"),
+                ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.0))", "True"),
+                ("$([MSBuild]::Add(1,2).Equals('3'))", "True"),
+                ("$([MSBuild]::Add(1,2).Equals(3.1))", "False"),
+                ("$([MSBuild]::Add(1,2.0).Equals(3.1))", "False"),
+                ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.1))", "False"),
+                ("$(a.Insert(0,'%28'))", "%28no"),
+                ("$(a.Insert(0,'\"'))", "\"no"),
+                ("$(a.Insert(0,'(('))", "%28%28no"),
+                ("$(a.Insert(0,'))'))", "%29%29no"),
+                ("A$(Reg:A)A", "AA"),
+                ("A$(Reg:AA)", "A"),
+                ("$(Reg:AA)", ""),
+                ("$(Reg:AAAA)", ""),
+                ("$(Reg:AAA)", ""),
+                ("$([MSBuild]::Add(2,$([System.Convert]::ToInt64('28', 16))))", "42"),
+                ("$([MSBuild]::Add(2,$([System.Convert]::ToInt64('28', $([System.Convert]::ToInt32(16))))))", "42"),
+                ("$(e.Length.ToString())", "3"),
+                ("$(e.get_Length().ToString())", "3"),
+                ("$(emptystring.Length)", "0"),
+                ("$(space.Length)", "1"),
+                ("$([System.TimeSpan]::Equals(null, null))", "True"), // Constant, unquoted null is a special value.
+                ("$([MSBuild]::Add(40,null))", "40"),
+                ("$([MSBuild]::Add( 40 , null ))", "40"),
+                ("$([MSBuild]::Add(null,40))", "40"),
+                ("$([MSBuild]::Escape(';'))", "%3b"),
+                ("$([MSBuild]::UnEscape('%3b'))", ";"),
+                ("$(e.Substring($(e.Length)))", ""),
+                ("$([System.Int32]::MaxValue)", int.MaxValue.ToString()),
+                ("x$()", "x"),
 
+                // Comparison between non-numeric and numeric properties. More details: #10583.
+                ("$(a.Equals($(c)))", "False"),
+                ("$(a.CompareTo($(c)))", "1"),
+            ];
+
+            if (!NativeMethodsShared.IsWindows)
+            {
+                // If no registry or not running on Windows, this expands to the empty string.
+                validTests.Add(("$(Registry:X)", ""));
+            }
+
+            TheoryData<string, string> data = new();
+
+            foreach ((string input, string result) in validTests)
+            {
+                data.Add(input, result);
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary>
+    ///  Gets invalid property-function expressions.
+    /// </summary>
+    /// <value>
+    ///  The invalid expressions.
+    /// </value>
+    public static TheoryData<string> InvalidPropertyFunctionExpressionCases
+    {
+        get
+        {
+            TheoryData<string> data =
+            [
+                "$(input[)",
+                "$(input.ToString()])",
+                "$(input.ToString()[)",
+                "$(input.ToString()[12])",
+                "$(input[])",
+                "$(input[-1])",
+                "$(listofthings.Split(';')[)",
+                "$(listofthings.Split(';')['goo'])",
+                "$(listofthings.Split(';')[])",
+                "$(listofthings.Split(';')[-1])",
+                "$([]::())",
+                """
+                $(
+
+                $(
+
+                [System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt')
+
+                ).Substring(
+
+                '$([System.IO]::Path.GetPathRoot(
+
+                '$([System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt'))'
+
+                ).Length)'
+
+
+
+                )
+                """,
+                "$([Microsoft.VisualBasic.FileIO.FileSystem]::CurrentDirectory)", // Not allowed.
+                "$(e.Length..ToString())",
+                "$(SomeStuff.get_Length(null))",
+                "$(SomeStuff.Substring((1)))",
+                "$(b.Substring(-10, $(c)))",
+                "$(b.Substring(-10, $(emptystring)))",
+                "$(b.Substring(-10, $(space)))",
+                "$([MSBuild]::Add.Sub(null,40))",
+                "$([MSBuild]::Add( ,40))", // Empty parameter is an empty string.
+                "$([MSBuild]::Add('',40))", // Empty quoted parameter is an empty string.
+                "$([MSBuild]::Add(40,,,))",
+                "$([MSBuild]::Add(40, ,,))",
+                "$([MSBuild]::Add(40,)",
+                "$([MSBuild]::Add(40,X)",
+                "$([MSBuild]::Add(40,",
+                "$([MSBuild]::Add(40",
+                "$([MSBuild]::Add(,))", // ContainsGenericParameters prevents late binding.
+                "$([System.TimeSpan]::Equals(,))", // Empty parameter is interpreted as an empty string.
+                "$([System.TimeSpan]::Equals($(space),$(emptystring)))", // Empty parameter is interpreted as an empty string.
+                "$([System.TimeSpan]::Equals($(emptystring),$(emptystring)))", // Empty parameter is interpreted as an empty string.
+                "$([MSBuild]::Add($(PropertyContainingNullAsAString),40))", // A property containing "null" is still a string.
+                "$([MSBuild]::Add('null',40))", // Quoted "null" is a string.
+                "$(SomeStuff.Substring(-10))",
+                "$(.Length)",
+                "$(.Substring(1))",
+                "$(.get_Length())",
+                "$(e.)",
+                "$(e..)",
+                "$(e..Length)",
+                "$(e$(d).Length)",
+                "$($(d).Length)",
+                "$(e`.Length)",
+                "$([System.IO.Path]Combine::Combine(`a`,`b`))",
+                "$([System.IO.Path]::Combine((`a`,`b`))",
+                "$([System.IO.Path]Combine(::Combine(`a`,`b`))",
+                "$([System.IO.Path]Combine(`::Combine(`a`,`b`)`, `b`)`)",
+                "$([System.IO.Path]::`Combine(`a`, `b`)`)",
+                "$([System.IO.Path]::(`Combine(`a`, `b`)`))",
+                "$([System.DateTime]foofoo::Now)",
+                "$([System.DateTime].Now)",
+                "$([System.DateTime]::Now())",
+                "$([System.Int32]::MaxValue())",
+                "$([].Now)",
+                "$([ ].Now)",
+                "$([ .Now)",
+                "$([])",
+                "$([ )",
+                "$([ ])",
+                "$([System.Diagnostics.Process]::Start(`NOTEPAD.EXE`))",
+                "$([[]]::Start(`NOTEPAD.EXE`))",
+                "$([(::Start(`NOTEPAD.EXE`))",
+                "$([Goop]::Start(`NOTEPAD.EXE`))",
+                "$([System.Threading.Thread]::CurrentThread)",
+                "$",
+                "$(",
+                "$((",
+                "@",
+                "@(",
+                "@()",
+                "%",
+                "%(",
+                "%()",
+                "exists",
+                "exists(",
+                "exists()",
+                "exists( )",
+                "exists(,)",
+                "@(x->'",
+                "@(x->''",
+                "@(x-",
+                "@(x->'x','",
+                "@(x->'x',''",
+                "@(x->'x','')",
+                "-1>x",
+                "\n",
+                "\t",
+                "+-1",
+                "$(SomeStuff.)",
+                "$(SomeStuff.!)",
+                "$(SomeStuff.`)",
+                "$(SomeStuff.GetType)",
+                "$(e.Length())",
+                "$(goop.baz`)",
+                "$(SomeStuff.Substring(HELLO!))",
+                "$(SomeStuff.ToLowerInvariant()_goop)",
+                "$(SomeStuff($(System.DateTime.Now)))",
+                "$(System.Foo.Bar.Lgg)",
+                "$(SomeStuff.Lgg)",
+                "$(SomeStuff($(Value)))",
+                "$(e.$(e.Length))",
+                "$(e.Substring($(e.Substring(,)))",
+                "$(e.Substring($(e.Substring(a)))",
+                "$(e.Substring($([System.IO.Path]::Combine(`a`, `b`))))",
+                "$((((",
+                "$($())",
+                "()",
+            ];
+
+#if !RUNTIME_TYPE_NETCORE
+            if (NativeMethodsShared.IsWindows)
+            {
+                // '|' is only an invalid character in Windows filesystems.
+                data.Add("$([System.IO.Path]::Combine(`|`,`b`))");
+            }
+#endif
+
+            if (NativeMethodsShared.IsWindows)
+            {
+                data.Add("$(Registry:X)");
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary>
+    ///  Verifies expansion of a valid property-function expression.
+    /// </summary>
+    /// <param name="expression">The expression to expand.</param>
+    /// <param name="expected">The expected expansion result.</param>
+    [Theory]
+    [MemberData(nameof(PropertyFunctionExpressionCases))]
+    public void PropertyFunctionExpressionExpands(string expression, string expected)
+        => ExpandProperties(expression, CreatePropertyFunctionTestProperties())
+            .ShouldBe(expected);
+
+    /// <summary>
+    ///  Verifies rejection of an invalid property-function expression.
+    /// </summary>
+    /// <param name="expression">The invalid expression.</param>
+    [Theory]
+    [MemberData(nameof(InvalidPropertyFunctionExpressionCases))]
+    public void InvalidPropertyFunctionExpressionIsRejected(string expression)
+    {
+        try
+        {
+            ExpandProperties(expression, CreatePropertyFunctionTestProperties())
+                .ShouldBe(expression);
+        }
+        catch (InvalidProjectFileException)
+        {
+            // Invalid expressions may either throw or remain unexpanded.
+        }
+    }
+
+    private static PropertyDictionary<ProjectPropertyInstance> CreatePropertyFunctionTestProperties()
+    {
         PropertyDictionary<ProjectPropertyInstance> properties = new();
         properties.Set(ProjectPropertyInstance.Create("File", @"foo\file.txt"));
-
         properties.Set(ProjectPropertyInstance.Create("a", "no"));
         properties.Set(ProjectPropertyInstance.Create("b", "true"));
         properties.Set(ProjectPropertyInstance.Create("c", "1"));
@@ -4159,250 +4413,12 @@ public class Expander_Tests(ITestOutputHelper output)
         properties.Set(ProjectPropertyInstance.Create("a_escapedsemi_b", "a%3bb"));
         properties.Set(ProjectPropertyInstance.Create("a_escapedapos_b", "a%27b"));
         properties.Set(ProjectPropertyInstance.Create("has_trailing_slash", @"foo\"));
-        properties.Set(ProjectPropertyInstance.Create("emptystring", @""));
-        properties.Set(ProjectPropertyInstance.Create("space", @" "));
-        properties.Set(ProjectPropertyInstance.Create("listofthings", @"a;b;c;d;e;f;g;h;i;j;k;l"));
-        properties.Set(ProjectPropertyInstance.Create("input", @"EXPORT a"));
-        properties.Set(ProjectPropertyInstance.Create("propertycontainingnullasastring", @"null"));
-
-        List<(string input, string result)> validTests = [
-            ("$(input.ToString()[1])", "X"),
-            ("$(input[1])", "X"),
-            ("$(listofthings.Split(';')[$(position)])","e"),
-            (@"$([System.Text.RegularExpressions.Regex]::Match($(Input), `EXPORT\s+(.+)`).Groups[1].Value)","a"),
-            ("$([MSBuild]::Add(1,2).CompareTo(3))", "0"),
-            ("$([MSBuild]::Add(1,2).CompareTo(3))", "0"),
-            ("$([MSBuild]::Add(1,2).CompareTo(3.0))", "0"),
-            ("$([MSBuild]::Add(1,2.0).CompareTo(3.0))", "0"),
-            ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.0))", "0"),
-            ("$([MSBuild]::Add(1,2).CompareTo('3'))", "0"),
-            ("$([MSBuild]::Add(1,2).CompareTo(3.1))", "-1"),
-            ("$([MSBuild]::Add(1,2.0).CompareTo(3.1))", "-1"),
-            ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.1))", "-1"),
-            ("$([MSBuild]::Add(1,2).CompareTo(2))", "1"),
-            ("$([MSBuild]::Add(1,2).Equals(3))", "True"),
-            ("$([MSBuild]::Add(1,2).Equals(3.0))", "True"),
-            ("$([MSBuild]::Add(1,2.0).Equals(3.0))", "True"),
-            ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.0))", "True"),
-            ("$([MSBuild]::Add(1,2).Equals('3'))", "True"),
-            ("$([MSBuild]::Add(1,2).Equals(3.1))", "False"),
-            ("$([MSBuild]::Add(1,2.0).Equals(3.1))", "False"),
-            ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.1))", "False"),
-            ("$(a.Insert(0,'%28'))", "%28no"),
-            ("$(a.Insert(0,'\"'))", "\"no"),
-            ("$(a.Insert(0,'(('))", "%28%28no"),
-            ("$(a.Insert(0,'))'))", "%29%29no"),
-            ("A$(Reg:A)A", "AA"),
-            ("A$(Reg:AA)", "A"),
-            ("$(Reg:AA)", ""),
-            ("$(Reg:AAAA)", ""),
-            ("$(Reg:AAA)", ""),
-            ("$([MSBuild]::Add(2,$([System.Convert]::ToInt64('28', 16))))", "42"),
-            ("$([MSBuild]::Add(2,$([System.Convert]::ToInt64('28', $([System.Convert]::ToInt32(16))))))", "42"),
-            ("$(e.Length.ToString())", "3"),
-            ("$(e.get_Length().ToString())", "3"),
-            ("$(emptystring.Length)", "0"),
-            ("$(space.Length)", "1"),
-            ("$([System.TimeSpan]::Equals(null, null))", "True"), // constant, unquoted null is a special value
-            ("$([MSBuild]::Add(40,null))", "40"),
-            ("$([MSBuild]::Add( 40 , null ))", "40"),
-            ("$([MSBuild]::Add(null,40))", "40"),
-            ("$([MSBuild]::Escape(';'))", "%3b"),
-            ("$([MSBuild]::UnEscape('%3b'))", ";"),
-            ("$(e.Substring($(e.Length)))", ""),
-            ("$([System.Int32]::MaxValue)", int.MaxValue.ToString()),
-            ("x$()", "x"),
-            ("A$(Reg:A)A", "AA"),
-            ("A$(Reg:AA)", "A"),
-            ("$(Reg:AA)", ""),
-            ("$(Reg:AAAA)", ""),
-            ("$(Reg:AAA)", ""),
-
-            // Following two are comparison between non-numeric and numeric properties. More details: #10583
-            ("$(a.Equals($(c)))","False"),
-            ("$(a.CompareTo($(c)))","1"),
-        ];
-
-        List<string> errorTests = [
-            "$(input[)",
-            "$(input.ToString()])",
-            "$(input.ToString()[)",
-            "$(input.ToString()[12])",
-            "$(input[])",
-            "$(input[-1])",
-            "$(listofthings.Split(';')[)",
-            "$(listofthings.Split(';')['goo'])",
-            "$(listofthings.Split(';')[])",
-            "$(listofthings.Split(';')[-1])",
-            "$([]::())",
-            """
-            $(
-
-            $(
-
-            [System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt')
-
-            ).Substring(
-
-            '$([System.IO]::Path.GetPathRoot(
-
-            '$([System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt'))'
-
-            ).Length)'
-
-
-
-            )
-            """,
-            "$([Microsoft.VisualBasic.FileIO.FileSystem]::CurrentDirectory)", // not allowed
-            "$(e.Length..ToString())",
-            "$(SomeStuff.get_Length(null))",
-            "$(SomeStuff.Substring((1)))",
-            "$(b.Substring(-10, $(c)))",
-            "$(b.Substring(-10, $(emptystring)))",
-            "$(b.Substring(-10, $(space)))",
-            "$([MSBuild]::Add.Sub(null,40))",
-            "$([MSBuild]::Add( ,40))", // empty parameter is empty string
-            "$([MSBuild]::Add('',40))", // empty quoted parameter is empty string
-            "$([MSBuild]::Add(40,,,))",
-            "$([MSBuild]::Add(40, ,,))",
-            "$([MSBuild]::Add(40,)",
-            "$([MSBuild]::Add(40,X)",
-            "$([MSBuild]::Add(40,",
-            "$([MSBuild]::Add(40",
-            "$([MSBuild]::Add(,))", // gives "Late bound operations cannot be performed on types or methods for which ContainsGenericParameters is true."
-            "$([System.TimeSpan]::Equals(,))", // empty parameter is interpreted as empty string
-            "$([System.TimeSpan]::Equals($(space),$(emptystring)))", // empty parameter is interpreted as empty string
-            "$([System.TimeSpan]::Equals($(emptystring),$(emptystring)))", // empty parameter is interpreted as empty string
-            "$([MSBuild]::Add($(PropertyContainingNullAsAString),40))", // a property containing the word null is a string "null"
-            "$([MSBuild]::Add('null',40))", // the word null is a string "null"
-            "$(SomeStuff.Substring(-10))",
-            "$(.Length)",
-            "$(.Substring(1))",
-            "$(.get_Length())",
-            "$(e.)",
-            "$(e..)",
-            "$(e..Length)",
-            "$(e$(d).Length)",
-            "$($(d).Length)",
-            "$(e`.Length)",
-            "$([System.IO.Path]Combine::Combine(`a`,`b`))",
-            "$([System.IO.Path]::Combine((`a`,`b`))",
-            "$([System.IO.Path]Combine(::Combine(`a`,`b`))",
-            "$([System.IO.Path]Combine(`::Combine(`a`,`b`)`, `b`)`)",
-            "$([System.IO.Path]::`Combine(`a`, `b`)`)",
-            "$([System.IO.Path]::(`Combine(`a`, `b`)`))",
-            "$([System.DateTime]foofoo::Now)",
-            "$([System.DateTime].Now)",
-            "$([].Now)",
-            "$([ ].Now)",
-            "$([ .Now)",
-            "$([])",
-            "$([ )",
-            "$([ ])",
-            "$([System.Diagnostics.Process]::Start(`NOTEPAD.EXE`))",
-            "$([[]]::Start(`NOTEPAD.EXE`))",
-            "$([(::Start(`NOTEPAD.EXE`))",
-            "$([Goop]::Start(`NOTEPAD.EXE`))",
-            "$([System.Threading.Thread]::CurrentThread)",
-            "$",
-            "$(",
-            "$((",
-            "@",
-            "@(",
-            "@()",
-            "%",
-            "%(",
-            "%()",
-            "exists",
-            "exists(",
-            "exists()",
-            "exists( )",
-            "exists(,)",
-            "@(x->'",
-            "@(x->''",
-            "@(x-",
-            "@(x->'x','",
-            "@(x->'x',''",
-            "@(x->'x','')",
-            "-1>x",
-            "\n",
-            "\t",
-            "+-1",
-            "$(SomeStuff.)",
-            "$(SomeStuff.!)",
-            "$(SomeStuff.`)",
-            "$(SomeStuff.GetType)",
-            "$(goop.baz`)",
-            "$(SomeStuff.Substring(HELLO!))",
-            "$(SomeStuff.ToLowerInvariant()_goop)",
-            "$(SomeStuff($(System.DateTime.Now)))",
-            "$(System.Foo.Bar.Lgg)",
-            "$(SomeStuff.Lgg)",
-            "$(SomeStuff($(Value)))",
-            "$(e.$(e.Length))",
-            "$(e.Substring($(e.Substring(,)))",
-            "$(e.Substring($(e.Substring(a)))",
-            "$(e.Substring($([System.IO.Path]::Combine(`a`, `b`))))",
-            "$([]::())",
-            "$((((",
-            "$($())",
-            "$",
-            "()",
-        ];
-
-#if !RUNTIME_TYPE_NETCORE
-        if (NativeMethodsShared.IsWindows)
-        {
-            // '|' is only an invalid character in Windows filesystems
-            errorTests.Add("$([System.IO.Path]::Combine(`|`,`b`))");
-        }
-#endif
-
-        if (NativeMethodsShared.IsWindows)
-        {
-            errorTests.Add("$(Registry:X)");
-        }
-
-        if (!NativeMethodsShared.IsWindows)
-        {
-            // If no registry or not running on windows, this gets expanded to the empty string
-            // example: xplat build running on OSX
-            validTests.Add(("$(Registry:X)", ""));
-        }
-
-        foreach (var (input, result) in validTests)
-        {
-            ExpandProperties(input, properties)
-                .ShouldBe(result, $"FAILURE: {input} expanded to '{ExpandProperties(input, properties)}' instead of '{result}'");
-        }
-
-        for (int i = 0; i < errorTests.Count; i++)
-        {
-            // If an expression is invalid,
-            //      - Expansion may throw InvalidProjectFileException, or
-            //      - return the original unexpanded expression
-            bool success = true;
-            bool caughtException = false;
-            string result = string.Empty;
-            try
-            {
-                result = ExpandProperties(errorTests[i], properties);
-                if (result == errorTests[i])
-                {
-                    Console.WriteLine($"{errorTests[i]} did not expand.");
-                    success = false;
-                }
-            }
-            catch (InvalidProjectFileException ex)
-            {
-                Console.WriteLine($"{errorTests[i]} caused '{ex.Message}'");
-                caughtException = true;
-            }
-
-            (!success || caughtException).ShouldBeTrue(
-                $"FAILURE: Expected '{errorTests[i]}' to not parse or not be evaluated but it evaluated to '{result}'");
-        }
+        properties.Set(ProjectPropertyInstance.Create("emptystring", ""));
+        properties.Set(ProjectPropertyInstance.Create("space", " "));
+        properties.Set(ProjectPropertyInstance.Create("listofthings", "a;b;c;d;e;f;g;h;i;j;k;l"));
+        properties.Set(ProjectPropertyInstance.Create("input", "EXPORT a"));
+        properties.Set(ProjectPropertyInstance.Create("propertycontainingnullasastring", "null"));
+        return properties;
     }
 
     [Fact]
@@ -4650,6 +4666,253 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandProperties("$([MSBuild]::Add($(X), $([MSBuild]::Add(2, 3))))", ("X", "7"))
             .ShouldBe("12");
 
+    /// <summary>
+    ///  Verifies that arithmetic intrinsics preserve reflection behavior by treating <see langword="null"/> as
+    ///  the numeric value-type default, zero.
+    /// </summary>
+    /// <param name="methodName">The arithmetic intrinsic to invoke.</param>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    /// <param name="expected">The expected arithmetic result.</param>
+    [Theory]
+    [InlineData("Add", "null", "40", "40")]
+    [InlineData("Add", "null", "1.5", "1.5")]
+    [InlineData("Add", "40", "null", "40")]
+    [InlineData("Add", "1.5", "null", "1.5")]
+    [InlineData("Subtract", "null", "40", "-40")]
+    [InlineData("Subtract", "null", "1.5", "-1.5")]
+    [InlineData("Subtract", "40", "null", "40")]
+    [InlineData("Subtract", "1.5", "null", "1.5")]
+    [InlineData("Multiply", "null", "40", "0")]
+    [InlineData("Multiply", "null", "1.5", "0")]
+    [InlineData("Multiply", "40", "null", "0")]
+    [InlineData("Multiply", "1.5", "null", "0")]
+    [InlineData("Divide", "null", "40", "0")]
+    [InlineData("Divide", "null", "1.5", "0")]
+    [InlineData("Modulo", "null", "40", "0")]
+    [InlineData("Modulo", "null", "1.5", "0")]
+    public void PropertyFunctionMSBuildArithmeticTreatsNullAsZero(string methodName, string left, string right, string expected)
+        => ExpandProperties($"$([MSBuild]::{methodName}({left}, {right}))")
+            .ShouldBe(expected);
+
+    /// <summary>
+    ///  Verifies arithmetic coercion errors for zero divisors and nonnumeric typed values.
+    /// </summary>
+    /// <param name="expression">The complete property-function expression expected to fail.</param>
+    [Theory]
+    [InlineData("$([MSBuild]::Divide(40, null))")]
+    [InlineData("$([MSBuild]::Modulo(40, null))")]
+    [InlineData("$([MSBuild]::Divide(null, null))")]
+    [InlineData("$([MSBuild]::Modulo(null, null))")]
+    [InlineData("$([MSBuild]::Add($([System.DateTime]::Parse('2024-01-01')), 2))")]
+    [InlineData("$([MSBuild]::Add(2, $([System.DateTime]::Parse('2024-01-01'))))")]
+    public void PropertyFunctionMSBuildArithmeticPreservesCoercionErrors(string expression)
+        => Should.Throw<InvalidProjectFileException>(() => ExpandProperties(expression));
+
+    /// <summary>
+    ///  Verifies that recognized arithmetic intrinsics with uncoercible arguments report the existing static
+    ///  function diagnostic without falling back to reflection.
+    /// </summary>
+    /// <param name="methodName">The arithmetic intrinsic to invoke.</param>
+    [Theory]
+    [InlineData("Add")]
+    [InlineData("Subtract")]
+    [InlineData("Multiply")]
+    [InlineData("Divide")]
+    [InlineData("Modulo")]
+    public void PropertyFunctionMSBuildArithmeticInvalidArgumentsUseStaticFunctionError(string methodName)
+    {
+        InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+            () => ExpandProperties($"$([MSBuild]::{methodName}('not a number', 2))"));
+
+        exception.ErrorCode.ShouldBe("MSB4186");
+    }
+
+    /// <summary>
+    ///  Enumerates every ordered pair of supported raw and typed arithmetic operand forms, including
+    ///  <see langword="null"/>, numeric values, <see cref="bool"/>, <see cref="char"/>, and enums.
+    /// </summary>
+    /// <value>
+    ///  The operand expressions, result, and runtime result type for each ordered pair.
+    /// </value>
+    public static TheoryData<string, string> ArithmeticCoercionCases
+    {
+        get
+        {
+            var operands = new[]
+            {
+                (Left: "null", Right: "null", LeftDouble: 0D, RightDouble: 0D, WellKnownLong: true,
+                    WellKnownDouble: true, BindsToLong: true, BindsToDouble: true,
+                    CoercesToLong: true, CoercesToDouble: true),
+                (Left: "1", Right: "2", LeftDouble: 1D, RightDouble: 2D, WellKnownLong: true,
+                    WellKnownDouble: true, BindsToLong: false, BindsToDouble: false,
+                    CoercesToLong: true, CoercesToDouble: true),
+                (Left: "1.25", Right: "2.25", LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false,
+                    WellKnownDouble: true, BindsToLong: false, BindsToDouble: false,
+                    CoercesToLong: false, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToSByte('1'))", Right: "$([System.Convert]::ToSByte('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToByte('1'))", Right: "$([System.Convert]::ToByte('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToInt16('1'))", Right: "$([System.Convert]::ToInt16('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToUInt16('1'))", Right: "$([System.Convert]::ToUInt16('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToInt32('1'))", Right: "$([System.Convert]::ToInt32('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: true, WellKnownDouble: true,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToUInt32('1'))", Right: "$([System.Convert]::ToUInt32('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToInt64('1'))", Right: "$([System.Convert]::ToInt64('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: true, WellKnownDouble: true,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToUInt64('1'))", Right: "$([System.Convert]::ToUInt64('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: false, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToSingle('1.25'))", Right: "$([System.Convert]::ToSingle('2.25'))",
+                    LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: false, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToDouble('1.25'))", Right: "$([System.Convert]::ToDouble('2.25'))",
+                    LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false, WellKnownDouble: true,
+                    BindsToLong: false, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToDecimal('1.25'))", Right: "$([System.Convert]::ToDecimal('2.25'))",
+                    LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: false, BindsToDouble: false, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToBoolean('true'))", Right: "$([System.Convert]::ToBoolean('false'))",
+                    LeftDouble: 1D, RightDouble: 0D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: false, BindsToDouble: false, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToChar('A'))", Right: "$([System.Convert]::ToChar('B'))",
+                    LeftDouble: 65D, RightDouble: 66D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: false),
+                (Left: "$([System.DateTime]::Parse('2024-01-01').DayOfWeek)",
+                    Right: "$([System.DateTime]::Parse('2024-01-02').DayOfWeek)",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+            };
+
+            TheoryData<string, string> data = new();
+
+            foreach (var left in operands)
+            {
+                foreach (var right in operands)
+                {
+                    bool usesLong = left.WellKnownLong && right.WellKnownLong;
+                    bool usesDouble = !usesLong && left.WellKnownDouble && right.WellKnownDouble;
+
+                    if (!usesLong && !usesDouble)
+                    {
+                        usesLong = left.BindsToLong && right.BindsToLong;
+                        usesDouble = !usesLong && left.BindsToDouble && right.BindsToDouble;
+
+                        if (!usesLong && !usesDouble)
+                        {
+                            usesLong = left.CoercesToLong && right.CoercesToLong;
+                            usesDouble = !usesLong && left.CoercesToDouble && right.CoercesToDouble;
+                        }
+                    }
+
+                    string invocation = $"[MSBuild]::Add({left.Left}, {right.Right})";
+
+                    if (usesLong)
+                    {
+                        long result = Convert.ToInt64(left.LeftDouble) + Convert.ToInt64(right.RightDouble);
+                        AddInt64Case(data, invocation, result);
+                    }
+                    else if (usesDouble)
+                    {
+                        AddDoubleCase(data, invocation, left.LeftDouble + right.RightDouble);
+                    }
+                    else
+                    {
+                        data.Add($"$({invocation})", null);
+                    }
+                }
+            }
+
+            AddInt64Case(data, "[MSBuild]::Subtract(null, null)", 0);
+            AddInt64Case(data, "[MSBuild]::Multiply(null, null)", 0);
+
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToSingle('1.5')), 0)", 2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToSingle('2.5')), 0)", 2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToSingle('-1.5')), 0)", -2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToSingle('-2.5')), 0)", -2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToDecimal('1.5')), 0)", 2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToDecimal('2.5')), 0)", 2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToDecimal('-1.5')), 0)", -2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToDecimal('-2.5')), 0)", -2);
+
+            AddDoubleCase(data, "[MSBuild]::Add($([System.Double]::NaN), 2)", double.NaN);
+            AddDoubleCase(data, "[MSBuild]::Add(2, $([System.Double]::NaN))", double.NaN);
+            AddDoubleCase(data, "[MSBuild]::Add($([System.Double]::PositiveInfinity), 2)", double.PositiveInfinity);
+            AddDoubleCase(data, "[MSBuild]::Add(2, $([System.Double]::PositiveInfinity))", double.PositiveInfinity);
+            AddDoubleCase(data, "[MSBuild]::Add($([System.Double]::NegativeInfinity), 2)", double.NegativeInfinity);
+            AddDoubleCase(data, "[MSBuild]::Add(2, $([System.Double]::NegativeInfinity))", double.NegativeInfinity);
+
+            return data;
+
+            static void AddInt64Case(TheoryData<string, string> data, string invocation, long value)
+                => AddCase(data, invocation, value.ToString(CultureInfo.InvariantCulture), TypeCode.Int64);
+
+            static void AddDoubleCase(TheoryData<string, string> data, string invocation, double value)
+                => AddCase(data, invocation, value.ToString(CultureInfo.InvariantCulture), TypeCode.Double);
+
+            static void AddCase(TheoryData<string, string> data, string invocation, string expected, TypeCode expectedTypeCode)
+            {
+                data.Add($"$({invocation})", expected);
+                data.Add($"$({invocation}.GetTypeCode())", expectedTypeCode.ToString());
+            }
+        }
+    }
+
+    /// <summary>
+    ///  Characterizes overload selection for every ordered pair of supported arithmetic operand forms. The
+    ///  well-known path preserves the historical precedence of direct numeric conversions, primitive reflection
+    ///  binding, and the final <see cref="Convert.ChangeType"/> fallback.
+    /// </summary>
+    /// <param name="expression">The complete property-function expression.</param>
+    /// <param name="expected">
+    ///  The expected expression result, or <see langword="null"/> when evaluation should fail.
+    /// </param>
+    [Theory]
+    [MemberData(nameof(ArithmeticCoercionCases))]
+    [UseInvariantCulture]
+    public void PropertyFunctionMSBuildArithmeticCoercion(string expression, string expected)
+    {
+        if (expected is null)
+        {
+            Should.Throw<InvalidProjectFileException>(() => ExpandProperties(expression));
+        }
+        else
+        {
+            ExpandProperties(expression).ShouldBe(expected);
+        }
+    }
+
+    /// <summary>
+    ///  Verifies that typed numeric values whose conversion to <see cref="long"/> overflows select the
+    ///  <see cref="double"/> overload.
+    /// </summary>
+    /// <param name="conversionMethod">The <see cref="Convert"/> method that produces the typed operand.</param>
+    /// <param name="value">The value passed to <paramref name="conversionMethod"/>.</param>
+    [Theory]
+    [InlineData("ToUInt64", "9223372036854775808")]
+    [InlineData("ToSingle", "1E+20")]
+    [InlineData("ToDouble", "1E+20")]
+    [InlineData("ToDecimal", "9223372036854775808")]
+    [UseInvariantCulture]
+    public void PropertyFunctionMSBuildArithmeticTypedNumericArgumentsCanOverflowLongCoercion(string conversionMethod, string value)
+    {
+        string invocation = $"[MSBuild]::Add($([System.Convert]::{conversionMethod}('{value}')), 0)";
+
+        ExpandProperties($"$({invocation}.GetTypeCode())")
+            .ShouldBe(nameof(TypeCode.Double));
+    }
+
     [Fact]
     public void PropertyFunctionMSBuildSubtractIntegerLiteral()
         => ExpandProperties("$([MSBuild]::Subtract($(X), 20100000))", ("X", "20100042"))
@@ -4765,10 +5028,10 @@ public class Expander_Tests(ITestOutputHelper output)
             ExpandProperties("$([System.TimeSpan]::Replace('abc_123_ghi', '\\d+', 'def'))").ShouldNotBe("abc_def_ghi"));
 
     private string ExpandProperties(string expression)
-        => ExpandProperties(expression, allowReflection: true, propertyProvider: null);
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander, propertyProvider: null);
 
     private string ExpandProperties(string expression, params (string Name, string Value)[] properties)
-        => ExpandProperties(expression, allowReflection: true, properties);
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander, properties);
 
     private string ExpandProperties(string expression, bool allowReflection, params (string Name, string Value)[] properties)
     {
@@ -4786,10 +5049,10 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandProperties(expression, allowReflection, propertyProvider: null);
 
     private string ExpandProperties(string expression, LoggingContext loggingContext)
-        => ExpandProperties(expression, allowReflection: true, propertyProvider: null, loggingContext);
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander, propertyProvider: null, loggingContext);
 
     private string ExpandProperties(string expression, IPropertyProvider<ProjectPropertyInstance> propertyProvider)
-        => ExpandProperties(expression, allowReflection: true, propertyProvider);
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander, propertyProvider);
 
     private string ExpandProperties(
         string expression,
@@ -4797,6 +5060,9 @@ public class Expander_Tests(ITestOutputHelper output)
         IPropertyProvider<ProjectPropertyInstance> propertyProvider,
         LoggingContext loggingContext = null)
     {
+        // Make absolutely sure that the static method cache hasn't been polluted by the other tests.
+        AvailableStaticMembers.Reset_ForUnitTestsOnly();
+
         using var env = TestEnvironment.Create();
 
         // Setting this env variable allows to track if expander was using reflection for a function invocation.
@@ -5196,6 +5462,16 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("$([Microsoft.Build.Evaluation.IntrinsicFunctions]::NormalizeDirectory('C:/folder1/./folder2/'))")]
     [InlineData("$([Microsoft.Build.Evaluation.IntrinsicFunctions]::IsOSPlatform('Windows'))")]
     public void FastPathValidationTest(string expression)
+        => ExpandProperties(expression, allowReflection: false);
+
+    [ModernExpanderOnlyTheory]
+    [UseInvariantCulture]
+    [InlineData("$([MSBuild]::Add($([System.Convert]::ToBoolean('true')), 2))")]
+    [InlineData("$([MSBuild]::Subtract($([System.Convert]::ToChar('B')), 2))")]
+    [InlineData("$([MSBuild]::Multiply($([System.DateTime]::Parse('2024-01-01').DayOfWeek), 2))")]
+    [InlineData("$([MSBuild]::Divide($([System.Convert]::ToDecimal('5')), 2))")]
+    [InlineData("$([MSBuild]::Modulo($([System.Convert]::ToSingle('5.5')), 2))")]
+    public void FastPathValidationTest_ModernExpander(string expression)
         => ExpandProperties(expression, allowReflection: false);
 
     [Fact]
