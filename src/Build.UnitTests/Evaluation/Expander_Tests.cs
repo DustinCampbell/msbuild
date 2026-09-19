@@ -4293,6 +4293,7 @@ public class Expander_Tests(ITestOutputHelper output)
                 "$([System.DateTime].Now)",
                 "$([System.DateTime]::Now())",
                 "$([System.Int32]::MaxValue())",
+                "$([System.Int32]::get_MaxValue())",
                 "$([].Now)",
                 "$([ ].Now)",
                 "$([ .Now)",
@@ -4332,7 +4333,6 @@ public class Expander_Tests(ITestOutputHelper output)
                 "$(SomeStuff.!)",
                 "$(SomeStuff.`)",
                 "$(SomeStuff.GetType)",
-                "$(e.Length())",
                 "$(goop.baz`)",
                 "$(SomeStuff.Substring(HELLO!))",
                 "$(SomeStuff.ToLowerInvariant()_goop)",
@@ -4384,6 +4384,21 @@ public class Expander_Tests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(InvalidPropertyFunctionExpressionCases))]
     public void InvalidPropertyFunctionExpressionIsRejected(string expression)
+        => AssertInvalidPropertyFunctionExpression(expression);
+
+    [ModernExpanderOnlyTheory]
+    [InlineData("$(e.Length())")]
+    public void ModernInvalidPropertyFunctionExpressionIsRejected(string expression)
+        => AssertInvalidPropertyFunctionExpression(expression);
+
+    [Fact]
+    public void StaticPropertyGetterMethodExpands()
+        => DateTime.TryParse(
+                ExpandProperties("$([System.DateTime]::get_Now())", CreatePropertyFunctionTestProperties()),
+                out _)
+            .ShouldBeTrue();
+
+    private void AssertInvalidPropertyFunctionExpression(string expression)
     {
         try
         {

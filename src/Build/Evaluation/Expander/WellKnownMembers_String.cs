@@ -67,8 +67,6 @@ internal static partial class WellKnownMembers
                     => TryInvokeIndexOfAny(s, ref arguments),
                 10 when name.Equals(nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeStartsWith(s, ref arguments),
-                10 when name.Equals("get_Length", StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetLength(s, ref arguments),
                 11 when name.Equals(nameof(string.LastIndexOf), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeLastIndexOf(s, ref arguments),
                 11 when name.Equals(nameof(string.GetTypeCode), StringComparison.OrdinalIgnoreCase)
@@ -167,11 +165,6 @@ internal static partial class WellKnownMembers
 
             return NotRecognized;
         }
-
-        private static WellKnownMemberResult TryInvokeGetLength(string s, ref FunctionArguments arguments)
-            => arguments.Count == 0
-                ? Handled(s.Length)
-                : NotRecognized;
 
         private static WellKnownMemberResult TryInvokeGetTypeCode(ref FunctionArguments arguments)
             => arguments.Count == 0

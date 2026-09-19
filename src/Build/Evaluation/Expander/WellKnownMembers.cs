@@ -183,6 +183,26 @@ internal static partial class WellKnownMembers
         return NotRecognized;
     }
 
+    internal static WellKnownMemberResult TryGetStaticProperty(Type receiverType, StringSegment memberName)
+    {
+        if (receiverType == typeof(DateTime))
+        {
+            return s_dateTimeHandler.TryGetStatic(memberName);
+        }
+
+        if (receiverType == typeof(OSPlatform))
+        {
+            return s_osPlatformHandler.TryGetStatic(memberName);
+        }
+
+        if (receiverType == typeof(RuntimeInformation))
+        {
+            return s_runtimeInformationHandler.TryGetStatic(memberName);
+        }
+
+        return NotRecognized;
+    }
+
     internal static WellKnownMemberResult TryInvokeInstance(object objectInstance, StringSegment memberName, ref FunctionArguments args)
     {
         switch (objectInstance)

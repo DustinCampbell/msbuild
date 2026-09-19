@@ -420,6 +420,18 @@ internal partial class Expander<P, I>
                     : invokeMethod
                         ? WellKnownMembers.TryInvokeInstance(objectInstance, _memberName, ref args)
                         : WellKnownMembers.TryGetInstance(objectInstance, _memberName);
+
+                if (invokeMethod &&
+                    args.Count == 0 &&
+                    wellKnownMemberResult.Status == WellKnownMemberStatus.NotRecognized &&
+                    _memberName.Length > 4 &&
+                    _memberName.StartsWith("get_", StringComparison.OrdinalIgnoreCase))
+                {
+                    StringSegment propertyName = _memberName.Slice(4);
+                    wellKnownMemberResult = objectInstance is null
+                        ? WellKnownMembers.TryGetStaticProperty(_receiverType, propertyName)
+                        : WellKnownMembers.TryGetInstance(objectInstance, propertyName);
+                }
             }
             catch (Exception ex)
             {
