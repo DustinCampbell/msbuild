@@ -65,7 +65,8 @@ public sealed class MetadataScope_Tests
         IExpander<ProjectPropertyInstance, ProjectItemInstance> expander =
             ExpanderFactory.Create<ProjectPropertyInstance, ProjectItemInstance>(originalMetadata);
 
-        Should.Throw<InvalidOperationException>(() => ThrowWithinMetadataScope(expander, scopedMetadata));
+        Should.Throw<InvalidOperationException>(() =>
+            ThrowWithinMetadataScope(expander, scopedMetadata));
 
         expander.CurrentMetadata.ShouldBeSameAs(originalMetadata);
     }
