@@ -3,18 +3,38 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
+using Microsoft.Build.Engine.UnitTests;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Expansion;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Shouldly;
+using Xunit;
 using static Microsoft.Build.Execution.ProjectItemInstance.TaskItem;
 
 namespace Microsoft.Build.UnitTests.Expansion;
 
 internal static class ExpansionHelpers
 {
+    public static string ToResultString(this bool value)
+        => value.ToString(CultureInfo.InvariantCulture);
+
+    public static string ToResultString(this double value)
+        => value.ToString(CultureInfo.InvariantCulture);
+
+    public static string ToResultString(this int value)
+        => value.ToString(CultureInfo.InvariantCulture);
+
+    public static string ToResultString(this long value)
+        => value.ToString(CultureInfo.InvariantCulture);
+
+    public static string? ToResultString(this object? value)
+        => Convert.ToString(value, CultureInfo.InvariantCulture);
+
     public static string? ExpandMetadata(string expression, IMetadataTable metadata)
         => ExpandMetadata(expression, metadata, ExpanderOptions.ExpandMetadata);
 
@@ -25,7 +45,7 @@ internal static class ExpansionHelpers
 
         var expander = ExpanderFactory.Create(Properties(), Items(), metadata);
 
-        return expander.ExpandIntoStringLeaveEscaped(expression, options, MockElementLocation.Instance);
+        return ExpandIntoStringLeaveEscaped(expander, expression, options);
     }
 
     public static string? ExpandProperties(string expression)
@@ -37,13 +57,49 @@ internal static class ExpansionHelpers
     public static string? ExpandProperties(string expression, LoggingContext? loggingContext)
         => ExpandProperties(expression, Properties(), loggingContext);
 
-    public static string? ExpandProperties(string expression, PropertyDictionary<ProjectPropertyInstance> properties, LoggingContext? loggingContext)
+    public static string? ExpandProperties(
+        string expression,
+        PropertyDictionary<ProjectPropertyInstance> properties,
+        LoggingContext? loggingContext)
     {
         var expander = loggingContext is not null
             ? ExpanderFactory.Create(properties, loggingContext)
             : ExpanderFactory.Create(properties);
 
-        return expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+        return ExpandIntoStringLeaveEscaped(expander, expression, ExpanderOptions.ExpandProperties);
+    }
+
+    public static string? ExpandPropertiesAndMetadata(string expression, IMetadataTable metadata)
+        => ExpandPropertiesAndMetadata(expression, Properties(), metadata);
+
+    public static string? ExpandPropertiesAndMetadata(
+        string expression,
+        PropertyDictionary<ProjectPropertyInstance> properties,
+        IMetadataTable metadata)
+    {
+        var expander = ExpanderFactory.Create<ProjectPropertyInstance, ProjectItemInstance>(properties, items: null!, metadata);
+
+        return ExpandIntoStringLeaveEscaped(expander, expression, ExpanderOptions.ExpandPropertiesAndMetadata);
+    }
+
+    private static string? ExpandIntoStringLeaveEscaped(
+        IExpander<ProjectPropertyInstance, ProjectItemInstance> expander,
+        string expression,
+        ExpanderOptions options)
+    {
+        bool enableAllPropertyFunctions = FeatureSwitches.EnableAllPropertyFunctions;
+
+        try
+        {
+            return expander.ExpandIntoStringLeaveEscaped(expression, options, MockElementLocation.Instance);
+        }
+        finally
+        {
+            if (enableAllPropertyFunctions)
+            {
+                AvailableStaticMethods.Reset_ForUnitTestsOnly();
+            }
+        }
     }
 
     public static IItemFactory<ProjectItemInstance, ProjectItemInstance> ItemFactory(ProjectInstance project)
@@ -59,7 +115,10 @@ internal static class ExpansionHelpers
         return result;
     }
 
-    public static ItemDictionary<ProjectItemInstance> GenerateItems(int count, ProjectInstance project, Func<ProjectInstance, int, ProjectItemInstance> generator)
+    public static ItemDictionary<ProjectItemInstance> GenerateItems(
+        int count,
+        ProjectInstance project,
+        Func<ProjectInstance, int, ProjectItemInstance> generator)
     {
         var result = new ItemDictionary<ProjectItemInstance>();
 
@@ -111,5 +170,17 @@ internal static class ExpansionHelpers
         }
 
         return result;
+    }
+
+    public static (MockLogger Logger, MockLoggingContext Context) CreateLoggingContext(ITestOutputHelper output)
+    {
+        var logger = new MockLogger(output);
+        ILoggingService loggingService = LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
+        loggingService.RegisterLogger(logger);
+        var loggingContext = new MockLoggingContext(
+            loggingService,
+            new BuildEventContext(0, 0, BuildEventContext.InvalidProjectContextId, 0, 0));
+
+        return (logger, loggingContext);
     }
 }
