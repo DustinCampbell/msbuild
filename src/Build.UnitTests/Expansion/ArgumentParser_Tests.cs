@@ -13,14 +13,15 @@ public class ArgumentParser_Tests
 {
     [Theory]
     [MemberData(nameof(ConvertToIntData))]
-    public void TryConvertToIntSucceeds(object value, int expected)
+    public void TryConvertToIntSucceeds(object? value, int expected)
     {
         ArgumentParser.TryConvertToInt(value, out int actual).ShouldBeTrue();
         actual.ShouldBe(expected);
     }
 
-    public static TheoryData<object, int> ConvertToIntData => new()
+    public static TheoryData<object?, int> ConvertToIntData => new()
     {
+        { null, 0 },
         { 10.0, 10 },
         { 10L, 10 },
         { 10, 10 },
@@ -39,7 +40,6 @@ public class ArgumentParser_Tests
 
     public static TheoryData<object?> InvalidIntConversionData => new()
     {
-        (object?)null,
         int.MinValue - 1.0,
         int.MaxValue + 1.0,
         int.MaxValue + 1L,
@@ -47,14 +47,15 @@ public class ArgumentParser_Tests
 
     [Theory]
     [MemberData(nameof(ConvertToLongData))]
-    public void TryConvertToLongSucceeds(object value, long expected)
+    public void TryConvertToLongSucceeds(object? value, long expected)
     {
         ArgumentParser.TryConvertToLong(value, out long actual).ShouldBeTrue();
         actual.ShouldBe(expected);
     }
 
-    public static TheoryData<object, long> ConvertToLongData => new()
+    public static TheoryData<object?, long> ConvertToLongData => new()
     {
+        { null, 0L },
         { 10.0, 10L },
         { 10L, 10L },
         { 10, 10L },
@@ -75,7 +76,6 @@ public class ArgumentParser_Tests
 
     public static TheoryData<object?> InvalidLongConversionData => new()
     {
-        (object?)null,
         -92233720368547758081D,
         (double)long.MaxValue + long.MaxValue,
     };
@@ -105,26 +105,20 @@ public class ArgumentParser_Tests
 
     [Theory]
     [MemberData(nameof(ConvertToDoubleData))]
-    public void TryConvertToDoubleSucceeds(object value, double expected)
+    public void TryConvertToDoubleSucceeds(object? value, double expected)
     {
         ArgumentParser.TryConvertToDouble(value, out double actual).ShouldBeTrue();
         actual.ShouldBe(expected);
     }
 
-    public static TheoryData<object, double> ConvertToDoubleData => new()
+    public static TheoryData<object?, double> ConvertToDoubleData => new()
     {
+        { null, 0.0 },
         { 10.0, 10.0 },
         { 10L, 10.0 },
         { 10, 10.0 },
         { "10", 10.0 },
     };
-
-    [Fact]
-    public void TryConvertToDoubleGivenNull()
-    {
-        ArgumentParser.TryConvertToDouble(null, out double actual).ShouldBeFalse();
-        actual.ShouldBe(0);
-    }
 
     [Fact]
     public void TryConvertToDoubleGivenStringAndLocale()
