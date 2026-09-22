@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
@@ -368,6 +369,12 @@ namespace Microsoft.Build.UnitTests
             return WithTransientTestState(new TransientTestEnvironmentVariable(environmentVariableName, newValue));
         }
 
+        public TransientTestState SetAppContextSwitch(AppContextSwitch appContextSwitch, bool value)
+            => WithTransientTestState(TransientTestAppContextSwitch.Set(appContextSwitch, value));
+
+        public TransientTestState RemoveAppContextSwitch(AppContextSwitch appContextSwitch)
+            => WithTransientTestState(TransientTestAppContextSwitch.Remove(appContextSwitch));
+
         public TransientTestState SetCurrentDirectory(string newWorkingDirectory)
         {
             return WithTransientTestState(new TransientWorkingDirectory(newWorkingDirectory));
@@ -645,7 +652,7 @@ namespace Microsoft.Build.UnitTests
             Directory.CreateDirectory(tempPath);
 
             _oldtempPaths = SetTempPath(tempPath);
-            
+
             // Clear the cached temp directory so FileUtilities picks up the new TMPDIR/TMP/TEMP
             FileUtilities.ClearTempFileDirectory();
         }
@@ -693,7 +700,7 @@ namespace Microsoft.Build.UnitTests
         public override void Revert()
         {
             SetTempPaths(_oldtempPaths);
-            
+
             // Clear the cached temp directory so FileUtilities picks up the restored TMPDIR/TMP/TEMP
             FileUtilities.ClearTempFileDirectory();
 
@@ -860,6 +867,83 @@ namespace Microsoft.Build.UnitTests
         public string OriginalValue => _originalValue;
 
         public override void Revert() => Environment.SetEnvironmentVariable(_environmentVariableName, _originalValue);
+    }
+
+    public enum AppContextSwitch
+    {
+        None,
+        EnableAllPropertyFunctions,
+    }
+
+    /// <summary>
+    ///  Temporarily changes an AppContext switch and restores its original value or absence on revert.
+    /// </summary>
+    public sealed class TransientTestAppContextSwitch : TransientTestState
+    {
+        private readonly string _switchName;
+        private readonly bool _wasSet;
+        private readonly bool _originalValue;
+
+        private TransientTestAppContextSwitch(AppContextSwitch appContextSwitch, bool? isEnabled)
+        {
+            _switchName = GetSwitchName(appContextSwitch);
+            _wasSet = AppContext.TryGetSwitch(_switchName, out _originalValue);
+
+            if (isEnabled is bool value)
+            {
+                AppContext.SetSwitch(_switchName, value);
+            }
+            else
+            {
+                RemoveSwitch(_switchName);
+            }
+        }
+
+        private static string GetSwitchName(AppContextSwitch appContextSwitch)
+            => appContextSwitch switch
+            {
+                AppContextSwitch.EnableAllPropertyFunctions => "Microsoft.Build.EnableAllPropertyFunctions",
+                _ => Assumed.Unreachable<string>(),
+            };
+
+        public static TransientTestAppContextSwitch Set(AppContextSwitch appContextSwitch, bool isEnabled)
+            => new(appContextSwitch, isEnabled);
+
+        public static TransientTestAppContextSwitch Remove(AppContextSwitch appContextSwitch)
+            => new(appContextSwitch, isEnabled: null);
+
+        public override void Revert()
+        {
+            if (_wasSet)
+            {
+                AppContext.SetSwitch(_switchName, _originalValue);
+            }
+            else
+            {
+                RemoveSwitch(_switchName);
+            }
+        }
+
+        private static void RemoveSwitch(string switchName)
+        {
+            // AppContext has no public unset API, and the backing field differs between .NET and .NET Framework.
+            foreach (FieldInfo field in typeof(AppContext).GetFields(BindingFlags.NonPublic | BindingFlags.Static))
+            {
+                if (field.GetValue(null) is IDictionary switches)
+                {
+                    lock (switches)
+                    {
+                        if (switches.Contains(switchName))
+                        {
+                            switches.Remove(switchName);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            AppContext.TryGetSwitch(switchName, out _).ShouldBeFalse($"AppContext switch '{switchName}' must be unset.");
+        }
     }
 
     public class TransientWorkingDirectory : TransientTestState
