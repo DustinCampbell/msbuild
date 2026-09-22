@@ -4,15 +4,11 @@
 using System;
 using System.IO;
 using System.Runtime.Versioning;
-using Microsoft.Build.Collections;
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Expansion;
-using Microsoft.Build.Shared.FileSystem;
+using Microsoft.Build.Exceptions;
 using Microsoft.Win32;
 using Shouldly;
 using Xunit;
-using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
+using static Microsoft.Build.UnitTests.Expansion.ExpansionHelpers;
 
 namespace Microsoft.Build.UnitTests.Evaluation;
 
@@ -32,18 +28,6 @@ public class PropertyFunctionReceiverRestriction_Tests
 {
     private const string RestrictSwitch = "Microsoft.Build.RestrictPropertyFunctionReceivers";
     private const string RestrictEnvVar = "MSBUILDRESTRICTPROPERTYFUNCTIONS";
-
-    private static string? Evaluate(string expression, params (string name, string value)[] properties)
-    {
-        var propertyDictionary = new PropertyDictionary<ProjectPropertyInstance>();
-        foreach ((string name, string value) in properties)
-        {
-            propertyDictionary.Set(ProjectPropertyInstance.Create(name, value));
-        }
-
-        var expander = ExpanderFactory.Create(propertyDictionary);
-        return expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
-    }
 
     private static IDisposable SetSwitch(string name, bool value)
     {
@@ -77,7 +61,8 @@ public class PropertyFunctionReceiverRestriction_Tests
     {
         using (SetSwitch(RestrictSwitch, true))
         {
-            Evaluate("$(S.Substring(0,5))", ("S", "HelloWorld")).ShouldBe("Hello");
+            ExpandProperties("$(S.Substring(0,5))", Properties("S", "HelloWorld"))
+                .ShouldBe("Hello");
         }
     }
 
@@ -88,7 +73,8 @@ public class PropertyFunctionReceiverRestriction_Tests
         {
             // ToCharArray() returns char[]; Array members (Length) are permitted because array element
             // access is re-checked at the next chain hop.
-            Evaluate("$(S.ToCharArray().Length)", ("S", "HelloWorld")).ShouldBe("10");
+            ExpandProperties("$(S.ToCharArray().Length)", Properties("S", "HelloWorld"))
+                .ShouldBe("10");
         }
     }
 
@@ -97,7 +83,8 @@ public class PropertyFunctionReceiverRestriction_Tests
     {
         using (SetSwitch(RestrictSwitch, true))
         {
-            Evaluate("$([System.Math]::Max(1, 2))").ShouldBe("2");
+            ExpandProperties("$([System.Math]::Max(1, 2))")
+                .ShouldBe("2");
         }
     }
 
@@ -110,9 +97,9 @@ public class PropertyFunctionReceiverRestriction_Tests
         using (SetSwitch(RestrictSwitch, true))
         {
             // GetParent(file) -> DirectoryInfo(folder); FullName / Parent are read-only navigation.
-            Evaluate("$([System.IO.Directory]::GetParent($(File)).FullName)", ("File", file))
+            ExpandProperties("$([System.IO.Directory]::GetParent($(File)).FullName)", Properties("File", file))
                 .ShouldBe(folder);
-            Evaluate("$([System.IO.Directory]::GetParent($(File)).Parent.FullName)", ("File", file))
+            ExpandProperties("$([System.IO.Directory]::GetParent($(File)).Parent.FullName)", Properties("File", file))
                 .ShouldBe(Directory.GetParent(folder)!.FullName);
         }
     }
@@ -129,8 +116,8 @@ public class PropertyFunctionReceiverRestriction_Tests
         {
             // CreateSubdirectory changes the file system; it is not in the read-only navigation allowlist
             // and is rejected before invocation (so no directory is created).
-            Assert.Throws<InvalidProjectFileException>(() =>
-                Evaluate("$([System.IO.Directory]::GetParent($(File)).CreateSubdirectory('sub'))", ("File", file)));
+            Should.Throw<InvalidProjectFileException>(() =>
+                ExpandProperties("$([System.IO.Directory]::GetParent($(File)).CreateSubdirectory('sub'))", Properties("File", file)));
         }
     }
 
@@ -144,8 +131,8 @@ public class PropertyFunctionReceiverRestriction_Tests
         {
             // GetFiles returns FileInfo[] and is not in the navigation allowlist, so the chain to FileInfo
             // (and OpenRead/OpenWrite) stops here.
-            Assert.Throws<InvalidProjectFileException>(() =>
-                Evaluate("$([System.IO.Directory]::GetParent($(File)).GetFiles())", ("File", file)));
+            Should.Throw<InvalidProjectFileException>(() =>
+                ExpandProperties("$([System.IO.Directory]::GetParent($(File)).GetFiles())", Properties("File", file)));
         }
     }
 
@@ -158,8 +145,8 @@ public class PropertyFunctionReceiverRestriction_Tests
         using (SetSwitch(RestrictSwitch, true))
         {
             // The chain to OpenWrite is not permitted; it stops at GetFiles, before any FileInfo is produced.
-            Assert.Throws<InvalidProjectFileException>(() =>
-                Evaluate("$([System.IO.Directory]::GetParent($(File)).GetFiles().GetValue(0).OpenWrite().CanWrite)", ("File", file)));
+            Should.Throw<InvalidProjectFileException>(() =>
+                ExpandProperties("$([System.IO.Directory]::GetParent($(File)).GetFiles().GetValue(0).OpenWrite().CanWrite)", Properties("File", file)));
         }
     }
 
@@ -168,8 +155,8 @@ public class PropertyFunctionReceiverRestriction_Tests
     {
         using (SetSwitch(RestrictSwitch, true))
         {
-            Assert.Throws<InvalidProjectFileException>(() =>
-                Evaluate("$(S.GetType())", ("S", "HelloWorld")));
+            Should.Throw<InvalidProjectFileException>(() =>
+                ExpandProperties("$(S.GetType())", Properties("S", "HelloWorld")));
         }
     }
 
@@ -184,7 +171,7 @@ public class PropertyFunctionReceiverRestriction_Tests
         using (SetSwitch(RestrictSwitch, false))
         {
             // With the restriction off, the historical dotting behavior is unchanged.
-            Evaluate("$([System.IO.Directory]::GetParent($(File)).GetFiles().Length)", ("File", file))
+            ExpandProperties("$([System.IO.Directory]::GetParent($(File)).GetFiles().Length)", Properties("File", file))
                 .ShouldBe("1");
         }
     }
@@ -201,7 +188,7 @@ public class PropertyFunctionReceiverRestriction_Tests
         // variable must not turn the restriction on.
         env.SetEnvironmentVariable(RestrictEnvVar, "1");
 
-        Evaluate("$([System.IO.Directory]::GetParent($(File)).GetFiles().Length)", ("File", file))
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).GetFiles().Length)", Properties("File", file))
             .ShouldBe("1");
     }
 
@@ -217,7 +204,8 @@ public class PropertyFunctionReceiverRestriction_Tests
         {
             // EnableAll takes precedence over the restriction (and over the GetType block), preserving
             // the documented "anything goes" escape hatch.
-            Evaluate("$(S.GetType().Name)", ("S", "HelloWorld")).ShouldBe("String");
+            ExpandProperties("$(S.GetType().Name)", Properties("S", "HelloWorld"))
+                .ShouldBe("String");
         }
     }
 
@@ -240,8 +228,8 @@ public class PropertyFunctionReceiverRestriction_Tests
             // form is getter-only - it binds with GetProperty/GetField, never SetProperty). That name is
             // not in the FileSystemInfo navigation allowlist, so the call is rejected at the receiver
             // check, before any argument is bound or the setter runs.
-            Assert.Throws<InvalidProjectFileException>(() =>
-                Evaluate($"$([System.IO.Directory]::GetParent($(File)).{setterCall})", ("File", file)));
+            Should.Throw<InvalidProjectFileException>(() =>
+                ExpandProperties($"$([System.IO.Directory]::GetParent($(File)).{setterCall})", Properties("File", file)));
         }
 
         // The setter never executed: the directory on disk is unchanged.
@@ -258,7 +246,7 @@ public class PropertyFunctionReceiverRestriction_Tests
         {
             // Reading the property through property-access syntax (the getter) is allowed; only the
             // matching setter is blocked.
-            Evaluate("$([System.IO.Directory]::GetParent($(File)).Attributes)", ("File", file))
+            ExpandProperties("$([System.IO.Directory]::GetParent($(File)).Attributes)", Properties("File", file))
                 .ShouldNotBeNull()
                 .ShouldContain("Directory");
         }
@@ -274,8 +262,8 @@ public class PropertyFunctionReceiverRestriction_Tests
         {
             // Even the getter's get_ special method name is a method that is not in the navigation
             // allowlist, so it too is blocked; only the property-access form (validated by name) works.
-            Assert.Throws<InvalidProjectFileException>(() =>
-                Evaluate("$([System.IO.Directory]::GetParent($(File)).get_Attributes())", ("File", file)));
+            Should.Throw<InvalidProjectFileException>(() =>
+                ExpandProperties("$([System.IO.Directory]::GetParent($(File)).get_Attributes())", Properties("File", file)));
         }
     }
 
@@ -289,7 +277,7 @@ public class PropertyFunctionReceiverRestriction_Tests
         {
             // With the restriction off, get_/set_ special method names are genuinely invocable as
             // methods - which is exactly why the blocked-setter tests above are meaningful.
-            Evaluate("$([System.IO.Directory]::GetParent($(File)).get_Attributes())", ("File", file))
+            ExpandProperties("$([System.IO.Directory]::GetParent($(File)).get_Attributes())", Properties("File", file))
                 .ShouldNotBeNull()
                 .ShouldContain("Directory");
         }
@@ -307,7 +295,7 @@ public class PropertyFunctionReceiverRestriction_Tests
             // The receiver restriction governs instance "dotting in"; static calls remain governed by
             // the static allowlist. Neither process-state mutator is allowlisted, so both stay blocked
             // (and never run).
-            Assert.Throws<InvalidProjectFileException>(() => Evaluate(expression));
+            Should.Throw<InvalidProjectFileException>(() => ExpandProperties(expression));
         }
 
         Environment.GetEnvironmentVariable("MSBUILD_RPF_TEST").ShouldBeNull();
@@ -323,7 +311,7 @@ public class PropertyFunctionReceiverRestriction_Tests
             // GetRegistryValue is a static [MSBuild] intrinsic, gated by the static allowlist (which
             // permits it), not by the receiver restriction. A missing key yields the default (empty) and
             // must not raise the restriction's "function unavailable" error.
-            Evaluate(@"$([MSBuild]::GetRegistryValue('HKEY_CURRENT_USER\Software\Microsoft\MSBuild_NonexistentRpfKey', 'None'))")
+            ExpandProperties(@"$([MSBuild]::GetRegistryValue('HKEY_CURRENT_USER\Software\Microsoft\MSBuild_NonexistentRpfKey', 'None'))")
                 .ShouldBe(string.Empty);
         }
     }
@@ -341,9 +329,9 @@ public class PropertyFunctionReceiverRestriction_Tests
 
                 // Both registry read paths - the [MSBuild]::GetRegistryValue function and the
                 // $(Registry:...) prefix - are read-only and unaffected by the receiver restriction.
-                Evaluate(@"$([MSBuild]::GetRegistryValue('HKEY_CURRENT_USER\Software\Microsoft\MSBuild_test_rpf', 'Value'))")
+                ExpandProperties(@"$([MSBuild]::GetRegistryValue('HKEY_CURRENT_USER\Software\Microsoft\MSBuild_test_rpf', 'Value'))")
                     .ShouldBe("RegistryString");
-                Evaluate(@"$(Registry:HKEY_CURRENT_USER\Software\Microsoft\MSBuild_test_rpf@Value)")
+                ExpandProperties(@"$(Registry:HKEY_CURRENT_USER\Software\Microsoft\MSBuild_test_rpf@Value)")
                     .ShouldBe("RegistryString");
             }
             finally
