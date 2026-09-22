@@ -493,7 +493,12 @@ internal partial class Expander<P, I>
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
+                    WellKnownFunctionResult wellKnownConstructorResult = WellKnownFunctions.TryInvokeWellKnownConstructorNoThrow(_receiverType, args);
+                    if (wellKnownConstructorResult.Status == WellKnownFunctionStatus.Invoked)
+                    {
+                        functionResult = wellKnownConstructorResult.Result;
+                    }
+                    else
                     {
                         functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
                     }
@@ -506,12 +511,26 @@ internal partial class Expander<P, I>
                     {
                         // First attempt to recognize some well-known functions to avoid binding
                         // and potential first-chance MissingMethodExceptions.
-                        wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodMethodName, _receiverType, _fileSystem, out functionResult, objectInstance, args);
+                        WellKnownFunctionResult wellKnownFunctionResult = objectInstance is null
+                            ? WellKnownFunctions.TryInvokeStatic(_methodMethodName, _receiverType, args, _fileSystem)
+                            : WellKnownFunctions.TryInvokeInstance(_methodMethodName, objectInstance, args);
+                        wellKnownFunctionSuccess = wellKnownFunctionResult.Status == WellKnownFunctionStatus.Invoked;
+                        if (wellKnownFunctionSuccess)
+                        {
+                            functionResult = wellKnownFunctionResult.Result;
+                        }
 
                         if (!wellKnownFunctionSuccess)
                         {
                             // Some well-known functions need evaluated value from properties.
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(_methodMethodName, _receiverType, _loggingContext, properties, out functionResult, objectInstance, args);
+                            wellKnownFunctionResult = objectInstance is null
+                                ? WellKnownFunctions.TryInvokeStatic(_methodMethodName, _receiverType, args, _loggingContext, properties)
+                                : WellKnownFunctionResult.NotHandled;
+                            wellKnownFunctionSuccess = wellKnownFunctionResult.Status == WellKnownFunctionStatus.Invoked;
+                            if (wellKnownFunctionSuccess)
+                            {
+                                functionResult = wellKnownFunctionResult.Result;
+                            }
                         }
                     }
                     // we need to preserve the same behavior on exceptions as the actual binder

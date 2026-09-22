@@ -22,7 +22,7 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
     protected ConstructorInvoker Constructor => new(receiverType);
 
     protected InstanceMemberInvoker InstanceMember(string memberName)
-        => new(receiverType, memberName);
+        => new(memberName);
 
     protected StaticMemberInvoker StaticMember(string memberName)
         => new(receiverType, memberName);
@@ -34,10 +34,10 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public object? Invoke(object?[] args)
         {
-            bool invoked = WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(receiverType, out object? result, args!);
-            invoked.ShouldBeTrue();
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeWellKnownConstructorNoThrow(receiverType, args);
+            result.Status.ShouldBe(WellKnownFunctionStatus.Invoked);
 
-            return result;
+            return result.Result;
         }
 
         public void NotHandled()
@@ -45,24 +45,23 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public void NotHandled(object?[] args)
         {
-            bool invoked = WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(receiverType, out object? result, args!);
-            invoked.ShouldBeFalse();
-            result.ShouldBeNull();
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeWellKnownConstructorNoThrow(receiverType, args);
+            result.Status.ShouldBe(WellKnownFunctionStatus.NotHandled);
+            result.Result.ShouldBeNull();
         }
     }
 
-    protected readonly struct InstanceMemberInvoker(Type receiverType, string memberName)
+    protected readonly struct InstanceMemberInvoker(string memberName)
     {
         public object? Invoke(object objectInstance)
             => Invoke(objectInstance, args: []);
 
         public object? Invoke(object objectInstance, object?[] args)
         {
-            bool invoked = WellKnownFunctions.TryExecuteWellKnownFunction(
-                memberName, receiverType, FileSystems.Default, out object? result, objectInstance, args!);
-            invoked.ShouldBeTrue();
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeInstance(memberName, objectInstance, args);
+            result.Status.ShouldBe(WellKnownFunctionStatus.Invoked);
 
-            return result;
+            return result.Result;
         }
 
         public void NotHandled(object objectInstance)
@@ -70,10 +69,9 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public void NotHandled(object objectInstance, object?[] args)
         {
-            bool invoked = WellKnownFunctions.TryExecuteWellKnownFunction(
-                memberName, receiverType, FileSystems.Default, out object? result, objectInstance, args!);
-            invoked.ShouldBeFalse();
-            result.ShouldBeNull();
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeInstance(memberName, objectInstance, args);
+            result.Status.ShouldBe(WellKnownFunctionStatus.NotHandled);
+            result.Result.ShouldBeNull();
         }
     }
 
@@ -84,11 +82,10 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public object? Invoke(object?[] args)
         {
-            bool invoked = WellKnownFunctions.TryExecuteWellKnownFunction(
-                memberName, receiverType, FileSystems.Default, out object? result, objectInstance: null!, args!);
-            invoked.ShouldBeTrue();
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(memberName, receiverType, args, FileSystems.Default);
+            result.Status.ShouldBe(WellKnownFunctionStatus.Invoked);
 
-            return result;
+            return result.Result;
         }
 
         internal object? Invoke(IPropertyProvider<ProjectPropertyInstance> properties, LoggingContext loggingContext)
@@ -96,11 +93,10 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         internal object? Invoke(object?[] args, IPropertyProvider<ProjectPropertyInstance> properties, LoggingContext loggingContext)
         {
-            bool invoked = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
-                memberName, receiverType, loggingContext, properties, out object? result, null!, args!);
-            invoked.ShouldBeTrue();
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(memberName, receiverType, args, loggingContext, properties);
+            result.Status.ShouldBe(WellKnownFunctionStatus.Invoked);
 
-            return result;
+            return result.Result;
         }
 
         public void NotHandled()
@@ -108,10 +104,9 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public void NotHandled(object?[] args)
         {
-            bool invoked = WellKnownFunctions.TryExecuteWellKnownFunction(
-                memberName, receiverType, FileSystems.Default, out object? result, objectInstance: null!, args!);
-            invoked.ShouldBeFalse();
-            result.ShouldBeNull();
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(memberName, receiverType, args, FileSystems.Default);
+            result.Status.ShouldBe(WellKnownFunctionStatus.NotHandled);
+            result.Result.ShouldBeNull();
         }
 
         internal void NotHandled(IPropertyProvider<ProjectPropertyInstance> properties, LoggingContext loggingContext)
@@ -119,10 +114,9 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         internal void NotHandled(object?[] args, IPropertyProvider<ProjectPropertyInstance> properties, LoggingContext loggingContext)
         {
-            bool invoked = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
-                memberName, receiverType, loggingContext, properties, out object? result, null!, args!);
-            invoked.ShouldBeFalse();
-            result.ShouldBeNull();
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(memberName, receiverType, args, loggingContext, properties);
+            result.Status.ShouldBe(WellKnownFunctionStatus.NotHandled);
+            result.Result.ShouldBeNull();
         }
     }
 }
