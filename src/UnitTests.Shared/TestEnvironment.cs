@@ -873,6 +873,7 @@ namespace Microsoft.Build.UnitTests
     {
         None,
         EnableAllPropertyFunctions,
+        RestrictPropertyFunctionReceivers,
     }
 
     /// <summary>
@@ -903,6 +904,7 @@ namespace Microsoft.Build.UnitTests
             => appContextSwitch switch
             {
                 AppContextSwitch.EnableAllPropertyFunctions => "Microsoft.Build.EnableAllPropertyFunctions",
+                AppContextSwitch.RestrictPropertyFunctionReceivers => "Microsoft.Build.RestrictPropertyFunctionReceivers",
                 _ => Assumed.Unreachable<string>(),
             };
 
