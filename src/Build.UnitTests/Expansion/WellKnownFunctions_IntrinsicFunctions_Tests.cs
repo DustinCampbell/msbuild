@@ -44,6 +44,16 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
     }
 
     [Fact]
+    public void IntrinsicFunctions_AreFeaturesEnabled_Version()
+    {
+        Version wave = new(999, 0);
+
+        StaticMember(nameof(IntrinsicFunctions.AreFeaturesEnabled))
+            .Invoke([wave])
+            .ShouldBe(IntrinsicFunctions.AreFeaturesEnabled(wave));
+    }
+
+    [Fact]
     public void IntrinsicFunctions_BitwiseAnd()
         => StaticMember(nameof(IntrinsicFunctions.BitwiseAnd))
             .Invoke([6, 3])
@@ -251,13 +261,14 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
     [Fact]
     public void IntrinsicFunctions_GetRegistryValueFromView()
         => StaticMember(nameof(IntrinsicFunctions.GetRegistryValueFromView))
-            .NotHandled(
+            .Invoke(
                 [
                     @"HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing",
                     "Missing",
                     "fallback",
                     "Default",
-                ]);
+                ])
+            .ShouldBe("fallback");
 
     [Fact]
     public void IntrinsicFunctions_GetTargetFrameworkIdentifier()

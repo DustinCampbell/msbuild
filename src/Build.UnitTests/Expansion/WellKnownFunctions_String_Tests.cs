@@ -72,10 +72,12 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .Invoke(instance, [value])
             .ShouldBe(expected);
 
-    [Fact]
-    public void String_EndsWith_StringComparison()
+    [Theory]
+    [InlineData("OrdinalIgnoreCase")]
+    [InlineData(StringComparison.OrdinalIgnoreCase)]
+    public void String_EndsWith_StringComparison(object comparison)
         => InstanceMember(nameof(string.EndsWith))
-            .Invoke("abc", ["BC", "OrdinalIgnoreCase"])
+            .Invoke("abc", ["BC", comparison])
             .ShouldBe(true);
 
     [Fact]
@@ -117,10 +119,12 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
         => InstanceMember(nameof(string.IndexOf))
             .NotHandled("abc", ["b"]);
 
-    [Fact]
-    public void String_IndexOf_StringComparison()
+    [Theory]
+    [InlineData("OrdinalIgnoreCase")]
+    [InlineData(StringComparison.OrdinalIgnoreCase)]
+    public void String_IndexOf_StringComparison(object comparison)
         => InstanceMember(nameof(string.IndexOf))
-            .Invoke("abc", ["B", "OrdinalIgnoreCase"])
+            .Invoke("abc", ["B", comparison])
             .ShouldBe(1);
 
     [Fact]
@@ -176,16 +180,20 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .Invoke("abcb", ["b"])
             .ShouldBe("abcb".LastIndexOf("b", StringComparison.CurrentCulture));
 
-    [Fact]
-    public void String_LastIndexOf_StringInt32()
+    [Theory]
+    [InlineData("2")]
+    [InlineData(2)]
+    public void String_LastIndexOf_StringInt32(object startIndex)
         => InstanceMember(nameof(string.LastIndexOf))
-            .Invoke("abcb", ["b", "2"])
+            .Invoke("abcb", ["b", startIndex])
             .ShouldBe("abcb".LastIndexOf("b", 2, StringComparison.CurrentCulture));
 
-    [Fact]
-    public void String_LastIndexOf_StringComparison()
+    [Theory]
+    [InlineData("OrdinalIgnoreCase")]
+    [InlineData(StringComparison.OrdinalIgnoreCase)]
+    public void String_LastIndexOf_StringComparison(object comparison)
         => InstanceMember(nameof(string.LastIndexOf))
-            .Invoke("abcb", ["B", "OrdinalIgnoreCase"])
+            .Invoke("abcb", ["B", comparison])
             .ShouldBe(3);
 
     [Fact]
@@ -265,10 +273,12 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
         => InstanceMember(nameof(string.Replace))
             .NotHandled("abc", ['b', 'x']);
 
-    [Fact]
-    public void String_Split_Char()
+    [Theory]
+    [InlineData(";")]
+    [InlineData(';')]
+    public void String_Split_Char(object separator)
         => InstanceMember(nameof(string.Split))
-            .Invoke("a;b", [";"])
+            .Invoke("a;b", [separator])
             .ShouldBeOfType<string[]>()
             .ShouldBe(["a", "b"]);
 
