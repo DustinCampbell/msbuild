@@ -42,16 +42,22 @@ internal static class WellKnownFunctions
                 case 0:
                     return WellKnownFunctionResult.NotHandled;
 
-                case 1 when ArgumentParser.TryGetArg(args, out string? arg0):
+                case 1 when args.TryGetArg(0, out string? arg0):
                     return WellKnownFunctionResult.Invoked(Path.Combine(arg0));
 
-                case 2 when ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1):
+                case 2 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out string? arg1):
                     return WellKnownFunctionResult.Invoked(Path.Combine(arg0, arg1));
 
-                case 3 when ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1, out string? arg2):
+                case 3 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out string? arg1)
+                         && args.TryGetArg(2, out string? arg2):
                     return WellKnownFunctionResult.Invoked(Path.Combine(arg0, arg1, arg2));
 
-                case 4 when ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1, out string? arg2, out string? arg3):
+                case 4 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out string? arg1)
+                         && args.TryGetArg(2, out string? arg2)
+                         && args.TryGetArg(3, out string? arg3):
                     return WellKnownFunctionResult.Invoked(Path.Combine(arg0, arg1, arg2, arg3));
 
                 default:
@@ -72,7 +78,7 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(Path.GetFullPath), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 string fullPath = !string.IsNullOrEmpty(FileUtilities.CurrentThreadWorkingDirectory)
                     ? Path.GetFullPath(Path.Combine(FileUtilities.CurrentThreadWorkingDirectory, arg0))
@@ -82,7 +88,7 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(Path.IsPathRooted), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(Path.IsPathRooted(arg0));
             }
@@ -96,21 +102,21 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(Path.GetFileName), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(Path.GetFileName(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(Path.GetDirectoryName), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(Path.GetDirectoryName(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(Path.GetFileNameWithoutExtension), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(Path.GetFileNameWithoutExtension(arg0));
             }
@@ -131,21 +137,23 @@ internal static class WellKnownFunctions
 
         if (string.Equals(methodName, nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(text.StartsWith(arg0, StringComparison.CurrentCulture));
             }
         }
         else if (string.Equals(methodName, nameof(string.Replace), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(text.Replace(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(string.Contains), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(text.Contains(arg0));
             }
@@ -166,13 +174,14 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(string.EndsWith), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            switch (args.Length)
             {
-                return WellKnownFunctionResult.Invoked(text.EndsWith(arg0, StringComparison.CurrentCulture));
-            }
-            else if (ArgumentParser.TryGetArgs(args, out arg0, out StringComparison arg1) && arg0 is not null)
-            {
-                return WellKnownFunctionResult.Invoked(text.EndsWith(arg0, arg1));
+                case 1 when args.TryGetArg(0, out string? arg0):
+                    return WellKnownFunctionResult.Invoked(text.EndsWith(arg0, StringComparison.CurrentCulture));
+
+                case 2 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out StringComparison arg1):
+                    return WellKnownFunctionResult.Invoked(text.EndsWith(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(string.ToLower), StringComparison.OrdinalIgnoreCase))
@@ -184,36 +193,39 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(string.IndexOf), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out StringComparison arg1) && arg0 is not null)
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out StringComparison arg1))
             {
                 return WellKnownFunctionResult.Invoked(text.IndexOf(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(string.IndexOfAny), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(text.AsSpan().IndexOfAny(arg0.AsSpan()));
             }
         }
         else if (string.Equals(methodName, nameof(string.LastIndexOf), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            switch (args.Length)
             {
-                return WellKnownFunctionResult.Invoked(text.LastIndexOf(arg0, StringComparison.CurrentCulture));
-            }
-            else if (ArgumentParser.TryGetArgs(args, out arg0, out int startIndex) && arg0 is not null)
-            {
-                return WellKnownFunctionResult.Invoked(text.LastIndexOf(arg0, startIndex, StringComparison.CurrentCulture));
-            }
-            else if (ArgumentParser.TryGetArgs(args, out arg0, out StringComparison arg1) && arg0 is not null)
-            {
-                return WellKnownFunctionResult.Invoked(text.LastIndexOf(arg0, arg1));
+                case 1 when args.TryGetArg(0, out string? arg0):
+                    return WellKnownFunctionResult.Invoked(text.LastIndexOf(arg0, StringComparison.CurrentCulture));
+
+                case 2 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out int startIndex):
+                    return WellKnownFunctionResult.Invoked(text.LastIndexOf(arg0, startIndex, StringComparison.CurrentCulture));
+
+                case 2 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out StringComparison arg1):
+                    return WellKnownFunctionResult.Invoked(text.LastIndexOf(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(string.LastIndexOfAny), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0) && arg0 is not null)
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(text.AsSpan().LastIndexOfAny(arg0.AsSpan()));
             }
@@ -227,68 +239,71 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(string.Substring), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out int startIndex))
+            switch (args.Length)
             {
-                return WellKnownFunctionResult.Invoked(text.Substring(startIndex));
-            }
-            else if (ArgumentParser.TryGetArgs(args, out startIndex, out int length))
-            {
-                return WellKnownFunctionResult.Invoked(text.Substring(startIndex, length));
+                case 1 when args.TryGetArg(0, out int startIndex):
+                    return WellKnownFunctionResult.Invoked(text.Substring(startIndex));
+
+                case 2 when args.TryGetArg(0, out int startIndex)
+                         && args.TryGetArg(1, out int length):
+                    return WellKnownFunctionResult.Invoked(text.Substring(startIndex, length));
             }
         }
         else if (string.Equals(methodName, nameof(string.Split), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? separator) && separator?.Length == 1)
+            if (args.Length == 1 && args.TryGetArg(0, out char separator))
             {
-                return WellKnownFunctionResult.Invoked(text.Split(separator[0]));
+                return WellKnownFunctionResult.Invoked(text.Split(separator));
             }
         }
         else if (string.Equals(methodName, nameof(string.PadLeft), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out int totalWidth))
+            switch (args.Length)
             {
-                return WellKnownFunctionResult.Invoked(text.PadLeft(totalWidth));
-            }
-            else if (ArgumentParser.TryGetArgs(args, out totalWidth, out char paddingChar))
-            {
-                return WellKnownFunctionResult.Invoked(text.PadLeft(totalWidth, paddingChar));
+                case 1 when args.TryGetArg(0, out int totalWidth):
+                    return WellKnownFunctionResult.Invoked(text.PadLeft(totalWidth));
+
+                case 2 when args.TryGetArg(0, out int totalWidth)
+                         && args.TryGetArg(1, out char paddingChar):
+                    return WellKnownFunctionResult.Invoked(text.PadLeft(totalWidth, paddingChar));
             }
         }
         else if (string.Equals(methodName, nameof(string.PadRight), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out int totalWidth))
+            switch (args.Length)
             {
-                return WellKnownFunctionResult.Invoked(text.PadRight(totalWidth));
-            }
-            else if (ArgumentParser.TryGetArgs(args, out totalWidth, out char paddingChar))
-            {
-                return WellKnownFunctionResult.Invoked(text.PadRight(totalWidth, paddingChar));
+                case 1 when args.TryGetArg(0, out int totalWidth):
+                    return WellKnownFunctionResult.Invoked(text.PadRight(totalWidth));
+
+                case 2 when args.TryGetArg(0, out int totalWidth)
+                         && args.TryGetArg(1, out char paddingChar):
+                    return WellKnownFunctionResult.Invoked(text.PadRight(totalWidth, paddingChar));
             }
         }
         else if (string.Equals(methodName, nameof(string.TrimStart), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? trimChars) && trimChars?.Length > 0)
+            if (args.Length == 1 && args.TryGetArg(0, out string? trimChars) && trimChars.Length > 0)
             {
                 return WellKnownFunctionResult.Invoked(text.TrimStart(trimChars.ToCharArray()));
             }
         }
         else if (string.Equals(methodName, nameof(string.TrimEnd), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? trimChars) && trimChars?.Length > 0)
+            if (args.Length == 1 && args.TryGetArg(0, out string? trimChars) && trimChars.Length > 0)
             {
                 return WellKnownFunctionResult.Invoked(text.TrimEnd(trimChars.ToCharArray()));
             }
         }
         else if (string.Equals(methodName, "get_Chars", StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out int index))
+            if (args.Length == 1 && args.TryGetArg(0, out int index))
             {
                 return WellKnownFunctionResult.Invoked(text[index]);
             }
         }
         else if (string.Equals(methodName, nameof(string.Equals), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(text.Equals(arg0));
             }
@@ -306,14 +321,16 @@ internal static class WellKnownFunctions
 
         if (string.Equals(methodName, nameof(IntrinsicFunctions.EnsureTrailingSlash), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.EnsureTrailingSlash(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.ValueOrDefault), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.ValueOrDefault(arg0, arg1));
             }
@@ -327,7 +344,9 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetDirectoryNameOfFileAbove), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, fileSystem));
             }
@@ -335,7 +354,8 @@ internal static class WellKnownFunctions
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetRegistryValueFromView), StringComparison.OrdinalIgnoreCase))
         {
             if (args.Length >= 4 &&
-                ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetRegistryValueFromView(arg0, arg1, args[2], new ArraySegment<object?>(args, 3, args.Length - 3)));
             }
@@ -349,21 +369,23 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.Escape), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.Escape(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.Unescape), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.Unescape(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, fileSystem));
             }
@@ -454,210 +476,241 @@ internal static class WellKnownFunctions
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.VersionEquals), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.VersionEquals(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.VersionNotEquals), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.VersionNotEquals(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.VersionGreaterThan), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.VersionGreaterThan(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.VersionGreaterThanOrEquals), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.VersionGreaterThanOrEquals(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.VersionLessThan), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.VersionLessThan(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.VersionLessThanOrEquals), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.VersionLessThanOrEquals(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetTargetFrameworkIdentifier), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetFrameworkIdentifier(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetTargetFrameworkVersion), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            switch (args.Length)
             {
-                return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetFrameworkVersion(arg0));
-            }
+                case 1 when args.TryGetArg(0, out string? arg0):
+                    return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetFrameworkVersion(arg0));
 
-            if (ArgumentParser.TryGetArgs(args, out string? arg1, out int arg2))
-            {
-                return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetFrameworkVersion(arg1, arg2));
+                case 2 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out int arg1):
+                    return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetFrameworkVersion(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.IsTargetFrameworkCompatible), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out string? arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out string? arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.IsTargetFrameworkCompatible(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetTargetPlatformIdentifier), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetPlatformIdentifier(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetTargetPlatformVersion), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            switch (args.Length)
             {
-                return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetPlatformVersion(arg0));
-            }
+                case 1 when args.TryGetArg(0, out string? arg0):
+                    return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetPlatformVersion(arg0));
 
-            if (ArgumentParser.TryGetArgs(args, out string? arg1, out int arg2))
-            {
-                return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetPlatformVersion(arg1, arg2));
+                case 2 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out int arg1):
+                    return WellKnownFunctionResult.Invoked(IntrinsicFunctions.GetTargetPlatformVersion(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.ConvertToBase64), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.ConvertToBase64(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.ConvertFromBase64), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.ConvertFromBase64(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.StableStringHash), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            switch (args.Length)
             {
-                return WellKnownFunctionResult.Invoked(IntrinsicFunctions.StableStringHash(arg0));
-            }
-            else if (ArgumentParser.TryGetArgs(args, out string? arg1, out string? arg2) && Enum.TryParse<IntrinsicFunctions.StringHashingAlgorithm>(arg2, true, out var hashAlgorithm) && arg1 is not null && arg2 is not null)
-            {
-                return WellKnownFunctionResult.Invoked(IntrinsicFunctions.StableStringHash(arg1, hashAlgorithm));
+                case 1 when args.TryGetArg(0, out string? arg0):
+                    return WellKnownFunctionResult.Invoked(IntrinsicFunctions.StableStringHash(arg0));
+
+                case 2 when args.TryGetArg(0, out string? arg0)
+                         && args.TryGetArg(1, out string? arg1)
+                         && Enum.TryParse<IntrinsicFunctions.StringHashingAlgorithm>(arg1, true, out var hashAlgorithm):
+                    return WellKnownFunctionResult.Invoked(IntrinsicFunctions.StableStringHash(arg0, hashAlgorithm));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.AreFeaturesEnabled), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out Version? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out Version? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.AreFeaturesEnabled(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.SubstringByAsciiChars), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out string? arg0, out int arg1, out int arg2))
+            if (args.Length == 3 &&
+                args.TryGetArg(0, out string? arg0) &&
+                args.TryGetArg(1, out int arg1) &&
+                args.TryGetArg(2, out int arg2))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.SubstringByAsciiChars(arg0, arg1, arg2));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.CheckFeatureAvailability), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.CheckFeatureAvailability(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.BitwiseOr), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out int arg0, out int arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out int arg0) &&
+                args.TryGetArg(1, out int arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.BitwiseOr(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.BitwiseAnd), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out int arg0, out int arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out int arg0) &&
+                args.TryGetArg(1, out int arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.BitwiseAnd(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.BitwiseXor), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out int arg0, out int arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out int arg0) &&
+                args.TryGetArg(1, out int arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.BitwiseXor(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.BitwiseNot), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out int arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out int arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.BitwiseNot(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.LeftShift), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out int arg0, out int arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out int arg0) &&
+                args.TryGetArg(1, out int arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.LeftShift(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.RightShift), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out int arg0, out int arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out int arg0) &&
+                args.TryGetArg(1, out int arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.RightShift(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.RightShiftUnsigned), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArgs(args, out int arg0, out int arg1))
+            if (args.Length == 2 &&
+                args.TryGetArg(0, out int arg0) &&
+                args.TryGetArg(1, out int arg1))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.RightShiftUnsigned(arg0, arg1));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.NormalizeDirectory), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.NormalizeDirectory(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.IsOSPlatform), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.IsOSPlatform(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.FileExists), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.FileExists(arg0));
             }
         }
         else if (string.Equals(methodName, nameof(IntrinsicFunctions.DirectoryExists), StringComparison.OrdinalIgnoreCase))
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(IntrinsicFunctions.DirectoryExists(arg0));
             }
@@ -687,21 +740,21 @@ internal static class WellKnownFunctions
         {
             if (string.Equals(methodName, nameof(string.IsNullOrWhiteSpace), StringComparison.OrdinalIgnoreCase))
             {
-                if (ArgumentParser.TryGetArg(args, out string? arg0))
+                if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
                 {
                     return WellKnownFunctionResult.Invoked(string.IsNullOrWhiteSpace(arg0));
                 }
             }
             else if (string.Equals(methodName, nameof(string.IsNullOrEmpty), StringComparison.OrdinalIgnoreCase))
             {
-                if (ArgumentParser.TryGetArg(args, out string? arg0))
+                if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
                 {
                     return WellKnownFunctionResult.Invoked(string.IsNullOrEmpty(arg0));
                 }
             }
             else if (string.Equals(methodName, nameof(string.Copy), StringComparison.OrdinalIgnoreCase))
             {
-                if (ArgumentParser.TryGetArg(args, out string? arg0))
+                if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
                 {
                     return WellKnownFunctionResult.Invoked(arg0);
                 }
@@ -711,14 +764,18 @@ internal static class WellKnownFunctions
         {
             if (string.Equals(methodName, nameof(Math.Max), StringComparison.OrdinalIgnoreCase))
             {
-                if (ArgumentParser.TryGetArgs(args, out double arg0, out double arg1))
+                if (args.Length == 2 &&
+                    args.TryGetArg(0, out double arg0) &&
+                    args.TryGetArg(1, out double arg1))
                 {
                     return WellKnownFunctionResult.Invoked(Math.Max(arg0, arg1));
                 }
             }
             else if (string.Equals(methodName, nameof(Math.Min), StringComparison.OrdinalIgnoreCase))
             {
-                if (ArgumentParser.TryGetArgs(args, out double arg0, out double arg1))
+                if (args.Length == 2 &&
+                    args.TryGetArg(0, out double arg0) &&
+                    args.TryGetArg(1, out double arg1))
                 {
                     return WellKnownFunctionResult.Invoked(Math.Min(arg0, arg1));
                 }
@@ -736,7 +793,7 @@ internal static class WellKnownFunctions
         {
             if (string.Equals(methodName, nameof(Version.Parse), StringComparison.OrdinalIgnoreCase))
             {
-                if (ArgumentParser.TryGetArg(args, out string? arg0))
+                if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
                 {
                     return WellKnownFunctionResult.Invoked(Version.Parse(arg0));
                 }
@@ -756,29 +813,24 @@ internal static class WellKnownFunctions
         {
             if (string.Equals(methodName, nameof(char.IsDigit), StringComparison.OrdinalIgnoreCase))
             {
-                bool? result = null;
+                switch (args.Length)
+                {
+                    case 1 when args.TryGetArg(0, out char c):
+                        return WellKnownFunctionResult.Invoked(char.IsDigit(c));
 
-                if (ArgumentParser.TryGetArg(args, out string? arg0) && arg0?.Length == 1)
-                {
-                    char c = arg0[0];
-                    result = char.IsDigit(c);
-                }
-                else if (ArgumentParser.TryGetArgs(args, out string? str, out int index) && str is not null)
-                {
-                    result = char.IsDigit(str, index);
-                }
-
-                if (result.HasValue)
-                {
-                    return WellKnownFunctionResult.Invoked(result.Value);
+                    case 2 when args.TryGetArg(0, out string? s)
+                                 && args.TryGetArg(1, out int index):
+                        return WellKnownFunctionResult.Invoked(char.IsDigit(s, index));
                 }
             }
         }
         else if (receiverType == typeof(Regex))
         {
-            if (string.Equals(methodName, nameof(Regex.Replace), StringComparison.OrdinalIgnoreCase) && args.Length == 3)
+            if (string.Equals(methodName, nameof(Regex.Replace), StringComparison.OrdinalIgnoreCase))
             {
-                if (ArgumentParser.TryGetArgs(args, out string? arg1, out string? arg2, out string? arg3))
+                if (args.Length == 3 && args.TryGetArg(0, out string? arg1) &&
+                    args.TryGetArg(1, out string? arg2) &&
+                    args.TryGetArg(2, out string? arg3))
                 {
                     return WellKnownFunctionResult.Invoked(Regex.Replace(arg1, arg2, arg3));
                 }
@@ -803,24 +855,30 @@ internal static class WellKnownFunctions
         {
             if (string.Equals(methodName, nameof(Array.GetValue), StringComparison.OrdinalIgnoreCase))
             {
-                if (ArgumentParser.TryGetArg(args, out int index))
+                if (args.Length == 1 && args.TryGetArg(0, out int index))
                 {
                     return WellKnownFunctionResult.Invoked(stringArray[index]);
                 }
             }
         }
-        else if (string.Equals(methodName, nameof(Version.ToString), StringComparison.OrdinalIgnoreCase) && objectInstance is Version v)
+        else if (objectInstance is Version v)
         {
-            if (ArgumentParser.TryGetArg(args, out int arg0))
+            if (string.Equals(methodName, nameof(Version.ToString), StringComparison.OrdinalIgnoreCase))
             {
-                return WellKnownFunctionResult.Invoked(v.ToString(arg0));
+                if (args.Length == 1 && args.TryGetArg(0, out int arg0))
+                {
+                    return WellKnownFunctionResult.Invoked(v.ToString(arg0));
+                }
             }
         }
-        else if (string.Equals(methodName, nameof(int.ToString), StringComparison.OrdinalIgnoreCase) && objectInstance is int i)
+        else if (objectInstance is int i)
         {
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (string.Equals(methodName, nameof(int.ToString), StringComparison.OrdinalIgnoreCase))
             {
-                return WellKnownFunctionResult.Invoked(i.ToString(arg0));
+                if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
+                {
+                    return WellKnownFunctionResult.Invoked(i.ToString(arg0));
+                }
             }
         }
 
@@ -846,7 +904,7 @@ internal static class WellKnownFunctions
             {
                 string projectPath = properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
                 Assumed.NotNull(loggingContext, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
-                if (ArgumentParser.TryGetArg(args, out string? arg0))
+                if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
                 {
                     return WellKnownFunctionResult.Invoked(IntrinsicFunctions.RegisterBuildCheck(projectPath, arg0, loggingContext));
                 }
@@ -874,7 +932,7 @@ internal static class WellKnownFunctions
                 return WellKnownFunctionResult.Invoked(string.Empty);
             }
 
-            if (ArgumentParser.TryGetArg(args, out string? arg0))
+            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
                 return WellKnownFunctionResult.Invoked(arg0);
             }
