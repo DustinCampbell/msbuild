@@ -115,6 +115,21 @@ internal static class ExpansionHelpers
         return result;
     }
 
+    public static ItemDictionary<ProjectItemInstance> Items(ProjectInstance project, params (string ItemType, string[] Includes)[] items)
+    {
+        var result = new ItemDictionary<ProjectItemInstance>();
+
+        foreach (var (itemType, includes) in items)
+        {
+            foreach (string include in includes)
+            {
+                result.Add(new ProjectItemInstance(project, itemType, include, project.FullPath));
+            }
+        }
+
+        return result;
+    }
+
     public static ItemDictionary<ProjectItemInstance> GenerateItems(
         int count,
         ProjectInstance project,
