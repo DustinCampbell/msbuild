@@ -28,7 +28,9 @@ public class WellKnownFunctions_Char_Tests(ITestOutputHelper output)
     [Theory]
     [InlineData("5", true)]
     [InlineData("x", false)]
-    public void Char_IsDigit_Char(string value, bool expected)
+    [InlineData('5', true)]
+    [InlineData('x', false)]
+    public void Char_IsDigit_Char(object value, bool expected)
         => StaticMember(nameof(char.IsDigit))
             .Invoke([value])
             .ShouldBe(expected);
@@ -36,7 +38,9 @@ public class WellKnownFunctions_Char_Tests(ITestOutputHelper output)
     [Theory]
     [InlineData("a5", "1", true)]
     [InlineData("a5", "0", false)]
-    public void Char_IsDigit_StringIndex(string value, string index, bool expected)
+    [InlineData("a5", 1, true)]
+    [InlineData("a5", 0, false)]
+    public void Char_IsDigit_StringIndex(string value, object index, bool expected)
         => StaticMember(nameof(char.IsDigit))
             .Invoke([value, index])
             .ShouldBe(expected);

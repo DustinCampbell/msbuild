@@ -4,131 +4,226 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text;
+using Microsoft.Build.Framework;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
 internal static class ArgumentParser
 {
-    public static bool TryGetArg(object?[] args, [NotNullWhen(true)] out string? arg0)
+    public static bool TryGetArg(this object?[] args, int index, out object? result)
     {
-        if (args is [string value0])
+        if (index >= 0 && index < args.Length)
         {
-            arg0 = value0;
+            result = args[index];
             return true;
         }
 
-        arg0 = null;
+        result = null;
         return false;
     }
 
-    public static bool TryGetArg(object?[] args, out int arg0)
+    public static bool TryGetArg(this object?[] args, int index, out char result)
     {
-        if (args is [var value0] &&
-            TryConvertToInt(value0, out arg0))
+        if (TryGetArg(args, index, out object? value))
         {
+            return TryConvertToChar(value, out result);
+        }
+
+        result = default;
+        return false;
+    }
+
+    public static bool TryGetArg(this object?[] args, int index, out double result)
+    {
+        if (TryGetArg(args, index, out object? value))
+        {
+            return TryConvertToDouble(value, out result);
+        }
+
+        result = default;
+        return false;
+    }
+
+    public static bool TryGetArg<T>(this object?[] args, int index, out T result)
+        where T : struct, Enum
+    {
+        if (TryGetArg(args, index, out object? value))
+        {
+            return TryConvertToEnum(value, out result);
+        }
+
+        result = default;
+        return false;
+    }
+
+    public static bool TryGetArg(this object?[] args, int index, out int result)
+    {
+        if (TryGetArg(args, index, out object? value))
+        {
+            return TryConvertToInt(value, out result);
+        }
+
+        result = default;
+        return false;
+    }
+
+    public static bool TryGetArg(this object?[] args, int index, out long result)
+    {
+        if (TryGetArg(args, index, out object? value))
+        {
+            return TryConvertToLong(value, out result);
+        }
+
+        result = default;
+        return false;
+    }
+
+    public static bool TryGetArg(this object?[] args, int index, [NotNullWhen(true)] out string? result)
+    {
+        if (TryGetArg(args, index, out object? value) && value is string s)
+        {
+            result = s;
             return true;
         }
 
-        arg0 = default;
+        result = default;
         return false;
     }
 
-    public static bool TryGetArg(object?[] args, out Version? arg0)
+    public static bool TryGetArg(this object?[] args, int index, [NotNullWhen(true)] out Version? result)
     {
-        if (args is [var value0] &&
-            TryConvertToVersion(value0, out arg0))
+        if (TryGetArg(args, index, out object? value))
         {
+            return TryConvertToVersion(value, out result);
+        }
+
+        result = default;
+        return false;
+    }
+
+    public static bool TryConvertToChar(object? value, out char c)
+    {
+        if (value is char ch)
+        {
+            c = ch;
+            return true;
+        }
+        else if (value is string { Length: 1 } s)
+        {
+            c = s[0];
             return true;
         }
 
-        arg0 = null;
+        c = default;
         return false;
     }
 
-    public static bool TryGetArgs(object?[] args, [NotNullWhen(true)] out string? arg0, [NotNullWhen(true)] out string? arg1)
+    /// <summary>
+    /// Try to convert value to double.
+    /// </summary>
+    public static bool TryConvertToDouble(object? value, out double arg)
     {
-        if (args is [string value0, string value1])
+        switch (value)
         {
-            arg0 = value0;
-            arg1 = value1;
+            case double d:
+                arg = d;
+                return true;
+
+            case long l:
+                arg = l;
+                return true;
+
+            case int i:
+                arg = i;
+                return true;
+
+            case string str when double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out arg):
+                return true;
+
+            case null:
+                arg = default;
+                return true;
+
+            default:
+                arg = default;
+                return false;
+        }
+    }
+
+    public static bool TryConvertToEnum<T>(object? value, out T result)
+        where T : struct, Enum
+    {
+        if (value is T enumValue)
+        {
+            result = enumValue;
             return true;
         }
 
-        arg0 = null;
-        arg1 = null;
+        if (value is string text &&
+            !long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) &&
+            !ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+        {
+            if (text.IndexOf('.') >= 0)
+            {
+                text = NormalizeEnumArgument(typeof(T), text);
+            }
+
+            return Enum.TryParse(text, out result);
+        }
+
+        result = default;
         return false;
     }
 
-    public static bool TryGetArgs(object?[] args, [NotNullWhen(true)] out string? arg0, out int arg1, out int arg2)
+    private static string NormalizeEnumArgument(Type enumType, string value)
     {
-        if (args is [string value0, var value1, var value2] &&
-            TryConvertToInt(value1, out arg1) &&
-            TryConvertToInt(value2, out arg2))
+        string? fullName = enumType.FullName;
+        Assumed.NotNull(fullName);
+
+        string leafName = enumType.Name;
+        StringBuilder builder = StringBuilderCache.Acquire(value.Length);
+
+        int copyStart = 0;
+        int index = 0;
+
+        while (index < value.Length)
         {
-            arg0 = value0;
+            if (value[index] == '|')
+            {
+                builder.Append(value, copyStart, index - copyStart);
+                builder.Append(',');
+                copyStart = ++index;
+            }
+            else if (TryGetEnumQualifierLength(value, index, fullName, out int qualifierLength) ||
+                     TryGetEnumQualifierLength(value, index, leafName, out qualifierLength))
+            {
+                builder.Append(value, copyStart, index - copyStart);
+                index += qualifierLength;
+                copyStart = index;
+            }
+            else
+            {
+                index++;
+            }
+        }
+
+        builder.Append(value, copyStart, value.Length - copyStart);
+        return StringBuilderCache.GetStringAndRelease(builder);
+    }
+
+    private static bool TryGetEnumQualifierLength(string value, int startIndex, string typeName, out int result)
+    {
+        if (value.Length - startIndex > typeName.Length &&
+            value[startIndex + typeName.Length] == '.' &&
+            string.CompareOrdinal(value, startIndex, typeName, 0, typeName.Length) == 0)
+        {
+            result = typeName.Length + 1;
             return true;
         }
 
-        arg0 = null;
-        arg1 = default;
-        arg2 = default;
+        result = 0;
         return false;
-    }
-
-    public static bool TryGetArgs(
-        object?[] args,
-        [NotNullWhen(true)] out string? arg0,
-        [NotNullWhen(true)] out string? arg1,
-        [NotNullWhen(true)] out string? arg2)
-    {
-        if (args is [string value0, string value1, string value2])
-        {
-            arg0 = value0;
-            arg1 = value1;
-            arg2 = value2;
-            return true;
-        }
-
-        arg0 = null;
-        arg1 = null;
-        arg2 = null;
-        return false;
-    }
-
-    public static bool TryGetArgs(
-        object?[] args,
-        [NotNullWhen(true)] out string? arg0,
-        [NotNullWhen(true)] out string? arg1,
-        [NotNullWhen(true)] out string? arg2,
-        [NotNullWhen(true)] out string? arg3)
-    {
-        if (args is [string value0, string value1, string value2, string value3])
-        {
-            arg0 = value0;
-            arg1 = value1;
-            arg2 = value2;
-            arg3 = value3;
-            return true;
-        }
-
-        arg0 = null;
-        arg1 = null;
-        arg2 = null;
-        arg3 = null;
-        return false;
-    }
-
-    internal static bool TryConvertToVersion(object? value, out Version? arg0)
-    {
-        string? val = value as string;
-
-        if (string.IsNullOrEmpty(val) || !Version.TryParse(val, out arg0))
-        {
-            arg0 = null;
-            return false;
-        }
-
-        return true;
     }
 
     /// <summary>
@@ -203,52 +298,19 @@ internal static class ArgumentParser
         return false;
     }
 
-    /// <summary>
-    /// Try to convert value to double.
-    /// </summary>
-    public static bool TryConvertToDouble(object? value, out double arg)
+    internal static bool TryConvertToVersion(object? value, [NotNullWhen(true)] out Version? arg0)
     {
         switch (value)
         {
-            case double d:
-                arg = d;
+            case Version v:
+                arg0 = v;
                 return true;
 
-            case long l:
-                arg = l;
+            case string s when Version.TryParse(s, out arg0):
                 return true;
-
-            case int i:
-                arg = i;
-                return true;
-
-            case string str when double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out arg):
-                return true;
-
-            case null:
-                arg = default;
-                return true;
-
-            default:
-                arg = default;
-                return false;
-        }
-    }
-
-    public static bool TryConvertToChar(object? value, out char c)
-    {
-        if (value is char ch)
-        {
-            c = ch;
-            return true;
-        }
-        else if (value is string { Length: 1 } s)
-        {
-            c = s[0];
-            return true;
         }
 
-        c = default;
+        arg0 = null;
         return false;
     }
 
@@ -277,104 +339,6 @@ internal static class ArgumentParser
         }
 
         return true;
-    }
-
-    internal static bool TryGetArgs(object?[] args, out string? arg0, out StringComparison arg1)
-    {
-        if (args.Length != 2)
-        {
-            arg0 = null;
-            arg1 = default;
-
-            return false;
-        }
-
-        arg0 = args[0] as string;
-
-        // reject enums as ints. In C# this would require a cast, which is not supported in msbuild expressions
-        if (arg0 == null || args[1] is not string comparisonTypeName || int.TryParse(comparisonTypeName, out _))
-        {
-            arg1 = default;
-            return false;
-        }
-
-        // Allow fully-qualified enum, e.g. "System.StringComparison.OrdinalIgnoreCase"
-        if (comparisonTypeName.IndexOf('.') >= 0)
-        {
-            comparisonTypeName = comparisonTypeName.Replace("System.StringComparison.", "").Replace("StringComparison.", "");
-        }
-
-        return Enum.TryParse(comparisonTypeName, out arg1);
-    }
-
-    public static bool TryGetArgs(object?[] args, out int arg0, out int arg1)
-    {
-        if (args is [var value0, var value1] &&
-            TryConvertToInt(value0, out arg0) &&
-            TryConvertToInt(value1, out arg1))
-        {
-            return true;
-        }
-
-        arg0 = default;
-        arg1 = default;
-        return false;
-    }
-
-    public static bool TryGetArgs(object?[] args, out double arg0, out double arg1)
-    {
-        if (args is [var value0, var value1] &&
-            TryConvertToDouble(value0, out arg0) &&
-            TryConvertToDouble(value1, out arg1))
-        {
-            return true;
-        }
-
-        arg0 = default;
-        arg1 = default;
-        return false;
-    }
-
-    public static bool TryGetArgs(object?[] args, out int arg0, out char arg1)
-    {
-        if (args is [var value0, var value1] &&
-            TryConvertToInt(value0, out arg0) &&
-            TryConvertToChar(value1, out arg1))
-        {
-            return true;
-        }
-
-        arg0 = default;
-        arg1 = default;
-        return false;
-    }
-
-    public static bool TryGetArgs(object?[] args, out int arg0, [NotNullWhen(true)] out string? arg1)
-    {
-        if (args is [var value0, string value1] &&
-            TryConvertToInt(value0, out arg0))
-        {
-            arg1 = value1;
-            return true;
-        }
-
-        arg0 = default;
-        arg1 = null;
-        return false;
-    }
-
-    public static bool TryGetArgs(object?[] args, out string? arg0, out int arg1)
-    {
-        if (args is [string value0, var value1] &&
-            TryConvertToInt(value1, out arg1))
-        {
-            arg0 = value0;
-            return true;
-        }
-
-        arg0 = null;
-        arg1 = default;
-        return false;
     }
 
     public static bool IsFloatingPointRepresentation(object? value)
