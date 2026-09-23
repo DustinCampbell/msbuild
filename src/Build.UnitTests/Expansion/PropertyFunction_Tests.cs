@@ -1282,6 +1282,30 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         "$([System.Int32]::new(123).ToString('mm')",
         "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::NormalizeDirectory('C:/folder1/./folder2/'))",
         "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::IsOSPlatform('Windows'))",
+        "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::RegisterBuildCheck('check.dll'))",
+    };
+
+    [ModernExpanderOnlyTheory]
+    [MemberData(nameof(ReflectionFallbackExpressions))]
+    public void ReflectionFallback_IsLogged(string expression, string expectedLog)
+    {
+        using var env = TestEnvironment.Create(_output);
+        env.SetCurrentDirectory(env.CreateFolder().Path);
+        env.SetEnvironmentVariable("MSBuildLogPropertyFunctionsRequiringReflection", "1");
+
+        var (_, loggingContext) = CreateLoggingContext(_output);
+
+        _ = ExpandProperties(expression, loggingContext);
+
+        string reflectionInfoPath = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
+        File.ReadAllLines(reflectionInfoPath).ShouldHaveSingleItem().ShouldContain(expectedLog);
+    }
+
+    public static TheoryData<string, string> ReflectionFallbackExpressions => new()
+    {
+        { "$([System.Math]::Abs(-1))", "ReceiverType=System.Math; ObjectInstanceType=; MethodName=Abs(" },
+        { "$([System.String]::new(' abc ').Trim())", "ReceiverType=System.String; ObjectInstanceType=System.String; MethodName=Trim(" },
+        { "$([System.Version]::new('1.2'))", "ReceiverType=System.Version; ObjectInstanceType=; MethodName=new(" },
     };
 
     [Fact]

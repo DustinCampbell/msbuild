@@ -9,6 +9,15 @@ internal static partial class WellKnownFunctions
 {
     private sealed class StringHandler
     {
+        public WellKnownFunctionResult TryInvokeConstructor(object?[] args)
+            => args.Length switch
+            {
+                0 => Invoked(string.Empty),
+                1 when args.TryGetArg(0, out string? arg0) => Invoked(arg0),
+
+                _ => NotHandled,
+            };
+
         public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args)
             => methodName.Length switch
             {
