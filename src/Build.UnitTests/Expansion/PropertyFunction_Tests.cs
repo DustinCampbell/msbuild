@@ -1256,22 +1256,7 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(FastPathValidationExpressions))]
     public void FastPathValidationTest(string expression)
-    {
-        using var env = TestEnvironment.Create(_output);
-        env.SetCurrentDirectory(env.CreateFolder().Path);
-
-        // Setting this env variable allows to track if expander was using reflection for a function invocation.
-        env.SetEnvironmentVariable("MSBuildLogPropertyFunctionsRequiringReflection", "1");
-
-        var (_, loggingContext) = CreateLoggingContext(_output);
-
-        _ = ExpandProperties(expression, loggingContext);
-
-        string reflectionInfoPath = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
-
-        // the fast path was successfully resolved without reflection.
-        File.Exists(reflectionInfoPath).ShouldBeFalse();
-    }
+        => ExpandProperties(expression, allowReflection: false);
 
     public static TheoryData<string> FastPathValidationExpressions => new()
     {
@@ -1279,7 +1264,7 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         "$([System.Text.RegularExpressions.Regex]::Replace('abc123def', 'abc', ''))",
         "$([System.String]::new('Hi').Equals('Hello'))",
         """$([System.IO.Path]::GetFileNameWithoutExtension('C:\folder\file.txt'))""",
-        "$([System.Int32]::new(123).ToString('mm')",
+        "$([System.String]::new('Hello World').Length.ToString('mm'))",
         "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::NormalizeDirectory('C:/folder1/./folder2/'))",
         "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::IsOSPlatform('Windows'))",
         "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::RegisterBuildCheck('check.dll'))",
@@ -1288,18 +1273,8 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     [ModernExpanderOnlyTheory]
     [MemberData(nameof(ReflectionFallbackExpressions))]
     public void ReflectionFallback_IsLogged(string expression, string expectedLog)
-    {
-        using var env = TestEnvironment.Create(_output);
-        env.SetCurrentDirectory(env.CreateFolder().Path);
-        env.SetEnvironmentVariable("MSBuildLogPropertyFunctionsRequiringReflection", "1");
-
-        var (_, loggingContext) = CreateLoggingContext(_output);
-
-        _ = ExpandProperties(expression, loggingContext);
-
-        string reflectionInfoPath = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
-        File.ReadAllLines(reflectionInfoPath).ShouldHaveSingleItem().ShouldContain(expectedLog);
-    }
+        => Should.Throw<ShouldAssertException>(() => ExpandProperties(expression, allowReflection: false))
+            .Message.ShouldContain(expectedLog);
 
     public static TheoryData<string, string> ReflectionFallbackExpressions => new()
     {
