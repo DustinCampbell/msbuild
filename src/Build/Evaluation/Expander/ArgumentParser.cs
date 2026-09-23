@@ -138,11 +138,7 @@ internal static class ArgumentParser
                 arg = i;
                 return true;
 
-            case string str when double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out arg):
-                return true;
-
-            case null:
-                arg = default;
+            case string str when double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out arg):
                 return true;
 
             default:
@@ -250,11 +246,7 @@ internal static class ArgumentParser
                 arg = i;
                 return true;
 
-            case string s when int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat, out arg):
-                return true;
-
-            case null:
-                arg = default;
+            case string s when int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out arg):
                 return true;
         }
 
@@ -286,11 +278,7 @@ internal static class ArgumentParser
                 arg = i;
                 return true;
 
-            case string s when long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat, out arg):
-                return true;
-
-            case null:
-                arg = default;
+            case string s when long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out arg):
                 return true;
         }
 
@@ -344,32 +332,300 @@ internal static class ArgumentParser
     public static bool IsFloatingPointRepresentation(object? value)
         => value is double
         || (value is string str
-            && double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out _));
+            && double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out _));
 
-    public static bool TryExecuteArithmeticOverload(
-        object?[] args,
-        Func<long, long, long> integerOperation,
-        Func<double, double, double> realOperation,
-        out object? resultValue)
+    public static bool TryGetArithmeticArguments(object?[] args, out ArithmeticArguments result)
     {
         if (args is [var value0, var value1])
         {
-            if (TryConvertToLong(value0, out long argLong0) &&
-                TryConvertToLong(value1, out long argLong1))
+            // Keep the original values for phase selection while caching any string parses that later phases reuse.
+            ArithmeticArgument argument0 = new(value0);
+            ArithmeticArgument argument1 = new(value1);
+
+            // Both arguments must resolve in the same phase; mixing phases would change overload selection.
+            // First reproduce the historical well-known-function conversions.
+            if (argument0.TryGetDirectLong(out long argLong0) &&
+                argument1.TryGetDirectLong(out long argLong1))
             {
-                resultValue = integerOperation(argLong0, argLong1);
+                result = new ArithmeticArguments(argLong0, argLong1);
                 return true;
             }
 
-            if (TryConvertToDouble(value0, out double argDouble0) &&
-                TryConvertToDouble(value1, out double argDouble1))
+            if (argument0.TryGetDirectDouble(out double argDouble0) &&
+                argument1.TryGetDirectDouble(out double argDouble1))
             {
-                resultValue = realOperation(argDouble0, argDouble1);
+                result = new ArithmeticArguments(argDouble0, argDouble1);
+                return true;
+            }
+
+            // Next reproduce the primitive widening conversions performed by the reflection binder.
+            if (argument0.TryGetWidenedLong(out argLong0) &&
+                argument1.TryGetWidenedLong(out argLong1))
+            {
+                result = new ArithmeticArguments(argLong0, argLong1);
+                return true;
+            }
+
+            if (argument0.TryGetWidenedDouble(out argDouble0) &&
+                argument1.TryGetWidenedDouble(out argDouble1))
+            {
+                result = new ArithmeticArguments(argDouble0, argDouble1);
+                return true;
+            }
+
+            // Finally reproduce the long-before-double Convert.ChangeType fallback.
+            if (argument0.TryGetCoercedLong(out argLong0) &&
+                argument1.TryGetCoercedLong(out argLong1))
+            {
+                result = new ArithmeticArguments(argLong0, argLong1);
+                return true;
+            }
+
+            if (argument0.TryGetCoercedDouble(out argDouble0) &&
+                argument1.TryGetCoercedDouble(out argDouble1))
+            {
+                result = new ArithmeticArguments(argDouble0, argDouble1);
                 return true;
             }
         }
 
-        resultValue = null;
+        result = default;
         return false;
+    }
+
+    private static bool TryWidenToLong(object? value, out long result)
+    {
+        if (value is null)
+        {
+            result = default;
+            return true;
+        }
+
+        switch (Type.GetTypeCode(value.GetType()))
+        {
+            case TypeCode.Char:
+                result = (char)value;
+                return true;
+
+            case TypeCode.SByte:
+            case TypeCode.Byte:
+            case TypeCode.Int16:
+            case TypeCode.UInt16:
+            case TypeCode.Int32:
+            case TypeCode.UInt32:
+            case TypeCode.Int64:
+                result = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                return true;
+
+            default:
+                result = default;
+                return false;
+        }
+    }
+
+    private static bool TryWidenToDouble(object? value, out double result)
+    {
+        if (value is null)
+        {
+            result = default;
+            return true;
+        }
+
+        switch (Type.GetTypeCode(value.GetType()))
+        {
+            case TypeCode.Char:
+                result = (char)value;
+                return true;
+
+            case TypeCode.SByte:
+            case TypeCode.Byte:
+            case TypeCode.Int16:
+            case TypeCode.UInt16:
+            case TypeCode.Int32:
+            case TypeCode.UInt32:
+            case TypeCode.Int64:
+            case TypeCode.UInt64:
+            case TypeCode.Single:
+            case TypeCode.Double:
+                result = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                return true;
+
+            default:
+                result = default;
+                return false;
+        }
+    }
+
+    private static bool TryCoerceNonStringToLong(object? value, out long result)
+    {
+        if (value is null)
+        {
+            result = default;
+            return true;
+        }
+
+        if (value is bool b)
+        {
+            result = b ? 1 : 0;
+            return true;
+        }
+
+        try
+        {
+            result = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch (InvalidCastException)
+        {
+        }
+        catch (FormatException)
+        {
+        }
+        catch (OverflowException)
+        {
+        }
+
+        result = default;
+        return false;
+    }
+
+    private static bool TryCoerceNonStringToDouble(object? value, out double result)
+    {
+        if (value is null)
+        {
+            result = default;
+            return true;
+        }
+
+        if (value is bool b)
+        {
+            result = b ? 1D : 0D;
+            return true;
+        }
+
+        try
+        {
+            result = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch (InvalidCastException)
+        {
+        }
+        catch (FormatException)
+        {
+        }
+        catch (OverflowException)
+        {
+        }
+
+        result = default;
+        return false;
+    }
+
+    // Retains an argument's original type for overload selection while lazily caching string parse attempts.
+    // A successfully parsed string must not become eligible for the primitive widening phase.
+    private struct ArithmeticArgument
+    {
+        // Convert.ToDouble(string, ...) does not accept the trailing sign supported by the historical direct parser.
+        private const NumberStyles CoercedDoubleStyles = NumberStyles.Float | NumberStyles.AllowThousands;
+        private const NumberStyles DirectDoubleStyles = NumberStyles.Number | NumberStyles.Float;
+
+        private readonly object? _value;
+        private long _parsedLong;
+        private double _coercedDouble;
+        private double _directDouble;
+        private ConversionState _longState;
+        private ConversionState _coercedDoubleState;
+        private ConversionState _directDoubleState;
+
+        public ArithmeticArgument(object? value)
+        {
+            _value = value;
+            _parsedLong = default;
+            _coercedDouble = default;
+            _directDouble = default;
+            _longState = ConversionState.NotAttempted;
+            _coercedDoubleState = ConversionState.NotAttempted;
+            _directDoubleState = ConversionState.NotAttempted;
+        }
+
+        public bool TryGetDirectLong(out long result)
+            => _value is string text
+                ? TryGetStringLong(text, out result)
+                : TryConvertToLong(_value, out result);
+
+        public bool TryGetDirectDouble(out double result)
+        {
+            if (_value is not string text)
+            {
+                return TryConvertToDouble(_value, out result);
+            }
+
+            // Parse with the narrower coercion syntax first so the common result can be reused by both phases.
+            if (TryGetCoercedStringDouble(text, out result))
+            {
+                return true;
+            }
+
+            if (_directDoubleState == ConversionState.NotAttempted)
+            {
+                _directDoubleState = double.TryParse(text, DirectDoubleStyles, CultureInfo.InvariantCulture, out _directDouble)
+                    ? ConversionState.Succeeded
+                    : ConversionState.Failed;
+            }
+
+            result = _directDouble;
+            return _directDoubleState == ConversionState.Succeeded;
+        }
+
+        public bool TryGetWidenedLong(out long result)
+            => TryWidenToLong(_value, out result);
+
+        public bool TryGetWidenedDouble(out double result)
+            => TryWidenToDouble(_value, out result);
+
+        public bool TryGetCoercedLong(out long result)
+            => _value is string text
+                ? TryGetStringLong(text, out result)
+                : TryCoerceNonStringToLong(_value, out result);
+
+        public bool TryGetCoercedDouble(out double result)
+            => _value is string text
+                ? TryGetCoercedStringDouble(text, out result)
+                : TryCoerceNonStringToDouble(_value, out result);
+
+        private bool TryGetStringLong(string text, out long result)
+        {
+            if (_longState == ConversionState.NotAttempted)
+            {
+                _longState = long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out _parsedLong)
+                    ? ConversionState.Succeeded
+                    : ConversionState.Failed;
+            }
+
+            result = _parsedLong;
+            return _longState == ConversionState.Succeeded;
+        }
+
+        private bool TryGetCoercedStringDouble(string text, out double result)
+        {
+            if (_coercedDoubleState == ConversionState.NotAttempted)
+            {
+                _coercedDoubleState = double.TryParse(text, CoercedDoubleStyles, CultureInfo.InvariantCulture, out _coercedDouble)
+                    ? ConversionState.Succeeded
+                    : ConversionState.Failed;
+            }
+
+            result = _coercedDouble;
+            return _coercedDoubleState == ConversionState.Succeeded;
+        }
+    }
+
+    // A failed parse must be cached separately from a parse that has not yet been attempted.
+    private enum ConversionState : byte
+    {
+        NotAttempted,
+        Failed,
+        Succeeded,
     }
 }
