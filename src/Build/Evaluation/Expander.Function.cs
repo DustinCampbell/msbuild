@@ -647,14 +647,45 @@ internal partial class Expander<P, I>
                 return;
             }
 
+            // Note: EnsureDotnetCommonProjectPropertyFunctionsOnFastPath currently depends on the format of this log file.
+            // If the format is changed, that test should be updated as well.
+            // See https://github.com/dotnet/dotnet/blob/c567e8ff13b8ada7c5285c60bc2ac1111ae602e7/src/sdk/test/Microsoft.NET.Build.Tests/EvaluatorFastPathTests.cs
             string logFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
-            string argSignature = string.Join(", ", args.Select(a => a?.GetType().Name ?? "null"));
 
-            System.IO.File.AppendAllText(
-                logFile,
-                $"ReceiverType={_receiverType?.FullName}; " +
-                $"ObjectInstanceType={objectInstance?.GetType().FullName}; " +
-                $"MethodName={_methodMethodName}({argSignature})\n");
+            var builder = StringBuilderCache.Acquire();
+
+            builder.Append("ReceiverType=");
+            builder.Append(_receiverType.FullName);
+            builder.Append("; ObjectInstanceType=");
+
+            if (objectInstance is not null)
+            {
+                builder.Append(objectInstance.GetType().FullName);
+            }
+
+            builder.Append("; MethodName=");
+            builder.Append(_methodMethodName);
+            builder.Append('(');
+
+            bool isFirst = true;
+
+            foreach (object arg in args)
+            {
+                if (isFirst)
+                {
+                    isFirst = false;
+                }
+                else
+                {
+                    builder.Append(", ");
+                }
+
+                builder.Append(arg?.GetType().Name ?? "null");
+            }
+
+            builder.Append(")\n");
+
+            System.IO.File.AppendAllText(logFile, StringBuilderCache.GetStringAndRelease(builder));
         }
 
         private object GetMethodResult(object objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)

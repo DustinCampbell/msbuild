@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Engine.UnitTests;
@@ -20,6 +21,8 @@ namespace Microsoft.Build.UnitTests.Expansion;
 
 internal static class ExpansionHelpers
 {
+    private const string PropertyFunctionsRequiringReflectionFileName = "PropertyFunctionsRequiringReflection";
+
     public static string ToResultString(this bool value)
         => value.ToString(CultureInfo.InvariantCulture);
 
@@ -45,56 +48,101 @@ internal static class ExpansionHelpers
 
         var expander = ExpanderFactory.Create(Properties(), Items(), metadata);
 
-        return ExpandIntoStringLeaveEscaped(expander, expression, options);
+        return ExpandIntoStringLeaveEscaped(expander, expression, options, allowReflection: true);
     }
 
-    public static string? ExpandProperties(string expression)
-        => ExpandProperties(expression, Properties(), loggingContext: null);
+    public static string? ExpandProperties(string expression, bool allowReflection = true)
+        => ExpandProperties(expression, Properties(), loggingContext: null, allowReflection);
 
-    public static string? ExpandProperties(string expression, PropertyDictionary<ProjectPropertyInstance> properties)
-        => ExpandProperties(expression, properties, loggingContext: null);
+    public static string? ExpandProperties(string expression, PropertyDictionary<ProjectPropertyInstance> properties, bool allowReflection = true)
+        => ExpandProperties(expression, properties, loggingContext: null, allowReflection);
 
-    public static string? ExpandProperties(string expression, LoggingContext? loggingContext)
-        => ExpandProperties(expression, Properties(), loggingContext);
+    public static string? ExpandProperties(string expression, LoggingContext? loggingContext, bool allowReflection = true)
+        => ExpandProperties(expression, Properties(), loggingContext, allowReflection);
 
     public static string? ExpandProperties(
         string expression,
         PropertyDictionary<ProjectPropertyInstance> properties,
-        LoggingContext? loggingContext)
+        LoggingContext? loggingContext,
+        bool allowReflection = true)
     {
+        if (loggingContext is null && TestContext.Current.TestOutputHelper is { } output)
+        {
+            (_, loggingContext) = CreateLoggingContext(output);
+        }
+
         var expander = loggingContext is not null
             ? ExpanderFactory.Create(properties, loggingContext)
             : ExpanderFactory.Create(properties);
 
-        return ExpandIntoStringLeaveEscaped(expander, expression, ExpanderOptions.ExpandProperties);
+        return ExpandIntoStringLeaveEscaped(expander, expression, ExpanderOptions.ExpandProperties, allowReflection);
     }
 
-    public static string? ExpandPropertiesAndMetadata(string expression, IMetadataTable metadata)
-        => ExpandPropertiesAndMetadata(expression, Properties(), metadata);
+    public static string? ExpandPropertiesAndMetadata(string expression, IMetadataTable metadata, bool allowReflection = true)
+        => ExpandPropertiesAndMetadata(expression, Properties(), metadata, allowReflection);
 
     public static string? ExpandPropertiesAndMetadata(
         string expression,
         PropertyDictionary<ProjectPropertyInstance> properties,
-        IMetadataTable metadata)
+        IMetadataTable metadata,
+        bool allowReflection = true)
     {
         var expander = ExpanderFactory.Create<ProjectPropertyInstance, ProjectItemInstance>(properties, items: null!, metadata);
 
-        return ExpandIntoStringLeaveEscaped(expander, expression, ExpanderOptions.ExpandPropertiesAndMetadata);
+        return ExpandIntoStringLeaveEscaped(expander, expression, ExpanderOptions.ExpandPropertiesAndMetadata, allowReflection);
     }
 
     private static string? ExpandIntoStringLeaveEscaped(
         IExpander<ProjectPropertyInstance, ProjectItemInstance> expander,
         string expression,
-        ExpanderOptions options)
+        ExpanderOptions options,
+        bool allowReflection)
     {
         bool enableAllPropertyFunctions = FeatureSwitches.EnableAllPropertyFunctions;
+        string reflectionInfoPath = Path.Combine(Directory.GetCurrentDirectory(), PropertyFunctionsRequiringReflectionFileName);
+
+        ITestOutputHelper? output = TestContext.Current.TestOutputHelper;
+
+        using TestEnvironment env = output is not null
+            ? TestEnvironment.Create(output)
+            : TestEnvironment.Create();
+
+        env.SetEnvironmentVariable("MSBuildLogPropertyFunctionsRequiringReflection", "1");
 
         try
         {
-            return expander.ExpandIntoStringLeaveEscaped(expression, options, MockElementLocation.Instance);
+            string? result = expander.ExpandIntoStringLeaveEscaped(expression, options, MockElementLocation.Instance);
+
+            if (File.Exists(reflectionInfoPath))
+            {
+                string[] lines = File.ReadAllLines(reflectionInfoPath);
+
+                if (output is not null)
+                {
+                    output.WriteLine("The following property functions were invoked with reflection.");
+
+                    foreach (string line in lines)
+                    {
+                        output.WriteLine($"    {line}");
+                    }
+                }
+
+                if (lines.Length > 0)
+                {
+                    allowReflection.ShouldBeTrue(
+                        $"{lines[0]} {(lines.Length > 1 ? $"(and {lines.Length - 1} other property functions) were" : "was")} invoked with reflection.");
+                }
+            }
+
+            return result;
         }
         finally
         {
+            if (File.Exists(reflectionInfoPath))
+            {
+                File.Delete(reflectionInfoPath);
+            }
+
             if (enableAllPropertyFunctions)
             {
                 AvailableStaticMethods.Reset_ForUnitTestsOnly();
