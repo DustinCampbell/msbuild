@@ -131,9 +131,20 @@ internal static partial class WellKnownFunctions
             };
 
         private static WellKnownFunctionResult TryInvokeAdd(object?[] args)
-            => ArgumentParser.TryExecuteArithmeticOverload(args, IntrinsicFunctions.Add, IntrinsicFunctions.Add, out object? result)
-                ? Invoked(result)
-                : NotHandled;
+        {
+            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            {
+                return NotHandled;
+            }
+
+            if (arguments.TryGetLongs(out long arg0, out long arg1))
+            {
+                return Invoked(IntrinsicFunctions.Add(arg0, arg1));
+            }
+
+            Assumed.True(arguments.TryGetDoubles(out double double0, out double double1));
+            return Invoked(IntrinsicFunctions.Add(double0, double1));
+        }
 
         private static WellKnownFunctionResult TryInvokeAreFeaturesEnabled(object?[] args)
             => args.Length == 1 && args.TryGetArg(0, out Version? arg0)
@@ -187,9 +198,20 @@ internal static partial class WellKnownFunctions
                 : NotHandled;
 
         private static WellKnownFunctionResult TryInvokeDivide(object?[] args)
-            => ArgumentParser.TryExecuteArithmeticOverload(args, IntrinsicFunctions.Divide, IntrinsicFunctions.Divide, out object? result)
-                ? Invoked(result)
-                : NotHandled;
+        {
+            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            {
+                return NotHandled;
+            }
+
+            if (arguments.TryGetLongs(out long arg0, out long arg1))
+            {
+                return Invoked(IntrinsicFunctions.Divide(arg0, arg1));
+            }
+
+            Assumed.True(arguments.TryGetDoubles(out double double0, out double double1));
+            return Invoked(IntrinsicFunctions.Divide(double0, double1));
+        }
 
         private static WellKnownFunctionResult TryInvokeEnsureTrailingSlash(object?[] args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
@@ -323,14 +345,36 @@ internal static partial class WellKnownFunctions
                 : NotHandled;
 
         private static WellKnownFunctionResult TryInvokeModulo(object?[] args)
-            => ArgumentParser.TryExecuteArithmeticOverload(args, IntrinsicFunctions.Modulo, IntrinsicFunctions.Modulo, out object? result)
-                ? Invoked(result)
-                : NotHandled;
+        {
+            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            {
+                return NotHandled;
+            }
+
+            if (arguments.TryGetLongs(out long arg0, out long arg1))
+            {
+                return Invoked(IntrinsicFunctions.Modulo(arg0, arg1));
+            }
+
+            Assumed.True(arguments.TryGetDoubles(out double double0, out double double1));
+            return Invoked(IntrinsicFunctions.Modulo(double0, double1));
+        }
 
         private static WellKnownFunctionResult TryInvokeMultiply(object?[] args)
-            => ArgumentParser.TryExecuteArithmeticOverload(args, IntrinsicFunctions.Multiply, IntrinsicFunctions.Multiply, out object? result)
-                ? Invoked(result)
-                : NotHandled;
+        {
+            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            {
+                return NotHandled;
+            }
+
+            if (arguments.TryGetLongs(out long arg0, out long arg1))
+            {
+                return Invoked(IntrinsicFunctions.Multiply(arg0, arg1));
+            }
+
+            Assumed.True(arguments.TryGetDoubles(out double double0, out double double1));
+            return Invoked(IntrinsicFunctions.Multiply(double0, double1));
+        }
 
         private static WellKnownFunctionResult TryInvokeNormalizeDirectory(object?[] args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
@@ -393,9 +437,20 @@ internal static partial class WellKnownFunctions
                 : NotHandled;
 
         private static WellKnownFunctionResult TryInvokeSubtract(object?[] args)
-            => ArgumentParser.TryExecuteArithmeticOverload(args, IntrinsicFunctions.Subtract, IntrinsicFunctions.Subtract, out object? result)
-                ? Invoked(result)
-                : NotHandled;
+        {
+            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            {
+                return NotHandled;
+            }
+
+            if (arguments.TryGetLongs(out long arg0, out long arg1))
+            {
+                return Invoked(IntrinsicFunctions.Subtract(arg0, arg1));
+            }
+
+            Assumed.True(arguments.TryGetDoubles(out double double0, out double double1));
+            return Invoked(IntrinsicFunctions.Subtract(double0, double1));
+        }
 
         private static WellKnownFunctionResult TryInvokeUnescape(object?[] args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
