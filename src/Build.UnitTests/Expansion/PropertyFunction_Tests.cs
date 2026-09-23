@@ -18,6 +18,7 @@ using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
+using Xunit.NetCore.Extensions;
 using static Microsoft.Build.UnitTests.Expansion.ExpansionHelpers;
 
 namespace Microsoft.Build.UnitTests.Expansion;
@@ -1118,6 +1119,253 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     public void PropertyFunctionMathMin()
         => ExpandProperties("$([System.Math]::Min($(X), 20))", Properties("X", "30"))
             .ShouldBe("20");
+
+    /// <summary>
+    ///  Verifies that arithmetic intrinsics preserve reflection behavior by treating <see langword="null"/> as
+    ///  the numeric value-type default, zero.
+    /// </summary>
+    /// <param name="methodName">The arithmetic intrinsic to invoke.</param>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    /// <param name="expected">The expected arithmetic result.</param>
+    [Theory]
+    [InlineData("Add", "null", "40", "40")]
+    [InlineData("Add", "null", "1.5", "1.5")]
+    [InlineData("Add", "40", "null", "40")]
+    [InlineData("Add", "1.5", "null", "1.5")]
+    [InlineData("Subtract", "null", "40", "-40")]
+    [InlineData("Subtract", "null", "1.5", "-1.5")]
+    [InlineData("Subtract", "40", "null", "40")]
+    [InlineData("Subtract", "1.5", "null", "1.5")]
+    [InlineData("Multiply", "null", "40", "0")]
+    [InlineData("Multiply", "null", "1.5", "0")]
+    [InlineData("Multiply", "40", "null", "0")]
+    [InlineData("Multiply", "1.5", "null", "0")]
+    [InlineData("Divide", "null", "40", "0")]
+    [InlineData("Divide", "null", "1.5", "0")]
+    [InlineData("Modulo", "null", "40", "0")]
+    [InlineData("Modulo", "null", "1.5", "0")]
+    public void PropertyFunctionMSBuildArithmeticTreatsNullAsZero(string methodName, string left, string right, string expected)
+        => ExpandProperties($"$([MSBuild]::{methodName}({left}, {right}))")
+            .ShouldBe(expected);
+
+    /// <summary>
+    ///  Verifies arithmetic coercion errors for zero divisors and nonnumeric typed values.
+    /// </summary>
+    /// <param name="expression">The complete property-function expression expected to fail.</param>
+    [Theory]
+    [InlineData("$([MSBuild]::Divide(40, null))")]
+    [InlineData("$([MSBuild]::Modulo(40, null))")]
+    [InlineData("$([MSBuild]::Divide(null, null))")]
+    [InlineData("$([MSBuild]::Modulo(null, null))")]
+    [InlineData("$([MSBuild]::Add($([System.DateTime]::Parse('2024-01-01')), 2))")]
+    [InlineData("$([MSBuild]::Add(2, $([System.DateTime]::Parse('2024-01-01'))))")]
+    public void PropertyFunctionMSBuildArithmeticPreservesCoercionErrors(string expression)
+        => Should.Throw<InvalidProjectFileException>(() => ExpandProperties(expression));
+
+    /// <summary>
+    ///  Verifies that recognized arithmetic intrinsics with uncoercible arguments report the existing static
+    ///  function diagnostic without falling back to reflection.
+    /// </summary>
+    /// <param name="methodName">The arithmetic intrinsic to invoke.</param>
+    [Theory]
+    [InlineData("Add")]
+    [InlineData("Subtract")]
+    [InlineData("Multiply")]
+    [InlineData("Divide")]
+    [InlineData("Modulo")]
+    public void PropertyFunctionMSBuildArithmeticInvalidArgumentsUseStaticFunctionError(string methodName)
+    {
+        InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+            () => ExpandProperties($"$([MSBuild]::{methodName}('not a number', 2))"));
+
+        exception.ErrorCode.ShouldBe("MSB4186");
+    }
+
+    /// <summary>
+    ///  Enumerates every ordered pair of supported raw and typed arithmetic operand forms, including
+    ///  <see langword="null"/>, numeric values, <see cref="bool"/>, <see cref="char"/>, and enums.
+    /// </summary>
+    /// <value>
+    ///  The operand expressions, result, and runtime result type for each ordered pair.
+    /// </value>
+    public static TheoryData<string, string?> ArithmeticCoercionCases
+    {
+        get
+        {
+            var operands = new[]
+            {
+                (Left: "null", Right: "null", LeftDouble: 0D, RightDouble: 0D, WellKnownLong: true,
+                    WellKnownDouble: true, BindsToLong: true, BindsToDouble: true,
+                    CoercesToLong: true, CoercesToDouble: true),
+                (Left: "1", Right: "2", LeftDouble: 1D, RightDouble: 2D, WellKnownLong: true,
+                    WellKnownDouble: true, BindsToLong: false, BindsToDouble: false,
+                    CoercesToLong: true, CoercesToDouble: true),
+                (Left: "1.25", Right: "2.25", LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false,
+                    WellKnownDouble: true, BindsToLong: false, BindsToDouble: false,
+                    CoercesToLong: false, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToSByte('1'))", Right: "$([System.Convert]::ToSByte('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToByte('1'))", Right: "$([System.Convert]::ToByte('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToInt16('1'))", Right: "$([System.Convert]::ToInt16('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToUInt16('1'))", Right: "$([System.Convert]::ToUInt16('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToInt32('1'))", Right: "$([System.Convert]::ToInt32('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: true, WellKnownDouble: true,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToUInt32('1'))", Right: "$([System.Convert]::ToUInt32('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToInt64('1'))", Right: "$([System.Convert]::ToInt64('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: true, WellKnownDouble: true,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToUInt64('1'))", Right: "$([System.Convert]::ToUInt64('2'))",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: false, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToSingle('1.25'))", Right: "$([System.Convert]::ToSingle('2.25'))",
+                    LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: false, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToDouble('1.25'))", Right: "$([System.Convert]::ToDouble('2.25'))",
+                    LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false, WellKnownDouble: true,
+                    BindsToLong: false, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToDecimal('1.25'))", Right: "$([System.Convert]::ToDecimal('2.25'))",
+                    LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: false, BindsToDouble: false, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToBoolean('true'))", Right: "$([System.Convert]::ToBoolean('false'))",
+                    LeftDouble: 1D, RightDouble: 0D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: false, BindsToDouble: false, CoercesToLong: true, CoercesToDouble: true),
+                (Left: "$([System.Convert]::ToChar('A'))", Right: "$([System.Convert]::ToChar('B'))",
+                    LeftDouble: 65D, RightDouble: 66D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: false),
+                (Left: "$([System.DateTime]::Parse('2024-01-01').DayOfWeek)",
+                    Right: "$([System.DateTime]::Parse('2024-01-02').DayOfWeek)",
+                    LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
+                    BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
+            };
+
+            TheoryData<string, string?> data = new();
+
+            foreach (var left in operands)
+            {
+                foreach (var right in operands)
+                {
+                    bool usesLong = left.WellKnownLong && right.WellKnownLong;
+                    bool usesDouble = !usesLong && left.WellKnownDouble && right.WellKnownDouble;
+
+                    if (!usesLong && !usesDouble)
+                    {
+                        usesLong = left.BindsToLong && right.BindsToLong;
+                        usesDouble = !usesLong && left.BindsToDouble && right.BindsToDouble;
+
+                        if (!usesLong && !usesDouble)
+                        {
+                            usesLong = left.CoercesToLong && right.CoercesToLong;
+                            usesDouble = !usesLong && left.CoercesToDouble && right.CoercesToDouble;
+                        }
+                    }
+
+                    string invocation = $"[MSBuild]::Add({left.Left}, {right.Right})";
+
+                    if (usesLong)
+                    {
+                        long result = Convert.ToInt64(left.LeftDouble) + Convert.ToInt64(right.RightDouble);
+                        AddInt64Case(data, invocation, result);
+                    }
+                    else if (usesDouble)
+                    {
+                        AddDoubleCase(data, invocation, left.LeftDouble + right.RightDouble);
+                    }
+                    else
+                    {
+                        data.Add($"$({invocation})", null);
+                    }
+                }
+            }
+
+            AddInt64Case(data, "[MSBuild]::Subtract(null, null)", 0);
+            AddInt64Case(data, "[MSBuild]::Multiply(null, null)", 0);
+
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToSingle('1.5')), 0)", 2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToSingle('2.5')), 0)", 2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToSingle('-1.5')), 0)", -2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToSingle('-2.5')), 0)", -2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToDecimal('1.5')), 0)", 2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToDecimal('2.5')), 0)", 2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToDecimal('-1.5')), 0)", -2);
+            AddInt64Case(data, "[MSBuild]::Add($([System.Convert]::ToDecimal('-2.5')), 0)", -2);
+
+            AddDoubleCase(data, "[MSBuild]::Add($([System.Double]::NaN), 2)", double.NaN);
+            AddDoubleCase(data, "[MSBuild]::Add(2, $([System.Double]::NaN))", double.NaN);
+            AddDoubleCase(data, "[MSBuild]::Add($([System.Double]::PositiveInfinity), 2)", double.PositiveInfinity);
+            AddDoubleCase(data, "[MSBuild]::Add(2, $([System.Double]::PositiveInfinity))", double.PositiveInfinity);
+            AddDoubleCase(data, "[MSBuild]::Add($([System.Double]::NegativeInfinity), 2)", double.NegativeInfinity);
+            AddDoubleCase(data, "[MSBuild]::Add(2, $([System.Double]::NegativeInfinity))", double.NegativeInfinity);
+
+            return data;
+
+            static void AddInt64Case(TheoryData<string, string?> data, string invocation, long value)
+                => AddCase(data, invocation, value.ToString(CultureInfo.InvariantCulture), TypeCode.Int64);
+
+            static void AddDoubleCase(TheoryData<string, string?> data, string invocation, double value)
+                => AddCase(data, invocation, value.ToString(CultureInfo.InvariantCulture), TypeCode.Double);
+
+            static void AddCase(TheoryData<string, string?> data, string invocation, string expected, TypeCode expectedTypeCode)
+            {
+                data.Add($"$({invocation})", expected);
+                data.Add($"$({invocation}.GetTypeCode())", expectedTypeCode.ToString());
+            }
+        }
+    }
+
+    /// <summary>
+    ///  Characterizes overload selection for every ordered pair of supported arithmetic operand forms. The
+    ///  well-known path preserves the historical precedence of direct numeric conversions, primitive reflection
+    ///  binding, and the final <see cref="Convert.ChangeType"/> fallback.
+    /// </summary>
+    /// <param name="expression">The complete property-function expression.</param>
+    /// <param name="expected">
+    ///  The expected expression result, or <see langword="null"/> when evaluation should fail.
+    /// </param>
+    [Theory]
+    [MemberData(nameof(ArithmeticCoercionCases))]
+    [UseInvariantCulture]
+    public void PropertyFunctionMSBuildArithmeticCoercion(string expression, string? expected)
+    {
+        if (expected is null)
+        {
+            Should.Throw<InvalidProjectFileException>(() => ExpandProperties(expression));
+        }
+        else
+        {
+            ExpandProperties(expression).ShouldBe(expected);
+        }
+    }
+
+    /// <summary>
+    ///  Verifies that typed numeric values whose conversion to <see cref="long"/> overflows select the
+    ///  <see cref="double"/> overload.
+    /// </summary>
+    /// <param name="conversionMethod">The <see cref="Convert"/> method that produces the typed operand.</param>
+    /// <param name="value">The value passed to <paramref name="conversionMethod"/>.</param>
+    [Theory]
+    [InlineData("ToUInt64", "9223372036854775808")]
+    [InlineData("ToSingle", "1E+20")]
+    [InlineData("ToDouble", "1E+20")]
+    [InlineData("ToDecimal", "9223372036854775808")]
+    [UseInvariantCulture]
+    public void PropertyFunctionMSBuildArithmeticTypedNumericArgumentsCanOverflowLongCoercion(string conversionMethod, string value)
+    {
+        string invocation = $"[MSBuild]::Add($([System.Convert]::{conversionMethod}('{value}')), 0)";
+
+        ExpandProperties($"$({invocation}.GetTypeCode())")
+            .ShouldBe(nameof(TypeCode.Double));
+    }
 
     [Fact]
     public void PropertyFunctionConvertToString()
