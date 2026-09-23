@@ -16,12 +16,90 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
     : WellKnownFunctionsTestBase(typeof(IntrinsicFunctions), output)
 {
     [Theory]
-    [InlineData(1L, 2L, 3L)]
-    [InlineData(1.5, 2.5, 4.0)]
-    public void IntrinsicFunctions_Add(object left, object right, object expected)
-        => StaticMember(nameof(IntrinsicFunctions.Add))
-            .Invoke([left, right])
-            .ShouldBe(expected);
+    [MemberData(nameof(ArithmeticFunctionData))]
+    public void IntrinsicFunctions_Arithmetic(string methodName, object? left, object? right, bool handled, bool divideByZero, object? expected)
+    {
+        if (!handled)
+        {
+            StaticMember(methodName).NotHandled([left, right]);
+        }
+        else if (divideByZero)
+        {
+            Should.Throw<DivideByZeroException>(() => StaticMember(methodName).Invoke([left, right]));
+        }
+        else
+        {
+            StaticMember(methodName)
+                .Invoke([left, right])
+                .ShouldBe(expected);
+        }
+    }
+
+    public static TheoryData<string, object?, object?, bool, bool, object?> ArithmeticFunctionData
+    {
+        get
+        {
+            string[] methodNames =
+            [
+                nameof(IntrinsicFunctions.Add),
+                nameof(IntrinsicFunctions.Subtract),
+                nameof(IntrinsicFunctions.Multiply),
+                nameof(IntrinsicFunctions.Divide),
+                nameof(IntrinsicFunctions.Modulo),
+            ];
+
+            TheoryData<string, object?, object?, bool, bool, object?> data = new();
+
+            foreach (string methodName in methodNames)
+            {
+                foreach (var (left, right, converted0, converted1) in ArgumentParser_Tests.GetArithmeticArgumentCases())
+                {
+                    if (converted0 is null)
+                    {
+                        data.Add(methodName, left, right, false, false, null);
+                    }
+                    else if (converted0 is long long0)
+                    {
+                        long long1 = (long)converted1!;
+                        bool divideByZero = long1 == 0
+                            && methodName is nameof(IntrinsicFunctions.Divide) or nameof(IntrinsicFunctions.Modulo);
+
+                        data.Add(methodName, left, right, true, divideByZero, divideByZero ? null : InvokeLongs(methodName, long0, long1));
+                    }
+                    else
+                    {
+                        data.Add(methodName, left, right, true, false, InvokeDoubles(methodName, (double)converted0, (double)converted1!));
+                    }
+                }
+            }
+
+            return data;
+
+            static long InvokeLongs(string methodName, long arg0, long arg1)
+                => methodName switch
+                {
+                    nameof(IntrinsicFunctions.Add) => IntrinsicFunctions.Add(arg0, arg1),
+                    nameof(IntrinsicFunctions.Subtract) => IntrinsicFunctions.Subtract(arg0, arg1),
+                    nameof(IntrinsicFunctions.Multiply) => IntrinsicFunctions.Multiply(arg0, arg1),
+                    nameof(IntrinsicFunctions.Divide) => IntrinsicFunctions.Divide(arg0, arg1),
+                    nameof(IntrinsicFunctions.Modulo) => IntrinsicFunctions.Modulo(arg0, arg1),
+
+                    _ => Assumed.Unreachable<long>(),
+                };
+
+            static double InvokeDoubles(string methodName, double arg0, double arg1)
+                => methodName switch
+                {
+                    nameof(IntrinsicFunctions.Add) => IntrinsicFunctions.Add(arg0, arg1),
+                    nameof(IntrinsicFunctions.Subtract) => IntrinsicFunctions.Subtract(arg0, arg1),
+                    nameof(IntrinsicFunctions.Multiply) => IntrinsicFunctions.Multiply(arg0, arg1),
+                    nameof(IntrinsicFunctions.Divide) => IntrinsicFunctions.Divide(arg0, arg1),
+                    nameof(IntrinsicFunctions.Modulo) => IntrinsicFunctions.Modulo(arg0, arg1),
+
+                    _ => Assumed.Unreachable<double>(),
+                };
+        }
+    }
 
     [Theory]
     [InlineData(nameof(IntrinsicFunctions.Add))]
@@ -138,14 +216,6 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
     public void IntrinsicFunctions_DoesTaskHostExist_NotHandled()
         => StaticMember(nameof(IntrinsicFunctions.DoesTaskHostExist))
             .NotHandled(["CurrentRuntime", "CurrentArchitecture"]);
-
-    [Theory]
-    [InlineData(5L, 2L, 2L)]
-    [InlineData(5.5, 2.0, 2.75)]
-    public void IntrinsicFunctions_Divide(object left, object right, object expected)
-        => StaticMember(nameof(IntrinsicFunctions.Divide))
-            .Invoke([left, right])
-            .ShouldBe(expected);
 
     [Fact]
     public void IntrinsicFunctions_EnsureTrailingSlash()
@@ -363,22 +433,6 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
         => StaticMember(nameof(IntrinsicFunctions.MakeRelative))
             .NotHandled([Path.GetPathRoot(Directory.GetCurrentDirectory())!, "relative"]);
 
-    [Theory]
-    [InlineData(5L, 2L, 1L)]
-    [InlineData(5.5, 2.0, 1.5)]
-    public void IntrinsicFunctions_Modulo(object left, object right, object expected)
-        => StaticMember(nameof(IntrinsicFunctions.Modulo))
-            .Invoke([left, right])
-            .ShouldBe(expected);
-
-    [Theory]
-    [InlineData(2L, 3L, 6L)]
-    [InlineData(2.0, 3.5, 7.0)]
-    public void IntrinsicFunctions_Multiply(object left, object right, object expected)
-        => StaticMember(nameof(IntrinsicFunctions.Multiply))
-            .Invoke([left, right])
-            .ShouldBe(expected);
-
     [Fact]
     public void IntrinsicFunctions_NormalizeDirectory()
         => StaticMember(nameof(IntrinsicFunctions.NormalizeDirectory))
@@ -489,14 +543,6 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
     public void IntrinsicFunctions_SubstringByAsciiChars_InvalidIndex_NotHandled()
         => StaticMember(nameof(IntrinsicFunctions.SubstringByAsciiChars))
             .NotHandled(["abc", "invalid", "2"]);
-
-    [Theory]
-    [InlineData(5L, 2L, 3L)]
-    [InlineData(5.5, 2.0, 3.5)]
-    public void IntrinsicFunctions_Subtract(object left, object right, object expected)
-        => StaticMember(nameof(IntrinsicFunctions.Subtract))
-            .Invoke([left, right])
-            .ShouldBe(expected);
 
     [Fact]
     public void IntrinsicFunctions_Unescape()

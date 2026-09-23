@@ -1195,8 +1195,8 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         {
             var operands = new[]
             {
-                (Left: "null", Right: "null", LeftDouble: 0D, RightDouble: 0D, WellKnownLong: true,
-                    WellKnownDouble: true, BindsToLong: true, BindsToDouble: true,
+                (Left: "null", Right: "null", LeftDouble: 0D, RightDouble: 0D, WellKnownLong: false,
+                    WellKnownDouble: false, BindsToLong: true, BindsToDouble: true,
                     CoercesToLong: true, CoercesToDouble: true),
                 (Left: "1", Right: "2", LeftDouble: 1D, RightDouble: 2D, WellKnownLong: true,
                     WellKnownDouble: true, BindsToLong: false, BindsToDouble: false,
@@ -1204,6 +1204,9 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
                 (Left: "1.25", Right: "2.25", LeftDouble: 1.25D, RightDouble: 2.25D, WellKnownLong: false,
                     WellKnownDouble: true, BindsToLong: false, BindsToDouble: false,
                     CoercesToLong: false, CoercesToDouble: true),
+                (Left: "'1-'", Right: "'2-'", LeftDouble: -1D, RightDouble: -2D, WellKnownLong: false,
+                    WellKnownDouble: true, BindsToLong: false, BindsToDouble: false,
+                    CoercesToLong: false, CoercesToDouble: false),
                 (Left: "$([System.Convert]::ToSByte('1'))", Right: "$([System.Convert]::ToSByte('2'))",
                     LeftDouble: 1D, RightDouble: 2D, WellKnownLong: false, WellKnownDouble: false,
                     BindsToLong: true, BindsToDouble: true, CoercesToLong: true, CoercesToDouble: true),
