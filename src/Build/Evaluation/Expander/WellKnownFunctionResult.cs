@@ -3,19 +3,15 @@
 
 namespace Microsoft.Build.Evaluation.Expander;
 
-internal readonly struct WellKnownFunctionResult
+internal readonly struct WellKnownFunctionResult(WellKnownFunctionStatus status, object? result)
 {
-    private WellKnownFunctionResult(WellKnownFunctionStatus status, object? result)
-    {
-        Status = status;
-        Result = result;
-    }
+    public WellKnownFunctionStatus Status => status;
 
-    public WellKnownFunctionStatus Status { get; }
+    public object? Result => result;
 
-    public object? Result { get; }
+    public static WellKnownFunctionResult NotHandled
+        => new(WellKnownFunctionStatus.NotHandled, result: null);
 
-    public static WellKnownFunctionResult NotHandled => new(WellKnownFunctionStatus.NotHandled, result: null);
-
-    public static WellKnownFunctionResult Invoked(object? result) => new(WellKnownFunctionStatus.Invoked, result);
+    public static WellKnownFunctionResult Invoked(object? result)
+        => new(WellKnownFunctionStatus.Invoked, result);
 }
