@@ -3,15 +3,20 @@
 
 using System;
 using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Framework;
 using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
+/// <summary>
+///  Dispatches calls to optimized implementations of commonly used property functions.
+/// </summary>
+/// <remarks>
+///  Reflection binding is expensive and can throw first-chance <see cref="MissingMethodException"/> exceptions.
+///  Recognizing common calls avoids that cost and improves the debugging experience.
+///  For background, see <see href="https://github.com/dotnet/msbuild/issues/2217">dotnet/msbuild#2217</see>.
+/// </remarks>
 internal static partial class WellKnownFunctions
 {
     private static readonly CharHandler s_charHandler = new();
@@ -25,117 +30,68 @@ internal static partial class WellKnownFunctions
     private static readonly StringHandler s_stringHandler = new();
     private static readonly VersionHandler s_versionHandler = new();
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void LogFunctionCall(Type receiverType, string methodName, string fileName, object? objectInstance, object?[] args)
-    {
-        string logFile = Path.Combine(Directory.GetCurrentDirectory(), fileName);
-
-        string argSignature = args is not null
-            ? string.Join(", ", args.Select(a => a?.GetType().Name ?? "null"))
-            : string.Empty;
-
-        File.AppendAllText(logFile, $"ReceiverType={receiverType?.FullName}; ObjectInstanceType={objectInstance?.GetType().FullName}; MethodName={methodName}({argSignature})\n");
-    }
-
     /// <summary>
-    ///  Shortcut to avoid calling into binding if we recognize some of the most common functions.
-    ///  Binding is expensive and throws first-chance <see cref="MissingMethodException"/> exceptions,
-    ///  which is bad for the debugging experience and has a performance cost.
-    ///  A typical binding operation with an exception can take ~1.500 ms; this call is ~0.050 ms
-    ///  (rough numbers just for comparison).
-    ///  See https://github.com/dotnet/msbuild/issues/2217.
+    ///  Attempts to invoke a commonly used static function without reflection.
     /// </summary>
     /// <param name="receiverType">The type that declares the function.</param>
     /// <param name="methodName">The name of the function to call.</param>
     /// <param name="args">The function arguments.</param>
     /// <param name="fileSystem">The file system used by intrinsic functions.</param>
     /// <returns>
-    ///  The invocation status and result.
+    ///  The invocation result, including whether the function was handled.
     /// </returns>
     public static WellKnownFunctionResult TryInvokeStatic(Type receiverType, string methodName, object?[] args, IFileSystem fileSystem)
-    {
-        WellKnownFunctionResult result = WellKnownFunctionResult.NotHandled;
+        => receiverType == typeof(string)
+            ? s_stringHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(Math)
+            ? s_mathHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(IntrinsicFunctions)
+            ? s_intrinsicFunctionsHandler.TryInvokeStatic(methodName, args, fileSystem)
+         : receiverType == typeof(Path)
+            ? s_pathHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(Version)
+            ? s_versionHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(Guid)
+            ? s_guidHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(char)
+            ? s_charHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(Regex)
+            ? s_regexHandler.TryInvokeStatic(methodName, args)
 
-        if (receiverType == typeof(string))
-        {
-            result = s_stringHandler.TryInvokeStatic(methodName, args);
-        }
-        else if (receiverType == typeof(Math))
-        {
-            result = s_mathHandler.TryInvokeStatic(methodName, args);
-        }
-        else if (receiverType == typeof(IntrinsicFunctions))
-        {
-            result = s_intrinsicFunctionsHandler.TryInvokeStatic(methodName, args, fileSystem);
-        }
-        else if (receiverType == typeof(Path))
-        {
-            result = s_pathHandler.TryInvokeStatic(methodName, args);
-        }
-        else if (receiverType == typeof(Version))
-        {
-            result = s_versionHandler.TryInvokeStatic(methodName, args);
-        }
-        else if (receiverType == typeof(Guid))
-        {
-            result = s_guidHandler.TryInvokeStatic(methodName, args);
-        }
-        else if (receiverType == typeof(char))
-        {
-            result = s_charHandler.TryInvokeStatic(methodName, args);
-        }
-        else if (receiverType == typeof(Regex))
-        {
-            result = s_regexHandler.TryInvokeStatic(methodName, args);
-        }
+         : NotHandled;
 
-        if (result.Status == WellKnownFunctionStatus.Invoked)
-        {
-            return result;
-        }
-
-        if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
-        {
-            LogFunctionCall(receiverType, methodName, "PropertyFunctionsRequiringReflection", null, args);
-        }
-
-        return NotHandled;
-    }
-
+    /// <summary>
+    ///  Attempts to invoke a commonly used instance function without reflection.
+    /// </summary>
+    /// <param name="objectInstance">The object on which to invoke the function.</param>
+    /// <param name="methodName">The name of the function to call.</param>
+    /// <param name="args">The function arguments.</param>
+    /// <returns>
+    ///  The invocation result, including whether the function was handled.
+    /// </returns>
     public static WellKnownFunctionResult TryInvokeInstance(object objectInstance, string methodName, object?[] args)
-    {
-        WellKnownFunctionResult result = WellKnownFunctionResult.NotHandled;
+        => objectInstance switch
+        {
+            string s => s_stringHandler.TryInvokeInstance(methodName, s, args),
+            string[] a => s_stringArrayHandler.TryInvokeInstance(methodName, a, args),
+            Version v => s_versionHandler.TryInvokeInstance(methodName, v, args),
+            int i => s_int32Handler.TryInvokeInstance(methodName, i, args),
 
-        if (objectInstance is string s)
-        {
-            result = s_stringHandler.TryInvokeInstance(methodName, s, args);
-        }
-        else if (objectInstance is string[] a)
-        {
-            result = s_stringArrayHandler.TryInvokeInstance(methodName, a, args);
-        }
-        else if (objectInstance is Version v)
-        {
-            result = s_versionHandler.TryInvokeInstance(methodName, v, args);
-        }
-        else if (objectInstance is int i)
-        {
-            result = s_int32Handler.TryInvokeInstance(methodName, i, args);
-        }
+            _ => NotHandled,
+        };
 
-        if (result.Status == WellKnownFunctionStatus.Invoked)
-        {
-            return result;
-        }
-
-        if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
-        {
-            LogFunctionCall(objectInstance.GetType(), methodName, "PropertyFunctionsRequiringReflection", objectInstance, args);
-        }
-
-        return NotHandled;
-    }
-
+    /// <summary>
+    ///  Attempts to invoke a context-dependent static function without reflection.
+    /// </summary>
+    /// <typeparam name="T">The type of property supplied by <paramref name="properties"/>.</typeparam>
+    /// <param name="receiverType">The type that declares the function.</param>
+    /// <param name="methodName">The name of the function to call.</param>
+    /// <param name="args">The function arguments.</param>
+    /// <param name="properties">The properties available to the function.</param>
+    /// <param name="loggingContext">The logging context for the function.</param>
+    /// <returns>
+    ///  The invocation result, including whether the function was handled.
+    /// </returns>
     public static WellKnownFunctionResult TryInvokeStatic<T>(
         Type receiverType,
         string methodName,
@@ -148,31 +104,17 @@ internal static partial class WellKnownFunctions
             : NotHandled;
 
     /// <summary>
-    ///  Shortcut to avoid calling into binding if we recognize some of the most common constructors.
-    ///  Analogous to <see cref="TryInvokeStatic"/> but guaranteed not to throw.
+    ///  Attempts to invoke a commonly used constructor without reflection.
     /// </summary>
-    /// <param name="receiverType">The receiver type for the constructor.</param>
-    /// <param name="args">Arguments.</param>
+    /// <param name="receiverType">The type to construct.</param>
+    /// <param name="args">The constructor arguments.</param>
     /// <returns>
-    ///  The invocation status and result.
+    ///  The invocation result, including whether the constructor was handled.
     /// </returns>
     public static WellKnownFunctionResult TryInvokeConstructor(Type receiverType, object?[] args)
-    {
-        if (receiverType == typeof(string))
-        {
-            if (args.Length == 0)
-            {
-                return Invoked(string.Empty);
-            }
-
-            if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
-            {
-                return Invoked(arg0);
-            }
-        }
-
-        return NotHandled;
-    }
+        => receiverType == typeof(string)
+            ? s_stringHandler.TryInvokeConstructor(args)
+            : NotHandled;
 
     private static WellKnownFunctionResult NotHandled
         => default;

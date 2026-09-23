@@ -500,6 +500,7 @@ internal partial class Expander<P, I>
                     }
                     else
                     {
+                        LogFunctionCallRequiringReflection(objectInstance: null, args);
                         functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
                     }
                 }
@@ -547,6 +548,8 @@ internal partial class Expander<P, I>
 
                     if (!wellKnownFunctionSuccess)
                     {
+                        LogFunctionCallRequiringReflection(objectInstance, args);
+
                         // Execute the function given converted arguments
                         // The only exception that we should catch to try a late bind here is missing method
                         // otherwise there is the potential of running a function twice!
@@ -635,6 +638,23 @@ internal partial class Expander<P, I>
 
                 return null;
             }
+        }
+
+        private void LogFunctionCallRequiringReflection(object objectInstance, object[] args)
+        {
+            if (!Traits.Instance.LogPropertyFunctionsRequiringReflection)
+            {
+                return;
+            }
+
+            string logFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
+            string argSignature = string.Join(", ", args.Select(a => a?.GetType().Name ?? "null"));
+
+            System.IO.File.AppendAllText(
+                logFile,
+                $"ReceiverType={_receiverType?.FullName}; " +
+                $"ObjectInstanceType={objectInstance?.GetType().FullName}; " +
+                $"MethodName={_methodMethodName}({argSignature})\n");
         }
 
         private object GetMethodResult(object objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)
