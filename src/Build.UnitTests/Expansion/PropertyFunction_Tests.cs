@@ -887,24 +887,158 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         => ExpandProperties(expression).ShouldBe(expected);
 
     [Theory]
-    [InlineData("$([System.DateTime]::MinValue.Year)", "1")]
-    [InlineData("$([System.DateTime]::MaxValue.Year)", "9999")]
-    [InlineData("$([System.DateTime]::Today.ToString('yyyy-MM-dd'))", null)]
-    [InlineData("$([System.DateTime]::UtcNow.ToString('O'))", null)]
-#if NET
-    [InlineData("$([System.DateTime]::UnixEpoch.ToString('O'))", null)]
-#endif
-    public void PropertyFunctionDateTimeMembers(string expression, string? expected)
-    {
-        string? result = ExpandProperties(expression);
+    [MemberData(nameof(DateTimeMemberExpressions))]
+    [UseInvariantCulture]
+    public void PropertyFunctionDateTimeMembers(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
 
-        if (expected is null)
+    public static TheoryData<string, string> DateTimeMemberExpressions
+    {
+        get
         {
-            result.ShouldNotBeNull();
-        }
-        else
-        {
-            result.ShouldBe(expected);
+            TheoryData<string, string> data = new();
+            DateTime value = new(2026, 9, 23, 1, 2, 3, 4, DateTimeKind.Utc);
+            DateTime other = value.AddDays(1);
+            TimeSpan oneDay = TimeSpan.FromDays(1);
+            const string culture = "$([System.Globalization.CultureInfo]::CurrentUICulture)";
+            const string oneDayExpression = "$([System.TimeSpan]::FromDays('1'))";
+            const string valueExpression = "[System.DateTime]::new('2026', '9', '23', '1', '2', '3', '4', 'DateTimeKind.Utc')";
+            const string valueArgument = "$([System.DateTime]::new('2026', '9', '23', '1', '2', '3', '4', 'DateTimeKind.Utc'))";
+            const string otherExpression = "$([System.DateTime]::new('2026', '9', '24', '1', '2', '3', '4', 'DateTimeKind.Utc'))";
+
+            AddDateTime("[System.DateTime]::new('639047845230040000')", new DateTime(639047845230040000));
+            AddDateTime(
+                "[System.DateTime]::new('639047845230040000', 'DateTimeKind.Utc')",
+                new DateTime(639047845230040000, DateTimeKind.Utc));
+            AddDateTime("[System.DateTime]::new('2026', '9', '23')", new DateTime(2026, 9, 23));
+            AddDateTime("[System.DateTime]::new('2026', '9', '23', '1', '2', '3')", new DateTime(2026, 9, 23, 1, 2, 3));
+            AddDateTime(
+                "[System.DateTime]::new('2026', '9', '23', '1', '2', '3', 'DateTimeKind.Utc')",
+                new DateTime(2026, 9, 23, 1, 2, 3, DateTimeKind.Utc));
+            AddDateTime("[System.DateTime]::new('2026', '9', '23', '1', '2', '3', '4')", new DateTime(2026, 9, 23, 1, 2, 3, 4));
+            AddDateTime(valueExpression, value);
+#if NET
+            AddDateTime(
+                "[System.DateTime]::new('2026', '9', '23', '1', '2', '3', '4', '5')",
+                new DateTime(2026, 9, 23, 1, 2, 3, 4, 5));
+            AddDateTime(
+                "[System.DateTime]::new('2026', '9', '23', '1', '2', '3', '4', '5', 'DateTimeKind.Utc')",
+                new DateTime(2026, 9, 23, 1, 2, 3, 4, 5, DateTimeKind.Utc));
+#endif
+
+            data.Add($"$([System.DateTime]::Compare({valueArgument}, {otherExpression}))", "-1");
+            data.Add("$([System.DateTime]::DaysInMonth('2024', '2'))", "29");
+            data.Add($"$([System.DateTime]::Equals({valueArgument}, {valueArgument}))", "True");
+            AddDateTime($"[System.DateTime]::FromBinary('{value.ToBinary()}')", DateTime.FromBinary(value.ToBinary()));
+            AddDateTime($"[System.DateTime]::FromFileTime('{value.ToFileTimeUtc()}')", DateTime.FromFileTime(value.ToFileTimeUtc()));
+            AddDateTime($"[System.DateTime]::FromFileTimeUtc('{value.ToFileTimeUtc()}')", DateTime.FromFileTimeUtc(value.ToFileTimeUtc()));
+            AddDateTime($"[System.DateTime]::FromOADate('{value.ToOADate().ToString(CultureInfo.InvariantCulture)}')", DateTime.FromOADate(value.ToOADate()));
+            data.Add("$([System.DateTime]::IsLeapYear('2024'))", "True");
+            data.Add("$([System.DateTime]::MaxValue.Year)", "9999");
+            data.Add("$([System.DateTime]::MinValue.Year)", "1");
+            data.Add("$([System.DateTime]::Now.Kind)", DateTimeKind.Local.ToResultString()!);
+            data.Add("$([System.DateTime]::Today.TimeOfDay.Ticks)", "0");
+            data.Add("$([System.DateTime]::UtcNow.Kind)", DateTimeKind.Utc.ToResultString()!);
+#if NET
+            AddDateTime("[System.DateTime]::UnixEpoch", DateTime.UnixEpoch);
+#endif
+            AddDateTime("[System.DateTime]::Parse('2026-09-23')", new DateTime(2026, 9, 23));
+            AddDateTime($"[System.DateTime]::Parse('2026-09-23', {culture})", new DateTime(2026, 9, 23));
+            AddDateTime(
+                "[System.DateTime]::Parse('2026-09-23', null, 'DateTimeStyles.AssumeUniversal')",
+                DateTime.Parse("2026-09-23", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal));
+            AddDateTime(
+                $"[System.DateTime]::ParseExact('2026-09-23', 'yyyy-MM-dd', {culture})",
+                new DateTime(2026, 9, 23));
+            AddDateTime(
+                "[System.DateTime]::ParseExact('2026-09-23', 'yyyy-MM-dd', null, 'DateTimeStyles.AssumeUniversal')",
+                DateTime.ParseExact("2026-09-23", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal));
+            AddDateTime(
+                $"[System.DateTime]::SpecifyKind($([System.DateTime]::Parse('2026-09-23')), 'DateTimeKind.Utc')",
+                new DateTime(2026, 9, 23, 0, 0, 0, DateTimeKind.Utc));
+
+            AddDateTime($"[System.DateTime]::op_Addition({valueArgument}, {oneDayExpression})", value + oneDay);
+            data.Add($"$([System.DateTime]::op_Equality({valueArgument}, {valueArgument}))", "True");
+            data.Add($"$([System.DateTime]::op_GreaterThan({otherExpression}, {valueArgument}))", "True");
+            data.Add($"$([System.DateTime]::op_GreaterThanOrEqual({otherExpression}, {valueArgument}))", "True");
+            data.Add($"$([System.DateTime]::op_Inequality({valueArgument}, {otherExpression}))", "True");
+            data.Add($"$([System.DateTime]::op_LessThan({valueArgument}, {otherExpression}))", "True");
+            data.Add($"$([System.DateTime]::op_LessThanOrEqual({valueArgument}, {otherExpression}))", "True");
+            AddDateTime($"[System.DateTime]::op_Subtraction({otherExpression}, {oneDayExpression})", value);
+            AddTimeSpan($"[System.DateTime]::op_Subtraction({otherExpression}, {valueArgument})", oneDay);
+
+            AddDateTime($"{valueExpression}.Date", value.Date);
+            AddProperty(nameof(DateTime.Day), value.Day);
+            AddProperty(nameof(DateTime.DayOfWeek), value.DayOfWeek);
+            AddProperty(nameof(DateTime.DayOfYear), value.DayOfYear);
+            AddProperty(nameof(DateTime.Hour), value.Hour);
+            AddProperty(nameof(DateTime.Kind), value.Kind);
+            AddProperty(nameof(DateTime.Millisecond), value.Millisecond);
+            AddProperty(nameof(DateTime.Minute), value.Minute);
+            AddProperty(nameof(DateTime.Month), value.Month);
+            AddProperty(nameof(DateTime.Second), value.Second);
+            AddProperty(nameof(DateTime.Ticks), value.Ticks);
+            AddTimeSpan($"{valueExpression}.TimeOfDay", value.TimeOfDay);
+            AddProperty(nameof(DateTime.Year), value.Year);
+#if NET
+            AddProperty(nameof(DateTime.Microsecond), value.Microsecond);
+            AddProperty(nameof(DateTime.Nanosecond), value.Nanosecond);
+#endif
+
+            AddDateTime($"{valueExpression}.Add({oneDayExpression})", value.Add(oneDay));
+            AddDateTime($"{valueExpression}.AddDays('1')", value.AddDays(1));
+            AddDateTime($"{valueExpression}.AddHours('1')", value.AddHours(1));
+#if NET
+            AddDateTime($"{valueExpression}.AddMicroseconds('1')", value.AddMicroseconds(1));
+#endif
+            AddDateTime($"{valueExpression}.AddMilliseconds('1')", value.AddMilliseconds(1));
+            AddDateTime($"{valueExpression}.AddMinutes('1')", value.AddMinutes(1));
+            AddDateTime($"{valueExpression}.AddMonths('1')", value.AddMonths(1));
+            AddDateTime($"{valueExpression}.AddSeconds('1')", value.AddSeconds(1));
+            AddDateTime($"{valueExpression}.AddTicks('1')", value.AddTicks(1));
+            AddDateTime($"{valueExpression}.AddYears('1')", value.AddYears(1));
+            data.Add($"$({valueExpression}.CompareTo({otherExpression}))", value.CompareTo(other).ToResultString());
+            data.Add($"$({valueExpression}.Equals({otherExpression}))", value.Equals(other).ToResultString());
+            data.Add(
+                $"$({valueExpression}.GetDateTimeFormats().GetValue('0'))",
+                value.GetDateTimeFormats(CultureInfo.InvariantCulture)[0]);
+            data.Add($"$({valueExpression}.GetDateTimeFormats('O').GetValue('0'))", value.GetDateTimeFormats('O')[0]);
+            data.Add(
+                $"$({valueExpression}.GetDateTimeFormats({culture}).GetValue('0'))",
+                value.GetDateTimeFormats(CultureInfo.InvariantCulture)[0]);
+            data.Add(
+                $"$({valueExpression}.GetDateTimeFormats($([System.Convert]::ToChar('O')), {culture}).GetValue('0'))",
+                value.GetDateTimeFormats('O', CultureInfo.InvariantCulture)[0]);
+            data.Add($"$({valueExpression}.GetHashCode())", value.GetHashCode().ToResultString());
+            data.Add($"$({valueExpression}.GetTypeCode())", TypeCode.DateTime.ToResultString()!);
+            data.Add($"$({valueExpression}.IsDaylightSavingTime())", value.IsDaylightSavingTime().ToResultString());
+            AddDateTime($"{valueExpression}.Subtract({oneDayExpression})", value.Subtract(oneDay));
+            AddTimeSpan($"{valueExpression}.Subtract({otherExpression})", value.Subtract(other));
+            data.Add($"$({valueExpression}.ToBinary())", value.ToBinary().ToResultString());
+            data.Add($"$({valueExpression}.ToFileTime())", value.ToFileTime().ToResultString());
+            data.Add($"$({valueExpression}.ToFileTimeUtc())", value.ToFileTimeUtc().ToResultString());
+            AddDateTime($"{valueExpression}.ToLocalTime()", value.ToLocalTime());
+            data.Add($"$({valueExpression}.ToLongDateString())", value.ToString("D", CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToLongTimeString())", value.ToString("T", CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToOADate())", value.ToOADate().ToResultString());
+            data.Add($"$({valueExpression}.ToShortDateString())", value.ToString("d", CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToShortTimeString())", value.ToString("t", CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToString())", value.ToString(CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToString('O'))", value.ToString("O"));
+            data.Add($"$({valueExpression}.ToString({culture}))", value.ToString(CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToString('O', {culture}))", value.ToString("O", CultureInfo.InvariantCulture));
+            AddDateTime($"{valueExpression}.ToUniversalTime()", value.ToUniversalTime());
+
+            return data;
+
+            void AddDateTime(string invocation, DateTime expected)
+                => data.Add($"$({invocation}.ToBinary())", expected.ToBinary().ToResultString());
+
+            void AddTimeSpan(string invocation, TimeSpan expected)
+                => data.Add($"$({invocation}.Ticks)", expected.Ticks.ToResultString());
+
+            void AddProperty(string propertyName, object expected)
+                => data.Add($"$({valueExpression}.{propertyName})", expected.ToResultString()!);
         }
     }
 
@@ -1131,8 +1265,10 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
             void AddProperty(string propertyName, object expected)
                 => data.Add($"$({valueExpression}.{propertyName})", expected.ToResultString()!);
 
+#if NET
             void AddStaticField(string fieldName, object expected)
                 => data.Add($"$([System.TimeSpan]::{fieldName})", expected.ToResultString()!);
+#endif
         }
     }
 

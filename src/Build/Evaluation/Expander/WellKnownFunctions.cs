@@ -174,6 +174,8 @@ internal static partial class WellKnownFunctions
     public static WellKnownFunctionResult TryInvokeConstructor(Type receiverType, object?[] args)
         => receiverType == typeof(string)
             ? s_stringHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(DateTime)
+            ? s_dateTimeHandler.TryInvokeConstructor(args)
             : receiverType == typeof(System.Globalization.CultureInfo)
             ? s_cultureInfoHandler.TryInvokeConstructor(args)
             : receiverType == typeof(decimal)
