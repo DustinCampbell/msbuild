@@ -981,6 +981,162 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
+    [MemberData(nameof(TimeSpanMemberExpressions))]
+    [UseInvariantCulture]
+    public void PropertyFunctionTimeSpanMembers(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> TimeSpanMemberExpressions
+    {
+        get
+        {
+            TheoryData<string, string> data = new();
+            TimeSpan value = new(1, 2, 3, 4, 5);
+            TimeSpan oneHour = TimeSpan.FromHours(1);
+            TimeSpan twoHours = TimeSpan.FromHours(2);
+            const string culture = "$([System.Globalization.CultureInfo]::CurrentUICulture)";
+            const string oneHourExpression = "$([System.TimeSpan]::FromHours('1'))";
+            const string twoHoursExpression = "$([System.TimeSpan]::FromHours('2'))";
+            const string valueExpression = "[System.TimeSpan]::new('1', '2', '3', '4', '5')";
+
+            AddTimeSpan("[System.TimeSpan]::new($([System.Convert]::ToInt64('36000000000')))", oneHour);
+            AddTimeSpan("[System.TimeSpan]::new('1', '2', '3')", new TimeSpan(1, 2, 3));
+            AddTimeSpan("[System.TimeSpan]::new('1', '2', '3', '4')", new TimeSpan(1, 2, 3, 4));
+            AddTimeSpan("[System.TimeSpan]::new('1', '2', '3', '4', '5')", value);
+#if NET
+            AddTimeSpan("[System.TimeSpan]::new('1', '2', '3', '4', '5', '6')", new TimeSpan(1, 2, 3, 4, 5, 6));
+#endif
+
+            data.Add($"$([System.TimeSpan]::Compare({oneHourExpression}, {twoHoursExpression}))", "-1");
+            data.Add($"$([System.TimeSpan]::Equals({oneHourExpression}, {oneHourExpression}))", "True");
+            AddTimeSpan("[System.TimeSpan]::FromDays('1')", TimeSpan.FromDays(1));
+            AddTimeSpan("[System.TimeSpan]::FromHours('1')", oneHour);
+            AddTimeSpan("[System.TimeSpan]::FromMilliseconds('1')", TimeSpan.FromMilliseconds(1));
+            AddTimeSpan("[System.TimeSpan]::FromMinutes('1')", TimeSpan.FromMinutes(1));
+            AddTimeSpan("[System.TimeSpan]::FromSeconds('1')", TimeSpan.FromSeconds(1));
+            AddTimeSpan("[System.TimeSpan]::FromTicks('1')", TimeSpan.FromTicks(1));
+            AddTimeSpan("[System.TimeSpan]::Parse('01:02:03')", TimeSpan.Parse("01:02:03"));
+            AddTimeSpan(
+                $"[System.TimeSpan]::Parse('01:02:03', {culture})",
+                TimeSpan.Parse("01:02:03", CultureInfo.CurrentUICulture));
+            AddTimeSpan(
+                $"[System.TimeSpan]::ParseExact('01:02:03', 'c', {culture})",
+                TimeSpan.ParseExact("01:02:03", "c", CultureInfo.CurrentUICulture));
+            AddTimeSpan("[System.TimeSpan]::MaxValue", TimeSpan.MaxValue);
+            AddTimeSpan("[System.TimeSpan]::MinValue", TimeSpan.MinValue);
+            AddTimeSpan("[System.TimeSpan]::Zero", TimeSpan.Zero);
+
+            AddTimeSpan($"[System.TimeSpan]::op_Addition({oneHourExpression}, {twoHoursExpression})", oneHour + twoHours);
+#if NET
+            data.Add($"$([System.TimeSpan]::op_Division({twoHoursExpression}, {oneHourExpression}))", "2");
+            AddTimeSpan(
+                $"[System.TimeSpan]::op_Division({twoHoursExpression}, $([System.Convert]::ToDouble('2')))",
+                twoHours / 2);
+#endif
+            data.Add($"$([System.TimeSpan]::op_Equality({oneHourExpression}, {oneHourExpression}))", "True");
+            data.Add($"$([System.TimeSpan]::op_GreaterThan({twoHoursExpression}, {oneHourExpression}))", "True");
+            data.Add($"$([System.TimeSpan]::op_GreaterThanOrEqual({twoHoursExpression}, {oneHourExpression}))", "True");
+            data.Add($"$([System.TimeSpan]::op_Inequality({oneHourExpression}, {twoHoursExpression}))", "True");
+            data.Add($"$([System.TimeSpan]::op_LessThan({oneHourExpression}, {twoHoursExpression}))", "True");
+            data.Add($"$([System.TimeSpan]::op_LessThanOrEqual({oneHourExpression}, {twoHoursExpression}))", "True");
+#if NET
+            AddTimeSpan(
+                $"[System.TimeSpan]::op_Multiply({twoHoursExpression}, $([System.Convert]::ToDouble('2')))",
+                twoHours * 2);
+            AddTimeSpan(
+                $"[System.TimeSpan]::op_Multiply($([System.Convert]::ToDouble('2')), {twoHoursExpression})",
+                2 * twoHours);
+#endif
+            AddTimeSpan($"[System.TimeSpan]::op_Subtraction({twoHoursExpression}, {oneHourExpression})", oneHour);
+            AddTimeSpan($"[System.TimeSpan]::op_UnaryNegation({oneHourExpression})", -oneHour);
+            AddTimeSpan($"[System.TimeSpan]::op_UnaryPlus({oneHourExpression})", oneHour);
+
+            AddProperty(nameof(TimeSpan.Days), value.Days);
+            AddProperty(nameof(TimeSpan.Hours), value.Hours);
+            AddProperty(nameof(TimeSpan.Milliseconds), value.Milliseconds);
+            AddProperty(nameof(TimeSpan.Minutes), value.Minutes);
+            AddProperty(nameof(TimeSpan.Seconds), value.Seconds);
+            AddProperty(nameof(TimeSpan.Ticks), value.Ticks);
+            AddProperty(nameof(TimeSpan.TotalDays), value.TotalDays);
+            AddProperty(nameof(TimeSpan.TotalHours), value.TotalHours);
+            AddProperty(nameof(TimeSpan.TotalMilliseconds), value.TotalMilliseconds);
+            AddProperty(nameof(TimeSpan.TotalMinutes), value.TotalMinutes);
+            AddProperty(nameof(TimeSpan.TotalSeconds), value.TotalSeconds);
+#if NET
+            AddProperty(nameof(TimeSpan.Microseconds), value.Microseconds);
+            AddProperty(nameof(TimeSpan.Nanoseconds), value.Nanoseconds);
+            AddProperty(nameof(TimeSpan.TotalMicroseconds), value.TotalMicroseconds);
+            AddProperty(nameof(TimeSpan.TotalNanoseconds), value.TotalNanoseconds);
+
+            AddTimeSpan("[System.TimeSpan]::FromDays($([System.Convert]::ToInt32('1')))", TimeSpan.FromDays(1));
+            AddTimeSpan("[System.TimeSpan]::FromDays('1', '2', '3', '4', '5', '6')", TimeSpan.FromDays(1, 2, 3, 4, 5, 6));
+            AddTimeSpan("[System.TimeSpan]::FromHours($([System.Convert]::ToInt32('1')))", TimeSpan.FromHours(1));
+            AddTimeSpan("[System.TimeSpan]::FromHours('1', '2', '3', '4', '5')", TimeSpan.FromHours(1, 2, 3, 4, 5));
+            AddTimeSpan("[System.TimeSpan]::FromMicroseconds($([System.Convert]::ToInt64('1')))", TimeSpan.FromMicroseconds(1L));
+            AddTimeSpan("[System.TimeSpan]::FromMicroseconds($([System.Convert]::ToDouble('1.5')))", TimeSpan.FromMicroseconds(1.5));
+            AddTimeSpan("[System.TimeSpan]::FromMilliseconds($([System.Convert]::ToInt64('1')))", TimeSpan.FromMilliseconds(1L));
+            AddTimeSpan("[System.TimeSpan]::FromMilliseconds('1', '2')", TimeSpan.FromMilliseconds(1, 2));
+            AddTimeSpan("[System.TimeSpan]::FromMinutes($([System.Convert]::ToInt64('1')))", TimeSpan.FromMinutes(1L));
+            AddTimeSpan("[System.TimeSpan]::FromMinutes('1', '2', '3', '4')", TimeSpan.FromMinutes(1, 2, 3, 4));
+            AddTimeSpan("[System.TimeSpan]::FromSeconds($([System.Convert]::ToInt64('1')))", TimeSpan.FromSeconds(1L));
+            AddTimeSpan("[System.TimeSpan]::FromSeconds('1', '2', '3')", TimeSpan.FromSeconds(1, 2, 3));
+
+            AddStaticField(nameof(TimeSpan.HoursPerDay), TimeSpan.HoursPerDay);
+            AddStaticField(nameof(TimeSpan.MicrosecondsPerDay), TimeSpan.MicrosecondsPerDay);
+            AddStaticField(nameof(TimeSpan.MicrosecondsPerHour), TimeSpan.MicrosecondsPerHour);
+            AddStaticField(nameof(TimeSpan.MicrosecondsPerMillisecond), TimeSpan.MicrosecondsPerMillisecond);
+            AddStaticField(nameof(TimeSpan.MicrosecondsPerMinute), TimeSpan.MicrosecondsPerMinute);
+            AddStaticField(nameof(TimeSpan.MicrosecondsPerSecond), TimeSpan.MicrosecondsPerSecond);
+            AddStaticField(nameof(TimeSpan.MillisecondsPerDay), TimeSpan.MillisecondsPerDay);
+            AddStaticField(nameof(TimeSpan.MillisecondsPerHour), TimeSpan.MillisecondsPerHour);
+            AddStaticField(nameof(TimeSpan.MillisecondsPerMinute), TimeSpan.MillisecondsPerMinute);
+            AddStaticField(nameof(TimeSpan.MillisecondsPerSecond), TimeSpan.MillisecondsPerSecond);
+            AddStaticField(nameof(TimeSpan.MinutesPerDay), TimeSpan.MinutesPerDay);
+            AddStaticField(nameof(TimeSpan.MinutesPerHour), TimeSpan.MinutesPerHour);
+            AddStaticField(nameof(TimeSpan.NanosecondsPerTick), TimeSpan.NanosecondsPerTick);
+            AddStaticField(nameof(TimeSpan.SecondsPerDay), TimeSpan.SecondsPerDay);
+            AddStaticField(nameof(TimeSpan.SecondsPerHour), TimeSpan.SecondsPerHour);
+            AddStaticField(nameof(TimeSpan.SecondsPerMinute), TimeSpan.SecondsPerMinute);
+            AddStaticField(nameof(TimeSpan.TicksPerDay), TimeSpan.TicksPerDay);
+            AddStaticField(nameof(TimeSpan.TicksPerHour), TimeSpan.TicksPerHour);
+            AddStaticField(nameof(TimeSpan.TicksPerMicrosecond), TimeSpan.TicksPerMicrosecond);
+            AddStaticField(nameof(TimeSpan.TicksPerMillisecond), TimeSpan.TicksPerMillisecond);
+            AddStaticField(nameof(TimeSpan.TicksPerMinute), TimeSpan.TicksPerMinute);
+            AddStaticField(nameof(TimeSpan.TicksPerSecond), TimeSpan.TicksPerSecond);
+#endif
+
+            AddTimeSpan($"{valueExpression}.Add({oneHourExpression})", value.Add(oneHour));
+            data.Add($"$({valueExpression}.CompareTo({oneHourExpression}))", value.CompareTo(oneHour).ToResultString());
+#if NET
+            data.Add($"$({valueExpression}.Divide({oneHourExpression}))", value.Divide(oneHour).ToResultString());
+            AddTimeSpan($"{valueExpression}.Divide($([System.Convert]::ToDouble('2')))", value.Divide(2));
+#endif
+            AddTimeSpan($"{valueExpression}.Duration()", value.Duration());
+            data.Add($"$({valueExpression}.Equals({oneHourExpression}))", value.Equals(oneHour).ToResultString());
+            data.Add($"$({valueExpression}.GetHashCode())", value.GetHashCode().ToResultString());
+#if NET
+            AddTimeSpan($"{valueExpression}.Multiply($([System.Convert]::ToDouble('2')))", value.Multiply(2));
+#endif
+            AddTimeSpan($"{valueExpression}.Negate()", value.Negate());
+            AddTimeSpan($"{valueExpression}.Subtract({oneHourExpression})", value.Subtract(oneHour));
+            data.Add($"$({valueExpression}.ToString())", value.ToString());
+            data.Add($"$({valueExpression}.ToString('c'))", value.ToString("c"));
+            data.Add($"$({valueExpression}.ToString('c', {culture}))", value.ToString("c", CultureInfo.CurrentUICulture));
+
+            return data;
+
+            void AddTimeSpan(string invocation, TimeSpan expected)
+                => data.Add($"$({invocation}.Ticks)", expected.Ticks.ToResultString());
+
+            void AddProperty(string propertyName, object expected)
+                => data.Add($"$({valueExpression}.{propertyName})", expected.ToResultString()!);
+
+            void AddStaticField(string fieldName, object expected)
+                => data.Add($"$([System.TimeSpan]::{fieldName})", expected.ToResultString()!);
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(EnvironmentMemberExpressions))]
     public void PropertyFunctionEnvironmentMembers(string expression)
         => ExpandProperties(expression).ShouldNotBeNull();

@@ -120,6 +120,7 @@ internal static partial class WellKnownFunctions
             CaptureCollection captures => s_regexHandler.TryInvokeInstance(methodName, captures, args),
             System.Globalization.CultureInfo culture => s_cultureInfoHandler.TryInvokeInstance(methodName, culture, args),
             DateTime dateTime => s_dateTimeHandler.TryInvokeInstance(methodName, dateTime, args),
+            TimeSpan timeSpan => s_timeSpanHandler.TryInvokeInstance(methodName, timeSpan, args),
             decimal number => s_decimalHandler.TryInvokeInstance(methodName, number, args),
             FileSystemInfo fileSystemInfo => s_fileSystemHandler.TryInvokeInstance(methodName, fileSystemInfo, args),
             GroupCollection groups => s_regexHandler.TryInvokeInstance(methodName, groups, args),
@@ -185,6 +186,8 @@ internal static partial class WellKnownFunctions
             ? s_uriHandler.TryInvokeConstructor(receiverType, args)
             : receiverType == typeof(Version)
             ? s_versionHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(TimeSpan)
+            ? s_timeSpanHandler.TryInvokeConstructor(args)
             : NotHandled;
 
     private static WellKnownFunctionResult NotHandled
