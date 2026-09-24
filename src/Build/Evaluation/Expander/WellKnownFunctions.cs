@@ -24,6 +24,7 @@ internal static partial class WellKnownFunctions
     private static readonly CultureInfoHandler s_cultureInfoHandler = new();
     private static readonly DateTimeHandler s_dateTimeHandler = new();
     private static readonly EnvironmentHandler s_environmentHandler = new();
+    private static readonly FileSystemHandler s_fileSystemHandler = new();
     private static readonly GuidHandler s_guidHandler = new();
     private static readonly IntrinsicFunctionsHandler s_intrinsicFunctionsHandler = new();
     private static readonly MathHandler s_mathHandler = new();
@@ -59,6 +60,8 @@ internal static partial class WellKnownFunctions
             ? s_dateTimeHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Environment)
             ? s_environmentHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(Directory) || receiverType == typeof(File)
+            ? s_fileSystemHandler.TryInvokeStatic(receiverType, methodName, args)
          : receiverType == typeof(Math)
             ? s_mathHandler.TryInvokeStatic(methodName, args)
 #if NET
@@ -107,6 +110,7 @@ internal static partial class WellKnownFunctions
             CaptureCollection captures => s_regexHandler.TryInvokeInstance(methodName, captures, args),
             System.Globalization.CultureInfo culture => s_cultureInfoHandler.TryInvokeInstance(methodName, culture, args),
             DateTime dateTime => s_dateTimeHandler.TryInvokeInstance(methodName, dateTime, args),
+            FileSystemInfo fileSystemInfo => s_fileSystemHandler.TryInvokeInstance(methodName, fileSystemInfo, args),
             GroupCollection groups => s_regexHandler.TryInvokeInstance(methodName, groups, args),
             Match match => s_regexHandler.TryInvokeInstance(methodName, match, args),
             MatchCollection matches => s_regexHandler.TryInvokeInstance(methodName, matches, args),

@@ -682,6 +682,71 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         { """$([System.Text.RegularExpressions.Regex]::Matches('abc def', '[a-z]+')[1].Value)""", "def" },
     };
 
+    [Fact]
+    public void PropertyFunctionFileSystemMembers()
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var parent = env.CreateFolder();
+        var child = env.CreateFolder(Path.Combine(parent.Path, "child"), createFolder: true);
+        var file = env.CreateFile(child, "data.txt", "content");
+        PropertyDictionary<ProjectPropertyInstance> properties = Properties(
+            ("Parent", parent.Path),
+            ("Child", child.Path),
+            ("File", file.Path));
+
+        ExpandProperties("$([System.IO.Directory]::Exists($(Child)))", properties).ShouldBe(bool.TrueString);
+        ExpandProperties("$([System.IO.Directory]::GetDirectories($(Parent)).Length)", properties).ShouldBe("1");
+        ExpandProperties("$([System.IO.Directory]::GetDirectories($(Parent), 'ch*').Length)", properties).ShouldBe("1");
+        ExpandProperties("$([System.IO.Directory]::GetDirectories($(Parent), 'ch*', 'TopDirectoryOnly').Length)", properties).ShouldBe("1");
+        ExpandProperties("$([System.IO.Directory]::GetFiles($(Child)).Length)", properties).ShouldBe("1");
+        ExpandProperties("$([System.IO.Directory]::GetFiles($(Parent), '*.txt', 'AllDirectories').Length)", properties).ShouldBe("1");
+        DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetLastAccessTime($(Child)))", properties)!)
+            .ShouldBe(Directory.GetLastAccessTime(child.Path), TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetLastWriteTime($(Child)))", properties)!)
+            .ShouldBe(Directory.GetLastWriteTime(child.Path), TimeSpan.FromSeconds(1));
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).FullName)", properties).ShouldBe(child.Path);
+
+        ExpandProperties("$([System.IO.File]::Exists($(File)))", properties).ShouldBe(bool.TrueString);
+        ExpandProperties("$([System.IO.File]::GetAttributes($(File)))", properties).ShouldBe(File.GetAttributes(file.Path).ToString());
+        DateTime.Parse(ExpandProperties("$([System.IO.File]::GetCreationTime($(File)))", properties)!)
+            .ShouldBe(File.GetCreationTime(file.Path), TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.File]::GetCreationTimeUtc($(File)))", properties)!)
+            .ShouldBe(File.GetCreationTimeUtc(file.Path), TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.File]::GetLastAccessTime($(File)))", properties)!)
+            .ShouldBe(File.GetLastAccessTime(file.Path), TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.File]::GetLastWriteTime($(File)))", properties)!)
+            .ShouldBe(File.GetLastWriteTime(file.Path), TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.File]::GetLastWriteTimeUtc($(File)))", properties)!)
+            .ShouldBe(File.GetLastWriteTimeUtc(file.Path), TimeSpan.FromSeconds(1));
+        ExpandProperties("$([System.IO.File]::ReadAllBytes($(File)).Length)", properties).ShouldBe("7");
+        ExpandProperties("$([System.IO.File]::ReadAllText($(File)))", properties).ShouldBe("content");
+
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).Attributes)", properties)
+            .ShouldBe(new DirectoryInfo(child.Path).Attributes.ToString());
+        DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetParent($(File)).CreationTime)", properties)!)
+            .ShouldBe(new DirectoryInfo(child.Path).CreationTime, TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetParent($(File)).CreationTimeUtc)", properties)!)
+            .ShouldBe(new DirectoryInfo(child.Path).CreationTimeUtc, TimeSpan.FromSeconds(1));
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).Exists)", properties).ShouldBe(bool.TrueString);
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).Extension)", properties).ShouldBe("");
+        DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetParent($(File)).LastAccessTime)", properties)!)
+            .ShouldBe(new DirectoryInfo(child.Path).LastAccessTime, TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetParent($(File)).LastAccessTimeUtc)", properties)!)
+            .ShouldBe(new DirectoryInfo(child.Path).LastAccessTimeUtc, TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetParent($(File)).LastWriteTime)", properties)!)
+            .ShouldBe(new DirectoryInfo(child.Path).LastWriteTime, TimeSpan.FromSeconds(1));
+        DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetParent($(File)).LastWriteTimeUtc)", properties)!)
+            .ShouldBe(new DirectoryInfo(child.Path).LastWriteTimeUtc, TimeSpan.FromSeconds(1));
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).Name)", properties).ShouldBe("child");
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).ToString())", properties).ShouldBe(child.Path);
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).Parent.FullName)", properties).ShouldBe(parent.Path);
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).Root.FullName)", properties)
+            .ShouldBe(new DirectoryInfo(child.Path).Root.FullName);
+#if NET
+        ExpandProperties("$([System.IO.Directory]::GetParent($(File)).LinkTarget)", properties).ShouldBe("");
+#endif
+    }
+
     /// <summary>
     ///  Expand property function that calls a static method  with an instance method chained.
     /// </summary>
