@@ -11,7 +11,7 @@ namespace Microsoft.Build.Evaluation.Expander;
 
 internal static partial class WellKnownFunctions
 {
-    private sealed class PrimitiveHandler
+    private sealed partial class PrimitiveHandler
     {
         public WellKnownFunctionResult TryInvokeStatic(Type receiverType, string methodName, object?[] args)
         {
@@ -21,6 +21,12 @@ internal static partial class WellKnownFunctions
             }
 
 #if NET
+            WellKnownFunctionResult floatingPointResult = TryInvokeFloatingPoint(receiverType, methodName, args);
+            if (floatingPointResult.Status == WellKnownFunctionStatus.Invoked)
+            {
+                return floatingPointResult;
+            }
+
             WellKnownFunctionResult integerResult = TryInvokeInteger(receiverType, methodName, args);
             if (integerResult.Status == WellKnownFunctionStatus.Invoked)
             {

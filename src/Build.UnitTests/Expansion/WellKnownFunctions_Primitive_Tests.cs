@@ -201,6 +201,137 @@ public class WellKnownFunctions_Primitive_Tests(ITestOutputHelper output)
         StaticMember(nameof(int.Max)).Invoke([(byte)4, (short)2]).ShouldBe(4);
         StaticMember(nameof(int.Clamp)).Invoke(["4", (byte)1, 3L]).ShouldBe(3);
     }
+
+    [Fact]
+    public void FloatingPoint_StaticMethods()
+    {
+        AssertFloatingPointStaticMethods<float>();
+        AssertFloatingPointStaticMethods<double>();
+    }
+
+    [Fact]
+    public void FloatingPoint_StaticMethods_CoerceArguments()
+    {
+        StaticMemberFor(typeof(float), nameof(float.Max)).Invoke([(byte)4, (short)2]).ShouldBe(4f);
+        StaticMemberFor(typeof(float), nameof(float.Clamp)).Invoke(["4", (byte)1, 3L]).ShouldBe(3f);
+        StaticMemberFor(typeof(double), nameof(double.Max)).Invoke([(byte)4, (short)2]).ShouldBe(4d);
+        StaticMemberFor(typeof(double), nameof(double.Clamp)).Invoke(["4", (byte)1, 3L]).ShouldBe(3d);
+        StaticMemberFor(typeof(float), nameof(float.Max)).NotHandled(['A', 0f]);
+        StaticMemberFor(typeof(double), nameof(double.Max)).NotHandled(['A', 0d]);
+    }
+
+    private void AssertFloatingPointStaticMethods<T>()
+        where T : unmanaged, System.Numerics.IFloatingPointIeee754<T>, System.Numerics.IMinMaxValue<T>
+    {
+        Type type = typeof(T);
+        T negativeOne = T.CreateChecked(-1);
+        T zero = T.Zero;
+        T quarter = T.CreateChecked(0.25);
+        T half = T.CreateChecked(0.5);
+        T one = T.One;
+        T two = T.CreateChecked(2);
+        T three = T.CreateChecked(3);
+        T four = T.CreateChecked(4);
+        T eight = T.CreateChecked(8);
+
+        StaticMemberFor(type, nameof(float.Abs)).Invoke([negativeOne]).ShouldBe(T.Abs(negativeOne));
+        StaticMemberFor(type, nameof(float.Acos)).Invoke([half]).ShouldBe(T.Acos(half));
+        StaticMemberFor(type, nameof(float.Acosh)).Invoke([two]).ShouldBe(T.Acosh(two));
+        StaticMemberFor(type, nameof(float.AcosPi)).Invoke([half]).ShouldBe(T.AcosPi(half));
+        StaticMemberFor(type, nameof(float.Asin)).Invoke([half]).ShouldBe(T.Asin(half));
+        StaticMemberFor(type, nameof(float.Asinh)).Invoke([half]).ShouldBe(T.Asinh(half));
+        StaticMemberFor(type, nameof(float.AsinPi)).Invoke([half]).ShouldBe(T.AsinPi(half));
+        StaticMemberFor(type, nameof(float.Atan)).Invoke([one]).ShouldBe(T.Atan(one));
+        StaticMemberFor(type, nameof(float.Atan2)).Invoke([one, two]).ShouldBe(T.Atan2(one, two));
+        StaticMemberFor(type, nameof(float.Atan2Pi)).Invoke([one, two]).ShouldBe(T.Atan2Pi(one, two));
+        StaticMemberFor(type, nameof(float.Atanh)).Invoke([half]).ShouldBe(T.Atanh(half));
+        StaticMemberFor(type, nameof(float.AtanPi)).Invoke([one]).ShouldBe(T.AtanPi(one));
+        StaticMemberFor(type, nameof(float.BitDecrement)).Invoke([one]).ShouldBe(T.BitDecrement(one));
+        StaticMemberFor(type, nameof(float.BitIncrement)).Invoke([one]).ShouldBe(T.BitIncrement(one));
+        StaticMemberFor(type, nameof(float.Cbrt)).Invoke([eight]).ShouldBe(T.Cbrt(eight));
+        StaticMemberFor(type, nameof(float.Ceiling)).Invoke([half]).ShouldBe(T.Ceiling(half));
+        StaticMemberFor(type, nameof(float.Clamp)).Invoke([two, zero, one]).ShouldBe(T.Clamp(two, zero, one));
+        StaticMemberFor(type, nameof(float.ClampNative)).Invoke([two, zero, one]).ShouldBe(T.ClampNative(two, zero, one));
+        StaticMemberFor(type, nameof(float.CopySign)).Invoke([one, negativeOne]).ShouldBe(T.CopySign(one, negativeOne));
+        StaticMemberFor(type, nameof(float.Cos)).Invoke([one]).ShouldBe(T.Cos(one));
+        StaticMemberFor(type, nameof(float.Cosh)).Invoke([one]).ShouldBe(T.Cosh(one));
+        StaticMemberFor(type, nameof(float.CosPi)).Invoke([one]).ShouldBe(T.CosPi(one));
+        StaticMemberFor(type, nameof(float.DegreesToRadians)).Invoke([one]).ShouldBe(T.DegreesToRadians(one));
+        StaticMemberFor(type, nameof(float.Exp)).Invoke([one]).ShouldBe(T.Exp(one));
+        StaticMemberFor(type, nameof(float.Exp10)).Invoke([one]).ShouldBe(T.Exp10(one));
+        StaticMemberFor(type, nameof(float.Exp10M1)).Invoke([one]).ShouldBe(T.Exp10M1(one));
+        StaticMemberFor(type, nameof(float.Exp2)).Invoke([one]).ShouldBe(T.Exp2(one));
+        StaticMemberFor(type, nameof(float.Exp2M1)).Invoke([one]).ShouldBe(T.Exp2M1(one));
+        StaticMemberFor(type, nameof(float.ExpM1)).Invoke([one]).ShouldBe(T.ExpM1(one));
+        StaticMemberFor(type, nameof(float.Floor)).Invoke([half]).ShouldBe(T.Floor(half));
+        StaticMemberFor(type, nameof(float.FusedMultiplyAdd)).Invoke([two, three, four]).ShouldBe(T.FusedMultiplyAdd(two, three, four));
+        StaticMemberFor(type, nameof(float.Hypot)).Invoke([three, four]).ShouldBe(T.Hypot(three, four));
+        StaticMemberFor(type, nameof(float.Ieee754Remainder)).Invoke([three, two]).ShouldBe(T.Ieee754Remainder(three, two));
+        StaticMemberFor(type, nameof(float.ILogB)).Invoke([four]).ShouldBe(T.ILogB(four));
+        StaticMemberFor(type, nameof(float.IsEvenInteger)).Invoke([four]).ShouldBe(T.IsEvenInteger(four));
+        StaticMemberFor(type, nameof(float.IsFinite)).Invoke([one]).ShouldBe(T.IsFinite(one));
+        StaticMemberFor(type, nameof(float.IsInfinity)).Invoke([T.PositiveInfinity]).ShouldBe(T.IsInfinity(T.PositiveInfinity));
+        StaticMemberFor(type, nameof(float.IsInteger)).Invoke([one]).ShouldBe(T.IsInteger(one));
+        StaticMemberFor(type, nameof(float.IsNaN)).Invoke([T.NaN]).ShouldBe(T.IsNaN(T.NaN));
+        StaticMemberFor(type, nameof(float.IsNegative)).Invoke([negativeOne]).ShouldBe(T.IsNegative(negativeOne));
+        StaticMemberFor(type, nameof(float.IsNegativeInfinity))
+            .Invoke([T.NegativeInfinity])
+            .ShouldBe(T.IsNegativeInfinity(T.NegativeInfinity));
+        StaticMemberFor(type, nameof(float.IsNormal)).Invoke([one]).ShouldBe(T.IsNormal(one));
+        StaticMemberFor(type, nameof(float.IsOddInteger)).Invoke([three]).ShouldBe(T.IsOddInteger(three));
+        StaticMemberFor(type, nameof(float.IsPositive)).Invoke([one]).ShouldBe(T.IsPositive(one));
+        StaticMemberFor(type, nameof(float.IsPositiveInfinity))
+            .Invoke([T.PositiveInfinity])
+            .ShouldBe(T.IsPositiveInfinity(T.PositiveInfinity));
+        StaticMemberFor(type, nameof(float.IsPow2)).Invoke([four]).ShouldBe(true);
+        StaticMemberFor(type, nameof(float.IsRealNumber)).Invoke([one]).ShouldBe(T.IsRealNumber(one));
+        StaticMemberFor(type, nameof(float.IsSubnormal)).Invoke([T.Epsilon]).ShouldBe(T.IsSubnormal(T.Epsilon));
+        StaticMemberFor(type, nameof(float.Lerp)).Invoke([one, three, half]).ShouldBe(T.Lerp(one, three, half));
+        StaticMemberFor(type, nameof(float.Log)).Invoke([two]).ShouldBe(T.Log(two));
+        StaticMemberFor(type, nameof(float.Log)).Invoke([four, two]).ShouldBe(T.Log(four, two));
+        StaticMemberFor(type, nameof(float.Log10)).Invoke([two]).ShouldBe(T.Log10(two));
+        StaticMemberFor(type, nameof(float.Log10P1)).Invoke([one]).ShouldBe(T.Log10P1(one));
+        StaticMemberFor(type, nameof(float.Log2)).Invoke([two]).ShouldBe(T.Log2(two));
+        StaticMemberFor(type, nameof(float.Log2P1)).Invoke([one]).ShouldBe(T.Log2P1(one));
+        StaticMemberFor(type, nameof(float.LogP1)).Invoke([one]).ShouldBe(T.LogP1(one));
+        StaticMemberFor(type, nameof(float.Max)).Invoke([one, two]).ShouldBe(T.Max(one, two));
+        StaticMemberFor(type, nameof(float.MaxMagnitude)).Invoke([negativeOne, two]).ShouldBe(T.MaxMagnitude(negativeOne, two));
+        StaticMemberFor(type, nameof(float.MaxMagnitudeNumber)).Invoke([negativeOne, two]).ShouldBe(T.MaxMagnitudeNumber(negativeOne, two));
+        StaticMemberFor(type, nameof(float.MaxNative)).Invoke([one, two]).ShouldBe(T.MaxNative(one, two));
+        StaticMemberFor(type, nameof(float.MaxNumber)).Invoke([one, two]).ShouldBe(T.MaxNumber(one, two));
+        StaticMemberFor(type, nameof(float.Min)).Invoke([one, two]).ShouldBe(T.Min(one, two));
+        StaticMemberFor(type, nameof(float.MinMagnitude)).Invoke([negativeOne, two]).ShouldBe(T.MinMagnitude(negativeOne, two));
+        StaticMemberFor(type, nameof(float.MinMagnitudeNumber)).Invoke([negativeOne, two]).ShouldBe(T.MinMagnitudeNumber(negativeOne, two));
+        StaticMemberFor(type, nameof(float.MinNative)).Invoke([one, two]).ShouldBe(T.MinNative(one, two));
+        StaticMemberFor(type, nameof(float.MinNumber)).Invoke([one, two]).ShouldBe(T.MinNumber(one, two));
+        StaticMemberFor(type, nameof(float.MultiplyAddEstimate))
+            .Invoke([two, three, four])
+            .ShouldBe(T.MultiplyAddEstimate(two, three, four));
+        StaticMemberFor(type, nameof(float.Pow)).Invoke([two, three]).ShouldBe(T.Pow(two, three));
+        StaticMemberFor(type, nameof(float.RadiansToDegrees)).Invoke([one]).ShouldBe(T.RadiansToDegrees(one));
+        StaticMemberFor(type, nameof(float.ReciprocalEstimate)).Invoke([two]).ShouldBe(T.ReciprocalEstimate(two));
+        StaticMemberFor(type, nameof(float.ReciprocalSqrtEstimate)).Invoke([four]).ShouldBe(T.ReciprocalSqrtEstimate(four));
+        StaticMemberFor(type, nameof(float.RootN)).Invoke([four, 2]).ShouldBe(T.RootN(four, 2));
+        StaticMemberFor(type, nameof(float.Round)).Invoke([half]).ShouldBe(T.Round(half));
+        StaticMemberFor(type, nameof(float.Round)).Invoke([quarter, 1]).ShouldBe(T.Round(quarter, 1));
+        StaticMemberFor(type, nameof(float.Round))
+            .Invoke([half, MidpointRounding.AwayFromZero])
+            .ShouldBe(T.Round(half, MidpointRounding.AwayFromZero));
+        StaticMemberFor(type, nameof(float.Round)).Invoke([quarter, 1, MidpointRounding.AwayFromZero])
+            .ShouldBe(T.Round(quarter, 1, MidpointRounding.AwayFromZero));
+        StaticMemberFor(type, nameof(float.ScaleB)).Invoke([one, 2]).ShouldBe(T.ScaleB(one, 2));
+        StaticMemberFor(type, nameof(float.Sign)).Invoke([negativeOne]).ShouldBe(T.Sign(negativeOne));
+        StaticMemberFor(type, nameof(float.Sin)).Invoke([one]).ShouldBe(T.Sin(one));
+        StaticMemberFor(type, nameof(float.SinCos)).Invoke([one])!.ToString().ShouldBe(T.SinCos(one).ToString());
+        StaticMemberFor(type, nameof(float.SinCosPi)).Invoke([one])!.ToString().ShouldBe(T.SinCosPi(one).ToString());
+        StaticMemberFor(type, nameof(float.Sinh)).Invoke([one]).ShouldBe(T.Sinh(one));
+        StaticMemberFor(type, nameof(float.SinPi)).Invoke([half]).ShouldBe(T.SinPi(half));
+        StaticMemberFor(type, nameof(float.Sqrt)).Invoke([four]).ShouldBe(T.Sqrt(four));
+        StaticMemberFor(type, nameof(float.Tan)).Invoke([one]).ShouldBe(T.Tan(one));
+        StaticMemberFor(type, nameof(float.Tanh)).Invoke([one]).ShouldBe(T.Tanh(one));
+        StaticMemberFor(type, nameof(float.TanPi)).Invoke([quarter]).ShouldBe(T.TanPi(quarter));
+        StaticMemberFor(type, nameof(float.Truncate)).Invoke([half]).ShouldBe(T.Truncate(half));
+    }
 #endif
 
     [Fact]

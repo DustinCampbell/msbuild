@@ -1234,6 +1234,188 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 #endif
 
+#if NET
+    [Theory]
+    [MemberData(nameof(FloatingPointMemberExpressions))]
+    [UseInvariantCulture]
+    public void PropertyFunctionFloatingPointMembers(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> FloatingPointMemberExpressions
+    {
+        get
+        {
+            TheoryData<string, string> data = new();
+
+            AddCases<float>(data, "Single");
+            AddCases<double>(data, "Double");
+
+            return data;
+
+            static void AddCases<T>(TheoryData<string, string> data, string typeName)
+                where T : unmanaged, System.Numerics.IFloatingPointIeee754<T>, System.Numerics.IMinMaxValue<T>
+            {
+                T negativeOne = T.CreateChecked(-1);
+                T zero = T.Zero;
+                T quarter = T.CreateChecked(0.25);
+                T half = T.CreateChecked(0.5);
+                T one = T.One;
+                T two = T.CreateChecked(2);
+                T three = T.CreateChecked(3);
+                T four = T.CreateChecked(4);
+                T eight = T.CreateChecked(8);
+
+                Add("Abs", "'-1'", T.Abs(negativeOne));
+                Add("Acos", "'0.5'", T.Acos(half));
+                Add("Acosh", "'2'", T.Acosh(two));
+                Add("AcosPi", "'0.5'", T.AcosPi(half));
+                Add("Asin", "'0.5'", T.Asin(half));
+                Add("Asinh", "'0.5'", T.Asinh(half));
+                Add("AsinPi", "'0.5'", T.AsinPi(half));
+                Add("Atan", "'1'", T.Atan(one));
+                Add("Atan2", "'1', '2'", T.Atan2(one, two));
+                Add("Atan2Pi", "'1', '2'", T.Atan2Pi(one, two));
+                Add("Atanh", "'0.5'", T.Atanh(half));
+                Add("AtanPi", "'1'", T.AtanPi(one));
+                Add("BitDecrement", "'1'", T.BitDecrement(one));
+                Add("BitIncrement", "'1'", T.BitIncrement(one));
+                Add("Cbrt", "'8'", T.Cbrt(eight));
+                Add("Ceiling", "'0.5'", T.Ceiling(half));
+                Add("Clamp", "'2', '0', '1'", T.Clamp(two, zero, one));
+                Add("ClampNative", "'2', '0', '1'", T.ClampNative(two, zero, one));
+                Add("CopySign", "'1', '-1'", T.CopySign(one, negativeOne));
+                Add("Cos", "'1'", T.Cos(one));
+                Add("Cosh", "'1'", T.Cosh(one));
+                Add("CosPi", "'1'", T.CosPi(one));
+                Add("DegreesToRadians", "'1'", T.DegreesToRadians(one));
+                Add("Exp", "'1'", T.Exp(one));
+                Add("Exp10", "'1'", T.Exp10(one));
+                Add("Exp10M1", "'1'", T.Exp10M1(one));
+                Add("Exp2", "'1'", T.Exp2(one));
+                Add("Exp2M1", "'1'", T.Exp2M1(one));
+                Add("ExpM1", "'1'", T.ExpM1(one));
+                Add("Floor", "'0.5'", T.Floor(half));
+                Add("FusedMultiplyAdd", "'2', '3', '4'", T.FusedMultiplyAdd(two, three, four));
+                Add("Hypot", "'3', '4'", T.Hypot(three, four));
+                Add("Ieee754Remainder", "'3', '2'", T.Ieee754Remainder(three, two));
+                Add("ILogB", "'4'", T.ILogB(four));
+                Add("IsEvenInteger", "'4'", T.IsEvenInteger(four));
+                Add("IsFinite", "'1'", T.IsFinite(one));
+                Add("IsInfinity", $"$([System.{typeName}]::PositiveInfinity)", T.IsInfinity(T.PositiveInfinity));
+                Add("IsInteger", "'1'", T.IsInteger(one));
+                Add("IsNaN", $"$([System.{typeName}]::NaN)", T.IsNaN(T.NaN));
+                Add("IsNegative", "'-1'", T.IsNegative(negativeOne));
+                Add("IsNegativeInfinity", $"$([System.{typeName}]::NegativeInfinity)", T.IsNegativeInfinity(T.NegativeInfinity));
+                Add("IsNormal", "'1'", T.IsNormal(one));
+                Add("IsOddInteger", "'3'", T.IsOddInteger(three));
+                Add("IsPositive", "'1'", T.IsPositive(one));
+                Add("IsPositiveInfinity", $"$([System.{typeName}]::PositiveInfinity)", T.IsPositiveInfinity(T.PositiveInfinity));
+                Add("IsPow2", "'4'", true);
+                Add("IsRealNumber", "'1'", T.IsRealNumber(one));
+                Add("IsSubnormal", $"$([System.{typeName}]::Epsilon)", T.IsSubnormal(T.Epsilon));
+                Add("Lerp", "'1', '3', '0.5'", T.Lerp(one, three, half));
+                Add("Log", "'2'", T.Log(two));
+                Add("Log", "'4', '2'", T.Log(four, two));
+                Add("Log10", "'2'", T.Log10(two));
+                Add("Log10P1", "'1'", T.Log10P1(one));
+                Add("Log2", "'2'", T.Log2(two));
+                Add("Log2P1", "'1'", T.Log2P1(one));
+                Add("LogP1", "'1'", T.LogP1(one));
+                Add("Max", "'1', '2'", T.Max(one, two));
+                Add("MaxMagnitude", "'-1', '2'", T.MaxMagnitude(negativeOne, two));
+                Add("MaxMagnitudeNumber", "'-1', '2'", T.MaxMagnitudeNumber(negativeOne, two));
+                Add("MaxNative", "'1', '2'", T.MaxNative(one, two));
+                Add("MaxNumber", "'1', '2'", T.MaxNumber(one, two));
+                Add("Min", "'1', '2'", T.Min(one, two));
+                Add("MinMagnitude", "'-1', '2'", T.MinMagnitude(negativeOne, two));
+                Add("MinMagnitudeNumber", "'-1', '2'", T.MinMagnitudeNumber(negativeOne, two));
+                Add("MinNative", "'1', '2'", T.MinNative(one, two));
+                Add("MinNumber", "'1', '2'", T.MinNumber(one, two));
+                Add("MultiplyAddEstimate", "'2', '3', '4'", T.MultiplyAddEstimate(two, three, four));
+                Add("Pow", "'2', '3'", T.Pow(two, three));
+                Add("RadiansToDegrees", "'1'", T.RadiansToDegrees(one));
+                Add("ReciprocalEstimate", "'2'", T.ReciprocalEstimate(two));
+                Add("ReciprocalSqrtEstimate", "'4'", T.ReciprocalSqrtEstimate(four));
+                Add("RootN", "'4', '2'", T.RootN(four, 2));
+                Add("Round", "'0.5'", T.Round(half));
+                Add("Round", "'0.25', '1'", T.Round(quarter, 1));
+                Add("Round", "'0.5', 'System.MidpointRounding.AwayFromZero'", T.Round(half, MidpointRounding.AwayFromZero));
+                Add(
+                    "Round",
+                    "'0.25', '1', 'System.MidpointRounding.AwayFromZero'",
+                    T.Round(quarter, 1, MidpointRounding.AwayFromZero));
+                Add("ScaleB", "'1', '2'", T.ScaleB(one, 2));
+                Add("Sign", "'-1'", T.Sign(negativeOne));
+                Add("Sin", "'1'", T.Sin(one));
+                AddTuple("SinCos", "'1'", T.SinCos(one));
+                AddTuple("SinCosPi", "'1'", T.SinCosPi(one));
+                Add("Sinh", "'1'", T.Sinh(one));
+                Add("SinPi", "'0.5'", T.SinPi(half));
+                Add("Sqrt", "'4'", T.Sqrt(four));
+                Add("Tan", "'1'", T.Tan(one));
+                Add("Tanh", "'1'", T.Tanh(one));
+                Add("TanPi", "'0.25'", T.TanPi(quarter));
+                Add("Truncate", "'0.5'", T.Truncate(half));
+
+                void Add(string methodName, string arguments, object expected)
+                    => data.Add($"$([System.{typeName}]::{methodName}({arguments}))", expected.ToResultString()!);
+
+                void AddTuple(string methodName, string arguments, (T Sin, T Cos) expected)
+                    => data.Add(
+                        $"$([System.{typeName}]::{methodName}({arguments}))",
+                        $"({expected.Sin.ToResultString()}, {expected.Cos.ToResultString()})");
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(FloatingPointCoercionExpressions))]
+    public void PropertyFunctionFloatingPointCoercion(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> FloatingPointCoercionExpressions
+    {
+        get
+        {
+            TheoryData<string, string> data = new();
+            (string Expression, string Expected)[] values =
+            [
+                ("$([System.Convert]::ToByte('4'))", "4"),
+                ("$([System.Convert]::ToSByte('4'))", "4"),
+                ("$([System.Convert]::ToInt16('4'))", "4"),
+                ("$([System.Convert]::ToUInt16('4'))", "4"),
+                ("$([System.Convert]::ToInt32('4'))", "4"),
+                ("$([System.Convert]::ToUInt32('4'))", "4"),
+                ("$([System.Convert]::ToInt64('4'))", "4"),
+                ("$([System.Convert]::ToUInt64('4'))", "4"),
+                ("$([System.Convert]::ToSingle('4'))", "4"),
+                ("$([System.Convert]::ToDouble('4'))", "4"),
+                ("$([System.Convert]::ToDecimal('4'))", "4"),
+                ("$([System.Convert]::ToBoolean('true'))", "1"),
+            ];
+
+            foreach (string typeName in new[] { "Single", "Double" })
+            {
+                foreach ((string expression, string expected) in values)
+                {
+                    data.Add($"$([System.{typeName}]::Max({expression}, '0'))", expected);
+                }
+            }
+
+            return data;
+        }
+    }
+
+    [Theory]
+    [InlineData("Single")]
+    [InlineData("Double")]
+    public void PropertyFunctionFloatingPointDoesNotCoerceChar(string typeName)
+        => Should.Throw<InvalidProjectFileException>(
+            () => ExpandProperties(
+                $"$([System.{typeName}]::Max($([System.Convert]::ToChar('A')), '0'))",
+                allowReflection: ExpanderFactory.UseLegacyExpander));
+#endif
+
     [Theory]
     [MemberData(nameof(DecimalMemberExpressions))]
     public void PropertyFunctionDecimalMembers(string expression, string expected)

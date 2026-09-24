@@ -211,6 +211,7 @@
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Decimal.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Environment.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_FileSystem.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_FloatingPoint.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Guid.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_IntrinsicFunctions.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Math.cs" />
