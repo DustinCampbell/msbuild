@@ -455,6 +455,12 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
         => StaticMember(nameof(IntrinsicFunctions.NormalizePath))
             .NotHandled(["a", 1]);
 
+    [Fact]
+    public void IntrinsicFunctions_GetListTest()
+        => StaticMember(nameof(IntrinsicFunctions.__GetListTest))
+            .Invoke()
+            .ShouldBe(IntrinsicFunctions.__GetListTest());
+
     [Theory]
     [InlineData(nameof(IntrinsicFunctions.GetCurrentToolsDirectory))]
     [InlineData(nameof(IntrinsicFunctions.GetMSBuildExtensionsPath))]

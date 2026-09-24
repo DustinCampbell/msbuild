@@ -48,6 +48,8 @@ internal static partial class WellKnownFunctions
                     => TryInvokeNormalizePath(args),
                 13 when methodName.Equals(nameof(IntrinsicFunctions.VersionEquals), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeVersionEquals(args),
+                13 when methodName.Equals(nameof(IntrinsicFunctions.__GetListTest), StringComparison.OrdinalIgnoreCase)
+                    => args is [] ? Invoked(IntrinsicFunctions.__GetListTest()) : NotHandled,
                 14 when methodName.Equals(nameof(IntrinsicFunctions.ValueOrDefault), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeValueOrDefault(args),
                 15 when methodName.Equals(nameof(IntrinsicFunctions.ConvertToBase64), StringComparison.OrdinalIgnoreCase)
