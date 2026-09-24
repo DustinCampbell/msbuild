@@ -26,6 +26,10 @@ namespace Microsoft.Build.UnitTests.Expansion;
 [Trait("Category", "expansion")]
 public class PropertyFunction_Tests(ITestOutputHelper output)
 {
+    private const string ToolLocationHelperType = "Microsoft.Build.Utilities.ToolLocationHelper";
+    private const string MissingSdkRoots = "$([System.Text.RegularExpressions.Regex]::Split('__MissingSdkRoot__', ';'))";
+    private const string VersionOne = "$([System.Version]::new('1.0'))";
+
     private static readonly string s_rootPathPrefix = NativeMethodsShared.IsWindows
         ? @"C:\"
         : Path.VolumeSeparatorChar.ToString();
@@ -759,6 +763,83 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     [InlineData("$([Microsoft.Build.Utilities.ToolLocationHelper]::PathToSystem)", null)]
     public void PropertyFunctionToolLocationHelperProperties(string expression, string? expected)
         => ExpandProperties(expression).ShouldBe(expected ?? ToolLocationHelper.PathToSystem);
+
+    [ModernExpanderOnlyFact]
+    public void ModernPropertyFunctionAssemblyFoldersFromConfig()
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var root = env.CreateFolder();
+        var config = env.CreateFile(root, "AssemblyFolders.config", "<AssemblyFoldersConfig><AssemblyFolders /></AssemblyFoldersConfig>");
+
+        ExpandProperties(
+            $"""$([{ToolLocationHelperType}]::GetAssemblyFoldersFromConfigInfo('{config.Path}', 'v4.0', 'None'))""")
+            .ShouldNotBeNull();
+    }
+
+    [ModernExpanderOnlyTheory]
+    [MemberData(nameof(ModernToolLocationSdkExpressions))]
+    public void ModernPropertyFunctionToolLocationSdkMethods(string expression)
+        => ExpandProperties(expression).ShouldNotBeNull();
+
+    public static TheoryData<string> ModernToolLocationSdkExpressions
+    {
+        get
+        {
+            TheoryData<string> expressions =
+            [
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocations('Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocations({MissingSdkRoots}, '', 'Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocations({MissingSdkRoots}, {MissingSdkRoots}, '', 'Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocationsAndVersions('Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocationsAndVersions({MissingSdkRoots}, '', 'Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocationsAndVersions({MissingSdkRoots}, {MissingSdkRoots}, '', 'Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocation('Missing, Version=1.0', 'Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocation('Missing, Version=1.0', 'Missing', {VersionOne}, {MissingSdkRoots}, ''))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocation('Missing, Version=1.0', 'Missing', {VersionOne}, {MissingSdkRoots}, {MissingSdkRoots}, ''))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocation('Missing, Version=1.0', 'Missing', '1.0'))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocation('Missing, Version=1.0', 'Missing', '1.0', '__MissingSdkRoot__', ''))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocation('Missing, Version=1.0', 'Missing', '1.0', '__MissingSdkRoot__', '__MissingSdkRoot__', ''))""",
+                $"""$([{ToolLocationHelperType}]::FilterPlatformExtensionSDKs({VersionOne}, $([{ToolLocationHelperType}]::GetPlatformExtensionSDKLocations('Missing', {VersionOne}))))""",
+                $"""$([{ToolLocationHelperType}]::GetSDKReferenceFolders('__MissingSdkRoot__'))""",
+                $"""$([{ToolLocationHelperType}]::GetSDKReferenceFolders('__MissingSdkRoot__', 'Retail', 'Neutral'))""",
+                $"""$([{ToolLocationHelperType}]::GetSDKRedistFolders('__MissingSdkRoot__'))""",
+                $"""$([{ToolLocationHelperType}]::GetSDKRedistFolders('__MissingSdkRoot__', 'Retail', 'Neutral'))""",
+                $"""$([{ToolLocationHelperType}]::GetSDKDesignTimeFolders('__MissingSdkRoot__'))""",
+                $"""$([{ToolLocationHelperType}]::GetSDKDesignTimeFolders('__MissingSdkRoot__', 'Retail', 'Neutral'))""",
+                $"""$([{ToolLocationHelperType}]::GetTargetPlatformSdks())""",
+                $"""$([{ToolLocationHelperType}]::GetTargetPlatformSdks({MissingSdkRoots}, ''))""",
+                $"""$([{ToolLocationHelperType}]::FilterTargetPlatformSdks($([{ToolLocationHelperType}]::GetTargetPlatformSdks({MissingSdkRoots}, '')), {VersionOne}, {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformSDKPropsFileLocation('Missing', '1.0', 'Missing', '1.0', '1.0'))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformSDKPropsFileLocation('Missing', '1.0', 'Missing', '1.0', '1.0', '__MissingSdkRoot__', ''))""",
+                $"""$([{ToolLocationHelperType}]::GetTargetPlatformReferences('Missing', '1.0', 'Missing', '1.0', '1.0'))""",
+                $"""$([{ToolLocationHelperType}]::GetTargetPlatformReferences('Missing', '1.0', 'Missing', '1.0', '1.0', '__MissingSdkRoot__', ''))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformOrFrameworkExtensionSdkReferences('Missing, Version=1.0', 'Missing', '1.0', '__MissingSdkRoot__', '__MissingSdkRoot__', ''))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformOrFrameworkExtensionSdkReferences('Missing, Version=1.0', 'Missing', '1.0', '__MissingSdkRoot__', '__MissingSdkRoot__', '', 'Missing', '1.0'))""",
+                $"""$([{ToolLocationHelperType}]::GetSDKContentFolderPath('Missing', '1.0', 'Missing', '1.0', '1.0', 'Folder', '__MissingSdkRoot__'))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformSDKLocation('Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformSDKLocation('Missing', {VersionOne}, {MissingSdkRoots}, ''))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformSDKLocation('Missing', '1.0'))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformSDKLocation('Missing', '1.0', '__MissingSdkRoot__', ''))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformSDKDisplayName('Missing', '1.0'))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformSDKDisplayName('Missing', '1.0', '__MissingSdkRoot__', ''))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformsForSDK('Missing', {VersionOne}))""",
+                $"""$([{ToolLocationHelperType}]::GetPlatformsForSDK('Missing', {VersionOne}, {MissingSdkRoots}, ''))""",
+                $"""$([{ToolLocationHelperType}]::GetLatestSDKTargetPlatformVersion('Missing', '1.0'))""",
+                $"""$([{ToolLocationHelperType}]::GetLatestSDKTargetPlatformVersion('Missing', '1.0', {MissingSdkRoots}))""",
+                $"""$([{ToolLocationHelperType}]::GetFoldersInVSInstalls({VersionOne}, {VersionOne}, 'Subfolder'))""",
+                $"""$([{ToolLocationHelperType}]::GetFoldersInVSInstallsAsString('1.0', '1.0', 'Subfolder'))""",
+                $"""$([{ToolLocationHelperType}]::FindRootFolderWhereAllFilesExist('__MissingSdkRoot__', 'missing.txt'))""",
+            ];
+
+            if (NativeMethodsShared.IsWindows)
+            {
+                expressions.Add(
+                    $"""$([{ToolLocationHelperType}]::GetAssemblyFoldersExInfo('SOFTWARE\__Missing__', 'v4.0', 'AssemblyFoldersEx', '', '', 'None'))""");
+            }
+
+            return expressions;
+        }
+    }
 
     [ModernExpanderOnlyFact]
     public void ModernPropertyFunctionGetDirectoriesWithSearchOption()
