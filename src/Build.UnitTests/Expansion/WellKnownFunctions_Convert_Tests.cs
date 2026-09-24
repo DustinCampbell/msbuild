@@ -49,10 +49,12 @@ public class WellKnownFunctions_Convert_Tests(ITestOutputHelper output)
             .Invoke(["1.25", CultureInfo.InvariantCulture])
             .ShouldBe(1.25D);
 
-    [Fact]
-    public void Convert_ValueWithBase()
+    [Theory]
+    [InlineData(16)]
+    [InlineData("16")]
+    public void Convert_ValueWithBase(object fromBase)
         => StaticMember(nameof(Convert.ToInt32))
-            .Invoke(["FF", 16])
+            .Invoke(["FF", fromBase])
             .ShouldBe(255);
 
     [Fact]

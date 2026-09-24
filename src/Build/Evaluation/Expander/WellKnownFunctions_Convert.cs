@@ -59,7 +59,9 @@ internal static partial class WellKnownFunctions
             };
 
         private static WellKnownFunctionResult TryInvokeFromBase64CharArray(object?[] args)
-            => args is [char[] value, int offset, int length]
+            => args is [char[] value, var offsetValue, var lengthValue] &&
+               ArgumentParser.TryConvertToInt(offsetValue, out int offset) &&
+               ArgumentParser.TryConvertToInt(lengthValue, out int length)
                 ? Invoked(Convert.FromBase64CharArray(value, offset, length))
                 : NotHandled;
 
@@ -88,12 +90,21 @@ internal static partial class WellKnownFunctions
         private static WellKnownFunctionResult TryInvokeToBase64CharArray(object?[] args)
             => args switch
             {
-                [byte[] input, int offsetIn, int length, char[] output, int offsetOut]
+                [byte[] input, var offsetInValue, var lengthValue, char[] output, var offsetOutValue]
+                    when ArgumentParser.TryConvertToInt(offsetInValue, out int offsetIn) &&
+                         ArgumentParser.TryConvertToInt(lengthValue, out int length) &&
+                         ArgumentParser.TryConvertToInt(offsetOutValue, out int offsetOut)
                     => Invoked(Convert.ToBase64CharArray(input, offsetIn, length, output, offsetOut)),
-                [byte[] input, int offsetIn, int length, char[] output, int offsetOut, Base64FormattingOptions options]
+                [byte[] input, var offsetInValue, var lengthValue, char[] output, var offsetOutValue, Base64FormattingOptions options]
+                    when ArgumentParser.TryConvertToInt(offsetInValue, out int offsetIn) &&
+                         ArgumentParser.TryConvertToInt(lengthValue, out int length) &&
+                         ArgumentParser.TryConvertToInt(offsetOutValue, out int offsetOut)
                     => Invoked(Convert.ToBase64CharArray(input, offsetIn, length, output, offsetOut, options)),
-                [byte[] input, int offsetIn, int length, char[] output, int offsetOut, var options]
-                    when ArgumentParser.TryConvertToEnum(options, out Base64FormattingOptions convertedOptions)
+                [byte[] input, var offsetInValue, var lengthValue, char[] output, var offsetOutValue, var options]
+                    when ArgumentParser.TryConvertToInt(offsetInValue, out int offsetIn) &&
+                         ArgumentParser.TryConvertToInt(lengthValue, out int length) &&
+                         ArgumentParser.TryConvertToInt(offsetOutValue, out int offsetOut) &&
+                         ArgumentParser.TryConvertToEnum(options, out Base64FormattingOptions convertedOptions)
                     => Invoked(Convert.ToBase64CharArray(input, offsetIn, length, output, offsetOut, convertedOptions)),
                 _ => NotHandled,
             };
@@ -105,11 +116,18 @@ internal static partial class WellKnownFunctions
                 [byte[] value, Base64FormattingOptions options] => Invoked(Convert.ToBase64String(value, options)),
                 [byte[] value, var options] when ArgumentParser.TryConvertToEnum(options, out Base64FormattingOptions convertedOptions)
                     => Invoked(Convert.ToBase64String(value, convertedOptions)),
-                [byte[] value, int offset, int length] => Invoked(Convert.ToBase64String(value, offset, length)),
-                [byte[] value, int offset, int length, Base64FormattingOptions options]
+                [byte[] value, var offsetValue, var lengthValue]
+                    when ArgumentParser.TryConvertToInt(offsetValue, out int offset) &&
+                         ArgumentParser.TryConvertToInt(lengthValue, out int length)
+                    => Invoked(Convert.ToBase64String(value, offset, length)),
+                [byte[] value, var offsetValue, var lengthValue, Base64FormattingOptions options]
+                    when ArgumentParser.TryConvertToInt(offsetValue, out int offset) &&
+                         ArgumentParser.TryConvertToInt(lengthValue, out int length)
                     => Invoked(Convert.ToBase64String(value, offset, length, options)),
-                [byte[] value, int offset, int length, var options]
-                    when ArgumentParser.TryConvertToEnum(options, out Base64FormattingOptions convertedOptions)
+                [byte[] value, var offsetValue, var lengthValue, var options]
+                    when ArgumentParser.TryConvertToInt(offsetValue, out int offset) &&
+                         ArgumentParser.TryConvertToInt(lengthValue, out int length) &&
+                         ArgumentParser.TryConvertToEnum(options, out Base64FormattingOptions convertedOptions)
                     => Invoked(Convert.ToBase64String(value, offset, length, convertedOptions)),
                 _ => NotHandled,
             };
@@ -120,7 +138,8 @@ internal static partial class WellKnownFunctions
         private static WellKnownFunctionResult TryInvokeToByte(object?[] args)
             => args switch
             {
-                [string value, int fromBase] => Invoked(Convert.ToByte(value, fromBase)),
+                [string value, var fromBase] when ArgumentParser.TryConvertToInt(fromBase, out int convertedBase)
+                    => Invoked(Convert.ToByte(value, convertedBase)),
                 _ => TryInvokeConversion(args, Convert.ToByte, Convert.ToByte),
             };
 
@@ -139,28 +158,32 @@ internal static partial class WellKnownFunctions
         private static WellKnownFunctionResult TryInvokeToInt16(object?[] args)
             => args switch
             {
-                [string value, int fromBase] => Invoked(Convert.ToInt16(value, fromBase)),
+                [string value, var fromBase] when ArgumentParser.TryConvertToInt(fromBase, out int convertedBase)
+                    => Invoked(Convert.ToInt16(value, convertedBase)),
                 _ => TryInvokeConversion(args, Convert.ToInt16, Convert.ToInt16),
             };
 
         private static WellKnownFunctionResult TryInvokeToInt32(object?[] args)
             => args switch
             {
-                [string value, int fromBase] => Invoked(Convert.ToInt32(value, fromBase)),
+                [string value, var fromBase] when ArgumentParser.TryConvertToInt(fromBase, out int convertedBase)
+                    => Invoked(Convert.ToInt32(value, convertedBase)),
                 _ => TryInvokeConversion(args, Convert.ToInt32, Convert.ToInt32),
             };
 
         private static WellKnownFunctionResult TryInvokeToInt64(object?[] args)
             => args switch
             {
-                [string value, int fromBase] => Invoked(Convert.ToInt64(value, fromBase)),
+                [string value, var fromBase] when ArgumentParser.TryConvertToInt(fromBase, out int convertedBase)
+                    => Invoked(Convert.ToInt64(value, convertedBase)),
                 _ => TryInvokeConversion(args, Convert.ToInt64, Convert.ToInt64),
             };
 
         private static WellKnownFunctionResult TryInvokeToSByte(object?[] args)
             => args switch
             {
-                [string value, int fromBase] => Invoked(Convert.ToSByte(value, fromBase)),
+                [string value, var fromBase] when ArgumentParser.TryConvertToInt(fromBase, out int convertedBase)
+                    => Invoked(Convert.ToSByte(value, convertedBase)),
                 _ => TryInvokeConversion(args, Convert.ToSByte, Convert.ToSByte),
             };
 
@@ -170,10 +193,10 @@ internal static partial class WellKnownFunctions
         private static WellKnownFunctionResult TryInvokeToString(object?[] args)
             => args switch
             {
-                [byte value, int toBase] => Invoked(Convert.ToString(value, toBase)),
-                [short value, int toBase] => Invoked(Convert.ToString(value, toBase)),
-                [int value, int toBase] => Invoked(Convert.ToString(value, toBase)),
-                [long value, int toBase] => Invoked(Convert.ToString(value, toBase)),
+                [byte value, var toBase] when ArgumentParser.TryConvertToInt(toBase, out int convertedBase) => Invoked(Convert.ToString(value, convertedBase)),
+                [short value, var toBase] when ArgumentParser.TryConvertToInt(toBase, out int convertedBase) => Invoked(Convert.ToString(value, convertedBase)),
+                [int value, var toBase] when ArgumentParser.TryConvertToInt(toBase, out int convertedBase) => Invoked(Convert.ToString(value, convertedBase)),
+                [long value, var toBase] when ArgumentParser.TryConvertToInt(toBase, out int convertedBase) => Invoked(Convert.ToString(value, convertedBase)),
                 [var value] => Invoked(Convert.ToString(value)),
                 [var value, IFormatProvider provider] => Invoked(Convert.ToString(value, provider)),
                 _ => NotHandled,
@@ -182,21 +205,24 @@ internal static partial class WellKnownFunctions
         private static WellKnownFunctionResult TryInvokeToUInt16(object?[] args)
             => args switch
             {
-                [string value, int fromBase] => Invoked(Convert.ToUInt16(value, fromBase)),
+                [string value, var fromBase] when ArgumentParser.TryConvertToInt(fromBase, out int convertedBase)
+                    => Invoked(Convert.ToUInt16(value, convertedBase)),
                 _ => TryInvokeConversion(args, Convert.ToUInt16, Convert.ToUInt16),
             };
 
         private static WellKnownFunctionResult TryInvokeToUInt32(object?[] args)
             => args switch
             {
-                [string value, int fromBase] => Invoked(Convert.ToUInt32(value, fromBase)),
+                [string value, var fromBase] when ArgumentParser.TryConvertToInt(fromBase, out int convertedBase)
+                    => Invoked(Convert.ToUInt32(value, convertedBase)),
                 _ => TryInvokeConversion(args, Convert.ToUInt32, Convert.ToUInt32),
             };
 
         private static WellKnownFunctionResult TryInvokeToUInt64(object?[] args)
             => args switch
             {
-                [string value, int fromBase] => Invoked(Convert.ToUInt64(value, fromBase)),
+                [string value, var fromBase] when ArgumentParser.TryConvertToInt(fromBase, out int convertedBase)
+                    => Invoked(Convert.ToUInt64(value, convertedBase)),
                 _ => TryInvokeConversion(args, Convert.ToUInt64, Convert.ToUInt64),
             };
 
@@ -205,7 +231,10 @@ internal static partial class WellKnownFunctions
             => args switch
             {
                 [byte[] value] => Invoked(Convert.ToHexString(value)),
-                [byte[] value, int offset, int length] => Invoked(Convert.ToHexString(value, offset, length)),
+                [byte[] value, var offsetValue, var lengthValue]
+                    when ArgumentParser.TryConvertToInt(offsetValue, out int offset) &&
+                         ArgumentParser.TryConvertToInt(lengthValue, out int length)
+                    => Invoked(Convert.ToHexString(value, offset, length)),
                 _ => NotHandled,
             };
 
@@ -213,7 +242,10 @@ internal static partial class WellKnownFunctions
             => args switch
             {
                 [byte[] value] => Invoked(Convert.ToHexStringLower(value)),
-                [byte[] value, int offset, int length] => Invoked(Convert.ToHexStringLower(value, offset, length)),
+                [byte[] value, var offsetValue, var lengthValue]
+                    when ArgumentParser.TryConvertToInt(offsetValue, out int offset) &&
+                         ArgumentParser.TryConvertToInt(lengthValue, out int length)
+                    => Invoked(Convert.ToHexStringLower(value, offset, length)),
                 _ => NotHandled,
             };
 #endif
