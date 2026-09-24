@@ -15,7 +15,7 @@ internal static partial class WellKnownFunctions
                 7 when methodName.Equals(nameof(char.IsDigit), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeIsDigit(args),
 
-                _ => NotHandled,
+                _ => s_primitiveHandler.TryInvokeStatic(typeof(char), methodName, args),
             };
 
         private static WellKnownFunctionResult TryInvokeIsDigit(object?[] args)

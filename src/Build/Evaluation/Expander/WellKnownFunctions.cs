@@ -23,12 +23,12 @@ internal static partial class WellKnownFunctions
     private static readonly ConvertHandler s_convertHandler = new();
     private static readonly EnvironmentHandler s_environmentHandler = new();
     private static readonly GuidHandler s_guidHandler = new();
-    private static readonly Int32Handler s_int32Handler = new();
     private static readonly IntrinsicFunctionsHandler s_intrinsicFunctionsHandler = new();
     private static readonly MathHandler s_mathHandler = new();
     private static readonly OperatingSystemHandler s_operatingSystemHandler = new();
     private static readonly OSPlatformHandler s_osPlatformHandler = new();
     private static readonly PathHandler s_pathHandler = new();
+    private static readonly PrimitiveHandler s_primitiveHandler = new();
     private static readonly RegexHandler s_regexHandler = new();
     private static readonly RuntimeInformationHandler s_runtimeInformationHandler = new();
     private static readonly StringArrayHandler s_stringArrayHandler = new();
@@ -76,6 +76,8 @@ internal static partial class WellKnownFunctions
             ? s_regexHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(System.Runtime.InteropServices.RuntimeInformation)
             ? s_runtimeInformationHandler.TryInvokeStatic(methodName, args)
+         : IsNumericOrCharType(receiverType)
+            ? s_primitiveHandler.TryInvokeStatic(receiverType, methodName, args)
 
          : NotHandled;
 
@@ -94,8 +96,9 @@ internal static partial class WellKnownFunctions
             string s => s_stringHandler.TryInvokeInstance(methodName, s, args),
             string[] a => s_stringArrayHandler.TryInvokeInstance(methodName, a, args),
             Version v => s_versionHandler.TryInvokeInstance(methodName, v, args),
-            int i => s_int32Handler.TryInvokeInstance(methodName, i, args),
             System.Runtime.InteropServices.OSPlatform platform => s_osPlatformHandler.TryInvokeInstance(methodName, platform, args),
+            _ when objectInstance.GetType().IsPrimitive || objectInstance is decimal
+                => s_primitiveHandler.TryInvokeInstance(methodName, objectInstance, args),
 
             _ => NotHandled,
         };
@@ -141,4 +144,18 @@ internal static partial class WellKnownFunctions
 
     private static WellKnownFunctionResult Invoked(object? result)
         => new(WellKnownFunctionStatus.Invoked, result);
+
+    private static bool IsNumericOrCharType(Type type)
+        => type == typeof(byte)
+        || type == typeof(sbyte)
+        || type == typeof(short)
+        || type == typeof(ushort)
+        || type == typeof(int)
+        || type == typeof(uint)
+        || type == typeof(long)
+        || type == typeof(ulong)
+        || type == typeof(float)
+        || type == typeof(double)
+        || type == typeof(decimal)
+        || type == typeof(char);
 }

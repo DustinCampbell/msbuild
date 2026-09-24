@@ -750,6 +750,81 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
+    [MemberData(nameof(PrimitiveMemberExpressions))]
+    public void PropertyFunctionPrimitiveMembers(string expression)
+        => ExpandProperties(expression).ShouldNotBeNull();
+
+    public static TheoryData<string> PrimitiveMemberExpressions
+    {
+        get
+        {
+            TheoryData<string> data = new()
+            {
+                "$([System.Convert]::ToInt32('42').CompareTo($([System.Convert]::ToInt32('41'))))",
+                "$([System.Convert]::ToInt32('42').Equals($([System.Convert]::ToInt32('42'))))",
+                "$([System.Convert]::ToDouble('42').CompareTo($([System.Convert]::ToInt32('41'))))",
+                "$([System.Convert]::ToDouble('42').Equals($([System.Convert]::ToInt32('42'))))",
+                "$([System.Convert]::ToInt32('42').GetHashCode())",
+                "$([System.Convert]::ToInt32('42').GetTypeCode())",
+                "$([System.Convert]::ToInt32('42').ToString())",
+                "$([System.Convert]::ToInt32('42').ToString('D4'))",
+                "$([System.Convert]::ToInt32('42').ToString($([System.Globalization.CultureInfo]::CurrentUICulture)))",
+                "$([System.Convert]::ToInt32('42').ToString('D4', $([System.Globalization.CultureInfo]::CurrentUICulture)))",
+                "$([System.Convert]::ToBoolean('true').ToString())",
+                "$([System.Convert]::ToChar('x').ToString())",
+                "$([System.Byte]::MinValue)",
+                "$([System.Byte]::MaxValue)",
+                "$([System.SByte]::MinValue)",
+                "$([System.SByte]::MaxValue)",
+                "$([System.Int16]::MinValue)",
+                "$([System.Int16]::MaxValue)",
+                "$([System.UInt16]::MinValue)",
+                "$([System.UInt16]::MaxValue)",
+                "$([System.Int32]::MinValue)",
+                "$([System.Int32]::MaxValue)",
+                "$([System.UInt32]::MinValue)",
+                "$([System.UInt32]::MaxValue)",
+                "$([System.Int64]::MinValue)",
+                "$([System.Int64]::MaxValue)",
+                "$([System.UInt64]::MinValue)",
+                "$([System.UInt64]::MaxValue)",
+                "$([System.Single]::MinValue)",
+                "$([System.Single]::MaxValue)",
+                "$([System.Single]::Epsilon)",
+                "$([System.Single]::NaN)",
+                "$([System.Single]::NegativeInfinity)",
+                "$([System.Single]::PositiveInfinity)",
+                "$([System.Double]::MinValue)",
+                "$([System.Double]::MaxValue)",
+                "$([System.Double]::Epsilon)",
+                "$([System.Double]::NaN)",
+                "$([System.Double]::NegativeInfinity)",
+                "$([System.Double]::PositiveInfinity)",
+                "$([System.Decimal]::MinValue)",
+                "$([System.Decimal]::MaxValue)",
+                "$([System.Decimal]::MinusOne)",
+                "$([System.Decimal]::One)",
+                "$([System.Decimal]::Zero)",
+                "$([System.Char]::MinValue.GetHashCode())",
+                "$([System.Char]::MaxValue.GetHashCode())",
+            };
+
+#if NET
+            data.Add("$([System.Single]::E)");
+            data.Add("$([System.Single]::NegativeZero)");
+            data.Add("$([System.Single]::Pi)");
+            data.Add("$([System.Single]::Tau)");
+            data.Add("$([System.Double]::E)");
+            data.Add("$([System.Double]::NegativeZero)");
+            data.Add("$([System.Double]::Pi)");
+            data.Add("$([System.Double]::Tau)");
+#endif
+
+            return data;
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(StringIndexOfExpressions))]
     public void StringIndexOfTests(string expression, int expected)
         => ExpandProperties(expression, Properties("AString", "x12x456789x11"))

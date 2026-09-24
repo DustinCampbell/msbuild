@@ -208,10 +208,10 @@
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Convert.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Environment.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Guid.cs" />
-    <Compile Include="Evaluation\Expander\WellKnownFunctions_Int32.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_IntrinsicFunctions.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Math.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Path.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Primitive.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Regex.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Runtime.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_StringArray.cs" />
