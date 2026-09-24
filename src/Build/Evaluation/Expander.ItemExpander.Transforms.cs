@@ -831,7 +831,7 @@ internal partial class Expander<P, I>
                         string.Empty,
                         expander.PropertiesUseTracker);
 
-                    object result = function.Execute(item.Value, expander._properties, ExpanderOptions.ExpandAll, elementLocation, in context);
+                    object result = function.Execute(item.Value, ExpanderOptions.ExpandAll, elementLocation, in context);
 
                     string include = PropertyExpander.ConvertToString(result);
 

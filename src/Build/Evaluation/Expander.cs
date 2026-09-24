@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Context;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -140,8 +141,10 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
         Assumed.NotNull(location);
 
+        var context = new ExpanderContext(_properties, _loggingContext, _fileSystem);
+
         string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, location, _loggingContext);
-        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, location, _propertiesUseTracker, _fileSystem);
+        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, options, location, _propertiesUseTracker, in context);
         result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, location);
         result = FileUtilities.MaybeAdjustFilePath(result);
 
@@ -169,8 +172,10 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
         Assumed.NotNull(location);
 
+        var context = new ExpanderContext(_properties, _loggingContext, _fileSystem);
+
         expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, location);
-        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, location, _propertiesUseTracker, _fileSystem);
+        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, options, location, _propertiesUseTracker, in context);
         expression = FileUtilities.MaybeAdjustFilePath(expression);
 
         List<T> result = [];
