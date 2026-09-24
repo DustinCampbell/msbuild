@@ -119,6 +119,7 @@ internal static partial class WellKnownFunctions
             MatchCollection matches => s_regexHandler.TryInvokeInstance(methodName, matches, args),
             Group group => s_regexHandler.TryInvokeInstance(methodName, group, args),
             Capture capture => s_regexHandler.TryInvokeInstance(methodName, capture, args),
+            Guid guid => s_guidHandler.TryInvokeInstance(methodName, guid, args),
             Regex regex => s_regexHandler.TryInvokeInstance(methodName, regex, args),
             Uri uri => s_uriHandler.TryInvokeInstance(methodName, uri, args),
             UriBuilder builder => s_uriHandler.TryInvokeInstance(methodName, builder, args),
@@ -168,6 +169,8 @@ internal static partial class WellKnownFunctions
             ? s_cultureInfoHandler.TryInvokeConstructor(args)
             : receiverType == typeof(Regex)
             ? s_regexHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(Guid)
+            ? s_guidHandler.TryInvokeConstructor(args)
             : receiverType == typeof(Uri) || receiverType == typeof(UriBuilder)
             ? s_uriHandler.TryInvokeConstructor(receiverType, args)
             : receiverType == typeof(Version)

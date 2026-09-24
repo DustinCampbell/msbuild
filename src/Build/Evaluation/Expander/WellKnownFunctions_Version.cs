@@ -33,13 +33,24 @@ internal static partial class WellKnownFunctions
             };
 
         public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args)
-            => methodName.Length switch
+        {
+            if (methodName.Equals(nameof(Version.Parse), StringComparison.OrdinalIgnoreCase))
             {
-                5 when methodName.Equals(nameof(Version.Parse), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeParse(args),
+                return TryInvokeParse(args);
+            }
 
-                _ => NotHandled,
-            };
+            if (args is [Version left, Version right])
+            {
+                if (methodName.Equals("op_Equality", StringComparison.OrdinalIgnoreCase)) return Invoked(left == right);
+                if (methodName.Equals("op_Inequality", StringComparison.OrdinalIgnoreCase)) return Invoked(left != right);
+                if (methodName.Equals("op_LessThan", StringComparison.OrdinalIgnoreCase)) return Invoked(left < right);
+                if (methodName.Equals("op_LessThanOrEqual", StringComparison.OrdinalIgnoreCase)) return Invoked(left <= right);
+                if (methodName.Equals("op_GreaterThan", StringComparison.OrdinalIgnoreCase)) return Invoked(left > right);
+                if (methodName.Equals("op_GreaterThanOrEqual", StringComparison.OrdinalIgnoreCase)) return Invoked(left >= right);
+            }
+
+            return NotHandled;
+        }
 
         public WellKnownFunctionResult TryInvokeInstance(string methodName, Version version, object?[] args)
             => methodName.Length switch

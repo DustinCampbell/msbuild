@@ -1471,6 +1471,71 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         Guid.TryParse(result, out _).ShouldBeTrue();
     }
 
+    [Theory]
+    [MemberData(nameof(GuidAndVersionExpressions))]
+    public void PropertyFunctionGuidAndVersionMembers(string expression, string expected)
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
+
+    public static TheoryData<string, string> GuidAndVersionExpressions => new()
+    {
+        { """$([System.Guid]::Empty)""", Guid.Empty.ToString() },
+        { """$([System.Guid]::new('00000000-0000-0000-0000-000000000000'))""", Guid.Empty.ToString() },
+        { """$([System.Guid]::new($([System.Convert]::FromBase64String('AAAAAAAAAAAAAAAAAAAAAA=='))))""", Guid.Empty.ToString() },
+        {
+            """$([System.Guid]::new('0', '0', '0', $([System.Convert]::FromBase64String('AAAAAAAAAAA='))))""",
+            Guid.Empty.ToString()
+        },
+        { """$([System.Guid]::new('0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'))""", Guid.Empty.ToString() },
+        { """$([System.Guid]::Parse('00000000-0000-0000-0000-000000000000'))""", Guid.Empty.ToString() },
+#if NET
+        {
+            """$([System.Guid]::Parse('00000000-0000-0000-0000-000000000000', $([System.Globalization.CultureInfo]::GetCultureInfo('en-US'))))""",
+            Guid.Empty.ToString()
+        },
+#endif
+        { """$([System.Guid]::ParseExact('00000000000000000000000000000000', 'N'))""", Guid.Empty.ToString() },
+        {
+            """$([System.Guid]::Parse('12345678-1234-5678-9012-345678901234').CompareTo($([System.Guid]::Parse('12345678-1234-5678-9012-345678901234'))))""",
+            "0"
+        },
+        {
+            """$([System.Guid]::Parse('12345678-1234-5678-9012-345678901234').Equals($([System.Guid]::Parse('12345678-1234-5678-9012-345678901234'))))""",
+            bool.TrueString
+        },
+        { """$([System.Guid]::Parse('12345678-1234-5678-9012-345678901234').ToByteArray().Length)""", "16" },
+        { """$([System.Guid]::Parse('12345678-1234-5678-9012-345678901234').ToString())""", "12345678-1234-5678-9012-345678901234" },
+        { """$([System.Guid]::Parse('12345678-1234-5678-9012-345678901234').ToString('N'))""", "12345678123456789012345678901234" },
+        {
+            """$([System.Guid]::Parse('12345678-1234-5678-9012-345678901234').ToString('D', $([System.Globalization.CultureInfo]::GetCultureInfo('en-US'))))""",
+            "12345678-1234-5678-9012-345678901234"
+        },
+        {
+            """$([System.Version]::op_Equality($([System.Version]::new('1.2')), $([System.Version]::new('1.2'))))""",
+            bool.TrueString
+        },
+        {
+            """$([System.Version]::op_Inequality($([System.Version]::new('1.2')), $([System.Version]::new('2.0'))))""",
+            bool.TrueString
+        },
+        {
+            """$([System.Version]::op_LessThan($([System.Version]::new('1.2')), $([System.Version]::new('2.0'))))""",
+            bool.TrueString
+        },
+        {
+            """$([System.Version]::op_LessThanOrEqual($([System.Version]::new('1.2')), $([System.Version]::new('2.0'))))""",
+            bool.TrueString
+        },
+        {
+            """$([System.Version]::op_GreaterThan($([System.Version]::new('2.0')), $([System.Version]::new('1.2'))))""",
+            bool.TrueString
+        },
+        {
+            """$([System.Version]::op_GreaterThanOrEqual($([System.Version]::new('2.0')), $([System.Version]::new('1.2'))))""",
+            bool.TrueString
+        },
+    };
+
     [Fact]
     public void PropertyFunctionStringArrayIndexerGetter()
         => ExpandProperties("$(prop.Split('-')[0])", Properties("prop", "x-y-z"))

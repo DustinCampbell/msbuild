@@ -36,6 +36,20 @@ public class WellKnownFunctions_Version_Tests(ITestOutputHelper output)
         => StaticMember(nameof(Version.Parse))
             .NotHandled();
 
+    [Fact]
+    public void Version_Operators()
+    {
+        Version lower = new(1, 2);
+        Version higher = new(2, 0);
+
+        StaticMember("op_Equality").Invoke([lower, lower]).ShouldBe(true);
+        StaticMember("op_Inequality").Invoke([lower, higher]).ShouldBe(true);
+        StaticMember("op_LessThan").Invoke([lower, higher]).ShouldBe(true);
+        StaticMember("op_LessThanOrEqual").Invoke([lower, higher]).ShouldBe(true);
+        StaticMember("op_GreaterThan").Invoke([higher, lower]).ShouldBe(true);
+        StaticMember("op_GreaterThanOrEqual").Invoke([higher, lower]).ShouldBe(true);
+    }
+
     [Theory]
     [InlineData(0, "")]
     [InlineData(2, "1.2")]
