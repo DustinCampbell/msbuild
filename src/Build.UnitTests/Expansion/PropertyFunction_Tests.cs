@@ -2161,6 +2161,87 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
+    [MemberData(nameof(ArrayMemberExpressions))]
+    public void ArrayMemberTests(string expression, string expected)
+        => ExpandProperties(
+            expression,
+            Properties(
+                ("ArraySource", "a,b"),
+                ("ArrayDestination", "x,y")),
+            allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> ArrayMemberExpressions => new()
+    {
+        { "$(ArraySource.Split(',').Clone().Length)", "2" },
+        { "$(ArraySource.Split(',').Equals($(ArrayDestination.Split(','))))", bool.FalseString },
+        { "$(ArraySource.Split(',').GetEnumerator())", Array.Empty<string>().GetEnumerator().ToString()! },
+        { "$(ArraySource.Split(',').GetLength('0'))", "2" },
+        { "$(ArraySource.Split(',').GetLongLength('0'))", "2" },
+        { "$(ArraySource.Split(',').GetLowerBound('0'))", "0" },
+        { "$(ArraySource.Split(',').GetUpperBound('0'))", "1" },
+        { "$(ArraySource.Split(',').GetValue('1'))", "b" },
+        { "$(ArraySource.Split(',').GetValue($([System.Convert]::ToInt64('1'))))", "b" },
+        { "$(ArraySource.Split(',').Initialize())", string.Empty },
+        { "$(ArraySource.Split(',').IsFixedSize)", bool.TrueString },
+        { "$(ArraySource.Split(',').IsReadOnly)", bool.FalseString },
+        { "$(ArraySource.Split(',').IsSynchronized)", bool.FalseString },
+        { "$(ArraySource.Split(',').Length)", "2" },
+        { "$(ArraySource.Split(',').LongLength)", "2" },
+        { "$(ArraySource.Split(',').Rank)", "1" },
+        { "$(ArraySource.Split(',').SetValue('c', '0'))", string.Empty },
+        { "$(ArraySource.Split(',').SetValue('c', $([System.Convert]::ToInt64('0'))))", string.Empty },
+        { "$(ArraySource.Split(',').SyncRoot.Length)", "2" },
+        { "$(ArraySource.Split(',').ToString())", "System.String[]" },
+    };
+
+    [ModernExpanderOnlyTheory]
+    [InlineData("'0'")]
+    [InlineData("$([System.Convert]::ToInt64('0'))")]
+    public void ArrayCopyTo(string index)
+        => ExpandProperties(
+            $"$(ArraySource.Split(',').CopyTo($(ArrayDestination.Split(',')), {index}))",
+            Properties(
+                ("ArraySource", "a,b"),
+                ("ArrayDestination", "x,y")),
+            allowReflection: false).ShouldBeEmpty();
+
+    [Fact]
+    public void ArrayGetHashCode()
+        => ExpandProperties(
+            "$(ArraySource.Split(',').GetHashCode())",
+            Properties("ArraySource", "a,b"),
+            allowReflection: ExpanderFactory.UseLegacyExpander).ShouldNotBeNullOrEmpty();
+
+    [Theory]
+    [MemberData(nameof(EnumMemberExpressions))]
+    public void EnumMemberTests(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> EnumMemberExpressions
+    {
+        get
+        {
+            const string Monday = "[System.DateTime]::Parse('2024-01-01').DayOfWeek";
+            const string MondayArgument = "$([System.DateTime]::Parse('2024-01-01').DayOfWeek)";
+            const string TuesdayArgument = "$([System.DateTime]::Parse('2024-01-02').DayOfWeek)";
+            const string InvariantCulture = "$([System.Globalization.CultureInfo]::GetCultureInfo(''))";
+
+            return new TheoryData<string, string>
+            {
+                { $"$({Monday}.CompareTo({TuesdayArgument}))", "-1" },
+                { $"$({Monday}.Equals({MondayArgument}))", bool.TrueString },
+                { $"$({Monday}.GetHashCode())", "1" },
+                { $"$({Monday}.GetTypeCode())", nameof(TypeCode.Int32) },
+                { $"$({Monday}.HasFlag({MondayArgument}))", bool.TrueString },
+                { $"$({Monday}.ToString())", nameof(DayOfWeek.Monday) },
+                { $"$({Monday}.ToString('D'))", "1" },
+                { $"$({Monday}.ToString({InvariantCulture}))", nameof(DayOfWeek.Monday) },
+                { $"$({Monday}.ToString('D', {InvariantCulture}))", "1" },
+            };
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(RemainingIntrinsicFunctionExpressions))]
     public void RemainingIntrinsicFunctionTests(string expression, string expected)
         => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);

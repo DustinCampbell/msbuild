@@ -210,6 +210,7 @@
     <Compile Include="Evaluation\Expander\WellKnownFunctions_DateTime.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_DateTimeOffset.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Decimal.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Enum.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Environment.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_FileSystem.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_FloatingPoint.cs" />
@@ -220,7 +221,7 @@
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Primitive.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Regex.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Runtime.cs" />
-    <Compile Include="Evaluation\Expander\WellKnownFunctions_StringArray.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Array.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_String.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_StringComparer.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_TimeSpan.cs" />

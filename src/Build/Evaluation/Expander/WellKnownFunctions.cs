@@ -25,6 +25,7 @@ internal static partial class WellKnownFunctions
     private static readonly DateTimeHandler s_dateTimeHandler = new();
     private static readonly DateTimeOffsetHandler s_dateTimeOffsetHandler = new();
     private static readonly DecimalHandler s_decimalHandler = new();
+    private static readonly EnumHandler s_enumHandler = new();
     private static readonly EnvironmentHandler s_environmentHandler = new();
     private static readonly FileSystemHandler s_fileSystemHandler = new();
     private static readonly GuidHandler s_guidHandler = new();
@@ -126,6 +127,7 @@ internal static partial class WellKnownFunctions
             DateTimeOffset dateTimeOffset => s_dateTimeOffsetHandler.TryInvokeInstance(methodName, dateTimeOffset, args),
             TimeSpan timeSpan => s_timeSpanHandler.TryInvokeInstance(methodName, timeSpan, args),
             decimal number => s_decimalHandler.TryInvokeInstance(methodName, number, args),
+            Enum value => s_enumHandler.TryInvokeInstance(methodName, value, args),
             FileSystemInfo fileSystemInfo => s_fileSystemHandler.TryInvokeInstance(methodName, fileSystemInfo, args),
             GroupCollection groups => s_regexHandler.TryInvokeInstance(methodName, groups, args),
             Match match => s_regexHandler.TryInvokeInstance(methodName, match, args),
