@@ -57,6 +57,20 @@ internal static class ExpansionHelpers
     public static string? ExpandProperties(string expression, PropertyDictionary<ProjectPropertyInstance> properties, bool allowReflection = true)
         => ExpandProperties(expression, properties, loggingContext: null, allowReflection);
 
+    public static string? ExpandProperties(
+        string expression,
+        PropertyDictionary<ProjectPropertyInstance> properties,
+        ExpanderOptions options,
+        bool allowReflection = true)
+        => ExpandProperties(expression, properties, loggingContext: null, allowReflection, options);
+
+    public static string? ExpandProperties(
+        string expression,
+        PropertyDictionary<ProjectPropertyInstance> properties,
+        string filePath,
+        bool allowReflection = true)
+        => ExpandProperties(expression, properties, loggingContext: null, allowReflection, location: new(filePath));
+
     public static string? ExpandProperties(string expression, LoggingContext? loggingContext, bool allowReflection = true)
         => ExpandProperties(expression, Properties(), loggingContext, allowReflection);
 
@@ -64,8 +78,12 @@ internal static class ExpansionHelpers
         string expression,
         PropertyDictionary<ProjectPropertyInstance> properties,
         LoggingContext? loggingContext,
-        bool allowReflection = true)
+        bool allowReflection = true,
+        ExpanderOptions options = ExpanderOptions.ExpandProperties,
+        MockElementLocation? location = null)
     {
+        options |= ExpanderOptions.ExpandProperties;
+
         if (loggingContext is null && TestContext.Current.TestOutputHelper is { } output)
         {
             (_, loggingContext) = CreateLoggingContext(output);
@@ -75,7 +93,7 @@ internal static class ExpansionHelpers
             ? ExpanderFactory.Create(properties, loggingContext)
             : ExpanderFactory.Create(properties);
 
-        return ExpandIntoStringLeaveEscaped(expander, expression, ExpanderOptions.ExpandProperties, allowReflection);
+        return ExpandIntoStringLeaveEscaped(expander, expression, options, allowReflection, location);
     }
 
     public static string? ExpandPropertiesAndMetadata(string expression, IMetadataTable metadata, bool allowReflection = true)
@@ -96,8 +114,11 @@ internal static class ExpansionHelpers
         IExpander<ProjectPropertyInstance, ProjectItemInstance> expander,
         string expression,
         ExpanderOptions options,
-        bool allowReflection)
+        bool allowReflection,
+        MockElementLocation? location = null)
     {
+        location ??= MockElementLocation.Instance;
+
         bool enableAllPropertyFunctions = FeatureSwitches.EnableAllPropertyFunctions;
         string reflectionInfoPath = Path.Combine(Directory.GetCurrentDirectory(), PropertyFunctionsRequiringReflectionFileName);
 
@@ -111,7 +132,7 @@ internal static class ExpansionHelpers
 
         try
         {
-            string? result = expander.ExpandIntoStringLeaveEscaped(expression, options, MockElementLocation.Instance);
+            string? result = expander.ExpandIntoStringLeaveEscaped(expression, options, location);
 
             if (File.Exists(reflectionInfoPath))
             {

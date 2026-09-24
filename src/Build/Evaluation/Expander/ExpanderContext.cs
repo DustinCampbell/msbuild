@@ -5,6 +5,12 @@ using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 
+#if FEATURE_MSIOREDIST
+using Path = Microsoft.IO.Path;
+#else
+using Path = System.IO.Path;
+#endif
+
 namespace Microsoft.Build.Evaluation.Expander;
 
 /// <summary>
@@ -56,4 +62,22 @@ internal readonly struct ExpanderContext(
     ///  Gets the location of the element being expanded, or <see langword="null"/> if the location is unavailable.
     /// </summary>
     public IElementLocation? Location => location;
+
+    /// <summary>
+    ///  Gets the directory containing the file associated with <see cref="Location"/>.
+    /// </summary>
+    /// <value>
+    ///  The directory containing the location's file; <see cref="string.Empty"/> if the file is empty or whitespace;
+    ///  otherwise, <see langword="null"/> if the directory cannot be determined.
+    /// </value>
+    public string? LocationDirectory
+    {
+        get
+        {
+            string file = location!.File;
+            return !string.IsNullOrWhiteSpace(file)
+                ? Path.GetDirectoryName(file)
+                : string.Empty;
+        }
+    }
 }

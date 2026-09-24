@@ -324,23 +324,17 @@ public class PropertyFunction_Intrinsic_Tests(ITestOutputHelper output)
         var file = env.CreateFile(folder, "marker.tmp");
         string directoryStart = Path.Combine(folder.Path, "one", "two", "three", "four", "five");
 
-        var expander = ExpanderFactory.Create(Properties(
+        var properties = Properties(
             ("StartingDirectory", directoryStart),
-            ("FileToFind", Path.GetFileName(file.Path))));
+            ("FileToFind", Path.GetFileName(file.Path)));
 
-        string? result = expander.ExpandIntoStringAndUnescape(
-            "$([MSBuild]::GetDirectoryNameOfFileAbove($(StartingDirectory), $(FileToFind)))",
-            ExpanderOptions.ExpandProperties,
-            MockElementLocation.Instance);
+        string? result = ExpandProperties("$([MSBuild]::GetDirectoryNameOfFileAbove($(StartingDirectory), $(FileToFind)))", properties);
 
-        FileUtilities.EnsureTrailingSlash(result.ShouldNotBeNull()).ShouldBe(FileUtilities.EnsureTrailingSlash(folder.Path));
+        FileUtilities.EnsureTrailingSlash(result.ShouldNotBeNull())
+            .ShouldBe(FileUtilities.EnsureTrailingSlash(folder.Path));
 
-        result = expander.ExpandIntoStringAndUnescape(
-            "$([MSBuild]::GetDirectoryNameOfFileAbove($(StartingDirectory), Hobbits))",
-            ExpanderOptions.ExpandProperties,
-            MockElementLocation.Instance);
-
-        result.ShouldBeEmpty();
+        ExpandProperties("$([MSBuild]::GetDirectoryNameOfFileAbove($(StartingDirectory), Hobbits))", properties)
+            .ShouldBeEmpty();
     }
 
     /// <summary>
@@ -353,23 +347,53 @@ public class PropertyFunction_Intrinsic_Tests(ITestOutputHelper output)
         using var env = TestEnvironment.Create(_output);
         var folder = env.CreateFolder();
         var file = env.CreateFile(folder, "marker.tmp");
-        MockElementLocation location = new(Path.Combine(folder.Path, "one", "two", "three", "four", "five", "test.proj"));
+        string projectFile = Path.Combine(folder.Path, "one", "two", "three", "four", "five", "test.proj");
 
-        var expander = ExpanderFactory.Create(Properties("FileToFind", Path.GetFileName(file.Path)));
+        var properties = Properties("FileToFind", Path.GetFileName(file.Path));
 
-        string? result = expander.ExpandIntoStringAndUnescape(
-            "$([MSBuild]::GetPathOfFileAbove($(FileToFind)))",
-            ExpanderOptions.ExpandProperties,
-            location);
+        ExpandProperties("$([MSBuild]::GetPathOfFileAbove($(FileToFind)))", properties, projectFile)
+            .ShouldBe(file.Path);
 
-        result.ShouldBe(file.Path);
+        ExpandProperties("$([MSBuild]::GetPathOfFileAbove('Hobbits'))", properties, projectFile)
+            .ShouldBeEmpty();
+    }
 
-        result = expander.ExpandIntoStringAndUnescape(
-            "$([MSBuild]::GetPathOfFileAbove('Hobbits'))",
-            ExpanderOptions.ExpandProperties,
-            location);
+    /// <summary>
+    ///  Verifies that the legacy pseudo-overload for <see cref="IntrinsicFunctions.GetPathOfFileAbove"/> requires
+    ///  the method name to use its declared casing.
+    /// </summary>
+    [LegacyExpanderOnlyFact]
+    public void LegacyGetPathOfFileAboveRequiresExactCasing()
+    {
+        using var env = TestEnvironment.Create(_output);
+        var folder = env.CreateFolder();
+        var file = env.CreateFile(folder, "marker.tmp");
+        string projectFile = Path.Combine(folder.Path, "one", "two", "three", "test.proj");
 
-        result.ShouldBeEmpty();
+        Should.Throw<InvalidProjectFileException>(() =>
+            ExpandProperties(
+                "$([MSBuild]::getpathoffileabove($(FileToFind)))",
+                Properties("FileToFind", Path.GetFileName(file.Path)),
+                projectFile));
+    }
+
+    /// <summary>
+    ///  Verifies that the modern pseudo-overload for <see cref="IntrinsicFunctions.GetPathOfFileAbove"/> handles
+    ///  the method name case-insensitively.
+    /// </summary>
+    [ModernExpanderOnlyFact]
+    public void ModernGetPathOfFileAboveIgnoresCasing()
+    {
+        using var env = TestEnvironment.Create(_output);
+        var folder = env.CreateFolder();
+        var file = env.CreateFile(folder, "marker.tmp");
+        string projectFile = Path.Combine(folder.Path, "one", "two", "three", "test.proj");
+
+        ExpandProperties(
+            "$([MSBuild]::getpathoffileabove($(FileToFind)))",
+            Properties("FileToFind", Path.GetFileName(file.Path)),
+            projectFile)
+            .ShouldBe(file.Path);
     }
 
     /// <summary>
@@ -472,7 +496,7 @@ public class PropertyFunction_Intrinsic_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionDoesTaskHostExist_Whitespace()
         => ExpandProperties("$([MSBuild]::DoesTaskHostExist('   CurrentRuntime    ', 'CurrentArchitecture'))")
-        .ShouldBe(true.ToResultString());
+            .ShouldBe(true.ToResultString());
 #endif
 
     [Theory]
@@ -499,9 +523,7 @@ public class PropertyFunction_Intrinsic_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionDoesTaskHostExist_Error()
         => Should.Throw<InvalidProjectFileException>(() =>
-        {
-            ExpandProperties("$([MSBuild]::DoesTaskHostExist('ASDF', 'CurrentArchitecture'))");
-        });
+            ExpandProperties("$([MSBuild]::DoesTaskHostExist('ASDF', 'CurrentArchitecture'))"));
 
 #if FEATURE_APPDOMAIN
     /// <summary>
