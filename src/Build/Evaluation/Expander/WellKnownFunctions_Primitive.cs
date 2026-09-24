@@ -34,7 +34,6 @@ internal static partial class WellKnownFunctions
                     : receiverType == typeof(ulong) ? Invoked(ulong.MaxValue)
                     : receiverType == typeof(float) ? Invoked(float.MaxValue)
                     : receiverType == typeof(double) ? Invoked(double.MaxValue)
-                    : receiverType == typeof(decimal) ? Invoked(decimal.MaxValue)
                     : receiverType == typeof(char) ? Invoked(char.MaxValue)
                     : NotHandled;
             }
@@ -51,7 +50,6 @@ internal static partial class WellKnownFunctions
                     : receiverType == typeof(ulong) ? Invoked(ulong.MinValue)
                     : receiverType == typeof(float) ? Invoked(float.MinValue)
                     : receiverType == typeof(double) ? Invoked(double.MinValue)
-                    : receiverType == typeof(decimal) ? Invoked(decimal.MinValue)
                     : receiverType == typeof(char) ? Invoked(char.MinValue)
                     : NotHandled;
             }
@@ -64,14 +62,6 @@ internal static partial class WellKnownFunctions
             if (receiverType == typeof(double))
             {
                 return TryInvokeDoubleField(methodName);
-            }
-
-            if (receiverType == typeof(decimal))
-            {
-                return methodName.Equals(nameof(decimal.MinusOne), StringComparison.OrdinalIgnoreCase) ? Invoked(decimal.MinusOne)
-                    : methodName.Equals(nameof(decimal.One), StringComparison.OrdinalIgnoreCase) ? Invoked(decimal.One)
-                    : methodName.Equals(nameof(decimal.Zero), StringComparison.OrdinalIgnoreCase) ? Invoked(decimal.Zero)
-                    : NotHandled;
             }
 
             return NotHandled;
@@ -148,7 +138,6 @@ internal static partial class WellKnownFunctions
                 TypeCode.UInt64 => Invoked(ulong.Parse(value)),
                 TypeCode.Single => Invoked(float.Parse(value)),
                 TypeCode.Double => Invoked(double.Parse(value)),
-                TypeCode.Decimal => Invoked(decimal.Parse(value)),
                 _ => NotHandled,
             };
 
@@ -165,7 +154,6 @@ internal static partial class WellKnownFunctions
                 TypeCode.UInt64 => Invoked(ulong.Parse(value, styles)),
                 TypeCode.Single => Invoked(float.Parse(value, styles)),
                 TypeCode.Double => Invoked(double.Parse(value, styles)),
-                TypeCode.Decimal => Invoked(decimal.Parse(value, styles)),
                 _ => NotHandled,
             };
 
@@ -182,7 +170,6 @@ internal static partial class WellKnownFunctions
                 TypeCode.UInt64 => Invoked(ulong.Parse(value, provider)),
                 TypeCode.Single => Invoked(float.Parse(value, provider)),
                 TypeCode.Double => Invoked(double.Parse(value, provider)),
-                TypeCode.Decimal => Invoked(decimal.Parse(value, provider)),
                 _ => NotHandled,
             };
 
@@ -199,7 +186,6 @@ internal static partial class WellKnownFunctions
                 TypeCode.UInt64 => Invoked(ulong.Parse(value, styles, provider)),
                 TypeCode.Single => Invoked(float.Parse(value, styles, provider)),
                 TypeCode.Double => Invoked(double.Parse(value, styles, provider)),
-                TypeCode.Decimal => Invoked(decimal.Parse(value, styles, provider)),
                 _ => NotHandled,
             };
 

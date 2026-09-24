@@ -208,6 +208,7 @@
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Convert.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_CultureInfo.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_DateTime.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Decimal.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Environment.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_FileSystem.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Guid.cs" />

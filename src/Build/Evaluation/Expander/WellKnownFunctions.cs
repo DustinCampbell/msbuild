@@ -23,6 +23,7 @@ internal static partial class WellKnownFunctions
     private static readonly ConvertHandler s_convertHandler = new();
     private static readonly CultureInfoHandler s_cultureInfoHandler = new();
     private static readonly DateTimeHandler s_dateTimeHandler = new();
+    private static readonly DecimalHandler s_decimalHandler = new();
     private static readonly EnvironmentHandler s_environmentHandler = new();
     private static readonly FileSystemHandler s_fileSystemHandler = new();
     private static readonly GuidHandler s_guidHandler = new();
@@ -60,6 +61,8 @@ internal static partial class WellKnownFunctions
             ? s_cultureInfoHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(DateTime)
             ? s_dateTimeHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(decimal)
+            ? s_decimalHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Environment)
             ? s_environmentHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Directory) || receiverType == typeof(File)
@@ -117,6 +120,7 @@ internal static partial class WellKnownFunctions
             CaptureCollection captures => s_regexHandler.TryInvokeInstance(methodName, captures, args),
             System.Globalization.CultureInfo culture => s_cultureInfoHandler.TryInvokeInstance(methodName, culture, args),
             DateTime dateTime => s_dateTimeHandler.TryInvokeInstance(methodName, dateTime, args),
+            decimal number => s_decimalHandler.TryInvokeInstance(methodName, number, args),
             FileSystemInfo fileSystemInfo => s_fileSystemHandler.TryInvokeInstance(methodName, fileSystemInfo, args),
             GroupCollection groups => s_regexHandler.TryInvokeInstance(methodName, groups, args),
             Match match => s_regexHandler.TryInvokeInstance(methodName, match, args),
@@ -171,6 +175,8 @@ internal static partial class WellKnownFunctions
             ? s_stringHandler.TryInvokeConstructor(args)
             : receiverType == typeof(System.Globalization.CultureInfo)
             ? s_cultureInfoHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(decimal)
+            ? s_decimalHandler.TryInvokeConstructor(args)
             : receiverType == typeof(Regex)
             ? s_regexHandler.TryInvokeConstructor(args)
             : receiverType == typeof(Guid)

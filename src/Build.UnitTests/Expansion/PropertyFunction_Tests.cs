@@ -1108,6 +1108,107 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
+    [MemberData(nameof(DecimalMemberExpressions))]
+    public void PropertyFunctionDecimalMembers(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> DecimalMemberExpressions
+    {
+        get
+        {
+            TheoryData<string, string> data = new();
+            const string two = "$([System.Decimal]::Parse('2'))";
+            const string three = "$([System.Decimal]::Parse('3'))";
+            const string four = "$([System.Decimal]::Parse('4'))";
+            const string fortyTwo = "$([System.Decimal]::Parse('42'))";
+
+            data.Add("$([System.Decimal]::new($([System.Convert]::ToInt32('42'))))", "42");
+            data.Add("$([System.Decimal]::new($([System.Convert]::ToUInt32('42'))))", "42");
+            data.Add("$([System.Decimal]::new($([System.Convert]::ToInt64('42'))))", "42");
+            data.Add("$([System.Decimal]::new($([System.Convert]::ToUInt64('42'))))", "42");
+            data.Add("$([System.Decimal]::new($([System.Convert]::ToSingle('42'))))", "42");
+            data.Add("$([System.Decimal]::new($([System.Convert]::ToDouble('42'))))", "42");
+            data.Add("$([System.Decimal]::new('42'))", "42");
+            data.Add($"$([System.Decimal]::new($([System.Decimal]::GetBits({fortyTwo}))))", "42");
+            data.Add(
+                "$([System.Decimal]::new($([System.Convert]::ToInt32('42')), $([System.Convert]::ToInt32('0')), "
+                    + "$([System.Convert]::ToInt32('0')), $([System.Convert]::ToBoolean('false')), $([System.Convert]::ToByte('1'))))",
+                "4.2");
+
+            data.Add($"$([System.Decimal]::Ceiling($([System.Decimal]::Parse('1.2'))))", "2");
+            data.Add($"$([System.Decimal]::Floor($([System.Decimal]::Parse('1.8'))))", "1");
+            data.Add($"$([System.Decimal]::GetBits({fortyTwo}).GetValue('0'))", "42");
+            data.Add($"$([System.Decimal]::Negate({fortyTwo}))", "-42");
+            data.Add($"$([System.Decimal]::ToByte({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToDouble({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToInt16({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToInt32({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToInt64({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToOACurrency($([System.Decimal]::Parse('4.2'))))", "42000");
+            data.Add($"$([System.Decimal]::ToSByte({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToSingle({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToUInt16({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToUInt32({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::ToUInt64({fortyTwo}))", "42");
+            data.Add($"$([System.Decimal]::Truncate($([System.Decimal]::Parse('1.8'))))", "1");
+            data.Add("$([System.Decimal]::FromOACurrency($([System.Convert]::ToInt64('42000'))))", "4.2");
+
+            data.Add($"$([System.Decimal]::Add({four}, {two}))", "6");
+            data.Add($"$([System.Decimal]::Compare({four}, {two}))", "1");
+            data.Add($"$([System.Decimal]::Divide({four}, {two}))", "2");
+            data.Add($"$([System.Decimal]::Equals({four}, {four}))", "True");
+            data.Add($"$([System.Decimal]::Multiply({four}, {two}))", "8");
+            data.Add($"$([System.Decimal]::Remainder({three}, {two}))", "1");
+            data.Add($"$([System.Decimal]::Subtract({four}, {two}))", "2");
+            data.Add("$([System.Decimal]::Add('4', '2'))", "6");
+            data.Add($"$([System.Decimal]::Round($([System.Decimal]::Parse('1.6'))))", "2");
+            data.Add($"$([System.Decimal]::Round($([System.Decimal]::Parse('1.26')), '1'))", "1.3");
+
+            data.Add($"$([System.Decimal]::op_Addition({four}, {two}))", "6");
+            data.Add($"$([System.Decimal]::op_Decrement({four}))", "3");
+            data.Add($"$([System.Decimal]::op_Division({four}, {two}))", "2");
+            data.Add($"$([System.Decimal]::op_Equality({four}, {four}))", "True");
+            data.Add($"$([System.Decimal]::op_GreaterThan({four}, {two}))", "True");
+            data.Add($"$([System.Decimal]::op_GreaterThanOrEqual({four}, {four}))", "True");
+            data.Add("$([System.Decimal]::op_Implicit($([System.Convert]::ToInt32('42'))))", "42");
+            data.Add("$([System.Decimal]::op_Implicit($([System.Convert]::ToChar('*'))))", "42");
+            data.Add("$([System.Decimal]::op_Explicit($([System.Convert]::ToDouble('42'))))", "42");
+            data.Add($"$([System.Decimal]::op_Increment({four}))", "5");
+            data.Add($"$([System.Decimal]::op_Inequality({four}, {two}))", "True");
+            data.Add($"$([System.Decimal]::op_LessThan({two}, {four}))", "True");
+            data.Add($"$([System.Decimal]::op_LessThanOrEqual({four}, {four}))", "True");
+            data.Add($"$([System.Decimal]::op_Modulus({three}, {two}))", "1");
+            data.Add($"$([System.Decimal]::op_Multiply({four}, {two}))", "8");
+            data.Add($"$([System.Decimal]::op_Subtraction({four}, {two}))", "2");
+            data.Add($"$([System.Decimal]::op_UnaryNegation({four}))", "-4");
+            data.Add($"$([System.Decimal]::op_UnaryPlus({four}))", "4");
+
+#if NET
+            const string one = "$([System.Decimal]::Parse('1'))";
+            const string negativeFour = "$([System.Decimal]::Parse('-4'))";
+
+            data.Add($"$([System.Decimal]::Abs({negativeFour}))", "4");
+            data.Add($"$([System.Decimal]::Clamp({four}, {one}, {three}))", "3");
+            data.Add($"$([System.Decimal]::CopySign({four}, {negativeFour}))", "-4");
+            data.Add($"$([System.Decimal]::IsCanonical({four}))", "True");
+            data.Add($"$([System.Decimal]::IsEvenInteger({four}))", "True");
+            data.Add($"$([System.Decimal]::IsInteger({four}))", "True");
+            data.Add($"$([System.Decimal]::IsNegative({negativeFour}))", "True");
+            data.Add($"$([System.Decimal]::IsOddInteger({three}))", "True");
+            data.Add($"$([System.Decimal]::IsPositive({four}))", "True");
+            data.Add($"$([System.Decimal]::Max({four}, {two}))", "4");
+            data.Add($"$([System.Decimal]::MaxMagnitude({negativeFour}, {two}))", "-4");
+            data.Add($"$([System.Decimal]::Min({four}, {two}))", "2");
+            data.Add($"$([System.Decimal]::MinMagnitude({negativeFour}, {two}))", "2");
+            data.Add($"$([System.Decimal]::Sign({negativeFour}))", "-1");
+            data.Add("$([System.Decimal]::Parse('42').Scale)", "0");
+#endif
+
+            return data;
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(StringIndexOfExpressions))]
     public void StringIndexOfTests(string expression, int expected)
         => ExpandProperties(expression, Properties("AString", "x12x456789x11"))
