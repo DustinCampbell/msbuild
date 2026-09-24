@@ -10,11 +10,9 @@ using System.IO;
 #endif
 using System.Linq;
 using System.Reflection;
-using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
-using Microsoft.Build.Shared.FileSystem;
 using Microsoft.NET.StringTools;
 using AvailableStaticMethods = Microsoft.Build.Internal.AvailableStaticMethods;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
@@ -113,10 +111,6 @@ internal partial class Expander<P, I>
         /// </summary>
         private PropertiesUseTracker _propertiesUseTracker;
 
-        private readonly IFileSystem _fileSystem;
-
-        private readonly LoggingContext _loggingContext;
-
         /// <summary>
         /// Construct a function that will be executed during property evaluation.
         /// </summary>
@@ -132,9 +126,7 @@ internal partial class Expander<P, I>
             string[] arguments,
             BindingFlags bindingFlags,
             string remainder,
-            PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem,
-            LoggingContext loggingContext)
+            PropertiesUseTracker propertiesUseTracker)
         {
             _methodMethodName = methodName;
             if (arguments == null)
@@ -162,8 +154,6 @@ internal partial class Expander<P, I>
 
             _remainder = remainder;
             _propertiesUseTracker = propertiesUseTracker;
-            _fileSystem = fileSystem;
-            _loggingContext = loggingContext;
         }
 
         /// <summary>
@@ -201,18 +191,14 @@ internal partial class Expander<P, I>
         /// trim suppression lives, minimized, in <c>FunctionBuilder.SetReceiverType</c>.
         /// </param>
         /// <param name="propertiesUseTracker">Tracks property reads performed while evaluating the function.</param>
-        /// <param name="fileSystem">File system abstraction used by file and directory property functions.</param>
-        /// <param name="loggingContext">Logging context for the operation; may be <see langword="null"/>.</param>
         internal static Function ExtractPropertyFunction(
             string expressionFunction,
             IElementLocation elementLocation,
             object propertyValue,
-            PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem,
-            LoggingContext loggingContext)
+            PropertiesUseTracker propertiesUseTracker)
         {
             // Used to aggregate all the components needed for a Function
-            FunctionBuilder functionBuilder = new FunctionBuilder { FileSystem = fileSystem, LoggingContext = loggingContext };
+            FunctionBuilder functionBuilder = new();
 
             // By default the expression root is the whole function expression
             ReadOnlySpan<char> expressionRoot = expressionFunction == null ? ReadOnlySpan<char>.Empty : expressionFunction.AsSpan();
@@ -364,7 +350,12 @@ internal partial class Expander<P, I>
             Justification = "_receiverType is reassigned from a runtime property value whose type is restricted to the property-function allowlist, whose members are preserved for trimming.")]
         [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        internal object Execute(object objectInstance, IPropertyProvider<P> properties, ExpanderOptions options, IElementLocation elementLocation)
+        internal object Execute(
+            object objectInstance,
+            IPropertyProvider<P> properties,
+            ExpanderOptions options,
+            IElementLocation elementLocation,
+            ref readonly ExpanderContext context)
         {
             object functionResult = String.Empty;
             object[] args = null;
@@ -413,7 +404,7 @@ internal partial class Expander<P, I>
                         options,
                         elementLocation,
                         _propertiesUseTracker,
-                        _fileSystem);
+                        context.FileSystem);
 
                     if (argument is string argumentValue)
                     {
@@ -488,8 +479,6 @@ internal partial class Expander<P, I>
                         args = [args[0], startingDirectory];
                     }
                 }
-
-                var context = new ExpanderContext(properties, _loggingContext, _fileSystem);
 
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
@@ -593,7 +582,7 @@ internal partial class Expander<P, I>
                     options,
                     elementLocation,
                     _propertiesUseTracker,
-                    _fileSystem);
+                    context.FileSystem);
             }
 
             // Exceptions coming from the actual function called are wrapped in a TargetInvocationException

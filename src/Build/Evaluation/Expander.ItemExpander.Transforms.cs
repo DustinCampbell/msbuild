@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Expansion;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -811,6 +812,11 @@ internal partial class Expander<P, I>
                 string functionName,
                 IElementLocation elementLocation)
             {
+                var context = new ExpanderContext(
+                    expander._properties,
+                    expander._loggingContext,
+                    expander._fileSystem);
+
                 // Transform: expression is like @(Compile->'%(foo)'), so create completely new items,
                 // using the Include from the source items
                 foreach (TransformEntry<I> item in input)
@@ -823,11 +829,9 @@ internal partial class Expander<P, I>
                         arguments,
                         BindingFlags.Public | BindingFlags.InvokeMethod,
                         string.Empty,
-                        expander.PropertiesUseTracker,
-                        expander._fileSystem,
-                        expander._loggingContext);
+                        expander.PropertiesUseTracker);
 
-                    object result = function.Execute(item.Value, expander._properties, ExpanderOptions.ExpandAll, elementLocation);
+                    object result = function.Execute(item.Value, expander._properties, ExpanderOptions.ExpandAll, elementLocation, in context);
 
                     string include = PropertyExpander.ConvertToString(result);
 

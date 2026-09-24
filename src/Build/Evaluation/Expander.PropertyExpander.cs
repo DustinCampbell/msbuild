@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 #endif
 using Microsoft.Build.Collections;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -409,9 +410,7 @@ internal partial class Expander<P, I>
                         propertyBody,
                         _elementLocation,
                         propertyValue,
-                        _propertiesUseTracker,
-                        _fileSystem,
-                        _propertiesUseTracker.LoggingContext);
+                        _propertiesUseTracker);
 
                     // We may not have been able to parse out a function
                     if (function != null)
@@ -470,7 +469,8 @@ internal partial class Expander<P, I>
                     // Because of the rich expansion capabilities of MSBuild, we need to keep things
                     // as strings, since property expansion & string embedding can happen anywhere
                     // propertyValue can be null here, when we're invoking a static function
-                    propertyValue = function.Execute(propertyValue, _properties, _options, _elementLocation);
+                    var context = new ExpanderContext(_properties, _propertiesUseTracker.LoggingContext, _fileSystem);
+                    propertyValue = function.Execute(propertyValue, _properties, _options, _elementLocation, in context);
                 }
                 catch (Exception) when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
