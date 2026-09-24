@@ -65,6 +65,37 @@ public class WellKnownFunctions_Primitive_Tests(ITestOutputHelper output)
     };
 
     [Theory]
+    [MemberData(nameof(ParseValues))]
+    public void Primitive_Parse(Type type, string value, object expected)
+    {
+        StaticMemberFor(type, nameof(int.Parse)).Invoke([value]).ShouldBe(expected);
+        StaticMemberFor(type, nameof(int.Parse)).Invoke([value, NumberStyles.Integer]).ShouldBe(expected);
+        StaticMemberFor(type, nameof(int.Parse)).Invoke([value, CultureInfo.InvariantCulture]).ShouldBe(expected);
+        StaticMemberFor(type, nameof(int.Parse)).Invoke([value, NumberStyles.Integer, CultureInfo.InvariantCulture]).ShouldBe(expected);
+    }
+
+    public static TheoryData<Type, string, object> ParseValues => new()
+    {
+        { typeof(byte), "42", (byte)42 },
+        { typeof(sbyte), "42", (sbyte)42 },
+        { typeof(short), "42", (short)42 },
+        { typeof(ushort), "42", (ushort)42 },
+        { typeof(int), "42", 42 },
+        { typeof(uint), "42", 42u },
+        { typeof(long), "42", 42L },
+        { typeof(ulong), "42", 42UL },
+        { typeof(float), "42", 42f },
+        { typeof(double), "42", 42d },
+        { typeof(decimal), "42", 42m },
+    };
+
+    [Fact]
+    public void Primitive_Parse_QualifiedNumberStyles()
+        => StaticMemberFor(typeof(int), nameof(int.Parse))
+            .Invoke(["FF", "System.Globalization.NumberStyles.HexNumber"])
+            .ShouldBe(255);
+
+    [Theory]
     [MemberData(nameof(FloatingPointFields))]
     public void Primitive_FloatingPointFields(Type type, string name, object expected)
         => StaticMemberFor(type, name).Invoke().ShouldBe(expected);
@@ -108,7 +139,7 @@ public class WellKnownFunctions_Primitive_Tests(ITestOutputHelper output)
         InstanceMember(nameof(int.ToString)).NotHandled(42, [new object()]);
         InstanceMember(nameof(int.GetHashCode)).NotHandled(42, [1]);
         StaticMember(nameof(int.MaxValue)).NotHandled([1]);
-        StaticMember(nameof(int.Parse)).NotHandled(["42"]);
+        StaticMember(nameof(int.Parse)).NotHandled([42]);
     }
 
     private StaticMemberInvoker StaticMemberFor(Type type, string memberName)

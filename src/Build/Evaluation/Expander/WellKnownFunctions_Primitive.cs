@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Globalization;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -11,6 +12,11 @@ internal static partial class WellKnownFunctions
     {
         public WellKnownFunctionResult TryInvokeStatic(Type receiverType, string methodName, object?[] args)
         {
+            if (methodName.Equals(nameof(int.Parse), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeParse(receiverType, args);
+            }
+
             if (args is not [])
             {
                 return NotHandled;
@@ -114,6 +120,88 @@ internal static partial class WellKnownFunctions
 
             return NotHandled;
         }
+
+        private static WellKnownFunctionResult TryInvokeParse(Type receiverType, object?[] args)
+            => args switch
+            {
+                [string value] => Parse(receiverType, value),
+                [string value, NumberStyles styles] => Parse(receiverType, value, styles),
+                [string value, IFormatProvider provider] => Parse(receiverType, value, provider),
+                [string value, null] => Parse(receiverType, value, provider: null),
+                [string value, NumberStyles styles, IFormatProvider provider] => Parse(receiverType, value, styles, provider),
+                [string value, NumberStyles styles, null] => Parse(receiverType, value, styles, provider: null),
+                [string value, var styles] when ArgumentParser.TryConvertToEnum(styles, out NumberStyles convertedStyles)
+                    => Parse(receiverType, value, convertedStyles),
+                _ => NotHandled,
+            };
+
+        private static WellKnownFunctionResult Parse(Type receiverType, string value)
+            => Type.GetTypeCode(receiverType) switch
+            {
+                TypeCode.Byte => Invoked(byte.Parse(value)),
+                TypeCode.SByte => Invoked(sbyte.Parse(value)),
+                TypeCode.Int16 => Invoked(short.Parse(value)),
+                TypeCode.UInt16 => Invoked(ushort.Parse(value)),
+                TypeCode.Int32 => Invoked(int.Parse(value)),
+                TypeCode.UInt32 => Invoked(uint.Parse(value)),
+                TypeCode.Int64 => Invoked(long.Parse(value)),
+                TypeCode.UInt64 => Invoked(ulong.Parse(value)),
+                TypeCode.Single => Invoked(float.Parse(value)),
+                TypeCode.Double => Invoked(double.Parse(value)),
+                TypeCode.Decimal => Invoked(decimal.Parse(value)),
+                _ => NotHandled,
+            };
+
+        private static WellKnownFunctionResult Parse(Type receiverType, string value, NumberStyles styles)
+            => Type.GetTypeCode(receiverType) switch
+            {
+                TypeCode.Byte => Invoked(byte.Parse(value, styles)),
+                TypeCode.SByte => Invoked(sbyte.Parse(value, styles)),
+                TypeCode.Int16 => Invoked(short.Parse(value, styles)),
+                TypeCode.UInt16 => Invoked(ushort.Parse(value, styles)),
+                TypeCode.Int32 => Invoked(int.Parse(value, styles)),
+                TypeCode.UInt32 => Invoked(uint.Parse(value, styles)),
+                TypeCode.Int64 => Invoked(long.Parse(value, styles)),
+                TypeCode.UInt64 => Invoked(ulong.Parse(value, styles)),
+                TypeCode.Single => Invoked(float.Parse(value, styles)),
+                TypeCode.Double => Invoked(double.Parse(value, styles)),
+                TypeCode.Decimal => Invoked(decimal.Parse(value, styles)),
+                _ => NotHandled,
+            };
+
+        private static WellKnownFunctionResult Parse(Type receiverType, string value, IFormatProvider? provider)
+            => Type.GetTypeCode(receiverType) switch
+            {
+                TypeCode.Byte => Invoked(byte.Parse(value, provider)),
+                TypeCode.SByte => Invoked(sbyte.Parse(value, provider)),
+                TypeCode.Int16 => Invoked(short.Parse(value, provider)),
+                TypeCode.UInt16 => Invoked(ushort.Parse(value, provider)),
+                TypeCode.Int32 => Invoked(int.Parse(value, provider)),
+                TypeCode.UInt32 => Invoked(uint.Parse(value, provider)),
+                TypeCode.Int64 => Invoked(long.Parse(value, provider)),
+                TypeCode.UInt64 => Invoked(ulong.Parse(value, provider)),
+                TypeCode.Single => Invoked(float.Parse(value, provider)),
+                TypeCode.Double => Invoked(double.Parse(value, provider)),
+                TypeCode.Decimal => Invoked(decimal.Parse(value, provider)),
+                _ => NotHandled,
+            };
+
+        private static WellKnownFunctionResult Parse(Type receiverType, string value, NumberStyles styles, IFormatProvider? provider)
+            => Type.GetTypeCode(receiverType) switch
+            {
+                TypeCode.Byte => Invoked(byte.Parse(value, styles, provider)),
+                TypeCode.SByte => Invoked(sbyte.Parse(value, styles, provider)),
+                TypeCode.Int16 => Invoked(short.Parse(value, styles, provider)),
+                TypeCode.UInt16 => Invoked(ushort.Parse(value, styles, provider)),
+                TypeCode.Int32 => Invoked(int.Parse(value, styles, provider)),
+                TypeCode.UInt32 => Invoked(uint.Parse(value, styles, provider)),
+                TypeCode.Int64 => Invoked(long.Parse(value, styles, provider)),
+                TypeCode.UInt64 => Invoked(ulong.Parse(value, styles, provider)),
+                TypeCode.Single => Invoked(float.Parse(value, styles, provider)),
+                TypeCode.Double => Invoked(double.Parse(value, styles, provider)),
+                TypeCode.Decimal => Invoked(decimal.Parse(value, styles, provider)),
+                _ => NotHandled,
+            };
 
         private static WellKnownFunctionResult TryInvokeDoubleField(string methodName)
         {

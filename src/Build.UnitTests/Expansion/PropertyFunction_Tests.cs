@@ -1083,6 +1083,31 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
+    [MemberData(nameof(PrimitiveParseExpressions))]
+    public void PropertyFunctionPrimitiveParse(string expression)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("42");
+
+    public static TheoryData<string> PrimitiveParseExpressions
+    {
+        get
+        {
+            TheoryData<string> data = new();
+            const string culture = "$([System.Globalization.CultureInfo]::CurrentUICulture)";
+            const string styles = "System.Globalization.NumberStyles.Integer";
+            string[] typeNames = ["Byte", "SByte", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Single", "Double", "Decimal"];
+
+            foreach (string typeName in typeNames)
+            {
+                data.Add($"$([System.{typeName}]::Parse('42'))");
+                data.Add($"$([System.{typeName}]::Parse('42', {culture}))");
+                data.Add($"$([System.{typeName}]::Parse('42', '{styles}'))");
+            }
+
+            return data;
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(StringIndexOfExpressions))]
     public void StringIndexOfTests(string expression, int expected)
         => ExpandProperties(expression, Properties("AString", "x12x456789x11"))
