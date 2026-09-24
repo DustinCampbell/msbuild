@@ -2160,6 +2160,53 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         }
     }
 
+    [Theory]
+    [MemberData(nameof(RemainingIntrinsicFunctionExpressions))]
+    public void RemainingIntrinsicFunctionTests(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> RemainingIntrinsicFunctionExpressions
+    {
+        get
+        {
+            string basePath = Path.Combine(s_rootPathPrefix, "base") + Path.DirectorySeparatorChar;
+            string childPath = Path.Combine(basePath, "child");
+
+            return new TheoryData<string, string>
+            {
+                {
+                    "$([MSBuild]::DoesTaskHostExist('CurrentRuntime', 'CurrentArchitecture'))",
+                    IntrinsicFunctions.DoesTaskHostExist("CurrentRuntime", "CurrentArchitecture").ToString()
+                },
+                {
+                    "$([MSBuild]::FilterTargetFrameworks('net8.0;net9.0', 'net9.0'))",
+                    IntrinsicFunctions.FilterTargetFrameworks("net8.0;net9.0", "net9.0")
+                },
+                {
+                    @"$([MSBuild]::GetRegistryValue('HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing', 'Missing'))",
+                    string.Empty
+                },
+                {
+                    @"$([MSBuild]::GetRegistryValue('HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing', 'Missing', 'fallback'))",
+                    Convert.ToString(
+                        IntrinsicFunctions.GetRegistryValue(
+                            @"HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing",
+                            "Missing",
+                            "fallback"),
+                        CultureInfo.InvariantCulture) ?? string.Empty
+                },
+                {
+                    @"$([MSBuild]::GetRegistryValueFromView('HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing', 'Missing', 'fallback'))",
+                    "fallback"
+                },
+                { "$([MSBuild]::IsOsBsdLike())", IntrinsicFunctions.IsOsBsdLike().ToString() },
+                { "$([MSBuild]::IsOsUnixLike())", IntrinsicFunctions.IsOsUnixLike().ToString() },
+                { $"$([MSBuild]::MakeRelative('{basePath}', '{childPath}'))", "child" },
+                { "$([MSBuild]::NormalizeDirectory('a', 'b'))", IntrinsicFunctions.NormalizeDirectory("a", "b") },
+            };
+        }
+    }
+
     /// <summary>
     ///  Expand property function that calls a method with an enum parameter.
     /// </summary>

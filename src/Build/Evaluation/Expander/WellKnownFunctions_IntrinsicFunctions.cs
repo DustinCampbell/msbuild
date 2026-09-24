@@ -42,6 +42,12 @@ internal static partial class WellKnownFunctions
                     => TryInvokeRightShift(args),
                 10 when methodName.Equals(nameof(IntrinsicFunctions.FileExists), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeFileExists(args),
+                11 when methodName.Equals(nameof(IntrinsicFunctions.IsOsBsdLike), StringComparison.OrdinalIgnoreCase)
+                    => args is [] ? Invoked(IntrinsicFunctions.IsOsBsdLike()) : NotHandled,
+                12 when methodName.Equals(nameof(IntrinsicFunctions.IsOsUnixLike), StringComparison.OrdinalIgnoreCase)
+                    => args is [] ? Invoked(IntrinsicFunctions.IsOsUnixLike()) : NotHandled,
+                12 when methodName.Equals(nameof(IntrinsicFunctions.MakeRelative), StringComparison.OrdinalIgnoreCase)
+                    => TryInvokeMakeRelative(args),
                 12 when methodName.Equals(nameof(IntrinsicFunctions.IsOSPlatform), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeIsOSPlatform(args),
                 13 when methodName.Equals(nameof(IntrinsicFunctions.NormalizePath), StringComparison.OrdinalIgnoreCase)
@@ -58,6 +64,8 @@ internal static partial class WellKnownFunctions
                     => TryInvokeVersionLessThan(args),
                 15 when methodName.Equals(nameof(IntrinsicFunctions.DirectoryExists), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeDirectoryExists(args),
+                16 when methodName.Equals(nameof(IntrinsicFunctions.GetRegistryValue), StringComparison.OrdinalIgnoreCase)
+                    => TryInvokeGetRegistryValue(args),
                 16 when methodName.Equals(nameof(IntrinsicFunctions.GetVsInstallRoot), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeGetVsInstallRoot(args),
                 16 when methodName.Equals(nameof(IntrinsicFunctions.VersionNotEquals), StringComparison.OrdinalIgnoreCase)
@@ -68,6 +76,8 @@ internal static partial class WellKnownFunctions
                     => TryInvokeConvertFromBase64(args),
                 17 when methodName.Equals(nameof(IntrinsicFunctions.GetProgramFiles32), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeGetProgramFiles32(args),
+                17 when methodName.Equals(nameof(IntrinsicFunctions.DoesTaskHostExist), StringComparison.OrdinalIgnoreCase)
+                    => TryInvokeDoesTaskHostExist(args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeGetPathOfFileAbove(args, fileSystem),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.GetMSBuildSDKsPath), StringComparison.OrdinalIgnoreCase)
@@ -88,6 +98,8 @@ internal static partial class WellKnownFunctions
                     => TryInvokeGetToolsDirectory64(args),
                 21 when methodName.Equals(nameof(IntrinsicFunctions.SubstringByAsciiChars), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeSubstringByAsciiChars(args),
+                22 when methodName.Equals(nameof(IntrinsicFunctions.FilterTargetFrameworks), StringComparison.OrdinalIgnoreCase)
+                    => TryInvokeFilterTargetFrameworks(args),
                 23 when methodName.Equals(nameof(IntrinsicFunctions.VersionLessThanOrEquals), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeVersionLessThanOrEquals(args),
                 24 when methodName.Equals(nameof(IntrinsicFunctions.GetRegistryValueFromView), StringComparison.OrdinalIgnoreCase)
@@ -199,6 +211,13 @@ internal static partial class WellKnownFunctions
                 ? Invoked(IntrinsicFunctions.DirectoryExists(arg0))
                 : NotHandled;
 
+        private static WellKnownFunctionResult TryInvokeDoesTaskHostExist(object?[] args)
+            => args.Length == 2 &&
+               args.TryGetArg(0, out string? runtime) &&
+               args.TryGetArg(1, out string? architecture)
+                ? Invoked(IntrinsicFunctions.DoesTaskHostExist(runtime, architecture))
+                : NotHandled;
+
         private static WellKnownFunctionResult TryInvokeDivide(object?[] args)
         {
             if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
@@ -228,6 +247,13 @@ internal static partial class WellKnownFunctions
         private static WellKnownFunctionResult TryInvokeFileExists(object?[] args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.FileExists(arg0))
+                : NotHandled;
+
+        private static WellKnownFunctionResult TryInvokeFilterTargetFrameworks(object?[] args)
+            => args.Length == 2 &&
+               args.TryGetArg(0, out string? incoming) &&
+               args.TryGetArg(1, out string? filter)
+                ? Invoked(IntrinsicFunctions.FilterTargetFrameworks(incoming, filter))
                 : NotHandled;
 
         private static WellKnownFunctionResult TryInvokeGetCurrentToolsDirectory(object?[] args)
@@ -264,8 +290,23 @@ internal static partial class WellKnownFunctions
                 ? Invoked(IntrinsicFunctions.GetProgramFiles32())
                 : NotHandled;
 
+        private static WellKnownFunctionResult TryInvokeGetRegistryValue(object?[] args)
+        {
+            if (!args.TryGetArg(0, out string? keyName) || !args.TryGetArg(1, out string? valueName))
+            {
+                return NotHandled;
+            }
+
+            return args.Length switch
+            {
+                2 => Invoked(IntrinsicFunctions.GetRegistryValue(keyName, valueName)),
+                3 => Invoked(IntrinsicFunctions.GetRegistryValue(keyName, valueName, args[2]!)),
+                _ => NotHandled,
+            };
+        }
+
         private static WellKnownFunctionResult TryInvokeGetRegistryValueFromView(object?[] args)
-            => args.Length >= 4
+            => args.Length >= 3
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.GetRegistryValueFromView(arg0, arg1, args[2], new ArraySegment<object?>(args, 3, args.Length - 3)))
@@ -362,6 +403,13 @@ internal static partial class WellKnownFunctions
             return Invoked(IntrinsicFunctions.Modulo(double0, double1));
         }
 
+        private static WellKnownFunctionResult TryInvokeMakeRelative(object?[] args)
+            => args.Length == 2 &&
+               args.TryGetArg(0, out string? basePath) &&
+               args.TryGetArg(1, out string? path)
+                ? Invoked(IntrinsicFunctions.MakeRelative(basePath, path))
+                : NotHandled;
+
         private static WellKnownFunctionResult TryInvokeMultiply(object?[] args)
         {
             if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
@@ -379,8 +427,8 @@ internal static partial class WellKnownFunctions
         }
 
         private static WellKnownFunctionResult TryInvokeNormalizeDirectory(object?[] args)
-            => args.Length == 1 && args.TryGetArg(0, out string? arg0)
-                ? Invoked(IntrinsicFunctions.NormalizeDirectory(arg0))
+            => ArgumentParser.TryConvertToStrings(args, out string[]? stringArgs)
+                ? Invoked(IntrinsicFunctions.NormalizeDirectory(stringArgs))
                 : NotHandled;
 
         private static WellKnownFunctionResult TryInvokeNormalizePath(object?[] args)

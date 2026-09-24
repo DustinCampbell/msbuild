@@ -213,9 +213,10 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
     }
 
     [Fact]
-    public void IntrinsicFunctions_DoesTaskHostExist_NotHandled()
+    public void IntrinsicFunctions_DoesTaskHostExist()
         => StaticMember(nameof(IntrinsicFunctions.DoesTaskHostExist))
-            .NotHandled(["CurrentRuntime", "CurrentArchitecture"]);
+            .Invoke(["CurrentRuntime", "CurrentArchitecture"])
+            .ShouldBe(IntrinsicFunctions.DoesTaskHostExist("CurrentRuntime", "CurrentArchitecture"));
 
     [Fact]
     public void IntrinsicFunctions_EnsureTrailingSlash()
@@ -253,9 +254,10 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
     }
 
     [Fact]
-    public void IntrinsicFunctions_FilterTargetFrameworks_NotHandled()
+    public void IntrinsicFunctions_FilterTargetFrameworks()
         => StaticMember(nameof(IntrinsicFunctions.FilterTargetFrameworks))
-            .NotHandled(["net8.0;net9.0", "net9.0"]);
+            .Invoke(["net8.0;net9.0", "net9.0"])
+            .ShouldBe(IntrinsicFunctions.FilterTargetFrameworks("net8.0;net9.0", "net9.0"));
 
     [Fact]
     public void IntrinsicFunctions_GetCurrentToolsDirectory()
@@ -310,23 +312,30 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
             .ShouldBe(IntrinsicFunctions.GetProgramFiles32());
 
     [Fact]
-    public void IntrinsicFunctions_GetRegistryValue_TwoArguments_NotHandled()
+    public void IntrinsicFunctions_GetRegistryValue_TwoArguments()
         => StaticMember(nameof(IntrinsicFunctions.GetRegistryValue))
-            .NotHandled(
+            .Invoke(
                 [
                     @"HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing",
                     "Missing",
-                ]);
+                ])
+            .ShouldBe(IntrinsicFunctions.GetRegistryValue(
+                @"HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing",
+                "Missing"));
 
     [Fact]
-    public void IntrinsicFunctions_GetRegistryValue_ThreeArguments_NotHandled()
+    public void IntrinsicFunctions_GetRegistryValue_ThreeArguments()
         => StaticMember(nameof(IntrinsicFunctions.GetRegistryValue))
-            .NotHandled(
+            .Invoke(
                 [
                     @"HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing",
                     "Missing",
                     "fallback",
-                ]);
+                ])
+            .ShouldBe(IntrinsicFunctions.GetRegistryValue(
+                @"HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing",
+                "Missing",
+                "fallback"));
 
     [Fact]
     public void IntrinsicFunctions_GetRegistryValueFromView()
@@ -337,6 +346,17 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
                     "Missing",
                     "fallback",
                     "Default",
+                ])
+            .ShouldBe("fallback");
+
+    [Fact]
+    public void IntrinsicFunctions_GetRegistryValueFromView_NoViews()
+        => StaticMember(nameof(IntrinsicFunctions.GetRegistryValueFromView))
+            .Invoke(
+                [
+                    @"HKEY_CURRENT_USER\Software\Microsoft\MSBuildUnitTests\Missing",
+                    "Missing",
+                    "fallback",
                 ])
             .ShouldBe("fallback");
 
@@ -401,14 +421,16 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
             .ShouldBe(IntrinsicFunctions.IsOSPlatform("windows"));
 
     [Fact]
-    public void IntrinsicFunctions_IsOsBsdLike_NotHandled()
+    public void IntrinsicFunctions_IsOsBsdLike()
         => StaticMember(nameof(IntrinsicFunctions.IsOsBsdLike))
-            .NotHandled();
+            .Invoke()
+            .ShouldBe(IntrinsicFunctions.IsOsBsdLike());
 
     [Fact]
-    public void IntrinsicFunctions_IsOsUnixLike_NotHandled()
+    public void IntrinsicFunctions_IsOsUnixLike()
         => StaticMember(nameof(IntrinsicFunctions.IsOsUnixLike))
-            .NotHandled();
+            .Invoke()
+            .ShouldBe(IntrinsicFunctions.IsOsUnixLike());
 
     [Fact]
     public void IntrinsicFunctions_IsRunningFromVisualStudio()
@@ -429,15 +451,22 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
             .ShouldBe(8);
 
     [Fact]
-    public void IntrinsicFunctions_MakeRelative_NotHandled()
+    public void IntrinsicFunctions_MakeRelative()
         => StaticMember(nameof(IntrinsicFunctions.MakeRelative))
-            .NotHandled([Path.GetPathRoot(Directory.GetCurrentDirectory())!, "relative"]);
+            .Invoke([Path.GetPathRoot(Directory.GetCurrentDirectory())!, "relative"])
+            .ShouldBe(IntrinsicFunctions.MakeRelative(Path.GetPathRoot(Directory.GetCurrentDirectory())!, "relative"));
 
     [Fact]
     public void IntrinsicFunctions_NormalizeDirectory()
         => StaticMember(nameof(IntrinsicFunctions.NormalizeDirectory))
             .Invoke(["a"])
             .ShouldBe(IntrinsicFunctions.NormalizeDirectory("a"));
+
+    [Fact]
+    public void IntrinsicFunctions_NormalizeDirectory_MultipleArguments()
+        => StaticMember(nameof(IntrinsicFunctions.NormalizeDirectory))
+            .Invoke(["a", "b"])
+            .ShouldBe(IntrinsicFunctions.NormalizeDirectory("a", "b"));
 
     [Fact]
     public void IntrinsicFunctions_NormalizeDirectory_NonString_NotHandled()
