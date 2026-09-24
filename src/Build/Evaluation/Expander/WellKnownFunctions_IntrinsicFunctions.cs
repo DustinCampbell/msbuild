@@ -3,7 +3,6 @@
 
 using System;
 using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -11,7 +10,7 @@ internal static partial class WellKnownFunctions
 {
     private sealed class IntrinsicFunctionsHandler
     {
-        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args, IFileSystem fileSystem)
+        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args, ref readonly ExpanderContext context)
             => methodName.Length switch
             {
                 3 when methodName.Equals(nameof(IntrinsicFunctions.Add), StringComparison.OrdinalIgnoreCase)
@@ -67,7 +66,7 @@ internal static partial class WellKnownFunctions
                 17 when methodName.Equals(nameof(IntrinsicFunctions.GetProgramFiles32), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeGetProgramFiles32(args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetPathOfFileAbove(args, fileSystem),
+                    => TryInvokeGetPathOfFileAbove(args, in context),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.GetMSBuildSDKsPath), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeGetMSBuildSDKsPath(args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.VersionGreaterThan), StringComparison.OrdinalIgnoreCase)
@@ -78,6 +77,8 @@ internal static partial class WellKnownFunctions
                     => TryInvokeRightShiftUnsigned(args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.NormalizeDirectory), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeNormalizeDirectory(args),
+                18 when methodName.Equals(nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase)
+                    => TryInvokeRegisterBuildCheck(args, in context),
                 19 when methodName.Equals(nameof(IntrinsicFunctions.EnsureTrailingSlash), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeEnsureTrailingSlash(args),
                 19 when methodName.Equals(nameof(IntrinsicFunctions.GetToolsDirectory32), StringComparison.OrdinalIgnoreCase)
@@ -105,27 +106,13 @@ internal static partial class WellKnownFunctions
                 26 when methodName.Equals(nameof(IntrinsicFunctions.VersionGreaterThanOrEquals), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeVersionGreaterThanOrEquals(args),
                 27 when methodName.Equals(nameof(IntrinsicFunctions.GetDirectoryNameOfFileAbove), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetDirectoryNameOfFileAbove(args, fileSystem),
+                    => TryInvokeGetDirectoryNameOfFileAbove(args, in context),
                 27 when methodName.Equals(nameof(IntrinsicFunctions.GetTargetPlatformIdentifier), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeGetTargetPlatformIdentifier(args),
                 27 when methodName.Equals(nameof(IntrinsicFunctions.IsTargetFrameworkCompatible), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeIsTargetFrameworkCompatible(args),
                 28 when methodName.Equals(nameof(IntrinsicFunctions.GetTargetFrameworkIdentifier), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeGetTargetFrameworkIdentifier(args),
-
-                _ => NotHandled,
-            };
-
-        public WellKnownFunctionResult TryInvokeStatic<T>(
-            string methodName,
-            object?[] args,
-            IPropertyProvider<T> properties,
-            LoggingContext loggingContext)
-            where T : class, IProperty
-            => methodName.Length switch
-            {
-                18 when methodName.Equals(nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeRegisterBuildCheck(args, properties, loggingContext),
 
                 _ => NotHandled,
             };
@@ -233,11 +220,11 @@ internal static partial class WellKnownFunctions
                 ? Invoked(IntrinsicFunctions.GetCurrentToolsDirectory())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetDirectoryNameOfFileAbove(object?[] args, IFileSystem fileSystem)
+        private static WellKnownFunctionResult TryInvokeGetDirectoryNameOfFileAbove(object?[] args, ref readonly ExpanderContext context)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
-                ? Invoked(IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, fileSystem))
+                ? Invoked(IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, context.FileSystem))
                 : NotHandled;
 
         private static WellKnownFunctionResult TryInvokeGetMSBuildExtensionsPath(object?[] args)
@@ -250,11 +237,11 @@ internal static partial class WellKnownFunctions
                 ? Invoked(IntrinsicFunctions.GetMSBuildSDKsPath())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetPathOfFileAbove(object?[] args, IFileSystem fileSystem)
+        private static WellKnownFunctionResult TryInvokeGetPathOfFileAbove(object?[] args, ref readonly ExpanderContext context)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
-                ? Invoked(IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, fileSystem))
+                ? Invoked(IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, context.FileSystem))
                 : NotHandled;
 
         private static WellKnownFunctionResult TryInvokeGetProgramFiles32(object?[] args)
@@ -386,13 +373,13 @@ internal static partial class WellKnownFunctions
                 ? Invoked(IntrinsicFunctions.NormalizePath(stringArgs))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeRegisterBuildCheck<T>(
-            object?[] args,
-            IPropertyProvider<T> properties,
-            LoggingContext loggingContext)
-            where T : class, IProperty
+        private static WellKnownFunctionResult TryInvokeRegisterBuildCheck(object?[] args, ref readonly ExpanderContext context)
         {
+            IPropertyProvider<IProperty>? properties = context.Properties;
+            Assumed.NotNull(properties, $"The property provider is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
+
             string projectPath = properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
+            LoggingContext? loggingContext = context.LoggingContext;
             Assumed.NotNull(loggingContext, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
 
             return args.Length == 1 && args.TryGetArg(0, out string? arg0)

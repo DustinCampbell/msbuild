@@ -4,8 +4,6 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -36,17 +34,17 @@ internal static partial class WellKnownFunctions
     /// <param name="receiverType">The type that declares the function.</param>
     /// <param name="methodName">The name of the function to call.</param>
     /// <param name="args">The function arguments.</param>
-    /// <param name="fileSystem">The file system used by intrinsic functions.</param>
+    /// <param name="context">The context for the expansion.</param>
     /// <returns>
     ///  The invocation result, including whether the function was handled.
     /// </returns>
-    public static WellKnownFunctionResult TryInvokeStatic(Type receiverType, string methodName, object?[] args, IFileSystem fileSystem)
+    public static WellKnownFunctionResult TryInvokeStatic(Type receiverType, string methodName, object?[] args, ref readonly ExpanderContext context)
         => receiverType == typeof(string)
             ? s_stringHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Math)
             ? s_mathHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(IntrinsicFunctions)
-            ? s_intrinsicFunctionsHandler.TryInvokeStatic(methodName, args, fileSystem)
+            ? s_intrinsicFunctionsHandler.TryInvokeStatic(methodName, args, in context)
          : receiverType == typeof(Path)
             ? s_pathHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Version)
@@ -66,10 +64,15 @@ internal static partial class WellKnownFunctions
     /// <param name="objectInstance">The object on which to invoke the function.</param>
     /// <param name="methodName">The name of the function to call.</param>
     /// <param name="args">The function arguments.</param>
+    /// <param name="context">The context for the expansion.</param>
     /// <returns>
     ///  The invocation result, including whether the function was handled.
     /// </returns>
-    public static WellKnownFunctionResult TryInvokeInstance(object objectInstance, string methodName, object?[] args)
+    public static WellKnownFunctionResult TryInvokeInstance(
+        object objectInstance,
+        string methodName,
+        object?[] args,
+        ref readonly ExpanderContext context)
         => objectInstance switch
         {
             string s => s_stringHandler.TryInvokeInstance(methodName, s, args),
@@ -81,37 +84,15 @@ internal static partial class WellKnownFunctions
         };
 
     /// <summary>
-    ///  Attempts to invoke a context-dependent static function without reflection.
-    /// </summary>
-    /// <typeparam name="T">The type of property supplied by <paramref name="properties"/>.</typeparam>
-    /// <param name="receiverType">The type that declares the function.</param>
-    /// <param name="methodName">The name of the function to call.</param>
-    /// <param name="args">The function arguments.</param>
-    /// <param name="properties">The properties available to the function.</param>
-    /// <param name="loggingContext">The logging context for the function.</param>
-    /// <returns>
-    ///  The invocation result, including whether the function was handled.
-    /// </returns>
-    public static WellKnownFunctionResult TryInvokeStatic<T>(
-        Type receiverType,
-        string methodName,
-        object?[] args,
-        IPropertyProvider<T> properties,
-        LoggingContext loggingContext)
-        where T : class, IProperty
-        => receiverType == typeof(IntrinsicFunctions)
-            ? s_intrinsicFunctionsHandler.TryInvokeStatic(methodName, args, properties, loggingContext)
-            : NotHandled;
-
-    /// <summary>
     ///  Attempts to invoke a commonly used constructor without reflection.
     /// </summary>
     /// <param name="receiverType">The type to construct.</param>
     /// <param name="args">The constructor arguments.</param>
+    /// <param name="context">The context for the expansion.</param>
     /// <returns>
     ///  The invocation result, including whether the constructor was handled.
     /// </returns>
-    public static WellKnownFunctionResult TryInvokeConstructor(Type receiverType, object?[] args)
+    public static WellKnownFunctionResult TryInvokeConstructor(Type receiverType, object?[] args, ref readonly ExpanderContext context)
         => receiverType == typeof(string)
             ? s_stringHandler.TryInvokeConstructor(args)
             : NotHandled;
