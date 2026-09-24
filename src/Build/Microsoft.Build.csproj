@@ -220,6 +220,7 @@
     <Compile Include="Evaluation\Expander\WellKnownFunctions_StringArray.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_String.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_TimeSpan.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Uri.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Version.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctionResult.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctionStatus.cs" />

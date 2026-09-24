@@ -747,6 +747,85 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
 #endif
     }
 
+    [Theory]
+    [MemberData(nameof(UriExpressions))]
+    public void PropertyFunctionUri(string expression, string expected)
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
+
+    public static TheoryData<string, string> UriExpressions => new()
+    {
+        { """$([System.Uri]::new('https://example.com/path').Host)""", "example.com" },
+        { """$([System.Uri]::new('/path', 'Relative').IsAbsoluteUri)""", bool.FalseString },
+        {
+            """$([System.Uri]::new($([System.Uri]::new('https://example.com/root/')), 'path').AbsoluteUri)""",
+            "https://example.com/root/path"
+        },
+        {
+            """$([System.Uri]::new($([System.Uri]::new('https://example.com/root/')), $([System.Uri]::new('path', 'Relative'))).AbsoluteUri)""",
+            "https://example.com/root/path"
+        },
+        { """$([System.Uri]::CheckHostName('example.com'))""", "Dns" },
+        { """$([System.Uri]::CheckSchemeName('https'))""", bool.TrueString },
+        {
+            """$([System.Uri]::Compare($([System.Uri]::new('https://example.com/a')), $([System.Uri]::new('https://example.com/a')), 'AbsoluteUri', 'SafeUnescaped', 'Ordinal'))""",
+            "0"
+        },
+        { """$([System.Uri]::EscapeDataString('a b'))""", "a%2520b" },
+        { """$([System.Uri]::EscapeUriString('https://example.com/a b'))""", "https://example.com/a%2520b" },
+        { """$([System.Uri]::HexEscape('A'))""", "%2541" },
+        { """$([System.Uri]::IsHexDigit('A'))""", bool.TrueString },
+        { """$([System.Uri]::IsHexEncoding('%2541', '0'))""", bool.TrueString },
+        { """$([System.Uri]::SchemeDelimiter)""", Uri.SchemeDelimiter },
+        { """$([System.Uri]::UnescapeDataString('a%20b'))""", "a b" },
+        { """$([System.Uri]::new('https://user:password@example.com:8080/root/file?q=v#f').AbsolutePath)""", "/root/file" },
+        { """$([System.Uri]::new('https://example.com/path').AbsoluteUri)""", "https://example.com/path" },
+        { """$([System.Uri]::new('https://example.com:8080/path').Authority)""", "example.com:8080" },
+        { """$([System.Uri]::new('https://example.com/path').DnsSafeHost)""", "example.com" },
+        { """$([System.Uri]::new('https://example.com/path#fragment').Fragment)""", "#fragment" },
+        { """$([System.Uri]::new('https://example.com/path').HostNameType)""", "Dns" },
+#if NET
+        { """$([System.Uri]::new('https://example.com/path').IdnHost)""", "example.com" },
+#endif
+        { """$([System.Uri]::new('https://example.com/path').IsDefaultPort)""", bool.TrueString },
+        { """$([System.Uri]::new('file:///C:/path').IsFile)""", bool.TrueString },
+        { """$([System.Uri]::new('https://localhost/path').IsLoopback)""", bool.TrueString },
+        { """$([System.Uri]::new('https://example.com/path').IsUnc)""", bool.FalseString },
+        { """$([System.Uri]::new(`https://example.com/path?q=v`).OriginalString)""", "https://example.com/path%3fq=v" },
+        { """$([System.Uri]::new(`https://example.com/path?q=v`).PathAndQuery)""", "/path%3fq=v" },
+        { """$([System.Uri]::new('https://example.com:8080/path').Port)""", "8080" },
+        { """$([System.Uri]::new(`https://example.com/path?q=v`).Query)""", "%3fq=v" },
+        { """$([System.Uri]::new('https://example.com/path').Scheme)""", "https" },
+        { """$([System.Uri]::new('https://example.com/root/path').Segments.GetValue('1'))""", "root/" },
+        { """$([System.Uri]::new('https://example.com/path').UserEscaped)""", bool.FalseString },
+        { """$([System.Uri]::new('https://user:password@example.com/path').UserInfo)""", "user:password" },
+        {
+            """$([System.Uri]::new('https://example.com/path').Equals($([System.Uri]::new('https://example.com/path'))))""",
+            bool.TrueString
+        },
+        { """$([System.Uri]::new('https://example.com:8080/path').GetComponents('HostAndPort', 'SafeUnescaped'))""", "example.com:8080" },
+        {
+            """$([System.Uri]::new('https://example.com/root/').IsBaseOf($([System.Uri]::new('https://example.com/root/path'))))""",
+            bool.TrueString
+        },
+        {
+            """$([System.Uri]::new('https://example.com/root/').MakeRelativeUri($([System.Uri]::new('https://example.com/root/path'))))""",
+            "path"
+        },
+        { """$([System.Uri]::new('https://example.com/path').ToString())""", "https://example.com/path" },
+        { """$([System.UriBuilder]::new().Scheme)""", "http" },
+        { """$([System.UriBuilder]::new('https://example.com/path').Host)""", "example.com" },
+        { """$([System.UriBuilder]::new($([System.Uri]::new('https://example.com/path'))).Path)""", "/path" },
+        { """$([System.UriBuilder]::new('https', 'example.com').Uri.AbsoluteUri)""", "https://example.com/" },
+        { """$([System.UriBuilder]::new('https', 'example.com', '8080').Port)""", "8080" },
+        { """$([System.UriBuilder]::new('https', 'example.com', '8080', 'path').Path)""", "path" },
+        { """$([System.UriBuilder]::new('https', 'example.com', '8080', 'path', `?q=v`).Query)""", "%3fq=v" },
+        { """$([System.UriBuilder]::new('https://user:password@example.com/path#fragment').Fragment)""", "#fragment" },
+        { """$([System.UriBuilder]::new('https://user:password@example.com/path').Password)""", "password" },
+        { """$([System.UriBuilder]::new('https://user:password@example.com/path').UserName)""", "user" },
+        { """$([System.UriBuilder]::new('https://example.com/path').ToString())""", "https://example.com:443/path" },
+    };
+
     /// <summary>
     ///  Expand property function that calls a static method  with an instance method chained.
     /// </summary>

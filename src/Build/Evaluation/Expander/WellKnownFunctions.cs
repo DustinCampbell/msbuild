@@ -37,6 +37,7 @@ internal static partial class WellKnownFunctions
     private static readonly ArrayHandler s_arrayHandler = new();
     private static readonly StringHandler s_stringHandler = new();
     private static readonly TimeSpanHandler s_timeSpanHandler = new();
+    private static readonly UriHandler s_uriHandler = new();
     private static readonly VersionHandler s_versionHandler = new();
 
     /// <summary>
@@ -90,6 +91,8 @@ internal static partial class WellKnownFunctions
             ? s_primitiveHandler.TryInvokeStatic(receiverType, methodName, args)
          : receiverType == typeof(TimeSpan)
             ? s_timeSpanHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(Uri)
+            ? s_uriHandler.TryInvokeStatic(methodName, args)
 
          : NotHandled;
 
@@ -117,6 +120,8 @@ internal static partial class WellKnownFunctions
             Group group => s_regexHandler.TryInvokeInstance(methodName, group, args),
             Capture capture => s_regexHandler.TryInvokeInstance(methodName, capture, args),
             Regex regex => s_regexHandler.TryInvokeInstance(methodName, regex, args),
+            Uri uri => s_uriHandler.TryInvokeInstance(methodName, uri, args),
+            UriBuilder builder => s_uriHandler.TryInvokeInstance(methodName, builder, args),
             Version v => s_versionHandler.TryInvokeInstance(methodName, v, args),
             System.Runtime.InteropServices.OSPlatform platform => s_osPlatformHandler.TryInvokeInstance(methodName, platform, args),
             _ when objectInstance.GetType().IsPrimitive || objectInstance is decimal
@@ -163,6 +168,8 @@ internal static partial class WellKnownFunctions
             ? s_cultureInfoHandler.TryInvokeConstructor(args)
             : receiverType == typeof(Regex)
             ? s_regexHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(Uri) || receiverType == typeof(UriBuilder)
+            ? s_uriHandler.TryInvokeConstructor(receiverType, args)
             : receiverType == typeof(Version)
             ? s_versionHandler.TryInvokeConstructor(args)
             : NotHandled;
