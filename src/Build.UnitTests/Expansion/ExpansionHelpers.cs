@@ -48,23 +48,23 @@ internal static class ExpansionHelpers
 
         var expander = ExpanderFactory.Create(Properties(), Items(), metadata);
 
-        return ExpandIntoStringLeaveEscaped(expander, expression, options, allowReflection: true);
+        return ExpandIntoStringLeaveEscaped(expander, expression, options, allowReflection: ExpanderFactory.UseLegacyExpander);
     }
 
-    public static string? ExpandProperties(string expression, bool allowReflection = true)
+    public static string? ExpandProperties(string expression, bool allowReflection = false)
         => ExpandProperties(expression, Properties(), loggingContext: null, allowReflection);
 
-    public static string? ExpandProperties(string expression, PropertyDictionary<ProjectPropertyInstance> properties, bool allowReflection = true)
+    public static string? ExpandProperties(string expression, PropertyDictionary<ProjectPropertyInstance> properties, bool allowReflection = false)
         => ExpandProperties(expression, properties, loggingContext: null, allowReflection);
 
-    public static string? ExpandProperties(string expression, LoggingContext? loggingContext, bool allowReflection = true)
+    public static string? ExpandProperties(string expression, LoggingContext? loggingContext, bool allowReflection = false)
         => ExpandProperties(expression, Properties(), loggingContext, allowReflection);
 
     public static string? ExpandProperties(
         string expression,
         PropertyDictionary<ProjectPropertyInstance> properties,
         LoggingContext? loggingContext,
-        bool allowReflection = true)
+        bool allowReflection = false)
     {
         if (loggingContext is null && TestContext.Current.TestOutputHelper is { } output)
         {
@@ -78,14 +78,14 @@ internal static class ExpansionHelpers
         return ExpandIntoStringLeaveEscaped(expander, expression, ExpanderOptions.ExpandProperties, allowReflection);
     }
 
-    public static string? ExpandPropertiesAndMetadata(string expression, IMetadataTable metadata, bool allowReflection = true)
+    public static string? ExpandPropertiesAndMetadata(string expression, IMetadataTable metadata, bool allowReflection = false)
         => ExpandPropertiesAndMetadata(expression, Properties(), metadata, allowReflection);
 
     public static string? ExpandPropertiesAndMetadata(
         string expression,
         PropertyDictionary<ProjectPropertyInstance> properties,
         IMetadataTable metadata,
-        bool allowReflection = true)
+        bool allowReflection = false)
     {
         var expander = ExpanderFactory.Create<ProjectPropertyInstance, ProjectItemInstance>(properties, items: null!, metadata);
 
@@ -98,6 +98,8 @@ internal static class ExpansionHelpers
         ExpanderOptions options,
         bool allowReflection)
     {
+        allowReflection |= ExpanderFactory.UseLegacyExpander;
+
         bool enableAllPropertyFunctions = FeatureSwitches.EnableAllPropertyFunctions;
         string reflectionInfoPath = Path.Combine(Directory.GetCurrentDirectory(), PropertyFunctionsRequiringReflectionFileName);
 

@@ -491,7 +491,7 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextSwitch(AppContextSwitch.EnableAllPropertyFunctions, true);
 
-        ExpandProperties("$([System.Type]::GetType(`System.Type`))")
+        ExpandProperties("$([System.Type]::GetType(`System.Type`))", allowReflection: true)
             .ShouldBe("System.Type");
     }
 
@@ -504,7 +504,7 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextSwitch(AppContextSwitch.EnableAllPropertyFunctions, true);
 
-        string? result = ExpandProperties("$([System.Diagnostics.Process]::GetCurrentProcess().Id)");
+        string? result = ExpandProperties("$([System.Diagnostics.Process]::GetCurrentProcess().Id)", allowReflection: true);
 
         int.TryParse(result, out int pid).ShouldBeTrue();
         pid.ShouldBe(EnvironmentUtilities.CurrentProcessId);
@@ -615,43 +615,13 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     public static TheoryData<string, string> RegexExpressions => new()
     {
         { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').ToString())""", "[a-z]+" },
-        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+', 'IgnoreCase').Options)""", "IgnoreCase" },
-        {
-            """$([System.Text.RegularExpressions.Regex]::new('[a-z]+', 'None', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).ToString())""",
-            "[a-z]+"
-        },
         { """$([System.Text.RegularExpressions.Regex]::Escape('a.b'))""", @"a\.b" },
         { """$([System.Text.RegularExpressions.Regex]::Unescape('a\.b'))""", "a.b" },
         { """$([System.Text.RegularExpressions.Regex]::IsMatch('ABC', 'abc'))""", bool.FalseString },
-        { """$([System.Text.RegularExpressions.Regex]::IsMatch('ABC', 'abc', 'IgnoreCase'))""", bool.TrueString },
-        {
-            """$([System.Text.RegularExpressions.Regex]::IsMatch('ABC', 'abc', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)))""",
-            bool.TrueString
-        },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '\d+').Value)""", "123" },
-        { """$([System.Text.RegularExpressions.Regex]::Match('ABC', 'abc', 'IgnoreCase').Success)""", bool.TrueString },
-        {
-            """$([System.Text.RegularExpressions.Regex]::Match('ABC', 'abc', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).Success)""",
-            bool.TrueString
-        },
         { """$([System.Text.RegularExpressions.Regex]::Matches('a1b2', '\d').Count)""", "2" },
-        { """$([System.Text.RegularExpressions.Regex]::Matches('A a', 'a', 'IgnoreCase').Count)""", "2" },
-        {
-            """$([System.Text.RegularExpressions.Regex]::Matches('A a', 'a', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).Count)""",
-            "2"
-        },
         { """$([System.Text.RegularExpressions.Regex]::Replace('ABC', 'abc', 'x'))""", "ABC" },
-        { """$([System.Text.RegularExpressions.Regex]::Replace('ABC', 'abc', 'x', 'IgnoreCase'))""", "x" },
-        {
-            """$([System.Text.RegularExpressions.Regex]::Replace('ABC', 'abc', 'x', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)))""",
-            "x"
-        },
         { """$([System.Text.RegularExpressions.Regex]::Split('a1b2', '\d')[1])""", "b" },
-        { """$([System.Text.RegularExpressions.Regex]::Split('Axa', 'a', 'IgnoreCase')[1])""", "x" },
-        {
-            """$([System.Text.RegularExpressions.Regex]::Split('Axa', 'a', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout))[1])""",
-            "x"
-        },
         { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').IsMatch('123abc'))""", bool.TrueString },
         { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').IsMatch('123abc', '3'))""", bool.TrueString },
         { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Match('123abc').Value)""", "abc" },
@@ -671,15 +641,54 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         { """$([System.Text.RegularExpressions.Regex]::new('(?<word>[a-z]+)').GroupNumberFromName('word'))""", "1" },
         { """$([System.Text.RegularExpressions.Regex]::new('x').RightToLeft)""", bool.FalseString },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups.Count)""", "2" },
-        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups[1].Success)""", bool.TrueString },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '[a-z]+').NextMatch().Value)""", "" },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Result('${word}'))""", "abc" },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '[a-z]+').Index)""", "0" },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '[a-z]+').Length)""", "3" },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '[a-z]+').ToString())""", "abc" },
+        { """$([System.Text.RegularExpressions.Regex]::Matches('abc def', '[a-z]+')[1].Value)""", "def" },
+    };
+
+    [ModernExpanderOnlyTheory]
+    [MemberData(nameof(ModernRegexExpressions))]
+    public void ModernPropertyFunctionRegex(string expression, string expected)
+        => ExpandProperties(expression).ShouldBe(expected);
+
+    public static TheoryData<string, string> ModernRegexExpressions => new()
+    {
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+', 'IgnoreCase').Options)""", "IgnoreCase" },
+        {
+            """$([System.Text.RegularExpressions.Regex]::new('[a-z]+', 'None', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).ToString())""",
+            "[a-z]+"
+        },
+        { """$([System.Text.RegularExpressions.Regex]::IsMatch('ABC', 'abc', 'IgnoreCase'))""", bool.TrueString },
+        {
+            """$([System.Text.RegularExpressions.Regex]::IsMatch('ABC', 'abc', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)))""",
+            bool.TrueString
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Match('ABC', 'abc', 'IgnoreCase').Success)""", bool.TrueString },
+        {
+            """$([System.Text.RegularExpressions.Regex]::Match('ABC', 'abc', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).Success)""",
+            bool.TrueString
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Matches('A a', 'a', 'IgnoreCase').Count)""", "2" },
+        {
+            """$([System.Text.RegularExpressions.Regex]::Matches('A a', 'a', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).Count)""",
+            "2"
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Replace('ABC', 'abc', 'x', 'IgnoreCase'))""", "x" },
+        {
+            """$([System.Text.RegularExpressions.Regex]::Replace('ABC', 'abc', 'x', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)))""",
+            "x"
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Split('Axa', 'a', 'IgnoreCase')[1])""", "x" },
+        {
+            """$([System.Text.RegularExpressions.Regex]::Split('Axa', 'a', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout))[1])""",
+            "x"
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups[1].Success)""", bool.TrueString },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups[1].Captures.Count)""", "1" },
         { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups[1].Captures[0].Value)""", "abc" },
-        { """$([System.Text.RegularExpressions.Regex]::Matches('abc def', '[a-z]+')[1].Value)""", "def" },
     };
 
     [Fact]
@@ -697,9 +706,7 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         ExpandProperties("$([System.IO.Directory]::Exists($(Child)))", properties).ShouldBe(bool.TrueString);
         ExpandProperties("$([System.IO.Directory]::GetDirectories($(Parent)).Length)", properties).ShouldBe("1");
         ExpandProperties("$([System.IO.Directory]::GetDirectories($(Parent), 'ch*').Length)", properties).ShouldBe("1");
-        ExpandProperties("$([System.IO.Directory]::GetDirectories($(Parent), 'ch*', 'TopDirectoryOnly').Length)", properties).ShouldBe("1");
         ExpandProperties("$([System.IO.Directory]::GetFiles($(Child)).Length)", properties).ShouldBe("1");
-        ExpandProperties("$([System.IO.Directory]::GetFiles($(Parent), '*.txt', 'AllDirectories').Length)", properties).ShouldBe("1");
         DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetLastAccessTime($(Child)))", properties)!)
             .ShouldBe(Directory.GetLastAccessTime(child.Path), TimeSpan.FromSeconds(1));
         DateTime.Parse(ExpandProperties("$([System.IO.Directory]::GetLastWriteTime($(Child)))", properties)!)
@@ -747,6 +754,23 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
 #endif
     }
 
+    [ModernExpanderOnlyFact]
+    public void ModernPropertyFunctionGetDirectoriesWithSearchOption()
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var parent = env.CreateFolder();
+        var child = env.CreateFolder(Path.Combine(parent.Path, "child"), createFolder: true);
+        env.CreateFile(child, "data.txt", "content");
+        PropertyDictionary<ProjectPropertyInstance> properties = Properties("Parent", parent.Path);
+
+        ExpandProperties(
+            "$([System.IO.Directory]::GetDirectories($(Parent), 'ch*', 'TopDirectoryOnly').Length)",
+            properties).ShouldBe("1");
+        ExpandProperties(
+            "$([System.IO.Directory]::GetFiles($(Parent), '*.txt', 'AllDirectories').Length)",
+            properties).ShouldBe("1");
+    }
+
     [Theory]
     [MemberData(nameof(UriExpressions))]
     public void PropertyFunctionUri(string expression, string expected)
@@ -756,21 +780,12 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     public static TheoryData<string, string> UriExpressions => new()
     {
         { """$([System.Uri]::new('https://example.com/path').Host)""", "example.com" },
-        { """$([System.Uri]::new('/path', 'Relative').IsAbsoluteUri)""", bool.FalseString },
         {
             """$([System.Uri]::new($([System.Uri]::new('https://example.com/root/')), 'path').AbsoluteUri)""",
             "https://example.com/root/path"
         },
-        {
-            """$([System.Uri]::new($([System.Uri]::new('https://example.com/root/')), $([System.Uri]::new('path', 'Relative'))).AbsoluteUri)""",
-            "https://example.com/root/path"
-        },
         { """$([System.Uri]::CheckHostName('example.com'))""", "Dns" },
         { """$([System.Uri]::CheckSchemeName('https'))""", bool.TrueString },
-        {
-            """$([System.Uri]::Compare($([System.Uri]::new('https://example.com/a')), $([System.Uri]::new('https://example.com/a')), 'AbsoluteUri', 'SafeUnescaped', 'Ordinal'))""",
-            "0"
-        },
         { """$([System.Uri]::EscapeDataString('a b'))""", "a%2520b" },
         { """$([System.Uri]::EscapeUriString('https://example.com/a b'))""", "https://example.com/a%2520b" },
         { """$([System.Uri]::HexEscape('A'))""", "%2541" },
@@ -803,7 +818,6 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
             """$([System.Uri]::new('https://example.com/path').Equals($([System.Uri]::new('https://example.com/path'))))""",
             bool.TrueString
         },
-        { """$([System.Uri]::new('https://example.com:8080/path').GetComponents('HostAndPort', 'SafeUnescaped'))""", "example.com:8080" },
         {
             """$([System.Uri]::new('https://example.com/root/').IsBaseOf($([System.Uri]::new('https://example.com/root/path'))))""",
             bool.TrueString
@@ -815,7 +829,6 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         { """$([System.Uri]::new('https://example.com/path').ToString())""", "https://example.com/path" },
         { """$([System.UriBuilder]::new().Scheme)""", "http" },
         { """$([System.UriBuilder]::new('https://example.com/path').Host)""", "example.com" },
-        { """$([System.UriBuilder]::new($([System.Uri]::new('https://example.com/path'))).Path)""", "/path" },
         { """$([System.UriBuilder]::new('https', 'example.com').Uri.AbsoluteUri)""", "https://example.com/" },
         { """$([System.UriBuilder]::new('https', 'example.com', '8080').Port)""", "8080" },
         { """$([System.UriBuilder]::new('https', 'example.com', '8080', 'path').Path)""", "path" },
@@ -824,6 +837,27 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         { """$([System.UriBuilder]::new('https://user:password@example.com/path').Password)""", "password" },
         { """$([System.UriBuilder]::new('https://user:password@example.com/path').UserName)""", "user" },
         { """$([System.UriBuilder]::new('https://example.com/path').ToString())""", "https://example.com:443/path" },
+    };
+
+    [ModernExpanderOnlyTheory]
+    [MemberData(nameof(ModernUriExpressions))]
+    public void ModernPropertyFunctionUri(string expression, string expected)
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
+
+    public static TheoryData<string, string> ModernUriExpressions => new()
+    {
+        { """$([System.Uri]::new('/path', 'Relative').IsAbsoluteUri)""", bool.FalseString },
+        {
+            """$([System.Uri]::new($([System.Uri]::new('https://example.com/root/')), $([System.Uri]::new('path', 'Relative'))).AbsoluteUri)""",
+            "https://example.com/root/path"
+        },
+        {
+            """$([System.Uri]::Compare($([System.Uri]::new('https://example.com/a')), $([System.Uri]::new('https://example.com/a')), 'AbsoluteUri', 'SafeUnescaped', 'Ordinal'))""",
+            "0"
+        },
+        { """$([System.Uri]::new('https://example.com:8080/path').GetComponents('HostAndPort', 'SafeUnescaped'))""", "example.com:8080" },
+        { """$([System.UriBuilder]::new($([System.Uri]::new('https://example.com/path'))).Path)""", "/path" },
     };
 
     /// <summary>
@@ -2632,7 +2666,6 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     {
         { """$([System.Guid]::Empty)""", Guid.Empty.ToString() },
         { """$([System.Guid]::new('00000000-0000-0000-0000-000000000000'))""", Guid.Empty.ToString() },
-        { """$([System.Guid]::new($([System.Convert]::FromBase64String('AAAAAAAAAAAAAAAAAAAAAA=='))))""", Guid.Empty.ToString() },
         {
             """$([System.Guid]::new('0', '0', '0', $([System.Convert]::FromBase64String('AAAAAAAAAAA='))))""",
             Guid.Empty.ToString()
@@ -2687,6 +2720,11 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         },
     };
 
+    [ModernExpanderOnlyFact]
+    public void ModernPropertyFunctionGuidByteArrayConstructor()
+        => ExpandProperties("""$([System.Guid]::new($([System.Convert]::FromBase64String('AAAAAAAAAAAAAAAAAAAAAA=='))))""")
+            .ShouldBe(Guid.Empty.ToString());
+
     [Theory]
     [MemberData(nameof(StringComparerExpressions))]
     public void PropertyFunctionStringComparerMembers(string expression, string expected)
@@ -2705,9 +2743,6 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
             """$([System.StringComparer]::Create($([System.Globalization.CultureInfo]::GetCultureInfo('en-US')), 'true').Equals('a', 'A'))""",
             bool.TrueString
         },
-#if NET
-        { """$([System.StringComparer]::FromComparison('OrdinalIgnoreCase').Equals('a', 'A'))""", bool.TrueString },
-#endif
         { """$([System.StringComparer]::OrdinalIgnoreCase.Equals('a', 'A'))""", bool.TrueString },
         {
             """$([System.StringComparer]::OrdinalIgnoreCase.Equals($([System.StringComparer]::OrdinalIgnoreCase)))""",
@@ -2723,6 +2758,13 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         },
         { """$([System.StringComparer]::OrdinalIgnoreCase.ToString())""", StringComparer.OrdinalIgnoreCase.ToString()! },
     };
+
+#if NET
+    [ModernExpanderOnlyFact]
+    public void ModernPropertyFunctionStringComparerFromComparison()
+        => ExpandProperties("""$([System.StringComparer]::FromComparison('OrdinalIgnoreCase').Equals('a', 'A'))""")
+            .ShouldBe(bool.TrueString);
+#endif
 
     [Theory]
     [MemberData(nameof(PathExpressions))]
