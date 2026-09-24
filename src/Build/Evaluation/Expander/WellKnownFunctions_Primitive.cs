@@ -17,6 +17,17 @@ internal static partial class WellKnownFunctions
                 return TryInvokeParse(receiverType, args);
             }
 
+#if NET
+            if (receiverType == typeof(int))
+            {
+                WellKnownFunctionResult result = TryInvokeInt32(methodName, args);
+                if (result.Status == WellKnownFunctionStatus.Invoked)
+                {
+                    return result;
+                }
+            }
+#endif
+
             if (args is not [])
             {
                 return NotHandled;
@@ -110,6 +121,88 @@ internal static partial class WellKnownFunctions
 
             return NotHandled;
         }
+
+#if NET
+        private static WellKnownFunctionResult TryInvokeInt32(string methodName, object?[] args)
+        {
+            if (!TryGetInt32(args, 0, out int first))
+            {
+                return NotHandled;
+            }
+
+            if (args is [_])
+            {
+                return methodName switch
+                {
+                    var name when name.Equals(nameof(int.Abs), StringComparison.OrdinalIgnoreCase) => Invoked(int.Abs(first)),
+                    var name when name.Equals(nameof(int.IsEvenInteger), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsEvenInteger(first)),
+                    var name when name.Equals(nameof(int.IsNegative), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsNegative(first)),
+                    var name when name.Equals(nameof(int.IsOddInteger), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsOddInteger(first)),
+                    var name when name.Equals(nameof(int.IsPositive), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsPositive(first)),
+                    var name when name.Equals(nameof(int.IsPow2), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsPow2(first)),
+                    var name when name.Equals(nameof(int.LeadingZeroCount), StringComparison.OrdinalIgnoreCase) => Invoked(int.LeadingZeroCount(first)),
+                    var name when name.Equals(nameof(int.Log10), StringComparison.OrdinalIgnoreCase) => Invoked(int.Log10(first)),
+                    var name when name.Equals(nameof(int.Log2), StringComparison.OrdinalIgnoreCase) => Invoked(int.Log2(first)),
+                    var name when name.Equals(nameof(int.PopCount), StringComparison.OrdinalIgnoreCase) => Invoked(int.PopCount(first)),
+                    var name when name.Equals(nameof(int.Sign), StringComparison.OrdinalIgnoreCase) => Invoked(int.Sign(first)),
+                    var name when name.Equals(nameof(int.TrailingZeroCount), StringComparison.OrdinalIgnoreCase) => Invoked(int.TrailingZeroCount(first)),
+                    _ => NotHandled,
+                };
+            }
+
+            if (TryGetInt32(args, 1, out int second))
+            {
+                if (args is [_, _])
+                {
+                    return methodName switch
+                    {
+                        var name when name.Equals(nameof(int.BigMul), StringComparison.OrdinalIgnoreCase) => Invoked(int.BigMul(first, second)),
+                        var name when name.Equals(nameof(int.CopySign), StringComparison.OrdinalIgnoreCase) => Invoked(int.CopySign(first, second)),
+                        var name when name.Equals(nameof(int.DivRem), StringComparison.OrdinalIgnoreCase) => Invoked(int.DivRem(first, second)),
+                        var name when name.Equals(nameof(int.Max), StringComparison.OrdinalIgnoreCase) => Invoked(int.Max(first, second)),
+                        var name when name.Equals(nameof(int.MaxMagnitude), StringComparison.OrdinalIgnoreCase) => Invoked(int.MaxMagnitude(first, second)),
+                        var name when name.Equals(nameof(int.Min), StringComparison.OrdinalIgnoreCase) => Invoked(int.Min(first, second)),
+                        var name when name.Equals(nameof(int.MinMagnitude), StringComparison.OrdinalIgnoreCase) => Invoked(int.MinMagnitude(first, second)),
+                        var name when name.Equals(nameof(int.RotateLeft), StringComparison.OrdinalIgnoreCase) => Invoked(int.RotateLeft(first, second)),
+                        var name when name.Equals(nameof(int.RotateRight), StringComparison.OrdinalIgnoreCase) => Invoked(int.RotateRight(first, second)),
+                        _ => NotHandled,
+                    };
+                }
+
+                if (args is [_, _, _] &&
+                    methodName.Equals(nameof(int.Clamp), StringComparison.OrdinalIgnoreCase) &&
+                    TryGetInt32(args, 2, out int third))
+                {
+                    return Invoked(int.Clamp(first, second, third));
+                }
+            }
+
+            return NotHandled;
+        }
+
+        private static bool TryGetInt32(object?[] args, int index, out int result)
+        {
+            if (!args.TryGetArg(index, out object? value))
+            {
+                result = default;
+                return false;
+            }
+
+            if (ArgumentParser.TryConvertToInt(value, out result))
+            {
+                return true;
+            }
+
+            if (ArgumentParser.TryWidenPrimitive(value, typeof(int), out object? widened) && widened is int number)
+            {
+                result = number;
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+#endif
 
         private static WellKnownFunctionResult TryInvokeParse(Type receiverType, object?[] args)
             => args switch

@@ -1107,6 +1107,34 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         }
     }
 
+#if NET
+    [Theory]
+    [InlineData("$([System.Int32]::Abs('-4'))", "4")]
+    [InlineData("$([System.Int32]::BigMul('4', '2'))", "8")]
+    [InlineData("$([System.Int32]::Clamp('4', '1', '3'))", "3")]
+    [InlineData("$([System.Int32]::CopySign('4', '-2'))", "-4")]
+    [InlineData("$([System.Int32]::DivRem('5', '2'))", "(2, 1)")]
+    [InlineData("$([System.Int32]::IsEvenInteger('4'))", "True")]
+    [InlineData("$([System.Int32]::IsNegative('-4'))", "True")]
+    [InlineData("$([System.Int32]::IsOddInteger('3'))", "True")]
+    [InlineData("$([System.Int32]::IsPositive('4'))", "True")]
+    [InlineData("$([System.Int32]::IsPow2('4'))", "True")]
+    [InlineData("$([System.Int32]::LeadingZeroCount('1'))", "31")]
+    [InlineData("$([System.Int32]::Log10('100'))", "2")]
+    [InlineData("$([System.Int32]::Log2('8'))", "3")]
+    [InlineData("$([System.Int32]::Max('4', '2'))", "4")]
+    [InlineData("$([System.Int32]::MaxMagnitude('-4', '2'))", "-4")]
+    [InlineData("$([System.Int32]::Min('4', '2'))", "2")]
+    [InlineData("$([System.Int32]::MinMagnitude('-4', '2'))", "2")]
+    [InlineData("$([System.Int32]::PopCount('7'))", "3")]
+    [InlineData("$([System.Int32]::RotateLeft('1', '1'))", "2")]
+    [InlineData("$([System.Int32]::RotateRight('2', '1'))", "1")]
+    [InlineData("$([System.Int32]::Sign('-4'))", "-1")]
+    [InlineData("$([System.Int32]::TrailingZeroCount('8'))", "3")]
+    public void PropertyFunctionInt32Members(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+#endif
+
     [Theory]
     [MemberData(nameof(DecimalMemberExpressions))]
     public void PropertyFunctionDecimalMembers(string expression, string expected)

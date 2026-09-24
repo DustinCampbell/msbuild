@@ -133,6 +133,42 @@ public class WellKnownFunctions_Primitive_Tests(ITestOutputHelper output)
         StaticMemberFor(typeof(decimal), nameof(decimal.Zero)).Invoke().ShouldBe(decimal.Zero);
     }
 
+#if NET
+    [Fact]
+    public void Int32_StaticMethods()
+    {
+        StaticMember(nameof(int.Abs)).Invoke([-4]).ShouldBe(4);
+        StaticMember(nameof(int.BigMul)).Invoke([4, 2]).ShouldBe(8L);
+        StaticMember(nameof(int.Clamp)).Invoke([4, 1, 3]).ShouldBe(3);
+        StaticMember(nameof(int.CopySign)).Invoke([4, -2]).ShouldBe(-4);
+        StaticMember(nameof(int.DivRem)).Invoke([5, 2]).ShouldBe((2, 1));
+        StaticMember(nameof(int.IsEvenInteger)).Invoke([4]).ShouldBe(true);
+        StaticMember(nameof(int.IsNegative)).Invoke([-4]).ShouldBe(true);
+        StaticMember(nameof(int.IsOddInteger)).Invoke([3]).ShouldBe(true);
+        StaticMember(nameof(int.IsPositive)).Invoke([4]).ShouldBe(true);
+        StaticMember(nameof(int.IsPow2)).Invoke([4]).ShouldBe(true);
+        StaticMember(nameof(int.LeadingZeroCount)).Invoke([1]).ShouldBe(31);
+        StaticMember(nameof(int.Log10)).Invoke([100]).ShouldBe(2);
+        StaticMember(nameof(int.Log2)).Invoke([8]).ShouldBe(3);
+        StaticMember(nameof(int.Max)).Invoke([4, 2]).ShouldBe(4);
+        StaticMember(nameof(int.MaxMagnitude)).Invoke([-4, 2]).ShouldBe(-4);
+        StaticMember(nameof(int.Min)).Invoke([4, 2]).ShouldBe(2);
+        StaticMember(nameof(int.MinMagnitude)).Invoke([-4, 2]).ShouldBe(2);
+        StaticMember(nameof(int.PopCount)).Invoke([7]).ShouldBe(3);
+        StaticMember(nameof(int.RotateLeft)).Invoke([1, 1]).ShouldBe(2);
+        StaticMember(nameof(int.RotateRight)).Invoke([2, 1]).ShouldBe(1);
+        StaticMember(nameof(int.Sign)).Invoke([-4]).ShouldBe(-1);
+        StaticMember(nameof(int.TrailingZeroCount)).Invoke([8]).ShouldBe(3);
+    }
+
+    [Fact]
+    public void Int32_StaticMethods_CoerceArguments()
+    {
+        StaticMember(nameof(int.Max)).Invoke([(byte)4, (short)2]).ShouldBe(4);
+        StaticMember(nameof(int.Clamp)).Invoke(["4", (byte)1, 3L]).ShouldBe(3);
+    }
+#endif
+
     [Fact]
     public void Primitive_InvalidArguments_NotHandled()
     {
