@@ -2260,6 +2260,92 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         { "$([System.Char]::IsDigit('hello789', 5))", true },
     };
 
+    [Fact]
+    public void PropertyFunctionCharMembers()
+    {
+        bool allowReflection = ExpanderFactory.UseLegacyExpander;
+
+        ExpandProperties("$([System.Char]::ConvertFromUtf32('65'))", allowReflection).ShouldBe("A");
+        ExpandProperties("$([System.Char]::ConvertToUtf32('AB', '1'))", allowReflection).ShouldBe("66");
+        ExpandProperties("$([System.Char]::GetNumericValue('8'))", allowReflection).ShouldBe("8");
+        ExpandProperties("$([System.Char]::GetNumericValue('A8', '1'))", allowReflection).ShouldBe("8");
+        ExpandProperties("$([System.Char]::GetUnicodeCategory('A'))", allowReflection).ShouldBe("UppercaseLetter");
+        ExpandProperties("$([System.Char]::GetUnicodeCategory('AB', '1'))", allowReflection).ShouldBe("UppercaseLetter");
+        ExpandProperties("$([System.Char]::IsDigit('1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsLetter('a'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsLetterOrDigit('1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsLower('a'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsNumber('8'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsPunctuation('!'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsSeparator(' '))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsSymbol('+'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsUpper('A'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsWhiteSpace(' '))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsLetter('Ab', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsLetterOrDigit('A1', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsLower('Aa', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsNumber('A8', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsPunctuation('A!', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsSeparator('A ', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsSymbol('A+', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsUpper('aA', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsWhiteSpace('A ', '1'))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::Parse('a'))", allowReflection).ShouldBe("a");
+        ExpandProperties("$([System.Char]::ToLower('A'))", allowReflection).ShouldBe("a");
+        ExpandProperties("$([System.Char]::ToLowerInvariant('A'))", allowReflection).ShouldBe("a");
+        ExpandProperties("$([System.Char]::ToString('a'))", allowReflection).ShouldBe("a");
+        ExpandProperties("$([System.Char]::ToUpper('a'))", allowReflection).ShouldBe("A");
+        ExpandProperties("$([System.Char]::ToUpperInvariant('a'))", allowReflection).ShouldBe("A");
+    }
+
+    [Fact]
+    public void PropertyFunctionCharSurrogateAndControlMembers()
+    {
+        bool allowReflection = ExpanderFactory.UseLegacyExpander;
+        PropertyDictionary<ProjectPropertyInstance> properties = Properties(
+            ("Control", "\n"),
+            ("SurrogatePair", "\U0001F600"));
+        const string high = "$([System.Convert]::ToChar($([System.Convert]::ToInt32('55357'))))";
+        const string low = "$([System.Convert]::ToChar($([System.Convert]::ToInt32('56832'))))";
+
+        ExpandProperties("$([System.Char]::IsControl($(Control)))", properties, allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsControl($(Control), '0'))", properties, allowReflection).ShouldBe("True");
+        ExpandProperties($"$([System.Char]::IsHighSurrogate({high}))", allowReflection).ShouldBe("True");
+        ExpandProperties($"$([System.Char]::IsLowSurrogate({low}))", allowReflection).ShouldBe("True");
+        ExpandProperties($"$([System.Char]::IsSurrogate({high}))", allowReflection).ShouldBe("True");
+        ExpandProperties($"$([System.Char]::IsSurrogatePair({high}, {low}))", allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsHighSurrogate($(SurrogatePair), '0'))", properties, allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsLowSurrogate($(SurrogatePair), '1'))", properties, allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsSurrogate($(SurrogatePair), '0'))", properties, allowReflection).ShouldBe("True");
+        ExpandProperties("$([System.Char]::IsSurrogatePair($(SurrogatePair), '0'))", properties, allowReflection).ShouldBe("True");
+    }
+
+    [Fact]
+    public void PropertyFunctionCharCasingWithCulture()
+    {
+        const string culture = "$([System.Globalization.CultureInfo]::new('tr-TR'))";
+        bool allowReflection = ExpanderFactory.UseLegacyExpander;
+
+        ExpandProperties($"$([System.Char]::ToLower('I', {culture}))", allowReflection).ShouldBe("\u0131");
+        ExpandProperties($"$([System.Char]::ToUpper('i', {culture}))", allowReflection).ShouldBe("\u0130");
+    }
+
+#if NET
+    [Theory]
+    [InlineData("$([System.Char]::IsAscii('a'))")]
+    [InlineData("$([System.Char]::IsAsciiDigit('1'))")]
+    [InlineData("$([System.Char]::IsAsciiHexDigit('f'))")]
+    [InlineData("$([System.Char]::IsAsciiHexDigitLower('f'))")]
+    [InlineData("$([System.Char]::IsAsciiHexDigitUpper('F'))")]
+    [InlineData("$([System.Char]::IsAsciiLetter('a'))")]
+    [InlineData("$([System.Char]::IsAsciiLetterLower('a'))")]
+    [InlineData("$([System.Char]::IsAsciiLetterOrDigit('1'))")]
+    [InlineData("$([System.Char]::IsAsciiLetterUpper('A'))")]
+    [InlineData("$([System.Char]::IsBetween('b', 'a', 'c'))")]
+    public void PropertyFunctionCharNetMembers(string expression)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("True");
+#endif
+
     /// <summary>
     ///  Regression test for https://github.com/dotnet/msbuild/issues/12923.
     /// </summary>
