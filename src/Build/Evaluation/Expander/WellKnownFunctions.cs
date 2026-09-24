@@ -20,6 +20,7 @@ namespace Microsoft.Build.Evaluation.Expander;
 internal static partial class WellKnownFunctions
 {
     private static readonly CharHandler s_charHandler = new();
+    private static readonly ConvertHandler s_convertHandler = new();
     private static readonly GuidHandler s_guidHandler = new();
     private static readonly Int32Handler s_int32Handler = new();
     private static readonly IntrinsicFunctionsHandler s_intrinsicFunctionsHandler = new();
@@ -43,6 +44,8 @@ internal static partial class WellKnownFunctions
     public static WellKnownFunctionResult TryInvokeStatic(Type receiverType, string methodName, object?[] args, IFileSystem fileSystem)
         => receiverType == typeof(string)
             ? s_stringHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(Convert)
+            ? s_convertHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Math)
             ? s_mathHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(IntrinsicFunctions)

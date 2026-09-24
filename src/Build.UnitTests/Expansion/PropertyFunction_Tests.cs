@@ -1380,6 +1380,41 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         => ExpandProperties("$([System.Convert]::ToInt32(42))")
             .ShouldBe("42");
 
+    [Theory]
+    [InlineData("$([System.Convert]::ToBoolean('true'))", "True")]
+    [InlineData("$([System.Convert]::ToByte('42'))", "42")]
+    [InlineData("$([System.Convert]::ToChar('x'))", "x")]
+    [InlineData("$([System.Convert]::ToDateTime('2026-09-23').ToString('yyyy-MM-dd'))", "2026-09-23")]
+    [InlineData("$([System.Convert]::ToDecimal('1.25'))", "1.25")]
+    [InlineData("$([System.Convert]::ToDouble('1.25'))", "1.25")]
+    [InlineData("$([System.Convert]::ToInt16('42'))", "42")]
+    [InlineData("$([System.Convert]::ToInt32('FF', 16))", "255")]
+    [InlineData("$([System.Convert]::ToInt64('42'))", "42")]
+    [InlineData("$([System.Convert]::ToSByte('-42'))", "-42")]
+    [InlineData("$([System.Convert]::ToSingle('1.25'))", "1.25")]
+    [InlineData("$([System.Convert]::ToString(42))", "42")]
+    [InlineData("$([System.Convert]::ToUInt16('42'))", "42")]
+    [InlineData("$([System.Convert]::ToUInt32('42'))", "42")]
+    [InlineData("$([System.Convert]::ToUInt64('42'))", "42")]
+    [InlineData("$([System.Convert]::ChangeType('42', 'TypeCode.Int32'))", "42")]
+    [InlineData("$([System.Convert]::GetTypeCode(42))", "String")]
+    [UseInvariantCulture]
+    public void PropertyFunctionConvert(string expression, string expected)
+        => ExpandProperties(expression).ShouldBe(expected);
+
+    [Fact]
+    public void PropertyFunctionConvertBase64()
+        => ExpandProperties("$([System.Convert]::ToBase64String($([System.Convert]::FromBase64String('AQID'))))")
+            .ShouldBe("AQID");
+
+#if NET
+    [Theory]
+    [InlineData("$([System.Convert]::ToHexString($([System.Convert]::FromHexString('ABCD'))))", "ABCD")]
+    [InlineData("$([System.Convert]::ToHexStringLower($([System.Convert]::FromHexString('ABCD'))))", "abcd")]
+    public void PropertyFunctionConvertHex(string expression, string expected)
+        => ExpandProperties(expression).ShouldBe(expected);
+#endif
+
     [Fact]
     public void PropertyFunctionToCharArray()
         => ExpandProperties("$([System.Convert]::ToString(`.`).ToCharArray())")

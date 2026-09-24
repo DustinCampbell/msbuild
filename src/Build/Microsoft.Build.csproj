@@ -205,6 +205,7 @@
     <Compile Include="Evaluation\ExpanderOptions.cs" />
     <Compile Include="Evaluation\Expander\ArithmeticArguments.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Char.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_Convert.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Guid.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Int32.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_IntrinsicFunctions.cs" />
