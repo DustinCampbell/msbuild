@@ -135,34 +135,68 @@ public class WellKnownFunctions_Primitive_Tests(ITestOutputHelper output)
 
 #if NET
     [Fact]
-    public void Int32_StaticMethods()
+    public void Integer_StaticMethods()
     {
-        StaticMember(nameof(int.Abs)).Invoke([-4]).ShouldBe(4);
-        StaticMember(nameof(int.BigMul)).Invoke([4, 2]).ShouldBe(8L);
-        StaticMember(nameof(int.Clamp)).Invoke([4, 1, 3]).ShouldBe(3);
-        StaticMember(nameof(int.CopySign)).Invoke([4, -2]).ShouldBe(-4);
-        StaticMember(nameof(int.DivRem)).Invoke([5, 2]).ShouldBe((2, 1));
-        StaticMember(nameof(int.IsEvenInteger)).Invoke([4]).ShouldBe(true);
-        StaticMember(nameof(int.IsNegative)).Invoke([-4]).ShouldBe(true);
-        StaticMember(nameof(int.IsOddInteger)).Invoke([3]).ShouldBe(true);
-        StaticMember(nameof(int.IsPositive)).Invoke([4]).ShouldBe(true);
-        StaticMember(nameof(int.IsPow2)).Invoke([4]).ShouldBe(true);
-        StaticMember(nameof(int.LeadingZeroCount)).Invoke([1]).ShouldBe(31);
-        StaticMember(nameof(int.Log10)).Invoke([100]).ShouldBe(2);
-        StaticMember(nameof(int.Log2)).Invoke([8]).ShouldBe(3);
-        StaticMember(nameof(int.Max)).Invoke([4, 2]).ShouldBe(4);
-        StaticMember(nameof(int.MaxMagnitude)).Invoke([-4, 2]).ShouldBe(-4);
-        StaticMember(nameof(int.Min)).Invoke([4, 2]).ShouldBe(2);
-        StaticMember(nameof(int.MinMagnitude)).Invoke([-4, 2]).ShouldBe(2);
-        StaticMember(nameof(int.PopCount)).Invoke([7]).ShouldBe(3);
-        StaticMember(nameof(int.RotateLeft)).Invoke([1, 1]).ShouldBe(2);
-        StaticMember(nameof(int.RotateRight)).Invoke([2, 1]).ShouldBe(1);
-        StaticMember(nameof(int.Sign)).Invoke([-4]).ShouldBe(-1);
-        StaticMember(nameof(int.TrailingZeroCount)).Invoke([8]).ShouldBe(3);
+        (Type Type, int Bits, bool Signed)[] types =
+        [
+            (typeof(byte), 8, false),
+            (typeof(sbyte), 8, true),
+            (typeof(short), 16, true),
+            (typeof(ushort), 16, false),
+            (typeof(int), 32, true),
+            (typeof(uint), 32, false),
+            (typeof(long), 64, true),
+            (typeof(ulong), 64, false),
+        ];
+
+        foreach ((Type type, int bits, bool signed) in types)
+        {
+            object one = Convert.ChangeType(1, type, CultureInfo.InvariantCulture);
+            object two = Convert.ChangeType(2, type, CultureInfo.InvariantCulture);
+            object three = Convert.ChangeType(3, type, CultureInfo.InvariantCulture);
+            object four = Convert.ChangeType(4, type, CultureInfo.InvariantCulture);
+            object five = Convert.ChangeType(5, type, CultureInfo.InvariantCulture);
+            object seven = Convert.ChangeType(7, type, CultureInfo.InvariantCulture);
+            object eight = Convert.ChangeType(8, type, CultureInfo.InvariantCulture);
+            object hundred = Convert.ChangeType(100, type, CultureInfo.InvariantCulture);
+
+            StaticMemberFor(type, nameof(int.Clamp)).Invoke([four, one, three]).ShouldBe(three);
+            StaticMemberFor(type, nameof(int.DivRem)).Invoke([five, two])!.ToString().ShouldBe("(2, 1)");
+            StaticMemberFor(type, nameof(int.IsEvenInteger)).Invoke([four]).ShouldBe(true);
+            StaticMemberFor(type, nameof(int.IsOddInteger)).Invoke([three]).ShouldBe(true);
+            StaticMemberFor(type, nameof(int.IsPow2)).Invoke([four]).ShouldBe(true);
+            StaticMemberFor(type, nameof(int.LeadingZeroCount)).Invoke([one]).ShouldBe(Convert.ChangeType(bits - 1, type));
+            StaticMemberFor(type, nameof(int.Log10)).Invoke([hundred]).ShouldBe(Convert.ChangeType(2, type));
+            StaticMemberFor(type, nameof(int.Log2)).Invoke([eight]).ShouldBe(Convert.ChangeType(3, type));
+            StaticMemberFor(type, nameof(int.Max)).Invoke([four, two]).ShouldBe(four);
+            StaticMemberFor(type, nameof(int.Min)).Invoke([four, two]).ShouldBe(two);
+            StaticMemberFor(type, nameof(int.PopCount)).Invoke([seven]).ShouldBe(Convert.ChangeType(3, type));
+            StaticMemberFor(type, nameof(int.RotateLeft)).Invoke([one, 1]).ShouldBe(two);
+            StaticMemberFor(type, nameof(int.RotateRight)).Invoke([two, 1]).ShouldBe(one);
+            StaticMemberFor(type, nameof(int.Sign)).Invoke([four]).ShouldBe(1);
+            StaticMemberFor(type, nameof(int.TrailingZeroCount)).Invoke([eight]).ShouldBe(Convert.ChangeType(3, type));
+
+            if (signed)
+            {
+                object negativeFour = Convert.ChangeType(-4, type, CultureInfo.InvariantCulture);
+
+                StaticMemberFor(type, nameof(int.Abs)).Invoke([negativeFour]).ShouldBe(four);
+                StaticMemberFor(type, nameof(int.CopySign)).Invoke([four, negativeFour]).ShouldBe(negativeFour);
+                StaticMemberFor(type, nameof(int.IsNegative)).Invoke([negativeFour]).ShouldBe(true);
+                StaticMemberFor(type, nameof(int.IsPositive)).Invoke([four]).ShouldBe(true);
+                StaticMemberFor(type, nameof(int.MaxMagnitude)).Invoke([negativeFour, two]).ShouldBe(negativeFour);
+                StaticMemberFor(type, nameof(int.MinMagnitude)).Invoke([negativeFour, two]).ShouldBe(two);
+            }
+        }
+
+        StaticMemberFor(typeof(int), nameof(int.BigMul)).Invoke([4, 2])!.ToString().ShouldBe("8");
+        StaticMemberFor(typeof(uint), nameof(uint.BigMul)).Invoke([4u, 2u])!.ToString().ShouldBe("8");
+        StaticMemberFor(typeof(long), nameof(long.BigMul)).Invoke([4L, 2L])!.ToString().ShouldBe("8");
+        StaticMemberFor(typeof(ulong), nameof(ulong.BigMul)).Invoke([4UL, 2UL])!.ToString().ShouldBe("8");
     }
 
     [Fact]
-    public void Int32_StaticMethods_CoerceArguments()
+    public void Integer_StaticMethods_CoerceArguments()
     {
         StaticMember(nameof(int.Max)).Invoke([(byte)4, (short)2]).ShouldBe(4);
         StaticMember(nameof(int.Clamp)).Invoke(["4", (byte)1, 3L]).ShouldBe(3);

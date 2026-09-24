@@ -3,6 +3,9 @@
 
 using System;
 using System.Globalization;
+#if NET
+using System.Numerics;
+#endif
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -18,13 +21,10 @@ internal static partial class WellKnownFunctions
             }
 
 #if NET
-            if (receiverType == typeof(int))
+            WellKnownFunctionResult integerResult = TryInvokeInteger(receiverType, methodName, args);
+            if (integerResult.Status == WellKnownFunctionStatus.Invoked)
             {
-                WellKnownFunctionResult result = TryInvokeInt32(methodName, args);
-                if (result.Status == WellKnownFunctionStatus.Invoked)
-                {
-                    return result;
-                }
+                return integerResult;
             }
 #endif
 
@@ -123,64 +123,142 @@ internal static partial class WellKnownFunctions
         }
 
 #if NET
-        private static WellKnownFunctionResult TryInvokeInt32(string methodName, object?[] args)
+        private static WellKnownFunctionResult TryInvokeInteger(Type receiverType, string methodName, object?[] args)
         {
-            if (!TryGetInt32(args, 0, out int first))
+            if (methodName.Equals(nameof(int.BigMul), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeBigMul(receiverType, args);
+            }
+
+            return receiverType == typeof(byte) ? TryInvokeInteger<byte>(methodName, args, signed: false)
+                : receiverType == typeof(sbyte) ? TryInvokeInteger<sbyte>(methodName, args, signed: true)
+                : receiverType == typeof(short) ? TryInvokeInteger<short>(methodName, args, signed: true)
+                : receiverType == typeof(ushort) ? TryInvokeInteger<ushort>(methodName, args, signed: false)
+                : receiverType == typeof(int) ? TryInvokeInteger<int>(methodName, args, signed: true)
+                : receiverType == typeof(uint) ? TryInvokeInteger<uint>(methodName, args, signed: false)
+                : receiverType == typeof(long) ? TryInvokeInteger<long>(methodName, args, signed: true)
+                : receiverType == typeof(ulong) ? TryInvokeInteger<ulong>(methodName, args, signed: false)
+                : NotHandled;
+        }
+
+        private static WellKnownFunctionResult TryInvokeInteger<T>(string methodName, object?[] args, bool signed)
+            where T : unmanaged, IBinaryInteger<T>, IMinMaxValue<T>
+        {
+            if (!TryGetInteger(args, 0, out T first))
             {
                 return NotHandled;
             }
 
             if (args is [_])
             {
+                WellKnownFunctionResult result = methodName switch
+                {
+                    var name when name.Equals(nameof(int.IsEvenInteger), StringComparison.OrdinalIgnoreCase) => Invoked(T.IsEvenInteger(first)),
+                    var name when name.Equals(nameof(int.IsOddInteger), StringComparison.OrdinalIgnoreCase) => Invoked(T.IsOddInteger(first)),
+                    var name when name.Equals(nameof(int.IsPow2), StringComparison.OrdinalIgnoreCase) => Invoked(T.IsPow2(first)),
+                    var name when name.Equals(nameof(int.LeadingZeroCount), StringComparison.OrdinalIgnoreCase) => Invoked(T.LeadingZeroCount(first)),
+                    var name when name.Equals(nameof(int.Log10), StringComparison.OrdinalIgnoreCase) => Invoked(T.Log10(first)),
+                    var name when name.Equals(nameof(int.Log2), StringComparison.OrdinalIgnoreCase) => Invoked(T.Log2(first)),
+                    var name when name.Equals(nameof(int.PopCount), StringComparison.OrdinalIgnoreCase) => Invoked(T.PopCount(first)),
+                    var name when name.Equals(nameof(int.Sign), StringComparison.OrdinalIgnoreCase) => Invoked(T.Sign(first)),
+                    var name when name.Equals(nameof(int.TrailingZeroCount), StringComparison.OrdinalIgnoreCase) => Invoked(T.TrailingZeroCount(first)),
+                    _ => NotHandled,
+                };
+
+                if (result.Status == WellKnownFunctionStatus.Invoked || !signed)
+                {
+                    return result;
+                }
+
                 return methodName switch
                 {
-                    var name when name.Equals(nameof(int.Abs), StringComparison.OrdinalIgnoreCase) => Invoked(int.Abs(first)),
-                    var name when name.Equals(nameof(int.IsEvenInteger), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsEvenInteger(first)),
-                    var name when name.Equals(nameof(int.IsNegative), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsNegative(first)),
-                    var name when name.Equals(nameof(int.IsOddInteger), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsOddInteger(first)),
-                    var name when name.Equals(nameof(int.IsPositive), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsPositive(first)),
-                    var name when name.Equals(nameof(int.IsPow2), StringComparison.OrdinalIgnoreCase) => Invoked(int.IsPow2(first)),
-                    var name when name.Equals(nameof(int.LeadingZeroCount), StringComparison.OrdinalIgnoreCase) => Invoked(int.LeadingZeroCount(first)),
-                    var name when name.Equals(nameof(int.Log10), StringComparison.OrdinalIgnoreCase) => Invoked(int.Log10(first)),
-                    var name when name.Equals(nameof(int.Log2), StringComparison.OrdinalIgnoreCase) => Invoked(int.Log2(first)),
-                    var name when name.Equals(nameof(int.PopCount), StringComparison.OrdinalIgnoreCase) => Invoked(int.PopCount(first)),
-                    var name when name.Equals(nameof(int.Sign), StringComparison.OrdinalIgnoreCase) => Invoked(int.Sign(first)),
-                    var name when name.Equals(nameof(int.TrailingZeroCount), StringComparison.OrdinalIgnoreCase) => Invoked(int.TrailingZeroCount(first)),
+                    var name when name.Equals(nameof(int.Abs), StringComparison.OrdinalIgnoreCase) => Invoked(T.Abs(first)),
+                    var name when name.Equals(nameof(int.IsNegative), StringComparison.OrdinalIgnoreCase) => Invoked(T.IsNegative(first)),
+                    var name when name.Equals(nameof(int.IsPositive), StringComparison.OrdinalIgnoreCase) => Invoked(T.IsPositive(first)),
                     _ => NotHandled,
                 };
             }
 
-            if (TryGetInt32(args, 1, out int second))
+            if (args is [_, var amount] &&
+                ArgumentParser.TryConvertToInt(amount, out int convertedAmount))
+            {
+                WellKnownFunctionResult rotationResult = methodName switch
+                {
+                    var name when name.Equals(nameof(int.RotateLeft), StringComparison.OrdinalIgnoreCase) => Invoked(T.RotateLeft(first, convertedAmount)),
+                    var name when name.Equals(nameof(int.RotateRight), StringComparison.OrdinalIgnoreCase) => Invoked(T.RotateRight(first, convertedAmount)),
+                    _ => NotHandled,
+                };
+
+                if (rotationResult.Status == WellKnownFunctionStatus.Invoked)
+                {
+                    return rotationResult;
+                }
+            }
+
+            if (TryGetInteger(args, 1, out T second))
             {
                 if (args is [_, _])
                 {
+                    WellKnownFunctionResult result = methodName switch
+                    {
+                        var name when name.Equals(nameof(int.DivRem), StringComparison.OrdinalIgnoreCase) => Invoked(T.DivRem(first, second)),
+                        var name when name.Equals(nameof(int.Max), StringComparison.OrdinalIgnoreCase) => Invoked(T.Max(first, second)),
+                        var name when name.Equals(nameof(int.Min), StringComparison.OrdinalIgnoreCase) => Invoked(T.Min(first, second)),
+                        _ => NotHandled,
+                    };
+
+                    if (result.Status == WellKnownFunctionStatus.Invoked || !signed)
+                    {
+                        return result;
+                    }
+
                     return methodName switch
                     {
-                        var name when name.Equals(nameof(int.BigMul), StringComparison.OrdinalIgnoreCase) => Invoked(int.BigMul(first, second)),
-                        var name when name.Equals(nameof(int.CopySign), StringComparison.OrdinalIgnoreCase) => Invoked(int.CopySign(first, second)),
-                        var name when name.Equals(nameof(int.DivRem), StringComparison.OrdinalIgnoreCase) => Invoked(int.DivRem(first, second)),
-                        var name when name.Equals(nameof(int.Max), StringComparison.OrdinalIgnoreCase) => Invoked(int.Max(first, second)),
-                        var name when name.Equals(nameof(int.MaxMagnitude), StringComparison.OrdinalIgnoreCase) => Invoked(int.MaxMagnitude(first, second)),
-                        var name when name.Equals(nameof(int.Min), StringComparison.OrdinalIgnoreCase) => Invoked(int.Min(first, second)),
-                        var name when name.Equals(nameof(int.MinMagnitude), StringComparison.OrdinalIgnoreCase) => Invoked(int.MinMagnitude(first, second)),
-                        var name when name.Equals(nameof(int.RotateLeft), StringComparison.OrdinalIgnoreCase) => Invoked(int.RotateLeft(first, second)),
-                        var name when name.Equals(nameof(int.RotateRight), StringComparison.OrdinalIgnoreCase) => Invoked(int.RotateRight(first, second)),
+                        var name when name.Equals(nameof(int.CopySign), StringComparison.OrdinalIgnoreCase) => Invoked(T.CopySign(first, second)),
+                        var name when name.Equals(nameof(int.MaxMagnitude), StringComparison.OrdinalIgnoreCase) => Invoked(T.MaxMagnitude(first, second)),
+                        var name when name.Equals(nameof(int.MinMagnitude), StringComparison.OrdinalIgnoreCase) => Invoked(T.MinMagnitude(first, second)),
                         _ => NotHandled,
                     };
                 }
 
                 if (args is [_, _, _] &&
                     methodName.Equals(nameof(int.Clamp), StringComparison.OrdinalIgnoreCase) &&
-                    TryGetInt32(args, 2, out int third))
+                    TryGetInteger(args, 2, out T third))
                 {
-                    return Invoked(int.Clamp(first, second, third));
+                    return Invoked(T.Clamp(first, second, third));
                 }
             }
 
             return NotHandled;
         }
 
-        private static bool TryGetInt32(object?[] args, int index, out int result)
+        private static WellKnownFunctionResult TryInvokeBigMul(Type receiverType, object?[] args)
+        {
+            if (receiverType == typeof(int) && TryGetInteger(args, 0, out int intLeft) && TryGetInteger(args, 1, out int intRight))
+            {
+                return args is [_, _] ? Invoked(int.BigMul(intLeft, intRight)) : NotHandled;
+            }
+
+            if (receiverType == typeof(uint) && TryGetInteger(args, 0, out uint uintLeft) && TryGetInteger(args, 1, out uint uintRight))
+            {
+                return args is [_, _] ? Invoked(uint.BigMul(uintLeft, uintRight)) : NotHandled;
+            }
+
+            if (receiverType == typeof(long) && TryGetInteger(args, 0, out long longLeft) && TryGetInteger(args, 1, out long longRight))
+            {
+                return args is [_, _] ? Invoked(long.BigMul(longLeft, longRight)) : NotHandled;
+            }
+
+            if (receiverType == typeof(ulong) && TryGetInteger(args, 0, out ulong ulongLeft) && TryGetInteger(args, 1, out ulong ulongRight))
+            {
+                return args is [_, _] ? Invoked(ulong.BigMul(ulongLeft, ulongRight)) : NotHandled;
+            }
+
+            return NotHandled;
+        }
+
+        private static bool TryGetInteger<T>(object?[] args, int index, out T result)
+            where T : unmanaged, IBinaryInteger<T>, IMinMaxValue<T>
         {
             if (!args.TryGetArg(index, out object? value))
             {
@@ -188,19 +266,59 @@ internal static partial class WellKnownFunctions
                 return false;
             }
 
-            if (ArgumentParser.TryConvertToInt(value, out result))
-            {
-                return true;
-            }
-
-            if (ArgumentParser.TryWidenPrimitive(value, typeof(int), out object? widened) && widened is int number)
+            if (value is T number)
             {
                 result = number;
                 return true;
             }
 
-            result = default;
-            return false;
+            switch (value)
+            {
+                case byte source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case sbyte source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case short source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case ushort source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case int source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case uint source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case long source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case ulong source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case char source:
+                    result = T.CreateChecked((ushort)source);
+                    return true;
+                case float source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case double source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case decimal source:
+                    result = T.CreateChecked(source);
+                    return true;
+                case bool source:
+                    result = T.CreateChecked(source ? 1 : 0);
+                    return true;
+                case string text when T.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out result):
+                    return true;
+                default:
+                    result = default;
+                    return false;
+            }
         }
 #endif
 

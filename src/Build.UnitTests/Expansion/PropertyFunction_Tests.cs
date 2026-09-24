@@ -1109,30 +1109,64 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
 
 #if NET
     [Theory]
-    [InlineData("$([System.Int32]::Abs('-4'))", "4")]
-    [InlineData("$([System.Int32]::BigMul('4', '2'))", "8")]
-    [InlineData("$([System.Int32]::Clamp('4', '1', '3'))", "3")]
-    [InlineData("$([System.Int32]::CopySign('4', '-2'))", "-4")]
-    [InlineData("$([System.Int32]::DivRem('5', '2'))", "(2, 1)")]
-    [InlineData("$([System.Int32]::IsEvenInteger('4'))", "True")]
-    [InlineData("$([System.Int32]::IsNegative('-4'))", "True")]
-    [InlineData("$([System.Int32]::IsOddInteger('3'))", "True")]
-    [InlineData("$([System.Int32]::IsPositive('4'))", "True")]
-    [InlineData("$([System.Int32]::IsPow2('4'))", "True")]
-    [InlineData("$([System.Int32]::LeadingZeroCount('1'))", "31")]
-    [InlineData("$([System.Int32]::Log10('100'))", "2")]
-    [InlineData("$([System.Int32]::Log2('8'))", "3")]
-    [InlineData("$([System.Int32]::Max('4', '2'))", "4")]
-    [InlineData("$([System.Int32]::MaxMagnitude('-4', '2'))", "-4")]
-    [InlineData("$([System.Int32]::Min('4', '2'))", "2")]
-    [InlineData("$([System.Int32]::MinMagnitude('-4', '2'))", "2")]
-    [InlineData("$([System.Int32]::PopCount('7'))", "3")]
-    [InlineData("$([System.Int32]::RotateLeft('1', '1'))", "2")]
-    [InlineData("$([System.Int32]::RotateRight('2', '1'))", "1")]
-    [InlineData("$([System.Int32]::Sign('-4'))", "-1")]
-    [InlineData("$([System.Int32]::TrailingZeroCount('8'))", "3")]
-    public void PropertyFunctionInt32Members(string expression, string expected)
+    [MemberData(nameof(IntegerMemberExpressions))]
+    public void PropertyFunctionIntegerMembers(string expression, string expected)
         => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> IntegerMemberExpressions
+    {
+        get
+        {
+            TheoryData<string, string> data = new();
+            (string TypeName, int Bits, bool Signed)[] types =
+            [
+                ("Byte", 8, false),
+                ("SByte", 8, true),
+                ("Int16", 16, true),
+                ("UInt16", 16, false),
+                ("Int32", 32, true),
+                ("UInt32", 32, false),
+                ("Int64", 64, true),
+                ("UInt64", 64, false),
+            ];
+
+            foreach ((string typeName, int bits, bool signed) in types)
+            {
+                data.Add($"$([System.{typeName}]::Clamp('4', '1', '3'))", "3");
+                data.Add($"$([System.{typeName}]::DivRem('5', '2'))", "(2, 1)");
+                data.Add($"$([System.{typeName}]::IsEvenInteger('4'))", "True");
+                data.Add($"$([System.{typeName}]::IsOddInteger('3'))", "True");
+                data.Add($"$([System.{typeName}]::IsPow2('4'))", "True");
+                data.Add($"$([System.{typeName}]::LeadingZeroCount('1'))", (bits - 1).ToResultString());
+                data.Add($"$([System.{typeName}]::Log10('100'))", "2");
+                data.Add($"$([System.{typeName}]::Log2('8'))", "3");
+                data.Add($"$([System.{typeName}]::Max('4', '2'))", "4");
+                data.Add($"$([System.{typeName}]::Min('4', '2'))", "2");
+                data.Add($"$([System.{typeName}]::PopCount('7'))", "3");
+                data.Add($"$([System.{typeName}]::RotateLeft('1', '1'))", "2");
+                data.Add($"$([System.{typeName}]::RotateRight('2', '1'))", "1");
+                data.Add($"$([System.{typeName}]::Sign('4'))", "1");
+                data.Add($"$([System.{typeName}]::TrailingZeroCount('8'))", "3");
+
+                if (signed)
+                {
+                    data.Add($"$([System.{typeName}]::Abs('-4'))", "4");
+                    data.Add($"$([System.{typeName}]::CopySign('4', '-2'))", "-4");
+                    data.Add($"$([System.{typeName}]::IsNegative('-4'))", "True");
+                    data.Add($"$([System.{typeName}]::IsPositive('4'))", "True");
+                    data.Add($"$([System.{typeName}]::MaxMagnitude('-4', '2'))", "-4");
+                    data.Add($"$([System.{typeName}]::MinMagnitude('-4', '2'))", "2");
+                }
+            }
+
+            data.Add("$([System.Int32]::BigMul('4', '2'))", "8");
+            data.Add("$([System.UInt32]::BigMul('4', '2'))", "8");
+            data.Add("$([System.Int64]::BigMul('4', '2'))", "8");
+            data.Add("$([System.UInt64]::BigMul('4', '2'))", "8");
+
+            return data;
+        }
+    }
 #endif
 
     [Theory]
