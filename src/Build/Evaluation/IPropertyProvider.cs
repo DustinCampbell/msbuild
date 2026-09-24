@@ -1,27 +1,32 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+/// <summary>
+///  Provides access to properties during expansion.
+/// </summary>
+/// <typeparam name="T">The type of property provided.</typeparam>
+internal interface IPropertyProvider<out T>
+    where T : class
 {
     /// <summary>
-    /// An interface representing an object which can provide properties to the Expander.
+    ///  Gets the property with the specified name.
     /// </summary>
-    /// <typeparam name="T">The type of properties provided.</typeparam>
-    internal interface IPropertyProvider<T> where T : class
-    {
-        /// <summary>
-        /// Returns a property with the specified name, or null if it was not found.
-        /// </summary>
-        /// <param name="name">The property name.</param>
-        /// <returns>The property.</returns>
-        T GetProperty(string name);
+    /// <param name="name">The property name.</param>
+    /// <returns>
+    ///  The property, or <see langword="null"/> if it was not found.
+    /// </returns>
+    T? GetProperty(string name);
 
-        /// <summary>
-        /// Returns a property with the specified name, or null if it was not found.
-        /// Name is the segment of the provided string with the provided start and end indexes.
-        /// </summary>
-        T GetProperty(string name, int startIndex, int endIndex);
-    }
+    /// <summary>
+    ///  Gets the property whose name is the specified segment of <paramref name="name"/>.
+    /// </summary>
+    /// <param name="name">The string containing the property name.</param>
+    /// <param name="startIndex">The zero-based index at which the property name begins.</param>
+    /// <param name="endIndex">The zero-based, inclusive index at which the property name ends.</param>
+    /// <returns>
+    ///  The property, or <see langword="null"/> if it was not found.
+    /// </returns>
+    T? GetProperty(string name, int startIndex, int endIndex);
 }

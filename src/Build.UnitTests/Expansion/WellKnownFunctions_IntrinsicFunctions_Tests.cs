@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Shared.FileSystem;
@@ -272,9 +273,11 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
         Directory.CreateDirectory(child);
         env.CreateFile(root, "marker.txt");
 
+        ExpanderContext context = default;
+
         StaticMember(nameof(IntrinsicFunctions.GetDirectoryNameOfFileAbove))
-            .Invoke([child, "marker.txt"])
-            .ShouldBe(IntrinsicFunctions.GetDirectoryNameOfFileAbove(child, "marker.txt", FileSystems.Default));
+            .Invoke([child, "marker.txt"], in context)
+            .ShouldBe(IntrinsicFunctions.GetDirectoryNameOfFileAbove(child, "marker.txt", context.FileSystem));
     }
 
     [Fact]
@@ -298,9 +301,11 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
         Directory.CreateDirectory(child);
         env.CreateFile(root, "marker.txt");
 
+        ExpanderContext context = default;
+
         StaticMember(nameof(IntrinsicFunctions.GetPathOfFileAbove))
-            .Invoke(["marker.txt", child])
-            .ShouldBe(IntrinsicFunctions.GetPathOfFileAbove("marker.txt", child, FileSystems.Default));
+            .Invoke(["marker.txt", child], in context)
+            .ShouldBe(IntrinsicFunctions.GetPathOfFileAbove("marker.txt", child, context.FileSystem));
     }
 
     [Fact]
@@ -478,8 +483,10 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
         TransientTestFile projectFile = env.CreateFile(folder, "project.proj", "<Project />");
         ProjectInstance project = new(projectFile.Path);
 
+        var context = new ExpanderContext(project, loggingContext);
+
         StaticMember(nameof(IntrinsicFunctions.RegisterBuildCheck))
-            .Invoke([assemblyFile.Path], project, loggingContext)
+            .Invoke([assemblyFile.Path], in context)
             .ShouldBe(true);
 
         logger.AllBuildEvents.ShouldHaveSingleItem().ShouldBeOfType<BuildCheckAcquisitionEventArgs>();

@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Evaluation;
 using Microsoft.Build.Evaluation.Expander;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Shared.FileSystem;
 using Shouldly;
 using Xunit;
 
@@ -34,7 +30,9 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public object? Invoke(object?[] args)
         {
-            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeConstructor(receiverType, args);
+            ExpanderContext context = default;
+
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeConstructor(receiverType, args, in context);
             result.Status.ShouldBe(WellKnownFunctionStatus.Invoked);
 
             return result.Result;
@@ -45,7 +43,9 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public void NotHandled(object?[] args)
         {
-            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeConstructor(receiverType, args);
+            ExpanderContext context = default;
+
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeConstructor(receiverType, args, in context);
             result.Status.ShouldBe(WellKnownFunctionStatus.NotHandled);
             result.Result.ShouldBeNull();
         }
@@ -58,7 +58,9 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public object? Invoke(object objectInstance, object?[] args)
         {
-            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeInstance(objectInstance, memberName, args);
+            ExpanderContext context = default;
+
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeInstance(objectInstance, memberName, args, in context);
             result.Status.ShouldBe(WellKnownFunctionStatus.Invoked);
 
             return result.Result;
@@ -69,7 +71,9 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public void NotHandled(object objectInstance, object?[] args)
         {
-            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeInstance(objectInstance, memberName, args);
+            ExpanderContext context = default;
+
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeInstance(objectInstance, memberName, args, in context);
             result.Status.ShouldBe(WellKnownFunctionStatus.NotHandled);
             result.Result.ShouldBeNull();
         }
@@ -82,18 +86,20 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public object? Invoke(object?[] args)
         {
-            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(receiverType, memberName, args, FileSystems.Default);
+            ExpanderContext context = default;
+
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(receiverType, memberName, args, in context);
             result.Status.ShouldBe(WellKnownFunctionStatus.Invoked);
 
             return result.Result;
         }
 
-        internal object? Invoke(IPropertyProvider<ProjectPropertyInstance> properties, LoggingContext loggingContext)
-            => Invoke(args: [], properties, loggingContext);
+        internal object? Invoke(ref readonly ExpanderContext context)
+            => Invoke(args: [], in context);
 
-        internal object? Invoke(object?[] args, IPropertyProvider<ProjectPropertyInstance> properties, LoggingContext loggingContext)
+        internal object? Invoke(object?[] args, ref readonly ExpanderContext context)
         {
-            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(receiverType, memberName, args, properties, loggingContext);
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(receiverType, memberName, args, in context);
             result.Status.ShouldBe(WellKnownFunctionStatus.Invoked);
 
             return result.Result;
@@ -104,17 +110,19 @@ public abstract class WellKnownFunctionsTestBase(Type receiverType, ITestOutputH
 
         public void NotHandled(object?[] args)
         {
-            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(receiverType, memberName, args, FileSystems.Default);
+            ExpanderContext context = default;
+
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(receiverType, memberName, args, in context);
             result.Status.ShouldBe(WellKnownFunctionStatus.NotHandled);
             result.Result.ShouldBeNull();
         }
 
-        internal void NotHandled(IPropertyProvider<ProjectPropertyInstance> properties, LoggingContext loggingContext)
-            => NotHandled(args: [], properties, loggingContext);
+        internal void NotHandled(ref readonly ExpanderContext context)
+            => NotHandled(args: [], in context);
 
-        internal void NotHandled(object?[] args, IPropertyProvider<ProjectPropertyInstance> properties, LoggingContext loggingContext)
+        internal void NotHandled(object?[] args, ref readonly ExpanderContext context)
         {
-            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(receiverType, memberName, args, properties, loggingContext);
+            WellKnownFunctionResult result = WellKnownFunctions.TryInvokeStatic(receiverType, memberName, args, in context);
             result.Status.ShouldBe(WellKnownFunctionStatus.NotHandled);
             result.Result.ShouldBeNull();
         }
