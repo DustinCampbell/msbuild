@@ -1536,6 +1536,43 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         },
     };
 
+    [Theory]
+    [MemberData(nameof(StringComparerExpressions))]
+    public void PropertyFunctionStringComparerMembers(string expression, string expected)
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
+
+    public static TheoryData<string, string> StringComparerExpressions => new()
+    {
+        { """$([System.StringComparer]::CurrentCulture.Compare('a', 'a'))""", "0" },
+        { """$([System.StringComparer]::CurrentCultureIgnoreCase.Compare('a', 'A'))""", "0" },
+        { """$([System.StringComparer]::InvariantCulture.Compare('a', 'a'))""", "0" },
+        { """$([System.StringComparer]::InvariantCultureIgnoreCase.Compare('a', 'A'))""", "0" },
+        { """$([System.StringComparer]::Ordinal.Compare('a', 'a'))""", "0" },
+        { """$([System.StringComparer]::OrdinalIgnoreCase.Compare('a', 'A'))""", "0" },
+        {
+            """$([System.StringComparer]::Create($([System.Globalization.CultureInfo]::GetCultureInfo('en-US')), 'true').Equals('a', 'A'))""",
+            bool.TrueString
+        },
+#if NET
+        { """$([System.StringComparer]::FromComparison('OrdinalIgnoreCase').Equals('a', 'A'))""", bool.TrueString },
+#endif
+        { """$([System.StringComparer]::OrdinalIgnoreCase.Equals('a', 'A'))""", bool.TrueString },
+        {
+            """$([System.StringComparer]::OrdinalIgnoreCase.Equals($([System.StringComparer]::OrdinalIgnoreCase)))""",
+            bool.TrueString
+        },
+        {
+            """$([System.StringComparer]::OrdinalIgnoreCase.GetHashCode('a'))""",
+            StringComparer.OrdinalIgnoreCase.GetHashCode("a").ToResultString()
+        },
+        {
+            """$([System.StringComparer]::OrdinalIgnoreCase.GetHashCode())""",
+            StringComparer.OrdinalIgnoreCase.GetHashCode().ToResultString()
+        },
+        { """$([System.StringComparer]::OrdinalIgnoreCase.ToString())""", StringComparer.OrdinalIgnoreCase.ToString()! },
+    };
+
     [Fact]
     public void PropertyFunctionStringArrayIndexerGetter()
         => ExpandProperties("$(prop.Split('-')[0])", Properties("prop", "x-y-z"))

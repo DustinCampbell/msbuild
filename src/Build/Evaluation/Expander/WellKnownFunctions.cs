@@ -36,6 +36,7 @@ internal static partial class WellKnownFunctions
     private static readonly RuntimeInformationHandler s_runtimeInformationHandler = new();
     private static readonly ArrayHandler s_arrayHandler = new();
     private static readonly StringHandler s_stringHandler = new();
+    private static readonly StringComparerHandler s_stringComparerHandler = new();
     private static readonly TimeSpanHandler s_timeSpanHandler = new();
     private static readonly UriHandler s_uriHandler = new();
     private static readonly VersionHandler s_versionHandler = new();
@@ -91,6 +92,8 @@ internal static partial class WellKnownFunctions
             ? s_primitiveHandler.TryInvokeStatic(receiverType, methodName, args)
          : receiverType == typeof(TimeSpan)
             ? s_timeSpanHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(StringComparer)
+            ? s_stringComparerHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Uri)
             ? s_uriHandler.TryInvokeStatic(methodName, args)
 
@@ -109,6 +112,7 @@ internal static partial class WellKnownFunctions
         => objectInstance switch
         {
             string s => s_stringHandler.TryInvokeInstance(methodName, s, args),
+            StringComparer comparer => s_stringComparerHandler.TryInvokeInstance(methodName, comparer, args),
             Array array => s_arrayHandler.TryInvokeInstance(methodName, array, args),
             CaptureCollection captures => s_regexHandler.TryInvokeInstance(methodName, captures, args),
             System.Globalization.CultureInfo culture => s_cultureInfoHandler.TryInvokeInstance(methodName, culture, args),
