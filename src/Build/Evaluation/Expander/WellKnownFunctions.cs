@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Evaluation.Expander;
@@ -104,7 +105,7 @@ internal static partial class WellKnownFunctions
          : receiverType == typeof(Uri)
             ? s_uriHandler.TryInvokeStatic(methodName, args)
 
-         : NotHandled;
+         : TryInvokeRegisteredStatic(receiverType, methodName, args);
 
     /// <summary>
     ///  Attempts to invoke a commonly used instance function without reflection.
@@ -205,6 +206,18 @@ internal static partial class WellKnownFunctions
 
     private static WellKnownFunctionResult Invoked(object? result)
         => new(WellKnownFunctionStatus.Invoked, result);
+
+    private static WellKnownFunctionResult TryInvokeRegisteredStatic(Type receiverType, string methodName, object?[] args)
+    {
+        if (!string.Equals(receiverType.FullName, "Microsoft.Build.Utilities.ToolLocationHelper", StringComparison.Ordinal))
+        {
+            return NotHandled;
+        }
+
+        return PropertyFunctionHandlerRegistry.TryInvoke(receiverType, methodName, args, out object? result)
+            ? Invoked(result)
+            : NotHandled;
+    }
 
     private static bool IsNumericOrCharType(Type type)
         => type == typeof(byte)

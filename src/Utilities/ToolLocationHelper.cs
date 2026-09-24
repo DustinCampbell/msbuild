@@ -209,7 +209,7 @@ namespace Microsoft.Build.Utilities
     /// NOTE: All public methods of this class are available to MSBuild projects for use in functions - they must be safe for
     /// use during project evaluation.
     /// </summary>
-    public static class ToolLocationHelper
+    public static partial class ToolLocationHelper
     {
         /// <summary>
         /// Cache the results of reading the redist list so that we do not have to read the redist list over and over again to get the chains.

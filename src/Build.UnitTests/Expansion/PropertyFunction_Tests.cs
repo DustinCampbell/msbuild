@@ -754,6 +754,12 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
 #endif
     }
 
+    [Theory]
+    [InlineData("$([Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion)", MSBuildConstants.CurrentToolsVersion)]
+    [InlineData("$([Microsoft.Build.Utilities.ToolLocationHelper]::PathToSystem)", null)]
+    public void PropertyFunctionToolLocationHelperProperties(string expression, string? expected)
+        => ExpandProperties(expression).ShouldBe(expected ?? ToolLocationHelper.PathToSystem);
+
     [ModernExpanderOnlyFact]
     public void ModernPropertyFunctionGetDirectoriesWithSearchOption()
     {
