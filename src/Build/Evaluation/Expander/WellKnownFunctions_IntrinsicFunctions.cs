@@ -238,11 +238,21 @@ internal static partial class WellKnownFunctions
                 : NotHandled;
 
         private static WellKnownFunctionResult TryInvokeGetPathOfFileAbove(object?[] args, ref readonly ExpanderContext context)
-            => args.Length == 2
-            && args.TryGetArg(0, out string? arg0)
-            && args.TryGetArg(1, out string? arg1)
-                ? Invoked(IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, context.FileSystem))
-                : NotHandled;
+            => args.Length switch
+            {
+                1 when args.TryGetArg(0, out string? arg0)
+                    => Invoked(
+                        IntrinsicFunctions.GetPathOfFileAbove(
+                            arg0,
+                            context.LocationDirectory,
+                            context.FileSystem)),
+
+                2 when args.TryGetArg(0, out string? arg0)
+                    && args.TryGetArg(1, out string? arg1)
+                    => Invoked(IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, context.FileSystem)),
+
+                _ => NotHandled,
+            };
 
         private static WellKnownFunctionResult TryInvokeGetProgramFiles32(object?[] args)
             => args.Length == 0

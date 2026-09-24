@@ -7,6 +7,7 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Experimental.BuildCheck;
+using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Shouldly;
 using Xunit;
@@ -293,7 +294,24 @@ public class WellKnownFunctions_IntrinsicFunctions_Tests(ITestOutputHelper outpu
             .ShouldBe(IntrinsicFunctions.GetMSBuildSDKsPath());
 
     [Fact]
-    public void IntrinsicFunctions_GetPathOfFileAbove()
+    public void IntrinsicFunctions_GetPathOfFileAbove_OneArgument()
+    {
+        using TestEnvironment env = TestEnvironment.Create(Output);
+        TransientTestFolder root = env.CreateFolder();
+        string child = Path.Combine(root.Path, "child");
+        Directory.CreateDirectory(child);
+        env.CreateFile(root, "marker.txt");
+
+        var context = new ExpanderContext(
+            location: new MockElementLocation(Path.Combine(child, "project.proj")));
+
+        StaticMember(nameof(IntrinsicFunctions.GetPathOfFileAbove))
+            .Invoke(["marker.txt"], in context)
+            .ShouldBe(IntrinsicFunctions.GetPathOfFileAbove("marker.txt", child, context.FileSystem));
+    }
+
+    [Fact]
+    public void IntrinsicFunctions_GetPathOfFileAbove_TwoArguments()
     {
         using TestEnvironment env = TestEnvironment.Create(Output);
         TransientTestFolder root = env.CreateFolder();

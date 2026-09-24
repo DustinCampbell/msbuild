@@ -10,6 +10,7 @@ using System.IO;
 #endif
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -444,20 +445,6 @@ internal partial class Expander<P, I>
                     args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
                 }
 
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    // Special case a few methods that take extra parameters that can't be passed in by the user
-                    if (_methodMethodName.Equals("GetPathOfFileAbove") && args.Length == 1)
-                    {
-                        // Append the IElementLocation as a parameter to GetPathOfFileAbove if the user only
-                        // specified the file name.  This is syntactic sugar so they don't have to always
-                        // include $(MSBuildThisFileDirectory) as a parameter.
-                        string startingDirectory = String.IsNullOrWhiteSpace(context.Location.File) ? String.Empty : Path.GetDirectoryName(context.Location.File);
-
-                        args = [args[0], startingDirectory];
-                    }
-                }
-
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
@@ -494,7 +481,7 @@ internal partial class Expander<P, I>
                     // we need to preserve the same behavior on exceptions as the actual binder
                     catch (Exception ex)
                     {
-                        string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                        string partiallyEvaluated = FormatEvaluatedFunctionInvocation(objectInstance, _methodMethodName, args, in context);
                         if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                         {
                             return partiallyEvaluated;
@@ -560,7 +547,7 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                string partiallyEvaluated = FormatEvaluatedFunctionInvocation(objectInstance, _methodMethodName, args, in context);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -582,7 +569,7 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                    string partiallyEvaluated = FormatEvaluatedFunctionInvocation(objectInstance, _methodMethodName, args, in context);
                     ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
                 }
 
@@ -1078,72 +1065,97 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Make an attempt to create a string showing what we were trying to execute when we failed.
-        /// This will show any intermediate evaluation which may help the user figure out what happened.
+        ///  Formats an attempted property-function invocation for diagnostic output using its evaluated receiver
+        ///  and arguments.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(string expression, object objectInstance, string name, object[] args)
+        /// <param name="objectInstance">The evaluated receiver, or <see langword="null"/> for a static invocation.</param>
+        /// <param name="name">The name of the invoked member.</param>
+        /// <param name="args">The evaluated arguments, or <see langword="null"/> if they are unavailable.</param>
+        /// <param name="context">The expansion context used to format implicit arguments.</param>
+        /// <returns>
+        ///  A diagnostic representation of the attempted invocation.
+        /// </returns>
+        private string FormatEvaluatedFunctionInvocation(
+            object objectInstance,
+            string name,
+            object[] args,
+            ref readonly ExpanderContext context)
         {
-            string parameters = String.Empty;
-            if (args != null)
+            var builder = StringBuilderCache.Acquire();
+
+            if (objectInstance is null)
             {
-                foreach (object arg in args)
-                {
-                    if (arg == null)
-                    {
-                        parameters += "null";
-                    }
-                    else
-                    {
-                        string argString = arg.ToString();
-                        if (arg is string && argString.Length == 0)
-                        {
-                            parameters += "''";
-                        }
-                        else
-                        {
-                            parameters += arg.ToString();
-                        }
-                    }
-
-                    parameters += ", ";
-                }
-
-                if (parameters.Length > 2)
-                {
-                    parameters = parameters.Substring(0, parameters.Length - 2);
-                }
-            }
-
-            if (objectInstance == null)
-            {
-                string typeName = _receiverType.FullName;
-
                 // We don't want to expose the real type name of our intrinsics
                 // so we'll replace it with "MSBuild"
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    typeName = "MSBuild";
-                }
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                {
-                    return $"[{typeName}]::{name}({parameters})";
-                }
-                else
-                {
-                    return $"[{typeName}]::{name}";
-                }
+                string typeName = _receiverType == typeof(IntrinsicFunctions)
+                    ? "MSBuild"
+                    : _receiverType.FullName;
+
+                builder.Append('[');
+                builder.Append(typeName);
+                builder.Append("]::");
+                builder.Append(name);
             }
             else
             {
-                string propertyValue = $"\"{objectInstance as string}\"";
+                builder.Append('"');
+                builder.Append(objectInstance as string);
+                builder.Append('"');
+                builder.Append('.');
+                builder.Append(name);
+            }
 
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            {
+                builder.Append('(');
+
+                if (args is not null)
                 {
-                    return $"{propertyValue}.{name}({parameters})";
+                    bool isFirst = true;
+
+                    foreach (object arg in args)
+                    {
+                        AppendMethodArgument(builder, arg, ref isFirst);
+                    }
+
+                    if (_receiverType == typeof(IntrinsicFunctions)
+                        && name.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase)
+                        && args.Length == 1)
+                    {
+                        AppendMethodArgument(
+                            builder,
+                            context.LocationDirectory,
+                            ref isFirst);
+                    }
+                }
+
+                builder.Append(')');
+            }
+
+            return StringBuilderCache.GetStringAndRelease(builder);
+
+            static void AppendMethodArgument(StringBuilder builder, object argument, ref bool isFirst)
+            {
+                if (isFirst)
+                {
+                    isFirst = false;
                 }
                 else
                 {
-                    return $"{propertyValue}.{name}";
+                    builder.Append(", ");
+                }
+
+                if (argument is null)
+                {
+                    builder.Append("null");
+                }
+                else if (argument is string { Length: 0 })
+                {
+                    builder.Append("''");
+                }
+                else
+                {
+                    builder.Append(argument);
                 }
             }
         }

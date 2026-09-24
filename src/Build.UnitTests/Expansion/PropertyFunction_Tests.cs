@@ -435,6 +435,19 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
             ExpandProperties(expression, Properties("SomeStuff", "This IS SOME STUff")));
 
     /// <summary>
+    ///  Verifies failed property-function expansion returns an invocation containing the evaluated receiver and arguments.
+    /// </summary>
+    /// <param name="expression">The property-function expression to expand.</param>
+    /// <param name="expected">The expected invocation.</param>
+    [Theory]
+    [InlineData("$([System.IO.Path]::Combine(null,''))", "[System.IO.Path]::Combine(null, '')")]
+    [InlineData("$(SomeStuff.Substring(-10))", "\"This IS SOME STUff\".Substring(-10)")]
+    [InlineData("$([MSBuild]::GetPathOfFileAbove('foo'))", "[MSBuild]::GetPathOfFileAbove(foo, '')")]
+    public void FailedPropertyFunctionReturnsEvaluatedInvocation(string expression, string expected)
+        => ExpandProperties(expression, Properties("SomeStuff", "This IS SOME STUff"), ExpanderOptions.LeavePropertiesUnexpandedOnError)
+            .ShouldBe(expected);
+
+    /// <summary>
     ///  Expand property function that calls a static method with quoted arguments.
     /// </summary>
     [Fact]
