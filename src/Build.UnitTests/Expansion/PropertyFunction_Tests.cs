@@ -2027,6 +2027,139 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         { "$(AString.Equals('HELLO', 'StringComparison.Ordinal'))", false, "hello" },
     };
 
+    [Theory]
+    [MemberData(nameof(StringMemberExpressions))]
+    public void StringMemberTests(string expression, string expected)
+        => ExpandProperties(
+            expression,
+            Properties(
+                ("X", "abcabc"),
+                ("Combining", "e\u0301"),
+                ("Delimited", "a,,b"),
+                ("Padded", " abc "),
+                ("Trimmed", "xxabcxx"),
+                ("Multiline", "a\r\nb")),
+            allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> StringMemberExpressions
+    {
+        get
+        {
+            const string InvariantCulture = "$([System.Globalization.CultureInfo]::GetCultureInfo(''))";
+            const string CharA = "$([System.Convert]::ToChar('a'))";
+            const string CharB = "$([System.Convert]::ToChar('b'))";
+#if NET
+            const string CharC = "$([System.Convert]::ToChar('c'))";
+#endif
+            const string CharX = "$([System.Convert]::ToChar('x'))";
+            const string CharArray = "$([System.String]::Copy('abc').ToCharArray())";
+
+            TheoryData<string, string> data = new()
+            {
+                { $"$([System.String]::new({CharA}, '3'))", "aaa" },
+                { "$([System.String]::Compare('a', 'b'))", "-1" },
+                { "$([System.String]::Compare('a', 'A', 'true'))", "0" },
+                { "$([System.String]::Compare('a', 'A', 'StringComparison.OrdinalIgnoreCase'))", "0" },
+                { $"$([System.String]::Compare('a', 'A', 'true', {InvariantCulture}))", "0" },
+                { $"$([System.String]::Compare('a', 'A', {InvariantCulture}, 'CompareOptions.IgnoreCase'))", "0" },
+                { "$([System.String]::Compare('xa', '1', 'yb', '1', '1'))", "-1" },
+                { "$([System.String]::Compare('xa', '1', 'yA', '1', '1', 'true'))", "0" },
+                { "$([System.String]::Compare('xa', '1', 'yA', '1', '1', 'StringComparison.OrdinalIgnoreCase'))", "0" },
+                { $"$([System.String]::Compare('xa', '1', 'yA', '1', '1', 'true', {InvariantCulture}))", "0" },
+                {
+                    $"$([System.String]::Compare('xa', '1', 'yA', '1', '1', {InvariantCulture}, 'CompareOptions.IgnoreCase'))",
+                    "0"
+                },
+                { "$([System.String]::CompareOrdinal('a', 'b'))", "-1" },
+                { "$([System.String]::CompareOrdinal('xa', '1', 'yb', '1', '1'))", "-1" },
+                { "$([System.String]::Concat('a'))", "a" },
+                { "$([System.String]::Concat('a', 'b'))", "ab" },
+                { "$([System.String]::Concat('a', 'b', 'c'))", "abc" },
+                { "$([System.String]::Concat('a', 'b', 'c', 'd'))", "abcd" },
+                { "$([System.String]::Concat($([System.String]::Copy('a,b').Split(','))))", "ab" },
+                { "$([System.String]::Copy('abc'))", "abc" },
+                { "$([System.String]::Format('{0}', 'a'))", "a" },
+                { "$([System.String]::Format('{0}{1}', 'a', 'b'))", "ab" },
+                { "$([System.String]::Format('{0}{1}{2}', 'a', 'b', 'c'))", "abc" },
+                { "$([System.String]::Format('{0}{1}{2}{3}', 'a', 'b', 'c', 'd'))", "abcd" },
+                { $"$([System.String]::Format({InvariantCulture}, '{{0}}', 'a'))", "a" },
+                { $"$([System.String]::Format({InvariantCulture}, '{{0}}{{1}}', 'a', 'b'))", "ab" },
+                { $"$([System.String]::Format({InvariantCulture}, '{{0}}{{1}}{{2}}', 'a', 'b', 'c'))", "abc" },
+                { "$([System.String]::Join(',', 'a', 'b'))", "a,b" },
+                { "$([System.String]::Join(',', 'a', $([System.Convert]::ToInt32('1'))))", "a,1" },
+                { "$([System.String]::Join('-', $([System.String]::Copy('a,b,c').Split(','))))", "a-b-c" },
+                { "$([System.String]::Intern('abc'))", "abc" },
+                { "$([System.String]::IsInterned('abc'))", "abc" },
+                { "$([System.String]::op_Equality('abc', 'abc'))", bool.TrueString },
+                { "$([System.String]::op_Inequality('abc', 'def'))", bool.TrueString },
+                { "$(X.Clone())", "abcabc" },
+                { "$(X.CompareTo('abd'))", "-1" },
+                { $"$(X.CopyTo('1', {CharArray}, '0', '2'))", string.Empty },
+                { $"$(X.EndsWith('BC', 'true', {InvariantCulture}))", bool.TrueString },
+                { "$(X.IndexOf('b', '1'))", "1" },
+                { "$(X.IndexOf('b', '0', '2'))", "1" },
+                { "$(X.IndexOf('B', '0', 'StringComparison.OrdinalIgnoreCase'))", "1" },
+                { "$(X.IndexOf('B', '0', '2', 'StringComparison.OrdinalIgnoreCase'))", "1" },
+                { $"$(X.IndexOf({CharB}))", "1" },
+                { $"$(X.IndexOf({CharB}, '2'))", "4" },
+                { $"$(X.IndexOf({CharB}, '2', '3'))", "4" },
+                { "$(X.IndexOfAny('bx'))", "1" },
+                { "$(X.IndexOfAny('bx', '2'))", "4" },
+                { "$(X.IndexOfAny('bx', '2', '2'))", "-1" },
+                { "$(X.IsNormalized())", bool.TrueString },
+                { "$(X.IsNormalized('NormalizationForm.FormC'))", bool.TrueString },
+                { "$(X.LastIndexOf('b', '5', '3'))", "4" },
+                { "$(X.LastIndexOf('B', '5', 'StringComparison.OrdinalIgnoreCase'))", "4" },
+                { "$(X.LastIndexOf('B', '5', '3', 'StringComparison.OrdinalIgnoreCase'))", "4" },
+                { $"$(X.LastIndexOf({CharB}))", "4" },
+                { $"$(X.LastIndexOf({CharB}, '3'))", "1" },
+                { $"$(X.LastIndexOf({CharB}, '5', '3'))", "4" },
+                { "$(X.LastIndexOfAny('bx', '3'))", "1" },
+                { "$(X.LastIndexOfAny('bx', '5', '3'))", "4" },
+                { "$(Combining.Normalize())", "\u00E9" },
+                { "$(Combining.Normalize('NormalizationForm.FormD'))", "e\u0301" },
+                { "$(X.Remove('2'))", "ab" },
+                { "$(X.Remove('1', '2'))", "aabc" },
+                { $"$(X.Replace({CharB}, {CharX}))", "axcaxc" },
+                { "$(Delimited.Split()[0])", "a,,b" },
+                { "$(Delimited.Split(',', '2')[1])", ",b" },
+                { "$(Delimited.Split(',', 'StringSplitOptions.RemoveEmptyEntries')[1])", "b" },
+                { "$(Delimited.Split(',', '2', 'StringSplitOptions.RemoveEmptyEntries')[1])", "b" },
+                { $"$(X.StartsWith('AB', 'true', {InvariantCulture}))", bool.TrueString },
+                { $"$(X.ToLower({InvariantCulture}))", "abcabc" },
+                { $"$(X.ToUpper({InvariantCulture}))", "ABCABC" },
+                { $"$(X.ToString({InvariantCulture}))", "abcabc" },
+                { "$(Padded.TrimStart())", "abc " },
+                { "$(Padded.TrimEnd())", " abc" },
+                { $"$(Trimmed.Trim({CharX}))", "abc" },
+                { $"$(Trimmed.TrimStart({CharX}))", "abcxx" },
+                { $"$(Trimmed.TrimEnd({CharX}))", "xxabc" },
+            };
+
+#if NET
+            data.Add($"$(X.Contains({CharB}))", bool.TrueString);
+            data.Add("$(X.Contains('B', 'StringComparison.OrdinalIgnoreCase'))", bool.TrueString);
+            data.Add($"$(X.Contains($([System.Convert]::ToChar('B')), 'StringComparison.OrdinalIgnoreCase'))", bool.TrueString);
+            data.Add($"$(X.EndsWith({CharC}))", bool.TrueString);
+            data.Add($"$(X.IndexOf($([System.Convert]::ToChar('B')), 'StringComparison.OrdinalIgnoreCase'))", "1");
+            data.Add(
+                "$(X.GetHashCode('StringComparison.Ordinal'))",
+                "abcabc".GetHashCode(StringComparison.Ordinal).ToString(CultureInfo.InvariantCulture));
+            data.Add("$(X.Replace('B', 'x', 'StringComparison.OrdinalIgnoreCase'))", "axcaxc");
+            data.Add($"$(X.Replace('B', 'x', 'true', {InvariantCulture}))", "axcaxc");
+            data.Add("$(Delimited.Split(',', 'StringSplitOptions.RemoveEmptyEntries')[1])", "b");
+            data.Add("$(Delimited.Split(',', '2', 'StringSplitOptions.RemoveEmptyEntries')[1])", "b");
+            data.Add($"$(Delimited.Split({CharC}, 'StringSplitOptions.RemoveEmptyEntries')[0])", "a,,b");
+            data.Add($"$(Delimited.Split({CharC}, '2', 'StringSplitOptions.RemoveEmptyEntries')[0])", "a,,b");
+            data.Add($"$(X.StartsWith({CharA}))", bool.TrueString);
+            data.Add("$(Multiline.ReplaceLineEndings('|'))", "a|b");
+            data.Add("$(Multiline.ReplaceLineEndings())", $"a{Environment.NewLine}b");
+#endif
+
+            return data;
+        }
+    }
+
     /// <summary>
     ///  Expand property function that calls a method with an enum parameter.
     /// </summary>

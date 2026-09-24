@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using Shouldly;
 using Xunit;
 
@@ -27,8 +30,12 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
         => Constructor.NotHandled([1]);
 
     [Fact]
-    public void Constructor_CharInt32_NotHandled()
-        => Constructor.NotHandled(["a", "3"]);
+    public void Constructor_Overloads()
+    {
+        Constructor.Invoke([new[] { 'a', 'b', 'c' }]).ShouldBe("abc");
+        Constructor.Invoke([new[] { 'a', 'b', 'c' }, "1", "2"]).ShouldBe("bc");
+        Constructor.Invoke(["a", "3"]).ShouldBe("aaa");
+    }
 
     [Theory]
     [InlineData("abc", "b", true)]
@@ -43,15 +50,95 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
         => InstanceMember(nameof(string.Contains))
             .NotHandled("abc");
 
+#if NET
     [Fact]
-    public void String_Compare_NotHandled()
-        => StaticMember(nameof(string.Compare))
-            .NotHandled(["a", "b"]);
+    public void String_Contains_ModernOverloads()
+    {
+        InstanceMember(nameof(string.Contains)).Invoke("abc", ['b']).ShouldBe(true);
+        InstanceMember(nameof(string.Contains)).Invoke("abc", ["B", StringComparison.OrdinalIgnoreCase]).ShouldBe(true);
+        InstanceMember(nameof(string.Contains)).Invoke("abc", ['B', StringComparison.OrdinalIgnoreCase]).ShouldBe(true);
+    }
+#endif
 
     [Fact]
-    public void String_Concat_NotHandled()
-        => StaticMember(nameof(string.Concat))
-            .NotHandled(["a", "b"]);
+    public void String_Compare_Overloads()
+    {
+        StaticMember(nameof(string.Compare)).Invoke(["a", "b"]).ShouldBeOfType<int>().ShouldBeLessThan(0);
+        StaticMember(nameof(string.Compare)).Invoke(["a", "A", "true"]).ShouldBe(0);
+        StaticMember(nameof(string.Compare)).Invoke(["a", "A", StringComparison.OrdinalIgnoreCase]).ShouldBe(0);
+        StaticMember(nameof(string.Compare)).Invoke(["a", "A", true, CultureInfo.InvariantCulture]).ShouldBe(0);
+        StaticMember(nameof(string.Compare)).Invoke(["a", "A", CultureInfo.InvariantCulture, CompareOptions.IgnoreCase]).ShouldBe(0);
+        StaticMember(nameof(string.Compare)).Invoke(["xa", "1", "yb", "1", "1"]).ShouldBeOfType<int>().ShouldBeLessThan(0);
+        StaticMember(nameof(string.Compare)).Invoke(["xa", "1", "yA", "1", "1", "true"]).ShouldBe(0);
+        StaticMember(nameof(string.Compare)).Invoke(["xa", "1", "yA", "1", "1", StringComparison.OrdinalIgnoreCase]).ShouldBe(0);
+        StaticMember(nameof(string.Compare)).Invoke(["xa", "1", "yA", "1", "1", true, CultureInfo.InvariantCulture]).ShouldBe(0);
+        StaticMember(nameof(string.Compare))
+            .Invoke(["xa", "1", "yA", "1", "1", CultureInfo.InvariantCulture, CompareOptions.IgnoreCase])
+            .ShouldBe(0);
+    }
+
+    [Fact]
+    public void String_Concat_Overloads()
+    {
+        StaticMember(nameof(string.Concat)).Invoke(["a"]).ShouldBe("a");
+        StaticMember(nameof(string.Concat)).Invoke(["a", "b"]).ShouldBe("ab");
+        StaticMember(nameof(string.Concat)).Invoke(["a", 1]).ShouldBe("a1");
+        StaticMember(nameof(string.Concat)).Invoke(["a", "b", "c"]).ShouldBe("abc");
+        StaticMember(nameof(string.Concat)).Invoke(["a", 1, true]).ShouldBe("a1True");
+        StaticMember(nameof(string.Concat)).Invoke(["a", "b", "c", "d"]).ShouldBe("abcd");
+        StaticMember(nameof(string.Concat)).Invoke([new[] { "a", "b" }]).ShouldBe("ab");
+        StaticMember(nameof(string.Concat)).Invoke([new object[] { "a", 1 }]).ShouldBe("a1");
+        StaticMember(nameof(string.Concat)).Invoke([new List<string> { "a", "b" }]).ShouldBe("ab");
+    }
+
+    [Fact]
+    public void String_CompareOrdinal_Overloads()
+    {
+        StaticMember(nameof(string.CompareOrdinal)).Invoke(["a", "b"]).ShouldBeOfType<int>().ShouldBeLessThan(0);
+        StaticMember(nameof(string.CompareOrdinal)).Invoke(["xa", "1", "yb", "1", "1"]).ShouldBeOfType<int>().ShouldBeLessThan(0);
+    }
+
+    [Fact]
+    public void String_Format_Overloads()
+    {
+        StaticMember(nameof(string.Format)).Invoke(["{0}", 1]).ShouldBe("1");
+        StaticMember(nameof(string.Format)).Invoke(["{0}{1}", 1, 2]).ShouldBe("12");
+        StaticMember(nameof(string.Format)).Invoke(["{0}{1}{2}", 1, 2, 3]).ShouldBe("123");
+        StaticMember(nameof(string.Format)).Invoke(["{0}{1}{2}{3}", 1, 2, 3, 4]).ShouldBe("1234");
+        StaticMember(nameof(string.Format)).Invoke(["{0}{1}", new object[] { 1, 2 }]).ShouldBe("12");
+        StaticMember(nameof(string.Format)).Invoke([CultureInfo.InvariantCulture, "{0:F1}", 1.24]).ShouldBe("1.2");
+        StaticMember(nameof(string.Format)).Invoke([CultureInfo.InvariantCulture, "{0}{1}", 1, 2]).ShouldBe("12");
+        StaticMember(nameof(string.Format)).Invoke([CultureInfo.InvariantCulture, "{0}{1}{2}", 1, 2, 3]).ShouldBe("123");
+        StaticMember(nameof(string.Format)).Invoke([CultureInfo.InvariantCulture, "{0}{1}", new object[] { 1, 2 }]).ShouldBe("12");
+    }
+
+    [Fact]
+    public void String_Join_Overloads()
+    {
+        StaticMember(nameof(string.Join)).Invoke([",", new[] { "a", "b" }]).ShouldBe("a,b");
+        StaticMember(nameof(string.Join)).Invoke([",", new[] { "a", "b", "c" }, 1, 2]).ShouldBe("b,c");
+        StaticMember(nameof(string.Join)).Invoke([",", new object[] { "a", 1 }]).ShouldBe("a,1");
+        StaticMember(nameof(string.Join)).Invoke([",", new List<string> { "a", "b" }]).ShouldBe("a,b");
+        StaticMember(nameof(string.Join)).Invoke([",", "a", "b"]).ShouldBe("a,b");
+        StaticMember(nameof(string.Join)).Invoke([",", "a", 1]).ShouldBe("a,1");
+#if NET
+        StaticMember(nameof(string.Join)).Invoke([',', new[] { "a", "b" }]).ShouldBe("a,b");
+        StaticMember(nameof(string.Join)).Invoke([',', new[] { "a", "b", "c" }, 1, 2]).ShouldBe("b,c");
+        StaticMember(nameof(string.Join)).Invoke([',', new object[] { "a", 1 }]).ShouldBe("a,1");
+        StaticMember(nameof(string.Join)).Invoke([',', "a", 1]).ShouldBe("a,1");
+#endif
+    }
+
+    [Fact]
+    public void String_InterningAndOperators()
+    {
+        string value = new(['a', 'b', 'c']);
+
+        StaticMember(nameof(string.Intern)).Invoke([value]).ShouldBeSameAs(string.Intern(value));
+        StaticMember(nameof(string.IsInterned)).Invoke([value]).ShouldBe(string.IsInterned(value));
+        StaticMember("op_Equality").Invoke(["abc", "abc"]).ShouldBe(true);
+        StaticMember("op_Inequality").Invoke(["abc", "def"]).ShouldBe(true);
+    }
 
     [Fact]
     public void String_Copy_String()
@@ -89,6 +176,20 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
     public void String_EndsWith_NoArguments_NotHandled()
         => InstanceMember(nameof(string.EndsWith))
             .NotHandled("abc");
+
+    [Fact]
+    public void String_EndsWith_CultureOverload()
+        => InstanceMember(nameof(string.EndsWith))
+            .Invoke("abc", ["BC", true, CultureInfo.InvariantCulture])
+            .ShouldBe(true);
+
+#if NET
+    [Fact]
+    public void String_EndsWith_Char()
+        => InstanceMember(nameof(string.EndsWith))
+            .Invoke("abc", ['c'])
+            .ShouldBe(true);
+#endif
 
     [Theory]
     [InlineData("abc", "abc", true)]
@@ -140,6 +241,14 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .Invoke("abc", ["xb"])
             .ShouldBe(1);
 
+    [Fact]
+    public void String_IndexOfAny_Overloads()
+    {
+        InstanceMember(nameof(string.IndexOfAny)).Invoke("abcabc", [new[] { 'b', 'x' }]).ShouldBe(1);
+        InstanceMember(nameof(string.IndexOfAny)).Invoke("abcabc", ["bx", 2]).ShouldBe(4);
+        InstanceMember(nameof(string.IndexOfAny)).Invoke("abcabc", ["bx", 2, 2]).ShouldBe(-1);
+    }
+
     [Theory]
     [InlineData("", true)]
     [InlineData("abc", false)]
@@ -151,7 +260,8 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
     [Fact]
     public void String_IsNullOrEmpty_Null()
         => StaticMember(nameof(string.IsNullOrEmpty))
-            .NotHandled([null]);
+            .Invoke([null])
+            .ShouldBe(true);
 
     [Fact]
     public void String_IsNullOrEmpty_NoArguments_NotHandled()
@@ -169,7 +279,8 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
     [Fact]
     public void String_IsNullOrWhiteSpace_Null()
         => StaticMember(nameof(string.IsNullOrWhiteSpace))
-            .NotHandled([null]);
+            .Invoke([null])
+            .ShouldBe(true);
 
     [Fact]
     public void String_IsNullOrWhiteSpace_NoArguments_NotHandled()
@@ -199,15 +310,34 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .ShouldBe(3);
 
     [Fact]
-    public void String_LastIndexOf_StringInt32Int32_NotHandled()
+    public void String_LastIndexOf_StringInt32Int32()
         => InstanceMember(nameof(string.LastIndexOf))
-            .NotHandled("abcb", ["b", 3, 2]);
+            .Invoke("abcb", ["b", 3, 2])
+            .ShouldBe(3);
 
     [Fact]
     public void String_LastIndexOfAny_String()
         => InstanceMember(nameof(string.LastIndexOfAny))
             .Invoke("abcb", ["xb"])
             .ShouldBe(3);
+
+    [Fact]
+    public void String_LastIndexOf_AdditionalOverloads()
+    {
+        InstanceMember(nameof(string.LastIndexOf)).Invoke("abcabc", ['b']).ShouldBe(4);
+        InstanceMember(nameof(string.LastIndexOf)).Invoke("abcabc", ['b', 3]).ShouldBe(1);
+        InstanceMember(nameof(string.LastIndexOf)).Invoke("abcabc", ['b', 5, 3]).ShouldBe(4);
+        InstanceMember(nameof(string.LastIndexOf)).Invoke("abcabc", ["B", 5, StringComparison.OrdinalIgnoreCase]).ShouldBe(4);
+        InstanceMember(nameof(string.LastIndexOf)).Invoke("abcabc", ["B", 5, 3, StringComparison.OrdinalIgnoreCase]).ShouldBe(4);
+    }
+
+    [Fact]
+    public void String_LastIndexOfAny_Overloads()
+    {
+        InstanceMember(nameof(string.LastIndexOfAny)).Invoke("abcabc", [new[] { 'b', 'x' }]).ShouldBe(4);
+        InstanceMember(nameof(string.LastIndexOfAny)).Invoke("abcabc", ["bx", 3]).ShouldBe(1);
+        InstanceMember(nameof(string.LastIndexOfAny)).Invoke("abcabc", ["bx", 5, 3]).ShouldBe(4);
+    }
 
     [Fact]
     public void String_Length()
@@ -271,9 +401,26 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .ShouldBe("axc");
 
     [Fact]
-    public void String_Replace_CharChar_NotHandled()
+    public void String_Replace_CharChar()
         => InstanceMember(nameof(string.Replace))
-            .NotHandled("abc", ['b', 'x']);
+            .Invoke("abc", ['b', 'x'])
+            .ShouldBe("axc");
+
+#if NET
+    [Fact]
+    public void String_Replace_ModernOverloads()
+    {
+        InstanceMember(nameof(string.Replace)).Invoke("aBc", ["b", "x", StringComparison.OrdinalIgnoreCase]).ShouldBe("axc");
+        InstanceMember(nameof(string.Replace)).Invoke("aBc", ["b", "x", true, CultureInfo.InvariantCulture]).ShouldBe("axc");
+    }
+#endif
+
+    [Fact]
+    public void String_Remove_Overloads()
+    {
+        InstanceMember(nameof(string.Remove)).Invoke("abcd", [2]).ShouldBe("ab");
+        InstanceMember(nameof(string.Remove)).Invoke("abcd", [1, 2]).ShouldBe("ad");
+    }
 
     [Theory]
     [InlineData(";")]
@@ -285,9 +432,52 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .ShouldBe(["a", "b"]);
 
     [Fact]
-    public void String_Split_MultipleCharacters_NotHandled()
+    public void String_Split_MultipleCharacters()
         => InstanceMember(nameof(string.Split))
-            .NotHandled("a::b", ["::"]);
+            .Invoke("a::b", ["::"])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "", "b"]);
+
+    [Fact]
+    public void String_Split_ArrayOverloads()
+    {
+        char[] separators = [',', ';'];
+        string[] stringSeparators = [",", ";"];
+
+        InstanceMember(nameof(string.Split)).Invoke("a b").ShouldBeOfType<string[]>().ShouldBe(["a", "b"]);
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [separators, 2]).ShouldBeOfType<string[]>().ShouldBe(["a", ",b"]);
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [separators, StringSplitOptions.RemoveEmptyEntries])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "b"]);
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [separators, 2, StringSplitOptions.RemoveEmptyEntries])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "b"]);
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [stringSeparators, StringSplitOptions.RemoveEmptyEntries])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "b"]);
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [stringSeparators, 2, StringSplitOptions.RemoveEmptyEntries])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "b"]);
+    }
+
+#if NET
+    [Fact]
+    public void String_Split_ModernOverloads()
+    {
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [",", StringSplitOptions.RemoveEmptyEntries])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "b"]);
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [",", 2, StringSplitOptions.RemoveEmptyEntries])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "b"]);
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [',', StringSplitOptions.RemoveEmptyEntries])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "b"]);
+        InstanceMember(nameof(string.Split)).Invoke("a,,b", [',', 2, StringSplitOptions.RemoveEmptyEntries])
+            .ShouldBeOfType<string[]>()
+            .ShouldBe(["a", "b"]);
+    }
+#endif
 
     [Theory]
     [InlineData("abc", "ab", true)]
@@ -298,9 +488,24 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .ShouldBe(expected);
 
     [Fact]
-    public void String_StartsWith_StringComparison_NotHandled()
+    public void String_StartsWith_StringComparison()
         => InstanceMember(nameof(string.StartsWith))
-            .NotHandled("abc", ["AB", nameof(StringComparison.OrdinalIgnoreCase)]);
+            .Invoke("abc", ["AB", nameof(StringComparison.OrdinalIgnoreCase)])
+            .ShouldBe(true);
+
+    [Fact]
+    public void String_StartsWith_CultureOverload()
+        => InstanceMember(nameof(string.StartsWith))
+            .Invoke("abc", ["AB", true, CultureInfo.InvariantCulture])
+            .ShouldBe(true);
+
+#if NET
+    [Fact]
+    public void String_StartsWith_Char()
+        => InstanceMember(nameof(string.StartsWith))
+            .Invoke("abc", ['a'])
+            .ShouldBe(true);
+#endif
 
     [Fact]
     public void String_Substring_Int32()
@@ -326,6 +531,13 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .ShouldBe("abc".ToLower());
 
     [Fact]
+    public void String_CultureAwareCasing()
+    {
+        InstanceMember(nameof(string.ToLower)).Invoke("ABC", [CultureInfo.InvariantCulture]).ShouldBe("abc");
+        InstanceMember(nameof(string.ToUpper)).Invoke("abc", [CultureInfo.InvariantCulture]).ShouldBe("ABC");
+    }
+
+    [Fact]
     public void String_ToLowerInvariant()
         => InstanceMember(nameof(string.ToLowerInvariant))
             .Invoke("ABC")
@@ -344,15 +556,64 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .ShouldBe("ABC");
 
     [Fact]
-    public void String_ToUpper_NotHandled()
+    public void String_ToUpper()
         => InstanceMember(nameof(string.ToUpper))
-            .NotHandled("abc");
+            .Invoke("abc")
+            .ShouldBe("ABC");
 
     [Fact]
     public void String_Trim()
         => InstanceMember(nameof(string.Trim))
             .Invoke(" abc ")
             .ShouldBe("abc");
+
+    [Fact]
+    public void String_UtilityMembers()
+    {
+        InstanceMember(nameof(string.Clone)).Invoke("abc").ShouldBe("abc");
+        InstanceMember(nameof(string.GetHashCode)).Invoke("abc").ShouldBe("abc".GetHashCode());
+#if NET
+        InstanceMember(nameof(string.GetHashCode)).Invoke("abc", [StringComparison.Ordinal]).ShouldBe("abc".GetHashCode(StringComparison.Ordinal));
+#endif
+        InstanceMember(nameof(string.IsNormalized)).Invoke("abc").ShouldBe(true);
+        InstanceMember(nameof(string.IsNormalized)).Invoke("abc", [NormalizationForm.FormC]).ShouldBe(true);
+        InstanceMember(nameof(string.Normalize)).Invoke("e\u0301").ShouldBe("\u00E9");
+        InstanceMember(nameof(string.Normalize)).Invoke("e\u0301", [NormalizationForm.FormD]).ShouldBe("e\u0301");
+        InstanceMember(nameof(string.GetEnumerator)).Invoke("abc").ShouldBeOfType<CharEnumerator>();
+        InstanceMember(nameof(string.ToString)).Invoke("abc", [CultureInfo.InvariantCulture]).ShouldBe("abc");
+    }
+
+    [Fact]
+    public void String_CopyTo()
+    {
+        char[] destination = ['.', '.', '.', '.'];
+
+        InstanceMember(nameof(string.CopyTo)).Invoke("abc", [1, destination, 1, 2]).ShouldBeNull();
+
+        destination.ShouldBe(['.', 'b', 'c', '.']);
+    }
+
+#if NET
+    [Fact]
+    public void String_ReplaceLineEndings_Overloads()
+    {
+        InstanceMember("ReplaceLineEndings").Invoke("a\r\nb").ShouldBe($"a{Environment.NewLine}b");
+        InstanceMember("ReplaceLineEndings").Invoke("a\r\nb", ["|"]).ShouldBe("a|b");
+    }
+#endif
+
+    [Fact]
+    public void String_Trim_Overloads()
+    {
+        InstanceMember(nameof(string.Trim)).Invoke("xxabcxx", [new[] { 'x' }]).ShouldBe("abc");
+        InstanceMember(nameof(string.TrimStart)).Invoke(" abc ").ShouldBe("abc ");
+        InstanceMember(nameof(string.TrimStart)).Invoke("xxabc", [new[] { 'x' }]).ShouldBe("abc");
+        InstanceMember(nameof(string.TrimEnd)).Invoke(" abc ").ShouldBe(" abc");
+        InstanceMember(nameof(string.TrimEnd)).Invoke("abcxx", [new[] { 'x' }]).ShouldBe("abc");
+        InstanceMember(nameof(string.Trim)).Invoke("xxabcxx", ['x']).ShouldBe("abc");
+        InstanceMember(nameof(string.TrimStart)).Invoke("xxabc", ['x']).ShouldBe("abc");
+        InstanceMember(nameof(string.TrimEnd)).Invoke("abcxx", ['x']).ShouldBe("abc");
+    }
 
     [Fact]
     public void String_AdditionalMembers()
@@ -382,15 +643,27 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void String_IndexOf_CharOverloads()
+    {
+        InstanceMember(nameof(string.IndexOf)).Invoke("abcabc", ['b']).ShouldBe(1);
+        InstanceMember(nameof(string.IndexOf)).Invoke("abcabc", ['b', 2]).ShouldBe(4);
+        InstanceMember(nameof(string.IndexOf)).Invoke("abcabc", ['b', 2, 3]).ShouldBe(4);
+#if NET
+        InstanceMember(nameof(string.IndexOf)).Invoke("abcabc", ['B', StringComparison.OrdinalIgnoreCase]).ShouldBe(1);
+#endif
+    }
+
+    [Fact]
     public void String_TrimEnd_String()
         => InstanceMember(nameof(string.TrimEnd))
             .Invoke("abcxx", ["x"])
             .ShouldBe("abc");
 
     [Fact]
-    public void String_TrimEnd_EmptyString_NotHandled()
+    public void String_TrimEnd_EmptyString()
         => InstanceMember(nameof(string.TrimEnd))
-            .NotHandled("abc", [""]);
+            .Invoke(" abc ", [""])
+            .ShouldBe(" abc");
 
     [Fact]
     public void String_TrimStart_String()
@@ -399,7 +672,8 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .ShouldBe("abc");
 
     [Fact]
-    public void String_TrimStart_EmptyString_NotHandled()
+    public void String_TrimStart_EmptyString()
         => InstanceMember(nameof(string.TrimStart))
-            .NotHandled("abc", [""]);
+            .Invoke(" abc ", [""])
+            .ShouldBe("abc ");
 }
