@@ -9,6 +9,7 @@ using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
+using FrameworkNameVersioning = System.Runtime.Versioning.FrameworkName;
 using ReflectionProcessorArchitecture = System.Reflection.ProcessorArchitecture;
 
 namespace Microsoft.Build.UnitTests.Expansion;
@@ -116,6 +117,74 @@ public sealed class WellKnownFunctions_ToolLocationHelper_Tests(ITestOutputHelpe
             nameof(ToolLocationHelper.FindRootFolderWhereAllFilesExist),
             [rootPath, Path.GetFileName(requiredFile.Path)],
             rootPath);
+    }
+
+    [Fact]
+    public void FrameworkMethods()
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        string rootPath = env.CreateFolder().Path;
+        var frameworkName = new FrameworkNameVersioning("Missing", new Version(1, 0));
+
+        TargetDotNetFrameworkVersion frameworkVersion = TargetDotNetFrameworkVersion.Version40;
+        VisualStudioVersion visualStudioVersion = VisualStudioVersion.Version100;
+        DotNetFrameworkArchitecture architecture = DotNetFrameworkArchitecture.Current;
+
+        AssertInvoked(nameof(ToolLocationHelper.GetDotNetFrameworkVersionFolderPrefix), [frameworkVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetDotNetFrameworkRootRegistryKey), [frameworkVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetDotNetFrameworkSdkRootRegistryKey), [frameworkVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetDotNetFrameworkSdkRootRegistryKey), [frameworkVersion, visualStudioVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetDotNetFrameworkSdkInstallKeyValue), [frameworkVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetDotNetFrameworkSdkInstallKeyValue), [frameworkVersion, visualStudioVersion]);
+
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFramework), [frameworkVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFramework), [frameworkVersion, architecture]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkSdk), []);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkSdk), [frameworkVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkSdk), [frameworkVersion, visualStudioVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkReferenceAssemblies), [frameworkVersion]);
+
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToStandardLibraries), ["Missing", "1.0", ""]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToStandardLibraries), ["Missing", "1.0", "", "AnyCPU"]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToStandardLibraries), ["Missing", "1.0", "", "AnyCPU", rootPath]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToStandardLibraries), ["Missing", "1.0", "", "AnyCPU", rootPath, rootPath]);
+
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToReferenceAssemblies), ["Missing", "1.0", ""]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToReferenceAssemblies), ["Missing", "1.0", "", rootPath]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToReferenceAssemblies), ["Missing", "1.0", "", rootPath, rootPath]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToReferenceAssemblies), [frameworkName]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToReferenceAssemblies), [rootPath, frameworkName]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToReferenceAssemblies), [rootPath, rootPath, frameworkName]);
+        AssertInvoked(nameof(ToolLocationHelper.GetDisplayNameForTargetFrameworkDirectory), [rootPath, frameworkName]);
+
+        AssertInvoked(nameof(ToolLocationHelper.ClearSDKStaticCache), []);
+
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkSdkFile), ["Missing.exe"]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkSdkFile), ["Missing.exe", frameworkVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkSdkFile), ["Missing.exe", frameworkVersion, visualStudioVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkSdkFile), ["Missing.exe", frameworkVersion, architecture]);
+        AssertInvoked(
+            nameof(ToolLocationHelper.GetPathToDotNetFrameworkSdkFile),
+            ["Missing.exe", frameworkVersion, visualStudioVersion, architecture]);
+
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToWindowsSdk), [TargetDotNetFrameworkVersion.Version45, VisualStudioVersion.Version110]);
+        AssertInvoked(
+            nameof(ToolLocationHelper.GetPathToWindowsSdkFile),
+            ["Missing.exe", TargetDotNetFrameworkVersion.Version45, VisualStudioVersion.Version110]);
+        AssertInvoked(
+            nameof(ToolLocationHelper.GetPathToWindowsSdkFile),
+            ["Missing.exe", TargetDotNetFrameworkVersion.Version45, VisualStudioVersion.Version110, architecture]);
+
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToBuildTools), ["Missing"]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToBuildTools), ["Missing", architecture]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToBuildToolsFile), ["Missing.exe", "Missing"]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToBuildToolsFile), ["Missing.exe", "Missing", architecture]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkFile), ["Missing.dll", frameworkVersion]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToDotNetFrameworkFile), ["Missing.dll", frameworkVersion, architecture]);
+        AssertInvoked(nameof(ToolLocationHelper.GetPathToSystemFile), ["Missing.dll"]);
+        AssertInvoked(nameof(ToolLocationHelper.GetSupportedTargetFrameworks), []);
+        AssertInvoked(nameof(ToolLocationHelper.HighestVersionOfTargetFrameworkIdentifier), [rootPath, "Missing"]);
+        AssertInvoked(nameof(ToolLocationHelper.GetProgramFilesReferenceAssemblyRoot), []);
     }
 
     private static void AssertInvoked(string methodName, object?[] arguments)

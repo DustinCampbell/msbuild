@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Build.Framework;
+using FrameworkNameVersioning = System.Runtime.Versioning.FrameworkName;
 using ReflectionProcessorArchitecture = System.Reflection.ProcessorArchitecture;
 
 namespace Microsoft.Build.Utilities;
@@ -38,6 +39,11 @@ public static partial class ToolLocationHelper
         }
 
         if (TryInvokeSdkPropertyFunction(methodName, arguments, out result))
+        {
+            return true;
+        }
+
+        if (TryInvokeFrameworkPropertyFunction(methodName, arguments, out result))
         {
             return true;
         }
@@ -390,6 +396,289 @@ public static partial class ToolLocationHelper
 
         result = null;
         return false;
+    }
+
+#pragma warning disable CS0618 // Property functions preserve access to the shipped obsolete ToolLocationHelper members.
+    private static bool TryInvokeFrameworkPropertyFunction(string methodName, object?[] arguments, out object? result)
+    {
+        if (methodName.Equals(nameof(GetDotNetFrameworkVersionFolderPrefix), StringComparison.OrdinalIgnoreCase) &&
+            arguments is [var folderPrefixVersionValue] &&
+            TryConvertToEnum(folderPrefixVersionValue, out TargetDotNetFrameworkVersion versionFolderVersion))
+        {
+            return Invoked(GetDotNetFrameworkVersionFolderPrefix(versionFolderVersion), out result);
+        }
+
+        if (methodName.Equals(nameof(GetDotNetFrameworkRootRegistryKey), StringComparison.OrdinalIgnoreCase) &&
+            arguments is [var rootRegistryVersionValue] &&
+            TryConvertToEnum(rootRegistryVersionValue, out TargetDotNetFrameworkVersion rootRegistryVersion))
+        {
+            return Invoked(GetDotNetFrameworkRootRegistryKey(rootRegistryVersion), out result);
+        }
+
+        if (methodName.Equals(nameof(GetDotNetFrameworkSdkRootRegistryKey), StringComparison.OrdinalIgnoreCase))
+        {
+            return TryInvokeFrameworkVersionAndVisualStudioVersion(
+                arguments,
+                GetDotNetFrameworkSdkRootRegistryKey,
+                GetDotNetFrameworkSdkRootRegistryKey,
+                out result);
+        }
+
+        if (methodName.Equals(nameof(GetDotNetFrameworkSdkInstallKeyValue), StringComparison.OrdinalIgnoreCase))
+        {
+            return TryInvokeFrameworkVersionAndVisualStudioVersion(
+                arguments,
+                GetDotNetFrameworkSdkInstallKeyValue,
+                GetDotNetFrameworkSdkInstallKeyValue,
+                out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToDotNetFramework), StringComparison.OrdinalIgnoreCase))
+        {
+            switch (arguments)
+            {
+                case [var versionValue] when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version):
+                    return Invoked(GetPathToDotNetFramework(version), out result);
+
+                case [var versionValue, var architectureValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version) &&
+                         TryConvertToEnum(architectureValue, out DotNetFrameworkArchitecture architecture):
+                    return Invoked(GetPathToDotNetFramework(version, architecture), out result);
+            }
+
+            return NotInvoked(out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToDotNetFrameworkSdk), StringComparison.OrdinalIgnoreCase))
+        {
+            switch (arguments)
+            {
+                case []:
+                    return Invoked(GetPathToDotNetFrameworkSdk(), out result);
+
+                case [var versionValue] when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version):
+                    return Invoked(GetPathToDotNetFrameworkSdk(version), out result);
+
+                case [var versionValue, var visualStudioVersionValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version) &&
+                         TryConvertToEnum(visualStudioVersionValue, out VisualStudioVersion visualStudioVersion):
+                    return Invoked(GetPathToDotNetFrameworkSdk(version, visualStudioVersion), out result);
+            }
+
+            return NotInvoked(out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToDotNetFrameworkReferenceAssemblies), StringComparison.OrdinalIgnoreCase) &&
+            arguments is [var referenceAssemblyVersionValue] &&
+            TryConvertToEnum(referenceAssemblyVersionValue, out TargetDotNetFrameworkVersion referenceAssemblyVersion))
+        {
+            return Invoked(GetPathToDotNetFrameworkReferenceAssemblies(referenceAssemblyVersion), out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToStandardLibraries), StringComparison.OrdinalIgnoreCase))
+        {
+            return arguments switch
+            {
+                [string identifier, string version, string profile]
+                    => Invoked(GetPathToStandardLibraries(identifier, version, profile), out result),
+                [string identifier, string version, string profile, string platform]
+                    => Invoked(GetPathToStandardLibraries(identifier, version, profile, platform), out result),
+                [string identifier, string version, string profile, string platform, string root]
+                    => Invoked(GetPathToStandardLibraries(identifier, version, profile, platform, root), out result),
+                [string identifier, string version, string profile, string platform, string root, string fallbackPaths]
+                    => Invoked(GetPathToStandardLibraries(identifier, version, profile, platform, root, fallbackPaths), out result),
+                _ => NotInvoked(out result),
+            };
+        }
+
+        if (methodName.Equals(nameof(GetPathToReferenceAssemblies), StringComparison.OrdinalIgnoreCase))
+        {
+            return arguments switch
+            {
+                [string identifier, string version, string profile]
+                    => Invoked(GetPathToReferenceAssemblies(identifier, version, profile), out result),
+                [string identifier, string version, string profile, string root]
+                    => Invoked(GetPathToReferenceAssemblies(identifier, version, profile, root), out result),
+                [string identifier, string version, string profile, string root, string fallbackPaths]
+                    => Invoked(GetPathToReferenceAssemblies(identifier, version, profile, root, fallbackPaths), out result),
+                [FrameworkNameVersioning frameworkName]
+                    => Invoked(GetPathToReferenceAssemblies(frameworkName), out result),
+                [string root, FrameworkNameVersioning frameworkName]
+                    => Invoked(GetPathToReferenceAssemblies(root, frameworkName), out result),
+                [string root, string fallbackPaths, FrameworkNameVersioning frameworkName]
+                    => Invoked(GetPathToReferenceAssemblies(root, fallbackPaths, frameworkName), out result),
+                _ => NotInvoked(out result),
+            };
+        }
+
+        if (methodName.Equals(nameof(GetDisplayNameForTargetFrameworkDirectory), StringComparison.OrdinalIgnoreCase) &&
+            arguments is [string displayFrameworkDirectory, FrameworkNameVersioning displayFrameworkName])
+        {
+            return Invoked(GetDisplayNameForTargetFrameworkDirectory(displayFrameworkDirectory, displayFrameworkName), out result);
+        }
+
+        if (methodName.Equals(nameof(ClearSDKStaticCache), StringComparison.OrdinalIgnoreCase) && arguments is [])
+        {
+            ClearSDKStaticCache();
+            result = null;
+            return true;
+        }
+
+        if (methodName.Equals(nameof(GetPathToDotNetFrameworkSdkFile), StringComparison.OrdinalIgnoreCase))
+        {
+            switch (arguments)
+            {
+                case [string fileName]:
+                    return Invoked(GetPathToDotNetFrameworkSdkFile(fileName), out result);
+
+                case [string fileName, var versionValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version):
+                    return Invoked(GetPathToDotNetFrameworkSdkFile(fileName, version), out result);
+
+                case [string fileName, var versionValue, var thirdValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version):
+                    if (TryConvertToEnum(thirdValue, out VisualStudioVersion visualStudioVersion))
+                    {
+                        return Invoked(GetPathToDotNetFrameworkSdkFile(fileName, version, visualStudioVersion), out result);
+                    }
+
+                    if (TryConvertToEnum(thirdValue, out DotNetFrameworkArchitecture architecture))
+                    {
+                        return Invoked(GetPathToDotNetFrameworkSdkFile(fileName, version, architecture), out result);
+                    }
+
+                    break;
+
+                case [string fileName, var versionValue, var visualStudioVersionValue, var architectureValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version) &&
+                         TryConvertToEnum(visualStudioVersionValue, out VisualStudioVersion fourArgumentVisualStudioVersion) &&
+                         TryConvertToEnum(architectureValue, out DotNetFrameworkArchitecture fourArgumentArchitecture):
+                    return Invoked(GetPathToDotNetFrameworkSdkFile(fileName, version, fourArgumentVisualStudioVersion, fourArgumentArchitecture), out result);
+            }
+
+            return NotInvoked(out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToWindowsSdk), StringComparison.OrdinalIgnoreCase) &&
+            arguments is [var windowsSdkVersionValue, var windowsVisualStudioVersionValue] &&
+            TryConvertToEnum(windowsSdkVersionValue, out TargetDotNetFrameworkVersion windowsSdkVersion) &&
+            TryConvertToEnum(windowsVisualStudioVersionValue, out VisualStudioVersion windowsVisualStudioVersion))
+        {
+            return Invoked(GetPathToWindowsSdk(windowsSdkVersion, windowsVisualStudioVersion), out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToWindowsSdkFile), StringComparison.OrdinalIgnoreCase))
+        {
+            switch (arguments)
+            {
+                case [string fileName, var versionValue, var visualStudioVersionValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version) &&
+                         TryConvertToEnum(visualStudioVersionValue, out VisualStudioVersion visualStudioVersion):
+                    return Invoked(GetPathToWindowsSdkFile(fileName, version, visualStudioVersion), out result);
+
+                case [string fileName, var versionValue, var visualStudioVersionValue, var architectureValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version) &&
+                         TryConvertToEnum(visualStudioVersionValue, out VisualStudioVersion visualStudioVersion) &&
+                         TryConvertToEnum(architectureValue, out DotNetFrameworkArchitecture architecture):
+                    return Invoked(GetPathToWindowsSdkFile(fileName, version, visualStudioVersion, architecture), out result);
+            }
+
+            return NotInvoked(out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToBuildTools), StringComparison.OrdinalIgnoreCase))
+        {
+            switch (arguments)
+            {
+                case [string toolsVersion]:
+                    return Invoked(GetPathToBuildTools(toolsVersion), out result);
+
+                case [string toolsVersion, var architectureValue]
+                    when TryConvertToEnum(architectureValue, out DotNetFrameworkArchitecture architecture):
+                    return Invoked(GetPathToBuildTools(toolsVersion, architecture), out result);
+            }
+
+            return NotInvoked(out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToBuildToolsFile), StringComparison.OrdinalIgnoreCase))
+        {
+            switch (arguments)
+            {
+                case [string fileName, string toolsVersion]:
+                    return Invoked(GetPathToBuildToolsFile(fileName, toolsVersion), out result);
+
+                case [string fileName, string toolsVersion, var architectureValue]
+                    when TryConvertToEnum(architectureValue, out DotNetFrameworkArchitecture architecture):
+                    return Invoked(GetPathToBuildToolsFile(fileName, toolsVersion, architecture), out result);
+            }
+
+            return NotInvoked(out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToDotNetFrameworkFile), StringComparison.OrdinalIgnoreCase))
+        {
+            switch (arguments)
+            {
+                case [string fileName, var versionValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version):
+                    return Invoked(GetPathToDotNetFrameworkFile(fileName, version), out result);
+
+                case [string fileName, var versionValue, var architectureValue]
+                    when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version) &&
+                         TryConvertToEnum(architectureValue, out DotNetFrameworkArchitecture architecture):
+                    return Invoked(GetPathToDotNetFrameworkFile(fileName, version, architecture), out result);
+            }
+
+            return NotInvoked(out result);
+        }
+
+        if (methodName.Equals(nameof(GetPathToSystemFile), StringComparison.OrdinalIgnoreCase) &&
+            arguments is [string systemFileName])
+        {
+            return Invoked(GetPathToSystemFile(systemFileName), out result);
+        }
+
+        if (methodName.Equals(nameof(GetSupportedTargetFrameworks), StringComparison.OrdinalIgnoreCase) && arguments is [])
+        {
+            return Invoked(GetSupportedTargetFrameworks(), out result);
+        }
+
+        if (methodName.Equals(nameof(HighestVersionOfTargetFrameworkIdentifier), StringComparison.OrdinalIgnoreCase) &&
+            arguments is [string frameworkRoot, string frameworkIdentifier])
+        {
+            return Invoked(HighestVersionOfTargetFrameworkIdentifier(frameworkRoot, frameworkIdentifier), out result);
+        }
+
+        if (methodName.Equals(nameof(GetProgramFilesReferenceAssemblyRoot), StringComparison.OrdinalIgnoreCase) && arguments is [])
+        {
+            return Invoked(GetProgramFilesReferenceAssemblyRoot(), out result);
+        }
+
+        result = null;
+        return false;
+    }
+#pragma warning restore CS0618
+
+    private static bool TryInvokeFrameworkVersionAndVisualStudioVersion(
+        object?[] arguments,
+        Func<TargetDotNetFrameworkVersion, string> singleArgument,
+        Func<TargetDotNetFrameworkVersion, VisualStudioVersion, string> twoArguments,
+        out object? result)
+    {
+        switch (arguments)
+        {
+            case [var versionValue] when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version):
+                return Invoked(singleArgument(version), out result);
+
+            case [var versionValue, var visualStudioVersionValue]
+                when TryConvertToEnum(versionValue, out TargetDotNetFrameworkVersion version) &&
+                     TryConvertToEnum(visualStudioVersionValue, out VisualStudioVersion visualStudioVersion):
+                return Invoked(twoArguments(version, visualStudioVersion), out result);
+
+            default:
+                return NotInvoked(out result);
+        }
     }
 
     private static bool Invoked(object? value, out object? result)

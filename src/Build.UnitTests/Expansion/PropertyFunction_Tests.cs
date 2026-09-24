@@ -841,6 +841,84 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         }
     }
 
+    [Theory]
+    [MemberData(nameof(ToolLocationStringFrameworkExpressions))]
+    public void PropertyFunctionToolLocationStringFrameworkMethods(string expression)
+        => ExpandProperties(expression).ShouldNotBeNull();
+
+    public static TheoryData<string> ToolLocationStringFrameworkExpressions =>
+    [
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkSdk())""",
+        $"""$([{ToolLocationHelperType}]::GetPathToStandardLibraries('Missing', '1.0', ''))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToStandardLibraries('Missing', '1.0', '', 'AnyCPU'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToStandardLibraries('Missing', '1.0', '', 'AnyCPU', '__MissingFrameworkRoot__'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToStandardLibraries('Missing', '1.0', '', 'AnyCPU', '__MissingFrameworkRoot__', '__MissingFrameworkRoot__'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToReferenceAssemblies('Missing', '1.0', ''))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToReferenceAssemblies('Missing', '1.0', '', '__MissingFrameworkRoot__'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToReferenceAssemblies('Missing', '1.0', '', '__MissingFrameworkRoot__', '__MissingFrameworkRoot__'))""",
+        $"""$([{ToolLocationHelperType}]::ClearSDKStaticCache())""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkSdkFile('Missing.exe'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToBuildTools('Missing'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToBuildToolsFile('Missing.exe', 'Missing'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToSystemFile('Missing.dll'))""",
+        $"""$([{ToolLocationHelperType}]::GetSupportedTargetFrameworks())""",
+        $"""$([{ToolLocationHelperType}]::HighestVersionOfTargetFrameworkIdentifier('__MissingFrameworkRoot__', 'Missing'))""",
+        $"""$([{ToolLocationHelperType}]::GetProgramFilesReferenceAssemblyRoot())""",
+    ];
+
+    [ModernExpanderOnlyTheory]
+    [MemberData(nameof(ModernToolLocationFrameworkExpressions))]
+    public void ModernPropertyFunctionToolLocationFrameworkMethods(string expression)
+        => ExpandProperties(expression).ShouldNotBeNull();
+
+    public static TheoryData<string> ModernToolLocationFrameworkExpressions =>
+    [
+        $"""$([{ToolLocationHelperType}]::GetDotNetFrameworkVersionFolderPrefix('Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetDotNetFrameworkRootRegistryKey('Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetDotNetFrameworkSdkRootRegistryKey('Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetDotNetFrameworkSdkRootRegistryKey('Version40', 'Version100'))""",
+        $"""$([{ToolLocationHelperType}]::GetDotNetFrameworkSdkInstallKeyValue('Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetDotNetFrameworkSdkInstallKeyValue('Version40', 'Version100'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFramework('Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFramework('Version40', 'Current'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkSdk('Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkSdk('Version40', 'Version100'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkReferenceAssemblies('Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkSdkFile('Missing.exe', 'Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkSdkFile('Missing.exe', 'Version40', 'Version100'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkSdkFile('Missing.exe', 'Version40', 'Current'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkSdkFile('Missing.exe', 'Version40', 'Version100', 'Current'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToWindowsSdk('Version45', 'Version110'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToWindowsSdkFile('Missing.exe', 'Version45', 'Version110'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToWindowsSdkFile('Missing.exe', 'Version45', 'Version110', 'Current'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToBuildTools('Missing', 'Current'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToBuildToolsFile('Missing.exe', 'Missing', 'Current'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkFile('Missing.dll', 'Version40'))""",
+        $"""$([{ToolLocationHelperType}]::GetPathToDotNetFrameworkFile('Missing.dll', 'Version40', 'Current'))""",
+    ];
+
+    [ModernExpanderOnlyFact]
+    public void ModernPropertyFunctionToolLocationFrameworkNameMethods()
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var root = env.CreateFolder();
+        var identifier = env.CreateFolder(Path.Combine(root.Path, "Missing"), createFolder: true);
+        env.CreateFolder(Path.Combine(identifier.Path, "v1.0"), createFolder: true);
+        PropertyDictionary<ProjectPropertyInstance> properties = Properties("Root", root.Path);
+
+        string frameworkName =
+            $"""$([{ToolLocationHelperType}]::HighestVersionOfTargetFrameworkIdentifier('$(Root)', 'Missing'))""";
+
+        ExpandProperties($"""$([{ToolLocationHelperType}]::GetPathToReferenceAssemblies({frameworkName}))""", properties).ShouldNotBeNull();
+        ExpandProperties($"""$([{ToolLocationHelperType}]::GetPathToReferenceAssemblies('$(Root)', {frameworkName}))""", properties).ShouldNotBeNull();
+        ExpandProperties(
+            $"""$([{ToolLocationHelperType}]::GetPathToReferenceAssemblies('$(Root)', '$(Root)', {frameworkName}))""",
+            properties).ShouldNotBeNull();
+        ExpandProperties(
+            $"""$([{ToolLocationHelperType}]::GetDisplayNameForTargetFrameworkDirectory('$(Root)', {frameworkName}))""",
+            properties).ShouldNotBeNull();
+    }
+
     [ModernExpanderOnlyFact]
     public void ModernPropertyFunctionGetDirectoriesWithSearchOption()
     {
