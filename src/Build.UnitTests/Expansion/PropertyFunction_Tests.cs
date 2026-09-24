@@ -658,6 +658,98 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
+    [MemberData(nameof(EnvironmentMemberExpressions))]
+    public void PropertyFunctionEnvironmentMembers(string expression)
+        => ExpandProperties(expression).ShouldNotBeNull();
+
+    public static TheoryData<string> EnvironmentMemberExpressions => new()
+    {
+            "$([System.Environment]::ExpandEnvironmentVariables('%PATH%'))",
+            "$([System.Environment]::GetEnvironmentVariable('MSBUILD_WELLKNOWNFUNCTIONS_MISSING'))",
+            "$([System.Environment]::GetEnvironmentVariable('MSBUILD_WELLKNOWNFUNCTIONS_MISSING', 'EnvironmentVariableTarget.Process'))",
+            "$([System.Environment]::GetEnvironmentVariables())",
+            "$([System.Environment]::GetEnvironmentVariables('EnvironmentVariableTarget.Process'))",
+            "$([System.Environment]::GetFolderPath('SpecialFolder.System'))",
+            "$([System.Environment]::GetFolderPath('SpecialFolder.System', 'SpecialFolderOption.None'))",
+            "$([System.Environment]::GetLogicalDrives())",
+            "$([System.Environment]::CommandLine)",
+            "$([System.Environment]::Is64BitOperatingSystem)",
+            "$([System.Environment]::Is64BitProcess)",
+            "$([System.Environment]::MachineName)",
+            "$([System.Environment]::NewLine)",
+            "$([System.Environment]::OSVersion)",
+            "$([System.Environment]::ProcessorCount)",
+            "$([System.Environment]::StackTrace)",
+            "$([System.Environment]::SystemDirectory)",
+            "$([System.Environment]::SystemPageSize)",
+            "$([System.Environment]::TickCount)",
+            "$([System.Environment]::UserDomainName)",
+            "$([System.Environment]::UserInteractive)",
+            "$([System.Environment]::UserName)",
+            "$([System.Environment]::Version)",
+            "$([System.Environment]::WorkingSet)",
+    };
+
+    [Theory]
+    [MemberData(nameof(RuntimeMemberExpressions))]
+    public void PropertyFunctionRuntimeMembers(string expression)
+        => ExpandProperties(expression).ShouldNotBeNull();
+
+    public static TheoryData<string> RuntimeMemberExpressions
+    {
+        get
+        {
+            string platform = Helpers.GetOSPlatformAsString();
+
+            TheoryData<string> data = new()
+            {
+                "$([System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)",
+                "$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)",
+                "$([System.Runtime.InteropServices.RuntimeInformation]::OSDescription)",
+                "$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)",
+                $"$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::{platform})))",
+                "$([System.Runtime.InteropServices.OSPlatform]::Create('custom').ToString())",
+                "$([System.Runtime.InteropServices.OSPlatform]::Linux)",
+                "$([System.Runtime.InteropServices.OSPlatform]::OSX)",
+                "$([System.Runtime.InteropServices.OSPlatform]::Windows)",
+                "$([System.Runtime.InteropServices.OSPlatform]::op_Equality($([System.Runtime.InteropServices.OSPlatform]::Windows), $([System.Runtime.InteropServices.OSPlatform]::Windows)))",
+                "$([System.Runtime.InteropServices.OSPlatform]::op_Inequality($([System.Runtime.InteropServices.OSPlatform]::Windows), $([System.Runtime.InteropServices.OSPlatform]::Linux)))",
+                "$([System.Runtime.InteropServices.OSPlatform]::Windows.Equals($([System.Runtime.InteropServices.OSPlatform]::Windows)))",
+                "$([System.Runtime.InteropServices.OSPlatform]::Windows.GetHashCode())",
+            };
+
+#if NET
+            data.Add("$([System.Runtime.InteropServices.OSPlatform]::FreeBSD)");
+            data.Add("$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)");
+            data.Add("$([System.OperatingSystem]::IsAndroid())");
+            data.Add("$([System.OperatingSystem]::IsAndroidVersionAtLeast(0, 0, 0, 0))");
+            data.Add("$([System.OperatingSystem]::IsBrowser())");
+            data.Add("$([System.OperatingSystem]::IsIOS())");
+            data.Add("$([System.OperatingSystem]::IsIOSVersionAtLeast(0, 0, 0))");
+            data.Add("$([System.OperatingSystem]::IsMacCatalyst())");
+            data.Add("$([System.OperatingSystem]::IsMacCatalystVersionAtLeast(0, 0, 0))");
+            data.Add("$([System.OperatingSystem]::IsTvOS())");
+            data.Add("$([System.OperatingSystem]::IsTvOSVersionAtLeast(0, 0, 0))");
+            data.Add("$([System.OperatingSystem]::IsWasi())");
+            data.Add("$([System.OperatingSystem]::IsWatchOS())");
+            data.Add("$([System.OperatingSystem]::IsWatchOSVersionAtLeast(0, 0, 0))");
+#endif
+
+            data.Add("$([System.OperatingSystem]::IsFreeBSD())");
+            data.Add("$([System.OperatingSystem]::IsFreeBSDVersionAtLeast(0, 0, 0, 0))");
+            data.Add("$([System.OperatingSystem]::IsLinux())");
+            data.Add("$([System.OperatingSystem]::IsMacOS())");
+            data.Add("$([System.OperatingSystem]::IsMacOSVersionAtLeast(0, 0, 0))");
+            data.Add("$([System.OperatingSystem]::IsOSPlatform('windows'))");
+            data.Add("$([System.OperatingSystem]::IsOSPlatformVersionAtLeast('windows', 0, 0, 0, 0))");
+            data.Add("$([System.OperatingSystem]::IsWindows())");
+            data.Add("$([System.OperatingSystem]::IsWindowsVersionAtLeast(0, 0, 0, 0))");
+
+            return data;
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(StringIndexOfExpressions))]
     public void StringIndexOfTests(string expression, int expected)
         => ExpandProperties(expression, Properties("AString", "x12x456789x11"))

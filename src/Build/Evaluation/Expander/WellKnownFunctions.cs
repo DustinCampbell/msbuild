@@ -21,12 +21,16 @@ internal static partial class WellKnownFunctions
 {
     private static readonly CharHandler s_charHandler = new();
     private static readonly ConvertHandler s_convertHandler = new();
+    private static readonly EnvironmentHandler s_environmentHandler = new();
     private static readonly GuidHandler s_guidHandler = new();
     private static readonly Int32Handler s_int32Handler = new();
     private static readonly IntrinsicFunctionsHandler s_intrinsicFunctionsHandler = new();
     private static readonly MathHandler s_mathHandler = new();
+    private static readonly OperatingSystemHandler s_operatingSystemHandler = new();
+    private static readonly OSPlatformHandler s_osPlatformHandler = new();
     private static readonly PathHandler s_pathHandler = new();
     private static readonly RegexHandler s_regexHandler = new();
+    private static readonly RuntimeInformationHandler s_runtimeInformationHandler = new();
     private static readonly StringArrayHandler s_stringArrayHandler = new();
     private static readonly StringHandler s_stringHandler = new();
     private static readonly VersionHandler s_versionHandler = new();
@@ -46,8 +50,18 @@ internal static partial class WellKnownFunctions
             ? s_stringHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Convert)
             ? s_convertHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(Environment)
+            ? s_environmentHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Math)
             ? s_mathHandler.TryInvokeStatic(methodName, args)
+#if NET
+         : receiverType == typeof(OperatingSystem)
+#else
+         : receiverType == typeof(Microsoft.Build.Framework.OperatingSystem)
+#endif
+            ? s_operatingSystemHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(System.Runtime.InteropServices.OSPlatform)
+            ? s_osPlatformHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(IntrinsicFunctions)
             ? s_intrinsicFunctionsHandler.TryInvokeStatic(methodName, args, fileSystem)
          : receiverType == typeof(Path)
@@ -60,6 +74,8 @@ internal static partial class WellKnownFunctions
             ? s_charHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Regex)
             ? s_regexHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(System.Runtime.InteropServices.RuntimeInformation)
+            ? s_runtimeInformationHandler.TryInvokeStatic(methodName, args)
 
          : NotHandled;
 
@@ -79,6 +95,7 @@ internal static partial class WellKnownFunctions
             string[] a => s_stringArrayHandler.TryInvokeInstance(methodName, a, args),
             Version v => s_versionHandler.TryInvokeInstance(methodName, v, args),
             int i => s_int32Handler.TryInvokeInstance(methodName, i, args),
+            System.Runtime.InteropServices.OSPlatform platform => s_osPlatformHandler.TryInvokeInstance(methodName, platform, args),
 
             _ => NotHandled,
         };
