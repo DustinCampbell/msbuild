@@ -21,6 +21,8 @@ internal static partial class WellKnownFunctions
 {
     private static readonly CharHandler s_charHandler = new();
     private static readonly ConvertHandler s_convertHandler = new();
+    private static readonly CultureInfoHandler s_cultureInfoHandler = new();
+    private static readonly DateTimeHandler s_dateTimeHandler = new();
     private static readonly EnvironmentHandler s_environmentHandler = new();
     private static readonly GuidHandler s_guidHandler = new();
     private static readonly IntrinsicFunctionsHandler s_intrinsicFunctionsHandler = new();
@@ -33,6 +35,7 @@ internal static partial class WellKnownFunctions
     private static readonly RuntimeInformationHandler s_runtimeInformationHandler = new();
     private static readonly StringArrayHandler s_stringArrayHandler = new();
     private static readonly StringHandler s_stringHandler = new();
+    private static readonly TimeSpanHandler s_timeSpanHandler = new();
     private static readonly VersionHandler s_versionHandler = new();
 
     /// <summary>
@@ -50,6 +53,10 @@ internal static partial class WellKnownFunctions
             ? s_stringHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Convert)
             ? s_convertHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(System.Globalization.CultureInfo)
+            ? s_cultureInfoHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(DateTime)
+            ? s_dateTimeHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Environment)
             ? s_environmentHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Math)
@@ -78,6 +85,8 @@ internal static partial class WellKnownFunctions
             ? s_runtimeInformationHandler.TryInvokeStatic(methodName, args)
          : IsNumericOrCharType(receiverType)
             ? s_primitiveHandler.TryInvokeStatic(receiverType, methodName, args)
+         : receiverType == typeof(TimeSpan)
+            ? s_timeSpanHandler.TryInvokeStatic(methodName, args)
 
          : NotHandled;
 
@@ -95,6 +104,8 @@ internal static partial class WellKnownFunctions
         {
             string s => s_stringHandler.TryInvokeInstance(methodName, s, args),
             string[] a => s_stringArrayHandler.TryInvokeInstance(methodName, a, args),
+            System.Globalization.CultureInfo culture => s_cultureInfoHandler.TryInvokeInstance(methodName, culture, args),
+            DateTime dateTime => s_dateTimeHandler.TryInvokeInstance(methodName, dateTime, args),
             Version v => s_versionHandler.TryInvokeInstance(methodName, v, args),
             System.Runtime.InteropServices.OSPlatform platform => s_osPlatformHandler.TryInvokeInstance(methodName, platform, args),
             _ when objectInstance.GetType().IsPrimitive || objectInstance is decimal
@@ -137,6 +148,10 @@ internal static partial class WellKnownFunctions
     public static WellKnownFunctionResult TryInvokeConstructor(Type receiverType, object?[] args)
         => receiverType == typeof(string)
             ? s_stringHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(System.Globalization.CultureInfo)
+            ? s_cultureInfoHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(Version)
+            ? s_versionHandler.TryInvokeConstructor(args)
             : NotHandled;
 
     private static WellKnownFunctionResult NotHandled

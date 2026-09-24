@@ -658,6 +658,44 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
+    [InlineData("$([System.Version]::new().ToString())", "0.0")]
+    [InlineData("$([System.Version]::new('1.2.3.4').Major)", "1")]
+    [InlineData("$([System.Version]::new(1, 2).Minor)", "2")]
+    [InlineData("$([System.Version]::new(1, 2, 3).Build)", "3")]
+    [InlineData("$([System.Version]::new(1, 2, 3, 4).Revision)", "4")]
+    public void PropertyFunctionVersionMembers(string expression, string expected)
+        => ExpandProperties(expression).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("$([System.DateTime]::MinValue.Year)", "1")]
+    [InlineData("$([System.DateTime]::MaxValue.Year)", "9999")]
+    [InlineData("$([System.DateTime]::Today.ToString('yyyy-MM-dd'))", null)]
+    [InlineData("$([System.DateTime]::UtcNow.ToString('O'))", null)]
+#if NET
+    [InlineData("$([System.DateTime]::UnixEpoch.ToString('O'))", null)]
+#endif
+    public void PropertyFunctionDateTimeMembers(string expression, string? expected)
+    {
+        string? result = ExpandProperties(expression);
+
+        if (expected is null)
+        {
+            result.ShouldNotBeNull();
+        }
+        else
+        {
+            result.ShouldBe(expected);
+        }
+    }
+
+    [Theory]
+    [InlineData("$([System.Globalization.CultureInfo]::new('en-US').ToString())", "en-US")]
+    [InlineData("$([System.Globalization.CultureInfo]::GetCultureInfo($([System.Convert]::ToInt32(1033))).ToString())", "en-US")]
+    [InlineData("$([System.Globalization.CultureInfo]::GetCultureInfo('en-US', 'fr-FR').ToString())", "en-US")]
+    public void PropertyFunctionCultureInfoMembers(string expression, string expected)
+        => ExpandProperties(expression).ShouldBe(expected);
+
+    [Theory]
     [MemberData(nameof(EnvironmentMemberExpressions))]
     public void PropertyFunctionEnvironmentMembers(string expression)
         => ExpandProperties(expression).ShouldNotBeNull();
@@ -1732,7 +1770,6 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     public static TheoryData<string, string> ReflectionFallbackExpressions => new()
     {
         { "$([System.Math]::Abs(-1))", "ReceiverType=System.Math; ObjectInstanceType=; MethodName=Abs(" },
-        { "$([System.Version]::new('1.2'))", "ReceiverType=System.Version; ObjectInstanceType=; MethodName=new(" },
     };
 
     [Fact]

@@ -206,6 +206,8 @@
     <Compile Include="Evaluation\Expander\ArithmeticArguments.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Char.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Convert.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_CultureInfo.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_DateTime.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Environment.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Guid.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_IntrinsicFunctions.cs" />
@@ -216,6 +218,7 @@
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Runtime.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_StringArray.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_String.cs" />
+    <Compile Include="Evaluation\Expander\WellKnownFunctions_TimeSpan.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctions_Version.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctionResult.cs" />
     <Compile Include="Evaluation\Expander\WellKnownFunctionStatus.cs" />
