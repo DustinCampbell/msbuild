@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -41,12 +41,30 @@ internal static partial class WellKnownFunctions
 
             if (args is [Version left, Version right])
             {
-                if (methodName.Equals("op_Equality", StringComparison.OrdinalIgnoreCase)) return Invoked(left == right);
-                if (methodName.Equals("op_Inequality", StringComparison.OrdinalIgnoreCase)) return Invoked(left != right);
-                if (methodName.Equals("op_LessThan", StringComparison.OrdinalIgnoreCase)) return Invoked(left < right);
-                if (methodName.Equals("op_LessThanOrEqual", StringComparison.OrdinalIgnoreCase)) return Invoked(left <= right);
-                if (methodName.Equals("op_GreaterThan", StringComparison.OrdinalIgnoreCase)) return Invoked(left > right);
-                if (methodName.Equals("op_GreaterThanOrEqual", StringComparison.OrdinalIgnoreCase)) return Invoked(left >= right);
+                if (methodName.Equals("op_Equality", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(left == right);
+                }
+                if (methodName.Equals("op_Inequality", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(left != right);
+                }
+                if (methodName.Equals("op_LessThan", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(left < right);
+                }
+                if (methodName.Equals("op_LessThanOrEqual", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(left <= right);
+                }
+                if (methodName.Equals("op_GreaterThan", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(left > right);
+                }
+                if (methodName.Equals("op_GreaterThanOrEqual", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(left >= right);
+                }
             }
 
             return NotHandled;

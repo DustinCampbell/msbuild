@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -15,15 +15,42 @@ internal static partial class WellKnownFunctions
         {
             if (args is [])
             {
-                if (methodName.Equals(nameof(Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.AltDirectorySeparatorChar);
-                if (methodName.Equals(nameof(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.DirectorySeparatorChar);
-                if (methodName.Equals(nameof(Path.GetInvalidFileNameChars), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.GetInvalidFileNameChars());
-                if (methodName.Equals(nameof(Path.GetInvalidPathChars), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.GetInvalidPathChars());
-                if (methodName.Equals(nameof(Path.GetRandomFileName), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.GetRandomFileName());
-                if (methodName.Equals(nameof(Path.GetTempFileName), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.GetTempFileName());
-                if (methodName.Equals(nameof(Path.GetTempPath), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.GetTempPath());
-                if (methodName.Equals(nameof(Path.PathSeparator), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.PathSeparator);
-                if (methodName.Equals(nameof(Path.VolumeSeparatorChar), StringComparison.OrdinalIgnoreCase)) return Invoked(Path.VolumeSeparatorChar);
+                if (methodName.Equals(nameof(Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.AltDirectorySeparatorChar);
+                }
+                if (methodName.Equals(nameof(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.DirectorySeparatorChar);
+                }
+                if (methodName.Equals(nameof(Path.GetInvalidFileNameChars), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.GetInvalidFileNameChars());
+                }
+                if (methodName.Equals(nameof(Path.GetInvalidPathChars), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.GetInvalidPathChars());
+                }
+                if (methodName.Equals(nameof(Path.GetRandomFileName), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.GetRandomFileName());
+                }
+                if (methodName.Equals(nameof(Path.GetTempFileName), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.GetTempFileName());
+                }
+                if (methodName.Equals(nameof(Path.GetTempPath), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.GetTempPath());
+                }
+                if (methodName.Equals(nameof(Path.PathSeparator), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.PathSeparator);
+                }
+                if (methodName.Equals(nameof(Path.VolumeSeparatorChar), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Path.VolumeSeparatorChar);
+                }
             }
 
             if (methodName.Equals(nameof(Path.ChangeExtension), StringComparison.OrdinalIgnoreCase))
@@ -31,16 +58,31 @@ internal static partial class WellKnownFunctions
                 return args is [string path, string extension] ? Invoked(Path.ChangeExtension(path, extension)) : NotHandled;
             }
 
-            if (methodName.Equals(nameof(Path.Combine), StringComparison.OrdinalIgnoreCase)) return TryInvokeCombine(args);
-            if (methodName.Equals(nameof(Path.GetDirectoryName), StringComparison.OrdinalIgnoreCase)) return TryInvokeGetDirectoryName(args);
+            if (methodName.Equals(nameof(Path.Combine), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeCombine(args);
+            }
+            if (methodName.Equals(nameof(Path.GetDirectoryName), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeGetDirectoryName(args);
+            }
             if (methodName.Equals(nameof(Path.GetExtension), StringComparison.OrdinalIgnoreCase))
             {
                 return args is [string path] ? Invoked(Path.GetExtension(path)) : NotHandled;
             }
 
-            if (methodName.Equals(nameof(Path.GetFileName), StringComparison.OrdinalIgnoreCase)) return TryInvokeGetFileName(args);
-            if (methodName.Equals(nameof(Path.GetFileNameWithoutExtension), StringComparison.OrdinalIgnoreCase)) return TryInvokeGetFileNameWithoutExtension(args);
-            if (methodName.Equals(nameof(Path.GetFullPath), StringComparison.OrdinalIgnoreCase)) return TryInvokeGetFullPath(args);
+            if (methodName.Equals(nameof(Path.GetFileName), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeGetFileName(args);
+            }
+            if (methodName.Equals(nameof(Path.GetFileNameWithoutExtension), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeGetFileNameWithoutExtension(args);
+            }
+            if (methodName.Equals(nameof(Path.GetFullPath), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeGetFullPath(args);
+            }
             if (methodName.Equals(nameof(Path.GetPathRoot), StringComparison.OrdinalIgnoreCase))
             {
                 return args is [string path] ? Invoked(Path.GetPathRoot(path)) : NotHandled;
@@ -51,7 +93,10 @@ internal static partial class WellKnownFunctions
                 return args is [string path] ? Invoked(Path.HasExtension(path)) : NotHandled;
             }
 
-            if (methodName.Equals(nameof(Path.IsPathRooted), StringComparison.OrdinalIgnoreCase)) return TryInvokeIsPathRooted(args);
+            if (methodName.Equals(nameof(Path.IsPathRooted), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeIsPathRooted(args);
+            }
 
 #if NET
             if (methodName.Equals(nameof(Path.EndsInDirectorySeparator), StringComparison.OrdinalIgnoreCase))

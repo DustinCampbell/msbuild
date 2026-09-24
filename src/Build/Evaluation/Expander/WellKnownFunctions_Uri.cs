@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -126,32 +126,104 @@ internal static partial class WellKnownFunctions
         {
             if (args is [])
             {
-                if (methodName.Equals(nameof(Uri.AbsolutePath), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.AbsolutePath);
-                if (methodName.Equals(nameof(Uri.AbsoluteUri), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.AbsoluteUri);
-                if (methodName.Equals(nameof(Uri.Authority), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.Authority);
-                if (methodName.Equals(nameof(Uri.DnsSafeHost), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.DnsSafeHost);
-                if (methodName.Equals(nameof(Uri.Fragment), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.Fragment);
-                if (methodName.Equals(nameof(Uri.Host), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.Host);
-                if (methodName.Equals(nameof(Uri.HostNameType), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.HostNameType);
+                if (methodName.Equals(nameof(Uri.AbsolutePath), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.AbsolutePath);
+                }
+                if (methodName.Equals(nameof(Uri.AbsoluteUri), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.AbsoluteUri);
+                }
+                if (methodName.Equals(nameof(Uri.Authority), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.Authority);
+                }
+                if (methodName.Equals(nameof(Uri.DnsSafeHost), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.DnsSafeHost);
+                }
+                if (methodName.Equals(nameof(Uri.Fragment), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.Fragment);
+                }
+                if (methodName.Equals(nameof(Uri.Host), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.Host);
+                }
+                if (methodName.Equals(nameof(Uri.HostNameType), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.HostNameType);
+                }
 #if NET
-                if (methodName.Equals(nameof(Uri.IdnHost), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.IdnHost);
+                if (methodName.Equals(nameof(Uri.IdnHost), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.IdnHost);
+                }
 #endif
-                if (methodName.Equals(nameof(Uri.IsAbsoluteUri), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.IsAbsoluteUri);
-                if (methodName.Equals(nameof(Uri.IsDefaultPort), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.IsDefaultPort);
-                if (methodName.Equals(nameof(Uri.IsFile), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.IsFile);
-                if (methodName.Equals(nameof(Uri.IsLoopback), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.IsLoopback);
-                if (methodName.Equals(nameof(Uri.IsUnc), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.IsUnc);
-                if (methodName.Equals(nameof(Uri.LocalPath), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.LocalPath);
-                if (methodName.Equals(nameof(Uri.OriginalString), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.OriginalString);
-                if (methodName.Equals(nameof(Uri.PathAndQuery), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.PathAndQuery);
-                if (methodName.Equals(nameof(Uri.Port), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.Port);
-                if (methodName.Equals(nameof(Uri.Query), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.Query);
-                if (methodName.Equals(nameof(Uri.Scheme), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.Scheme);
-                if (methodName.Equals(nameof(Uri.Segments), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.Segments);
-                if (methodName.Equals(nameof(Uri.UserEscaped), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.UserEscaped);
-                if (methodName.Equals(nameof(Uri.UserInfo), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.UserInfo);
-                if (methodName.Equals(nameof(Uri.GetHashCode), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.GetHashCode());
-                if (methodName.Equals(nameof(Uri.ToString), StringComparison.OrdinalIgnoreCase)) return Invoked(uri.ToString());
+                if (methodName.Equals(nameof(Uri.IsAbsoluteUri), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.IsAbsoluteUri);
+                }
+                if (methodName.Equals(nameof(Uri.IsDefaultPort), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.IsDefaultPort);
+                }
+                if (methodName.Equals(nameof(Uri.IsFile), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.IsFile);
+                }
+                if (methodName.Equals(nameof(Uri.IsLoopback), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.IsLoopback);
+                }
+                if (methodName.Equals(nameof(Uri.IsUnc), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.IsUnc);
+                }
+                if (methodName.Equals(nameof(Uri.LocalPath), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.LocalPath);
+                }
+                if (methodName.Equals(nameof(Uri.OriginalString), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.OriginalString);
+                }
+                if (methodName.Equals(nameof(Uri.PathAndQuery), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.PathAndQuery);
+                }
+                if (methodName.Equals(nameof(Uri.Port), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.Port);
+                }
+                if (methodName.Equals(nameof(Uri.Query), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.Query);
+                }
+                if (methodName.Equals(nameof(Uri.Scheme), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.Scheme);
+                }
+                if (methodName.Equals(nameof(Uri.Segments), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.Segments);
+                }
+                if (methodName.Equals(nameof(Uri.UserEscaped), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.UserEscaped);
+                }
+                if (methodName.Equals(nameof(Uri.UserInfo), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.UserInfo);
+                }
+                if (methodName.Equals(nameof(Uri.GetHashCode), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.GetHashCode());
+                }
+                if (methodName.Equals(nameof(Uri.ToString), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(uri.ToString());
+                }
             }
 
             if (methodName.Equals(nameof(Uri.Equals), StringComparison.OrdinalIgnoreCase))
@@ -190,17 +262,50 @@ internal static partial class WellKnownFunctions
                     : NotHandled;
             }
 
-            if (methodName.Equals(nameof(UriBuilder.Fragment), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.Fragment);
-            if (methodName.Equals(nameof(UriBuilder.Host), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.Host);
-            if (methodName.Equals(nameof(UriBuilder.Password), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.Password);
-            if (methodName.Equals(nameof(UriBuilder.Path), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.Path);
-            if (methodName.Equals(nameof(UriBuilder.Port), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.Port);
-            if (methodName.Equals(nameof(UriBuilder.Query), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.Query);
-            if (methodName.Equals(nameof(UriBuilder.Scheme), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.Scheme);
-            if (methodName.Equals(nameof(UriBuilder.Uri), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.Uri);
-            if (methodName.Equals(nameof(UriBuilder.UserName), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.UserName);
-            if (methodName.Equals(nameof(UriBuilder.GetHashCode), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.GetHashCode());
-            if (methodName.Equals(nameof(UriBuilder.ToString), StringComparison.OrdinalIgnoreCase)) return Invoked(builder.ToString());
+            if (methodName.Equals(nameof(UriBuilder.Fragment), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.Fragment);
+            }
+            if (methodName.Equals(nameof(UriBuilder.Host), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.Host);
+            }
+            if (methodName.Equals(nameof(UriBuilder.Password), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.Password);
+            }
+            if (methodName.Equals(nameof(UriBuilder.Path), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.Path);
+            }
+            if (methodName.Equals(nameof(UriBuilder.Port), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.Port);
+            }
+            if (methodName.Equals(nameof(UriBuilder.Query), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.Query);
+            }
+            if (methodName.Equals(nameof(UriBuilder.Scheme), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.Scheme);
+            }
+            if (methodName.Equals(nameof(UriBuilder.Uri), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.Uri);
+            }
+            if (methodName.Equals(nameof(UriBuilder.UserName), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.UserName);
+            }
+            if (methodName.Equals(nameof(UriBuilder.GetHashCode), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.GetHashCode());
+            }
+            if (methodName.Equals(nameof(UriBuilder.ToString), StringComparison.OrdinalIgnoreCase))
+            {
+                return Invoked(builder.ToString());
+            }
 
             return NotHandled;
         }

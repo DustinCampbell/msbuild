@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -12,46 +12,133 @@ internal static partial class WellKnownFunctions
         {
             if (args is [])
             {
-                if (methodName.Equals(nameof(Math.E), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.E);
-                if (methodName.Equals(nameof(Math.PI), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.PI);
+                if (methodName.Equals(nameof(Math.E), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.E);
+                }
+                if (methodName.Equals(nameof(Math.PI), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.PI);
+                }
 #if NET
-                if (methodName.Equals(nameof(Math.Tau), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Tau);
+                if (methodName.Equals(nameof(Math.Tau), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Tau);
+                }
 #endif
                 return NotHandled;
             }
 
-            if (methodName.Equals(nameof(Math.Abs), StringComparison.OrdinalIgnoreCase)) return TryInvokeAbs(args);
-            if (methodName.Equals(nameof(Math.BigMul), StringComparison.OrdinalIgnoreCase)) return TryInvokeBigMul(args);
-            if (methodName.Equals(nameof(Math.Ceiling), StringComparison.OrdinalIgnoreCase)) return TryInvokeCeiling(args);
-            if (methodName.Equals(nameof(Math.Floor), StringComparison.OrdinalIgnoreCase)) return TryInvokeFloor(args);
-            if (methodName.Equals(nameof(Math.Max), StringComparison.OrdinalIgnoreCase)) return TryInvokeMinMax(args, maximum: true);
-            if (methodName.Equals(nameof(Math.Min), StringComparison.OrdinalIgnoreCase)) return TryInvokeMinMax(args, maximum: false);
-            if (methodName.Equals(nameof(Math.Round), StringComparison.OrdinalIgnoreCase)) return TryInvokeRound(args);
-            if (methodName.Equals(nameof(Math.Sign), StringComparison.OrdinalIgnoreCase)) return TryInvokeSign(args);
-            if (methodName.Equals(nameof(Math.Truncate), StringComparison.OrdinalIgnoreCase)) return TryInvokeTruncate(args);
+            if (methodName.Equals(nameof(Math.Abs), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeAbs(args);
+            }
+            if (methodName.Equals(nameof(Math.BigMul), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeBigMul(args);
+            }
+            if (methodName.Equals(nameof(Math.Ceiling), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeCeiling(args);
+            }
+            if (methodName.Equals(nameof(Math.Floor), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeFloor(args);
+            }
+            if (methodName.Equals(nameof(Math.Max), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeMinMax(args, maximum: true);
+            }
+            if (methodName.Equals(nameof(Math.Min), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeMinMax(args, maximum: false);
+            }
+            if (methodName.Equals(nameof(Math.Round), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeRound(args);
+            }
+            if (methodName.Equals(nameof(Math.Sign), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeSign(args);
+            }
+            if (methodName.Equals(nameof(Math.Truncate), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeTruncate(args);
+            }
 #if NET
-            if (methodName.Equals(nameof(Math.DivRem), StringComparison.OrdinalIgnoreCase)) return TryInvokeDivRem(args);
+            if (methodName.Equals(nameof(Math.DivRem), StringComparison.OrdinalIgnoreCase))
+            {
+                return TryInvokeDivRem(args);
+            }
 #endif
 
             if (args is [var value] && TryConvertToDouble(value, out double convertedValue))
             {
-                if (methodName.Equals(nameof(Math.Acos), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Acos(convertedValue));
-                if (methodName.Equals(nameof(Math.Asin), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Asin(convertedValue));
-                if (methodName.Equals(nameof(Math.Atan), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Atan(convertedValue));
-                if (methodName.Equals(nameof(Math.Cos), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Cos(convertedValue));
-                if (methodName.Equals(nameof(Math.Cosh), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Cosh(convertedValue));
-                if (methodName.Equals(nameof(Math.Exp), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Exp(convertedValue));
-                if (methodName.Equals(nameof(Math.Log), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Log(convertedValue));
-                if (methodName.Equals(nameof(Math.Log10), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Log10(convertedValue));
-                if (methodName.Equals(nameof(Math.Sin), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Sin(convertedValue));
-                if (methodName.Equals(nameof(Math.Sinh), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Sinh(convertedValue));
-                if (methodName.Equals(nameof(Math.Sqrt), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Sqrt(convertedValue));
-                if (methodName.Equals(nameof(Math.Tan), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Tan(convertedValue));
-                if (methodName.Equals(nameof(Math.Tanh), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Tanh(convertedValue));
+                if (methodName.Equals(nameof(Math.Acos), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Acos(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Asin), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Asin(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Atan), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Atan(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Cos), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Cos(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Cosh), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Cosh(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Exp), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Exp(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Log), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Log(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Log10), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Log10(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Sin), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Sin(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Sinh), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Sinh(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Sqrt), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Sqrt(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Tan), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Tan(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Tanh), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Tanh(convertedValue));
+                }
 #if NET
-                if (methodName.Equals(nameof(Math.Acosh), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Acosh(convertedValue));
-                if (methodName.Equals(nameof(Math.Asinh), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Asinh(convertedValue));
-                if (methodName.Equals(nameof(Math.Atanh), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Atanh(convertedValue));
+                if (methodName.Equals(nameof(Math.Acosh), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Acosh(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Asinh), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Asinh(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Atanh), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Atanh(convertedValue));
+                }
                 if (methodName.Equals(nameof(Math.BitDecrement), StringComparison.OrdinalIgnoreCase))
                 {
                     return Invoked(Math.BitDecrement(convertedValue));
@@ -62,9 +149,18 @@ internal static partial class WellKnownFunctions
                     return Invoked(Math.BitIncrement(convertedValue));
                 }
 
-                if (methodName.Equals(nameof(Math.Cbrt), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Cbrt(convertedValue));
-                if (methodName.Equals(nameof(Math.ILogB), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.ILogB(convertedValue));
-                if (methodName.Equals(nameof(Math.Log2), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.Log2(convertedValue));
+                if (methodName.Equals(nameof(Math.Cbrt), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Cbrt(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.ILogB), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.ILogB(convertedValue));
+                }
+                if (methodName.Equals(nameof(Math.Log2), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.Log2(convertedValue));
+                }
 
                 if (methodName.Equals(nameof(Math.ReciprocalEstimate), StringComparison.OrdinalIgnoreCase))
                 {
@@ -76,7 +172,10 @@ internal static partial class WellKnownFunctions
                     return Invoked(Math.ReciprocalSqrtEstimate(convertedValue));
                 }
 
-                if (methodName.Equals(nameof(Math.SinCos), StringComparison.OrdinalIgnoreCase)) return Invoked(Math.SinCos(convertedValue));
+                if (methodName.Equals(nameof(Math.SinCos), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Invoked(Math.SinCos(convertedValue));
+                }
 #endif
             }
 
@@ -210,7 +309,10 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeCeiling(object?[] args)
         {
-            if (args is [decimal decimalValue]) return Invoked(Math.Ceiling(decimalValue));
+            if (args is [decimal decimalValue])
+            {
+                return Invoked(Math.Ceiling(decimalValue));
+            }
 
             return args is [var value] && TryConvertToDouble(value, out double doubleValue)
                 ? Invoked(Math.Ceiling(doubleValue))
@@ -277,7 +379,10 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeFloor(object?[] args)
         {
-            if (args is [decimal decimalValue]) return Invoked(Math.Floor(decimalValue));
+            if (args is [decimal decimalValue])
+            {
+                return Invoked(Math.Floor(decimalValue));
+            }
 
             return args is [var value] && TryConvertToDouble(value, out double convertedValue)
                 ? Invoked(Math.Floor(convertedValue))
@@ -318,11 +423,20 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeRound(object?[] args)
         {
-            if (args is [decimal decimalValue1]) return Invoked(Math.Round(decimalValue1));
+            if (args is [decimal decimalValue1])
+            {
+                return Invoked(Math.Round(decimalValue1));
+            }
             if (args is [decimal decimalValue2, var second])
             {
-                if (ArgumentParser.TryConvertToInt(second, out int digits)) return Invoked(Math.Round(decimalValue2, digits));
-                if (second is MidpointRounding mode) return Invoked(Math.Round(decimalValue2, mode));
+                if (ArgumentParser.TryConvertToInt(second, out int digits))
+                {
+                    return Invoked(Math.Round(decimalValue2, digits));
+                }
+                if (second is MidpointRounding mode)
+                {
+                    return Invoked(Math.Round(decimalValue2, mode));
+                }
             }
 
             if (args is [decimal decimalValue3, var digitsValue, var modeValue]
@@ -332,11 +446,20 @@ internal static partial class WellKnownFunctions
                 return Invoked(Math.Round(decimalValue3, convertedDigits, convertedMode));
             }
 
-            if (args is [var value] && TryConvertToDouble(value, out double doubleValue)) return Invoked(Math.Round(doubleValue));
+            if (args is [var value] && TryConvertToDouble(value, out double doubleValue))
+            {
+                return Invoked(Math.Round(doubleValue));
+            }
             if (args is [var value2, var second2] && TryConvertToDouble(value2, out double doubleValue2))
             {
-                if (ArgumentParser.TryConvertToInt(second2, out int digits)) return Invoked(Math.Round(doubleValue2, digits));
-                if (second2 is MidpointRounding mode) return Invoked(Math.Round(doubleValue2, mode));
+                if (ArgumentParser.TryConvertToInt(second2, out int digits))
+                {
+                    return Invoked(Math.Round(doubleValue2, digits));
+                }
+                if (second2 is MidpointRounding mode)
+                {
+                    return Invoked(Math.Round(doubleValue2, mode));
+                }
             }
 
             return args is [var value3, var digitsValue2, var modeValue2]
@@ -374,7 +497,10 @@ internal static partial class WellKnownFunctions
 
         private static WellKnownFunctionResult TryInvokeTruncate(object?[] args)
         {
-            if (args is [decimal decimalValue]) return Invoked(Math.Truncate(decimalValue));
+            if (args is [decimal decimalValue])
+            {
+                return Invoked(Math.Truncate(decimalValue));
+            }
 
             return args is [var value] && TryConvertToDouble(value, out double doubleValue)
                 ? Invoked(Math.Truncate(doubleValue))
@@ -417,17 +543,50 @@ internal static partial class WellKnownFunctions
         private static bool TryGetCommonNumericType(TypeCode first, TypeCode second, out TypeCode result)
         {
             // Match the reflection binder by selecting the narrowest Math overload to which every boxed argument can widen.
-            if (CanConvertTo(first, second, TypeCode.SByte)) return SetResult(TypeCode.SByte, out result);
-            if (CanConvertTo(first, second, TypeCode.Byte)) return SetResult(TypeCode.Byte, out result);
-            if (CanConvertTo(first, second, TypeCode.Int16)) return SetResult(TypeCode.Int16, out result);
-            if (CanConvertTo(first, second, TypeCode.UInt16)) return SetResult(TypeCode.UInt16, out result);
-            if (CanConvertTo(first, second, TypeCode.Int32)) return SetResult(TypeCode.Int32, out result);
-            if (CanConvertTo(first, second, TypeCode.UInt32)) return SetResult(TypeCode.UInt32, out result);
-            if (CanConvertTo(first, second, TypeCode.Int64)) return SetResult(TypeCode.Int64, out result);
-            if (CanConvertTo(first, second, TypeCode.UInt64)) return SetResult(TypeCode.UInt64, out result);
-            if (CanConvertTo(first, second, TypeCode.Single)) return SetResult(TypeCode.Single, out result);
-            if (CanConvertTo(first, second, TypeCode.Double)) return SetResult(TypeCode.Double, out result);
-            if (CanConvertTo(first, second, TypeCode.Decimal)) return SetResult(TypeCode.Decimal, out result);
+            if (CanConvertTo(first, second, TypeCode.SByte))
+            {
+                return SetResult(TypeCode.SByte, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.Byte))
+            {
+                return SetResult(TypeCode.Byte, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.Int16))
+            {
+                return SetResult(TypeCode.Int16, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.UInt16))
+            {
+                return SetResult(TypeCode.UInt16, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.Int32))
+            {
+                return SetResult(TypeCode.Int32, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.UInt32))
+            {
+                return SetResult(TypeCode.UInt32, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.Int64))
+            {
+                return SetResult(TypeCode.Int64, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.UInt64))
+            {
+                return SetResult(TypeCode.UInt64, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.Single))
+            {
+                return SetResult(TypeCode.Single, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.Double))
+            {
+                return SetResult(TypeCode.Double, out result);
+            }
+            if (CanConvertTo(first, second, TypeCode.Decimal))
+            {
+                return SetResult(TypeCode.Decimal, out result);
+            }
 
             result = default;
             return false;
@@ -435,17 +594,50 @@ internal static partial class WellKnownFunctions
 
         private static bool TryGetCommonNumericType(TypeCode first, TypeCode second, TypeCode third, out TypeCode result)
         {
-            if (CanConvertTo(first, second, third, TypeCode.SByte)) return SetResult(TypeCode.SByte, out result);
-            if (CanConvertTo(first, second, third, TypeCode.Byte)) return SetResult(TypeCode.Byte, out result);
-            if (CanConvertTo(first, second, third, TypeCode.Int16)) return SetResult(TypeCode.Int16, out result);
-            if (CanConvertTo(first, second, third, TypeCode.UInt16)) return SetResult(TypeCode.UInt16, out result);
-            if (CanConvertTo(first, second, third, TypeCode.Int32)) return SetResult(TypeCode.Int32, out result);
-            if (CanConvertTo(first, second, third, TypeCode.UInt32)) return SetResult(TypeCode.UInt32, out result);
-            if (CanConvertTo(first, second, third, TypeCode.Int64)) return SetResult(TypeCode.Int64, out result);
-            if (CanConvertTo(first, second, third, TypeCode.UInt64)) return SetResult(TypeCode.UInt64, out result);
-            if (CanConvertTo(first, second, third, TypeCode.Single)) return SetResult(TypeCode.Single, out result);
-            if (CanConvertTo(first, second, third, TypeCode.Double)) return SetResult(TypeCode.Double, out result);
-            if (CanConvertTo(first, second, third, TypeCode.Decimal)) return SetResult(TypeCode.Decimal, out result);
+            if (CanConvertTo(first, second, third, TypeCode.SByte))
+            {
+                return SetResult(TypeCode.SByte, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.Byte))
+            {
+                return SetResult(TypeCode.Byte, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.Int16))
+            {
+                return SetResult(TypeCode.Int16, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.UInt16))
+            {
+                return SetResult(TypeCode.UInt16, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.Int32))
+            {
+                return SetResult(TypeCode.Int32, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.UInt32))
+            {
+                return SetResult(TypeCode.UInt32, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.Int64))
+            {
+                return SetResult(TypeCode.Int64, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.UInt64))
+            {
+                return SetResult(TypeCode.UInt64, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.Single))
+            {
+                return SetResult(TypeCode.Single, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.Double))
+            {
+                return SetResult(TypeCode.Double, out result);
+            }
+            if (CanConvertTo(first, second, third, TypeCode.Decimal))
+            {
+                return SetResult(TypeCode.Decimal, out result);
+            }
 
             result = default;
             return false;
