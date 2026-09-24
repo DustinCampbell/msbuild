@@ -606,6 +606,82 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         { """$([System.Text.RegularExpressions.Regex]::IsMatch(`100 GBP`, `^-?\d+(\.\d{2})?$`))""", false },
     };
 
+    [Theory]
+    [MemberData(nameof(RegexExpressions))]
+    public void PropertyFunctionRegex(string expression, string expected)
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
+
+    public static TheoryData<string, string> RegexExpressions => new()
+    {
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').ToString())""", "[a-z]+" },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+', 'IgnoreCase').Options)""", "IgnoreCase" },
+        {
+            """$([System.Text.RegularExpressions.Regex]::new('[a-z]+', 'None', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).ToString())""",
+            "[a-z]+"
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Escape('a.b'))""", @"a\.b" },
+        { """$([System.Text.RegularExpressions.Regex]::Unescape('a\.b'))""", "a.b" },
+        { """$([System.Text.RegularExpressions.Regex]::IsMatch('ABC', 'abc'))""", bool.FalseString },
+        { """$([System.Text.RegularExpressions.Regex]::IsMatch('ABC', 'abc', 'IgnoreCase'))""", bool.TrueString },
+        {
+            """$([System.Text.RegularExpressions.Regex]::IsMatch('ABC', 'abc', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)))""",
+            bool.TrueString
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '\d+').Value)""", "123" },
+        { """$([System.Text.RegularExpressions.Regex]::Match('ABC', 'abc', 'IgnoreCase').Success)""", bool.TrueString },
+        {
+            """$([System.Text.RegularExpressions.Regex]::Match('ABC', 'abc', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).Success)""",
+            bool.TrueString
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Matches('a1b2', '\d').Count)""", "2" },
+        { """$([System.Text.RegularExpressions.Regex]::Matches('A a', 'a', 'IgnoreCase').Count)""", "2" },
+        {
+            """$([System.Text.RegularExpressions.Regex]::Matches('A a', 'a', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)).Count)""",
+            "2"
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Replace('ABC', 'abc', 'x'))""", "ABC" },
+        { """$([System.Text.RegularExpressions.Regex]::Replace('ABC', 'abc', 'x', 'IgnoreCase'))""", "x" },
+        {
+            """$([System.Text.RegularExpressions.Regex]::Replace('ABC', 'abc', 'x', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout)))""",
+            "x"
+        },
+        { """$([System.Text.RegularExpressions.Regex]::Split('a1b2', '\d')[1])""", "b" },
+        { """$([System.Text.RegularExpressions.Regex]::Split('Axa', 'a', 'IgnoreCase')[1])""", "x" },
+        {
+            """$([System.Text.RegularExpressions.Regex]::Split('Axa', 'a', 'IgnoreCase', $([System.Text.RegularExpressions.Regex]::new('x').MatchTimeout))[1])""",
+            "x"
+        },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').IsMatch('123abc'))""", bool.TrueString },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').IsMatch('123abc', '3'))""", bool.TrueString },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Match('123abc').Value)""", "abc" },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Match('abc123def', '3').Value)""", "def" },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Match('123abc456', '3', '3').Value)""", "abc" },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Matches('abc def').Count)""", "2" },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Matches('abc def', '3').Count)""", "1" },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Replace('abc123def', '#'))""", "#123#" },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Replace('abc123def', '#', '1'))""", "#123def" },
+        { """$([System.Text.RegularExpressions.Regex]::new('[a-z]+').Replace('abc123def', '#', '1', '3'))""", "abc123#" },
+        { """$([System.Text.RegularExpressions.Regex]::new('\d').Split('a1b2')[1])""", "b" },
+        { """$([System.Text.RegularExpressions.Regex]::new('\d').Split('a1b2', '2')[1])""", "b2" },
+        { """$([System.Text.RegularExpressions.Regex]::new('\d').Split('a1b2', '2', '2')[1])""", "" },
+        { """$([System.Text.RegularExpressions.Regex]::new('(?<word>[a-z]+)').GetGroupNames()[1])""", "word" },
+        { """$([System.Text.RegularExpressions.Regex]::new('(?<word>[a-z]+)').GetGroupNumbers()[1])""", "1" },
+        { """$([System.Text.RegularExpressions.Regex]::new('(?<word>[a-z]+)').GroupNameFromNumber('1'))""", "word" },
+        { """$([System.Text.RegularExpressions.Regex]::new('(?<word>[a-z]+)').GroupNumberFromName('word'))""", "1" },
+        { """$([System.Text.RegularExpressions.Regex]::new('x').RightToLeft)""", bool.FalseString },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups.Count)""", "2" },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups[1].Success)""", bool.TrueString },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '[a-z]+').NextMatch().Value)""", "" },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Result('${word}'))""", "abc" },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '[a-z]+').Index)""", "0" },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '[a-z]+').Length)""", "3" },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '[a-z]+').ToString())""", "abc" },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups[1].Captures.Count)""", "1" },
+        { """$([System.Text.RegularExpressions.Regex]::Match('abc123', '(?<word>[a-z]+)').Groups[1].Captures[0].Value)""", "abc" },
+        { """$([System.Text.RegularExpressions.Regex]::Matches('abc def', '[a-z]+')[1].Value)""", "def" },
+    };
+
     /// <summary>
     ///  Expand property function that calls a static method  with an instance method chained.
     /// </summary>

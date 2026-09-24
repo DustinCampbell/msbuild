@@ -23,6 +23,12 @@ public class WellKnownFunctions_StringArray_Tests(ITestOutputHelper output)
             .ShouldBe("second");
 
     [Fact]
+    public void StringArray_GetValue_String()
+        => InstanceMember(nameof(Array.GetValue))
+            .Invoke(new[] { "first", "second" }, ["1"])
+            .ShouldBe("second");
+
+    [Fact]
     public void StringArray_GetValue_InvalidIndex_NotHandled()
         => InstanceMember(nameof(Array.GetValue))
             .NotHandled(new[] { "first", "second" }, ["invalid"]);
@@ -38,7 +44,13 @@ public class WellKnownFunctions_StringArray_Tests(ITestOutputHelper output)
             .NotHandled(new[] { "first", "second" }, [0]);
 
     [Fact]
-    public void StringArray_Length_NotHandled()
-        => InstanceMember(nameof(Array.Length))
-            .NotHandled(new[] { "first", "second" });
+    public void Array_Properties()
+    {
+        int[] array = [1, 2];
+
+        InstanceMember(nameof(Array.Length)).Invoke(array).ShouldBe(2);
+        InstanceMember(nameof(Array.LongLength)).Invoke(array).ShouldBe(2L);
+        InstanceMember(nameof(Array.Rank)).Invoke(array).ShouldBe(1);
+        InstanceMember(nameof(Array.GetValue)).Invoke(array, ["1"]).ShouldBe(2);
+    }
 }

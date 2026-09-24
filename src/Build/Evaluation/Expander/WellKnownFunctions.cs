@@ -33,7 +33,7 @@ internal static partial class WellKnownFunctions
     private static readonly PrimitiveHandler s_primitiveHandler = new();
     private static readonly RegexHandler s_regexHandler = new();
     private static readonly RuntimeInformationHandler s_runtimeInformationHandler = new();
-    private static readonly StringArrayHandler s_stringArrayHandler = new();
+    private static readonly ArrayHandler s_arrayHandler = new();
     private static readonly StringHandler s_stringHandler = new();
     private static readonly TimeSpanHandler s_timeSpanHandler = new();
     private static readonly VersionHandler s_versionHandler = new();
@@ -103,9 +103,16 @@ internal static partial class WellKnownFunctions
         => objectInstance switch
         {
             string s => s_stringHandler.TryInvokeInstance(methodName, s, args),
-            string[] a => s_stringArrayHandler.TryInvokeInstance(methodName, a, args),
+            Array array => s_arrayHandler.TryInvokeInstance(methodName, array, args),
+            CaptureCollection captures => s_regexHandler.TryInvokeInstance(methodName, captures, args),
             System.Globalization.CultureInfo culture => s_cultureInfoHandler.TryInvokeInstance(methodName, culture, args),
             DateTime dateTime => s_dateTimeHandler.TryInvokeInstance(methodName, dateTime, args),
+            GroupCollection groups => s_regexHandler.TryInvokeInstance(methodName, groups, args),
+            Match match => s_regexHandler.TryInvokeInstance(methodName, match, args),
+            MatchCollection matches => s_regexHandler.TryInvokeInstance(methodName, matches, args),
+            Group group => s_regexHandler.TryInvokeInstance(methodName, group, args),
+            Capture capture => s_regexHandler.TryInvokeInstance(methodName, capture, args),
+            Regex regex => s_regexHandler.TryInvokeInstance(methodName, regex, args),
             Version v => s_versionHandler.TryInvokeInstance(methodName, v, args),
             System.Runtime.InteropServices.OSPlatform platform => s_osPlatformHandler.TryInvokeInstance(methodName, platform, args),
             _ when objectInstance.GetType().IsPrimitive || objectInstance is decimal
@@ -150,6 +157,8 @@ internal static partial class WellKnownFunctions
             ? s_stringHandler.TryInvokeConstructor(args)
             : receiverType == typeof(System.Globalization.CultureInfo)
             ? s_cultureInfoHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(Regex)
+            ? s_regexHandler.TryInvokeConstructor(args)
             : receiverType == typeof(Version)
             ? s_versionHandler.TryInvokeConstructor(args)
             : NotHandled;
