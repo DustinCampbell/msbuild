@@ -58,12 +58,12 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="name">The property name.</param>
         /// <returns>The property.</returns>
-        public P GetProperty(string name)
+        public P? GetProperty(string name)
         {
-            P prop = _wrapped.GetProperty(name);
+            P? prop = _wrapped.GetProperty(name);
             if (IsPropertyReadTrackingRequested)
             {
-                this.TrackPropertyRead(name, prop);
+                TrackPropertyRead(name, prop);
             }
 
             return prop;
@@ -73,12 +73,12 @@ namespace Microsoft.Build.Evaluation
         /// Returns a property with the specified name, or null if it was not found.
         /// Name is the segment of the provided string with the provided start and end indexes.
         /// </summary>
-        public P GetProperty(string name, int startIndex, int endIndex)
+        public P? GetProperty(string name, int startIndex, int endIndex)
         {
-            P prop = _wrapped.GetProperty(name, startIndex, endIndex);
+            P? prop = _wrapped.GetProperty(name, startIndex, endIndex);
             if (IsPropertyReadTrackingRequested)
             {
-                this.TrackPropertyRead(name.Substring(startIndex, endIndex - startIndex + 1), prop);
+                TrackPropertyRead(name.Substring(startIndex, endIndex - startIndex + 1), prop);
             }
 
             return prop;
@@ -99,11 +99,11 @@ namespace Microsoft.Build.Evaluation
             P? originalProperty = _wrapped.GetProperty(name);
             P newProperty = _wrapped.SetProperty(name, evaluatedValueEscaped, isGlobalProperty, mayBeReserved, _evaluationLoggingContext, isEnvironmentVariable, isCommandLineProperty);
 
-            this.TrackPropertyWrite(
+            TrackPropertyWrite(
                 originalProperty,
                 newProperty,
                 null,
-                this.DeterminePropertySource(isGlobalProperty, mayBeReserved, isEnvironmentVariable, isCommandLineProperty),
+                DeterminePropertySource(isGlobalProperty, mayBeReserved, isEnvironmentVariable, isCommandLineProperty),
                 loggingContext);
 
             return newProperty;
@@ -121,7 +121,7 @@ namespace Microsoft.Build.Evaluation
             P? originalProperty = _wrapped.GetProperty(propertyElement.Name);
             P newProperty = _wrapped.SetProperty(propertyElement, evaluatedValueEscaped, loggingContext);
 
-            this.TrackPropertyWrite(
+            TrackPropertyWrite(
                 originalProperty,
                 newProperty,
                 propertyElement.Location,
@@ -197,7 +197,7 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="name">The name of the property.</param>
         /// <param name="property">The value of the property that was read (null if there is no value).</param>
-        private void TrackPropertyRead(string name, P property)
+        private void TrackPropertyRead(string name, P? property)
         {
             // MSBuild looks up a property called "InnerBuildProperty". If that isn't present,
             // an empty string is returned and it then attempts to look up the value for that property
@@ -211,11 +211,11 @@ namespace Microsoft.Build.Evaluation
             // track it as an environment variable read.
             if (IsEnvironmentVariableReadTrackingRequested && _wrapped.EnvironmentVariablePropertiesDictionary.Contains(name) && !_overwrittenEnvironmentVariables.Contains(name))
             {
-                this.TrackEnvironmentVariableRead(name);
+                TrackEnvironmentVariableRead(name);
             }
             else if (property == null)
             {
-                this.TrackUninitializedPropertyRead(name);
+                TrackUninitializedPropertyRead(name);
             }
         }
 
