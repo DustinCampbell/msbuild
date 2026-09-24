@@ -4,8 +4,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Microsoft.Build.BackEnd.Logging;
-using Microsoft.Build.Shared.FileSystem;
 
 #nullable disable
 
@@ -86,10 +84,6 @@ internal partial class Expander<P, I>
         /// </summary>
         public string Remainder { get; set; }
 
-        public IFileSystem FileSystem { get; set; }
-
-        public LoggingContext LoggingContext { get; set; }
-
         /// <summary>
         /// List of properties which have been used but have not been initialized yet.
         /// </summary>
@@ -105,9 +99,7 @@ internal partial class Expander<P, I>
                 Arguments,
                 BindingFlags,
                 Remainder,
-                PropertiesUseTracker,
-                FileSystem,
-                LoggingContext);
+                PropertiesUseTracker);
         }
     }
 }
