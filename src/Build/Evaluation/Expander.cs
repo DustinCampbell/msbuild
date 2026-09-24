@@ -141,10 +141,10 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
         Assumed.NotNull(location);
 
-        var context = new ExpanderContext(_properties, _loggingContext, _fileSystem);
+        var context = new ExpanderContext(_properties, _loggingContext, _fileSystem, _propertiesUseTracker);
 
         string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, location, _loggingContext);
-        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, options, location, _propertiesUseTracker, in context);
+        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, options, location, in context);
         result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, location);
         result = FileUtilities.MaybeAdjustFilePath(result);
 
@@ -172,10 +172,10 @@ internal partial class Expander<P, I> : IExpander<P, I>, IMetadataScopeOwner
 
         Assumed.NotNull(location);
 
-        var context = new ExpanderContext(_properties, _loggingContext, _fileSystem);
+        var context = new ExpanderContext(_properties, _loggingContext, _fileSystem, _propertiesUseTracker);
 
         expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, location);
-        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, options, location, _propertiesUseTracker, in context);
+        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, options, location, in context);
         expression = FileUtilities.MaybeAdjustFilePath(expression);
 
         List<T> result = [];

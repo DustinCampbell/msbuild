@@ -18,10 +18,14 @@ namespace Microsoft.Build.Evaluation.Expander;
 /// <param name="fileSystem">
 ///  The file system used during expansion, or <see langword="null"/> to use <see cref="FileSystems.Default"/>.
 /// </param>
+/// <param name="propertiesUseTracker">
+///  The tracker for properties read during expansion, or <see langword="null"/> if property tracking is unavailable.
+/// </param>
 internal readonly struct ExpanderContext(
     IPropertyProvider<IProperty>? properties = null,
     LoggingContext? loggingContext = null,
-    IFileSystem? fileSystem = null)
+    IFileSystem? fileSystem = null,
+    PropertiesUseTracker? propertiesUseTracker = null)
 {
     /// <summary>
     ///  Gets the properties available during expansion, or <see langword="null"/> if properties are unavailable.
@@ -37,4 +41,9 @@ internal readonly struct ExpanderContext(
     ///  Gets the file system used during expansion.
     /// </summary>
     public IFileSystem FileSystem => fileSystem ?? FileSystems.Default;
+
+    /// <summary>
+    ///  Gets the tracker for properties read during expansion, or <see langword="null"/> if property tracking is unavailable.
+    /// </summary>
+    public PropertiesUseTracker? PropertiesUseTracker => propertiesUseTracker;
 }

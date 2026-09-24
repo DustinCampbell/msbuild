@@ -107,11 +107,6 @@ internal partial class Expander<P, I>
         private readonly string _remainder;
 
         /// <summary>
-        /// List of properties which have been used but have not been initialized yet.
-        /// </summary>
-        private PropertiesUseTracker _propertiesUseTracker;
-
-        /// <summary>
         /// Construct a function that will be executed during property evaluation.
         /// </summary>
         internal Function(
@@ -125,8 +120,7 @@ internal partial class Expander<P, I>
             string methodName,
             string[] arguments,
             BindingFlags bindingFlags,
-            string remainder,
-            PropertiesUseTracker propertiesUseTracker)
+            string remainder)
         {
             _methodMethodName = methodName;
             if (arguments == null)
@@ -153,7 +147,6 @@ internal partial class Expander<P, I>
             _bindingFlags = bindingFlags & AllowedBindingFlags;
 
             _remainder = remainder;
-            _propertiesUseTracker = propertiesUseTracker;
         }
 
         /// <summary>
@@ -190,12 +183,10 @@ internal partial class Expander<P, I>
         /// <c>DynamicallyAccessedMembers</c> constraint on an <see cref="object"/> parameter, so the unavoidable
         /// trim suppression lives, minimized, in <c>FunctionBuilder.SetReceiverType</c>.
         /// </param>
-        /// <param name="propertiesUseTracker">Tracks property reads performed while evaluating the function.</param>
         internal static Function ExtractPropertyFunction(
             string expressionFunction,
             IElementLocation elementLocation,
-            object propertyValue,
-            PropertiesUseTracker propertiesUseTracker)
+            object propertyValue)
         {
             // Used to aggregate all the components needed for a Function
             FunctionBuilder functionBuilder = new();
@@ -215,9 +206,7 @@ internal partial class Expander<P, I>
 
             // In case we ended up with something we don't understand
             ProjectErrorUtilities.VerifyThrowInvalidProject(!expressionRoot.IsEmpty, elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, String.Empty);
-
             functionBuilder.Expression = expressionFunction;
-            functionBuilder.PropertiesUseTracker = propertiesUseTracker;
 
             // This is a static method call
             // A static method is the content that follows the last "::", the rest being the type
@@ -401,7 +390,6 @@ internal partial class Expander<P, I>
                         _arguments[n],
                         options,
                         elementLocation,
-                        _propertiesUseTracker,
                         in context);
 
                     if (argument is string argumentValue)
@@ -578,7 +566,6 @@ internal partial class Expander<P, I>
                     functionResult,
                     options,
                     elementLocation,
-                    _propertiesUseTracker,
                     in context);
             }
 
