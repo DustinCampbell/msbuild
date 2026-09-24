@@ -99,9 +99,10 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .ShouldBe(expected);
 
     [Fact]
-    public void String_Equals_StringComparison_NotHandled()
+    public void String_Equals_StringComparison()
         => InstanceMember(nameof(string.Equals))
-            .NotHandled("abc", ["ABC", nameof(StringComparison.OrdinalIgnoreCase)]);
+            .Invoke("abc", ["ABC", nameof(StringComparison.OrdinalIgnoreCase)])
+            .ShouldBe(true);
 
     [Fact]
     public void String_GetChars_Int32()
@@ -115,9 +116,10 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .NotHandled("abc", ["invalid"]);
 
     [Fact]
-    public void String_IndexOf_String_NotHandled()
+    public void String_IndexOf_String()
         => InstanceMember(nameof(string.IndexOf))
-            .NotHandled("abc", ["b"]);
+            .Invoke("abc", ["b"])
+            .ShouldBe(1);
 
     [Theory]
     [InlineData("OrdinalIgnoreCase")]
@@ -347,9 +349,37 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .NotHandled("abc");
 
     [Fact]
-    public void String_Trim_NotHandled()
+    public void String_Trim()
         => InstanceMember(nameof(string.Trim))
-            .NotHandled(" abc ");
+            .Invoke(" abc ")
+            .ShouldBe("abc");
+
+    [Fact]
+    public void String_AdditionalMembers()
+    {
+        StaticMember(nameof(string.Equals)).Invoke(["abc", "ABC", "OrdinalIgnoreCase"]).ShouldBe(true);
+        InstanceMember(nameof(string.CompareTo)).Invoke("abc", ["abd"]).ShouldBeOfType<int>().ShouldBeLessThan(0);
+        InstanceMember(nameof(string.GetTypeCode)).Invoke("abc").ShouldBe(TypeCode.String);
+        InstanceMember(nameof(string.Insert)).Invoke("bc", ["0", "a"]).ShouldBe("abc");
+        InstanceMember(nameof(string.Length)).Invoke("abc").ShouldBe(3);
+        InstanceMember("get_Length").Invoke("abc").ShouldBe(3);
+        InstanceMember(nameof(string.Split)).Invoke("a;b", [new[] { ';' }]).ShouldBeOfType<string[]>().ShouldBe(["a", "b"]);
+        InstanceMember(nameof(string.ToCharArray)).Invoke("abc").ShouldBeOfType<char[]>().ShouldBe(['a', 'b', 'c']);
+        InstanceMember(nameof(string.ToCharArray)).Invoke("abc", ["1", "2"]).ShouldBeOfType<char[]>().ShouldBe(['b', 'c']);
+        InstanceMember(nameof(string.ToString)).Invoke("abc").ShouldBe("abc");
+        InstanceMember(nameof(string.Trim)).Invoke("xxabcxx", [new[] { 'x' }]).ShouldBe("abc");
+    }
+
+    [Fact]
+    public void String_IndexOf_Overloads()
+    {
+        InstanceMember(nameof(string.IndexOf)).Invoke("abc", ["b"]).ShouldBe(1);
+        InstanceMember(nameof(string.IndexOf)).Invoke("abc", ["b", "1"]).ShouldBe(1);
+        InstanceMember(nameof(string.IndexOf)).Invoke("abc", ["B", "OrdinalIgnoreCase"]).ShouldBe(1);
+        InstanceMember(nameof(string.IndexOf)).Invoke("abc", ["b", "0", "2"]).ShouldBe(1);
+        InstanceMember(nameof(string.IndexOf)).Invoke("abc", ["B", "0", "OrdinalIgnoreCase"]).ShouldBe(1);
+        InstanceMember(nameof(string.IndexOf)).Invoke("abc", ["B", "0", "2", "OrdinalIgnoreCase"]).ShouldBe(1);
+    }
 
     [Fact]
     public void String_TrimEnd_String()

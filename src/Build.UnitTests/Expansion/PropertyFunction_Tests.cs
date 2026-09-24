@@ -1732,7 +1732,6 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     public static TheoryData<string, string> ReflectionFallbackExpressions => new()
     {
         { "$([System.Math]::Abs(-1))", "ReceiverType=System.Math; ObjectInstanceType=; MethodName=Abs(" },
-        { "$([System.String]::new(' abc ').Trim())", "ReceiverType=System.String; ObjectInstanceType=System.String; MethodName=Trim(" },
         { "$([System.Version]::new('1.2'))", "ReceiverType=System.Version; ObjectInstanceType=; MethodName=new(" },
     };
 
