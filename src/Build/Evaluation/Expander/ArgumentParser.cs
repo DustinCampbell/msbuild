@@ -423,7 +423,7 @@ internal static class ArgumentParser
         }
     }
 
-    private static bool TryWidenToDouble(object? value, out double result)
+    internal static bool TryWidenToDouble(object? value, out double result)
     {
         if (value is null)
         {
@@ -455,6 +455,45 @@ internal static class ArgumentParser
                 return false;
         }
     }
+
+    internal static bool TryWidenPrimitive(object? value, Type targetType, out object? result)
+    {
+        if (value is null || value.GetType() == targetType)
+        {
+            result = value;
+            return true;
+        }
+
+        TypeCode source = Type.GetTypeCode(value.GetType());
+        TypeCode target = Type.GetTypeCode(targetType);
+
+        if (CanWidenPrimitive(source, target))
+        {
+            result = Convert.ChangeType(value, targetType, CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    internal static bool CanWidenPrimitive(TypeCode source, TypeCode target)
+        => source switch
+        {
+            TypeCode.SByte => target is TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
+            TypeCode.Byte => target is TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64
+                or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
+            TypeCode.Int16 => target is TypeCode.Int32 or TypeCode.Int64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
+            TypeCode.Char => target is TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64
+                or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
+            TypeCode.UInt16 => target is TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64
+                or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
+            TypeCode.Int32 => target is TypeCode.Int64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
+            TypeCode.UInt32 => target is TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
+            TypeCode.Int64 or TypeCode.UInt64 => target is TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
+            TypeCode.Single => target is TypeCode.Double,
+            _ => false,
+        };
 
     private static bool TryCoerceNonStringToLong(object? value, out long result)
     {

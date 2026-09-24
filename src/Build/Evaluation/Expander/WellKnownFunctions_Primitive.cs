@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Globalization;
 
 namespace Microsoft.Build.Evaluation.Expander;
 
@@ -78,7 +77,7 @@ internal static partial class WellKnownFunctions
             {
                 if (value is IComparable comparable && args is [var other])
                 {
-                    TryWidenPrimitive(other, value.GetType(), out object? widened);
+                    ArgumentParser.TryWidenPrimitive(other, value.GetType(), out object? widened);
                     return Invoked(comparable.CompareTo(widened ?? other));
                 }
 
@@ -89,7 +88,7 @@ internal static partial class WellKnownFunctions
             {
                 if (args is [var other])
                 {
-                    TryWidenPrimitive(other, value.GetType(), out object? widened);
+                    ArgumentParser.TryWidenPrimitive(other, value.GetType(), out object? widened);
                     return Invoked(value.Equals(widened ?? other));
                 }
 
@@ -223,41 +222,5 @@ internal static partial class WellKnownFunctions
                 [null] when value is IConvertible convertible => Invoked(convertible.ToString(provider: null)),
                 _ => NotHandled,
             };
-
-        private static bool TryWidenPrimitive(object? value, Type targetType, out object? result)
-        {
-            if (value is null || value.GetType() == targetType)
-            {
-                result = value;
-                return true;
-            }
-
-            TypeCode source = Type.GetTypeCode(value.GetType());
-            TypeCode target = Type.GetTypeCode(targetType);
-
-            bool canWiden = source switch
-            {
-                TypeCode.SByte => target is TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
-                TypeCode.Byte => target is TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64
-                    or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
-                TypeCode.Int16 => target is TypeCode.Int32 or TypeCode.Int64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
-                TypeCode.UInt16 or TypeCode.Char => target is TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64
-                    or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
-                TypeCode.Int32 => target is TypeCode.Int64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
-                TypeCode.UInt32 => target is TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
-                TypeCode.Int64 or TypeCode.UInt64 => target is TypeCode.Single or TypeCode.Double or TypeCode.Decimal,
-                TypeCode.Single => target is TypeCode.Double,
-                _ => false,
-            };
-
-            if (canWiden)
-            {
-                result = Convert.ChangeType(value, targetType, CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
     }
 }

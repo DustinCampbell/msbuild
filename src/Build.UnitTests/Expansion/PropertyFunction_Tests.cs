@@ -1706,6 +1706,223 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         => ExpandProperties("$([System.Math]::Min($(X), 20))", Properties("X", "30"))
             .ShouldBe("20");
 
+    [Theory]
+    [MemberData(nameof(MathExpressions))]
+    public void PropertyFunctionMathMembers(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander)
+            .ShouldBe(expected);
+
+    public static TheoryData<string, string> MathExpressions => new()
+    {
+        { """$([System.Math]::E)""", Math.E.ToResultString() },
+        { """$([System.Math]::PI)""", Math.PI.ToResultString() },
+        { """$([System.Math]::Abs('-1'))""", "1" },
+        { """$([System.Math]::Abs($([System.Convert]::ToDecimal('-1.5'))))""", "1.5" },
+        { """$([System.Math]::Acos('1'))""", "0" },
+        { """$([System.Math]::Asin('0'))""", "0" },
+        { """$([System.Math]::Atan('0'))""", "0" },
+        { """$([System.Math]::Atan2('0', '1'))""", "0" },
+        { """$([System.Math]::BigMul('3', '4'))""", "12" },
+        { """$([System.Math]::Ceiling($([System.Convert]::ToDecimal('1.2'))))""", "2" },
+        { """$([System.Math]::Ceiling('1.2'))""", "2" },
+        { """$([System.Math]::Cos('0'))""", "1" },
+        { """$([System.Math]::Cosh('0'))""", "1" },
+        { """$([System.Math]::Exp('0'))""", "1" },
+        { """$([System.Math]::Floor($([System.Convert]::ToDecimal('1.8'))))""", "1" },
+        { """$([System.Math]::Floor('1.8'))""", "1" },
+        { """$([System.Math]::IEEERemainder('5', '2'))""", "1" },
+        { """$([System.Math]::Log('1'))""", "0" },
+        { """$([System.Math]::Log('8', '2'))""", "3" },
+        { """$([System.Math]::Log10('100'))""", "2" },
+        { """$([System.Math]::Max($([System.Convert]::ToDecimal('1')), $([System.Convert]::ToDecimal('2'))))""", "2" },
+        { """$([System.Math]::Min($([System.Convert]::ToInt32('1')), $([System.Convert]::ToInt32('2'))))""", "1" },
+        { """$([System.Math]::Pow('2', '3'))""", "8" },
+        { """$([System.Math]::Round('1.5'))""", "2" },
+        { """$([System.Math]::Round('1.25', '1'))""", "1.2" },
+        { """$([System.Math]::Round($([System.Convert]::ToDecimal('1.5'))))""", "2" },
+        { """$([System.Math]::Round($([System.Convert]::ToDecimal('1.25')), '1'))""", "1.2" },
+        { """$([System.Math]::Sign('-1'))""", "-1" },
+        { """$([System.Math]::Sin('0'))""", "0" },
+        { """$([System.Math]::Sinh('0'))""", "0" },
+        { """$([System.Math]::Sqrt('4'))""", "2" },
+        { """$([System.Math]::Tan('0'))""", "0" },
+        { """$([System.Math]::Tanh('0'))""", "0" },
+        { """$([System.Math]::Truncate($([System.Convert]::ToDecimal('1.8'))))""", "1" },
+        { """$([System.Math]::Truncate('1.8'))""", "1" },
+#if NET
+        { """$([System.Math]::Tau)""", Math.Tau.ToResultString() },
+        { """$([System.Math]::Acosh('1'))""", "0" },
+        { """$([System.Math]::Asinh('0'))""", "0" },
+        { """$([System.Math]::Atanh('0'))""", "0" },
+        { """$([System.Math]::BitDecrement('2'))""", Math.BitDecrement(2).ToResultString() },
+        { """$([System.Math]::BitIncrement('2'))""", Math.BitIncrement(2).ToResultString() },
+        { """$([System.Math]::Cbrt('8'))""", "2" },
+        { """$([System.Math]::Clamp('5', '0', '3'))""", "3" },
+        { """$([System.Math]::CopySign('2', '-1'))""", "-2" },
+        { """$([System.Math]::FusedMultiplyAdd('2', '3', '4'))""", "10" },
+        { """$([System.Math]::ILogB('8'))""", "3" },
+        { """$([System.Math]::Log2('8'))""", "3" },
+        { """$([System.Math]::MaxMagnitude('-3', '2'))""", "-3" },
+        { """$([System.Math]::MinMagnitude('-3', '2'))""", "2" },
+        { """$([System.Math]::ReciprocalEstimate('4'))""", Math.ReciprocalEstimate(4).ToResultString() },
+        { """$([System.Math]::ReciprocalSqrtEstimate('4'))""", Math.ReciprocalSqrtEstimate(4).ToResultString() },
+        { """$([System.Math]::ScaleB('2', '3'))""", "16" },
+        { """$([System.Math]::SinCos('0'))""", "(0, 1)" },
+#endif
+    };
+
+    [Theory]
+    [InlineData(nameof(Convert.ToSByte))]
+    [InlineData(nameof(Convert.ToInt16))]
+    [InlineData(nameof(Convert.ToInt32))]
+    [InlineData(nameof(Convert.ToInt64))]
+    [InlineData(nameof(Convert.ToSingle))]
+    [InlineData(nameof(Convert.ToDouble))]
+    [InlineData(nameof(Convert.ToDecimal))]
+    public void PropertyFunctionMathSignedNumericOverloads(string conversion)
+    {
+        string value = $"$([System.Convert]::{conversion}('-2'))";
+
+        ExpandProperties($"$([System.Math]::Abs({value}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("2");
+        ExpandProperties($"$([System.Math]::Sign({value}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("-1");
+    }
+
+    [Theory]
+    [InlineData(nameof(Convert.ToByte))]
+    [InlineData(nameof(Convert.ToUInt16))]
+    [InlineData(nameof(Convert.ToUInt32))]
+    [InlineData(nameof(Convert.ToUInt64))]
+    public void PropertyFunctionMathUnsignedNumericWidening(string conversion)
+    {
+        string value = $"$([System.Convert]::{conversion}('2'))";
+
+        ExpandProperties($"$([System.Math]::Abs({value}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("2");
+        ExpandProperties($"$([System.Math]::Sign({value}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("1");
+    }
+
+    [Theory]
+    [InlineData(nameof(Convert.ToSByte))]
+    [InlineData(nameof(Convert.ToByte))]
+    [InlineData(nameof(Convert.ToInt16))]
+    [InlineData(nameof(Convert.ToUInt16))]
+    [InlineData(nameof(Convert.ToInt32))]
+    [InlineData(nameof(Convert.ToUInt32))]
+    [InlineData(nameof(Convert.ToInt64))]
+    [InlineData(nameof(Convert.ToUInt64))]
+    [InlineData(nameof(Convert.ToSingle))]
+    [InlineData(nameof(Convert.ToDouble))]
+    [InlineData(nameof(Convert.ToDecimal))]
+    public void PropertyFunctionMathMinMaxOverloads(string conversion)
+    {
+        string one = $"$([System.Convert]::{conversion}('1'))";
+        string two = $"$([System.Convert]::{conversion}('2'))";
+
+        ExpandProperties($"$([System.Math]::Min({one}, {two}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("1");
+        ExpandProperties($"$([System.Math]::Max({one}, {two}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("2");
+    }
+
+    [Theory]
+    [InlineData(nameof(Convert.ToInt16), nameof(Convert.ToInt32))]
+    [InlineData(nameof(Convert.ToUInt32), nameof(Convert.ToInt64))]
+    [InlineData(nameof(Convert.ToInt64), nameof(Convert.ToUInt64))]
+    [InlineData(nameof(Convert.ToSingle), nameof(Convert.ToDouble))]
+    public void PropertyFunctionMathMixedNumericWidening(string leftConversion, string rightConversion)
+    {
+        string one = $"$([System.Convert]::{leftConversion}('1'))";
+        string two = $"$([System.Convert]::{rightConversion}('2'))";
+
+        ExpandProperties($"$([System.Math]::Max({one}, {two}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("2");
+    }
+
+    [Fact]
+    public void PropertyFunctionMathWidensBigMulArguments()
+        => ExpandProperties(
+            "$([System.Math]::BigMul($([System.Convert]::ToInt16('3')), $([System.Convert]::ToInt32('4'))))",
+            allowReflection: ExpanderFactory.UseLegacyExpander)
+            .ShouldBe("12");
+
+    [Fact]
+    public void PropertyFunctionMathWidensCharArguments()
+    {
+        const string a = "$([System.Convert]::ToChar('A'))";
+        const string b = "$([System.Convert]::ToChar('B'))";
+
+        ExpandProperties($"$([System.Math]::Max({a}, {b}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("66");
+    }
+
+#if NET
+    [Theory]
+    [InlineData(nameof(Convert.ToSByte))]
+    [InlineData(nameof(Convert.ToByte))]
+    [InlineData(nameof(Convert.ToInt16))]
+    [InlineData(nameof(Convert.ToUInt16))]
+    [InlineData(nameof(Convert.ToInt32))]
+    [InlineData(nameof(Convert.ToUInt32))]
+    [InlineData(nameof(Convert.ToInt64))]
+    [InlineData(nameof(Convert.ToUInt64))]
+    [InlineData(nameof(Convert.ToSingle))]
+    [InlineData(nameof(Convert.ToDouble))]
+    [InlineData(nameof(Convert.ToDecimal))]
+    public void PropertyFunctionMathClampOverloads(string conversion)
+    {
+        string zero = $"$([System.Convert]::{conversion}('0'))";
+        string two = $"$([System.Convert]::{conversion}('2'))";
+        string three = $"$([System.Convert]::{conversion}('3'))";
+
+        ExpandProperties($"$([System.Math]::Clamp({three}, {zero}, {two}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("2");
+    }
+
+    [Theory]
+    [InlineData(nameof(Convert.ToSByte))]
+    [InlineData(nameof(Convert.ToByte))]
+    [InlineData(nameof(Convert.ToInt16))]
+    [InlineData(nameof(Convert.ToUInt16))]
+    [InlineData(nameof(Convert.ToInt32))]
+    [InlineData(nameof(Convert.ToUInt32))]
+    [InlineData(nameof(Convert.ToInt64))]
+    [InlineData(nameof(Convert.ToUInt64))]
+    public void PropertyFunctionMathDivRemOverloads(string conversion)
+    {
+        string seven = $"$([System.Convert]::{conversion}('7'))";
+        string two = $"$([System.Convert]::{conversion}('2'))";
+
+        ExpandProperties($"$([System.Math]::DivRem({seven}, {two}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("(3, 1)");
+    }
+
+    [Theory]
+    [InlineData(nameof(Convert.ToInt32))]
+    [InlineData(nameof(Convert.ToUInt32))]
+    [InlineData(nameof(Convert.ToInt64))]
+    [InlineData(nameof(Convert.ToUInt64))]
+    public void PropertyFunctionMathBigMulOverloads(string conversion)
+    {
+        string three = $"$([System.Convert]::{conversion}('3'))";
+        string four = $"$([System.Convert]::{conversion}('4'))";
+
+        ExpandProperties($"$([System.Math]::BigMul({three}, {four}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("12");
+    }
+
+    [Fact]
+    public void PropertyFunctionMathWidensClampAndDivRemArguments()
+    {
+        ExpandProperties(
+            "$([System.Math]::Clamp($([System.Convert]::ToInt16('3')), $([System.Convert]::ToInt32('0')), $([System.Convert]::ToInt32('2'))))",
+            allowReflection: ExpanderFactory.UseLegacyExpander)
+            .ShouldBe("2");
+        ExpandProperties(
+            "$([System.Math]::DivRem($([System.Convert]::ToInt16('7')), $([System.Convert]::ToInt32('2'))))",
+            allowReflection: ExpanderFactory.UseLegacyExpander)
+            .ShouldBe("(3, 1)");
+
+        const string a = "$([System.Convert]::ToChar('A'))";
+        const string b = "$([System.Convert]::ToChar('B'))";
+        const string c = "$([System.Convert]::ToChar('C'))";
+
+        ExpandProperties($"$([System.Math]::Clamp({c}, {a}, {b}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("66");
+        ExpandProperties($"$([System.Math]::DivRem({c}, {b}))", allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe("(1, 1)");
+    }
+#endif
+
     /// <summary>
     ///  Verifies that arithmetic intrinsics preserve reflection behavior by treating <see langword="null"/> as
     ///  the numeric value-type default, zero.
@@ -2150,7 +2367,7 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
 
     public static TheoryData<string, string> ReflectionFallbackExpressions => new()
     {
-        { "$([System.Math]::Abs(-1))", "ReceiverType=System.Math; ObjectInstanceType=; MethodName=Abs(" },
+        { "$([MSBuild]::__ReflectionTest())", "ReceiverType=Microsoft.Build.Evaluation.IntrinsicFunctions; ObjectInstanceType=; MethodName=__ReflectionTest(" },
     };
 
     [Fact]

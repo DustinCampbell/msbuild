@@ -782,6 +782,11 @@ namespace Microsoft.Build.Evaluation
             return new List<string> { "A", "B", "C", "D" };
         }
 
+        public static string __ReflectionTest()
+        {
+            return nameof(__ReflectionTest);
+        }
+
         #endregion
 
         /// <summary>

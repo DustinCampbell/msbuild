@@ -274,6 +274,56 @@ public class ArgumentParser_Tests
         actual.ShouldBe(0D);
     }
 
+    [Theory]
+    [InlineData('A', 65.0)]
+    [InlineData((sbyte)10, 10.0)]
+    [InlineData((byte)10, 10.0)]
+    [InlineData((short)10, 10.0)]
+    [InlineData((ushort)10, 10.0)]
+    [InlineData(10u, 10.0)]
+    [InlineData(10UL, 10.0)]
+    [InlineData(10f, 10.0)]
+    [InlineData(10.0, 10.0)]
+    [InlineData(10L, 10.0)]
+    [InlineData(10, 10.0)]
+    public void TryWidenToDoubleSucceeds(object value, double expected)
+    {
+        ArgumentParser.TryWidenToDouble(value, out double actual).ShouldBeTrue();
+        actual.ShouldBe(expected);
+    }
+
+    [Theory]
+    [MemberData(nameof(WidenPrimitiveData))]
+    public void TryWidenPrimitiveSucceeds(object value, Type targetType, object expected)
+    {
+        ArgumentParser.TryWidenPrimitive(value, targetType, out object? actual).ShouldBeTrue();
+        actual.ShouldBe(expected);
+    }
+
+    public static TheoryData<object, Type, object> WidenPrimitiveData => new()
+    {
+        { 'A', typeof(ushort), (ushort)65 },
+        { (short)1, typeof(int), 1 },
+        { 1u, typeof(long), 1L },
+        { 1L, typeof(float), 1f },
+        { 1f, typeof(double), 1d },
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidWidenPrimitiveData))]
+    public void TryWidenPrimitiveFails(object value, Type targetType)
+    {
+        ArgumentParser.TryWidenPrimitive(value, targetType, out object? actual).ShouldBeFalse();
+        actual.ShouldBeNull();
+    }
+
+    public static TheoryData<object, Type> InvalidWidenPrimitiveData => new()
+    {
+        { 1L, typeof(int) },
+        { 1d, typeof(float) },
+        { 1m, typeof(double) },
+    };
+
     [Fact]
     public void TryConvertToDoubleGivenStringAndLocale()
     {
