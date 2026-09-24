@@ -909,11 +909,76 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("$([System.Globalization.CultureInfo]::new('en-US').ToString())", "en-US")]
-    [InlineData("$([System.Globalization.CultureInfo]::GetCultureInfo($([System.Convert]::ToInt32(1033))).ToString())", "en-US")]
-    [InlineData("$([System.Globalization.CultureInfo]::GetCultureInfo('en-US', 'fr-FR').ToString())", "en-US")]
-    public void PropertyFunctionCultureInfoMembers(string expression, string expected)
-        => ExpandProperties(expression).ShouldBe(expected);
+    [MemberData(nameof(CultureInfoMemberExpressions))]
+    public void PropertyFunctionCultureInfoMembers(string expression, string? expected)
+    {
+        string? result = ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander);
+
+        if (expected is null)
+        {
+            result.ShouldNotBeNull();
+        }
+        else
+        {
+            result.ShouldBe(expected);
+        }
+    }
+
+    public static TheoryData<string, string?> CultureInfoMemberExpressions
+    {
+        get
+        {
+            const string culture = "$([System.Globalization.CultureInfo]::new('en-US')";
+
+            return new()
+            {
+                { "$([System.Globalization.CultureInfo]::CurrentUICulture)", null },
+                { "$([System.Globalization.CultureInfo]::GetCultureInfo($([System.Convert]::ToInt32(1033))).Name)", "en-US" },
+                { "$([System.Globalization.CultureInfo]::GetCultureInfo('en-US', 'fr-FR').Name)", "en-US" },
+#if NET
+                {
+                    "$([System.Globalization.CultureInfo]::GetCultureInfo('en-US', $([System.Convert]::ToBoolean('true'))).Name)",
+                    "en-US"
+                },
+#endif
+                { $"{culture}.Calendar)", null },
+                { $"{culture}.CompareInfo)", null },
+                { $"{culture}.CultureTypes)", null },
+                { $"{culture}.DateTimeFormat)", null },
+                { $"{culture}.DisplayName)", null },
+                { $"{culture}.EnglishName)", null },
+                { $"{culture}.IetfLanguageTag)", "en-US" },
+                { $"{culture}.IsNeutralCulture)", "False" },
+                { $"{culture}.IsReadOnly)", "False" },
+                { $"{culture}.KeyboardLayoutId)", "1033" },
+                { $"{culture}.LCID)", "1033" },
+                { $"{culture}.Name)", "en-US" },
+                { $"{culture}.NativeName)", null },
+                { $"{culture}.NumberFormat)", null },
+                { $"{culture}.OptionalCalendars)", null },
+                { $"{culture}.Parent.Name)", "en" },
+                { $"{culture}.TextInfo)", null },
+                { $"{culture}.ThreeLetterISOLanguageName)", "eng" },
+                { $"{culture}.ThreeLetterWindowsLanguageName)", "ENU" },
+                { $"{culture}.TwoLetterISOLanguageName)", "en" },
+                { $"{culture}.UseUserOverride)", "True" },
+                { $"{culture}.ClearCachedData())", string.Empty },
+                { $"{culture}.Clone().Name)", "en-US" },
+                { $"{culture}.Equals($([System.Globalization.CultureInfo]::new('en-US'))))", "True" },
+                { $"{culture}.GetConsoleFallbackUICulture().Name)", "en-US" },
+                { $"{culture}.GetHashCode())", null },
+                {
+                    $"{culture}.set_DateTimeFormat($([System.Globalization.CultureInfo]::new('fr-FR').DateTimeFormat)))",
+                    string.Empty
+                },
+                {
+                    $"{culture}.set_NumberFormat($([System.Globalization.CultureInfo]::new('fr-FR').NumberFormat)))",
+                    string.Empty
+                },
+                { $"{culture}.ToString())", "en-US" },
+            };
+        }
+    }
 
     [Theory]
     [MemberData(nameof(EnvironmentMemberExpressions))]
