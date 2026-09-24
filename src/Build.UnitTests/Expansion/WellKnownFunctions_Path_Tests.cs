@@ -125,24 +125,45 @@ public class WellKnownFunctions_Path_Tests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void Path_AltDirectorySeparatorChar_NotHandled()
-        => StaticMember(nameof(Path.AltDirectorySeparatorChar))
-            .NotHandled();
+    public void Path_Fields()
+    {
+        StaticMember(nameof(Path.AltDirectorySeparatorChar)).Invoke().ShouldBe(Path.AltDirectorySeparatorChar);
+        StaticMember(nameof(Path.DirectorySeparatorChar)).Invoke().ShouldBe(Path.DirectorySeparatorChar);
+        StaticMember(nameof(Path.PathSeparator)).Invoke().ShouldBe(Path.PathSeparator);
+        StaticMember(nameof(Path.VolumeSeparatorChar)).Invoke().ShouldBe(Path.VolumeSeparatorChar);
+    }
 
     [Fact]
-    public void Path_ChangeExtension_NotHandled()
-        => StaticMember(nameof(Path.ChangeExtension))
-            .NotHandled(["file.txt", ".bin"]);
+    public void Path_RemainingMethods()
+    {
+        StaticMember(nameof(Path.ChangeExtension)).Invoke(["file.txt", ".bin"]).ShouldBe(Path.ChangeExtension("file.txt", ".bin"));
+        StaticMember(nameof(Path.GetExtension)).Invoke(["file.txt"]).ShouldBe(".txt");
+        StaticMember(nameof(Path.GetInvalidFileNameChars)).Invoke().ShouldBeOfType<char[]>().ShouldBe(Path.GetInvalidFileNameChars());
+        StaticMember(nameof(Path.GetInvalidPathChars)).Invoke().ShouldBeOfType<char[]>().ShouldBe(Path.GetInvalidPathChars());
+        StaticMember(nameof(Path.GetPathRoot)).Invoke([Path.GetFullPath("file.txt")]).ShouldBe(Path.GetPathRoot(Path.GetFullPath("file.txt")));
+        StaticMember(nameof(Path.GetRandomFileName)).Invoke().ShouldBeOfType<string>().Length.ShouldBe(12);
+        StaticMember(nameof(Path.HasExtension)).Invoke(["file.txt"]).ShouldBe(true);
+#if NET
+        StaticMember(nameof(Path.EndsInDirectorySeparator)).Invoke([Path.GetTempPath()]).ShouldBe(true);
+        StaticMember(nameof(Path.GetFullPath)).Invoke(["file.txt", Path.GetTempPath()]).ShouldBe(Path.GetFullPath("file.txt", Path.GetTempPath()));
+        StaticMember(nameof(Path.GetRelativePath)).Invoke([Path.GetTempPath(), Path.Combine(Path.GetTempPath(), "file.txt")]).ShouldBe("file.txt");
+        StaticMember(nameof(Path.IsPathFullyQualified)).Invoke([Path.GetFullPath("file.txt")]).ShouldBe(true);
+        StaticMember(nameof(Path.Join)).Invoke(["one", "two"]).ShouldBe(Path.Join("one", "two"));
+        StaticMember(nameof(Path.Join)).Invoke(["one", "two", "three"]).ShouldBe(Path.Join("one", "two", "three"));
+        StaticMember(nameof(Path.Join)).Invoke(["one", "two", "three", "four"]).ShouldBe(Path.Join("one", "two", "three", "four"));
+        StaticMember(nameof(Path.Join)).Invoke(["one", "two", "three", "four", "five"]).ShouldBe(Path.Join(["one", "two", "three", "four", "five"]));
+        StaticMember(nameof(Path.TrimEndingDirectorySeparator)).Invoke([Path.GetTempPath()]).ShouldBe(Path.TrimEndingDirectorySeparator(Path.GetTempPath()));
+#endif
+    }
 
     [Fact]
-    public void Path_GetExtension_NotHandled()
-        => StaticMember(nameof(Path.GetExtension))
-            .NotHandled(["file.txt"]);
+    public void Path_GetTempFileName()
+    {
+        string path = StaticMember(nameof(Path.GetTempFileName)).Invoke().ShouldBeOfType<string>();
 
-    [Fact]
-    public void Path_GetInvalidFileNameChars_NotHandled()
-        => StaticMember(nameof(Path.GetInvalidFileNameChars))
-            .NotHandled();
+        File.Exists(path).ShouldBeTrue();
+        File.Delete(path);
+    }
 
     [Theory]
     [InlineData(nameof(Path.GetDirectoryName))]

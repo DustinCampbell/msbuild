@@ -1573,6 +1573,65 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         { """$([System.StringComparer]::OrdinalIgnoreCase.ToString())""", StringComparer.OrdinalIgnoreCase.ToString()! },
     };
 
+    [Theory]
+    [MemberData(nameof(PathExpressions))]
+    public void PropertyFunctionPathMembers(string expression, string expected)
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
+
+    public static TheoryData<string, string> PathExpressions => new()
+    {
+        { """$([System.IO.Path]::AltDirectorySeparatorChar)""", Path.AltDirectorySeparatorChar.ToString() },
+        { """$([System.IO.Path]::DirectorySeparatorChar)""", Path.DirectorySeparatorChar.ToString() },
+        { """$([System.IO.Path]::PathSeparator)""", Path.PathSeparator.ToString() },
+        { """$([System.IO.Path]::VolumeSeparatorChar)""", Path.VolumeSeparatorChar.ToString() },
+        { """$([System.IO.Path]::ChangeExtension('file.txt', '.bin'))""", "file.bin" },
+        { """$([System.IO.Path]::Combine('one'))""", "one" },
+        { """$([System.IO.Path]::Combine('one', 'two', 'three'))""", Path.Combine("one", "two", "three") },
+        { """$([System.IO.Path]::Combine('one', 'two', 'three', 'four'))""", Path.Combine("one", "two", "three", "four") },
+        { """$([System.IO.Path]::Combine('one', 'two', 'three', 'four', 'five'))""", Path.Combine("one", "two", "three", "four", "five") },
+        { """$([System.IO.Path]::GetDirectoryName('one/two.txt'))""", "one" },
+        { """$([System.IO.Path]::GetExtension('one/two.txt'))""", ".txt" },
+        { """$([System.IO.Path]::GetFileName('one/two.txt'))""", "two.txt" },
+        { """$([System.IO.Path]::GetFileNameWithoutExtension('one/two.txt'))""", "two" },
+        { """$([System.IO.Path]::GetInvalidFileNameChars().Length)""", Path.GetInvalidFileNameChars().Length.ToResultString() },
+        { """$([System.IO.Path]::GetInvalidPathChars().Length)""", Path.GetInvalidPathChars().Length.ToResultString() },
+        { """$([System.IO.Path]::GetPathRoot($([System.IO.Path]::GetFullPath('file.txt'))))""", Path.GetPathRoot(Path.GetFullPath("file.txt"))! },
+        { """$([System.IO.Path]::GetRandomFileName().Length)""", "12" },
+        { """$([System.IO.Path]::GetTempPath())""", Path.GetTempPath() },
+        { """$([System.IO.Path]::HasExtension('file.txt'))""", bool.TrueString },
+        { """$([System.IO.Path]::IsPathRooted('relative'))""", bool.FalseString },
+#if NET
+        { """$([System.IO.Path]::EndsInDirectorySeparator($([System.IO.Path]::GetTempPath())))""", bool.TrueString },
+        {
+            """$([System.IO.Path]::GetFullPath('file.txt', $([System.IO.Path]::GetTempPath())))""",
+            Path.GetFullPath("file.txt", Path.GetTempPath())
+        },
+        {
+            """$([System.IO.Path]::GetRelativePath($([System.IO.Path]::GetTempPath()), $([System.IO.Path]::Combine($([System.IO.Path]::GetTempPath()), 'file.txt'))))""",
+            "file.txt"
+        },
+        { """$([System.IO.Path]::IsPathFullyQualified($([System.IO.Path]::GetTempPath())))""", bool.TrueString },
+        { """$([System.IO.Path]::Join('one', 'two'))""", Path.Join("one", "two") },
+        { """$([System.IO.Path]::Join('one', 'two', 'three'))""", Path.Join("one", "two", "three") },
+        { """$([System.IO.Path]::Join('one', 'two', 'three', 'four'))""", Path.Join("one", "two", "three", "four") },
+        { """$([System.IO.Path]::Join('one', 'two', 'three', 'four', 'five'))""", Path.Join("one", "two", "three", "four", "five") },
+        {
+            """$([System.IO.Path]::TrimEndingDirectorySeparator($([System.IO.Path]::GetTempPath())))""",
+            Path.TrimEndingDirectorySeparator(Path.GetTempPath())
+        },
+#endif
+    };
+
+    [Fact]
+    public void PropertyFunctionPathGetTempFileName()
+    {
+        string path = ExpandProperties("$([System.IO.Path]::GetTempFileName())")!;
+
+        File.Exists(path).ShouldBeTrue();
+        File.Delete(path);
+    }
+
     [Fact]
     public void PropertyFunctionStringArrayIndexerGetter()
         => ExpandProperties("$(prop.Split('-')[0])", Properties("prop", "x-y-z"))
