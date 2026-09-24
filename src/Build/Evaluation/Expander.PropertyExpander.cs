@@ -48,17 +48,12 @@ internal partial class Expander<P, I>
         private const string VstsDbDirectoryProperty = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory";
 
         private readonly ExpanderOptions _options;
-        private readonly IElementLocation _elementLocation;
         private readonly bool _isTruncationEnabled;
         private readonly ExpanderContext _context;
 
-        private PropertyExpander(
-            ExpanderOptions options,
-            IElementLocation elementLocation,
-            ref readonly ExpanderContext context)
+        private PropertyExpander(ExpanderOptions options, ref readonly ExpanderContext context)
         {
             _options = options;
-            _elementLocation = elementLocation;
             _isTruncationEnabled = IsTruncationEnabled(options);
             _context = context;
         }
@@ -83,13 +78,11 @@ internal partial class Expander<P, I>
         internal static string ExpandPropertiesLeaveEscaped(
             string expression,
             ExpanderOptions options,
-            IElementLocation elementLocation,
             ref readonly ExpanderContext context)
             => ConvertToString(
                 ExpandPropertiesLeaveTypedAndEscaped(
                     expression,
                     options,
-                    elementLocation,
                     in context));
 
         /// <summary>
@@ -112,7 +105,6 @@ internal partial class Expander<P, I>
         internal static object ExpandPropertiesLeaveTypedAndEscaped(
             string expression,
             ExpanderOptions options,
-            IElementLocation elementLocation,
             ref readonly ExpanderContext context)
         {
             if (((options & ExpanderOptions.ExpandProperties) == 0) || String.IsNullOrEmpty(expression))
@@ -130,7 +122,7 @@ internal partial class Expander<P, I>
                 return expression;
             }
 
-            PropertyExpander expander = new(options, elementLocation, in context);
+            PropertyExpander expander = new(options, in context);
             return expander.ExpandPropertiesLeaveTypedAndEscaped(expression, markerIndex);
         }
 
@@ -356,13 +348,12 @@ internal partial class Expander<P, I>
             string propertyBody,
             object propertyValue,
             ExpanderOptions options,
-            IElementLocation elementLocation,
             ref readonly ExpanderContext context)
         {
             Assumed.NotNull(context.Properties, "Cannot expand properties without providing properties");
             Assumed.NotNull(context.PropertiesUseTracker, "Cannot expand properties without a property use tracker");
 
-            PropertyExpander expander = new(options, elementLocation, in context);
+            PropertyExpander expander = new(options, in context);
             return expander.ExpandPropertyBody(propertyBody, propertyValue);
         }
 
@@ -392,10 +383,7 @@ internal partial class Expander<P, I>
                     }
 
                     // This is a function
-                    function = Function.ExtractPropertyFunction(
-                        propertyBody,
-                        _elementLocation,
-                        propertyValue);
+                    function = Function.ExtractPropertyFunction(propertyBody, _context.Location, propertyValue);
 
                     // We may not have been able to parse out a function
                     if (function != null)
@@ -408,7 +396,7 @@ internal partial class Expander<P, I>
                     {
                         // In the event that we have been handed an unrecognized property body, throw
                         // an invalid function property exception.
-                        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, String.Empty);
+                        ProjectErrorUtilities.ThrowInvalidProject(_context.Location, "InvalidFunctionPropertyExpression", propertyBody, String.Empty);
                         return null;
                     }
                 }
@@ -419,7 +407,7 @@ internal partial class Expander<P, I>
 
                     if (indexerStart < 0 || indexerEnd < 0)
                     {
-                        ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
+                        ProjectErrorUtilities.ThrowInvalidProject(_context.Location, "InvalidFunctionPropertyExpression", propertyBody, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
                     }
                     else
                     {
@@ -434,7 +422,7 @@ internal partial class Expander<P, I>
                 {
                     // In the event that we have been handed an unrecognized property body, throw
                     // an invalid function property exception.
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidFunctionPropertyExpression", propertyBody, string.Empty);
+                    ProjectErrorUtilities.ThrowInvalidProject(_context.Location, "InvalidFunctionPropertyExpression", propertyBody, string.Empty);
                     return null;
                 }
             }
@@ -454,7 +442,7 @@ internal partial class Expander<P, I>
                     // Because of the rich expansion capabilities of MSBuild, we need to keep things
                     // as strings, since property expansion & string embedding can happen anywhere
                     // propertyValue can be null here, when we're invoking a static function
-                    propertyValue = function.Execute(propertyValue, _options, _elementLocation, in _context);
+                    propertyValue = function.Execute(propertyValue, _options, in _context);
                 }
                 catch (Exception) when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
@@ -561,7 +549,7 @@ internal partial class Expander<P, I>
             bool isArtificial = property == null && ((endIndex - startIndex) >= 7) &&
                                MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7);
 
-            _context.PropertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, property == null, isArtificial);
+            _context.PropertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _context.Location, property == null, isArtificial);
 
             if (isArtificial)
             {
@@ -587,7 +575,7 @@ internal partial class Expander<P, I>
                     environmentDerivedProperty.loggingContext = _context.LoggingContext;
                 }
 
-                propertyValue = property.GetEvaluatedValueEscaped(_elementLocation);
+                propertyValue = property.GetEvaluatedValueEscaped(_context.Location);
             }
 
             return propertyValue;
@@ -607,7 +595,7 @@ internal partial class Expander<P, I>
                 return String.Empty;
             }
 
-            if (_elementLocation.File.Length == 0)
+            if (_context.Location.File.Length == 0)
             {
                 return String.Empty;
             }
@@ -618,27 +606,27 @@ internal partial class Expander<P, I>
             // all different lengths, this sequence is efficient.
             if (String.Equals(propertyName, ReservedPropertyNames.thisFile, StringComparison.OrdinalIgnoreCase))
             {
-                value = Path.GetFileName(_elementLocation.File);
+                value = Path.GetFileName(_context.Location.File);
             }
             else if (String.Equals(propertyName, ReservedPropertyNames.thisFileName, StringComparison.OrdinalIgnoreCase))
             {
-                value = Path.GetFileNameWithoutExtension(_elementLocation.File);
+                value = Path.GetFileNameWithoutExtension(_context.Location.File);
             }
             else if (String.Equals(propertyName, ReservedPropertyNames.thisFileFullPath, StringComparison.OrdinalIgnoreCase))
             {
-                value = FileUtilities.NormalizePath(_elementLocation.File);
+                value = FileUtilities.NormalizePath(_context.Location.File);
             }
             else if (String.Equals(propertyName, ReservedPropertyNames.thisFileExtension, StringComparison.OrdinalIgnoreCase))
             {
-                value = Path.GetExtension(_elementLocation.File);
+                value = Path.GetExtension(_context.Location.File);
             }
             else if (String.Equals(propertyName, ReservedPropertyNames.thisFileDirectory, StringComparison.OrdinalIgnoreCase))
             {
-                value = FileUtilities.EnsureTrailingSlash(Path.GetDirectoryName(_elementLocation.File));
+                value = FileUtilities.EnsureTrailingSlash(Path.GetDirectoryName(_context.Location.File));
             }
             else if (String.Equals(propertyName, ReservedPropertyNames.thisFileDirectoryNoRoot, StringComparison.OrdinalIgnoreCase))
             {
-                string directory = Path.GetDirectoryName(_elementLocation.File);
+                string directory = Path.GetDirectoryName(_context.Location.File);
                 int rootLength = Path.GetPathRoot(directory).Length;
                 value = FileUtilities.EnsureTrailingNoLeadingSlash(directory, rootLength);
             }
@@ -673,7 +661,7 @@ internal partial class Expander<P, I>
             int firstAtSignOffset = registryLocation.IndexOf('@');
             int lastAtSignOffset = registryLocation.LastIndexOf('@');
 
-            ProjectErrorUtilities.VerifyThrowInvalidProject(firstAtSignOffset == lastAtSignOffset, _elementLocation, "InvalidRegistryPropertyExpression", "$(" + registryExpression + ")", String.Empty);
+            ProjectErrorUtilities.VerifyThrowInvalidProject(firstAtSignOffset == lastAtSignOffset, _context.Location, "InvalidRegistryPropertyExpression", "$(" + registryExpression + ")", String.Empty);
 
             string valueName = lastAtSignOffset == -1 || lastAtSignOffset == registryLocation.Length - 1
                 ? null : registryLocation.Substring(lastAtSignOffset + 1);
@@ -732,7 +720,7 @@ internal partial class Expander<P, I>
                 }
                 catch (Exception ex) when (!ExceptionHandling.NotExpectedRegistryException(ex))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(_elementLocation, "InvalidRegistryPropertyExpression", $"$({registryExpression})", ex.Message);
+                    ProjectErrorUtilities.ThrowInvalidProject(_context.Location, "InvalidRegistryPropertyExpression", $"$({registryExpression})", ex.Message);
                 }
             }
 

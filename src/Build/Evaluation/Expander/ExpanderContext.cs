@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 
 namespace Microsoft.Build.Evaluation.Expander;
@@ -21,11 +22,15 @@ namespace Microsoft.Build.Evaluation.Expander;
 /// <param name="propertiesUseTracker">
 ///  The tracker for properties read during expansion, or <see langword="null"/> if property tracking is unavailable.
 /// </param>
+/// <param name="location">
+///  The location of the element being expanded, or <see langword="null"/> if the location is unavailable.
+/// </param>
 internal readonly struct ExpanderContext(
     IPropertyProvider<IProperty>? properties = null,
     LoggingContext? loggingContext = null,
     IFileSystem? fileSystem = null,
-    PropertiesUseTracker? propertiesUseTracker = null)
+    PropertiesUseTracker? propertiesUseTracker = null,
+    IElementLocation? location = null)
 {
     /// <summary>
     ///  Gets the properties available during expansion, or <see langword="null"/> if properties are unavailable.
@@ -46,4 +51,9 @@ internal readonly struct ExpanderContext(
     ///  Gets the tracker for properties read during expansion, or <see langword="null"/> if property tracking is unavailable.
     /// </summary>
     public PropertiesUseTracker? PropertiesUseTracker => propertiesUseTracker;
+
+    /// <summary>
+    ///  Gets the location of the element being expanded, or <see langword="null"/> if the location is unavailable.
+    /// </summary>
+    public IElementLocation? Location => location;
 }
