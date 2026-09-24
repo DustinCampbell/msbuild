@@ -352,7 +352,6 @@ internal partial class Expander<P, I>
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         internal object Execute(
             object objectInstance,
-            IPropertyProvider<P> properties,
             ExpanderOptions options,
             IElementLocation elementLocation,
             ref readonly ExpanderContext context)
@@ -400,11 +399,10 @@ internal partial class Expander<P, I>
                 {
                     object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
                         _arguments[n],
-                        properties,
                         options,
                         elementLocation,
                         _propertiesUseTracker,
-                        context.FileSystem);
+                        in context);
 
                     if (argument is string argumentValue)
                     {
@@ -578,11 +576,10 @@ internal partial class Expander<P, I>
                 return PropertyExpander.ExpandPropertyBody(
                     _remainder,
                     functionResult,
-                    properties,
                     options,
                     elementLocation,
                     _propertiesUseTracker,
-                    context.FileSystem);
+                    in context);
             }
 
             // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
