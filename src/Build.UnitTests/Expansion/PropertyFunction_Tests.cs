@@ -1043,6 +1043,169 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     }
 
     [Theory]
+    [MemberData(nameof(DateTimeOffsetMemberExpressions))]
+    [UseInvariantCulture]
+    public void PropertyFunctionDateTimeOffsetMembers(string expression, string expected)
+        => ExpandProperties(expression, allowReflection: ExpanderFactory.UseLegacyExpander).ShouldBe(expected);
+
+    public static TheoryData<string, string> DateTimeOffsetMemberExpressions
+    {
+        get
+        {
+            TheoryData<string, string> data = new();
+            DateTimeOffset value = new(2026, 9, 23, 1, 2, 3, 4, TimeSpan.FromHours(2));
+            DateTimeOffset other = value.AddDays(1);
+            DateTimeOffset sameInstant = value.ToOffset(TimeSpan.FromHours(1));
+            TimeSpan oneDay = TimeSpan.FromDays(1);
+            const string culture = "$([System.Globalization.CultureInfo]::CurrentUICulture)";
+            const string oneDayExpression = "$([System.TimeSpan]::FromDays('1'))";
+            const string twoHoursExpression = "$([System.TimeSpan]::FromHours('2'))";
+            const string valueExpression =
+                "[System.DateTimeOffset]::new('2026', '9', '23', '1', '2', '3', '4', $([System.TimeSpan]::FromHours('2')))";
+            const string valueArgument =
+                "$([System.DateTimeOffset]::new('2026', '9', '23', '1', '2', '3', '4', $([System.TimeSpan]::FromHours('2'))))";
+            const string otherExpression =
+                "$([System.DateTimeOffset]::new('2026', '9', '24', '1', '2', '3', '4', $([System.TimeSpan]::FromHours('2'))))";
+            string sameInstantExpression =
+                $"$([System.DateTimeOffset]::new('{sameInstant.Ticks}', $([System.TimeSpan]::FromHours('1'))))";
+
+            AddDateTimeOffset(
+                "[System.DateTimeOffset]::new($([System.DateTime]::new('2026', '9', '23', '1', '2', '3', 'DateTimeKind.Utc')))",
+                new DateTimeOffset(new DateTime(2026, 9, 23, 1, 2, 3, DateTimeKind.Utc)));
+            AddDateTimeOffset(
+                $"[System.DateTimeOffset]::new($([System.DateTime]::new('2026', '9', '23', '1', '2', '3')), {twoHoursExpression})",
+                new DateTimeOffset(new DateTime(2026, 9, 23, 1, 2, 3), TimeSpan.FromHours(2)));
+            AddDateTimeOffset(
+                $"[System.DateTimeOffset]::new('{value.Ticks}', {twoHoursExpression})",
+                new DateTimeOffset(value.Ticks, TimeSpan.FromHours(2)));
+            AddDateTimeOffset(
+                $"[System.DateTimeOffset]::new('2026', '9', '23', '1', '2', '3', {twoHoursExpression})",
+                new DateTimeOffset(2026, 9, 23, 1, 2, 3, TimeSpan.FromHours(2)));
+            AddDateTimeOffset(valueExpression, value);
+#if NET
+            AddDateTimeOffset(
+                $"[System.DateTimeOffset]::new('2026', '9', '23', '1', '2', '3', '4', '5', {twoHoursExpression})",
+                new DateTimeOffset(2026, 9, 23, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)));
+#endif
+
+            data.Add($"$([System.DateTimeOffset]::Compare({valueArgument}, {otherExpression}))", "-1");
+            data.Add($"$([System.DateTimeOffset]::Equals({valueArgument}, {valueArgument}))", "True");
+            AddDateTimeOffset(
+                $"[System.DateTimeOffset]::FromFileTime('{value.ToFileTime()}')",
+                DateTimeOffset.FromFileTime(value.ToFileTime()));
+            AddDateTimeOffset("[System.DateTimeOffset]::FromUnixTimeMilliseconds('1')", DateTimeOffset.FromUnixTimeMilliseconds(1));
+            AddDateTimeOffset("[System.DateTimeOffset]::FromUnixTimeSeconds('1')", DateTimeOffset.FromUnixTimeSeconds(1));
+            AddDateTimeOffset("[System.DateTimeOffset]::MaxValue", DateTimeOffset.MaxValue);
+            AddDateTimeOffset("[System.DateTimeOffset]::MinValue", DateTimeOffset.MinValue);
+            data.Add(
+                "$([System.DateTimeOffset]::Now.Offset.Ticks)",
+                TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).Ticks.ToResultString());
+            data.Add("$([System.DateTimeOffset]::UtcNow.Offset.Ticks)", "0");
+#if NET
+            AddDateTimeOffset("[System.DateTimeOffset]::UnixEpoch", DateTimeOffset.UnixEpoch);
+#endif
+            AddDateTimeOffset(
+                "[System.DateTimeOffset]::Parse('2026-09-23 +02:00')",
+                DateTimeOffset.Parse("2026-09-23 +02:00", CultureInfo.InvariantCulture));
+            AddDateTimeOffset(
+                $"[System.DateTimeOffset]::Parse('2026-09-23 +02:00', {culture})",
+                DateTimeOffset.Parse("2026-09-23 +02:00", CultureInfo.InvariantCulture));
+            AddDateTimeOffset(
+                "[System.DateTimeOffset]::Parse('2026-09-23 +02:00', null, 'DateTimeStyles.None')",
+                DateTimeOffset.Parse("2026-09-23 +02:00", CultureInfo.InvariantCulture, DateTimeStyles.None));
+            AddDateTimeOffset(
+                $"[System.DateTimeOffset]::ParseExact('2026-09-23 +02:00', 'yyyy-MM-dd zzz', {culture})",
+                DateTimeOffset.ParseExact("2026-09-23 +02:00", "yyyy-MM-dd zzz", CultureInfo.InvariantCulture));
+            AddDateTimeOffset(
+                "[System.DateTimeOffset]::ParseExact('2026-09-23 +02:00', 'yyyy-MM-dd zzz', null, 'DateTimeStyles.None')",
+                DateTimeOffset.ParseExact(
+                    "2026-09-23 +02:00",
+                    "yyyy-MM-dd zzz",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None));
+
+            AddDateTimeOffset($"[System.DateTimeOffset]::op_Addition({valueArgument}, {oneDayExpression})", value + oneDay);
+            data.Add($"$([System.DateTimeOffset]::op_Equality({valueArgument}, {valueArgument}))", "True");
+            data.Add($"$([System.DateTimeOffset]::op_GreaterThan({otherExpression}, {valueArgument}))", "True");
+            data.Add($"$([System.DateTimeOffset]::op_GreaterThanOrEqual({otherExpression}, {valueArgument}))", "True");
+            AddDateTimeOffset(
+                "[System.DateTimeOffset]::op_Implicit($([System.DateTime]::new('2026', '9', '23', '0', '0', '0', 'DateTimeKind.Utc')))",
+                new DateTimeOffset(new DateTime(2026, 9, 23, 0, 0, 0, DateTimeKind.Utc)));
+            data.Add($"$([System.DateTimeOffset]::op_Inequality({valueArgument}, {otherExpression}))", "True");
+            data.Add($"$([System.DateTimeOffset]::op_LessThan({valueArgument}, {otherExpression}))", "True");
+            data.Add($"$([System.DateTimeOffset]::op_LessThanOrEqual({valueArgument}, {otherExpression}))", "True");
+            AddDateTimeOffset($"[System.DateTimeOffset]::op_Subtraction({otherExpression}, {oneDayExpression})", value);
+            AddTimeSpan($"[System.DateTimeOffset]::op_Subtraction({otherExpression}, {valueArgument})", oneDay);
+
+            AddDateTime($"{valueExpression}.Date", value.Date);
+            AddDateTime($"{valueExpression}.DateTime", value.DateTime);
+            AddProperty(nameof(DateTimeOffset.Day), value.Day);
+            AddProperty(nameof(DateTimeOffset.DayOfWeek), value.DayOfWeek);
+            AddProperty(nameof(DateTimeOffset.DayOfYear), value.DayOfYear);
+            AddProperty(nameof(DateTimeOffset.Hour), value.Hour);
+            AddDateTime($"{valueExpression}.LocalDateTime", value.LocalDateTime);
+            AddProperty(nameof(DateTimeOffset.Millisecond), value.Millisecond);
+            AddProperty(nameof(DateTimeOffset.Minute), value.Minute);
+            AddProperty(nameof(DateTimeOffset.Month), value.Month);
+            AddTimeSpan($"{valueExpression}.Offset", value.Offset);
+            AddProperty(nameof(DateTimeOffset.Second), value.Second);
+            AddProperty(nameof(DateTimeOffset.Ticks), value.Ticks);
+            AddTimeSpan($"{valueExpression}.TimeOfDay", value.TimeOfDay);
+            AddDateTime($"{valueExpression}.UtcDateTime", value.UtcDateTime);
+            AddProperty(nameof(DateTimeOffset.Year), value.Year);
+#if NET
+            AddProperty(nameof(DateTimeOffset.Microsecond), value.Microsecond);
+            AddProperty(nameof(DateTimeOffset.Nanosecond), value.Nanosecond);
+            AddProperty(nameof(DateTimeOffset.TotalOffsetMinutes), value.TotalOffsetMinutes);
+            AddProperty(nameof(DateTimeOffset.UtcTicks), value.UtcTicks);
+#endif
+
+            AddDateTimeOffset($"{valueExpression}.Add({oneDayExpression})", value.Add(oneDay));
+            AddDateTimeOffset($"{valueExpression}.AddDays('1')", value.AddDays(1));
+            AddDateTimeOffset($"{valueExpression}.AddHours('1')", value.AddHours(1));
+#if NET
+            AddDateTimeOffset($"{valueExpression}.AddMicroseconds('1')", value.AddMicroseconds(1));
+#endif
+            AddDateTimeOffset($"{valueExpression}.AddMilliseconds('1')", value.AddMilliseconds(1));
+            AddDateTimeOffset($"{valueExpression}.AddMinutes('1')", value.AddMinutes(1));
+            AddDateTimeOffset($"{valueExpression}.AddMonths('1')", value.AddMonths(1));
+            AddDateTimeOffset($"{valueExpression}.AddSeconds('1')", value.AddSeconds(1));
+            AddDateTimeOffset($"{valueExpression}.AddTicks('1')", value.AddTicks(1));
+            AddDateTimeOffset($"{valueExpression}.AddYears('1')", value.AddYears(1));
+            data.Add($"$({valueExpression}.CompareTo({otherExpression}))", value.CompareTo(other).ToResultString());
+            data.Add($"$({valueExpression}.Equals({otherExpression}))", value.Equals(other).ToResultString());
+            data.Add($"$({valueExpression}.EqualsExact({sameInstantExpression}))", "False");
+            data.Add($"$({valueExpression}.GetHashCode())", value.GetHashCode().ToResultString());
+            AddDateTimeOffset($"{valueExpression}.Subtract({oneDayExpression})", value.Subtract(oneDay));
+            AddTimeSpan($"{valueExpression}.Subtract({otherExpression})", value.Subtract(other));
+            data.Add($"$({valueExpression}.ToFileTime())", value.ToFileTime().ToResultString());
+            AddDateTimeOffset($"{valueExpression}.ToLocalTime()", value.ToLocalTime());
+            AddDateTimeOffset($"{valueExpression}.ToOffset($([System.TimeSpan]::FromHours('3')))", value.ToOffset(TimeSpan.FromHours(3)));
+            data.Add($"$({valueExpression}.ToString())", value.ToString(CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToString('O'))", value.ToString("O", CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToString({culture}))", value.ToString(CultureInfo.InvariantCulture));
+            data.Add($"$({valueExpression}.ToString('O', {culture}))", value.ToString("O", CultureInfo.InvariantCulture));
+            AddDateTimeOffset($"{valueExpression}.ToUniversalTime()", value.ToUniversalTime());
+            data.Add($"$({valueExpression}.ToUnixTimeMilliseconds())", value.ToUnixTimeMilliseconds().ToResultString());
+            data.Add($"$({valueExpression}.ToUnixTimeSeconds())", value.ToUnixTimeSeconds().ToResultString());
+
+            return data;
+
+            void AddDateTimeOffset(string invocation, DateTimeOffset expected)
+                => data.Add($"$({invocation}.ToString('O', {culture}))", expected.ToString("O", CultureInfo.InvariantCulture));
+
+            void AddDateTime(string invocation, DateTime expected)
+                => data.Add($"$({invocation}.ToBinary())", expected.ToBinary().ToResultString());
+
+            void AddTimeSpan(string invocation, TimeSpan expected)
+                => data.Add($"$({invocation}.Ticks)", expected.Ticks.ToResultString());
+
+            void AddProperty(string propertyName, object expected)
+                => data.Add($"$({valueExpression}.{propertyName})", expected.ToResultString()!);
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(CultureInfoMemberExpressions))]
     public void PropertyFunctionCultureInfoMembers(string expression, string? expected)
     {

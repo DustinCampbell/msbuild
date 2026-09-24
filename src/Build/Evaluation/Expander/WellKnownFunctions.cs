@@ -23,6 +23,7 @@ internal static partial class WellKnownFunctions
     private static readonly ConvertHandler s_convertHandler = new();
     private static readonly CultureInfoHandler s_cultureInfoHandler = new();
     private static readonly DateTimeHandler s_dateTimeHandler = new();
+    private static readonly DateTimeOffsetHandler s_dateTimeOffsetHandler = new();
     private static readonly DecimalHandler s_decimalHandler = new();
     private static readonly EnvironmentHandler s_environmentHandler = new();
     private static readonly FileSystemHandler s_fileSystemHandler = new();
@@ -61,6 +62,8 @@ internal static partial class WellKnownFunctions
             ? s_cultureInfoHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(DateTime)
             ? s_dateTimeHandler.TryInvokeStatic(methodName, args)
+         : receiverType == typeof(DateTimeOffset)
+            ? s_dateTimeOffsetHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(decimal)
             ? s_decimalHandler.TryInvokeStatic(methodName, args)
          : receiverType == typeof(Environment)
@@ -120,6 +123,7 @@ internal static partial class WellKnownFunctions
             CaptureCollection captures => s_regexHandler.TryInvokeInstance(methodName, captures, args),
             System.Globalization.CultureInfo culture => s_cultureInfoHandler.TryInvokeInstance(methodName, culture, args),
             DateTime dateTime => s_dateTimeHandler.TryInvokeInstance(methodName, dateTime, args),
+            DateTimeOffset dateTimeOffset => s_dateTimeOffsetHandler.TryInvokeInstance(methodName, dateTimeOffset, args),
             TimeSpan timeSpan => s_timeSpanHandler.TryInvokeInstance(methodName, timeSpan, args),
             decimal number => s_decimalHandler.TryInvokeInstance(methodName, number, args),
             FileSystemInfo fileSystemInfo => s_fileSystemHandler.TryInvokeInstance(methodName, fileSystemInfo, args),
@@ -176,6 +180,8 @@ internal static partial class WellKnownFunctions
             ? s_stringHandler.TryInvokeConstructor(args)
             : receiverType == typeof(DateTime)
             ? s_dateTimeHandler.TryInvokeConstructor(args)
+            : receiverType == typeof(DateTimeOffset)
+            ? s_dateTimeOffsetHandler.TryInvokeConstructor(args)
             : receiverType == typeof(System.Globalization.CultureInfo)
             ? s_cultureInfoHandler.TryInvokeConstructor(args)
             : receiverType == typeof(decimal)
