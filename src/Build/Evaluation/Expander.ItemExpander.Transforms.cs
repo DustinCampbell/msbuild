@@ -815,7 +815,8 @@ internal partial class Expander<P, I>
                 var context = new ExpanderContext(
                     expander._properties,
                     expander._loggingContext,
-                    expander._fileSystem);
+                    expander._fileSystem,
+                    expander.PropertiesUseTracker);
 
                 // Transform: expression is like @(Compile->'%(foo)'), so create completely new items,
                 // using the Include from the source items
@@ -828,8 +829,7 @@ internal partial class Expander<P, I>
                         functionName,
                         arguments,
                         BindingFlags.Public | BindingFlags.InvokeMethod,
-                        string.Empty,
-                        expander.PropertiesUseTracker);
+                        string.Empty);
 
                     object result = function.Execute(item.Value, ExpanderOptions.ExpandAll, elementLocation, in context);
 

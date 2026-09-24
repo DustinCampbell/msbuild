@@ -49,19 +49,16 @@ internal partial class Expander<P, I>
 
         private readonly ExpanderOptions _options;
         private readonly IElementLocation _elementLocation;
-        private readonly PropertiesUseTracker _propertiesUseTracker;
         private readonly bool _isTruncationEnabled;
         private readonly ExpanderContext _context;
 
         private PropertyExpander(
             ExpanderOptions options,
             IElementLocation elementLocation,
-            PropertiesUseTracker propertiesUseTracker,
             ref readonly ExpanderContext context)
         {
             _options = options;
             _elementLocation = elementLocation;
-            _propertiesUseTracker = propertiesUseTracker;
             _isTruncationEnabled = IsTruncationEnabled(options);
             _context = context;
         }
@@ -87,14 +84,12 @@ internal partial class Expander<P, I>
             string expression,
             ExpanderOptions options,
             IElementLocation elementLocation,
-            PropertiesUseTracker propertiesUseTracker,
             ref readonly ExpanderContext context)
             => ConvertToString(
                 ExpandPropertiesLeaveTypedAndEscaped(
                     expression,
                     options,
                     elementLocation,
-                    propertiesUseTracker,
                     in context));
 
         /// <summary>
@@ -118,7 +113,6 @@ internal partial class Expander<P, I>
             string expression,
             ExpanderOptions options,
             IElementLocation elementLocation,
-            PropertiesUseTracker propertiesUseTracker,
             ref readonly ExpanderContext context)
         {
             if (((options & ExpanderOptions.ExpandProperties) == 0) || String.IsNullOrEmpty(expression))
@@ -127,6 +121,7 @@ internal partial class Expander<P, I>
             }
 
             Assumed.NotNull(context.Properties, "Cannot expand properties without providing properties");
+            Assumed.NotNull(context.PropertiesUseTracker, "Cannot expand properties without a property use tracker");
 
             // If there are no substitutions, then just return the string.
             int markerIndex = ExpressionShredder.IndexOfPropertyMarker(expression);
@@ -135,7 +130,7 @@ internal partial class Expander<P, I>
                 return expression;
             }
 
-            PropertyExpander expander = new(options, elementLocation, propertiesUseTracker, in context);
+            PropertyExpander expander = new(options, elementLocation, in context);
             return expander.ExpandPropertiesLeaveTypedAndEscaped(expression, markerIndex);
         }
 
@@ -362,13 +357,12 @@ internal partial class Expander<P, I>
             object propertyValue,
             ExpanderOptions options,
             IElementLocation elementLocation,
-            PropertiesUseTracker propertiesUseTracker,
             ref readonly ExpanderContext context)
         {
-            IPropertyProvider<IProperty> properties = context.Properties;
-            Assumed.NotNull(properties, "Cannot expand properties without providing properties");
+            Assumed.NotNull(context.Properties, "Cannot expand properties without providing properties");
+            Assumed.NotNull(context.PropertiesUseTracker, "Cannot expand properties without a property use tracker");
 
-            PropertyExpander expander = new(options, elementLocation, propertiesUseTracker, in context);
+            PropertyExpander expander = new(options, elementLocation, in context);
             return expander.ExpandPropertyBody(propertyBody, propertyValue);
         }
 
@@ -401,8 +395,7 @@ internal partial class Expander<P, I>
                     function = Function.ExtractPropertyFunction(
                         propertyBody,
                         _elementLocation,
-                        propertyValue,
-                        _propertiesUseTracker);
+                        propertyValue);
 
                     // We may not have been able to parse out a function
                     if (function != null)
@@ -568,7 +561,7 @@ internal partial class Expander<P, I>
             bool isArtificial = property == null && ((endIndex - startIndex) >= 7) &&
                                MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7);
 
-            _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, property == null, isArtificial);
+            _context.PropertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, property == null, isArtificial);
 
             if (isArtificial)
             {

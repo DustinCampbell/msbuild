@@ -84,11 +84,6 @@ internal partial class Expander<P, I>
         /// </summary>
         public string Remainder { get; set; }
 
-        /// <summary>
-        /// List of properties which have been used but have not been initialized yet.
-        /// </summary>
-        public PropertiesUseTracker PropertiesUseTracker { get; set; }
-
         internal readonly Function Build()
         {
             return new Function(
@@ -98,8 +93,7 @@ internal partial class Expander<P, I>
                 Name,
                 Arguments,
                 BindingFlags,
-                Remainder,
-                PropertiesUseTracker);
+                Remainder);
         }
     }
 }
