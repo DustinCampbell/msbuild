@@ -297,6 +297,13 @@ internal partial class Expander<P, I>
             return functionBuilder.Build();
         }
 
+        private static bool IsFileOrDirectoryType(Type type)
+            => type == typeof(System.IO.File)
+            || type == typeof(System.IO.Directory);
+
+        private static bool IsPathType(Type type)
+            => type == typeof(System.IO.Path);
+
         /// <summary>
         /// Determines whether the argument at <paramref name="argIndex"/> for a System.IO.File
         /// or System.IO.Directory method is a file/directory path that should be resolved
@@ -327,6 +334,46 @@ internal partial class Expander<P, I>
             }
 
             return false;
+        }
+
+        private object MaterializeArgument(string argText, int argIndex, ExpanderOptions options, ref readonly ExpanderContext context)
+        {
+            object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(argText, options, in context);
+
+            if (argument is not string argValue)
+            {
+                return argument;
+            }
+
+            // Unescape the value since we're about to send it out of the engine and into
+            // the function being called. If a file or a directory function, fix the path
+            // Use fully qualified type names because FEATURE_MSIOREDIST aliases
+            // Directory and Path to Microsoft.IO.* in this file, but _receiverType
+            // from AvailableStaticMethods is always System.IO.*.
+            if (IsFileOrDirectoryType(_receiverType) || IsPathType(_receiverType))
+            {
+                argValue = FileUtilities.FixFilePath(argValue);
+            }
+
+            argValue = EscapingUtilities.UnescapeAll(argValue);
+
+            // In -mt mode, resolve relative path arguments for File/Directory methods
+            // against the thread-local working directory instead of the process-global
+            // Environment.CurrentDirectory which may point to a different project's directory.
+            // In multiprocess mode, CurrentThreadWorkingDirectory is null and
+            // MakeFullPathFromThreadWorkingDirectory returns null — this is a no-op.
+            // This must happen AFTER UnescapeAll so that the working directory path
+            // (a real filesystem path) is not corrupted by MSBuild unescape processing.
+            if (IsFileOrDirectoryType(_receiverType) && IsFileOrDirectoryPathArgument(_methodMethodName, argIndex))
+            {
+                AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory(argValue);
+                if (resolved.HasValue)
+                {
+                    argValue = (string)resolved.GetValueOrDefault();
+                }
+            }
+
+            return argValue;
         }
 
         /// <summary>
@@ -377,49 +424,9 @@ internal partial class Expander<P, I>
                 args = new object[_arguments.Length];
 
                 // Assemble our arguments ready for passing to our method
-                for (int n = 0; n < _arguments.Length; n++)
+                for (int i = 0; i < _arguments.Length; i++)
                 {
-                    object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(
-                        _arguments[n],
-                        options,
-                        in context);
-
-                    if (argument is string argumentValue)
-                    {
-                        // Unescape the value since we're about to send it out of the engine and into
-                        // the function being called. If a file or a directory function, fix the path
-                        // Use fully qualified type names because FEATURE_MSIOREDIST aliases
-                        // Directory and Path to Microsoft.IO.* in this file, but _receiverType
-                        // from AvailableStaticMethods is always System.IO.*.
-                        if (_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory)
-                            || _receiverType == typeof(System.IO.Path))
-                        {
-                            argumentValue = FileUtilities.FixFilePath(argumentValue);
-                        }
-
-                        args[n] = EscapingUtilities.UnescapeAll(argumentValue);
-
-                        // In -mt mode, resolve relative path arguments for File/Directory methods
-                        // against the thread-local working directory instead of the process-global
-                        // Environment.CurrentDirectory which may point to a different project's directory.
-                        // In multiprocess mode, CurrentThreadWorkingDirectory is null and
-                        // MakeFullPathFromThreadWorkingDirectory returns null — this is a no-op.
-                        // This must happen AFTER UnescapeAll so that the working directory path
-                        // (a real filesystem path) is not corrupted by MSBuild unescape processing.
-                        if ((_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory))
-                            && IsFileOrDirectoryPathArgument(_methodMethodName, n))
-                        {
-                            AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory((string)args[n]);
-                            if (resolved.HasValue)
-                            {
-                                args[n] = (string)resolved.GetValueOrDefault();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        args[n] = argument;
-                    }
+                    args[i] = MaterializeArgument(_arguments[i], i, options, in context);
                 }
 
                 Arguments arguments = new(args);
