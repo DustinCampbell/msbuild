@@ -9,7 +9,7 @@ internal static partial class WellKnownFunctions
 {
     private sealed class StringHandler
     {
-        public WellKnownFunctionResult TryInvokeConstructor(object?[] args)
+        public WellKnownFunctionResult TryInvokeConstructor(ref Arguments args)
             => args.Length switch
             {
                 0 => Invoked(string.Empty),
@@ -18,77 +18,77 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args)
+        public WellKnownFunctionResult TryInvokeStatic(string methodName, ref Arguments args)
             => methodName.Length switch
             {
                 4 when methodName.Equals(nameof(string.Copy), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeCopy(args),
+                    => TryInvokeCopy(ref args),
                 13 when methodName.Equals(nameof(string.IsNullOrEmpty), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIsNullOrEmpty(args),
+                    => TryInvokeIsNullOrEmpty(ref args),
                 18 when methodName.Equals(nameof(string.IsNullOrWhiteSpace), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIsNullOrWhiteSpace(args),
+                    => TryInvokeIsNullOrWhiteSpace(ref args),
 
                 _ => NotHandled,
             };
 
-        public WellKnownFunctionResult TryInvokeInstance(string methodName, string text, object?[] args)
+        public WellKnownFunctionResult TryInvokeInstance(string methodName, string text, ref Arguments args)
             => methodName.Length switch
             {
                 5 when methodName.Equals(nameof(string.Split), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeSplit(text, args),
+                    => TryInvokeSplit(text, ref args),
                 6 when methodName.Equals(nameof(string.Length), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeLength(text, args),
+                    => TryInvokeLength(text, ref args),
                 6 when methodName.Equals(nameof(string.Equals), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeEquals(text, args),
+                    => TryInvokeEquals(text, ref args),
                 7 when methodName.Equals(nameof(string.Replace), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeReplace(text, args),
+                    => TryInvokeReplace(text, ref args),
                 7 when methodName.Equals(nameof(string.ToLower), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeToLower(text, args),
+                    => TryInvokeToLower(text, ref args),
                 7 when methodName.Equals(nameof(string.IndexOf), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIndexOf(text, args),
+                    => TryInvokeIndexOf(text, ref args),
                 7 when methodName.Equals(nameof(string.PadLeft), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokePadLeft(text, args),
+                    => TryInvokePadLeft(text, ref args),
                 7 when methodName.Equals(nameof(string.TrimEnd), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeTrimEnd(text, args),
+                    => TryInvokeTrimEnd(text, ref args),
                 8 when methodName.Equals(nameof(string.Contains), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeContains(text, args),
+                    => TryInvokeContains(text, ref args),
                 8 when methodName.Equals(nameof(string.EndsWith), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeEndsWith(text, args),
+                    => TryInvokeEndsWith(text, ref args),
                 8 when methodName.Equals(nameof(string.PadRight), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokePadRight(text, args),
+                    => TryInvokePadRight(text, ref args),
                 9 when methodName.Equals(nameof(string.Substring), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeSubstring(text, args),
+                    => TryInvokeSubstring(text, ref args),
                 9 when methodName.Equals(nameof(string.TrimStart), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeTrimStart(text, args),
+                    => TryInvokeTrimStart(text, ref args),
                 9 when methodName.Equals("get_Chars", StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetChars(text, args),
+                    => TryInvokeGetChars(text, ref args),
                 10 when methodName.Equals(nameof(string.StartsWith), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeStartsWith(text, args),
+                    => TryInvokeStartsWith(text, ref args),
                 10 when methodName.Equals(nameof(string.IndexOfAny), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIndexOfAny(text, args),
+                    => TryInvokeIndexOfAny(text, ref args),
                 11 when methodName.Equals(nameof(string.LastIndexOf), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeLastIndexOf(text, args),
+                    => TryInvokeLastIndexOf(text, ref args),
                 14 when methodName.Equals(nameof(string.LastIndexOfAny), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeLastIndexOfAny(text, args),
+                    => TryInvokeLastIndexOfAny(text, ref args),
                 16 when methodName.Equals(nameof(string.ToUpperInvariant), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeToUpperInvariant(text, args),
+                    => TryInvokeToUpperInvariant(text, ref args),
                 16 when methodName.Equals(nameof(string.ToLowerInvariant), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeToLowerInvariant(text, args),
+                    => TryInvokeToLowerInvariant(text, ref args),
 
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeContains(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeContains(string text, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(text.Contains(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeCopy(object?[] args)
+        private static WellKnownFunctionResult TryInvokeCopy(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(arg0)
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeEndsWith(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeEndsWith(string text, ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out string? arg0)
@@ -101,39 +101,39 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeEquals(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeEquals(string text, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(text.Equals(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetChars(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetChars(string text, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out int index)
                 ? Invoked(text[index])
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeIndexOf(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeIndexOf(string text, ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out StringComparison arg1)
                 ? Invoked(text.IndexOf(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeIndexOfAny(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeIndexOfAny(string text, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(text.AsSpan().IndexOfAny(arg0.AsSpan()))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeIsNullOrEmpty(object?[] args)
+        private static WellKnownFunctionResult TryInvokeIsNullOrEmpty(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(string.IsNullOrEmpty(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeIsNullOrWhiteSpace(object?[] args)
+        private static WellKnownFunctionResult TryInvokeIsNullOrWhiteSpace(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(string.IsNullOrWhiteSpace(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeLastIndexOf(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeLastIndexOf(string text, ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out string? arg0)
@@ -150,17 +150,17 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeLastIndexOfAny(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeLastIndexOfAny(string text, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(text.AsSpan().LastIndexOfAny(arg0.AsSpan()))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeLength(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeLength(string text, ref Arguments args)
             => args.Length == 0
                 ? Invoked(text.Length)
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokePadLeft(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokePadLeft(string text, ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out int totalWidth)
@@ -173,7 +173,7 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokePadRight(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokePadRight(string text, ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out int totalWidth)
@@ -186,24 +186,24 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeReplace(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeReplace(string text, ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(text.Replace(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeSplit(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeSplit(string text, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out char separator)
                 ? Invoked(text.Split(separator))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeStartsWith(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeStartsWith(string text, ref Arguments args)
              => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                  ? Invoked(text.StartsWith(arg0, StringComparison.CurrentCulture))
                  : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeSubstring(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeSubstring(string text, ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out int startIndex)
@@ -216,29 +216,29 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeToLower(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeToLower(string text, ref Arguments args)
             => args.Length == 0
                 ? Invoked(text.ToLower())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeToLowerInvariant(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeToLowerInvariant(string text, ref Arguments args)
             => args.Length == 0
                 ? Invoked(text.ToLowerInvariant())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeToUpperInvariant(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeToUpperInvariant(string text, ref Arguments args)
             => args.Length == 0
                 ? Invoked(text.ToUpperInvariant())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeTrimEnd(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeTrimEnd(string text, ref Arguments args)
             => args.Length == 1
             && args.TryGetArg(0, out string? trimChars)
             && trimChars.Length > 0
                 ? Invoked(text.TrimEnd(trimChars.ToCharArray()))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeTrimStart(string text, object?[] args)
+        private static WellKnownFunctionResult TryInvokeTrimStart(string text, ref Arguments args)
             => args.Length == 1
             && args.TryGetArg(0, out string? trimChars)
             && trimChars.Length > 0

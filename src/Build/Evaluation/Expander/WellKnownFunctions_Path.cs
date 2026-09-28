@@ -11,30 +11,30 @@ internal static partial class WellKnownFunctions
 {
     private sealed class PathHandler
     {
-        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args)
+        public WellKnownFunctionResult TryInvokeStatic(string methodName, ref Arguments args)
             => methodName.Length switch
             {
                 7 when methodName.Equals(nameof(Path.Combine), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeCombine(args),
+                    => TryInvokeCombine(ref args),
                 22 when methodName.Equals(nameof(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeDirectorySeparatorChar(args),
+                    => TryInvokeDirectorySeparatorChar(ref args),
                 11 when methodName.Equals(nameof(Path.GetFullPath), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetFullPath(args),
+                    => TryInvokeGetFullPath(ref args),
                 12 when methodName.Equals(nameof(Path.IsPathRooted), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIsPathRooted(args),
+                    => TryInvokeIsPathRooted(ref args),
                 11 when methodName.Equals(nameof(Path.GetTempPath), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetTempPath(args),
+                    => TryInvokeGetTempPath(ref args),
                 11 when methodName.Equals(nameof(Path.GetFileName), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetFileName(args),
+                    => TryInvokeGetFileName(ref args),
                 16 when methodName.Equals(nameof(Path.GetDirectoryName), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetDirectoryName(args),
+                    => TryInvokeGetDirectoryName(ref args),
                 27 when methodName.Equals(nameof(Path.GetFileNameWithoutExtension), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetFileNameWithoutExtension(args),
+                    => TryInvokeGetFileNameWithoutExtension(ref args),
 
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeCombine(object?[] args)
+        private static WellKnownFunctionResult TryInvokeCombine(ref Arguments args)
             // Combine has fast implementations for up to 4 parameters: https://github.com/dotnet/corefx/blob/2c55db90d622fa6279184e6243f0470a3755d13c/src/Common/src/CoreLib/System/IO/Path.cs#L293-L317
             => args.Length switch
             {
@@ -58,32 +58,32 @@ internal static partial class WellKnownFunctions
                     && args.TryGetArg(3, out string? arg3)
                     => Invoked(Path.Combine(arg0, arg1, arg2, arg3)),
 
-                _ => ArgumentParser.TryConvertToStrings(args, out string[]? stringArgs)
+                _ => args.TryConvertToStrings(out string[]? stringArgs)
                     ? Invoked(Path.Combine(stringArgs))
                     : NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeDirectorySeparatorChar(object?[] args)
+        private static WellKnownFunctionResult TryInvokeDirectorySeparatorChar(ref Arguments args)
             => args.Length == 0
                 ? Invoked(Path.DirectorySeparatorChar)
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetDirectoryName(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetDirectoryName(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(Path.GetDirectoryName(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetFileName(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetFileName(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(Path.GetFileName(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetFileNameWithoutExtension(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetFileNameWithoutExtension(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(Path.GetFileNameWithoutExtension(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetFullPath(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetFullPath(ref Arguments args)
         {
             if (args.Length == 1 && args.TryGetArg(0, out string? arg0))
             {
@@ -97,12 +97,12 @@ internal static partial class WellKnownFunctions
             return NotHandled;
         }
 
-        private static WellKnownFunctionResult TryInvokeGetTempPath(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetTempPath(ref Arguments args)
             => args.Length == 0
                 ? Invoked(Path.GetTempPath())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeIsPathRooted(object?[] args)
+        private static WellKnownFunctionResult TryInvokeIsPathRooted(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(Path.IsPathRooted(arg0))
                 : NotHandled;

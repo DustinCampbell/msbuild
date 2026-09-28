@@ -9,16 +9,16 @@ internal static partial class WellKnownFunctions
 {
     private sealed class GuidHandler
     {
-        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args)
+        public WellKnownFunctionResult TryInvokeStatic(string methodName, ref Arguments args)
             => methodName.Length switch
             {
                 7 when methodName.Equals(nameof(Guid.NewGuid), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeNewGuid(args),
+                    => TryInvokeNewGuid(ref args),
 
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeNewGuid(object?[] args)
+        private static WellKnownFunctionResult TryInvokeNewGuid(ref Arguments args)
             => args.Length == 0
                 ? Invoked(Guid.NewGuid())
                 : NotHandled;

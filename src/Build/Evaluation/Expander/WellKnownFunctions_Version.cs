@@ -9,30 +9,30 @@ internal static partial class WellKnownFunctions
 {
     private sealed class VersionHandler
     {
-        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args)
+        public WellKnownFunctionResult TryInvokeStatic(string methodName, ref Arguments args)
             => methodName.Length switch
             {
                 5 when methodName.Equals(nameof(Version.Parse), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeParse(args),
+                    => TryInvokeParse(ref args),
 
                 _ => NotHandled,
             };
 
-        public WellKnownFunctionResult TryInvokeInstance(string methodName, Version version, object?[] args)
+        public WellKnownFunctionResult TryInvokeInstance(string methodName, Version version, ref Arguments args)
             => methodName.Length switch
             {
                 8 when methodName.Equals(nameof(Version.ToString), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeToString(version, args),
+                    => TryInvokeToString(version, ref args),
 
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeParse(object?[] args)
+        private static WellKnownFunctionResult TryInvokeParse(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(Version.Parse(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeToString(Version version, object?[] args)
+        private static WellKnownFunctionResult TryInvokeToString(Version version, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out int arg0)
                 ? Invoked(version.ToString(arg0))
                 : NotHandled;

@@ -10,116 +10,116 @@ internal static partial class WellKnownFunctions
 {
     private sealed class IntrinsicFunctionsHandler
     {
-        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args, ref readonly ExpanderContext context)
+        public WellKnownFunctionResult TryInvokeStatic(string methodName, ref Arguments args, ref readonly ExpanderContext context)
             => methodName.Length switch
             {
                 3 when methodName.Equals(nameof(IntrinsicFunctions.Add), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeAdd(args),
+                    => TryInvokeAdd(ref args),
                 6 when methodName.Equals(nameof(IntrinsicFunctions.Escape), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeEscape(args),
+                    => TryInvokeEscape(ref args),
                 6 when methodName.Equals(nameof(IntrinsicFunctions.Divide), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeDivide(args),
+                    => TryInvokeDivide(ref args),
                 6 when methodName.Equals(nameof(IntrinsicFunctions.Modulo), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeModulo(args),
+                    => TryInvokeModulo(ref args),
                 8 when methodName.Equals(nameof(IntrinsicFunctions.Unescape), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeUnescape(args),
+                    => TryInvokeUnescape(ref args),
                 8 when methodName.Equals(nameof(IntrinsicFunctions.Subtract), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeSubtract(args),
+                    => TryInvokeSubtract(ref args),
                 8 when methodName.Equals(nameof(IntrinsicFunctions.Multiply), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeMultiply(args),
+                    => TryInvokeMultiply(ref args),
                 9 when methodName.Equals(nameof(IntrinsicFunctions.BitwiseOr), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeBitwiseOr(args),
+                    => TryInvokeBitwiseOr(ref args),
                 9 when methodName.Equals(nameof(IntrinsicFunctions.LeftShift), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeLeftShift(args),
+                    => TryInvokeLeftShift(ref args),
                 10 when methodName.Equals(nameof(IntrinsicFunctions.BitwiseAnd), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeBitwiseAnd(args),
+                    => TryInvokeBitwiseAnd(ref args),
                 10 when methodName.Equals(nameof(IntrinsicFunctions.BitwiseXor), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeBitwiseXor(args),
+                    => TryInvokeBitwiseXor(ref args),
                 10 when methodName.Equals(nameof(IntrinsicFunctions.BitwiseNot), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeBitwiseNot(args),
+                    => TryInvokeBitwiseNot(ref args),
                 10 when methodName.Equals(nameof(IntrinsicFunctions.RightShift), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeRightShift(args),
+                    => TryInvokeRightShift(ref args),
                 10 when methodName.Equals(nameof(IntrinsicFunctions.FileExists), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeFileExists(args),
+                    => TryInvokeFileExists(ref args),
                 12 when methodName.Equals(nameof(IntrinsicFunctions.IsOSPlatform), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIsOSPlatform(args),
+                    => TryInvokeIsOSPlatform(ref args),
                 13 when methodName.Equals(nameof(IntrinsicFunctions.NormalizePath), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeNormalizePath(args),
+                    => TryInvokeNormalizePath(ref args),
                 13 when methodName.Equals(nameof(IntrinsicFunctions.VersionEquals), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeVersionEquals(args),
+                    => TryInvokeVersionEquals(ref args),
                 14 when methodName.Equals(nameof(IntrinsicFunctions.ValueOrDefault), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeValueOrDefault(args),
+                    => TryInvokeValueOrDefault(ref args),
                 15 when methodName.Equals(nameof(IntrinsicFunctions.ConvertToBase64), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeConvertToBase64(args),
+                    => TryInvokeConvertToBase64(ref args),
                 15 when methodName.Equals(nameof(IntrinsicFunctions.VersionLessThan), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeVersionLessThan(args),
+                    => TryInvokeVersionLessThan(ref args),
                 15 when methodName.Equals(nameof(IntrinsicFunctions.DirectoryExists), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeDirectoryExists(args),
+                    => TryInvokeDirectoryExists(ref args),
                 16 when methodName.Equals(nameof(IntrinsicFunctions.GetVsInstallRoot), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetVsInstallRoot(args),
+                    => TryInvokeGetVsInstallRoot(ref args),
                 16 when methodName.Equals(nameof(IntrinsicFunctions.VersionNotEquals), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeVersionNotEquals(args),
+                    => TryInvokeVersionNotEquals(ref args),
                 16 when methodName.Equals(nameof(IntrinsicFunctions.StableStringHash), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeStableStringHash(args),
+                    => TryInvokeStableStringHash(ref args),
                 17 when methodName.Equals(nameof(IntrinsicFunctions.ConvertFromBase64), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeConvertFromBase64(args),
+                    => TryInvokeConvertFromBase64(ref args),
                 17 when methodName.Equals(nameof(IntrinsicFunctions.GetProgramFiles32), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetProgramFiles32(args),
+                    => TryInvokeGetProgramFiles32(ref args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetPathOfFileAbove(args, in context),
+                    => TryInvokeGetPathOfFileAbove(ref args, in context),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.GetMSBuildSDKsPath), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetMSBuildSDKsPath(args),
+                    => TryInvokeGetMSBuildSDKsPath(ref args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.VersionGreaterThan), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeVersionGreaterThan(args),
+                    => TryInvokeVersionGreaterThan(ref args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.AreFeaturesEnabled), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeAreFeaturesEnabled(args),
+                    => TryInvokeAreFeaturesEnabled(ref args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.RightShiftUnsigned), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeRightShiftUnsigned(args),
+                    => TryInvokeRightShiftUnsigned(ref args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.NormalizeDirectory), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeNormalizeDirectory(args),
+                    => TryInvokeNormalizeDirectory(ref args),
                 18 when methodName.Equals(nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeRegisterBuildCheck(args, in context),
+                    => TryInvokeRegisterBuildCheck(ref args, in context),
                 19 when methodName.Equals(nameof(IntrinsicFunctions.EnsureTrailingSlash), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeEnsureTrailingSlash(args),
+                    => TryInvokeEnsureTrailingSlash(ref args),
                 19 when methodName.Equals(nameof(IntrinsicFunctions.GetToolsDirectory32), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetToolsDirectory32(args),
+                    => TryInvokeGetToolsDirectory32(ref args),
                 19 when methodName.Equals(nameof(IntrinsicFunctions.GetToolsDirectory64), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetToolsDirectory64(args),
+                    => TryInvokeGetToolsDirectory64(ref args),
                 21 when methodName.Equals(nameof(IntrinsicFunctions.SubstringByAsciiChars), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeSubstringByAsciiChars(args),
+                    => TryInvokeSubstringByAsciiChars(ref args),
                 23 when methodName.Equals(nameof(IntrinsicFunctions.VersionLessThanOrEquals), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeVersionLessThanOrEquals(args),
+                    => TryInvokeVersionLessThanOrEquals(ref args),
                 24 when methodName.Equals(nameof(IntrinsicFunctions.GetRegistryValueFromView), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetRegistryValueFromView(args),
+                    => TryInvokeGetRegistryValueFromView(ref args),
                 24 when methodName.Equals(nameof(IntrinsicFunctions.GetCurrentToolsDirectory), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetCurrentToolsDirectory(args),
+                    => TryInvokeGetCurrentToolsDirectory(ref args),
                 24 when methodName.Equals(nameof(IntrinsicFunctions.GetMSBuildExtensionsPath), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetMSBuildExtensionsPath(args),
+                    => TryInvokeGetMSBuildExtensionsPath(ref args),
                 24 when methodName.Equals(nameof(IntrinsicFunctions.GetTargetPlatformVersion), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetTargetPlatformVersion(args),
+                    => TryInvokeGetTargetPlatformVersion(ref args),
                 24 when methodName.Equals(nameof(IntrinsicFunctions.CheckFeatureAvailability), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeCheckFeatureAvailability(args),
+                    => TryInvokeCheckFeatureAvailability(ref args),
                 25 when methodName.Equals(nameof(IntrinsicFunctions.IsRunningFromVisualStudio), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIsRunningFromVisualStudio(args),
+                    => TryInvokeIsRunningFromVisualStudio(ref args),
                 25 when methodName.Equals(nameof(IntrinsicFunctions.GetTargetFrameworkVersion), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetTargetFrameworkVersion(args),
+                    => TryInvokeGetTargetFrameworkVersion(ref args),
                 26 when methodName.Equals(nameof(IntrinsicFunctions.VersionGreaterThanOrEquals), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeVersionGreaterThanOrEquals(args),
+                    => TryInvokeVersionGreaterThanOrEquals(ref args),
                 27 when methodName.Equals(nameof(IntrinsicFunctions.GetDirectoryNameOfFileAbove), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetDirectoryNameOfFileAbove(args, in context),
+                    => TryInvokeGetDirectoryNameOfFileAbove(ref args, in context),
                 27 when methodName.Equals(nameof(IntrinsicFunctions.GetTargetPlatformIdentifier), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetTargetPlatformIdentifier(args),
+                    => TryInvokeGetTargetPlatformIdentifier(ref args),
                 27 when methodName.Equals(nameof(IntrinsicFunctions.IsTargetFrameworkCompatible), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIsTargetFrameworkCompatible(args),
+                    => TryInvokeIsTargetFrameworkCompatible(ref args),
                 28 when methodName.Equals(nameof(IntrinsicFunctions.GetTargetFrameworkIdentifier), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeGetTargetFrameworkIdentifier(args),
+                    => TryInvokeGetTargetFrameworkIdentifier(ref args),
 
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeAdd(object?[] args)
+        private static WellKnownFunctionResult TryInvokeAdd(ref Arguments args)
         {
-            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            if (!args.TryGetArithmeticArgs(out var arguments))
             {
                 return NotHandled;
             }
@@ -133,60 +133,60 @@ internal static partial class WellKnownFunctions
             return Invoked(IntrinsicFunctions.Add(double0, double1));
         }
 
-        private static WellKnownFunctionResult TryInvokeAreFeaturesEnabled(object?[] args)
+        private static WellKnownFunctionResult TryInvokeAreFeaturesEnabled(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out Version? arg0)
                 ? Invoked(IntrinsicFunctions.AreFeaturesEnabled(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeBitwiseAnd(object?[] args)
+        private static WellKnownFunctionResult TryInvokeBitwiseAnd(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out int arg0)
             && args.TryGetArg(1, out int arg1)
                 ? Invoked(IntrinsicFunctions.BitwiseAnd(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeBitwiseNot(object?[] args)
+        private static WellKnownFunctionResult TryInvokeBitwiseNot(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out int arg0)
                 ? Invoked(IntrinsicFunctions.BitwiseNot(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeBitwiseOr(object?[] args)
+        private static WellKnownFunctionResult TryInvokeBitwiseOr(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out int arg0)
             && args.TryGetArg(1, out int arg1)
                 ? Invoked(IntrinsicFunctions.BitwiseOr(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeBitwiseXor(object?[] args)
+        private static WellKnownFunctionResult TryInvokeBitwiseXor(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out int arg0)
             && args.TryGetArg(1, out int arg1)
                 ? Invoked(IntrinsicFunctions.BitwiseXor(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeCheckFeatureAvailability(object?[] args)
+        private static WellKnownFunctionResult TryInvokeCheckFeatureAvailability(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.CheckFeatureAvailability(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeConvertFromBase64(object?[] args)
+        private static WellKnownFunctionResult TryInvokeConvertFromBase64(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.ConvertFromBase64(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeConvertToBase64(object?[] args)
+        private static WellKnownFunctionResult TryInvokeConvertToBase64(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.ConvertToBase64(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeDirectoryExists(object?[] args)
+        private static WellKnownFunctionResult TryInvokeDirectoryExists(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.DirectoryExists(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeDivide(object?[] args)
+        private static WellKnownFunctionResult TryInvokeDivide(ref Arguments args)
         {
-            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            if (!args.TryGetArithmeticArgs(out var arguments))
             {
                 return NotHandled;
             }
@@ -200,44 +200,44 @@ internal static partial class WellKnownFunctions
             return Invoked(IntrinsicFunctions.Divide(double0, double1));
         }
 
-        private static WellKnownFunctionResult TryInvokeEnsureTrailingSlash(object?[] args)
+        private static WellKnownFunctionResult TryInvokeEnsureTrailingSlash(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.EnsureTrailingSlash(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeEscape(object?[] args)
+        private static WellKnownFunctionResult TryInvokeEscape(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.Escape(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeFileExists(object?[] args)
+        private static WellKnownFunctionResult TryInvokeFileExists(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.FileExists(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetCurrentToolsDirectory(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetCurrentToolsDirectory(ref Arguments args)
             => args.Length == 0
                 ? Invoked(IntrinsicFunctions.GetCurrentToolsDirectory())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetDirectoryNameOfFileAbove(object?[] args, ref readonly ExpanderContext context)
+        private static WellKnownFunctionResult TryInvokeGetDirectoryNameOfFileAbove(ref Arguments args, ref readonly ExpanderContext context)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, context.FileSystem))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetMSBuildExtensionsPath(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetMSBuildExtensionsPath(ref Arguments args)
             => args.Length == 0
                 ? Invoked(IntrinsicFunctions.GetMSBuildExtensionsPath())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetMSBuildSDKsPath(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetMSBuildSDKsPath(ref Arguments args)
             => args.Length == 0
                 ? Invoked(IntrinsicFunctions.GetMSBuildSDKsPath())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetPathOfFileAbove(object?[] args, ref readonly ExpanderContext context)
+        private static WellKnownFunctionResult TryInvokeGetPathOfFileAbove(ref Arguments args, ref readonly ExpanderContext context)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out string? arg0)
@@ -254,24 +254,26 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeGetProgramFiles32(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetProgramFiles32(ref Arguments args)
             => args.Length == 0
                 ? Invoked(IntrinsicFunctions.GetProgramFiles32())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetRegistryValueFromView(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetRegistryValueFromView(ref Arguments args)
             => args.Length >= 4
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
-                ? Invoked(IntrinsicFunctions.GetRegistryValueFromView(arg0, arg1, args[2], new ArraySegment<object?>(args, 3, args.Length - 3)))
+            && args.TryGetArg(2, out object? arg2)
+            && args.TryGetArraySegment(3, out ArraySegment<object?> views)
+                ? Invoked(IntrinsicFunctions.GetRegistryValueFromView(arg0, arg1, arg2, views))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetTargetFrameworkIdentifier(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetTargetFrameworkIdentifier(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.GetTargetFrameworkIdentifier(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetTargetFrameworkVersion(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetTargetFrameworkVersion(ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out string? arg0)
@@ -284,12 +286,12 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeGetTargetPlatformIdentifier(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetTargetPlatformIdentifier(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.GetTargetPlatformIdentifier(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetTargetPlatformVersion(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetTargetPlatformVersion(ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out string? arg0)
@@ -302,48 +304,48 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeGetToolsDirectory32(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetToolsDirectory32(ref Arguments args)
             => args.Length == 0
                 ? Invoked(IntrinsicFunctions.GetToolsDirectory32())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetToolsDirectory64(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetToolsDirectory64(ref Arguments args)
             => args.Length == 0
                 ? Invoked(IntrinsicFunctions.GetToolsDirectory64())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeGetVsInstallRoot(object?[] args)
+        private static WellKnownFunctionResult TryInvokeGetVsInstallRoot(ref Arguments args)
             => args.Length == 0
                 ? Invoked(IntrinsicFunctions.GetVsInstallRoot())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeIsOSPlatform(object?[] args)
+        private static WellKnownFunctionResult TryInvokeIsOSPlatform(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.IsOSPlatform(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeIsRunningFromVisualStudio(object?[] args)
+        private static WellKnownFunctionResult TryInvokeIsRunningFromVisualStudio(ref Arguments args)
             => args.Length == 0
                 ? Invoked(IntrinsicFunctions.IsRunningFromVisualStudio())
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeIsTargetFrameworkCompatible(object?[] args)
+        private static WellKnownFunctionResult TryInvokeIsTargetFrameworkCompatible(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.IsTargetFrameworkCompatible(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeLeftShift(object?[] args)
+        private static WellKnownFunctionResult TryInvokeLeftShift(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out int arg0)
             && args.TryGetArg(1, out int arg1)
                 ? Invoked(IntrinsicFunctions.LeftShift(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeModulo(object?[] args)
+        private static WellKnownFunctionResult TryInvokeModulo(ref Arguments args)
         {
-            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            if (!args.TryGetArithmeticArgs(out var arguments))
             {
                 return NotHandled;
             }
@@ -357,9 +359,9 @@ internal static partial class WellKnownFunctions
             return Invoked(IntrinsicFunctions.Modulo(double0, double1));
         }
 
-        private static WellKnownFunctionResult TryInvokeMultiply(object?[] args)
+        private static WellKnownFunctionResult TryInvokeMultiply(ref Arguments args)
         {
-            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            if (!args.TryGetArithmeticArgs(out var arguments))
             {
                 return NotHandled;
             }
@@ -373,17 +375,17 @@ internal static partial class WellKnownFunctions
             return Invoked(IntrinsicFunctions.Multiply(double0, double1));
         }
 
-        private static WellKnownFunctionResult TryInvokeNormalizeDirectory(object?[] args)
+        private static WellKnownFunctionResult TryInvokeNormalizeDirectory(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.NormalizeDirectory(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeNormalizePath(object?[] args)
-            => ArgumentParser.TryConvertToStrings(args, out string[]? stringArgs)
+        private static WellKnownFunctionResult TryInvokeNormalizePath(ref Arguments args)
+            => args.TryConvertToStrings(out string[]? stringArgs)
                 ? Invoked(IntrinsicFunctions.NormalizePath(stringArgs))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeRegisterBuildCheck(object?[] args, ref readonly ExpanderContext context)
+        private static WellKnownFunctionResult TryInvokeRegisterBuildCheck(ref Arguments args, ref readonly ExpanderContext context)
         {
             IPropertyProvider<IProperty>? properties = context.Properties;
             Assumed.NotNull(properties, $"The property provider is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
@@ -397,21 +399,21 @@ internal static partial class WellKnownFunctions
                 : NotHandled;
         }
 
-        private static WellKnownFunctionResult TryInvokeRightShift(object?[] args)
+        private static WellKnownFunctionResult TryInvokeRightShift(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out int arg0)
             && args.TryGetArg(1, out int arg1)
                 ? Invoked(IntrinsicFunctions.RightShift(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeRightShiftUnsigned(object?[] args)
+        private static WellKnownFunctionResult TryInvokeRightShiftUnsigned(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out int arg0)
             && args.TryGetArg(1, out int arg1)
                 ? Invoked(IntrinsicFunctions.RightShiftUnsigned(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeStableStringHash(object?[] args)
+        private static WellKnownFunctionResult TryInvokeStableStringHash(ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out string? arg0)
@@ -425,7 +427,7 @@ internal static partial class WellKnownFunctions
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeSubstringByAsciiChars(object?[] args)
+        private static WellKnownFunctionResult TryInvokeSubstringByAsciiChars(ref Arguments args)
             => args.Length == 3
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out int arg1)
@@ -433,9 +435,9 @@ internal static partial class WellKnownFunctions
                 ? Invoked(IntrinsicFunctions.SubstringByAsciiChars(arg0, arg1, arg2))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeSubtract(object?[] args)
+        private static WellKnownFunctionResult TryInvokeSubtract(ref Arguments args)
         {
-            if (!ArgumentParser.TryGetArithmeticArguments(args, out var arguments))
+            if (!args.TryGetArithmeticArgs(out var arguments))
             {
                 return NotHandled;
             }
@@ -449,54 +451,54 @@ internal static partial class WellKnownFunctions
             return Invoked(IntrinsicFunctions.Subtract(double0, double1));
         }
 
-        private static WellKnownFunctionResult TryInvokeUnescape(object?[] args)
+        private static WellKnownFunctionResult TryInvokeUnescape(ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(IntrinsicFunctions.Unescape(arg0))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeValueOrDefault(object?[] args)
+        private static WellKnownFunctionResult TryInvokeValueOrDefault(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.ValueOrDefault(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeVersionEquals(object?[] args)
+        private static WellKnownFunctionResult TryInvokeVersionEquals(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.VersionEquals(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeVersionGreaterThan(object?[] args)
+        private static WellKnownFunctionResult TryInvokeVersionGreaterThan(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.VersionGreaterThan(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeVersionGreaterThanOrEquals(object?[] args)
+        private static WellKnownFunctionResult TryInvokeVersionGreaterThanOrEquals(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.VersionGreaterThanOrEquals(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeVersionLessThan(object?[] args)
+        private static WellKnownFunctionResult TryInvokeVersionLessThan(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.VersionLessThan(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeVersionLessThanOrEquals(object?[] args)
+        private static WellKnownFunctionResult TryInvokeVersionLessThanOrEquals(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
                 ? Invoked(IntrinsicFunctions.VersionLessThanOrEquals(arg0, arg1))
                 : NotHandled;
 
-        private static WellKnownFunctionResult TryInvokeVersionNotEquals(object?[] args)
+        private static WellKnownFunctionResult TryInvokeVersionNotEquals(ref Arguments args)
             => args.Length == 2
             && args.TryGetArg(0, out string? arg0)
             && args.TryGetArg(1, out string? arg1)
