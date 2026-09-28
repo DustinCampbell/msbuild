@@ -17,7 +17,6 @@ using Microsoft.Build.Shared;
 using Microsoft.NET.StringTools;
 using AvailableStaticMethods = Microsoft.Build.Internal.AvailableStaticMethods;
 using FeatureSwitches = Microsoft.Build.Framework.FeatureSwitches;
-using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 #if FEATURE_MSIOREDIST
 // File is intentionally NOT aliased — all typeof() comparisons use fully-qualified
@@ -423,18 +422,24 @@ internal partial class Expander<P, I>
                     }
                 }
 
+                Arguments arguments = new(args);
+
                 // Handle special cases where the object type needs to affect the choice of method
                 // The default binder and method invoke, often chooses the incorrect Equals and CompareTo and
                 // fails the comparison, because what we have on the right is generally a string.
                 // This special casing is to realize that its a comparison that is taking place and handle the
                 // argument type coercion accordingly; effectively pre-preparing the argument type so
                 // that it matches the left hand side ready for the default binder’s method invoke.
-                if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
+                if (objectInstance != null &&
+                    arguments.Length == 1 &&
+                    arguments.TryGetArg(0, out object arg0) &&
+                    (string.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
                 {
                     // Support comparison when the lhs is an integer
-                    if (ParseArgs.IsFloatingPointRepresentation(args[0]))
+                    if (ArgumentParser.IsFloatingPointRepresentation(arg0))
                     {
-                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
+                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
                         {
                             objectInstance = result;
                             _receiverType = objectInstance.GetType();
@@ -442,17 +447,17 @@ internal partial class Expander<P, I>
                     }
 
                     // change the type of the final unescaped string into the destination
-                    args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
+                    args[0] = Convert.ChangeType(arg0, objectInstance.GetType(), CultureInfo.InvariantCulture);
                 }
 
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                 {
-                    WellKnownFunctionResult wellKnownConstructorResult = WellKnownFunctions.TryInvokeConstructor(_receiverType, args, in context);
-                    if (wellKnownConstructorResult.Status == WellKnownFunctionStatus.Invoked)
+                    WellKnownFunctionResult result = WellKnownFunctions.TryInvokeConstructor(_receiverType, ref arguments, in context);
+                    if (result.Status == WellKnownFunctionStatus.Invoked)
                     {
-                        functionResult = wellKnownConstructorResult.Result;
+                        functionResult = result.Result;
                     }
                     else
                     {
@@ -462,20 +467,20 @@ internal partial class Expander<P, I>
                 }
                 else
                 {
-                    bool wellKnownFunctionSuccess = false;
+                    bool success = false;
 
                     try
                     {
                         // First attempt to recognize some well-known functions to avoid binding
                         // and potential first-chance MissingMethodExceptions.
-                        WellKnownFunctionResult wellKnownFunctionResult = objectInstance is null
-                            ? WellKnownFunctions.TryInvokeStatic(_receiverType, _methodMethodName, args, in context)
-                            : WellKnownFunctions.TryInvokeInstance(objectInstance, _methodMethodName, args, in context);
+                        WellKnownFunctionResult result = objectInstance is null
+                            ? WellKnownFunctions.TryInvokeStatic(_receiverType, _methodMethodName, ref arguments, in context)
+                            : WellKnownFunctions.TryInvokeInstance(objectInstance, _methodMethodName, ref arguments, in context);
 
-                        if (wellKnownFunctionResult.Status == WellKnownFunctionStatus.Invoked)
+                        if (result.Status == WellKnownFunctionStatus.Invoked)
                         {
-                            functionResult = wellKnownFunctionResult.Result;
-                            wellKnownFunctionSuccess = true;
+                            functionResult = result.Result;
+                            success = true;
                         }
                     }
                     // we need to preserve the same behavior on exceptions as the actual binder
@@ -490,7 +495,7 @@ internal partial class Expander<P, I>
                         ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message.Replace("\r\n", " "));
                     }
 
-                    if (!wellKnownFunctionSuccess)
+                    if (!success)
                     {
                         LogFunctionCallRequiringReflection(objectInstance, args);
 

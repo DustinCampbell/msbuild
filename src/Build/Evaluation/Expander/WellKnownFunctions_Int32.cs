@@ -9,16 +9,16 @@ internal static partial class WellKnownFunctions
 {
     private sealed class Int32Handler
     {
-        public WellKnownFunctionResult TryInvokeInstance(string methodName, int integer, object?[] args)
+        public WellKnownFunctionResult TryInvokeInstance(string methodName, int integer, ref Arguments args)
             => methodName.Length switch
             {
                 8 when methodName.Equals(nameof(int.ToString), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeToString(integer, args),
+                    => TryInvokeToString(integer, ref args),
 
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeToString(int integer, object?[] args)
+        private static WellKnownFunctionResult TryInvokeToString(int integer, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out string? arg0)
                 ? Invoked(integer.ToString(arg0))
                 : NotHandled;

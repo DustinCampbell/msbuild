@@ -10,16 +10,16 @@ internal static partial class WellKnownFunctions
 {
     private sealed class RegexHandler
     {
-        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args)
+        public WellKnownFunctionResult TryInvokeStatic(string methodName, ref Arguments args)
             => methodName.Length switch
             {
                 7 when methodName.Equals(nameof(Regex.Replace), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeReplace(args),
+                    => TryInvokeReplace(ref args),
 
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeReplace(object?[] args)
+        private static WellKnownFunctionResult TryInvokeReplace(ref Arguments args)
             => args.Length == 3
             && args.TryGetArg(0, out string? input)
             && args.TryGetArg(1, out string? pattern)

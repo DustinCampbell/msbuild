@@ -38,23 +38,27 @@ internal static partial class WellKnownFunctions
     /// <returns>
     ///  The invocation result, including whether the function was handled.
     /// </returns>
-    public static WellKnownFunctionResult TryInvokeStatic(Type receiverType, string methodName, object?[] args, ref readonly ExpanderContext context)
+    public static WellKnownFunctionResult TryInvokeStatic(
+        Type receiverType,
+        string methodName,
+        ref Arguments args,
+        ref readonly ExpanderContext context)
         => receiverType == typeof(string)
-            ? s_stringHandler.TryInvokeStatic(methodName, args)
+            ? s_stringHandler.TryInvokeStatic(methodName, ref args)
          : receiverType == typeof(Math)
-            ? s_mathHandler.TryInvokeStatic(methodName, args)
+            ? s_mathHandler.TryInvokeStatic(methodName, ref args)
          : receiverType == typeof(IntrinsicFunctions)
-            ? s_intrinsicFunctionsHandler.TryInvokeStatic(methodName, args, in context)
+            ? s_intrinsicFunctionsHandler.TryInvokeStatic(methodName, ref args, in context)
          : receiverType == typeof(Path)
-            ? s_pathHandler.TryInvokeStatic(methodName, args)
+            ? s_pathHandler.TryInvokeStatic(methodName, ref args)
          : receiverType == typeof(Version)
-            ? s_versionHandler.TryInvokeStatic(methodName, args)
+            ? s_versionHandler.TryInvokeStatic(methodName, ref args)
          : receiverType == typeof(Guid)
-            ? s_guidHandler.TryInvokeStatic(methodName, args)
+            ? s_guidHandler.TryInvokeStatic(methodName, ref args)
          : receiverType == typeof(char)
-            ? s_charHandler.TryInvokeStatic(methodName, args)
+            ? s_charHandler.TryInvokeStatic(methodName, ref args)
          : receiverType == typeof(Regex)
-            ? s_regexHandler.TryInvokeStatic(methodName, args)
+            ? s_regexHandler.TryInvokeStatic(methodName, ref args)
 
          : NotHandled;
 
@@ -71,14 +75,14 @@ internal static partial class WellKnownFunctions
     public static WellKnownFunctionResult TryInvokeInstance(
         object objectInstance,
         string methodName,
-        object?[] args,
+        ref Arguments args,
         ref readonly ExpanderContext context)
         => objectInstance switch
         {
-            string s => s_stringHandler.TryInvokeInstance(methodName, s, args),
-            string[] a => s_stringArrayHandler.TryInvokeInstance(methodName, a, args),
-            Version v => s_versionHandler.TryInvokeInstance(methodName, v, args),
-            int i => s_int32Handler.TryInvokeInstance(methodName, i, args),
+            string s => s_stringHandler.TryInvokeInstance(methodName, s, ref args),
+            string[] a => s_stringArrayHandler.TryInvokeInstance(methodName, a, ref args),
+            Version v => s_versionHandler.TryInvokeInstance(methodName, v, ref args),
+            int i => s_int32Handler.TryInvokeInstance(methodName, i, ref args),
 
             _ => NotHandled,
         };
@@ -92,9 +96,9 @@ internal static partial class WellKnownFunctions
     /// <returns>
     ///  The invocation result, including whether the constructor was handled.
     /// </returns>
-    public static WellKnownFunctionResult TryInvokeConstructor(Type receiverType, object?[] args, ref readonly ExpanderContext context)
+    public static WellKnownFunctionResult TryInvokeConstructor(Type receiverType, ref Arguments args, ref readonly ExpanderContext context)
         => receiverType == typeof(string)
-            ? s_stringHandler.TryInvokeConstructor(args)
+            ? s_stringHandler.TryInvokeConstructor(ref args)
             : NotHandled;
 
     private static WellKnownFunctionResult NotHandled

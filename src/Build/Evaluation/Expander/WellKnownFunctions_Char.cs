@@ -9,16 +9,16 @@ internal static partial class WellKnownFunctions
 {
     private sealed class CharHandler
     {
-        public WellKnownFunctionResult TryInvokeStatic(string methodName, object?[] args)
+        public WellKnownFunctionResult TryInvokeStatic(string methodName, ref Arguments args)
             => methodName.Length switch
             {
                 7 when methodName.Equals(nameof(char.IsDigit), StringComparison.OrdinalIgnoreCase)
-                    => TryInvokeIsDigit(args),
+                    => TryInvokeIsDigit(ref args),
 
                 _ => NotHandled,
             };
 
-        private static WellKnownFunctionResult TryInvokeIsDigit(object?[] args)
+        private static WellKnownFunctionResult TryInvokeIsDigit(ref Arguments args)
             => args.Length switch
             {
                 1 when args.TryGetArg(0, out char c)
