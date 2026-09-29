@@ -34,7 +34,7 @@ internal partial class Expander<P, I>
     /// This class represents the function as extracted from an expression
     /// It is also responsible for executing the function.
     /// </summary>
-    internal class Function
+    internal class Function : IArgumentMaterializer
     {
         /// <summary>
         /// The type of this function's receiver.
@@ -341,7 +341,7 @@ internal partial class Expander<P, I>
             return false;
         }
 
-        private object MaterializeArgument(string argText, int argIndex, ExpanderOptions options, ref readonly ExpanderContext context)
+        object IArgumentMaterializer.MaterializeArgument(string argText, int argIndex, ExpanderOptions options, ref readonly ExpanderContext context)
         {
             object argument = PropertyExpander.ExpandPropertiesLeaveTypedAndEscaped(argText, options, in context);
 
@@ -395,8 +395,9 @@ internal partial class Expander<P, I>
         ///  specified and invocation fails.
         /// </returns>
         /// <remarks>
-        ///  Execution validates member availability and materializes arguments before attempting well-known
-        ///  dispatch. Reflection is used only when the function is not handled by a well-known implementation.
+        ///  Execution validates member availability before attempting well-known dispatch. Well-known handlers
+        ///  materialize arguments on demand; reflection fallback materializes all remaining arguments before
+        ///  invocation.
         /// </remarks>
         internal object Execute(object objectInstance, ExpanderOptions options, ref readonly ExpanderContext context)
         {
@@ -430,16 +431,7 @@ internal partial class Expander<P, I>
                 }
             }
 
-            // We have a methodinfo match, need to plug in the arguments
-            object[] args = new object[_arguments.Length];
-
-            // Assemble our arguments ready for passing to our method
-            for (int i = 0; i < _arguments.Length; i++)
-            {
-                args[i] = MaterializeArgument(_arguments[i], i, options, in context);
-            }
-
-            Arguments arguments = new(args);
+            Arguments arguments = new(_arguments, materializer: this, options, in context);
             bool isConstructor = string.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase);
 
             InvocationOutcome outcome = TryInvokeWellKnown(objectInstance, ref arguments, isConstructor, options, in context, out object result);
@@ -497,10 +489,11 @@ internal partial class Expander<P, I>
                     return InvocationOutcome.Invoked;
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (arguments.AllMaterialized)
             {
-                // Well-known handlers invoke members directly, so their exceptions are not wrapped in
-                // TargetInvocationException. Handle them consistently with exceptions from reflection invocation.
+                // Well-known handlers materialize every supplied argument before invoking the underlying function,
+                // so the filter lets materialization exceptions propagate unchanged. Direct invocation exceptions
+                // are not wrapped in TargetInvocationException; handle them consistently with reflection.
                 string partiallyEvaluated = FormatEvaluatedFunctionInvocation(objectInstance, _methodMethodName, arguments.ToObjectArray(), in context);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {

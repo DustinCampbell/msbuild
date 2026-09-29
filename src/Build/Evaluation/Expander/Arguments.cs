@@ -7,33 +7,136 @@ using System.Diagnostics.CodeAnalysis;
 namespace Microsoft.Build.Evaluation.Expander;
 
 /// <summary>
-///  Provides indexed, typed access to evaluated property-function arguments.
+///  Provides indexed, typed access to property-function arguments.
 /// </summary>
-/// <param name="values">The evaluated argument values.</param>
 /// <remarks>
-///  The current implementation is a readonly view over an evaluated array. It is passed by reference through
-///  well-known function dispatch so it can later cache lazily evaluated values without changing the dispatch API.
+///  Arguments supplied as source text are materialized and cached on first access. The type is passed by reference
+///  through well-known function dispatch so changes to its lazy cache are preserved.
 /// </remarks>
-internal readonly struct Arguments(object?[] values)
+internal struct Arguments
 {
-    private readonly object?[] _values = values;
+    private static readonly object s_notMaterialized = new();
+
+    private readonly string[]? _sourceValues;
+    private readonly int _count;
+    private readonly IArgumentMaterializer? _materializer;
+    private readonly ExpanderOptions _options;
+    private readonly ExpanderContext _context;
+
+    private object?[]? _values;
+    private int _materialized;
+
+    /// <summary>
+    ///  Initializes a new instance of the <see cref="Arguments"/> struct
+    ///  with unevaluated argument text.
+    /// </summary>
+    /// <param name="sourceValues">The unevaluated argument text.</param>
+    /// <param name="materializer">The materializer used to evaluate argument values.</param>
+    /// <param name="options">The options controlling expansion.</param>
+    /// <param name="context">The context in which arguments are expanded.</param>
+    public Arguments(
+        string[] sourceValues,
+        IArgumentMaterializer materializer,
+        ExpanderOptions options,
+        ref readonly ExpanderContext context)
+    {
+        _sourceValues = sourceValues;
+        _count = sourceValues.Length;
+        _materializer = materializer;
+        _options = options;
+        _context = context;
+        _values = sourceValues.Length == 0 ? [] : null;
+        _materialized = 0;
+    }
+
+    /// <summary>
+    ///  Initializes a new instance of the <see cref="Arguments"/> struct
+    ///  with already evaluated values.
+    /// </summary>
+    /// <param name="values">The evaluated argument values.</param>
+    public Arguments(object?[] values)
+    {
+        _count = values.Length;
+        _values = values;
+        _materialized = values.Length;
+    }
 
     /// <summary>
     ///  Gets the number of arguments.
     /// </summary>
-    public int Length => _values.Length;
+    public readonly int Length => _count;
 
     /// <summary>
-    ///  Returns the evaluated arguments as an object array.
+    ///  Gets a value indicating whether all arguments have been materialized.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(_values))]
+    public readonly bool AllMaterialized => _values is not null && _materialized == _count;
+
+    private object?[] GetOrCreateValues()
+    {
+        if (_values is null)
+        {
+            _values = new object?[_count];
+
+            for (int i = 0; i < _values.Length; i++)
+            {
+                _values[i] = s_notMaterialized;
+            }
+        }
+
+        return _values;
+    }
+
+    private object? GetMaterializedArg(int index)
+    {
+        object?[] values = GetOrCreateValues();
+        object? value = values[index];
+
+        if (_materialized < values.Length)
+        {
+            Assumed.NotNull(_sourceValues);
+            Assumed.NotNull(_materializer);
+
+            if (ReferenceEquals(value, s_notMaterialized))
+            {
+                value = _materializer.MaterializeArgument(_sourceValues[index], index, _options, in _context);
+                values[index] = value;
+                _materialized++;
+            }
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    ///  Materializes all remaining arguments and returns them as an object array.
     /// </summary>
     /// <returns>
     ///  The array containing the evaluated argument values.
     /// </returns>
     /// <remarks>
-    ///  No copy is made. Changes to the returned array are visible through this <see cref="Arguments"/> instance.
+    ///  Arguments are materialized in index order. No copy is made; changes to the returned array are visible
+    ///  through this <see cref="Arguments"/> instance.
     /// </remarks>
     public object?[] ToObjectArray()
-        => _values;
+    {
+        if (AllMaterialized)
+        {
+            return _values;
+        }
+
+        object?[] values = GetOrCreateValues();
+
+        if (_materialized < values.Length)
+        {
+            for (int i = 0; i < values.Length; i++)
+            {
+                _ = GetMaterializedArg(i);
+            }
+        }
+
+        return values;
+    }
 
     /// <summary>
     ///  Attempts to get the argument at the specified index.
@@ -45,9 +148,9 @@ internal readonly struct Arguments(object?[] values)
     /// </returns>
     public bool TryGetArg(int index, out object? result)
     {
-        if (index >= 0 && index < _values.Length)
+        if (index >= 0 && index < Length)
         {
-            result = _values[index];
+            result = GetMaterializedArg(index);
             return true;
         }
 
@@ -204,7 +307,7 @@ internal readonly struct Arguments(object?[] values)
     ///  <see langword="false"/>.
     /// </returns>
     public bool TryGetArithmeticArgs(out ArithmeticArguments result)
-        => ArgumentParser.TryGetArithmeticArguments(_values, out result);
+        => ArgumentParser.TryGetArithmeticArguments(ToObjectArray(), out result);
 
     /// <summary>
     ///  Attempts to copy the arguments to a string array.
@@ -214,7 +317,7 @@ internal readonly struct Arguments(object?[] values)
     ///  <see langword="true"/> if every argument is a string; otherwise, <see langword="false"/>.
     /// </returns>
     public bool TryConvertToStrings([NotNullWhen(true)] out string[]? result)
-        => ArgumentParser.TryConvertToStrings(_values, out result);
+        => ArgumentParser.TryConvertToStrings(ToObjectArray(), out result);
 
     /// <summary>
     ///  Attempts to get a segment containing the arguments from the specified index through the end.
@@ -238,13 +341,13 @@ internal readonly struct Arguments(object?[] values)
     /// </returns>
     public bool TryGetArraySegment(int index, int length, out ArraySegment<object?> result)
     {
-        if (index < 0 || length < 0 || index + length > _values.Length)
+        if (index < 0 || length < 0 || index + length > Length)
         {
             result = default;
             return false;
         }
 
-        result = new ArraySegment<object?>(_values, index, length);
+        result = new ArraySegment<object?>(ToObjectArray(), index, length);
         return true;
     }
 }
