@@ -11,6 +11,10 @@ namespace Microsoft.Build.Evaluation.Expander;
 
 internal static class ArgumentParser
 {
+    // Convert.ToDouble(string, ...) does not accept the trailing sign supported by the historical direct parser.
+    private const NumberStyles CoercedDoubleStyles = NumberStyles.Float | NumberStyles.AllowThousands;
+    private const NumberStyles DirectDoubleStyles = NumberStyles.Number | NumberStyles.Float;
+
     public static bool TryConvertToChar(object? value, out char c)
     {
         if (value is char ch)
@@ -29,8 +33,19 @@ internal static class ArgumentParser
     }
 
     /// <summary>
-    /// Try to convert value to double.
+    ///  Attempts to convert <paramref name="value"/> to a <see cref="double"/> using the direct
+    ///  well-known-function conversion rules.
     /// </summary>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="arg">The converted value when successful.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the conversion succeeds; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <remarks>
+    ///  Unlike <see cref="TryCoerceToDouble"/>, direct conversion recognizes only <see cref="double"/>,
+    ///  <see cref="long"/>, <see cref="int"/>, and numeric strings. Its string syntax combines
+    ///  <see cref="NumberStyles.Number"/> and <see cref="NumberStyles.Float"/>, notably allowing a trailing sign.
+    /// </remarks>
     public static bool TryConvertToDouble(object? value, out double arg)
     {
         switch (value)
@@ -47,7 +62,7 @@ internal static class ArgumentParser
                 arg = i;
                 return true;
 
-            case string str when double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out arg):
+            case string str when double.TryParse(str, DirectDoubleStyles, CultureInfo.InvariantCulture, out arg):
                 return true;
 
             default:
@@ -55,6 +70,25 @@ internal static class ArgumentParser
                 return false;
         }
     }
+
+    /// <summary>
+    ///  Attempts to coerce <paramref name="value"/> to a <see cref="double"/>.
+    /// </summary>
+    /// <param name="value">The value to coerce.</param>
+    /// <param name="result">The coerced value when successful.</param>
+    /// <returns>
+    ///  <see langword="true"/> when the coercion succeeds; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <remarks>
+    ///  Unlike <see cref="TryConvertToDouble"/>, which recognizes the input types and string formats accepted by
+    ///  well-known functions, coercion reproduces the broader type conversion performed by
+    ///  <see cref="Convert.ToDouble(object, IFormatProvider)"/> during reflection binding. Its string syntax is
+    ///  narrower, notably excluding a trailing sign.
+    /// </remarks>
+    public static bool TryCoerceToDouble(object? value, out double result)
+        => value is string text
+            ? double.TryParse(text, CoercedDoubleStyles, CultureInfo.InvariantCulture, out result)
+            : TryCoerceNonStringToDouble(value, out result);
 
     public static bool TryConvertToEnum<T>(object? value, out T result)
         where T : struct, Enum
@@ -249,7 +283,7 @@ internal static class ArgumentParser
     public static bool IsFloatingPointRepresentation(object? value)
         => value is double
         || (value is string str
-            && double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out _));
+            && double.TryParse(str, DirectDoubleStyles, CultureInfo.InvariantCulture, out _));
 
     public static bool TryGetArithmeticArguments(object?[] args, out ArithmeticArguments result)
     {
@@ -443,10 +477,6 @@ internal static class ArgumentParser
     // A successfully parsed string must not become eligible for the primitive widening phase.
     private struct ArithmeticArgument
     {
-        // Convert.ToDouble(string, ...) does not accept the trailing sign supported by the historical direct parser.
-        private const NumberStyles CoercedDoubleStyles = NumberStyles.Float | NumberStyles.AllowThousands;
-        private const NumberStyles DirectDoubleStyles = NumberStyles.Number | NumberStyles.Float;
-
         private readonly object? _value;
         private long _parsedLong;
         private double _coercedDouble;

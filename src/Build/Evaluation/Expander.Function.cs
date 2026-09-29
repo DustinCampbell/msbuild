@@ -89,6 +89,13 @@ internal partial class Expander<P, I>
             | BindingFlags.GetProperty
             | BindingFlags.GetField;
 
+        private enum InvocationOutcome
+        {
+            Invoked,
+            NotHandled,
+            Failed,
+        }
+
         /// <summary>
         /// The binding flags that will be used during invocation of this function.
         /// </summary>
@@ -375,191 +382,255 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Execute the function on the given instance.
+        ///  Executes this property function against the specified receiver.
         /// </summary>
-        [UnconditionalSuppressMessage("Trimming", "IL2074:UnrecognizedReflectionPattern",
-            Justification = "_receiverType is reassigned from a runtime property value whose type is restricted to the property-function allowlist, whose members are preserved for trimming.")]
+        /// <param name="objectInstance">
+        ///  The receiver instance, or <see langword="null"/> for a static member or constructor invocation.
+        /// </param>
+        /// <param name="options">The options controlling expansion and invocation error handling.</param>
+        /// <param name="context">The context in which the property function is expanded.</param>
+        /// <returns>
+        ///  The invocation result after required escaping and expansion of any remaining expression, or the
+        ///  partially evaluated invocation when <see cref="ExpanderOptions.LeavePropertiesUnexpandedOnError"/> is
+        ///  specified and invocation fails.
+        /// </returns>
+        /// <remarks>
+        ///  Execution validates member availability and materializes arguments before attempting well-known
+        ///  dispatch. Reflection is used only when the function is not handled by a well-known implementation.
+        /// </remarks>
         internal object Execute(object objectInstance, ExpanderOptions options, ref readonly ExpanderContext context)
         {
-            object functionResult = String.Empty;
-            object[] args = null;
+            // If there is no object instance, then the method invocation will be a static
+            if (objectInstance == null)
+            {
+                // Check that the function that we're going to call is valid to call
+                if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
+                {
+                    ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
+                }
+
+                _bindingFlags |= BindingFlags.Static;
+            }
+            else
+            {
+                // Check that the function that we're going to call is valid to call
+                if (!IsInstanceMethodAvailable(_receiverType, _methodMethodName))
+                {
+                    ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
+                }
+
+                _bindingFlags |= BindingFlags.Instance;
+
+                // The object that we're about to call methods on may have escaped characters
+                // in it, we want to operate on the unescaped string in the function, just as we
+                // want to pass arguments that are unescaped (see below)
+                if (objectInstance is string objectInstanceString)
+                {
+                    objectInstance = EscapingUtilities.UnescapeAll(objectInstanceString);
+                }
+            }
+
+            // We have a methodinfo match, need to plug in the arguments
+            object[] args = new object[_arguments.Length];
+
+            // Assemble our arguments ready for passing to our method
+            for (int i = 0; i < _arguments.Length; i++)
+            {
+                args[i] = MaterializeArgument(_arguments[i], i, options, in context);
+            }
+
+            Arguments arguments = new(args);
+            bool isConstructor = string.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase);
+
+            InvocationOutcome outcome = TryInvokeWellKnown(objectInstance, ref arguments, isConstructor, options, in context, out object result);
+
+            if (outcome == InvocationOutcome.NotHandled)
+            {
+                outcome = TryInvokeWithReflection(objectInstance, ref arguments, isConstructor, options, in context, out result);
+            }
+
+            if (outcome == InvocationOutcome.Failed)
+            {
+                return result;
+            }
+
+            // If the result of the function call is a string, then we need to escape the result
+            // so that we maintain the "engine contains escaped data" state.
+            // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
+            if (result is string s &&
+                !string.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+            {
+                result = EscapingUtilities.Escape(s);
+            }
+
+            // We have nothing left to parse, so we'll return what we have
+            if (_remainder.IsNullOrEmpty())
+            {
+                return result;
+            }
+
+            // Recursively expand the remaining property body after execution
+            return PropertyExpander.ExpandPropertyBody(_remainder, result, options, in context);
+        }
+
+        private InvocationOutcome TryInvokeWellKnown(
+            object objectInstance,
+            ref Arguments arguments,
+            bool isConstructor,
+            ExpanderOptions options,
+            ref readonly ExpanderContext context,
+            out object result)
+        {
+            try
+            {
+                WellKnownFunctionResult functionResult = isConstructor
+                    ? WellKnownFunctions.TryInvokeConstructor(_receiverType, ref arguments, in context)
+                    : objectInstance is null
+                        ? WellKnownFunctions.TryInvokeStatic(_receiverType, _methodMethodName, ref arguments, in context)
+                        : WellKnownFunctions.TryInvokeInstance(objectInstance, _methodMethodName, ref arguments, in context);
+
+                if (functionResult.Status == WellKnownFunctionStatus.Invoked)
+                {
+                    result = functionResult.Result;
+                    return InvocationOutcome.Invoked;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Well-known handlers invoke members directly, so their exceptions are not wrapped in
+                // TargetInvocationException. Handle them consistently with exceptions from reflection invocation.
+                string partiallyEvaluated = FormatEvaluatedFunctionInvocation(objectInstance, _methodMethodName, arguments.ToObjectArray(), in context);
+                if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
+                {
+                    result = partiallyEvaluated;
+                    return InvocationOutcome.Failed;
+                }
+
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    context.Location,
+                    "InvalidFunctionPropertyExpression",
+                    partiallyEvaluated,
+                    ex.Message.Replace("\r\n", " "));
+                result = null;
+                return InvocationOutcome.Failed;
+            }
+
+            result = null;
+            return InvocationOutcome.NotHandled;
+        }
+
+        private InvocationOutcome TryInvokeWithReflection(
+            object objectInstance,
+            ref Arguments arguments,
+            bool isConstructor,
+            ExpanderOptions options,
+            ref readonly ExpanderContext context,
+            out object result)
+        {
+            object[] args = arguments.ToObjectArray();
 
             try
             {
-                // If there is no object instance, then the method invocation will be a static
-                if (objectInstance == null)
+                if (!isConstructor && objectInstance is not null)
                 {
-                    // Check that the function that we're going to call is valid to call
-                    if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
-                    }
-
-                    _bindingFlags |= BindingFlags.Static;
-                }
-                else
-                {
-                    // Check that the function that we're going to call is valid to call
-                    if (!IsInstanceMethodAvailable(_receiverType, _methodMethodName))
-                    {
-                        ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
-                    }
-
-                    _bindingFlags |= BindingFlags.Instance;
-
-                    // The object that we're about to call methods on may have escaped characters
-                    // in it, we want to operate on the unescaped string in the function, just as we
-                    // want to pass arguments that are unescaped (see below)
-                    if (objectInstance is string objectInstanceString)
-                    {
-                        objectInstance = EscapingUtilities.UnescapeAll(objectInstanceString);
-                    }
+                    AdjustForEqualsAndCompareTo(ref objectInstance, args);
                 }
 
-                // We have a methodinfo match, need to plug in the arguments
-                args = new object[_arguments.Length];
+                LogFunctionCallRequiringReflection(objectInstance, args);
 
-                // Assemble our arguments ready for passing to our method
-                for (int i = 0; i < _arguments.Length; i++)
-                {
-                    args[i] = MaterializeArgument(_arguments[i], i, options, in context);
-                }
+                result = isConstructor
+                    ? InvokeConstructorWithReflection(args)
+                    : objectInstance is null
+                        ? InvokeStaticMemberWithReflection(args)
+                        : InvokeInstanceMemberWithReflection(objectInstance, args);
 
-                Arguments arguments = new(args);
-
-                // Handle special cases where the object type needs to affect the choice of method
-                // The default binder and method invoke, often chooses the incorrect Equals and CompareTo and
-                // fails the comparison, because what we have on the right is generally a string.
-                // This special casing is to realize that its a comparison that is taking place and handle the
-                // argument type coercion accordingly; effectively pre-preparing the argument type so
-                // that it matches the left hand side ready for the default binder’s method invoke.
-                if (objectInstance != null &&
-                    arguments.Length == 1 &&
-                    arguments.TryGetArg(0, out object arg0) &&
-                    (string.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) ||
-                     string.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
-                {
-                    // Support comparison when the lhs is an integer
-                    if (ArgumentParser.IsFloatingPointRepresentation(arg0))
-                    {
-                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
-                        {
-                            objectInstance = result;
-                            _receiverType = objectInstance.GetType();
-                        }
-                    }
-
-                    // change the type of the final unescaped string into the destination
-                    args[0] = Convert.ChangeType(arg0, objectInstance.GetType(), CultureInfo.InvariantCulture);
-                }
-
-                // If we've been asked to construct an instance, then we
-                // need to locate an appropriate constructor and invoke it
-                if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
-                {
-                    WellKnownFunctionResult result = WellKnownFunctions.TryInvokeConstructor(_receiverType, ref arguments, in context);
-                    if (result.Status == WellKnownFunctionStatus.Invoked)
-                    {
-                        functionResult = result.Result;
-                    }
-                    else
-                    {
-                        LogFunctionCallRequiringReflection(objectInstance: null, args);
-                        var reflectionInvoker = new ReflectionInvoker(_receiverType, _methodMethodName, BindingFlags.Public | BindingFlags.Instance);
-                        functionResult = reflectionInvoker.InvokeConstructor(args);
-                    }
-                }
-                else
-                {
-                    bool success = false;
-
-                    try
-                    {
-                        // First attempt to recognize some well-known functions to avoid binding
-                        // and potential first-chance MissingMethodExceptions.
-                        WellKnownFunctionResult result = objectInstance is null
-                            ? WellKnownFunctions.TryInvokeStatic(_receiverType, _methodMethodName, ref arguments, in context)
-                            : WellKnownFunctions.TryInvokeInstance(objectInstance, _methodMethodName, ref arguments, in context);
-
-                        if (result.Status == WellKnownFunctionStatus.Invoked)
-                        {
-                            functionResult = result.Result;
-                            success = true;
-                        }
-                    }
-                    // we need to preserve the same behavior on exceptions as the actual binder
-                    catch (Exception ex)
-                    {
-                        string partiallyEvaluated = FormatEvaluatedFunctionInvocation(objectInstance, _methodMethodName, args, in context);
-                        if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                        {
-                            return partiallyEvaluated;
-                        }
-
-                        ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message.Replace("\r\n", " "));
-                    }
-
-                    if (!success)
-                    {
-                        LogFunctionCallRequiringReflection(objectInstance, args);
-                        var reflectionInvoker = new ReflectionInvoker(_receiverType, _methodMethodName, _bindingFlags);
-                        functionResult = reflectionInvoker.InvokeMember(objectInstance, args);
-                    }
-                }
-
-                // If the result of the function call is a string, then we need to escape the result
-                // so that we maintain the "engine contains escaped data" state.
-                // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
-                if (functionResult is string functionResultString &&
-                    !String.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
-                    !String.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
-                    !String.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
-                {
-                    functionResult = EscapingUtilities.Escape(functionResultString);
-                }
-
-                // We have nothing left to parse, so we'll return what we have
-                if (String.IsNullOrEmpty(_remainder))
-                {
-                    return functionResult;
-                }
-
-                // Recursively expand the remaining property body after execution
-                return PropertyExpander.ExpandPropertyBody(_remainder, functionResult, options, in context);
+                return InvocationOutcome.Invoked;
             }
-
-            // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
             catch (TargetInvocationException ex)
             {
-                // We ended up with something other than a function expression
+                // Exceptions coming from the actual function called are wrapped in a TargetInvocationException.
                 string partiallyEvaluated = FormatEvaluatedFunctionInvocation(objectInstance, _methodMethodName, args, in context);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
-                    return partiallyEvaluated;
+                    result = partiallyEvaluated;
+                    return InvocationOutcome.Failed;
                 }
-                ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.InnerException.Message.Replace("\r\n", " "));
-                return null;
-            }
 
-            // Any other exception was thrown by trying to call it
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    context.Location,
+                    "InvalidFunctionPropertyExpression",
+                    partiallyEvaluated,
+                    ex.InnerException.Message.Replace("\r\n", " "));
+            }
             catch (Exception ex) when (!ExceptionHandling.NotExpectedFunctionException(ex))
             {
-                // If there's a :: in the expression, they were probably trying for a static function
-                // invocation. Give them some more relevant info in that case
+                // Translate expected function evaluation, binding, and reflection failures into MSBuild diagnostics.
                 if (s_invariantCompareInfo.IndexOf(_expression, "::", CompareOptions.OrdinalIgnoreCase) > -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionStaticMethodSyntax", _expression, ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
+                    ProjectErrorUtilities.ThrowInvalidProject(
+                        context.Location,
+                        "InvalidFunctionStaticMethodSyntax",
+                        _expression,
+                        ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
                 }
                 else
                 {
-                    // We ended up with something other than a function expression
                     string partiallyEvaluated = FormatEvaluatedFunctionInvocation(objectInstance, _methodMethodName, args, in context);
-                    ProjectErrorUtilities.ThrowInvalidProject(context.Location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
+                    ProjectErrorUtilities.ThrowInvalidProject(
+                        context.Location,
+                        "InvalidFunctionPropertyExpression",
+                        partiallyEvaluated,
+                        ex.Message);
+                }
+            }
+
+            result = null;
+            return InvocationOutcome.Failed;
+        }
+
+        [UnconditionalSuppressMessage("Trimming", "IL2074:UnrecognizedReflectionPattern",
+            Justification = "_receiverType is reassigned from a runtime property value whose type is restricted to the property-function allowlist, whose members are preserved for trimming.")]
+        private void AdjustForEqualsAndCompareTo(ref object objectInstance, object[] args)
+        {
+            // The default binder often chooses the incorrect Equals or CompareTo overload because the argument on
+            // the right is generally a string. Coerce it to the receiver type before invoking reflection.
+            if (args.Length == 1 &&
+                (string.Equals(nameof(Equals), _methodMethodName, StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(nameof(IComparable.CompareTo), _methodMethodName, StringComparison.OrdinalIgnoreCase)))
+            {
+                object arg0 = args[0];
+
+                // Support comparisons between integral and floating-point representations.
+                if (ArgumentParser.IsFloatingPointRepresentation(arg0) &&
+                    double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out double d))
+                {
+                    objectInstance = d;
+                    _receiverType = objectInstance.GetType();
                 }
 
-                return null;
+                args[0] = Convert.ChangeType(arg0, objectInstance.GetType(), CultureInfo.InvariantCulture);
             }
+        }
+
+        private object InvokeConstructorWithReflection(object[] args)
+        {
+            var reflectionInvoker = new ReflectionInvoker(_receiverType, _methodMethodName, BindingFlags.Public | BindingFlags.Instance);
+            return reflectionInvoker.InvokeConstructor(args);
+        }
+
+        private object InvokeStaticMemberWithReflection(object[] args)
+        {
+            var reflectionInvoker = new ReflectionInvoker(_receiverType, _methodMethodName, _bindingFlags);
+            return reflectionInvoker.InvokeMember(objectInstance: null, args);
+        }
+
+        private object InvokeInstanceMemberWithReflection(object objectInstance, object[] args)
+        {
+            var reflectionInvoker = new ReflectionInvoker(_receiverType, _methodMethodName, _bindingFlags);
+            return reflectionInvoker.InvokeMember(objectInstance, args);
         }
 
         private void LogFunctionCallRequiringReflection(object objectInstance, object[] args)

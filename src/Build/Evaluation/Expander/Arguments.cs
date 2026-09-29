@@ -24,6 +24,18 @@ internal readonly struct Arguments(object?[] values)
     public int Length => _values.Length;
 
     /// <summary>
+    ///  Returns the evaluated arguments as an object array.
+    /// </summary>
+    /// <returns>
+    ///  The array containing the evaluated argument values.
+    /// </returns>
+    /// <remarks>
+    ///  No copy is made. Changes to the returned array are visible through this <see cref="Arguments"/> instance.
+    /// </remarks>
+    public object?[] ToObjectArray()
+        => _values;
+
+    /// <summary>
     ///  Attempts to get the argument at the specified index.
     /// </summary>
     /// <param name="index">The zero-based argument index.</param>

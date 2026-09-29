@@ -102,9 +102,24 @@ internal static partial class WellKnownFunctions
             };
 
         private static WellKnownFunctionResult TryInvokeEquals(string text, ref Arguments args)
-            => args.Length == 1 && args.TryGetArg(0, out string? arg0)
-                ? Invoked(text.Equals(arg0))
+        {
+            if (args.Length != 1 || !args.TryGetArg(0, out object? arg0))
+            {
+                return NotHandled;
+            }
+
+            if (ArgumentParser.TryConvertToDouble(text, out double left) &&
+                ArgumentParser.IsFloatingPointRepresentation(arg0))
+            {
+                return ArgumentParser.TryCoerceToDouble(arg0, out double right)
+                    ? Invoked(left.Equals(right))
+                    : NotHandled;
+            }
+
+            return arg0 is string value
+                ? Invoked(text.Equals(value))
                 : NotHandled;
+        }
 
         private static WellKnownFunctionResult TryInvokeGetChars(string text, ref Arguments args)
             => args.Length == 1 && args.TryGetArg(0, out int index)
