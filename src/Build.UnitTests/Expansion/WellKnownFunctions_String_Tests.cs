@@ -93,10 +93,24 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
     [Theory]
     [InlineData("abc", "abc", true)]
     [InlineData("abc", "ABC", false)]
+    [InlineData("abc", "1", false)]
     public void String_Equals_String(string instance, string value, bool expected)
         => InstanceMember(nameof(string.Equals))
             .Invoke(instance, [value])
             .ShouldBe(expected);
+
+    [Theory]
+    [InlineData("1", "2", false)]
+    [InlineData("03", "3", true)]
+    public void String_Equals_NumericString(string instance, string value, bool expected)
+        => InstanceMember(nameof(string.Equals))
+            .Invoke(instance, [value])
+            .ShouldBe(expected);
+
+    [Fact]
+    public void String_Equals_NumericStringRequiringLegacyCoercion_NotHandled()
+        => InstanceMember(nameof(string.Equals))
+            .NotHandled("10", ["10-"]);
 
     [Fact]
     public void String_Equals_StringComparison_NotHandled()

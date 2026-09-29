@@ -267,6 +267,31 @@ public class ArgumentParser_Tests
         { "10", 10.0 },
     };
 
+    [Theory]
+    [MemberData(nameof(CoerceToDoubleData))]
+    public void TryCoerceToDoubleSucceeds(object? value, double expected)
+    {
+        ArgumentParser.TryCoerceToDouble(value, out double actual).ShouldBeTrue();
+        actual.ShouldBe(expected);
+    }
+
+    public static TheoryData<object?, double> CoerceToDoubleData => new()
+    {
+        { null, 0.0 },
+        { true, 1.0 },
+        { 10, 10.0 },
+        { "10", 10.0 },
+    };
+
+    [Theory]
+    [InlineData("10-")]
+    [InlineData("not a number")]
+    public void TryCoerceToDoubleFails(object? value)
+    {
+        ArgumentParser.TryCoerceToDouble(value, out double actual).ShouldBeFalse();
+        actual.ShouldBe(0D);
+    }
+
     [Fact]
     public void TryConvertToDoubleGivenNullFails()
     {
