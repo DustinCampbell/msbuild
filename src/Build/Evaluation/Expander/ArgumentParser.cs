@@ -81,7 +81,15 @@ internal static class ArgumentParser
         return false;
     }
 
-    private static string NormalizeEnumArgument(Type enumType, string value)
+    /// <summary>
+    ///  Normalizes an enum argument by replacing <c>|</c> separators and removing matching type qualifiers.
+    /// </summary>
+    /// <param name="enumType">The enum type whose qualifiers should be removed.</param>
+    /// <param name="value">The argument to normalize.</param>
+    /// <returns>
+    ///  The normalized enum argument.
+    /// </returns>
+    public static string NormalizeEnumArgument(Type enumType, string value)
     {
         string? fullName = enumType.FullName;
         Assumed.NotNull(fullName);
