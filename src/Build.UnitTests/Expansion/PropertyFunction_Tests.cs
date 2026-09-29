@@ -443,6 +443,7 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     [InlineData("$([System.IO.Path]::Combine(null,''))", "[System.IO.Path]::Combine(null, '')")]
     [InlineData("$(SomeStuff.Substring(-10))", "\"This IS SOME STUff\".Substring(-10)")]
     [InlineData("$([MSBuild]::GetPathOfFileAbove('foo'))", "[MSBuild]::GetPathOfFileAbove(foo, '')")]
+    [InlineData("$([System.Convert]::FromBase64String('!'))", "[System.Convert]::FromBase64String(!)")]
     public void FailedPropertyFunctionReturnsEvaluatedInvocation(string expression, string expected)
         => ExpandProperties(expression, Properties("SomeStuff", "This IS SOME STUff"), ExpanderOptions.LeavePropertiesUnexpandedOnError)
             .ShouldBe(expected);
