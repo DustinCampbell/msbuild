@@ -807,8 +807,10 @@ flowchart TD
   `[DynamicallyAccessedMembers]` store genuinely can't be proven, push it into a one-line
   setter instead of annotating a whole method — e.g. `FunctionBuilder.SetReceiverType` in
   [Expander.FunctionBuilder.cs](../../src/Build/Evaluation/Expander.FunctionBuilder.cs) owns the
-  single IL2067 suppression for the property-function receiver type, keeping
-  `Function.ExtractPropertyFunction` suppression-free.
+  IL2069 suppression for the current property-function receiver type, keeping
+  `Function.ExtractPropertyFunction` suppression-free. The compatibility
+  [LegacyExpander.FunctionBuilder.cs](../../src/Build/Expansion/Legacy/LegacyExpander.FunctionBuilder.cs)
+  owns the equivalent suppression for the legacy path.
 
 ---
 
@@ -866,6 +868,16 @@ flowchart TD
 **This repo** — see the [folder README](README.md) for the full document map. Key source:
 - Central feature switches: [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs)
 - Attribute polyfills: [AotTrimmingPolyfills.cs](../../src/Framework/Polyfills/AotTrimmingPolyfills.cs)
-- Property-function reflection, `[FeatureGuard]` probing, and the env-var gates: [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs)
-- Localized IL2067 suppression (`SetReceiverType`): [Expander.FunctionBuilder.cs](../../src/Build/Evaluation/Expander.FunctionBuilder.cs)
+- Property-function execution, `[FeatureGuard]` probing, and the env-var gates:
+  [Expander.Function.cs](../../src/Build/Evaluation/Expander.Function.cs)
+- Lazy property-function arguments and direct dispatch:
+  [Arguments.cs](../../src/Build/Evaluation/Expander/Arguments.cs),
+  [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs)
+- Property-function reflection fallback:
+  [ReflectionInvoker.cs](../../src/Build/Evaluation/Expander/ReflectionInvoker.cs)
+- Localized IL2069 receiver suppressions:
+  [Expander.FunctionBuilder.cs](../../src/Build/Evaluation/Expander.FunctionBuilder.cs),
+  [LegacyExpander.FunctionBuilder.cs](../../src/Build/Expansion/Legacy/LegacyExpander.FunctionBuilder.cs)
+- Current/compatibility implementation selection: [ExpanderFactory.cs](../../src/Build/Expansion/ExpanderFactory.cs)
+- Compatibility expansion implementation: [Expansion/Legacy](../../src/Build/Expansion/Legacy)
 - Curated property-function receiver allowlist: [PropertyFunctionReceiver.cs](../../src/Build/Evaluation/PropertyFunctionReceiver.cs)

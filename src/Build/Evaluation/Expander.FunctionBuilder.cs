@@ -47,8 +47,9 @@ internal partial class Expander<P, I>
         /// <c>GetType()</c>; property functions bind only the public surface. This one-line setter writes the
         /// annotated <see cref="_receiverType"/> field directly, so it is the single place an un-annotated
         /// <see cref="Type"/> enters the <c>DynamicallyAccessedMembers</c>-tracked flow and the localized,
-        /// minimized home of the IL2069 suppression - every downstream hop (<c>Build</c> -> <c>Function</c>
-        /// -> <c>InvokePublicMember</c>) is then machine-checked.
+        /// minimized home of the IL2069 suppression - every downstream receiver-type hop
+        /// (<c>Build</c> -> <c>Function</c> -> <c>ReflectionInvoker</c>, then
+        /// <c>InvokePublicMember</c> for member calls) is machine-checked.
         /// </summary>
         [UnconditionalSuppressMessage("Trimming", "IL2069",
             Justification = "Receiver type comes from the static-method allowlist (public members preserved by Constants.PropertyFunctionMembers) or a runtime GetType(); only public members are bound. See the summary for the DAM-flow rationale.")]

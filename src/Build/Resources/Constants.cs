@@ -225,9 +225,10 @@ namespace Microsoft.Build.Internal
         /// The reflection surface that property-function evaluation uses on an allowlisted receiver
         /// type: public constructors (for <c>[Type]::new(...)</c>) plus public methods, properties, and
         /// fields, reached as static or instance members via <c>Type.InvokeMember</c>, <c>GetMethod(s)</c>,
-        /// and <c>GetConstructor(s)</c> (see Expander.Function.Execute and LateBindExecute). The
-        /// property-function path never sets <c>BindingFlags.NonPublic</c>, so events, nested types,
-        /// interfaces, and non-public members are never reflected over.
+        /// and <c>GetConstructor(s)</c> (see <c>Function.TryInvokeWithReflection</c>,
+        /// <c>ReflectionInvoker</c>, and the compatibility <c>LegacyExpander.Function</c> path).
+        /// Property functions never set <c>BindingFlags.NonPublic</c>, so events, nested types, interfaces,
+        /// and non-public members are never reflected over.
         /// </summary>
         private const DynamicallyAccessedMemberTypes PropertyFunctionMembers =
             DynamicallyAccessedMemberTypes.PublicConstructors
@@ -238,12 +239,11 @@ namespace Microsoft.Build.Internal
         /// <summary>
         /// Fill up the dictionary for first use
         /// </summary>
-        // Preserve the PropertyFunctionMembers set on every type in the property-function allowlist
-        // below. Property functions dispatch over the allowlisted receiver type by reflection (see
-        // Expander.Function), and receiver types are restricted to this allowlist unless the
-        // MSBUILDENABLEALLPROPERTYFUNCTIONS feature switch is enabled. Preserving these members is what
-        // makes the IL2072/IL2074/IL2080/IL2096 suppressions in Expander honest under trimming. Keep in
-        // sync with the entries added below.
+        // Preserve the PropertyFunctionMembers set on every statically allowlisted receiver type below.
+        // Under trimming, EnableAllPropertyFunctions is false and instance calls are separately bounded by
+        // PropertyFunctionReceiver. This preserved static surface and bounded instance surface make the
+        // IL2069/IL2074/IL2080/IL2096 suppressions in the current and compatibility expanders honest. Keep
+        // this list in sync with the entries added below.
         [DynamicDependency(PropertyFunctionMembers, typeof(Environment))]
         [DynamicDependency(PropertyFunctionMembers, typeof(Directory))]
         [DynamicDependency(PropertyFunctionMembers, typeof(File))]
