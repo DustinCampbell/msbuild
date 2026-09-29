@@ -2,13 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 #if !FEATURE_MSIOREDIST
 using System.IO;
 #endif
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using Microsoft.Build.Evaluation.Expander;
@@ -381,8 +379,6 @@ internal partial class Expander<P, I>
         /// </summary>
         [UnconditionalSuppressMessage("Trimming", "IL2074:UnrecognizedReflectionPattern",
             Justification = "_receiverType is reassigned from a runtime property value whose type is restricted to the property-function allowlist, whose members are preserved for trimming.")]
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
-            Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         internal object Execute(object objectInstance, ExpanderOptions options, ref readonly ExpanderContext context)
         {
             object functionResult = String.Empty;
@@ -469,7 +465,8 @@ internal partial class Expander<P, I>
                     else
                     {
                         LogFunctionCallRequiringReflection(objectInstance: null, args);
-                        functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
+                        var reflectionInvoker = new ReflectionInvoker(_receiverType, _methodMethodName, BindingFlags.Public | BindingFlags.Instance);
+                        functionResult = reflectionInvoker.InvokeConstructor(args);
                     }
                 }
                 else
@@ -505,32 +502,8 @@ internal partial class Expander<P, I>
                     if (!success)
                     {
                         LogFunctionCallRequiringReflection(objectInstance, args);
-
-                        // Execute the function given converted arguments
-                        // The only exception that we should catch to try a late bind here is missing method
-                        // otherwise there is the potential of running a function twice!
-                        try
-                        {
-                            // If there are any out parameters, try to figure out their type and create defaults for them as appropriate before calling the method.
-                            if (args.Any(a => "out _".Equals(a)))
-                            {
-                                IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodMethodName) && m.GetParameters().Length == args.Length);
-                                functionResult = GetMethodResult(objectInstance, methods, args, 0);
-                            }
-                            else
-                            {
-                                // If there are no out parameters, use InvokeMember using the standard binder - this will match and coerce as needed
-                                functionResult = _receiverType.InvokePublicMember(_methodMethodName, _bindingFlags, objectInstance, args);
-                            }
-                        }
-                        // If we're invoking a method, then there are deeper attempts that can be made to invoke the method.
-                        // If not, we were asked to get a property or field but found that we cannot locate it. No further argument coercion is possible, so throw.
-                        catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                        {
-                            // The standard binder failed, so do our best to coerce types into the arguments for the function
-                            // This may happen if the types need coercion, but it may also happen if the object represents a type that contains open type parameters, that is, ContainsGenericParameters returns true.
-                            functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, false /* is not constructor */);
-                        }
+                        var reflectionInvoker = new ReflectionInvoker(_receiverType, _methodMethodName, _bindingFlags);
+                        functionResult = reflectionInvoker.InvokeMember(objectInstance, args);
                     }
                 }
 
@@ -635,48 +608,6 @@ internal partial class Expander<P, I>
             builder.Append(")\n");
 
             System.IO.File.AppendAllText(logFile, StringBuilderCache.GetStringAndRelease(builder));
-        }
-
-        private object GetMethodResult(object objectInstance, IEnumerable<MethodInfo> methods, object[] args, int index)
-        {
-            for (int i = index; i < args.Length; i++)
-            {
-                if (args[i].Equals("out _"))
-                {
-                    object toReturn = null;
-                    foreach (MethodInfo method in methods)
-                    {
-                        Type t = method.GetParameters()[i].ParameterType;
-                        args[i] = t.CreateDefault();
-                        object currentReturnValue = GetMethodResult(objectInstance, methods, args, i + 1);
-                        if (currentReturnValue is not null)
-                        {
-                            if (toReturn is null)
-                            {
-                                toReturn = currentReturnValue;
-                            }
-                            else if (!toReturn.Equals(currentReturnValue))
-                            {
-                                // There were multiple methods that seemed viable and gave different results. We can't differentiate between them so throw.
-                                ErrorUtilities.ThrowArgument("CouldNotDifferentiateBetweenCompatibleMethods", _methodMethodName, args.Length);
-                                return null;
-                            }
-                        }
-                    }
-
-                    return toReturn;
-                }
-            }
-
-            try
-            {
-                return _receiverType.InvokePublicMember(_methodMethodName, _bindingFlags, objectInstance, args) ?? "null";
-            }
-            catch (Exception)
-            {
-                // This isn't a viable option, but perhaps another set of parameters will work.
-                return null;
-            }
         }
 
         /// <summary>
@@ -1012,71 +943,6 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Coerce the arguments according to the parameter types
-        /// Will only return null if the coercion didn't work due to an InvalidCastException.
-        /// </summary>
-        private static object[] CoerceArguments(object[] args, ParameterInfo[] parameters)
-        {
-            object[] coercedArguments = new object[args.Length];
-
-            try
-            {
-                // Do our best to coerce types into the arguments for the function
-                for (int n = 0; n < parameters.Length; n++)
-                {
-                    if (args[n] == null)
-                    {
-                        // We can't coerce (object)null -- that's as general
-                        // as it can get!
-                        continue;
-                    }
-
-                    // Here we have special case conversions on a type basis
-                    if (parameters[n].ParameterType == typeof(char[]))
-                    {
-                        coercedArguments[n] = args[n].ToString().ToCharArray();
-                    }
-                    else if (parameters[n].ParameterType.GetTypeInfo().IsEnum && args[n] is string v && v.Contains('.'))
-                    {
-                        Type enumType = parameters[n].ParameterType;
-                        string typeLeafName = $"{enumType.Name}.";
-                        string typeFullName = $"{enumType.FullName}.";
-
-                        // Enum.parse expects commas between enum components
-                        // We'll support the C# type | syntax too
-                        // We'll also allow the user to specify the leaf or full type name on the enum
-                        string argument = args[n].ToString().Replace('|', ',').Replace(typeFullName, "").Replace(typeLeafName, "");
-
-                        // Parse the string representation of the argument into the destination enum
-                        coercedArguments[n] = Enum.Parse(enumType, argument);
-                    }
-                    else
-                    {
-                        // change the type of the final unescaped string into the destination
-                        coercedArguments[n] = Convert.ChangeType(args[n], parameters[n].ParameterType, CultureInfo.InvariantCulture);
-                    }
-                }
-            }
-            // The coercion failed therefore we return null
-            catch (InvalidCastException)
-            {
-                return null;
-            }
-            catch (FormatException)
-            {
-                return null;
-            }
-            catch (OverflowException)
-            {
-                // https://github.com/dotnet/msbuild/issues/2882
-                // test: PropertyFunctionMathMaxOverflow
-                return null;
-            }
-
-            return coercedArguments;
-        }
-
-        /// <summary>
         ///  Formats an attempted property-function invocation for diagnostic output using its evaluated receiver
         ///  and arguments.
         /// </summary>
@@ -1224,167 +1090,6 @@ internal partial class Expander<P, I>
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Finds a public method on the receiver type by name (case-insensitive) and exact
-        /// parameter-type signature, filtering by the current binding flags (instance/static).
-        /// </summary>
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
-            Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        private MethodInfo FindPublicMethodBySignature(string methodName, Type[] parameterTypes)
-        {
-            foreach (MethodInfo method in _receiverType.GetMethods(_bindingFlags))
-            {
-                if (!string.Equals(method.Name, methodName, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                ParameterInfo[] parameters = method.GetParameters();
-                if (parameters.Length != parameterTypes.Length)
-                {
-                    continue;
-                }
-
-                bool match = true;
-                for (int i = 0; i < parameters.Length; i++)
-                {
-                    if (parameters[i].ParameterType != parameterTypes[i])
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-
-                if (match)
-                {
-                    return method;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Construct and instance of objectType based on the constructor or method arguments provided.
-        /// Arguments must never be null.
-        /// </summary>
-        // This reflective invoke can in principle reach any public method of an allowlisted receiver type.
-        // The only such method carrying [RequiresDynamicCode] is Enum.GetValues(Type) (on System.Enum) -
-        // this is the IL3050 suppressed below.
-        //
-        // Reaching it would require an author to pass a System.Type argument, and a property function has no
-        // way to produce one: string does not coerce to Type (evaluation reports MSB4186, "method not
-        // found"), and [System.Type]::GetType(...) is not an available property function (MSB4185, even with
-        // MSBUILDENABLEALLPROPERTYFUNCTIONS=1). The receiver is a runtime Type, so the static
-        // Enum.GetValues<TEnum>() overload cannot be substituted either. The case is therefore blocked before
-        // this invoke (identically on JIT and AOT) and would still fail observably (InvalidProjectFileException)
-        // if reached - never silently. Verified under Native AOT by src/aot-validation/PropertyFunctionAotTests.cs.
-        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-            Justification = "The only RDC method reachable here is Enum.GetValues(Type), which is unreachable via property functions; see comment above.")]
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
-            Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        private object LateBindExecute(Exception ex, BindingFlags bindingFlags, object objectInstance /* null unless instance method */, object[] args, bool isConstructor)
-        {
-            // First let's try for a method where all arguments are strings..
-            Type[] types = new Type[_arguments.Length];
-            for (int n = 0; n < _arguments.Length; n++)
-            {
-                types[n] = typeof(string);
-            }
-
-            MethodBase memberInfo;
-            if (isConstructor)
-            {
-                memberInfo = _receiverType.GetConstructor(types);
-            }
-            else
-            {
-                // Match a public method by name (case-insensitive) and exact parameter signature.
-                // Equivalent to the prior GetMethod(..., BindingFlags, ...) call but uses the
-                // public-only GetMethods(_bindingFlags) call, since BindingFlags.NonPublic is never set here.
-                memberInfo = FindPublicMethodBySignature(_methodMethodName, types);
-            }
-
-            // If we didn't get a match on all string arguments,
-            // search for a method with the right number of arguments
-            if (memberInfo == null)
-            {
-                // Gather all methods that may match
-                IEnumerable<MethodBase> members;
-                if (isConstructor)
-                {
-                    members = _receiverType.GetConstructors();
-                }
-                else if (_receiverType == typeof(IntrinsicFunctions) && IntrinsicFunctionOverload.IsKnownOverloadMethodName(_methodMethodName))
-                {
-                    // FindMembers is invoked on the statically-known IntrinsicFunctions type (the
-                    // only receiver that reaches this branch), so its broad reflection contract is
-                    // satisfied by that concrete, rooted type rather than the receiver-type field.
-                    MemberInfo[] foundMembers = typeof(IntrinsicFunctions).FindMembers(
-                        MemberTypes.Method,
-                        bindingFlags,
-                        (info, criteria) => string.Equals(info.Name, (string)criteria, StringComparison.OrdinalIgnoreCase),
-                        _methodMethodName);
-                    Array.Sort(foundMembers, IntrinsicFunctionOverload.IntrinsicFunctionOverloadMethodComparer);
-                    members = foundMembers.Cast<MethodBase>();
-                }
-                else
-                {
-                    members = _receiverType.GetMethods(_bindingFlags).Where(m => string.Equals(m.Name, _methodMethodName, StringComparison.OrdinalIgnoreCase));
-                }
-
-                foreach (MethodBase member in members)
-                {
-                    ParameterInfo[] parameters = member.GetParameters();
-
-                    // Simple match on name and number of params, we will be case insensitive
-                    if (parameters.Length == _arguments.Length)
-                    {
-                        // Try to find a method with the right name, number of arguments and
-                        // compatible argument types
-                        // we have a match on the name and argument number
-                        // now let's try to coerce the arguments we have
-                        // into the arguments on the matching method
-                        object[] coercedArguments = CoerceArguments(args, parameters);
-
-                        if (coercedArguments != null)
-                        {
-                            // We have a complete match
-                            memberInfo = member;
-                            args = coercedArguments;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            object functionResult = null;
-
-            // We have a match and coerced arguments, let's construct..
-            if (memberInfo != null && args != null)
-            {
-                if (isConstructor)
-                {
-                    functionResult = ((ConstructorInfo)memberInfo).Invoke(args);
-                }
-                else
-                {
-                    functionResult = ((MethodInfo)memberInfo).Invoke(objectInstance /* null if static method */, args);
-                }
-            }
-            else if (!isConstructor)
-            {
-                throw ex;
-            }
-
-            if (functionResult == null && isConstructor)
-            {
-                throw new TargetInvocationException(new MissingMethodException());
-            }
-
-            return functionResult;
         }
     }
 }
