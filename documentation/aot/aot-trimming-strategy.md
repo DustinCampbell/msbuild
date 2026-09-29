@@ -193,7 +193,7 @@ removes the unsafe branch; the default is what AOT ships.
 | `RuntimeFeature.IsDynamicCodeSupported` | `BuildEnvironmentHelper.Initialize` / `GetProcessFromRunningProcess` | prefer the versioned SDK directory the host publishes through the `Microsoft.DotNet.Sdk.Root` AppContext value (`DotNetSdkPaths`, mirroring SDK [PR #55110](https://github.com/dotnet/sdk/pull/55110)); only when it is unset fall straight to the running process path (an empty `Assembly.Location` is meaningless under AOT anyway) |
 | `RuntimeFeature.IsDynamicCodeSupported` | `NativeMethods.FrameworkCurrentPath` | empty string — every consumer already treats empty as ".NET Framework not found", which is correct (an AOT process has no .NET Framework) |
 | `EnableAllPropertyFunctions` (default **false**) | property-function *type probing* | the curated allowlist is the only path; the wide "probe any assembly" branch is removed |
-| `RestrictPropertyFunctionReceivers` (trimmed default **true**) | instance "dotting-in" receiver set | bounded, side-effect-free receiver allowlist (`PropertyFunctionReceiver`) — see [property-functions-reachability.md §10](property-functions-reachability.md) |
+| `RestrictPropertyFunctionReceivers` (trimmed default **true**) | instance "dotting-in" receiver set | bounded whole-surface receiver categories plus a read-only `FileSystemInfo` member allowlist (`PropertyFunctionReceiver`) — see [property-functions-reachability.md §10](property-functions-reachability.md) |
 
 **When:** the gated feature has a sensible "not available here" behavior the rest of the engine
 already copes with. The default must be **observable-compatible** — i.e. it must not mask a needed
@@ -226,7 +226,7 @@ the runtime itself solves the same problem (§6).
 | `SdkResolver.Register(SdkResolver)` (`src/Framework/Sdk/SdkResolver.cs`) — host pushes a pre-constructed resolver, folded into `SdkResolverLoader.GetDefaultResolvers()` on the reflection-free pass ([sdk-resolver-host-registration-api.md](../specs/sdk-resolver-host-registration-api.md)) | discovering & `Assembly.LoadFrom`-ing SDK-resolver plugins |
 | `Task.RegisterTask<T>(...)` / `TaskClassRegistry.Register<T>(...)` — host supplies the concrete task type at registration, with DAM rooting the public parameterless constructor and public properties ([task-class-registration-api.md](../specs/task-class-registration-api.md)) | discovering a task type by name and constructing/binding it through the public task-factory interface path |
 | `TaskParameterTypeRegistry.RegisterValueType<T>(...)` — host supplies known task parameter value types so `<ParameterGroup>` parsing resolves known names before the by-name fallback ([task-parameter-type-registration-api.md](../specs/task-parameter-type-registration-api.md)) | `Type.GetType(string)` for known task parameter value types |
-| `PropertyFunctionReceiver` allowlist — a closed `FrozenSet<Type>` of side-effect-free receiver types ([property-functions-reachability.md §10](property-functions-reachability.md)) | dotting into the open-ended BCL type graph |
+| `PropertyFunctionReceiver` policy — a closed whole-surface set plus primitive, enum, and array categories and a read-only `FileSystemInfo` member allowlist ([property-functions-reachability.md §10](property-functions-reachability.md)) | dotting into the open-ended BCL type graph |
 | **Backlog:** explicit metadata for `RegisterTask(string, Func<ITask>)` and generated task parameter binders ([task-factory-aot.md §7](task-factory-aot.md)) | lazy `_createInstance().GetType()` metadata discovery and reflective property get/set over registered task types |
 
 The annotation recipe for "we still reflect, but only over *registered* types" is in §6 — it is the
@@ -242,7 +242,8 @@ residual to the smallest possible member so the surrounding code stays clean.
 | Where | Annotation |
 | --- | --- |
 | `TypeExtensions.InvokeMemberPublicOnly` (`src/Framework/Utilities/`) | receiver annotated with the exact public-member surface it binds |
-| `Expander.FunctionBuilder.SetReceiverType` (`src/Build/Evaluation/`) | DAM on the one-line backing-field setter; the single residual IL2069 lives here so `Function.ExtractPropertyFunction` is suppression-free |
+| `Expander.FunctionBuilder.SetReceiverType` (`src/Build/Evaluation/`) and its `LegacyExpander` equivalent (`src/Build/Expansion/Legacy/`) | DAM on each backing field/property; the residual IL2069 suppressions live on the one-line setters so both `Function.ExtractPropertyFunction` implementations are suppression-free |
+| `ReflectionInvoker` (`src/Build/Evaluation/Expander/`) | receiver field and constructor parameter annotated with the complete public surface used by reflection fallback |
 | `ITaskFactory.TaskType` (`src/Framework/`) | `[DynamicallyAccessedMembers(PublicProperties)]` on the public property |
 
 ### S7 — Honest `[RequiresUnreferencedCode]` to a stable public boundary (P-B)
@@ -272,7 +273,7 @@ which means they require additional feature work.
 | `TypeExtensions.CreateDefault` (IL2067) | only invoked for value types (guarded by `IsValueType`), which always have a public parameterless ctor |
 | `TypeExtensions.InvokeMemberPublicOnly` (IL2070) | sole caller rejects `BindingFlags.NonPublic`; receiver's public surface preserved via DAM |
 | `TypeExtensions.GetAssemblyPath` (IL3000) | the generic `Assembly.Location` self-discovery primitive, correct in a hosted/JIT layout, hardened to return the empty path rather than throw |
-| Property-function receiver dataflow (`FunctionBuilder.SetReceiverType`, `Function.Execute`, `Function.GetTypeForStaticMethod`) | receiver sets are bounded to preserved-member allowlists (`AvailableStaticMethods` and `PropertyFunctionReceiver`), with `RestrictPropertyFunctionReceivers` substituted `true` under trim and `Constants.PropertyFunctionMembers` preserving the reflected surface |
+| Property-function receiver dataflow (`FunctionBuilder.SetReceiverType`, `Function.AdjustForEqualsAndCompareTo`, `Function.GetTypeForStaticMethod`, `ReflectionInvoker`, and the `LegacyExpander` equivalents) | receiver sets are bounded to preserved-member allowlists (`AvailableStaticMethods` and `PropertyFunctionReceiver`), with `RestrictPropertyFunctionReceivers` substituted `true` under trim and `Constants.PropertyFunctionMembers` preserving the statically allowlisted surface |
 | `Enum.GetValues(Type)` rooted through property-function allowlists | rooted by `typeof(Enum)` but unreachable via property functions because authors cannot supply a `Type` argument (MSB4185/MSB4186), proven by AOT property-function tests |
 
 > The companion IL4000 `#pragma warning disable` on every `[FeatureGuard]` switch is **not** in this
