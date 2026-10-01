@@ -34,7 +34,6 @@
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
 
     <!-- Node communication -->
-    <Compile Include="..\Shared\LogMessagePacketBase.cs" />
     <Compile Include="AssemblyDependency\Node\NodePipeBase.cs" />
     <Compile Include="AssemblyDependency\Node\NodePipeClient.cs" />
     <Compile Include="AssemblyDependency\Node\NodePipeServer.cs" />

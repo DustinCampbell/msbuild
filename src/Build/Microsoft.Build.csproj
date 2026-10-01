@@ -116,8 +116,6 @@
 
     <Compile Include="..\Shared\OutOfProcTaskHostTaskResult.cs" />
     <Compile Include="BackEnd\Node\NodeEngineShutdownReason.cs" />
-    <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" />
-    <Compile Include="..\Shared\LogMessagePacketBase.cs" />
     <Compile Include="..\Shared\PlatformNegotiation.cs">
       <Link>PlatformNegotiation.cs</Link>
     </Compile>
