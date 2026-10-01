@@ -128,9 +128,9 @@
     <PackageReference Include="System.Collections.Immutable" />
   </ItemGroup>
 
-  <!-- The task-loading implementation is only consumed by runtime-targeted MSBuild assemblies. -->
+  <!-- These implementations are only consumed by runtime-targeted MSBuild assemblies. -->
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard'">
-    <Compile Remove="Loader\TaskLoader.cs;Loader\TypeLoader.cs" />
+    <Compile Remove="BackEnd\NodeEndpointOutOfProcBase.cs;Loader\TaskLoader.cs;Loader\TypeLoader.cs" />
   </ItemGroup>
 
   <!-- When targeting NS2.0, make private all references not exposed in the public API. -->
