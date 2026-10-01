@@ -36,9 +36,6 @@
 
   <ItemGroup Label="Shared Code">
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
-    <Compile Include="..\Shared\CanonicalError.cs">
-      <Link>Shared\CanonicalError.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\ErrorUtilities.cs">
       <Link>Shared\ErrorUtilities.cs</Link>
     </Compile>
