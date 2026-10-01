@@ -712,6 +712,30 @@ namespace Microsoft.Build.UnitTests
             marshalled.GetMetadata("NameMeta").ShouldBe("");
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BuiltInMetadataCannotBeModified(bool remove)
+        {
+            ITaskItem marshalled = (ITaskItem)new TaskParameter(new TaskItem("item")).WrappedParameter;
+            const string metadataName = "FullPath";
+
+            ArgumentException exception = Should.Throw<ArgumentException>(() =>
+            {
+                if (remove)
+                {
+                    marshalled.RemoveMetadata(metadataName);
+                }
+                else
+                {
+                    marshalled.SetMetadata(metadataName, "value");
+                }
+            });
+
+            exception.Message.ShouldBe(Microsoft.Build.Framework.Resources.SR.FormatCannotChangeItemSpecModifiers(metadataName));
+            exception.ParamName.ShouldBeNull();
+        }
+
         /// <summary>
         /// Bulk metadata reads report values unexpanded, matching what an engine item reports in-proc.
         /// </summary>

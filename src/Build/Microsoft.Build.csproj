@@ -104,7 +104,6 @@
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
     <Compile Include="..\Shared\TaskHostConfiguration.cs" />
     <Compile Include="..\Shared\TaskHostTaskComplete.cs" />
-    <Compile Include="..\Shared\TaskHostBuildResponse.cs" />
 
     <Compile Include="..\Shared\OutOfProcTaskHostTaskResult.cs" />
     <Compile Include="BackEnd\Node\NodeEngineShutdownReason.cs" />
@@ -117,7 +116,6 @@
     <Compile Include="..\Shared\TaskLoggingHelperExtension.cs">
       <Link>BackEnd\Components\RequestBuilder\IntrinsicTasks\TaskLoggingHelperExtension.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\TaskParameter.cs" />
     <Compile Include="BackEnd\TaskExecutionHost\TaskEngineAssemblyResolver.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="BackEnd\BuildManager\BuildManager.cs" />
