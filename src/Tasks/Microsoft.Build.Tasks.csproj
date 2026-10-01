@@ -42,9 +42,9 @@
     <Compile Include="..\Shared\LogMessagePacketBase.cs" />
     <Compile Include="..\Shared\NodeBuildComplete.cs" />
     <Compile Include="..\Shared\NodePacketFactory.cs" />
-    <Compile Include="..\Shared\NodePipeBase.cs" />
-    <Compile Include="..\Shared\NodePipeClient.cs" />
-    <Compile Include="..\Shared\NodePipeServer.cs" />
+    <Compile Include="AssemblyDependency\Node\NodePipeBase.cs" />
+    <Compile Include="AssemblyDependency\Node\NodePipeClient.cs" />
+    <Compile Include="AssemblyDependency\Node\NodePipeServer.cs" />
     <Compile Include="..\Shared\NodeShutdown.cs" />
     <Compile Include="..\Shared\TaskParameter.cs" />
     <Compile Include="..\Shared\TaskParameterValueStringConverter.cs" />
@@ -62,24 +62,22 @@
     <Compile Include="..\Shared\TaskLoggingHelperExtension.cs">
       <Link>TaskLoggingHelperExtension.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\LanguageParser\StreamMappedString.cs">
-      <Link>StreamMappedString.cs</Link>
-    </Compile>
+    <Compile Include="LanguageParser\StreamMappedString.cs" />
     <Compile Include="..\Shared\VisualStudioConstants.cs">
       <Link>VisualStudioConstants.cs</Link>
     </Compile>
     <Compile Include="..\Shared\ErrorUtilities.cs" />
     <Compile Include="..\Shared\ResourceUtilities.cs" />
-    <Compile Include="..\Shared\LanguageParser\token.cs" />
-    <Compile Include="..\Shared\LanguageParser\tokenChar.cs" />
-    <Compile Include="..\Shared\LanguageParser\tokenCharReader.cs" />
-    <Compile Include="..\Shared\LanguageParser\tokenEnumerator.cs" />
-    <Compile Include="..\Shared\LanguageParser\CSharptokenCharReader.cs" />
-    <Compile Include="..\Shared\LanguageParser\CSharptokenEnumerator.cs" />
-    <Compile Include="..\Shared\LanguageParser\CSharptokenizer.cs" />
-    <Compile Include="..\Shared\LanguageParser\VisualBasictokenCharReader.cs" />
-    <Compile Include="..\Shared\LanguageParser\VisualBasictokenEnumerator.cs" />
-    <Compile Include="..\Shared\LanguageParser\VisualBasictokenizer.cs" />
+    <Compile Include="LanguageParser\token.cs" />
+    <Compile Include="LanguageParser\tokenChar.cs" />
+    <Compile Include="LanguageParser\tokenCharReader.cs" />
+    <Compile Include="LanguageParser\tokenEnumerator.cs" />
+    <Compile Include="LanguageParser\CSharptokenCharReader.cs" />
+    <Compile Include="LanguageParser\CSharptokenEnumerator.cs" />
+    <Compile Include="LanguageParser\CSharptokenizer.cs" />
+    <Compile Include="LanguageParser\VisualBasictokenCharReader.cs" />
+    <Compile Include="LanguageParser\VisualBasictokenEnumerator.cs" />
+    <Compile Include="LanguageParser\VisualBasictokenizer.cs" />
     <Compile Include="..\Shared\PlatformNegotiation.cs">
       <Link>PlatformNegotiation.cs</Link>
     </Compile>
