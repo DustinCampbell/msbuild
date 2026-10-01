@@ -56,9 +56,8 @@ namespace Microsoft.Build.Shared.Debugging
 
         public static CommonWriterType GetStaticWriter()
         {
-            // CommonWriter is defined in Microsoft.Build.Framework and shared with this assembly via
-            // InternalsVisibleTo. Referencing it directly (rather than reflecting over it) keeps the
-            // single canonical writer instance while remaining trimming- and Native AOT-safe.
+            // CommonWriter is defined in this assembly so all consumers use the single canonical writer
+            // instance. Referencing it directly keeps this trimming- and Native AOT-safe.
             return CommonWriter.Writer;
         }
 
