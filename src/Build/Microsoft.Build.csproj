@@ -116,14 +116,8 @@
 
     <Compile Include="..\Shared\OutOfProcTaskHostTaskResult.cs" />
     <Compile Include="BackEnd\Node\NodeEngineShutdownReason.cs" />
-    <Compile Include="..\Shared\INodeEndpoint.cs" />
     <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" />
-    <Compile Include="..\Shared\INodePacketFactory.cs" />
-    <Compile Include="..\Shared\INodePacketHandler.cs" />
     <Compile Include="..\Shared\LogMessagePacketBase.cs" />
-    <Compile Include="..\Shared\NodePacketFactory.cs" />
-    <Compile Include="..\Shared\NodeBuildComplete.cs" />
-    <Compile Include="..\Shared\NodeShutdown.cs" />
     <Compile Include="..\Shared\PlatformNegotiation.cs">
       <Link>PlatformNegotiation.cs</Link>
     </Compile>

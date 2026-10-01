@@ -59,12 +59,8 @@
     <Compile Include="..\Shared\ResourceUtilities.cs" />
     <Compile Include="..\Shared\ErrorUtilities.cs" />
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
-    <Compile Include="..\Shared\INodeEndpoint.cs" />
     <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" />
     <Compile Include="..\Shared\LogMessagePacketBase.cs" />
-    <Compile Include="..\Shared\INodePacketFactory.cs" />
-    <Compile Include="..\Shared\NodePacketFactory.cs" />
-    <Compile Include="..\Shared\INodePacketHandler.cs" />
     <Compile Include="..\Shared\InvariantPayloadTransferMode.cs" />
     <Compile Include="..\Shared\TaskHostConfiguration.cs" />
     <Compile Include="..\Shared\TaskHostTaskComplete.cs" />
@@ -78,8 +74,6 @@
     <Compile Include="..\Shared\TaskHostBuildRequest.cs" />
     <Compile Include="..\Shared\TaskHostBuildResponse.cs" />
 
-    <Compile Include="..\Shared\NodeBuildComplete.cs" />
-    <Compile Include="..\Shared\NodeShutdown.cs" />
     <Compile Include="..\Shared\TaskParameter.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="AssemblyResources.cs" />
