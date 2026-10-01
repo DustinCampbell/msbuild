@@ -51,9 +51,6 @@
     <Compile Include="..\Shared\TaskParameterTypeVerifier.cs" />
     <!-- Source Files -->
     <Compile Include="BuiltInTasks.cs" />
-    <Compile Include="..\Shared\CanonicalError.cs">
-      <Link>CanonicalError.cs</Link>
-    </Compile>
     <Compile Include="AssemblyDependency\AssemblyAttributes.cs" />
     <Compile Include="AssemblyDependency\AssemblyMetadata.cs" />
     <Compile Include="CombineTargetFrameworkInfoProperties.cs" />
@@ -68,7 +65,6 @@
     <Compile Include="..\Shared\LanguageParser\StreamMappedString.cs">
       <Link>StreamMappedString.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\Tracing.cs" />
     <Compile Include="..\Shared\VisualStudioConstants.cs">
       <Link>VisualStudioConstants.cs</Link>
     </Compile>
