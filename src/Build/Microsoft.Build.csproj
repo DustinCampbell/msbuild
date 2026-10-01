@@ -98,24 +98,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\PropertyParser.cs">
-      <Link>BackEnd\Components\RequestBuilder\IntrinsicTasks\PropertyParser.cs</Link>
-    </Compile>
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
     <Compile Include="..\Shared\TaskHostConfiguration.cs" />
     <Compile Include="..\Shared\TaskHostTaskComplete.cs" />
 
     <Compile Include="..\Shared\OutOfProcTaskHostTaskResult.cs" />
     <Compile Include="BackEnd\Node\NodeEngineShutdownReason.cs" />
-    <Compile Include="..\Shared\PlatformNegotiation.cs">
-      <Link>PlatformNegotiation.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\TaskLoggingHelper.cs">
-      <Link>BackEnd\Components\RequestBuilder\IntrinsicTasks\TaskLoggingHelper.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\TaskLoggingHelperExtension.cs">
-      <Link>BackEnd\Components\RequestBuilder\IntrinsicTasks\TaskLoggingHelperExtension.cs</Link>
-    </Compile>
     <Compile Include="BackEnd\TaskExecutionHost\TaskEngineAssemblyResolver.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="BackEnd\BuildManager\BuildManager.cs" />

@@ -214,22 +214,47 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void CheckResourcesRegistered()
         {
-            Should.Throw<InvalidOperationException>(() =>
-            {
-                Task t = new MockTask(false /*don't register resources*/);
+            Task task = new MockTask(registerResources: false);
 
-                try
-                {
-                    t.Log.FormatResourceString("bogus");
-                }
-                catch (Exception e)
-                {
-                    // so I can see the exception message in NUnit's "Standard Out" window
-                    Console.WriteLine(e.Message);
-                    throw;
-                }
-            });
+            InvalidOperationException exception = Should.Throw<InvalidOperationException>(
+                () => task.Log.FormatResourceString("bogus"));
+
+            exception.Message.ShouldBe(
+                ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+                    "TaskResourcesNotRegistered",
+                    nameof(MockTask)));
         }
+
+        [Fact]
+        public void MissingResourcePreservesExceptionContract()
+        {
+            Task task = new MockTask();
+
+            ArgumentException exception = Should.Throw<ArgumentException>(
+                () => task.Log.FormatResourceString("bogus"));
+
+            exception.Message.ShouldBe(
+                ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+                    "TaskResourceNotFound",
+                    "bogus",
+                    nameof(MockTask)));
+            exception.ParamName.ShouldBeNull();
+        }
+
+        [Fact]
+        public void LoggingBeforeInitializationPreservesExceptionContract()
+        {
+            Task task = new MockTask();
+
+            InvalidOperationException exception = Should.Throw<InvalidOperationException>(
+                () => task.Log.LogMessage("message"));
+
+            exception.Message.ShouldBe(
+                ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+                    "LoggingBeforeTaskInitialization",
+                    "message"));
+        }
+
         /// <summary>
         /// Verify the LogErrorFromException & LogWarningFromException methods
         /// </summary>

@@ -4,18 +4,12 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
+using Microsoft.Build.Utilities;
 using Microsoft.NET.StringTools;
 
 #nullable disable
 
-#if BUILD_ENGINE
-namespace Microsoft.Build.BackEnd
-#else
-using Microsoft.Build.Utilities;
-
-namespace Microsoft.Build.Tasks
-#endif
+namespace Microsoft.Build.Shared
 {
     internal static class PropertyParser
     {

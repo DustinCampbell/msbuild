@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
-using Microsoft.Build.Tasks;
+using Microsoft.Build.Shared;
+using Shouldly;
 using Xunit;
 
 #nullable disable
@@ -14,10 +15,10 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void GetTable1()
         {
-            Assert.True(PropertyParser.GetTable(null, "Properties", null, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTable(null, "Properties", null, out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have null table.
-            Assert.Null(propertiesTable);
+            propertiesTable.ShouldBeNull();
         }
 
         /// <summary>
@@ -25,16 +26,16 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void GetPropertiesTable3()
         {
-            Assert.True(PropertyParser.GetTable(null, "Properties",
-                new[] { "Configuration=Debug" }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTable(null, "Properties",
+                ["Configuration=Debug"], out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
             //      =================   =========================
             //      Configuration       Debug
 
-            Assert.Single(propertiesTable);
-            Assert.Equal("Debug", propertiesTable["Configuration"]);
+            propertiesTable.Count.ShouldBe(1);
+            propertiesTable["Configuration"].ShouldBe("Debug");
         }
 
         /// <summary>
@@ -42,8 +43,11 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void GetPropertiesTable4()
         {
-            Assert.True(PropertyParser.GetTable(null, "Properties",
-                new[] { "Configuration=Debug", "Platform=AnyCPU", "VBL=Lab22Dev" }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTable(
+                null,
+                "Properties",
+                ["Configuration=Debug", "Platform=AnyCPU", "VBL=Lab22Dev"],
+                out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
@@ -52,10 +56,10 @@ namespace Microsoft.Build.UnitTests
             //      Platform            AnyCPU
             //      VBL                 Lab22Dev
 
-            Assert.Equal(3, propertiesTable.Count);
-            Assert.Equal("Debug", propertiesTable["Configuration"]);
-            Assert.Equal("AnyCPU", propertiesTable["Platform"]);
-            Assert.Equal("Lab22Dev", propertiesTable["VBL"]);
+            propertiesTable.Count.ShouldBe(3);
+            propertiesTable["Configuration"].ShouldBe("Debug");
+            propertiesTable["Platform"].ShouldBe("AnyCPU");
+            propertiesTable["VBL"].ShouldBe("Lab22Dev");
         }
 
         /// <summary>
@@ -63,8 +67,11 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void GetPropertiesTable5()
         {
-            Assert.True(PropertyParser.GetTable(null, "Properties",
-                new[] { "Configuration = Debug", "Platform \t=       AnyCPU" }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTable(
+                null,
+                "Properties",
+                ["Configuration = Debug", "Platform \t=       AnyCPU"],
+                out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
@@ -72,9 +79,9 @@ namespace Microsoft.Build.UnitTests
             //      Configuration       Debug
             //      Platform            AnyCPU
 
-            Assert.Equal(2, propertiesTable.Count);
-            Assert.Equal("Debug", propertiesTable["Configuration"]);
-            Assert.Equal("AnyCPU", propertiesTable["Platform"]);
+            propertiesTable.Count.ShouldBe(2);
+            propertiesTable["Configuration"].ShouldBe("Debug");
+            propertiesTable["Platform"].ShouldBe("AnyCPU");
         }
 
         /// <summary>
@@ -82,8 +89,8 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void GetPropertiesTable6()
         {
-            Assert.True(PropertyParser.GetTable(null, "Properties",
-                new[] { "Configuration=", "Platform =  " }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTable(null, "Properties",
+                ["Configuration=", "Platform =  "], out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
@@ -91,9 +98,9 @@ namespace Microsoft.Build.UnitTests
             //      Configuration       <blank>
             //      Platform            <blank>
 
-            Assert.Equal(2, propertiesTable.Count);
-            Assert.Equal("", propertiesTable["Configuration"]);
-            Assert.Equal("", propertiesTable["Platform"]);
+            propertiesTable.Count.ShouldBe(2);
+            propertiesTable["Configuration"].ShouldBe(string.Empty);
+            propertiesTable["Platform"].ShouldBe(string.Empty);
         }
 
         /// <summary>
@@ -102,7 +109,7 @@ namespace Microsoft.Build.UnitTests
         public void GetPropertiesTable7()
         {
             // This is a failure case.
-            Assert.False(PropertyParser.GetTable(null, "Properties", new[] { "=Debug" }, out _));
+            PropertyParser.GetTable(null, "Properties", ["=Debug"], out _).ShouldBeFalse();
         }
 
         /// <summary>
@@ -111,8 +118,8 @@ namespace Microsoft.Build.UnitTests
         public void GetPropertiesTable8()
         {
             // This is a failure case.  (Second property "x86" doesn't have a value.)
-            Assert.False(PropertyParser.GetTable(null, "Properties",
-                new[] { "Configuration=Debug", "x86" }, out _));
+            PropertyParser.GetTable(null, "Properties",
+                ["Configuration=Debug", "x86"], out _).ShouldBeFalse();
         }
 
         /// <summary>
@@ -120,16 +127,16 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void GetPropertiesTable9()
         {
-            Assert.True(PropertyParser.GetTable(null, "Properties",
-                new[] { "DependsOn = Clean; Build" }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTable(null, "Properties",
+                ["DependsOn = Clean; Build"], out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
             //      =================   =========================
             //      Depends On          Clean; Build
 
-            Assert.Single(propertiesTable);
-            Assert.Equal("Clean; Build", propertiesTable["DependsOn"]);
+            propertiesTable.Count.ShouldBe(1);
+            propertiesTable["DependsOn"].ShouldBe("Clean; Build");
         }
 
         /// <summary>
@@ -137,23 +144,23 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void GetPropertiesTable10()
         {
-            Assert.True(PropertyParser.GetTable(null, "Properties",
-                new[] { "Depends On = CleanBuild" }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTable(null, "Properties",
+                ["Depends On = CleanBuild"], out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
             //      =================   =========================
             //      Depends On          CleanBuild
 
-            Assert.Single(propertiesTable);
-            Assert.Equal("CleanBuild", propertiesTable["Depends On"]);
+            propertiesTable.Count.ShouldBe(1);
+            propertiesTable["Depends On"].ShouldBe("CleanBuild");
         }
 
         [Fact]
         public void GetPropertiesTableWithEscaping1()
         {
-            Assert.True(PropertyParser.GetTableWithEscaping(null, "Properties", "Properties",
-                new[] { "Configuration = Debug", "Platform = Any CPU" }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTableWithEscaping(null, "Properties", "Properties",
+                ["Configuration = Debug", "Platform = Any CPU"], out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
@@ -161,16 +168,20 @@ namespace Microsoft.Build.UnitTests
             //      Configuration       Debug
             //      Platform            Any CPU
 
-            Assert.Equal(2, propertiesTable.Count);
-            Assert.Equal("Debug", propertiesTable["Configuration"]);
-            Assert.Equal("Any CPU", propertiesTable["Platform"]);
+            propertiesTable.Count.ShouldBe(2);
+            propertiesTable["Configuration"].ShouldBe("Debug");
+            propertiesTable["Platform"].ShouldBe("Any CPU");
         }
 
         [Fact]
         public void GetPropertiesTableWithEscaping2()
         {
-            Assert.True(PropertyParser.GetTableWithEscaping(null, "Properties", "Properties",
-                new[] { "WarningsAsErrors = 1234", "5678", "9999", "Configuration=Debug" }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTableWithEscaping(
+                null,
+                "Properties",
+                "Properties",
+                ["WarningsAsErrors = 1234", "5678", "9999", "Configuration=Debug"],
+                out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
@@ -178,16 +189,20 @@ namespace Microsoft.Build.UnitTests
             //      WarningsAsErrors    1234;5678;9999
             //      Configuration       Debug
 
-            Assert.Equal(2, propertiesTable.Count);
-            Assert.Equal("1234;5678;9999", propertiesTable["WarningsAsErrors"]);
-            Assert.Equal("Debug", propertiesTable["Configuration"]);
+            propertiesTable.Count.ShouldBe(2);
+            propertiesTable["WarningsAsErrors"].ShouldBe("1234;5678;9999");
+            propertiesTable["Configuration"].ShouldBe("Debug");
         }
 
         [Fact]
         public void GetPropertiesTableWithEscaping3()
         {
-            Assert.True(PropertyParser.GetTableWithEscaping(null, "Properties", "Properties",
-                new[] { @"OutDir=c:\Rajeev;s Stuff\binaries", "Configuration=Debug" }, out Dictionary<string, string> propertiesTable));
+            PropertyParser.GetTableWithEscaping(
+                null,
+                "Properties",
+                "Properties",
+                [@"OutDir=c:\Rajeev;s Stuff\binaries", "Configuration=Debug"],
+                out Dictionary<string, string> propertiesTable).ShouldBeTrue();
 
             // We should have a table that looks like this:
             //      KEY                 VALUE
@@ -195,9 +210,9 @@ namespace Microsoft.Build.UnitTests
             //      OutDir              c:\Rajeev%3bs Stuff\binaries
             //      Configuration       Debug
 
-            Assert.Equal(2, propertiesTable.Count);
-            Assert.Equal(@"c:\Rajeev%3bs Stuff\binaries", propertiesTable["OutDir"]);
-            Assert.Equal("Debug", propertiesTable["Configuration"]);
+            propertiesTable.Count.ShouldBe(2);
+            propertiesTable["OutDir"].ShouldBe(@"c:\Rajeev%3bs Stuff\binaries");
+            propertiesTable["Configuration"].ShouldBe("Debug");
         }
     }
 }

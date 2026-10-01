@@ -43,9 +43,6 @@
     <Compile Include="..\Shared\ResourceUtilities.cs">
       <Link>Shared\ResourceUtilities.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\TaskLoggingHelper.cs">
-      <Link>Shared\TaskLoggingHelper.cs</Link>
-    </Compile>
   </ItemGroup>
 
   <ItemGroup>

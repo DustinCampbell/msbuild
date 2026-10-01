@@ -44,12 +44,6 @@
     <Compile Include="CombineTargetFrameworkInfoProperties.cs" />
     <Compile Include="CombineXmlElements.cs" />
     <Compile Include="ConvertToAbsolutePath.cs" />
-    <Compile Include="..\Shared\PropertyParser.cs">
-      <Link>PropertyParser.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\TaskLoggingHelperExtension.cs">
-      <Link>TaskLoggingHelperExtension.cs</Link>
-    </Compile>
     <Compile Include="LanguageParser\StreamMappedString.cs" />
     <Compile Include="..\Shared\ErrorUtilities.cs" />
     <Compile Include="..\Shared\ResourceUtilities.cs" />
@@ -63,9 +57,6 @@
     <Compile Include="LanguageParser\VisualBasictokenCharReader.cs" />
     <Compile Include="LanguageParser\VisualBasictokenEnumerator.cs" />
     <Compile Include="LanguageParser\VisualBasictokenizer.cs" />
-    <Compile Include="..\Shared\PlatformNegotiation.cs">
-      <Link>PlatformNegotiation.cs</Link>
-    </Compile>
     <Compile Include="AppConfig\*.cs" />
     <Compile Include="AssemblyDependency\AssemblyFoldersExResolver.cs" />
     <Compile Include="AssemblyDependency\AssemblyFoldersFromConfig\AssemblyFoldersFromConfigCache.cs" />
