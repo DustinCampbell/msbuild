@@ -100,14 +100,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\CanonicalError.cs">
-      <Link>BackEnd\Components\RequestBuilder\IntrinsicTasks\CanonicalError.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\PropertyParser.cs">
       <Link>BackEnd\Components\RequestBuilder\IntrinsicTasks\PropertyParser.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\StringExtensions.cs">
-      <Link>SharedUtilities\StringExtensions.cs</Link>
     </Compile>
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
     <Compile Include="..\Shared\InvariantPayloadTransferMode.cs" />
@@ -666,9 +660,6 @@
     <Compile Include="Utilities\Tracing.cs" />
     <Compile Include="..\Shared\TypeLoader.cs">
       <Link>SharedUtilities\TypeLoader.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\VisualStudioConstants.cs">
-      <Link>VisualStudioConstants.cs</Link>
     </Compile>
     <Compile Include="Evaluation\LazyItemEvaluator.EvaluatorData.cs" />
 

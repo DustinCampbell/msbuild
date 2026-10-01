@@ -63,9 +63,6 @@
       <Link>TaskLoggingHelperExtension.cs</Link>
     </Compile>
     <Compile Include="LanguageParser\StreamMappedString.cs" />
-    <Compile Include="..\Shared\VisualStudioConstants.cs">
-      <Link>VisualStudioConstants.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\ErrorUtilities.cs" />
     <Compile Include="..\Shared\ResourceUtilities.cs" />
     <Compile Include="LanguageParser\token.cs" />
