@@ -6,31 +6,16 @@ using System.Globalization;
 using System.Resources;
 
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
-
-#if !BUILD_ENGINE
 using Microsoft.Build.Utilities;
-#endif
-
-// This is in the Tasks namespace because that's where it was before and it is public.
 
 #nullable disable
 
-#if BUILD_ENGINE
-namespace Microsoft.Build.BackEnd
-#else
 namespace Microsoft.Build.Tasks
-#endif
 {
     /// <summary>
     /// Helper logging class for tasks, used for dealing with two resource streams.
     /// </summary>
-#if BUILD_ENGINE
-    internal
-#else
-    public
-#endif
-    class TaskLoggingHelperExtension : TaskLoggingHelper
+    public class TaskLoggingHelperExtension : TaskLoggingHelper
     {
         #region Constructors
 
@@ -91,18 +76,23 @@ namespace Microsoft.Build.Tasks
         public override string FormatResourceString(string resourceName, params object[] args)
         {
             ArgumentNullException.ThrowIfNull(resourceName);
-            ErrorUtilities.VerifyThrowInvalidOperation(TaskResources != null, "TaskResourcesNotRegistered", TaskName);
-            ErrorUtilities.VerifyThrowInvalidOperation(TaskSharedResources != null, "TaskResourcesNotRegistered", TaskName);
+            if (TaskResources is null || TaskSharedResources is null)
+            {
+                throw new InvalidOperationException(SR.FormatTaskResourcesNotRegistered(TaskName));
+            }
 
             // NOTE: the ResourceManager.GetString() method is thread-safe
             string resourceString = TaskResources.GetString(resourceName, CultureInfo.CurrentUICulture);
 
-            if (resourceString == null)
+            if (resourceString is null)
             {
                 resourceString = TaskSharedResources.GetString(resourceName, CultureInfo.CurrentUICulture);
             }
 
-            ErrorUtilities.VerifyThrowArgument(resourceString != null, "TaskResourceNotFound", resourceName, TaskName);
+            if (resourceString is null)
+            {
+                throw new ArgumentException(SR.FormatTaskResourceNotFound(resourceName, TaskName));
+            }
 
             return FormatString(resourceString, args);
         }
