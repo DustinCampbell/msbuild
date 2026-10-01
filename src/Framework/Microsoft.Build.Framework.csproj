@@ -99,6 +99,7 @@
                       PrivateAssets="all" />
 
     <PackageReference Include="Microsoft.CodeAnalysis.Contracts" PrivateAssets="all" />
+    <PackageReference Include="System.Reflection.MetadataLoadContext" PrivateAssets="all" />
 
     <!-- Display files included by the Microsoft.CodeAnalysis.Contracts source package in a 'SourcePackages\Contracts' folder -->
     <Content Update="@(Content)">
@@ -125,6 +126,11 @@
   <!-- Framework and standard don't have these. -->
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' OR '$(TargetFrameworkIdentifier)' == '.NETStandard'">
     <PackageReference Include="System.Collections.Immutable" />
+  </ItemGroup>
+
+  <!-- The task-loading implementation is only consumed by runtime-targeted MSBuild assemblies. -->
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard'">
+    <Compile Remove="Loader\TaskLoader.cs;Loader\TypeLoader.cs" />
   </ItemGroup>
 
   <!-- When targeting NS2.0, make private all references not exposed in the public API. -->

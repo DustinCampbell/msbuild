@@ -115,7 +115,6 @@
     <Compile Include="..\Shared\TaskHostBuildResponse.cs" />
 
     <Compile Include="..\Shared\OutOfProcTaskHostTaskResult.cs" />
-    <Compile Include="..\Shared\TaskLoader.cs" />
     <Compile Include="BackEnd\Node\NodeEngineShutdownReason.cs" />
     <Compile Include="..\Shared\INodeEndpoint.cs" />
     <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" />
@@ -654,9 +653,6 @@
       <Link>SharedUtilities\ResourceUtilities.cs</Link>
     </Compile>
     <Compile Include="Utilities\Tracing.cs" />
-    <Compile Include="..\Shared\TypeLoader.cs">
-      <Link>SharedUtilities\TypeLoader.cs</Link>
-    </Compile>
     <Compile Include="Evaluation\LazyItemEvaluator.EvaluatorData.cs" />
 
     <!-- Win32 RC Files -->
