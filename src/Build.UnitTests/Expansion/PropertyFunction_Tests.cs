@@ -1528,8 +1528,8 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     public void FastPathValidationTest(string expression)
         => ExpandProperties(expression, allowReflection: false);
 
-    public static TheoryData<string> FastPathValidationExpressions => new()
-    {
+    public static TheoryData<string> FastPathValidationExpressions =>
+    [
         "$([System.Version]::Parse('17.12.11.10').ToString(2))",
         "$([System.Text.RegularExpressions.Regex]::Replace('abc123def', 'abc', ''))",
         "$([System.String]::new('Hi').Equals('Hello'))",
@@ -1538,7 +1538,7 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
         "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::NormalizeDirectory('C:/folder1/./folder2/'))",
         "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::IsOSPlatform('Windows'))",
         "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::RegisterBuildCheck('check.dll'))",
-    };
+    ];
 
     [ModernExpanderOnlyTheory]
     [MemberData(nameof(ReflectionFallbackExpressions))]
@@ -1549,9 +1549,24 @@ public class PropertyFunction_Tests(ITestOutputHelper output)
     public static TheoryData<string, string> ReflectionFallbackExpressions => new()
     {
         { "$([System.Math]::Abs(-1))", "ReceiverType=System.Math; ObjectInstanceType=; MethodName=Abs(" },
-        { "$([System.String]::new(' abc ').Trim())", "ReceiverType=System.String; ObjectInstanceType=System.String; MethodName=Trim(" },
-        { "$([System.Version]::new('1.2'))", "ReceiverType=System.Version; ObjectInstanceType=; MethodName=new(" },
     };
+
+    [ModernExpanderOnlyTheory]
+    [MemberData(nameof(ModernFastPathValidationExpressions))]
+    public void ModernFastPathValidationTest(string expression)
+        => ExpandProperties(expression, allowReflection: false);
+
+    public static TheoryData<string> ModernFastPathValidationExpressions =>
+    [
+        "$([System.String]::new(' abc ').Trim())",
+        "$([System.String]::new('xabcx').Trim('x'))",
+        "$([System.String]::new('xyabcxy').Trim('xy'))",
+        "$([System.Version]::new())",
+        "$([System.Version]::new('1.2'))",
+        "$([System.Version]::new(1, 2))",
+        "$([System.Version]::new(1, 2, 3))",
+        "$([System.Version]::new(1, 2, 3, 4))",
+    ];
 
     [Fact]
     public void ExpandItem_ConvertToStringUsingInvariantCultureForNumberData()

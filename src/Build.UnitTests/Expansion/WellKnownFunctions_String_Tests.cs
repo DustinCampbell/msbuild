@@ -361,9 +361,51 @@ public class WellKnownFunctions_String_Tests(ITestOutputHelper output)
             .NotHandled("abc");
 
     [Fact]
-    public void String_Trim_NotHandled()
+    public void String_Trim()
         => InstanceMember(nameof(string.Trim))
-            .NotHandled(" abc ");
+            .Invoke(" abc ")
+            .ShouldBe("abc");
+
+    [Fact]
+    public void String_Trim_Char()
+        => InstanceMember(nameof(string.Trim))
+            .Invoke("xabcx", ['x'])
+            .ShouldBe("abc");
+
+    [Fact]
+    public void String_Trim_SingleCharacterString()
+        => InstanceMember(nameof(string.Trim))
+            .Invoke("xabcx", ["x"])
+            .ShouldBe("abc");
+
+    [Fact]
+    public void String_Trim_CharArray()
+        => InstanceMember(nameof(string.Trim))
+            .Invoke("xyabcxy", [new[] { 'x', 'y' }])
+            .ShouldBe("abc");
+
+    [Fact]
+    public void String_Trim_StringAsCharArray()
+        => InstanceMember(nameof(string.Trim))
+            .Invoke("xyabcxy", ["xy"])
+            .ShouldBe("abc");
+
+    [Fact]
+    public void String_Trim_EmptyString()
+        => InstanceMember(nameof(string.Trim))
+            .Invoke(" abc ", [""])
+            .ShouldBe("abc");
+
+    [Fact]
+    public void String_Trim_Null()
+        => InstanceMember(nameof(string.Trim))
+            .Invoke(" abc ", [null])
+            .ShouldBe("abc");
+
+    [Fact]
+    public void String_Trim_InvalidArgument_NotHandled()
+        => InstanceMember(nameof(string.Trim))
+            .NotHandled("abc", [new Version(1, 0)]);
 
     [Fact]
     public void String_TrimEnd_String()

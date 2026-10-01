@@ -11,8 +11,22 @@ public class WellKnownFunctions_Version_Tests(ITestOutputHelper output)
     : WellKnownFunctionsTestBase(typeof(Version), output)
 {
     [Fact]
-    public void Constructor_MajorMinor_NotHandled()
-        => Constructor.NotHandled(["1", "2"]);
+    public void Version_Constructors()
+    {
+        Constructor.Invoke().ShouldBe(new Version());
+        Constructor.Invoke(["1.2.3.4"]).ShouldBe(new Version(1, 2, 3, 4));
+        Constructor.Invoke(["1", "2"]).ShouldBe(new Version(1, 2));
+        Constructor.Invoke(["1", "2", "3"]).ShouldBe(new Version(1, 2, 3));
+        Constructor.Invoke(["1", "2", "3", "4"]).ShouldBe(new Version(1, 2, 3, 4));
+    }
+
+    [Fact]
+    public void Version_Constructor_InvalidArguments_NotHandled()
+    {
+        Constructor.NotHandled([1]);
+        Constructor.NotHandled(["invalid", "2"]);
+        Constructor.NotHandled(["1", "2", "3", "4", "5"]);
+    }
 
     [Fact]
     public void Version_Parse_String()

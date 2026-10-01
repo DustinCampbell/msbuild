@@ -9,6 +9,31 @@ internal static partial class WellKnownFunctions
 {
     private sealed class VersionHandler
     {
+        public WellKnownFunctionResult TryInvokeConstructor(ref Arguments args)
+            => args.Length switch
+            {
+                0 => Invoked(new Version()),
+                1 when args.TryGetArg(0, out string? version)
+                    => Invoked(new Version(version)),
+
+                2 when args.TryGetArg(0, out int major)
+                    && args.TryGetArg(1, out int minor)
+                    => Invoked(new Version(major, minor)),
+
+                3 when args.TryGetArg(0, out int major)
+                    && args.TryGetArg(1, out int minor)
+                    && args.TryGetArg(2, out int build)
+                    => Invoked(new Version(major, minor, build)),
+
+                4 when args.TryGetArg(0, out int major)
+                    && args.TryGetArg(1, out int minor)
+                    && args.TryGetArg(2, out int build)
+                    && args.TryGetArg(3, out int revision)
+                    => Invoked(new Version(major, minor, build, revision)),
+
+                _ => NotHandled,
+            };
+
         public WellKnownFunctionResult TryInvokeStatic(string methodName, ref Arguments args)
             => methodName.Length switch
             {

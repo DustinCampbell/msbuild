@@ -34,6 +34,8 @@ internal static partial class WellKnownFunctions
         public WellKnownFunctionResult TryInvokeInstance(string methodName, string text, ref Arguments args)
             => methodName.Length switch
             {
+                4 when methodName.Equals(nameof(string.Trim), StringComparison.OrdinalIgnoreCase)
+                    => TryInvokeTrim(text, ref args),
                 5 when methodName.Equals(nameof(string.Split), StringComparison.OrdinalIgnoreCase)
                     => TryInvokeSplit(text, ref args),
                 6 when methodName.Equals(nameof(string.Length), StringComparison.OrdinalIgnoreCase)
@@ -245,6 +247,39 @@ internal static partial class WellKnownFunctions
             => args.Length == 0
                 ? Invoked(text.ToUpperInvariant())
                 : NotHandled;
+
+        private static WellKnownFunctionResult TryInvokeTrim(string text, ref Arguments args)
+        {
+            return args.Length switch
+            {
+                0 => Invoked(text.Trim()),
+
+                1 when args.TryGetArg(0, out char trimChar)
+#if NET
+                    => Invoked(text.Trim(trimChar)),
+#else
+                    => Invoked(TrimAsSpan(text, stackalloc char[1] { trimChar })),
+#endif
+
+                1 when args.TryGetArg(0, out object? trimChars)
+                    => trimChars switch
+                    {
+                        string characters => Invoked(TrimAsSpan(text, characters)),
+                        char[] characters => Invoked(text.Trim(characters)),
+                        null => Invoked(text.Trim(null)),
+
+                        _ => NotHandled,
+                    },
+
+                _ => NotHandled,
+            };
+
+            static string TrimAsSpan(string text, ReadOnlySpan<char> trimChars)
+            {
+                ReadOnlySpan<char> trimmed = text.Trim(trimChars);
+                return trimmed.Length == text.Length ? text : trimmed.ToString();
+            }
+        }
 
         private static WellKnownFunctionResult TryInvokeTrimEnd(string text, ref Arguments args)
             => args.Length == 1

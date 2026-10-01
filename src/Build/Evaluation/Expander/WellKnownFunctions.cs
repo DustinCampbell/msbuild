@@ -99,7 +99,9 @@ internal static partial class WellKnownFunctions
     public static WellKnownFunctionResult TryInvokeConstructor(Type receiverType, ref Arguments args, ref readonly ExpanderContext context)
         => receiverType == typeof(string)
             ? s_stringHandler.TryInvokeConstructor(ref args)
-            : NotHandled;
+            : receiverType == typeof(Version)
+                ? s_versionHandler.TryInvokeConstructor(ref args)
+                : NotHandled;
 
     private static WellKnownFunctionResult NotHandled
         => default;
