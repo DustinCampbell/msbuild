@@ -37,7 +37,6 @@
     <Compile Include="AssemblyDependency\Node\NodePipeBase.cs" />
     <Compile Include="AssemblyDependency\Node\NodePipeClient.cs" />
     <Compile Include="AssemblyDependency\Node\NodePipeServer.cs" />
-    <Compile Include="..\Shared\TaskParameter.cs" />
     <!-- Source Files -->
     <Compile Include="BuiltInTasks.cs" />
     <Compile Include="AssemblyDependency\AssemblyAttributes.cs" />
