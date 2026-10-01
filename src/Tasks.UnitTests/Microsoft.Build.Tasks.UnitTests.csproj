@@ -45,7 +45,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\UnitTests\AssemblyNameEx_Tests.cs" />
     <Compile Include="..\Shared\UnitTests\NativeMethodsShared_Tests.cs">
       <Link>NativeMethodsShared_Tests.cs</Link>
     </Compile>
