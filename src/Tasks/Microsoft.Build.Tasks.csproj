@@ -47,8 +47,6 @@
     <Compile Include="AssemblyDependency\Node\NodePipeServer.cs" />
     <Compile Include="..\Shared\NodeShutdown.cs" />
     <Compile Include="..\Shared\TaskParameter.cs" />
-    <Compile Include="..\Shared\TaskParameterValueStringConverter.cs" />
-    <Compile Include="..\Shared\TaskParameterTypeVerifier.cs" />
     <!-- Source Files -->
     <Compile Include="BuiltInTasks.cs" />
     <Compile Include="AssemblyDependency\AssemblyAttributes.cs" />
