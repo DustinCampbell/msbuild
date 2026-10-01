@@ -209,7 +209,9 @@ namespace Microsoft.Build.Shared
             /// </summary>
             private static void LoadFileTrackerDll()
             {
-                string buildToolsPath = FrameworkLocationHelper.GeneratePathToBuildToolsForToolsVersion(MSBuildConstants.CurrentToolsVersion, DotNetFrameworkArchitecture.Current);
+                string buildToolsPath = FrameworkLocationHelper.GeneratePathToBuildToolsForToolsVersion(
+                    MSBuildConstants.CurrentToolsVersion,
+                    DotNetFrameworkArchitecture.Current);
                 string fileTrackerPath = Path.Combine(buildToolsPath, s_fileTrackerDllName.Value);
 
                 if (!FileSystems.Default.FileExists(fileTrackerPath))
