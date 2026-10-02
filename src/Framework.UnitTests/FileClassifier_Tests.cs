@@ -28,7 +28,7 @@ namespace Microsoft.Build.Framework.UnitTests
         {
             FileClassifierUnderTest classifier = new();
 
-            var volume = NativeMethodsShared.IsWindows ? @"X:\" : "/home/usr";
+            var volume = NativeMethods.IsWindows ? @"X:\" : "/home/usr";
             classifier.RegisterImmutableDirectory($"{Path.Combine(volume, "Test1")}");
             classifier.RegisterImmutableDirectory($"{Path.Combine(volume, "Test2")}");
 
@@ -42,7 +42,7 @@ namespace Microsoft.Build.Framework.UnitTests
         {
             FileClassifierUnderTest classifier = new();
 
-            var volume = NativeMethodsShared.IsWindows ? @"X:\" : "/home/usr";
+            var volume = NativeMethods.IsWindows ? @"X:\" : "/home/usr";
 
             for (int i = 0; i < 3; ++i)
             {
@@ -60,10 +60,10 @@ namespace Microsoft.Build.Framework.UnitTests
         {
             FileClassifierUnderTest classifier = new();
 
-            var volume = NativeMethodsShared.IsWindows ? @"X:\" : "/home/usr";
+            var volume = NativeMethods.IsWindows ? @"X:\" : "/home/usr";
             classifier.RegisterImmutableDirectory($"{Path.Combine(volume, "Test1")}");
 
-            if (NativeMethodsShared.IsLinux)
+            if (NativeMethods.IsLinux)
             {
                 classifier.IsNonModifiable(Path.Combine(volume, "Test1", "File.ext")).ShouldBeTrue();
                 classifier.IsNonModifiable(Path.Combine(volume, "test1", "File.ext")).ShouldBeFalse();
