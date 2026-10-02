@@ -29,8 +29,8 @@ public class SDKManifest_Tests
     public void VerifyFrameworkSdkWithOldManifest()
     {
         string tmpRootDirectory = Path.GetTempPath();
-        string frameworkPathPattern = NativeMethodsShared.IsWindows ? @"Microsoft SDKs\Windows\v8.0\ExtensionSDKs\MyFramework" : "Microsoft SDKs/Windows/v8.0/ExtensionSDKs/MyFramework";
-        string frameworkPathPattern2 = NativeMethodsShared.IsWindows ? @"ExtensionSDKs\MyFramework" : "ExtensionSDKs/MyFramework";
+        string frameworkPathPattern = NativeMethods.IsWindows ? @"Microsoft SDKs\Windows\v8.0\ExtensionSDKs\MyFramework" : "Microsoft SDKs/Windows/v8.0/ExtensionSDKs/MyFramework";
+        string frameworkPathPattern2 = NativeMethods.IsWindows ? @"ExtensionSDKs\MyFramework" : "ExtensionSDKs/MyFramework";
 
         string frameworkPath = Path.Combine(tmpRootDirectory, frameworkPathPattern);
         string manifestFile = Path.Combine(frameworkPath, "SDKManifest.xml");

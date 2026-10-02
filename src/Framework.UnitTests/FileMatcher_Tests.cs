@@ -198,7 +198,7 @@ namespace Microsoft.Build.UnitTests
             Verify(info.Include.ToUpperInvariant(), info.Excludes, info.ExpectNoMatches, "Include was changed to uppercase");
 
             // Changing the case of the exclude break Linux
-            if (!NativeMethodsShared.IsLinux)
+            if (!NativeMethods.IsLinux)
             {
                 // Uppercase excludes
                 Verify(info.Include, info.Excludes?.Select(o => o.ToUpperInvariant()).ToArray(), false, "Excludes were changed to uppercase");
@@ -302,7 +302,7 @@ namespace Microsoft.Build.UnitTests
                             @"src\bar\inner\baz\baz.cs",
                             @"src\bar\inner\foo\foo.cs"
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux
+                        ExpectNoMatches = NativeMethods.IsLinux
                     }
                 };
 
@@ -324,7 +324,7 @@ namespace Microsoft.Build.UnitTests
                             @"src\bar\inner\baz\baz.cs",
                             @"src\bar\inner\foo\foo.cs"
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
 
@@ -342,7 +342,7 @@ namespace Microsoft.Build.UnitTests
                             @"src\bar\inner\baz.cs",
                             @"src\bar\inner\baz\baz.cs"
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
 
@@ -363,7 +363,7 @@ namespace Microsoft.Build.UnitTests
                             @"src\bar\inner\baz.cs",
                             @"src\bar\inner\foo\foo.cs"
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
 
@@ -382,7 +382,7 @@ namespace Microsoft.Build.UnitTests
                             @"src\foo\inner\foo.cs",
                             @"src\foo\inner\bar\bar.cs"
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
 
@@ -399,7 +399,7 @@ namespace Microsoft.Build.UnitTests
                         {
                             @"src\foo\inner\foo.cs"
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
 
@@ -491,7 +491,7 @@ namespace Microsoft.Build.UnitTests
                         {
                             @"subdirectory\subdirectory.cs",
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
 
@@ -515,7 +515,7 @@ namespace Microsoft.Build.UnitTests
                             @"src\bar\inner\baz.cs",
                             @"src\bar\inner\baz\baz.cs",
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
 
@@ -537,7 +537,7 @@ namespace Microsoft.Build.UnitTests
                             @"src\foo\inner\foo.cs",
                             @"src\foo\inner\bar\bar.cs"
                         },
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
 
@@ -553,7 +553,7 @@ namespace Microsoft.Build.UnitTests
                             @"src\foo\**\*.*" // effective exclude
                         },
                         ExpectedMatches = Array.Empty<string>(),
-                        ExpectNoMatches = NativeMethodsShared.IsLinux,
+                        ExpectNoMatches = NativeMethods.IsLinux,
                     }
                 };
             }
@@ -1043,7 +1043,7 @@ namespace Microsoft.Build.UnitTests
         public void DotDotForParentDirectory()
         {
             ValidateFileMatch(Path.Combine("..", "..", "*.*"), Path.Combine("..", "..", "File.txt"), false);
-            if (NativeMethodsShared.IsWindows)
+            if (NativeMethods.IsWindows)
             {
                 // On Linux *. * does not pick up files with no extension
                 ValidateFileMatch(Path.Combine("..", "..", "*.*"), Path.Combine("..", "..", "File"), false);
@@ -1057,8 +1057,8 @@ namespace Microsoft.Build.UnitTests
         {
             // Baseline
             ValidateFileMatch(
-                NativeMethodsShared.IsWindows ? "f:\\dir1\\dir2\\file.txt" : "/dir1/dir2/file.txt",
-                NativeMethodsShared.IsWindows ? "f:\\dir1\\dir2\\file.txt" : "/dir1/dir2/file.txt",
+                NativeMethods.IsWindows ? "f:\\dir1\\dir2\\file.txt" : "/dir1/dir2/file.txt",
+                NativeMethods.IsWindows ? "f:\\dir1\\dir2\\file.txt" : "/dir1/dir2/file.txt",
                 false);
             ValidateFileMatch(Path.Combine("**", "*.cs"), Path.Combine("dir1", "dir2", "file.cs"), true);
             ValidateFileMatch(Path.Combine("**", "*.cs"), "file.cs", true);
@@ -1509,47 +1509,47 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void RemoveProjectDirectory()
         {
-            string[] strings = new string[1] { NativeMethodsShared.IsWindows ? "c:\\1.file" : "/1.file" };
-            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethodsShared.IsWindows ? "c:\\" : "/").ToArray();
+            string[] strings = [NativeMethods.IsWindows ? @"c:\1.file" : "/1.file"];
+            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethods.IsWindows ? "c:\\" : "/").ToArray();
             Assert.Equal("1.file", strings[0]);
 
-            strings = new string[1] { NativeMethodsShared.IsWindows ? "c:\\directory\\1.file" : "/directory/1.file" };
-            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethodsShared.IsWindows ? "c:\\" : "/").ToArray();
-            Assert.Equal(strings[0], NativeMethodsShared.IsWindows ? "directory\\1.file" : "directory/1.file");
+            strings = [NativeMethods.IsWindows ? @"c:\directory\1.file" : "/directory/1.file"];
+            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethods.IsWindows ? "c:\\" : "/").ToArray();
+            Assert.Equal(strings[0], NativeMethods.IsWindows ? "directory\\1.file" : "directory/1.file");
 
-            strings = new string[1] { NativeMethodsShared.IsWindows ? "c:\\directory\\1.file" : "/directory/1.file" };
-            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethodsShared.IsWindows ? "c:\\directory" : "/directory").ToArray();
+            strings = [NativeMethods.IsWindows ? @"c:\directory\1.file" : "/directory/1.file"];
+            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethods.IsWindows ? "c:\\directory" : "/directory").ToArray();
             Assert.Equal("1.file", strings[0]);
 
-            strings = new string[1] { NativeMethodsShared.IsWindows ? "c:\\1.file" : "/1.file" };
-            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethodsShared.IsWindows ? "c:\\directory" : "/directory").ToArray();
-            Assert.Equal(strings[0], NativeMethodsShared.IsWindows ? "c:\\1.file" : "/1.file");
+            strings = [NativeMethods.IsWindows ? @"c:\1.file" : "/1.file"];
+            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethods.IsWindows ? "c:\\directory" : "/directory").ToArray();
+            Assert.Equal(strings[0], NativeMethods.IsWindows ? "c:\\1.file" : "/1.file");
 
-            strings = new string[1] { NativeMethodsShared.IsWindows ? "c:\\directorymorechars\\1.file" : "/directorymorechars/1.file" };
-            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethodsShared.IsWindows ? "c:\\directory" : "/directory").ToArray();
-            Assert.Equal(strings[0], NativeMethodsShared.IsWindows ? "c:\\directorymorechars\\1.file" : "/directorymorechars/1.file");
+            strings = [NativeMethods.IsWindows ? @"c:\directorymorechars\1.file" : "/directorymorechars/1.file"];
+            strings = FileMatcher.RemoveProjectDirectory(strings, NativeMethods.IsWindows ? "c:\\directory" : "/directory").ToArray();
+            Assert.Equal(strings[0], NativeMethods.IsWindows ? "c:\\directorymorechars\\1.file" : "/directorymorechars/1.file");
 
-            if (NativeMethodsShared.IsWindows)
+            if (NativeMethods.IsWindows)
             {
-                strings = new string[1] { "\\Machine\\1.file" };
-                strings = FileMatcher.RemoveProjectDirectory(strings, "\\Machine").ToArray();
+                strings = [@"\Machine\1.file"];
+                strings = FileMatcher.RemoveProjectDirectory(strings, @"\Machine").ToArray();
                 Assert.Equal("1.file", strings[0]);
 
-                strings = new string[1] { "\\Machine\\directory\\1.file" };
-                strings = FileMatcher.RemoveProjectDirectory(strings, "\\Machine").ToArray();
+                strings = [@"\Machine\directory\1.file"];
+                strings = FileMatcher.RemoveProjectDirectory(strings, @"\Machine").ToArray();
                 Assert.Equal("directory\\1.file", strings[0]);
 
-                strings = new string[1] { "\\Machine\\directory\\1.file" };
-                strings = FileMatcher.RemoveProjectDirectory(strings, "\\Machine\\directory").ToArray();
+                strings = [@"\Machine\directory\1.file"];
+                strings = FileMatcher.RemoveProjectDirectory(strings, @"\Machine\directory").ToArray();
                 Assert.Equal("1.file", strings[0]);
 
-                strings = new string[1] { "\\Machine\\1.file" };
-                strings = FileMatcher.RemoveProjectDirectory(strings, "\\Machine\\directory").ToArray();
-                Assert.Equal("\\Machine\\1.file", strings[0]);
+                strings = [@"\Machine\1.file"];
+                strings = FileMatcher.RemoveProjectDirectory(strings, @"\Machine\directory").ToArray();
+                Assert.Equal(@"\Machine\1.file", strings[0]);
 
-                strings = new string[1] { "\\Machine\\directorymorechars\\1.file" };
-                strings = FileMatcher.RemoveProjectDirectory(strings, "\\Machine\\directory").ToArray();
-                Assert.Equal("\\Machine\\directorymorechars\\1.file", strings[0]);
+                strings = [@"\Machine\directorymorechars\1.file"];
+                strings = FileMatcher.RemoveProjectDirectory(strings, @"\Machine\directory").ToArray();
+                Assert.Equal(@"\Machine\directorymorechars\1.file", strings[0]);
             }
         }
 
@@ -1912,7 +1912,7 @@ namespace Microsoft.Build.UnitTests
             bool expectedNeedsRecursion,
             bool expectedIsLegalFileSpec)
         {
-            if (NativeMethodsShared.IsUnixLike)
+            if (NativeMethods.IsUnixLike)
             {
                 expectedFixedDirectoryPart = FileUtilities.FixFilePath(expectedFixedDirectoryPart);
                 expectedWildcardDirectoryPart = FileUtilities.FixFilePath(expectedWildcardDirectoryPart);

@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
@@ -22,7 +23,7 @@ public sealed partial class ToolLocationHelper_Tests
     {
         IList<string> installedIdentifiers =
             ToolLocationHelper.GetFrameworkIdentifiers(
-                NativeMethodsShared.IsWindows ? "f:\\IDontExistAtAll" : "/IDontExistAtAll");
+                NativeMethods.IsWindows ? @"f:\IDontExistAtAll" : "/IDontExistAtAll");
         installedIdentifiers.Count.ShouldBe(0);
     }
 
@@ -34,7 +35,7 @@ public sealed partial class ToolLocationHelper_Tests
     {
         FrameworkNameVersioning highestMoniker =
             ToolLocationHelper.HighestVersionOfTargetFrameworkIdentifier(
-                NativeMethodsShared.IsWindows ? "f:\\IDontExistAtAll" : "/IDontExistAtAll",
+                NativeMethods.IsWindows ? @"f:\IDontExistAtAll" : "/IDontExistAtAll",
                 ".UnKNownFramework");
         highestMoniker.ShouldBeNull();
     }

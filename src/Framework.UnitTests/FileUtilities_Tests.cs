@@ -49,8 +49,8 @@ public class FileUtilities_Tests
         Assert.Equal(@"foo" + Path.DirectorySeparatorChar, modifier);
 
         cache.Clear();
-        string itemSpec = NativeMethodsShared.IsWindows ? @"c:\foo.txt" : "/foo.txt";
-        string itemSpecDir = NativeMethodsShared.IsWindows ? @"c:\" : "/";
+        string itemSpec = NativeMethods.IsWindows ? @"c:\foo.txt" : "/foo.txt";
+        string itemSpecDir = NativeMethods.IsWindows ? @"c:\" : "/";
         modifier = ItemSpecModifiers.GetItemSpecModifier(itemSpec, ItemSpecModifierKind.FullPath, currentDirectory, String.Empty, ref cache);
         Assert.Equal(itemSpec, modifier);
         Assert.Equal(itemSpec, cache.FullPath);
@@ -70,8 +70,8 @@ public class FileUtilities_Tests
         modifier = ItemSpecModifiers.GetItemSpecModifier(itemSpec, ItemSpecModifierKind.Identity, currentDirectory, String.Empty, ref cache);
         Assert.Equal(itemSpec, modifier);
 
-        string projectPath = NativeMethodsShared.IsWindows ? @"c:\abc\goo.proj" : @"/abc/goo.proj";
-        string projectPathDir = NativeMethodsShared.IsWindows ? @"c:\abc\" : @"/abc/";
+        string projectPath = NativeMethods.IsWindows ? @"c:\abc\goo.proj" : @"/abc/goo.proj";
+        string projectPathDir = NativeMethods.IsWindows ? @"c:\abc\" : @"/abc/";
         modifier = ItemSpecModifiers.GetItemSpecModifier(itemSpec, ItemSpecModifierKind.DefiningProjectDirectory, currentDirectory, projectPath, ref cache);
         Assert.Equal(projectPathDir, modifier);
 
@@ -88,7 +88,7 @@ public class FileUtilities_Tests
     [Fact]
     public void MakeRelativeTests()
     {
-        if (NativeMethodsShared.IsWindows)
+        if (NativeMethods.IsWindows)
         {
             Assert.Equal(@"foo.cpp", FileUtilities.MakeRelative(@"c:\abc\def", @"c:\abc\def\foo.cpp"));
             Assert.Equal(@"def\foo.cpp", FileUtilities.MakeRelative(@"c:\abc\", @"c:\abc\def\foo.cpp"));
@@ -243,9 +243,9 @@ public class FileUtilities_Tests
     [Trait("Category", "netcore-linux-failing")]
     public void GetDirectoryWithTrailingSlash()
     {
-        Assert.Equal(NativeMethodsShared.IsWindows ? @"c:\" : "/", FileUtilities.GetDirectory(NativeMethodsShared.IsWindows ? @"c:\" : "/"));
-        Assert.Equal(NativeMethodsShared.IsWindows ? @"c:\" : "/", FileUtilities.GetDirectory(NativeMethodsShared.IsWindows ? @"c:\foo" : "/foo"));
-        Assert.Equal(NativeMethodsShared.IsWindows ? @"c:" : "/", FileUtilities.GetDirectory(NativeMethodsShared.IsWindows ? @"c:" : "/"));
+        Assert.Equal(NativeMethods.IsWindows ? @"c:\" : "/", FileUtilities.GetDirectory(NativeMethods.IsWindows ? @"c:\" : "/"));
+        Assert.Equal(NativeMethods.IsWindows ? @"c:\" : "/", FileUtilities.GetDirectory(NativeMethods.IsWindows ? @"c:\foo" : "/foo"));
+        Assert.Equal(NativeMethods.IsWindows ? @"c:" : "/", FileUtilities.GetDirectory(NativeMethods.IsWindows ? @"c:" : "/"));
         Assert.Equal(FileUtilities.FixFilePath(@"\"), FileUtilities.GetDirectory(@"\"));
         Assert.Equal(FileUtilities.FixFilePath(@"\"), FileUtilities.GetDirectory(@"\foo"));
         Assert.Equal(FileUtilities.FixFilePath(@"..\"), FileUtilities.GetDirectory(@"..\foo"));
@@ -509,7 +509,7 @@ public class FileUtilities_Tests
     [Fact]
     public void FileOrDirectoryExistsNoThrow()
     {
-        var isWindows = NativeMethodsShared.IsWindows;
+        var isWindows = NativeMethods.IsWindows;
 
         Assert.False(FileUtilities.FileOrDirectoryExistsNoThrow("||"));
         Assert.False(FileUtilities.FileOrDirectoryExistsNoThrow(isWindows ? @"c:\doesnot_exist" : "/doesnot_exist"));
@@ -586,7 +586,7 @@ public class FileUtilities_Tests
     public void DirectoryExistsNoThrowTooLongWithDots()
     {
         string path = Path.Combine(Environment.SystemDirectory, "..", "..", "..") + Path.DirectorySeparatorChar;
-        if (NativeMethodsShared.IsWindows)
+        if (NativeMethods.IsWindows)
         {
             path += Environment.SystemDirectory.Substring(3);
         }
@@ -595,9 +595,8 @@ public class FileUtilities_Tests
 
         string longPart = new string('x', 260 - length); // We want the shortest that is > max path.
 
-        string inputPath = Path.Combine(new[] { Environment.SystemDirectory, longPart, "..", "..", ".." })
-                           + Path.DirectorySeparatorChar;
-        if (NativeMethodsShared.IsWindows)
+        string inputPath = Path.Combine([Environment.SystemDirectory, longPart, "..", "..", ".."]) + Path.DirectorySeparatorChar;
+        if (NativeMethods.IsWindows)
         {
             path += Environment.SystemDirectory.Substring(3);
         }
@@ -643,10 +642,10 @@ public class FileUtilities_Tests
     public static bool RunTestsThatDependOnWindowsShortPathBehavior_Workaround4241()
     {
         // Run these tests only when we're not on Windows
-        return !NativeMethodsShared.IsWindows ||
+        return !NativeMethods.IsWindows ||
         // OR we're on Windows and long paths aren't enabled
         // https://github.com/dotnet/msbuild/issues/4241
-               NativeMethodsShared.IsMaxPathLegacyWindows();
+               NativeMethods.IsMaxPathLegacyWindows();
     }
 
     [Fact]
@@ -975,7 +974,7 @@ public class FileUtilities_Tests
     [Fact]
     public void GetFolderAboveTest()
     {
-        string root = NativeMethodsShared.IsWindows ? @"c:\" : "/";
+        string root = NativeMethods.IsWindows ? @"c:\" : "/";
         string path = Path.Combine(root, "1", "2", "3", "4", "5");
 
         Assert.Equal(Path.Combine(root, "1", "2", "3", "4", "5"), FileUtilities.GetFolderAbove(path, 0));

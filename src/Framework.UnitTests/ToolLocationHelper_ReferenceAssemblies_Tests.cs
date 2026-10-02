@@ -20,7 +20,7 @@ public sealed partial class ToolLocationHelper_Tests
     [Fact]
     public void GenerateReferencAssemblyPathAllElements()
     {
-        string targetFrameworkRootPath = NativeMethodsShared.IsWindows
+        string targetFrameworkRootPath = NativeMethods.IsWindows
                                              ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
                                              : "/usr/lib";
         string targetFrameworkIdentifier = "Compact Framework";
@@ -41,7 +41,7 @@ public sealed partial class ToolLocationHelper_Tests
     [Fact]
     public void GenerateReferencAssemblyPathNoProfile()
     {
-        string targetFrameworkRootPath = NativeMethodsShared.IsWindows
+        string targetFrameworkRootPath = NativeMethods.IsWindows
                                              ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
                                              : "/usr/lib";
         string targetFrameworkIdentifier = "Compact Framework";
@@ -62,7 +62,7 @@ public sealed partial class ToolLocationHelper_Tests
     public void GenerateReferencAssemblyInvalidProfile()
         => Should.Throw<InvalidOperationException>(() =>
         {
-            string targetFrameworkRootPath = NativeMethodsShared.IsWindows
+            string targetFrameworkRootPath = NativeMethods.IsWindows
                                                 ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
                                                 : "/usr/lib";
             string targetFrameworkIdentifier = "Compact Framework";
@@ -82,7 +82,7 @@ public sealed partial class ToolLocationHelper_Tests
     public void GenerateReferencAssemblyInvalidIdentifier()
         => Should.Throw<InvalidOperationException>(() =>
         {
-            string targetFrameworkRootPath = NativeMethodsShared.IsWindows
+            string targetFrameworkRootPath = NativeMethods.IsWindows
                                                     ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
                                                     : "/usr/lib";
             string targetFrameworkIdentifier = "Compact Framework" + new string(Path.GetInvalidFileNameChars());
@@ -104,7 +104,7 @@ public sealed partial class ToolLocationHelper_Tests
         {
             string pathTooLong = new string('a', 500);
 
-            string targetFrameworkRootPath = NativeMethodsShared.IsWindows
+            string targetFrameworkRootPath = NativeMethods.IsWindows
                                                 ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
                                                 : "/usr/lib";
             string targetFrameworkIdentifier = "Compact Framework" + pathTooLong;

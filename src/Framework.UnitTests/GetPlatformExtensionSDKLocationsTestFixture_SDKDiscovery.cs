@@ -28,7 +28,7 @@ public partial class GetPlatformExtensionSDKLocationsTestFixture
         => Should.Throw<PathTooLongException>(() =>
         {
             // Try a path too long, which does not exist
-            string tooLongPath = NativeMethodsShared.IsWindows
+            string tooLongPath = NativeMethods.IsWindows
                                 ? (@"C:\" + new string('g', 1800))
                                 : ("/" + new string('g', 10000));
 
@@ -62,7 +62,7 @@ public partial class GetPlatformExtensionSDKLocationsTestFixture
         var targetPlatform = new Dictionary<TargetPlatformSDK, TargetPlatformSDK>();
 
         // Try a regular path which does not exist.
-        string normalDirectory = NativeMethodsShared.IsWindows ? "c:\\SDKPath" : "/SDKPath";
+        string normalDirectory = NativeMethods.IsWindows ? "c:\\SDKPath" : "/SDKPath";
         var paths = new List<string> { normalDirectory };
         ToolLocationHelper.GatherSDKListFromDirectory(paths, targetPlatform);
         targetPlatform.Count.ShouldBe(0);
@@ -202,7 +202,7 @@ public partial class GetPlatformExtensionSDKLocationsTestFixture
 
         ToolLocationHelper.GatherSDKListFromDirectory(paths, targetPlatforms);
 
-        if (NativeMethodsShared.IsWindows)
+        if (NativeMethods.IsWindows)
         {
             ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.CurrentUser, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, _openBaseKey, File.Exists);
             ToolLocationHelper.GatherSDKsFromRegistryImpl(targetPlatforms, "Software\\Microsoft\\MicrosoftSDks", RegistryView.Registry32, RegistryHive.LocalMachine, getRegistrySubKeyNames, getRegistrySubKeyDefaultValue, _openBaseKey, File.Exists);

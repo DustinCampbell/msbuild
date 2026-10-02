@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
@@ -90,18 +91,18 @@ public class ProcessorArchitectureTests
     }
 
     private static string? ProcessorArchitectureIntToString()
-        => NativeMethodsShared.ProcessorArchitecture switch
+        => NativeMethods.ProcessorArchitecture switch
         {
-            NativeMethodsShared.ProcessorArchitectures.X86 => ProcessorArchitecture.X86,
-            NativeMethodsShared.ProcessorArchitectures.X64 => ProcessorArchitecture.AMD64,
-            NativeMethodsShared.ProcessorArchitectures.IA64 => ProcessorArchitecture.IA64,
-            NativeMethodsShared.ProcessorArchitectures.ARM => ProcessorArchitecture.ARM,
-            NativeMethodsShared.ProcessorArchitectures.ARM64 => ProcessorArchitecture.ARM64,
-            NativeMethodsShared.ProcessorArchitectures.WASM => ProcessorArchitecture.WASM,
-            NativeMethodsShared.ProcessorArchitectures.S390X => ProcessorArchitecture.S390X,
-            NativeMethodsShared.ProcessorArchitectures.LOONGARCH64 => ProcessorArchitecture.LOONGARCH64,
-            NativeMethodsShared.ProcessorArchitectures.ARMV6 => ProcessorArchitecture.ARMV6,
-            NativeMethodsShared.ProcessorArchitectures.PPC64LE => ProcessorArchitecture.PPC64LE,
+            NativeMethods.ProcessorArchitectures.X86 => ProcessorArchitecture.X86,
+            NativeMethods.ProcessorArchitectures.X64 => ProcessorArchitecture.AMD64,
+            NativeMethods.ProcessorArchitectures.IA64 => ProcessorArchitecture.IA64,
+            NativeMethods.ProcessorArchitectures.ARM => ProcessorArchitecture.ARM,
+            NativeMethods.ProcessorArchitectures.ARM64 => ProcessorArchitecture.ARM64,
+            NativeMethods.ProcessorArchitectures.WASM => ProcessorArchitecture.WASM,
+            NativeMethods.ProcessorArchitectures.S390X => ProcessorArchitecture.S390X,
+            NativeMethods.ProcessorArchitectures.LOONGARCH64 => ProcessorArchitecture.LOONGARCH64,
+            NativeMethods.ProcessorArchitectures.ARMV6 => ProcessorArchitecture.ARMV6,
+            NativeMethods.ProcessorArchitectures.PPC64LE => ProcessorArchitecture.PPC64LE,
 
             // unknown architecture? return null
             _ => null,
