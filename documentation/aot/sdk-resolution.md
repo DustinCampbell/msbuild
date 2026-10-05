@@ -317,7 +317,7 @@ through the guard: `SdkResolverLoader.LoadResolverAssembly`, `GetResolverTypes`,
 
 ### 2.5 Step 4 - the error resource
 
-Add to [src/Build/Resources/Strings.resx](../../src/Build/Resources/Strings.resx) (assigned `MSB4282`;
+Add to [src/Build/Resources/SR.resx](../../src/Build/Resources/SR.resx) (assigned `MSB4282`;
 see the
 [authoring-errors-and-warnings skill](../../.github/skills/authoring-errors-and-warnings/SKILL.md)):
 

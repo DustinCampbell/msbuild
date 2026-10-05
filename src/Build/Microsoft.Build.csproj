@@ -680,10 +680,11 @@
 
     <!-- Win32 RC Files -->
     <RCResourceFile Include="native.rc" />
-    <!-- Resource Files -->
-    <EmbeddedResource Include="Resources\Strings.resx">
-      <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
-      <SubType>Designer</SubType>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\SR.resx">
+      <GenerateSource>true</GenerateSource>
     </EmbeddedResource>
   </ItemGroup>
 

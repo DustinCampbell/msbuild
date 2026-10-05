@@ -1426,7 +1426,7 @@ public sealed class FilteredBinlogReplay_Tests : IDisposable
 
     private static BuildMessageEventArgs AssertFilterNotice(BuildEventArgs[] events, string excludedKinds)
     {
-        var resources = new ResourceManager("Microsoft.Build.Strings", typeof(BinaryLogger).Assembly);
+        var resources = new ResourceManager("Microsoft.Build.Resources.SR", typeof(BinaryLogger).Assembly);
         string expected = string.Format(CultureInfo.CurrentCulture, resources.GetString("Binlog_FilteredLog")!, excludedKinds);
         var notice = events.Where(e => e.Message == expected).ShouldHaveSingleItem().ShouldBeOfType<BuildMessageEventArgs>();
         notice.BuildEventContext.ShouldBe(BuildEventContext.Invalid);

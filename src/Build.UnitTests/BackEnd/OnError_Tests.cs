@@ -9,6 +9,7 @@ using System.Xml;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Resources;
 using Shouldly;
 using Xunit;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
@@ -593,7 +594,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             else
             {
                 logger.ErrorCount.ShouldBe(0);
-                logger.AssertLogContains(String.Format(MockLogger.GetString("TaskReturnedFalseButDidNotLogError"), "FailingTask"));
+                logger.AssertLogContains(string.Format(SR.TaskReturnedFalseButDidNotLogError, "FailingTask"));
             }
         }
 

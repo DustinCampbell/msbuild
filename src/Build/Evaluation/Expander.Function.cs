@@ -278,7 +278,7 @@ internal partial class Expander<P, I>
                 if (indexerEndIndex < 1)
                 {
                     // We ended up with something other than a function expression
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets"));
+                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, BuildSR.InvalidFunctionPropertyExpressionDetailMismatchedSquareBrackets);
                 }
 
                 var methodStartIndex = indexerEndIndex + 1;
@@ -917,7 +917,7 @@ internal partial class Expander<P, I>
 
                 if (argumentsEndIndex == -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, AssemblyResources.GetString("InvalidFunctionPropertyExpressionDetailMismatchedParenthesis"));
+                    ProjectErrorUtilities.ThrowInvalidProject(elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, BuildSR.InvalidFunctionPropertyExpressionDetailMismatchedParenthesis);
                 }
 
                 // We have been asked for a method invocation

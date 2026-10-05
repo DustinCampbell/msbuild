@@ -51,7 +51,7 @@ namespace Microsoft.Build.UnitTests
             VerifyResourcesForAssembly(
                 "Microsoft.Build",
                 Path.Combine(GetRepoRoot(), "src", "Build"),
-                new[] { "Resources/Strings.resx" },
+                new[] { "Resources/SR.resx" },
                 new[] { "../Framework/Resources/SR.resx" });
         }
 
@@ -191,7 +191,7 @@ namespace Microsoft.Build.UnitTests
             // Skip files that are conditional compilation only (e.g., XamlTaskFactory which is .NETFramework-only)
             // These might reference resources that are intentionally not included in all builds
             // TODO: Consider handling this more elegantly by checking project file conditionals
-            
+
             // Patterns to match resource method calls with string literal arguments
             var patterns = new[]
             {
@@ -226,8 +226,8 @@ namespace Microsoft.Build.UnitTests
                     {
                         var resourceName = match.Groups[1].Value;
                         // Resource names typically start with uppercase and don't contain braces or dollar signs
-                        if (!resourceName.Contains("{") && 
-                            !resourceName.Contains("$") && 
+                        if (!resourceName.Contains("{") &&
+                            !resourceName.Contains("$") &&
                             !resourceName.Contains(" ") &&
                             char.IsUpper(resourceName[0]))
                         {

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 global using NativeMethodsShared = Microsoft.Build.Framework.NativeMethods;
+global using BuildSR = Microsoft.Build.Resources.SR;
+global using SharedSR = Microsoft.Build.Framework.Resources.SR;
 
 using System;
 using System.Resources;

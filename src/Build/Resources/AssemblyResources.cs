@@ -15,12 +15,12 @@ internal static class AssemblyResources
     /// <summary>
     ///  Gets the assembly's primary resources, i.e. the resources exclusively owned by this assembly.
     /// </summary>
-    internal static ResourceManager PrimaryResources { get; } = new ResourceManager("Microsoft.Build.Strings", typeof(AssemblyResources).Assembly);
+    internal static ResourceManager PrimaryResources => BuildSR.ResourceManager;
 
     /// <summary>
     ///  Gets the assembly's shared resources, i.e. the resources this assembly shares with other assemblies.
     /// </summary>
-    internal static ResourceManager SharedResources => Framework.Resources.SR.ResourceManager;
+    internal static ResourceManager SharedResources => SharedSR.ResourceManager;
 
     /// <summary>
     ///  Loads the specified resource string, either from the assembly's primary resources, or its shared resources.

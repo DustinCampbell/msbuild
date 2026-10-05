@@ -6,7 +6,7 @@
 - shared resources live in `Microsoft.Build.Framework`'s `SR.resx` and are consumed by the other MSBuild assemblies through `SR.ResourceManager` (exposed via `AssemblyResources.SharedResources`)
 - each neutral resource has a directory named `xlf` besides it which contains its localized strings in .xlf format
 - there is one language per xlf
-- the logical name for a resource is: `<Assembly Name>.<Neutral Resx File Name>.resources`. In the ResourceManager this appears as `<Assembly Name>.<Neutral Resx File Name>` (without the trailing `.resources`). For example, the `Microsoft.Build` assembly uses the `Microsoft.Build.Strings.resources` [logical resource name](https://github.com/dotnet/msbuild/blob/cc3db358d34ad4cd1ec0c67e17582d7ca2a15040/src/Build/Microsoft.Build.csproj#L792) (the resource file is `Strings.resx`), and its corresponding [ResourceManager](https://github.com/dotnet/msbuild/blob/518c041f4511a6bc23eb40703b69a94ea46c65fd/src/Build/Resources/AssemblyResources.cs#L118) uses `Microsoft.Build.Strings`.
+- the logical name for a resource is derived from its generated resource type. For example, the `Microsoft.Build` assembly's [`Resources/SR.resx`](../../src/Build/Resources/SR.resx) generates `Microsoft.Build.Resources.SR`, whose resource manager uses the base name `Microsoft.Build.Resources.SR` and embeds `Microsoft.Build.Resources.SR.resources`.
 
 ## How to edit a resource
 

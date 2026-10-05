@@ -9,6 +9,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Resources;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
 
@@ -208,7 +209,7 @@ namespace Microsoft.Build.UnitTests
 
             MockLogger logger = new MockLogger(_testOutput);
             ObjectModelHelpers.BuildTempProjectFileExpectFailure(@"SkipNonexistentProjectsMain.csproj", logger);
-            string error = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFound"), "this_project_does_not_exist.csproj");
+            string error = String.Format(SR.MSBuild_ProjectFileNotFound, "this_project_does_not_exist.csproj");
             Assert.Contains(error, logger.FullLog);
         }
 
@@ -230,7 +231,7 @@ namespace Microsoft.Build.UnitTests
 
             MockLogger logger = new MockLogger(_testOutput);
             ObjectModelHelpers.BuildTempProjectFileExpectFailure(@"SkipNonexistentProjectsMain.csproj", logger);
-            string error = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFound"), "this_project_does_not_exist.csproj");
+            string error = String.Format(SR.MSBuild_ProjectFileNotFound, "this_project_does_not_exist.csproj");
             Assert.Equal(0, logger.WarningCount);
             Assert.Equal(1, logger.ErrorCount);
             Assert.Contains(error, logger.FullLog);
@@ -265,8 +266,8 @@ namespace Microsoft.Build.UnitTests
             ObjectModelHelpers.BuildTempProjectFileExpectSuccess(@"SkipNonexistentProjectsMain.csproj", logger);
 
             logger.AssertLogContains("Hello from foo.csproj");
-            string message = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFoundMessage"), "this_project_does_not_exist.csproj");
-            string error = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFound"), "this_project_does_not_exist.csproj");
+            string message = String.Format(SR.MSBuild_ProjectFileNotFoundMessage, "this_project_does_not_exist.csproj");
+            string error = String.Format(SR.MSBuild_ProjectFileNotFound, "this_project_does_not_exist.csproj");
             Assert.Equal(0, logger.WarningCount);
             Assert.Equal(0, logger.ErrorCount);
             Assert.Contains(message, logger.FullLog); // for the missing project
@@ -303,8 +304,8 @@ namespace Microsoft.Build.UnitTests
             ObjectModelHelpers.BuildTempProjectFileExpectSuccess(@"SkipNonexistentProjectsMain.csproj", logger);
 
             logger.AssertLogContains("Hello from foo.csproj");
-            string message = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFoundMessage"), "this_project_does_not_exist.csproj");
-            string error = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFound"), "this_project_does_not_exist.csproj");
+            string message = String.Format(SR.MSBuild_ProjectFileNotFoundMessage, "this_project_does_not_exist.csproj");
+            string error = String.Format(SR.MSBuild_ProjectFileNotFound, "this_project_does_not_exist.csproj");
             Assert.Equal(0, logger.WarningCount);
             Assert.Equal(0, logger.ErrorCount);
             Assert.Contains(message, logger.FullLog); // for the missing project
@@ -351,9 +352,9 @@ namespace Microsoft.Build.UnitTests
             ObjectModelHelpers.BuildTempProjectFileExpectFailure(@"SkipNonexistentProjectsMain.csproj", logger);
 
             logger.AssertLogContains("Hello from foo.csproj");
-            string message = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFoundMessage"), "this_project_does_not_exist_warn.csproj");
-            string error = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFound"), "this_project_does_not_exist_warn.csproj");
-            string error2 = String.Format(AssemblyResources.GetString("MSBuild.ProjectFileNotFound"), "this_project_does_not_exist_error.csproj");
+            string message = String.Format(SR.MSBuild_ProjectFileNotFoundMessage, "this_project_does_not_exist_warn.csproj");
+            string error = String.Format(SR.MSBuild_ProjectFileNotFound, "this_project_does_not_exist_warn.csproj");
+            string error2 = String.Format(SR.MSBuild_ProjectFileNotFound, "this_project_does_not_exist_error.csproj");
             Assert.Equal(0, logger.WarningCount);
             Assert.Equal(1, logger.ErrorCount);
             Assert.Contains(message, logger.FullLog); // for the missing project
@@ -397,7 +398,7 @@ namespace Microsoft.Build.UnitTests
             ObjectModelHelpers.BuildTempProjectFileExpectFailure(@"BuildingVCProjMain.csproj", logger);
 
             logger.AssertLogContains("Hello from foo.csproj");
-            string error = String.Format(AssemblyResources.GetString("MSBuild.ProjectUpgradeNeededToVcxProj"), "blah.vcproj");
+            string error = String.Format(SR.MSBuild_ProjectUpgradeNeededToVcxProj, "blah.vcproj");
             Assert.Equal(0, logger.WarningCount);
             Assert.Equal(1, logger.ErrorCount);
             Assert.Contains(error, logger.FullLog);
@@ -1348,9 +1349,9 @@ namespace Microsoft.Build.UnitTests
                             // Verify build did not build second project which has the message SecondProject
                             logger.AssertLogDoesntContain("SecondProject");
                             // Verify the correct msbuild task messages are in the log
-                            logger.AssertLogContains(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NoStopOnFirstFailure"));
-                            logger.AssertLogContains(AssemblyResources.GetString("MSBuild.NotBuildingInParallel"));
+                            logger.AssertLogContains(SR.MSBuild_SkippingRemainingProjects);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NoStopOnFirstFailure);
+                            logger.AssertLogContains(SR.MSBuild_NotBuildingInParallel);
                             break;
                         case 1:
                             // Verify setting BuildInParallel to true and StopOnFirstFailure to
@@ -1358,17 +1359,17 @@ namespace Microsoft.Build.UnitTests
                             // Verify build did  build second project which has the message SecondProject
                             logger.AssertLogContains("SecondProject");
                             // Verify the correct msbuild task messages are in the log
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NoStopOnFirstFailure"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NotBuildingInParallel"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingProjects);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NoStopOnFirstFailure);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NotBuildingInParallel);
                             break;
                         case 2:
                             // Verify build did not build second project which has the message SecondProject
                             logger.AssertLogDoesntContain("SecondProject");
                             // Verify the correct msbuild task messages are in the log
-                            logger.AssertLogContains(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NoStopOnFirstFailure"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NotBuildingInParallel"));
+                            logger.AssertLogContains(SR.MSBuild_SkippingRemainingProjects);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NoStopOnFirstFailure);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NotBuildingInParallel);
                             break;
 
                         case 3:
@@ -1377,9 +1378,9 @@ namespace Microsoft.Build.UnitTests
                             // Verify build did build second project which has the message SecondProject
                             logger.AssertLogContains("SecondProject");
                             // Verify the correct msbuild task messages are in the log
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NoStopOnFirstFailure"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NotBuildingInParallel"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingProjects);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NoStopOnFirstFailure);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NotBuildingInParallel);
                             break;
                     }
                     // The build should fail as the first project has an error
@@ -1470,9 +1471,9 @@ namespace Microsoft.Build.UnitTests
                             // Verify build did build second project which has the message SecondProject
                             logger.AssertLogContains("SecondProject");
                             // Verify the correct msbuild task messages are in the log
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
-                            logger.AssertLogContains(AssemblyResources.GetString("MSBuild.NoStopOnFirstFailure"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NotBuildingInParallel"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingProjects);
+                            logger.AssertLogContains(SR.MSBuild_NoStopOnFirstFailure);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NotBuildingInParallel);
                             break;
                         case 1:
                             // Verify setting BuildInParallel to true and StopOnFirstFailure to
@@ -1480,9 +1481,9 @@ namespace Microsoft.Build.UnitTests
                             // Verify build did build second project which has the message SecondProject
                             logger.AssertLogContains("SecondProject");
                             // Verify the correct msbuild task messages are in the log
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NoStopOnFirstFailure"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NotBuildingInParallel"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingProjects);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NoStopOnFirstFailure);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NotBuildingInParallel);
                             break;
                         case 2:
                             // Verify setting BuildInParallel to false and StopOnFirstFailure to
@@ -1490,9 +1491,9 @@ namespace Microsoft.Build.UnitTests
                             // Verify build did not build second project which has the message SecondProject
                             logger.AssertLogDoesntContain("SecondProject");
                             // Verify the correct msbuild task messages are in the log
-                            logger.AssertLogContains(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NoStopOnFirstFailure"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NotBuildingInParallel"));
+                            logger.AssertLogContains(SR.MSBuild_SkippingRemainingProjects);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NoStopOnFirstFailure);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NotBuildingInParallel);
                             break;
 
                         case 3:
@@ -1501,9 +1502,9 @@ namespace Microsoft.Build.UnitTests
                             // Verify build did build second project which has the message SecondProject
                             logger.AssertLogContains("SecondProject");
                             // Verify the correct msbuild task messages are in the log
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NoStopOnFirstFailure"));
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.NotBuildingInParallel"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingProjects);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NoStopOnFirstFailure);
+                            logger.AssertLogDoesntContain(SR.MSBuild_NotBuildingInParallel);
                             break;
                     }
                     // The build should fail as the first project has an error
@@ -1560,7 +1561,7 @@ namespace Microsoft.Build.UnitTests
                 Project p = ObjectModelHelpers.CreateInMemoryProject(pc, parentProjectContents, logger);
                 bool success = p.Build();
 
-                logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
+                logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingProjects);
                 Assert.False(success); // "Build Succeeded.  See 'Standard Out' tab for details."
 
                 parentProjectContents = @"
@@ -1580,7 +1581,7 @@ namespace Microsoft.Build.UnitTests
                 MockLogger logger2 = new MockLogger();
                 Project p2 = ObjectModelHelpers.CreateInMemoryProject(pc, parentProjectContents, logger2);
                 bool success2 = p2.Build();
-                logger2.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingProjects"));
+                logger2.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingProjects);
                 Assert.False(success2); // "Build Succeeded.  See 'Standard Out' tab for details."
             }
             finally
@@ -1696,12 +1697,12 @@ namespace Microsoft.Build.UnitTests
                             // Test the case where the error is in the last project and RunEachTargetSeparately = true
                             logger.AssertLogContains("Proj2 T1 message");
                             logger.AssertLogContains("Proj2 T2 message");
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingTargets"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingTargets);
                             break;
                         case 1:
                             // Test the case where the error is in the second target out of 3.
                             logger.AssertLogContains("Proj2 T1 message");
-                            logger.AssertLogContains(AssemblyResources.GetString("MSBuild.SkippingRemainingTargets"));
+                            logger.AssertLogContains(SR.MSBuild_SkippingRemainingTargets);
                             logger.AssertLogDoesntContain("Proj2 T2 message");
                             // The build should fail as the first project has an error
                             break;
@@ -1709,28 +1710,28 @@ namespace Microsoft.Build.UnitTests
                             // Test case where error is in second last target but stopOnFirstFailure is false
                             logger.AssertLogContains("Proj2 T1 message");
                             logger.AssertLogContains("Proj2 T2 message");
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingTargets"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingTargets);
                             break;
                         // Test the cases where RunEachTargetSeparately is false. In these cases all of the targets should be submitted at once
                         case 3:
                             // Test the case where the error is in the last project and RunEachTargetSeparately = true
                             logger.AssertLogContains("Proj2 T1 message");
                             logger.AssertLogContains("Proj2 T2 message");
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingTargets"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingTargets);
                             // The build should fail as the first project has an error
                             break;
                         case 4:
                             // Test the case where the error is in the second target out of 3.
                             logger.AssertLogContains("Proj2 T1 message");
                             logger.AssertLogDoesntContain("Proj2 T2 message");
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingTargets"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingTargets);
                             // The build should fail as the first project has an error
                             break;
                         case 5:
                             // Test case where error is in second last target but stopOnFirstFailure is false
                             logger.AssertLogContains("Proj2 T1 message");
                             logger.AssertLogDoesntContain("Proj2 T2 message");
-                            logger.AssertLogDoesntContain(AssemblyResources.GetString("MSBuild.SkippingRemainingTargets"));
+                            logger.AssertLogDoesntContain(SR.MSBuild_SkippingRemainingTargets);
                             break;
                     }
 
