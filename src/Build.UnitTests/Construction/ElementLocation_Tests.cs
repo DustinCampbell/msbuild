@@ -136,10 +136,6 @@ public sealed class ElementLocation_Tests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void EmptyLocationReturnsEmpty()
-        => ElementLocation.EmptyLocation.ShouldBeSameAs(ElementLocation.Empty);
-
-    [Fact]
     public void LargeColumnIsPreserved()
     {
         using TestEnvironment env = TestEnvironment.Create(_output);

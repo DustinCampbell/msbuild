@@ -14,7 +14,7 @@ namespace Microsoft.Build.Shared
     /// </summary>
     internal sealed class BuildEventFileInfo
     {
-        internal static BuildEventFileInfo Empty = new BuildEventFileInfo(ElementLocation.EmptyLocation);
+        internal static BuildEventFileInfo Empty = new BuildEventFileInfo(ElementLocation.Empty);
 
         #region Constructors
 
