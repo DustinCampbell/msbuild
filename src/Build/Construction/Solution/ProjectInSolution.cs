@@ -419,7 +419,7 @@ namespace Microsoft.Build.Construction
                         if (!ParentSolution.ProjectsByGuid.TryGetValue(ParentProjectGuid, out proj) &&
                             !ParentSolution.SolutionFoldersByGuid.TryGetValue(ParentProjectGuid, out solutionFolder))
                         {
-                            ProjectErrorUtilities.VerifyThrowInvalidProject(proj != null || solutionFolder != null, "SubCategoryForSolutionParsingErrors",
+                            ProjectErrorUtilities.VerifyThrowInvalidProject(proj != null || solutionFolder != null, Subcategory.SolutionFile,
                                 ElementLocation.Create(ParentSolution.FullPath), "SolutionParseNestedProjectErrorWithNameAndGuid", ProjectName, ProjectGuid, ParentProjectGuid);
                         }
 
@@ -461,7 +461,7 @@ namespace Microsoft.Build.Construction
                         if (!ParentSolution.ProjectsByGuid.TryGetValue(ParentProjectGuid, out proj) &&
                             !ParentSolution.SolutionFoldersByGuid.TryGetValue(ParentProjectGuid, out solutionFolder))
                         {
-                            ProjectErrorUtilities.VerifyThrowInvalidProject(proj != null || solutionFolder != null, "SubCategoryForSolutionParsingErrors",
+                            ProjectErrorUtilities.VerifyThrowInvalidProject(proj != null || solutionFolder != null, Subcategory.SolutionFile,
                                 ElementLocation.Create(ParentSolution.FullPath), "SolutionParseNestedProjectErrorWithNameAndGuid", ProjectName, ProjectGuid, ParentProjectGuid);
                         }
 

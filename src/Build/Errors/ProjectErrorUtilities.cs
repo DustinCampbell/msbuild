@@ -28,7 +28,7 @@ internal static class ProjectErrorUtilities
     [DoesNotReturn]
     internal static void ThrowInvalidProject(IElementLocation location, string resourceName, params object?[] args)
         => ThrowInvalidProjectCore(
-            errorSubCategoryResourceName: null,
+            subcategory: Subcategory.None,
             location,
             innerException: null,
             resourceName,
@@ -49,7 +49,7 @@ internal static class ProjectErrorUtilities
         string resourceName,
         params object?[] args)
         => ThrowInvalidProjectCore(
-            errorSubCategoryResourceName: null,
+            subcategory: Subcategory.None,
             location,
             innerException,
             resourceName,
@@ -58,21 +58,19 @@ internal static class ProjectErrorUtilities
     /// <summary>
     ///  Throws an <see cref="InvalidProjectFileException"/> with the specified error subcategory.
     /// </summary>
-    /// <param name="errorSubCategoryResourceName">
-    ///  The name of the error-subcategory resource, or <see langword="null"/> for no subcategory.
-    /// </param>
+    /// <param name="subcategory">The error subcategory.</param>
     /// <param name="location">The project location associated with the error.</param>
     /// <param name="resourceName">The name of the error message resource.</param>
     /// <param name="args">The arguments used to format the resource string.</param>
     /// <exception cref="InvalidProjectFileException">Always thrown.</exception>
     [DoesNotReturn]
     internal static void ThrowInvalidProject(
-        string? errorSubCategoryResourceName,
+        Subcategory subcategory,
         IElementLocation location,
         string resourceName,
         params object?[] args)
         => ThrowInvalidProjectCore(
-            errorSubCategoryResourceName,
+            subcategory,
             location,
             innerException: null,
             resourceName,
@@ -90,7 +88,7 @@ internal static class ProjectErrorUtilities
         [DoesNotReturnIf(false)] bool condition,
         IElementLocation location,
         string resourceName)
-        => VerifyThrowInvalidProject(condition, errorSubCategoryResourceName: null, location, resourceName);
+        => VerifyThrowInvalidProject(condition, subcategory: Subcategory.None, location, resourceName);
 
     /// <summary>
     ///  Throws an <see cref="InvalidProjectFileException"/> with one format argument when the specified condition is
@@ -107,7 +105,7 @@ internal static class ProjectErrorUtilities
         IElementLocation location,
         string resourceName,
         T1 arg0)
-        => VerifyThrowInvalidProject(condition, errorSubCategoryResourceName: null, location, resourceName, arg0);
+        => VerifyThrowInvalidProject(condition, subcategory: Subcategory.None, location, resourceName, arg0);
 
     /// <summary>
     ///  Throws an <see cref="InvalidProjectFileException"/> with two format arguments when the specified condition is
@@ -127,7 +125,7 @@ internal static class ProjectErrorUtilities
         string resourceName,
         T1 arg0,
         T2 arg1)
-        => VerifyThrowInvalidProject(condition, errorSubCategoryResourceName: null, location, resourceName, arg0, arg1);
+        => VerifyThrowInvalidProject(condition, subcategory: Subcategory.None, location, resourceName, arg0, arg1);
 
     /// <summary>
     ///  Throws an <see cref="InvalidProjectFileException"/> with three format arguments when the specified condition
@@ -152,7 +150,7 @@ internal static class ProjectErrorUtilities
         T3 arg2)
         => VerifyThrowInvalidProject(
             condition,
-            errorSubCategoryResourceName: null,
+            subcategory: Subcategory.None,
             location,
             resourceName,
             arg0,
@@ -185,7 +183,7 @@ internal static class ProjectErrorUtilities
         T4 arg3)
         => VerifyThrowInvalidProject(
             condition,
-            errorSubCategoryResourceName: null,
+            subcategory: Subcategory.None,
             location,
             resourceName,
             arg0,
@@ -198,21 +196,19 @@ internal static class ProjectErrorUtilities
     ///  <see langword="false"/>.
     /// </summary>
     /// <param name="condition">The condition to verify.</param>
-    /// <param name="errorSubCategoryResourceName">
-    ///  The name of the error-subcategory resource, or <see langword="null"/> for no subcategory.
-    /// </param>
+    /// <param name="subcategory">The error subcategory.</param>
     /// <param name="location">The project location associated with the error.</param>
     /// <param name="resourceName">The name of the error message resource.</param>
     /// <exception cref="InvalidProjectFileException"><paramref name="condition"/> is <see langword="false"/>.</exception>
     internal static void VerifyThrowInvalidProject(
         [DoesNotReturnIf(false)] bool condition,
-        string? errorSubCategoryResourceName,
+        Subcategory subcategory,
         IElementLocation location,
         string resourceName)
     {
         if (!condition)
         {
-            ThrowInvalidProject(errorSubCategoryResourceName, location, resourceName);
+            ThrowInvalidProject(subcategory, location, resourceName);
         }
     }
 
@@ -222,23 +218,21 @@ internal static class ProjectErrorUtilities
     /// </summary>
     /// <typeparam name="T1">The type of the first format argument.</typeparam>
     /// <param name="condition">The condition to verify.</param>
-    /// <param name="errorSubCategoryResourceName">
-    ///  The name of the error-subcategory resource, or <see langword="null"/> for no subcategory.
-    /// </param>
+    /// <param name="subcategory">The error subcategory.</param>
     /// <param name="location">The project location associated with the error.</param>
     /// <param name="resourceName">The name of the error message resource.</param>
     /// <param name="arg0">The first format argument.</param>
     /// <exception cref="InvalidProjectFileException"><paramref name="condition"/> is <see langword="false"/>.</exception>
     internal static void VerifyThrowInvalidProject<T1>(
         [DoesNotReturnIf(false)] bool condition,
-        string? errorSubCategoryResourceName,
+        Subcategory subcategory,
         IElementLocation location,
         string resourceName,
         T1 arg0)
     {
         if (!condition)
         {
-            ThrowInvalidProject(errorSubCategoryResourceName, location, resourceName, arg0);
+            ThrowInvalidProject(subcategory, location, resourceName, arg0);
         }
     }
 
@@ -249,9 +243,7 @@ internal static class ProjectErrorUtilities
     /// <typeparam name="T1">The type of the first format argument.</typeparam>
     /// <typeparam name="T2">The type of the second format argument.</typeparam>
     /// <param name="condition">The condition to verify.</param>
-    /// <param name="errorSubCategoryResourceName">
-    ///  The name of the error-subcategory resource, or <see langword="null"/> for no subcategory.
-    /// </param>
+    /// <param name="subcategory">The error subcategory.</param>
     /// <param name="location">The project location associated with the error.</param>
     /// <param name="resourceName">The name of the error message resource.</param>
     /// <param name="arg0">The first format argument.</param>
@@ -259,7 +251,7 @@ internal static class ProjectErrorUtilities
     /// <exception cref="InvalidProjectFileException"><paramref name="condition"/> is <see langword="false"/>.</exception>
     internal static void VerifyThrowInvalidProject<T1, T2>(
         [DoesNotReturnIf(false)] bool condition,
-        string? errorSubCategoryResourceName,
+        Subcategory subcategory,
         IElementLocation location,
         string resourceName,
         T1 arg0,
@@ -267,7 +259,7 @@ internal static class ProjectErrorUtilities
     {
         if (!condition)
         {
-            ThrowInvalidProject(errorSubCategoryResourceName, location, resourceName, arg0, arg1);
+            ThrowInvalidProject(subcategory, location, resourceName, arg0, arg1);
         }
     }
 
@@ -279,9 +271,7 @@ internal static class ProjectErrorUtilities
     /// <typeparam name="T2">The type of the second format argument.</typeparam>
     /// <typeparam name="T3">The type of the third format argument.</typeparam>
     /// <param name="condition">The condition to verify.</param>
-    /// <param name="errorSubCategoryResourceName">
-    ///  The name of the error-subcategory resource, or <see langword="null"/> for no subcategory.
-    /// </param>
+    /// <param name="subcategory">The error subcategory.</param>
     /// <param name="location">The project location associated with the error.</param>
     /// <param name="resourceName">The name of the error message resource.</param>
     /// <param name="arg0">The first format argument.</param>
@@ -290,7 +280,7 @@ internal static class ProjectErrorUtilities
     /// <exception cref="InvalidProjectFileException"><paramref name="condition"/> is <see langword="false"/>.</exception>
     internal static void VerifyThrowInvalidProject<T1, T2, T3>(
         [DoesNotReturnIf(false)] bool condition,
-        string? errorSubCategoryResourceName,
+        Subcategory subcategory,
         IElementLocation location,
         string resourceName,
         T1 arg0,
@@ -299,7 +289,7 @@ internal static class ProjectErrorUtilities
     {
         if (!condition)
         {
-            ThrowInvalidProject(errorSubCategoryResourceName, location, resourceName, arg0, arg1, arg2);
+            ThrowInvalidProject(subcategory, location, resourceName, arg0, arg1, arg2);
         }
     }
 
@@ -312,9 +302,7 @@ internal static class ProjectErrorUtilities
     /// <typeparam name="T3">The type of the third format argument.</typeparam>
     /// <typeparam name="T4">The type of the fourth format argument.</typeparam>
     /// <param name="condition">The condition to verify.</param>
-    /// <param name="errorSubCategoryResourceName">
-    ///  The name of the error-subcategory resource, or <see langword="null"/> for no subcategory.
-    /// </param>
+    /// <param name="subcategory">The error subcategory.</param>
     /// <param name="location">The project location associated with the error.</param>
     /// <param name="resourceName">The name of the error message resource.</param>
     /// <param name="arg0">The first format argument.</param>
@@ -324,7 +312,7 @@ internal static class ProjectErrorUtilities
     /// <exception cref="InvalidProjectFileException"><paramref name="condition"/> is <see langword="false"/>.</exception>
     internal static void VerifyThrowInvalidProject<T1, T2, T3, T4>(
         [DoesNotReturnIf(false)] bool condition,
-        string? errorSubCategoryResourceName,
+        Subcategory subcategory,
         IElementLocation location,
         string resourceName,
         T1 arg0,
@@ -334,7 +322,7 @@ internal static class ProjectErrorUtilities
     {
         if (!condition)
         {
-            ThrowInvalidProject(errorSubCategoryResourceName, location, resourceName, arg0, arg1, arg2, arg3);
+            ThrowInvalidProject(subcategory, location, resourceName, arg0, arg1, arg2, arg3);
         }
     }
 
@@ -343,9 +331,7 @@ internal static class ProjectErrorUtilities
     ///  subcategory when the condition is <see langword="false"/>.
     /// </summary>
     /// <param name="condition">The condition to verify.</param>
-    /// <param name="errorSubCategoryResourceName">
-    ///  The name of the error-subcategory resource, or <see langword="null"/> for no subcategory.
-    /// </param>
+    /// <param name="subcategory">The error subcategory.</param>
     /// <param name="location">The project location associated with the error.</param>
     /// <param name="innerException">The inner exception, or <see langword="null"/>.</param>
     /// <param name="resourceName">The name of the error message resource.</param>
@@ -353,7 +339,7 @@ internal static class ProjectErrorUtilities
     /// <exception cref="InvalidProjectFileException"><paramref name="condition"/> is <see langword="false"/>.</exception>
     internal static void VerifyThrowInvalidProject(
         [DoesNotReturnIf(false)] bool condition,
-        string? errorSubCategoryResourceName,
+        Subcategory subcategory,
         IElementLocation location,
         Exception? innerException,
         string resourceName,
@@ -361,16 +347,14 @@ internal static class ProjectErrorUtilities
     {
         if (!condition)
         {
-            ThrowInvalidProjectCore(errorSubCategoryResourceName, location, innerException, resourceName, args);
+            ThrowInvalidProjectCore(subcategory, location, innerException, resourceName, args);
         }
     }
 
     /// <summary>
     ///  Creates and throws an <see cref="InvalidProjectFileException"/> using the specified diagnostic information.
     /// </summary>
-    /// <param name="errorSubCategoryResourceName">
-    ///  The name of the error-subcategory resource, or <see langword="null"/> for no subcategory.
-    /// </param>
+    /// <param name="subcategory">The error subcategory.</param>
     /// <param name="location">The project location associated with the error.</param>
     /// <param name="innerException">The inner exception, or <see langword="null"/>.</param>
     /// <param name="resourceName">The name of the error message resource.</param>
@@ -378,7 +362,7 @@ internal static class ProjectErrorUtilities
     /// <exception cref="InvalidProjectFileException">Always thrown.</exception>
     [DoesNotReturn]
     private static void ThrowInvalidProjectCore(
-        string? errorSubCategoryResourceName,
+        Subcategory subcategory,
         IElementLocation location,
         Exception? innerException,
         string resourceName,
@@ -387,17 +371,15 @@ internal static class ProjectErrorUtilities
         Assumed.NotNull(location);
 
 #if DEBUG
-        if (errorSubCategoryResourceName is not null)
-        {
-            ResourceUtilities.VerifyResourceStringExists(errorSubCategoryResourceName);
-        }
-
         ResourceUtilities.VerifyResourceStringExists(resourceName);
 #endif
 
-        string? errorSubCategory = errorSubCategoryResourceName is null
-            ? null
-            : AssemblyResources.GetString(errorSubCategoryResourceName);
+        string? errorSubcategory = subcategory switch
+        {
+            Subcategory.None => null,
+            Subcategory.SolutionFile => BuildSR.SubCategoryForSolutionParsingErrors,
+            _ => Assumed.Unreachable<string?>($"Unexpected {nameof(Subcategory)} value: {subcategory}."),
+        };
 
         string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
             out string? errorCode,
@@ -412,7 +394,7 @@ internal static class ProjectErrorUtilities
             endLineNumber: 0,
             endColumnNumber: 0,
             message,
-            errorSubCategory,
+            errorSubcategory,
             errorCode,
             helpKeyword,
             innerException);

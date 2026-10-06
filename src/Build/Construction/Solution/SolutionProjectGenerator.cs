@@ -287,7 +287,7 @@ namespace Microsoft.Build.Construction
                             if (!solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                             {
                                 // If it's not itself part of the solution, that's an invalid solution
-                                ProjectErrorUtilities.VerifyThrowInvalidProject(dependencyProject != null, "SubCategoryForSolutionParsingErrors", ElementLocation.Create(solutionFile.FullPath), "SolutionParseProjectDepNotFoundError", project.ProjectGuid, dependencyProjectGuid);
+                                ProjectErrorUtilities.VerifyThrowInvalidProject(dependencyProject != null, Subcategory.SolutionFile, ElementLocation.Create(solutionFile.FullPath), "SolutionParseProjectDepNotFoundError", project.ProjectGuid, dependencyProjectGuid);
                             }
 
                             // Add it to the list of dependencies, but only if it should build in this solution configuration
@@ -748,7 +748,7 @@ namespace Microsoft.Build.Construction
                 // Validate against our minimum for upgradable projects
                 ProjectErrorUtilities.VerifyThrowInvalidProject(
                     _solutionFile.Version >= SolutionFile.slnFileMinVersion,
-                    "SubCategoryForSolutionParsingErrors",
+                    Subcategory.SolutionFile,
                     ElementLocation.Create(_solutionFile.FullPath),
                     "SolutionParseUpgradeNeeded");
             }
@@ -1220,7 +1220,7 @@ namespace Microsoft.Build.Construction
                     if (!_solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                     {
                         ProjectErrorUtilities.ThrowInvalidProject(
-                            "SubCategoryForSolutionParsingErrors",
+                            Subcategory.SolutionFile,
                             ElementLocation.Create(traversalProject.FullPath),
                             "SolutionParseProjectDepNotFoundError",
                             projectToAdd.ProjectGuid,
@@ -1290,7 +1290,7 @@ namespace Microsoft.Build.Construction
             {
 #if !FEATURE_ASPNET_COMPILER
                 ProjectErrorUtilities.ThrowInvalidProject(
-                    "SubCategoryForSolutionParsingErrors",
+                    Subcategory.SolutionFile,
                     ElementLocation.Create(_solutionFile.FullPath),
                     "AspNetCompiler.UnsupportedMSBuildVersion",
                     project.ProjectName);
@@ -1386,7 +1386,7 @@ namespace Microsoft.Build.Construction
                 if (!_solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                 {
                     ProjectErrorUtilities.ThrowInvalidProject(
-                        "SubCategoryForSolutionParsingErrors",
+                        Subcategory.SolutionFile,
                         ElementLocation.Create(traversalProject.FullPath),
                         "SolutionParseProjectDepNotFoundError",
                         project.ProjectGuid,
@@ -1642,7 +1642,7 @@ namespace Microsoft.Build.Construction
             if (!isDotNetFramework)
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
-                    "SubCategoryForSolutionParsingErrors",
+                    Subcategory.SolutionFile,
                     ElementLocation.Create(_solutionFile.FullPath),
                     "AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET",
                     project.ProjectName,
@@ -1663,7 +1663,7 @@ namespace Microsoft.Build.Construction
 
             ProjectErrorUtilities.VerifyThrowInvalidProject(
                 aspnetCompilerPath != null,
-                "SubCategoryForSolutionParsingErrors",
+                Subcategory.SolutionFile,
                 ElementLocation.Create(_solutionFile.FullPath),
                 "AspNetCompiler.20NotInstalled");
 
@@ -1792,7 +1792,7 @@ namespace Microsoft.Build.Construction
                 {
                     ProjectErrorUtilities.VerifyThrowInvalidProject(
                         false,
-                        "SubCategoryForSolutionParsingErrors",
+                        Subcategory.SolutionFile,
                         ElementLocation.Create(solutionFile),
                         e,
                         "SolutionParseInvalidProjectFileName",

@@ -503,6 +503,7 @@
     <Compile Include="Errors\InvalidToolsetDefinitionException.cs" />
     <Compile Include="Errors\ProjectErrorUtilities.cs" />
     <Compile Include="Errors\RegistryException.cs" />
+    <Compile Include="Errors\Subcategory.cs" />
     <!-- #### EVALUATION ### -->
     <Compile Include="Evaluation\ConditionEvaluator.cs" />
     <Compile Include="Evaluation\Conditionals\AndExpressionNode.cs" />
