@@ -21,6 +21,7 @@ using Microsoft.Build.FileSystem;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Globbing;
 using Microsoft.Build.ObjectModelRemoting;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Constants = Microsoft.Build.Framework.Constants;
 using EvaluationItemExpressionFragment = Microsoft.Build.Evaluation.ItemSpec<Microsoft.Build.Evaluation.ProjectProperty, Microsoft.Build.Evaluation.ProjectItem>.ItemExpressionFragment;

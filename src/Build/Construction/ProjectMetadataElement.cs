@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using Microsoft.Build.Framework;
 using Microsoft.Build.ObjectModelRemoting;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 
 #nullable disable

@@ -17,6 +17,7 @@ using System.Xml;
 
 using Microsoft.Build.BackEnd.SdkResolution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 
 using Project = Microsoft.Build.Evaluation.Project;
@@ -286,7 +287,7 @@ namespace Microsoft.Build.Construction
                             if (!solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                             {
                                 // If it's not itself part of the solution, that's an invalid solution
-                                ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(dependencyProject != null, "SubCategoryForSolutionParsingErrors", ElementLocation.Create(solutionFile.FullPath), "SolutionParseProjectDepNotFoundError", project.ProjectGuid, dependencyProjectGuid);
+                                ProjectErrorUtilities.VerifyThrowInvalidProject(dependencyProject != null, "SubCategoryForSolutionParsingErrors", ElementLocation.Create(solutionFile.FullPath), "SolutionParseProjectDepNotFoundError", project.ProjectGuid, dependencyProjectGuid);
                             }
 
                             // Add it to the list of dependencies, but only if it should build in this solution configuration
@@ -745,7 +746,7 @@ namespace Microsoft.Build.Construction
             if (!_solutionFile.UseNewParser)
             {
                 // Validate against our minimum for upgradable projects
-                ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
+                ProjectErrorUtilities.VerifyThrowInvalidProject(
                     _solutionFile.Version >= SolutionFile.slnFileMinVersion,
                     "SubCategoryForSolutionParsingErrors",
                     ElementLocation.Create(_solutionFile.FullPath),
@@ -1218,7 +1219,7 @@ namespace Microsoft.Build.Construction
                 {
                     if (!_solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                     {
-                        ProjectFileErrorUtilities.ThrowInvalidProjectFile(
+                        ProjectErrorUtilities.ThrowInvalidProject(
                             "SubCategoryForSolutionParsingErrors",
                             ElementLocation.Create(traversalProject.FullPath),
                             "SolutionParseProjectDepNotFoundError",
@@ -1288,7 +1289,7 @@ namespace Microsoft.Build.Construction
             if (project.ProjectType == SolutionProjectType.WebProject)
             {
 #if !FEATURE_ASPNET_COMPILER
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(
+                ProjectErrorUtilities.ThrowInvalidProject(
                     "SubCategoryForSolutionParsingErrors",
                     ElementLocation.Create(_solutionFile.FullPath),
                     "AspNetCompiler.UnsupportedMSBuildVersion",
@@ -1384,7 +1385,7 @@ namespace Microsoft.Build.Construction
             {
                 if (!_solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                 {
-                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(
+                    ProjectErrorUtilities.ThrowInvalidProject(
                         "SubCategoryForSolutionParsingErrors",
                         ElementLocation.Create(traversalProject.FullPath),
                         "SolutionParseProjectDepNotFoundError",
@@ -1614,7 +1615,7 @@ namespace Microsoft.Build.Construction
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(
+                ProjectErrorUtilities.ThrowInvalidProject(
                     ElementLocation.Create(_solutionFile.FullPath),
                     e,
                     "AspNetCompiler.InvalidTargetFrameworkMonikerFromException",
@@ -1640,7 +1641,7 @@ namespace Microsoft.Build.Construction
             }
             if (!isDotNetFramework)
             {
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(
+                ProjectErrorUtilities.ThrowInvalidProject(
                     "SubCategoryForSolutionParsingErrors",
                     ElementLocation.Create(_solutionFile.FullPath),
                     "AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET",
@@ -1660,7 +1661,7 @@ namespace Microsoft.Build.Construction
             Version aspnetCompilerVersion = shouldDefaultToVersion40 ? _version40 : _version20;
             string aspnetCompilerPath = FrameworkLocationHelper.GetPathToDotNetFramework(aspnetCompilerVersion);
 
-            ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
+            ProjectErrorUtilities.VerifyThrowInvalidProject(
                 aspnetCompilerPath != null,
                 "SubCategoryForSolutionParsingErrors",
                 ElementLocation.Create(_solutionFile.FullPath),
@@ -1789,7 +1790,7 @@ namespace Microsoft.Build.Construction
                 }
                 catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                 {
-                    ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
+                    ProjectErrorUtilities.VerifyThrowInvalidProject(
                         false,
                         "SubCategoryForSolutionParsingErrors",
                         ElementLocation.Create(solutionFile),

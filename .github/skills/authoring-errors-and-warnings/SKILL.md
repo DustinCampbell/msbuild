@@ -100,7 +100,7 @@ Log.LogErrorWithCodeFromResources("Copy.Error", sourceFile, destFile, ex.Message
 Log.LogWarningWithCodeFromResources("ResolveAssemblyReference.Conflict", assemblyName);
 
 // For engine-level errors (not in tasks)
-ProjectFileErrorUtilities.ThrowInvalidProjectFile(
+ProjectErrorUtilities.ThrowInvalidProject(
     elementLocation,
     "InvalidProjectFile",
     arg1, arg2);
