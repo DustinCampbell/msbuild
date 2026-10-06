@@ -226,6 +226,15 @@
     <Compile Include="Evaluation\PropertyFunctionReceiver.cs" />
     <Compile Include="Evaluation\ToolsetElement.cs" />
     <Compile Include="Expansion\ExpanderFactory.cs" />
+    <Compile Include="Expansion\FunctionInvocation\ArgumentBinder.cs" />
+    <Compile Include="Expansion\FunctionInvocation\ArgumentBinder.Specificity.cs" />
+    <Compile Include="Expansion\FunctionInvocation\BindingResult.cs" />
+    <Compile Include="Expansion\FunctionInvocation\MemberGroup.cs" />
+    <Compile Include="Expansion\FunctionInvocation\Overload.cs" />
+    <Compile Include="Expansion\FunctionInvocation\Parameter.cs" />
+    <Compile Include="Expansion\FunctionInvocation\ParameterFlags.cs" />
+    <Compile Include="Expansion\FunctionInvocation\TypeCodeExtensions.cs" />
+    <Compile Include="Expansion\FunctionInvocation\TypeCodeExtensions.PrimitiveTypes.cs" />
     <Compile Include="Expansion\IExpanderExtensions.cs" />
     <Compile Include="Expansion\IExpander`2.cs" />
     <Compile Include="Expansion\IMetadataScopeOwner.cs" />
