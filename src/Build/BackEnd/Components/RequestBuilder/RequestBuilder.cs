@@ -1266,12 +1266,12 @@ namespace Microsoft.Build.BackEnd
                     string entries = scope.VerifyUnresolvedPathWrites(location, out bool recovered);
                     if (recovered)
                     {
-                        _projectLoggingContext.LogWarning(null, new BuildEventFileInfo(location),
+                        _projectLoggingContext.LogWarning(new BuildEventFileInfo(location),
                             "MultiThreadedStrictModeSentinelMissing", scope.SentinelDirectory);
                     }
                     else if (entries is not null)
                     {
-                        _projectLoggingContext.LogWarning(null, new BuildEventFileInfo(location),
+                        _projectLoggingContext.LogWarning(new BuildEventFileInfo(location),
                             "MultiThreadedStrictModeUnresolvedPathWrite", entries, scope.SentinelDirectory);
                     }
                 }

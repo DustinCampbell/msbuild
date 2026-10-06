@@ -374,12 +374,7 @@ internal static class ProjectErrorUtilities
         ResourceUtilities.VerifyResourceStringExists(resourceName);
 #endif
 
-        string? errorSubcategory = subcategory switch
-        {
-            Subcategory.None => null,
-            Subcategory.SolutionFile => BuildSR.SubCategoryForSolutionParsingErrors,
-            _ => Assumed.Unreachable<string?>($"Unexpected {nameof(Subcategory)} value: {subcategory}."),
-        };
+        string? errorSubcategory = subcategory.GetDisplayString();
 
         string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
             out string? errorCode,

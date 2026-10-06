@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Telemetry;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Experimental.BuildCheck;
@@ -34,13 +35,13 @@ internal readonly struct CheckLoggingContext(ILoggingService loggingService, Bui
         => loggingService
             .LogCommentFromText(eventContext, importance, message);
 
-    public void DispatchAsErrorFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public void DispatchAsErrorFromText(Subcategory subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
         => loggingService
-            .LogErrorFromText(eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+            .LogErrorFromText(eventContext, subcategory, errorCode, helpKeyword, file, message);
 
-    public void DispatchAsWarningFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public void DispatchAsWarningFromText(Subcategory subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
         => loggingService
-            .LogWarningFromText(eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+            .LogWarningFromText(eventContext, subcategory, errorCode, helpKeyword, file, message);
 
     public void DispatchFailedAcquisitionTelemetry(string assemblyName, Exception exception)
     {

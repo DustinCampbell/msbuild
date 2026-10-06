@@ -4,6 +4,7 @@
 using System;
 using Microsoft.Build.BackEnd.Shared;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Logging;
 using Microsoft.Build.Shared;
 
@@ -51,16 +52,16 @@ internal class CheckDispatchingContext : ICheckContext
         _eventDispatcher.Dispatch(buildEvent);
     }
 
-    public void DispatchAsErrorFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public void DispatchAsErrorFromText(Subcategory subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
     {
-        BuildErrorEventArgs buildEvent = EventsCreatorHelper.CreateErrorEventFromText(_eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+        BuildErrorEventArgs buildEvent = EventsCreatorHelper.CreateErrorEventFromText(_eventContext, subcategory, errorCode, helpKeyword, file, message);
 
         _eventDispatcher.Dispatch(buildEvent);
     }
 
-    public void DispatchAsWarningFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public void DispatchAsWarningFromText(Subcategory subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
     {
-        BuildWarningEventArgs buildEvent = EventsCreatorHelper.CreateWarningEventFromText(_eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+        BuildWarningEventArgs buildEvent = EventsCreatorHelper.CreateWarningEventFromText(_eventContext, subcategory, errorCode, helpKeyword, file, message);
 
         _eventDispatcher.Dispatch(buildEvent);
     }

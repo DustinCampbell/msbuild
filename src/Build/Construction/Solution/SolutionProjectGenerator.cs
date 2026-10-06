@@ -2257,7 +2257,7 @@ namespace Microsoft.Build.Construction
                     {
                         _loggingService.LogWarning(
                             _projectBuildEventContext,
-                            "SubCategoryForSolutionParsingErrors",
+                            Subcategory.SolutionFile,
                             new BuildEventFileInfo(project.RelativePath),
                             "SolutionScanProjectDependenciesFailed",
                             project.RelativePath,
@@ -2285,7 +2285,7 @@ namespace Microsoft.Build.Construction
                 {
                     _loggingService.LogWarning(
                         _projectBuildEventContext,
-                        "SubCategoryForSolutionParsingErrors",
+                        Subcategory.SolutionFile,
                         new BuildEventFileInfo(_solutionFile.FullPath),
                         "SolutionParseProjectDepNotFoundError",
                         project.ProjectGuid,

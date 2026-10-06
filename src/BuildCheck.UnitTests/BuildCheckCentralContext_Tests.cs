@@ -9,6 +9,7 @@ using Microsoft.Build.BuildCheck.Infrastructure;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Shouldly;
 using Xunit;
@@ -248,7 +249,7 @@ public class BuildCheckCentralContext_Tests
         public void DispatchBuildEvent(BuildEventArgs buildEvent) { }
 
         public void DispatchAsErrorFromText(
-            string? subcategoryResourceName,
+            Subcategory subcategory,
             string? errorCode,
             string? helpKeyword,
             BuildEventFileInfo file,
@@ -258,7 +259,7 @@ public class BuildCheckCentralContext_Tests
         public void DispatchAsCommentFromText(MessageImportance importance, string message) { }
 
         public void DispatchAsWarningFromText(
-            string? subcategoryResourceName,
+            Subcategory subcategory,
             string? errorCode,
             string? helpKeyword,
             BuildEventFileInfo file,

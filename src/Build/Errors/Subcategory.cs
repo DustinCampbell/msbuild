@@ -4,17 +4,17 @@
 namespace Microsoft.Build.Internal;
 
 /// <summary>
-///  Identifies the subcategory of an invalid-project error.
+///  Identifies a diagnostic subcategory.
 /// </summary>
 internal enum Subcategory
 {
     /// <summary>
-    ///  No error subcategory.
+    ///  No diagnostic subcategory.
     /// </summary>
     None,
 
     /// <summary>
-    ///  An error in a solution file.
+    ///  A diagnostic associated with a solution file.
     /// </summary>
     SolutionFile,
 }

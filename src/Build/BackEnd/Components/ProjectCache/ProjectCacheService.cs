@@ -1075,7 +1075,6 @@ namespace Microsoft.Build.ProjectCache
             {
                 _loggingService.LogWarningFromText(
                     _buildEventContext,
-                    subcategoryResourceName: null,
                     warningCode: null,
                     helpKeyword: null,
                     _buildEventFileInfo,
@@ -1088,7 +1087,6 @@ namespace Microsoft.Build.ProjectCache
 
                 _loggingService.LogErrorFromText(
                     _buildEventContext,
-                    subcategoryResourceName: null,
                     errorCode: null,
                     helpKeyword: null,
                     _buildEventFileInfo,
@@ -1130,7 +1128,6 @@ namespace Microsoft.Build.ProjectCache
             {
                 _loggingService.LogWarningFromText(
                     _buildEventContext,
-                    subcategoryResourceName: null,
                     warningCode: null,
                     helpKeyword: null,
                     _buildEventFileInfo,
@@ -1143,7 +1140,6 @@ namespace Microsoft.Build.ProjectCache
 
                 _loggingService.LogErrorFromText(
                     _buildEventContext,
-                    subcategoryResourceName: null,
                     errorCode: null,
                     helpKeyword: null,
                     _buildEventFileInfo,

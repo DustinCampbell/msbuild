@@ -13,6 +13,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Logging;
 using Microsoft.Build.Resources;
 using Microsoft.Build.Shared;
@@ -104,7 +105,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogError(s_buildEventContext, "SubCategoryForSolutionParsingErrors", new BuildEventFileInfo("foo.cs"), null, "MyTask");
+                service.LogError(s_buildEventContext, Subcategory.SolutionFile, new BuildEventFileInfo("foo.cs"), null, "MyTask");
             });
         }
 
@@ -117,7 +118,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogError(s_buildEventContext, "SubCategoryForSolutionParsingErrors", new BuildEventFileInfo("foo.cs"), string.Empty, "MyTask");
+                service.LogError(s_buildEventContext, Subcategory.SolutionFile, new BuildEventFileInfo("foo.cs"), string.Empty, "MyTask");
             });
         }
 
@@ -132,12 +133,12 @@ namespace Microsoft.Build.UnitTests.Logging
             string helpKeyword;
             string taskName = "TaskName";
             string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, "FatalTaskError", taskName);
-            string subcategory = SR.SubCategoryForSolutionParsingErrors;
+            string expectedSubcategory = SR.SubCategoryForSolutionParsingErrors;
 
             ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
 
-            service.LogError(s_buildEventContext, nameof(SR.SubCategoryForSolutionParsingErrors), fileInfo, "FatalTaskError", taskName);
-            VerifyBuildErrorEventArgs(fileInfo, errorCode, helpKeyword, message, service, subcategory);
+            service.LogError(s_buildEventContext, Subcategory.SolutionFile, fileInfo, "FatalTaskError", taskName);
+            VerifyBuildErrorEventArgs(fileInfo, errorCode, helpKeyword, message, service, expectedSubcategory);
         }
 
         #endregion
@@ -373,7 +374,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogErrorFromText(null, "SubCategoryForSolutionParsingErrors", "WarningCode", "HelpKeyword", new BuildEventFileInfo("foo.cs"), "Message");
+                service.LogErrorFromText(null, Subcategory.SolutionFile, "WarningCode", "HelpKeyword", new BuildEventFileInfo("foo.cs"), "Message");
             });
         }
 
@@ -386,7 +387,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogErrorFromText(s_buildEventContext, "SubCategoryForSolutionParsingErrors", "WarningCode", "HelpKeyword", null, "Message");
+                service.LogErrorFromText(s_buildEventContext, Subcategory.SolutionFile, "WarningCode", "HelpKeyword", null, "Message");
             });
         }
 
@@ -399,7 +400,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogErrorFromText(null, "SubCategoryForSolutionParsingErrors", "WarningCode", "HelpKeyword", new BuildEventFileInfo("foo.cs"), null);
+                service.LogErrorFromText(null, Subcategory.SolutionFile, "WarningCode", "HelpKeyword", new BuildEventFileInfo("foo.cs"), null);
             });
         }
 
@@ -412,21 +413,21 @@ namespace Microsoft.Build.UnitTests.Logging
             string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out string helpKeyword, "FatalTaskError", "MyTask");
 
             // Test ErrorCode
-            TestLogErrorFromText(errorCode: null, helpKeyword, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
-            TestLogErrorFromText(errorCode: string.Empty, helpKeyword, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogErrorFromText(errorCode: null, helpKeyword, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogErrorFromText(errorCode: string.Empty, helpKeyword, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
 
             // Test HelpKeyword
-            TestLogErrorFromText(errorCode, helpKeyword: null, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
-            TestLogErrorFromText(errorCode, helpKeyword: string.Empty, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogErrorFromText(errorCode, helpKeyword: null, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogErrorFromText(errorCode, helpKeyword: string.Empty, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
 
-            // Test subcategory (we use the key, the actual one is generated in TestLogFromText
-            TestLogErrorFromText(errorCode, helpKeyword, subcategoryKey: null, subcategory: null, message);
+            // Test subcategory
+            TestLogErrorFromText(errorCode, helpKeyword, Subcategory.None, expectedSubcategory: null, message);
 
             // Test empty message
-            TestLogErrorFromText(errorCode, helpKeyword, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message: string.Empty);
+            TestLogErrorFromText(errorCode, helpKeyword, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message: string.Empty);
 
             // Test Good
-            TestLogErrorFromText(errorCode, helpKeyword, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogErrorFromText(errorCode, helpKeyword, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
         }
 
         /// <summary>
@@ -564,7 +565,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogWarning(s_buildEventContext, "SubCategoryForSolutionParsingErrors", new BuildEventFileInfo("foo.cs"), null, "MyTask");
+                service.LogWarning(s_buildEventContext, Subcategory.SolutionFile, new BuildEventFileInfo("foo.cs"), null, "MyTask");
             });
         }
 
@@ -577,7 +578,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogWarning(s_buildEventContext, "SubCategoryForSolutionParsingErrors", new BuildEventFileInfo("foo.cs"), string.Empty, "MyTask");
+                service.LogWarning(s_buildEventContext, Subcategory.SolutionFile, new BuildEventFileInfo("foo.cs"), string.Empty, "MyTask");
             });
         }
 
@@ -587,9 +588,9 @@ namespace Microsoft.Build.UnitTests.Logging
         [Fact]
         public void LogWarningTests()
         {
-            TestLogWarning(taskName: null, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors);
-            TestLogWarning(taskName: string.Empty, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors);
-            TestLogWarning("MyTask", nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors);
+            TestLogWarning(taskName: null, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors);
+            TestLogWarning(taskName: string.Empty, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors);
+            TestLogWarning("MyTask", Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors);
         }
 
         #endregion
@@ -604,7 +605,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogWarningFromText(null, "SubCategoryForSolutionParsingErrors", "WarningCode", "HelpKeyword", new BuildEventFileInfo("foo.cs"), "Message");
+                service.LogWarningFromText(null, Subcategory.SolutionFile, "WarningCode", "HelpKeyword", new BuildEventFileInfo("foo.cs"), "Message");
             });
         }
 
@@ -617,7 +618,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogWarningFromText(s_buildEventContext, "SubCategoryForSolutionParsingErrors", "WarningCode", "HelpKeyword", null, "Message");
+                service.LogWarningFromText(s_buildEventContext, Subcategory.SolutionFile, "WarningCode", "HelpKeyword", null, "Message");
             });
         }
 
@@ -630,7 +631,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.Throws<InternalErrorException>(() =>
             {
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-                service.LogWarningFromText(null, "SubCategoryForSolutionParsingErrors", "WarningCode", "HelpKeyword", new BuildEventFileInfo("foo.cs"), null);
+                service.LogWarningFromText(null, Subcategory.SolutionFile, "WarningCode", "HelpKeyword", new BuildEventFileInfo("foo.cs"), null);
             });
         }
 
@@ -642,19 +643,19 @@ namespace Microsoft.Build.UnitTests.Logging
         {
             string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string warningCode, out string helpKeyword, "FatalTaskError", "MyTask");
 
-            TestLogWarningFromText(warningCode: null, helpKeyword, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
-            TestLogWarningFromText(warningCode: string.Empty, helpKeyword, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogWarningFromText(warningCode: null, helpKeyword, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogWarningFromText(warningCode: string.Empty, helpKeyword, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
 
-            TestLogWarningFromText(warningCode, helpKeyword: null, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
-            TestLogWarningFromText(warningCode, helpKeyword: string.Empty, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogWarningFromText(warningCode, helpKeyword: null, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogWarningFromText(warningCode, helpKeyword: string.Empty, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
 
-            TestLogWarningFromText(warningCode, helpKeyword: null, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
-            TestLogWarningFromText(warningCode, string.Empty, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogWarningFromText(warningCode, helpKeyword: null, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogWarningFromText(warningCode, string.Empty, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
 
-            TestLogWarningFromText(warningCode, helpKeyword, subcategoryKey: null, subcategory: null, message);
+            TestLogWarningFromText(warningCode, helpKeyword, Subcategory.None, expectedSubcategory: null, message);
 
-            TestLogWarningFromText(warningCode, helpKeyword, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message: string.Empty);
-            TestLogWarningFromText(warningCode, helpKeyword, nameof(SR.SubCategoryForSolutionParsingErrors), SR.SubCategoryForSolutionParsingErrors, message);
+            TestLogWarningFromText(warningCode, helpKeyword, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message: string.Empty);
+            TestLogWarningFromText(warningCode, helpKeyword, Subcategory.SolutionFile, SR.SubCategoryForSolutionParsingErrors, message);
         }
 
         #endregion
@@ -1377,16 +1378,16 @@ namespace Microsoft.Build.UnitTests.Logging
         /// </summary>
         /// <param name="errorCode">ErrorCode to test</param>
         /// <param name="helpKeyword">HelpKeyword to test</param>
-        /// <param name="subcategoryKey">SubCategory which will be used to get the Subcategory</param>
-        /// <param name="subcategory">SubCategory to test</param>
+        /// <param name="subcategory">The subcategory to log.</param>
+        /// <param name="expectedSubcategory">The expected subcategory display string.</param>
         /// <param name="message">Message to test</param>
-        private void TestLogErrorFromText(string errorCode, string helpKeyword, string subcategoryKey, string subcategory, string message)
+        private void TestLogErrorFromText(string errorCode, string helpKeyword, Subcategory subcategory, string expectedSubcategory, string message)
         {
             BuildEventFileInfo fileInfo = new BuildEventFileInfo("foo.cs", 1, 2, 3, 4);
 
             ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-            service.LogErrorFromText(s_buildEventContext, subcategoryKey, errorCode, helpKeyword, fileInfo, message);
-            VerifyBuildErrorEventArgs(fileInfo, errorCode, helpKeyword, message, service, subcategory);
+            service.LogErrorFromText(s_buildEventContext, subcategory, errorCode, helpKeyword, fileInfo, message);
+            VerifyBuildErrorEventArgs(fileInfo, errorCode, helpKeyword, message, service, expectedSubcategory);
         }
 
         /// <summary>
@@ -1394,30 +1395,32 @@ namespace Microsoft.Build.UnitTests.Logging
         /// </summary>
         /// <param name="warningCode">WarningCode to test</param>
         /// <param name="helpKeyword">HelpKeyword to test</param>
-        /// <param name="subcategoryKey">SubCategory which will be used to get the Subcategory</param>
+        /// <param name="subcategory">The subcategory to log.</param>
+        /// <param name="expectedSubcategory">The expected subcategory display string.</param>
         /// <param name="message">Message to test</param>
-        private void TestLogWarningFromText(string warningCode, string helpKeyword, string subcategoryKey, string subcategory, string message)
+        private void TestLogWarningFromText(string warningCode, string helpKeyword, Subcategory subcategory, string expectedSubcategory, string message)
         {
             BuildEventFileInfo fileInfo = new BuildEventFileInfo("foo.cs", 1, 2, 3, 4);
 
             ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
-            service.LogWarningFromText(s_buildEventContext, subcategoryKey, warningCode, helpKeyword, fileInfo, message);
-            VerifyBuildWarningEventArgs(fileInfo, warningCode, helpKeyword, message, service, subcategory);
+            service.LogWarningFromText(s_buildEventContext, subcategory, warningCode, helpKeyword, fileInfo, message);
+            VerifyBuildWarningEventArgs(fileInfo, warningCode, helpKeyword, message, service, expectedSubcategory);
         }
 
         /// <summary>
         /// Test LogWarning
         /// </summary>
         /// <param name="taskName">TaskName to test</param>
-        /// <param name="subCategoryKey">SubCategoryKey to test</param>
-        private void TestLogWarning(string taskName, string subcategoryKey, string subcategory)
+        /// <param name="subcategory">The subcategory to log.</param>
+        /// <param name="expectedSubcategory">The expected subcategory display string.</param>
+        private void TestLogWarning(string taskName, Subcategory subcategory, string expectedSubcategory)
         {
             BuildEventFileInfo fileInfo = new BuildEventFileInfo("foo.cs", 1, 2, 3, 4);
             string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string warningCode, out string helpKeyword, "FatalTaskError", taskName);
             ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
 
-            service.LogWarning(s_buildEventContext, subcategoryKey, fileInfo, "FatalTaskError", taskName);
-            VerifyBuildWarningEventArgs(fileInfo, warningCode, helpKeyword, message, service, subcategory);
+            service.LogWarning(s_buildEventContext, subcategory, fileInfo, "FatalTaskError", taskName);
+            VerifyBuildWarningEventArgs(fileInfo, warningCode, helpKeyword, message, service, expectedSubcategory);
         }
 
         /// <summary>

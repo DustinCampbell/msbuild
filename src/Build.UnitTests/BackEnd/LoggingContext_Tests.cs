@@ -70,10 +70,10 @@ namespace Microsoft.Build.UnitTests.BackEnd
             context.LogCommentFromText(Framework.MessageImportance.High, "Test message");
             context.HasLoggedErrors.ShouldBeFalse();
 
-            context.LogWarningFromText(null, null, null, null, "Test warning");
+            context.LogWarningFromText(null, null, null, "Test warning");
             context.HasLoggedErrors.ShouldBeFalse();
 
-            context.LogErrorFromText(null, null, null, null, "Test error");
+            context.LogErrorFromText(null, null, null, "Test error");
             context.HasLoggedErrors.ShouldBeTrue();
         }
     }

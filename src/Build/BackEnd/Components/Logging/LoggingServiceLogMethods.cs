@@ -9,6 +9,7 @@ using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Logging;
 using Microsoft.Build.Shared;
 
@@ -97,41 +98,41 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="messageArgs">Arguments for the string resource</param>
         public void LogError(BuildEventContext location, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
         {
-            LogError(location, null, file, messageResourceName, messageArgs);
+            LogError(location, Subcategory.None, file, messageResourceName, messageArgs);
         }
 
         /// <summary>
         /// Logs an error
         /// </summary>
         /// <param name="buildEventContext">Event context information which describes who is logging the event</param>
-        /// <param name="subcategoryResourceName">Can be null.</param>
+        /// <param name="subcategory">The error subcategory.</param>
         /// <param name="file">File information about where the error happened</param>
         /// <param name="messageResourceName">String index into the string.resx file</param>
         /// <param name="messageArgs">Arguments for the format string in the resource file</param>
         /// <exception cref="InternalErrorException">MessageResourceName is null</exception>
-        public void LogError(BuildEventContext buildEventContext, string subcategoryResourceName, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
+        public void LogError(BuildEventContext buildEventContext, Subcategory subcategory, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
         {
             Assumed.NotNullOrEmpty(messageResourceName, "Need resource string for error message.");
 
             string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out string helpKeyword, messageResourceName, messageArgs);
 
-            LogErrorFromText(buildEventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+            LogErrorFromText(buildEventContext, subcategory, errorCode, helpKeyword, file, message);
         }
 
         /// <summary>
         /// Logs an error with a given message
         /// </summary>
         /// <param name="buildEventContext">Event context information which describes who is logging the event</param>
-        /// <param name="subcategoryResourceName">Can be null.</param>
+        /// <param name="subcategory">The error subcategory.</param>
         /// <param name="errorCode">Can be null.</param>
         /// <param name="helpKeyword">Can be null.</param>
         /// <param name="file">File information about where the error happened</param>
         /// <param name="message">Error message which will be displayed</param>
         /// <exception cref="InternalErrorException">File is null</exception>
         /// <exception cref="InternalErrorException">Message is null</exception>
-        public void LogErrorFromText(BuildEventContext buildEventContext, string subcategoryResourceName, string errorCode, string helpKeyword, BuildEventFileInfo file, string message)
+        public void LogErrorFromText(BuildEventContext buildEventContext, Subcategory subcategory, string errorCode, string helpKeyword, BuildEventFileInfo file, string message)
         {
-            BuildErrorEventArgs buildEvent = EventsCreatorHelper.CreateErrorEventFromText(buildEventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+            BuildErrorEventArgs buildEvent = EventsCreatorHelper.CreateErrorEventFromText(buildEventContext, subcategory, errorCode, helpKeyword, file, message);
 
             if (buildEvent.ProjectFile == null && buildEventContext.ProjectContextId != BuildEventContext.InvalidProjectContextId)
             {
@@ -236,7 +237,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 message += Environment.NewLine + exception.ToString();
             }
 
-            LogErrorFromText(buildEventContext, null, errorCode, helpKeyword, file, message);
+            LogErrorFromText(buildEventContext, Subcategory.None, errorCode, helpKeyword, file, message);
         }
 
         #endregion
@@ -271,49 +272,42 @@ namespace Microsoft.Build.BackEnd.Logging
                 message += Environment.NewLine + exception.ToString();
             }
 
-            LogWarningFromText(buildEventContext, null, warningCode, helpKeyword, file, message);
+            LogWarningFromText(buildEventContext, Subcategory.None, warningCode, helpKeyword, file, message);
         }
 
         /// <summary>
         /// Logs a warning using the specified resource string.
         /// </summary>
         /// <param name="buildEventContext">Event context information which describes who is logging the event</param>
-        /// <param name="subcategoryResourceName">Can be null.</param>
+        /// <param name="subcategory">The warning subcategory.</param>
         /// <param name="file">File information which describes where the warning happened</param>
         /// <param name="messageResourceName">String name for the resource string to be used</param>
         /// <param name="messageArgs">Arguments for messageResourceName</param>
-        public void LogWarning(BuildEventContext buildEventContext, string subcategoryResourceName, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
+        public void LogWarning(BuildEventContext buildEventContext, Subcategory subcategory, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
         {
             Assumed.NotNullOrEmpty(messageResourceName, "Need resource string for warning message.");
 
             string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string warningCode, out string helpKeyword, messageResourceName, messageArgs);
-            LogWarningFromText(buildEventContext, subcategoryResourceName, warningCode, helpKeyword, file, message);
+            LogWarningFromText(buildEventContext, subcategory, warningCode, helpKeyword, file, message);
         }
 
         /// <summary>
         /// Logs a warning
         /// </summary>
         /// <param name="buildEventContext">Event context information which describes who is logging the event</param>
-        /// <param name="subcategoryResourceName">Subcategory resource Name. Can be null.</param>
+        /// <param name="subcategory">The warning subcategory.</param>
         /// <param name="warningCode">The warning code of the message. Can be null.</param>
         /// <param name="helpKeyword">Help keyword for the message. Can be null.</param>
         /// <param name="file">The file information which will describe where the warning happened</param>
         /// <param name="message">Warning message to log</param>
-        public void LogWarningFromText(BuildEventContext buildEventContext, string subcategoryResourceName, string warningCode, string helpKeyword, BuildEventFileInfo file, string message)
+        public void LogWarningFromText(BuildEventContext buildEventContext, Subcategory subcategory, string warningCode, string helpKeyword, BuildEventFileInfo file, string message)
         {
             Assumed.NotNull(file, "Must specify the associated file.");
             Assumed.NotNull(message, "Need warning message.");
             Assumed.NotNull(buildEventContext, "Need a BuildEventContext");
 
-            string subcategory = null;
-
-            if (!string.IsNullOrWhiteSpace(subcategoryResourceName))
-            {
-                subcategory = AssemblyResources.GetString(subcategoryResourceName);
-            }
-
             BuildWarningEventArgs buildEvent = new BuildWarningEventArgs(
-                    subcategory,
+                    subcategory.GetDisplayString(),
                     warningCode,
                     file.File,
                     file.Line,

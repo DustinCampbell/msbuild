@@ -7,6 +7,7 @@ using Microsoft.Build.Exceptions;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.BackEnd.Logging
@@ -197,29 +198,32 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <summary>
         /// Log an error
         /// </summary>
-        /// <param name="subcategoryResourceName">The resource name which indicates the subCategory</param>
+        /// <param name="subcategory">The error subcategory.</param>
         /// <param name="file">The file in which the error occurred</param>
         /// <param name="messageResourceName">The resource name for the error</param>
         /// <param name="messageArgs">Parameters for the resource string</param>
-        internal void LogErrorWithSubcategory(string? subcategoryResourceName, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
+        internal void LogErrorWithSubcategory(Subcategory subcategory, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
         {
             CheckValidity();
-            _loggingService.LogError(_eventContext, subcategoryResourceName, file, messageResourceName, messageArgs);
+            _loggingService.LogError(_eventContext, subcategory, file, messageResourceName, messageArgs);
             _hasLoggedErrors = true;
         }
+
+        internal void LogErrorFromText(string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+            => LogErrorFromText(Subcategory.None, errorCode, helpKeyword, file, message);
 
         /// <summary>
         /// Log an error
         /// </summary>
-        /// <param name="subcategoryResourceName">The resource name which indicates the subCategory</param>
+        /// <param name="subcategory">The error subcategory.</param>
         /// <param name="errorCode"> Error code</param>
         /// <param name="helpKeyword">Help keyword</param>
         /// <param name="file">The file in which the error occurred</param>
         /// <param name="message">Error message</param>
-        internal void LogErrorFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+        internal void LogErrorFromText(Subcategory subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
         {
             CheckValidity();
-            _loggingService.LogErrorFromText(_eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+            _loggingService.LogErrorFromText(_eventContext, subcategory, errorCode, helpKeyword, file, message);
             _hasLoggedErrors = true;
         }
 
@@ -251,34 +255,40 @@ namespace Microsoft.Build.BackEnd.Logging
         internal void LogWarning(string messageResourceName, params object[] messageArgs)
         {
             CheckValidity();
-            _loggingService.LogWarning(_eventContext, null, BuildEventFileInfo.Empty, messageResourceName, messageArgs);
+            _loggingService.LogWarning(_eventContext, Subcategory.None, BuildEventFileInfo.Empty, messageResourceName, messageArgs);
         }
+
+        internal void LogWarning(BuildEventFileInfo file, string messageResourceName, params object?[]? messageArgs)
+            => LogWarning(Subcategory.None, file, messageResourceName, messageArgs);
 
         /// <summary>
         /// Log a warning
         /// </summary>
-        /// <param name="subcategoryResourceName">The subcategory resource name</param>
+        /// <param name="subcategory">The warning subcategory.</param>
         /// <param name="file">The file in which the warning occurred</param>
         /// <param name="messageResourceName">The string resource which contains the formatted warning string</param>
         /// <param name="messageArgs">parameters for the string resource</param>
-        internal void LogWarning(string? subcategoryResourceName, BuildEventFileInfo file, string messageResourceName, params object?[]? messageArgs)
+        internal void LogWarning(Subcategory subcategory, BuildEventFileInfo file, string messageResourceName, params object?[]? messageArgs)
         {
             CheckValidity();
-            _loggingService.LogWarning(_eventContext, subcategoryResourceName, file, messageResourceName, messageArgs);
+            _loggingService.LogWarning(_eventContext, subcategory, file, messageResourceName, messageArgs);
         }
+
+        internal void LogWarningFromText(string warningCode, string helpKeyword, BuildEventFileInfo file, string message)
+            => LogWarningFromText(Subcategory.None, warningCode, helpKeyword, file, message);
 
         /// <summary>
         /// Log a warning based on a text message
         /// </summary>
-        /// <param name="subcategoryResourceName">The subcategory resource name</param>
+        /// <param name="subcategory">The warning subcategory.</param>
         /// <param name="warningCode"> Warning code</param>
         /// <param name="helpKeyword"> Help keyword</param>
         /// <param name="file">The file in which the warning occurred</param>
         /// <param name="message">The message to be logged as a warning</param>
-        internal void LogWarningFromText(string? subcategoryResourceName, string warningCode, string helpKeyword, BuildEventFileInfo file, string message)
+        internal void LogWarningFromText(Subcategory subcategory, string warningCode, string helpKeyword, BuildEventFileInfo file, string message)
         {
             CheckValidity();
-            _loggingService.LogWarningFromText(_eventContext, subcategoryResourceName, warningCode, helpKeyword, file, message);
+            _loggingService.LogWarningFromText(_eventContext, subcategory, warningCode, helpKeyword, file, message);
         }
 
         /// <summary>

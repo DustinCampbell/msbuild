@@ -170,7 +170,6 @@ namespace Microsoft.Build.BackEnd
                 catch (HostObjectException ex)
                 {
                     loggingContext.LogWarning(
-                        null,
                         new BuildEventFileInfo(taskInstance.Location),
                         "HostObjectFailure",
                         _taskNode.Name,
@@ -1028,7 +1027,7 @@ namespace Microsoft.Build.BackEnd
                     }
                     else if (_continueOnError == ContinueOnError.WarnAndContinue)
                     {
-                        taskLoggingContext.LogWarning(null,
+                        taskLoggingContext.LogWarning(
                             new BuildEventFileInfo(_targetChildInstance.Location),
                             "TaskReturnedFalseButDidNotLogError",
                             _taskNode.Name);

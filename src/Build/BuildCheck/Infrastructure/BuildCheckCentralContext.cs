@@ -304,7 +304,6 @@ internal sealed class BuildCheckCentralContext
                 checkContext.DispatchAsWarningFromText(
                     null,
                     null,
-                    null,
                     new BuildEventFileInfo(projectFullPath),
                     $"The check '{checkCallback.Item1.Check.FriendlyName}' threw an exception while executing a registered action with message: {e.Message}");
 

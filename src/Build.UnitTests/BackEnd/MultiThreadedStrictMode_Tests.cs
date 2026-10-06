@@ -8,12 +8,14 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Build.BackEnd;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Engine.UnitTests.BackEnd;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.UnitTests.Logging;
 using Shouldly;
@@ -1519,7 +1521,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 manager.BuildRequest(new BuildRequestData(project.Path, new Dictionary<string, string?>(), null, ["Build"], null))
                     .ShouldHaveSucceeded();
                 ((IBuildComponentHost)manager).LoggingService.LogWarningFromText(
-                    BuildEventContext.Invalid, null, "OTHER0001", null, BuildEventFileInfo.Empty, "Unrelated warning");
+                    BuildEventContext.Invalid, "OTHER0001", null, BuildEventFileInfo.Empty, "Unrelated warning");
                 File.WriteAllText(Path.Combine(MultiThreadedStrictModeScope.ActiveScope!.SentinelDirectory, "late.txt"), "late output");
             }
             finally

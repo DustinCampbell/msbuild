@@ -1242,7 +1242,7 @@ namespace Microsoft.Build.Execution
                                 "MultiThreadedStrictModeUnresolvedPathWrite", entries, _multiThreadedStrictModeScope.SentinelDirectory);
                         Assumed.NotNull(warningCode, "The strict-mode warning must have a diagnostic code.");
                         loggingService.LogWarningFromText(
-                            BuildEventContext.Invalid, null, warningCode, helpKeyword, BuildEventFileInfo.Empty, message);
+                            BuildEventContext.Invalid, warningCode, helpKeyword, BuildEventFileInfo.Empty, message);
                         WaitForAllLoggingServiceEventsToBeProcessed();
 
                         if (loggingService.ShouldTreatWarningAsError(BuildEventContext.Invalid, warningCode))
@@ -3624,7 +3624,6 @@ namespace Microsoft.Build.Execution
                 {
                     loggingService.LogWarningFromText(
                         BuildEventContext.Invalid,
-                        subcategoryResourceName: null,
                         warningCode: message.Code,
                         helpKeyword: null,
                         file: BuildEventFileInfo.Empty,
@@ -3812,7 +3811,6 @@ namespace Microsoft.Build.Execution
 
             loggingService?.LogErrorFromText(
                 BuildEventContext.Invalid,
-                null,
                 null,
                 null,
                 BuildEventFileInfo.Empty,

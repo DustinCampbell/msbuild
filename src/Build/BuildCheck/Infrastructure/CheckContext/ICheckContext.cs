@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Experimental.BuildCheck;
@@ -30,7 +31,7 @@ internal interface ICheckContext
     /// <summary>
     /// Dispatch the instance of <see cref="BuildEventContext"/> as an error message.
     /// </summary>
-    void DispatchAsErrorFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message);
+    void DispatchAsErrorFromText(Subcategory subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message);
 
     /// <summary>
     /// Dispatch the instance of <see cref="BuildEventContext"/> as a comment with provided text for the message.
@@ -40,7 +41,7 @@ internal interface ICheckContext
     /// <summary>
     /// Dispatch the instance of <see cref="BuildEventContext"/> as a warning message.
     /// </summary>
-    void DispatchAsWarningFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message);
+    void DispatchAsWarningFromText(Subcategory subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message);
 
     /// <summary>
     /// Dispatch the telemetry data for a failed acquisition.

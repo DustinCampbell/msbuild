@@ -249,7 +249,7 @@ internal class BuildEventsProcessor(BuildCheckCentralContext buildCheckCentralCo
     {
         if (!checkWrapper.Check.SupportedRules.Contains(result.CheckRule))
         {
-            checkContext.DispatchAsErrorFromText(null, null, null,
+            checkContext.DispatchAsErrorFromText(null, null,
                 BuildEventFileInfo.Empty,
                 $"The check '{checkWrapper.Check.FriendlyName}' reported a result for a rule '{result.CheckRule.Id}' that it does not support.");
             return;

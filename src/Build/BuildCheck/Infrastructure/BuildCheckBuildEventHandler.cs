@@ -156,7 +156,6 @@ internal class BuildCheckBuildEventHandler
                 acquisitionData.AssemblyPath);
 
             checkContext.DispatchAsErrorFromText(
-                null,
                 errorCode,
                 helpKeyword,
                 string.IsNullOrEmpty(acquisitionData.ProjectPath) ? BuildEventFileInfo.Empty : new BuildEventFileInfo(acquisitionData.ProjectPath),

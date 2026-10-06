@@ -1576,7 +1576,6 @@ namespace Microsoft.Build.BackEnd
                 // Kill the child and do a blocking wait.
                 loggingService?.LogWarning(
                     BuildEventContext.Invalid,
-                    null,
                     BuildEventFileInfo.Empty,
                     "KillingProcessWithPid",
                     _process.Id);
