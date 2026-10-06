@@ -277,7 +277,7 @@ namespace Microsoft.Build.BackEnd
                     {
                         _loggingService.LogError(
                             _buildEventContext,
-                            BuildEventFileInfo.Empty,
+                            ElementLocation.Empty,
                             "BuildTargetCompletely",
                             _targetToAnalyze.Name);
                     }
@@ -299,7 +299,7 @@ namespace Microsoft.Build.BackEnd
                     {
                         _loggingService.LogError(
                             _buildEventContext,
-                            BuildEventFileInfo.Empty,
+                            ElementLocation.Empty,
                             "BuildTargetPartially",
                             _targetToAnalyze.Name);
                     }

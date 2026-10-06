@@ -1164,7 +1164,7 @@ namespace Microsoft.Build.BackEnd
 #pragma warning restore SYSLIB0050
             {
                 _taskLoggingContext.LogWarning(
-                    BuildEventFileInfo.Empty,
+                    ElementLocation.Empty,
                     "ExpectedEventToBeSerializable",
                     e.GetType().Name);
                 return false;
@@ -1298,8 +1298,7 @@ namespace Microsoft.Build.BackEnd
                             LoggingContext.LogErrorFromText(
                                 errorCode: null,
                                 helpKeyword: null,
-                                file: new BuildEventFileInfo(
-                                    ElementLocation.Create(ProjectFileOfTaskNode, LineNumberOfTaskNode, ColumnNumberOfTaskNode)),
+                                location: ElementLocation.Create(ProjectFileOfTaskNode, LineNumberOfTaskNode, ColumnNumberOfTaskNode),
                                 message: results[i].SchedulerInducedError);
                         }
                     }

@@ -16,25 +16,25 @@ namespace Microsoft.Build.BackEnd.Logging
             BuildEventContext buildEventContext,
             string errorCode,
             string helpKeyword,
-            BuildEventFileInfo file,
+            IElementLocation location,
             string message)
-            => service.LogErrorFromText(buildEventContext, Subcategory.None, errorCode, helpKeyword, file, message);
+            => service.LogErrorFromText(buildEventContext, Subcategory.None, errorCode, helpKeyword, location, message);
 
         public static void LogWarning(
             this ILoggingService service,
             BuildEventContext buildEventContext,
-            BuildEventFileInfo file,
+            IElementLocation location,
             string messageResourceName,
             params object[] messageArgs)
-            => service.LogWarning(buildEventContext, Subcategory.None, file, messageResourceName, messageArgs);
+            => service.LogWarning(buildEventContext, Subcategory.None, location, messageResourceName, messageArgs);
 
         public static void LogWarningFromText(
             this ILoggingService service,
             BuildEventContext buildEventContext,
             string warningCode,
             string helpKeyword,
-            BuildEventFileInfo file,
+            IElementLocation location,
             string message)
-            => service.LogWarningFromText(buildEventContext, Subcategory.None, warningCode, helpKeyword, file, message);
+            => service.LogWarningFromText(buildEventContext, Subcategory.None, warningCode, helpKeyword, location, message);
     }
 }

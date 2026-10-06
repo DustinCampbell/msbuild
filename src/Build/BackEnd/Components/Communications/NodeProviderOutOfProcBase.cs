@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Eventing;
 
 #if NETFRAMEWORK
@@ -1576,7 +1577,7 @@ namespace Microsoft.Build.BackEnd
                 // Kill the child and do a blocking wait.
                 loggingService?.LogWarning(
                     BuildEventContext.Invalid,
-                    BuildEventFileInfo.Empty,
+                    ElementLocation.Empty,
                     "KillingProcessWithPid",
                     _process.Id);
                 CommunicationsUtilities.Trace($"Killing node with pid = {_process.Id}");

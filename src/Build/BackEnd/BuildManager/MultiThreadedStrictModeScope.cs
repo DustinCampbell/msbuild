@@ -166,7 +166,7 @@ internal sealed class MultiThreadedStrictModeScope
         {
             if (RecoverSentinelDirectory(taskLocation, e))
             {
-                taskLoggingContext.LogWarning(new BuildEventFileInfo(taskLocation),
+                taskLoggingContext.LogWarning(taskLocation,
                     "MultiThreadedStrictModeSentinelMissing", SentinelDirectory);
             }
 
@@ -180,13 +180,13 @@ internal sealed class MultiThreadedStrictModeScope
 
         if (convertErrorsToWarnings)
         {
-            taskLoggingContext.LogWarning(new BuildEventFileInfo(taskLocation),
+            taskLoggingContext.LogWarning(taskLocation,
                 "MultiThreadedStrictModeCurrentDirectoryChanged", taskName, unexpectedDirectory, SentinelDirectory);
             taskLoggingContext.LogComment(MessageImportance.Normal, "ErrorConvertedIntoWarning");
         }
         else
         {
-            taskLoggingContext.LogError(new BuildEventFileInfo(taskLocation),
+            taskLoggingContext.LogError(taskLocation,
                 "MultiThreadedStrictModeCurrentDirectoryChanged", taskName, unexpectedDirectory, SentinelDirectory);
         }
 

@@ -1242,7 +1242,7 @@ namespace Microsoft.Build.Execution
                                 "MultiThreadedStrictModeUnresolvedPathWrite", entries, _multiThreadedStrictModeScope.SentinelDirectory);
                         Assumed.NotNull(warningCode, "The strict-mode warning must have a diagnostic code.");
                         loggingService.LogWarningFromText(
-                            BuildEventContext.Invalid, warningCode, helpKeyword, BuildEventFileInfo.Empty, message);
+                            BuildEventContext.Invalid, warningCode, helpKeyword, ElementLocation.Empty, message);
                         WaitForAllLoggingServiceEventsToBeProcessed();
 
                         if (loggingService.ShouldTreatWarningAsError(BuildEventContext.Invalid, warningCode))
@@ -2385,7 +2385,7 @@ namespace Microsoft.Build.Execution
                             ((IBuildComponentHost)this).LoggingService.LogFatalBuildError(
                                 buildEventContext,
                                 ex,
-                                new BuildEventFileInfo(ElementLocation.Create(submission.BuildRequestData.ProjectFullPath)));
+                                ElementLocation.Create(submission.BuildRequestData.ProjectFullPath));
                         }
                     }
 
@@ -3021,7 +3021,7 @@ namespace Microsoft.Build.Execution
                         string exception = DebugUtils.ReadAnyExceptionFromFile(_instantiationTimeUtc);
                         loggingService?.LogError(
                             buildEventContext,
-                            BuildEventFileInfo.Empty /* no project file */,
+                            ElementLocation.Empty /* no project file */,
                             "ChildExitedPrematurely",
                             node,
                             DebugUtils.DebugDumpPath,
@@ -3036,7 +3036,7 @@ namespace Microsoft.Build.Execution
                         ILoggingService loggingService = ((IBuildComponentHost)this).GetComponent<ILoggingService>(BuildComponentType.LoggingService);
                         loggingService?.LogError(
                             BuildEventContext.Invalid,
-                            BuildEventFileInfo.Empty /* no project file */,
+                            ElementLocation.Empty /* no project file */,
                             "ChildExitedPrematurely",
                             node,
                             DebugUtils.DebugDumpPath,
@@ -3188,7 +3188,7 @@ namespace Microsoft.Build.Execution
                             BuildEventContext buildEventContext = new BuildEventContext(0, Scheduler.VirtualNode, BuildEventContext.InvalidProjectInstanceId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidTaskId);
                             ((IBuildComponentHost)this).LoggingService.LogError(
                                 buildEventContext,
-                                BuildEventFileInfo.Empty,
+                                ElementLocation.Empty,
                                 "UnableToCreateNode",
                                 response.RequiredNodeType.ToString("G"));
 
@@ -3645,7 +3645,7 @@ namespace Microsoft.Build.Execution
                         BuildEventContext.Invalid,
                         warningCode: message.Code,
                         helpKeyword: null,
-                        file: BuildEventFileInfo.Empty,
+                        location: ElementLocation.Empty,
                         message: message.Text);
                 }
                 else if (message.BuildEvent is not null)
@@ -3832,7 +3832,7 @@ namespace Microsoft.Build.Execution
                 BuildEventContext.Invalid,
                 null,
                 null,
-                BuildEventFileInfo.Empty,
+                ElementLocation.Empty,
                 message);
 
             CancelAndMarkAsFailure();

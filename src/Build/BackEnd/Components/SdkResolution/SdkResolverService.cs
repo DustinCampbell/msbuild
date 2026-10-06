@@ -252,12 +252,12 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                 if (resolvers.Count == 1) // Check if only one resolver was used
                 {
                     // Log the single resolver's error message directly
-                    loggingContext.LogError(new BuildEventFileInfo(sdkReferenceLocation), "SingleResolverFailedToResolveSDK", sdk.Name, resolvers[0].Name, string.Join(Environment.NewLine, errors));
+                    loggingContext.LogError(sdkReferenceLocation, "SingleResolverFailedToResolveSDK", sdk.Name, resolvers[0].Name, string.Join(Environment.NewLine, errors));
                 }
                 else
                 {
                     // Log the error with the MSBuild wrapper
-                    loggingContext.LogError(new BuildEventFileInfo(sdkReferenceLocation), "FailedToResolveSDK", sdk.Name, string.Join($"{Environment.NewLine}  ", errors));
+                    loggingContext.LogError(sdkReferenceLocation, "FailedToResolveSDK", sdk.Name, string.Join($"{Environment.NewLine}  ", errors));
                 }
             }
 
@@ -384,7 +384,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                     if (!IsReferenceSameVersion(sdk, result.Version))
                     {
                         // MSB4241: The SDK reference "{0}" version "{1}" was resolved to version "{2}" instead.  You could be using a different version than expected if you do not update the referenced version to match.
-                        loggingContext.LogWarning(new BuildEventFileInfo(sdkReferenceLocation), "SdkResultVersionDifferentThanReference", sdk.Name, sdk.Version, result.Version);
+                        loggingContext.LogWarning(sdkReferenceLocation, "SdkResultVersionDifferentThanReference", sdk.Name, sdk.Version, result.Version);
                     }
 
                     // Associate the element location of the resolved SDK reference
@@ -463,7 +463,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                 // Do not fail on returned null messages
                 if (!string.IsNullOrWhiteSpace(warning))
                 {
-                    loggingContext.LogWarningFromText(null, null, new BuildEventFileInfo(location), warning);
+                    loggingContext.LogWarningFromText(null, null, location, warning);
                 }
             }
         }

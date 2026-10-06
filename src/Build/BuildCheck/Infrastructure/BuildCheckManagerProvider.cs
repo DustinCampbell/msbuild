@@ -234,7 +234,7 @@ internal sealed class BuildCheckManagerProvider : IBuildCheckManagerProvider
                                 checkContext.DispatchAsWarningFromText(
                                     null,
                                     null,
-                                    new BuildEventFileInfo(ElementLocation.Create(projectPath)),
+                                    ElementLocation.Create(projectPath),
                                     e.Message);
                                 invalidChecksToRemove.Add(checkFactoryContext);
                             }
@@ -344,7 +344,7 @@ internal sealed class BuildCheckManagerProvider : IBuildCheckManagerProvider
                     checkContext.DispatchAsWarningFromText(
                         null,
                         null,
-                        new BuildEventFileInfo(ElementLocation.Create(projectFullPath)),
+                        ElementLocation.Create(projectFullPath),
                         e.Message);
                     invalidChecksToRemove.Add(checkFactoryContext);
                 }

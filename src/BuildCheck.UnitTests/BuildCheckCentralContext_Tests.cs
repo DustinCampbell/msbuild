@@ -252,7 +252,7 @@ public class BuildCheckCentralContext_Tests
             Subcategory subcategory,
             string? errorCode,
             string? helpKeyword,
-            BuildEventFileInfo file,
+            IElementLocation location,
             string message)
         { }
 
@@ -262,7 +262,7 @@ public class BuildCheckCentralContext_Tests
             Subcategory subcategory,
             string? errorCode,
             string? helpKeyword,
-            BuildEventFileInfo file,
+            IElementLocation location,
             string message)
         { }
 

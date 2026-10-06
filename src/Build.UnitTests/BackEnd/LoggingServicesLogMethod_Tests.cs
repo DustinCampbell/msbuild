@@ -108,7 +108,7 @@ namespace Microsoft.Build.UnitTests.Logging
                 service.LogError(
                     s_buildEventContext,
                     Subcategory.SolutionFile,
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     null,
                     "MyTask");
             });
@@ -126,7 +126,7 @@ namespace Microsoft.Build.UnitTests.Logging
                 service.LogError(
                     s_buildEventContext,
                     Subcategory.SolutionFile,
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     string.Empty,
                     "MyTask");
             });
@@ -138,7 +138,7 @@ namespace Microsoft.Build.UnitTests.Logging
         [Fact]
         public void LogErrorGoodParameters()
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
             string errorCode;
             string helpKeyword;
             string taskName = "TaskName";
@@ -196,8 +196,7 @@ namespace Microsoft.Build.UnitTests.Logging
             Assert.False(exception.HasBeenLogged);
             service.LogInvalidProjectFileError(s_buildEventContext, exception);
             Assert.True(exception.HasBeenLogged);
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(
-                ElementLocation.Create(exception.ProjectFile, exception.LineNumber, exception.ColumnNumber));
+            ElementLocation fileInfo = ElementLocation.Create(exception.ProjectFile, exception.LineNumber, exception.ColumnNumber);
             VerifyBuildErrorEventArgs(
                 fileInfo,
                 exception.ErrorCode,
@@ -245,7 +244,7 @@ namespace Microsoft.Build.UnitTests.Logging
                 service.LogFatalError(
                     null,
                     new Exception("SuperException"),
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     "FatalTaskError",
                     "TaskName");
             });
@@ -270,7 +269,7 @@ namespace Microsoft.Build.UnitTests.Logging
         [Fact]
         public void LogFatalErrorNullException()
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
             string errorCode;
             string helpKeyword;
             string resourceName = "FatalTaskError";
@@ -290,7 +289,7 @@ namespace Microsoft.Build.UnitTests.Logging
         {
             Assert.Throws<InternalErrorException>(() =>
             {
-                BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+                ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
                 service.LogFatalError(s_buildEventContext, new Exception("SuperException"), fileInfo, null);
             });
@@ -304,7 +303,7 @@ namespace Microsoft.Build.UnitTests.Logging
         {
             Assert.Throws<InternalErrorException>(() =>
             {
-                BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+                ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
                 service.LogFatalError(s_buildEventContext, new Exception("SuperException"), fileInfo, string.Empty, null);
             });
@@ -316,7 +315,7 @@ namespace Microsoft.Build.UnitTests.Logging
         [Fact]
         public void LogFatalErrorAllGoodInput()
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
             Exception exception = new Exception("SuperException");
             string resourceName = "FatalTaskError";
             string parameter = "TaskName";
@@ -340,7 +339,7 @@ namespace Microsoft.Build.UnitTests.Logging
         [Fact]
         public void LogFatalBuildErrorGoodInput()
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
             Exception exception = new Exception("SuperException");
             string resourceName = "FatalBuildError";
             string errorCode;
@@ -364,7 +363,7 @@ namespace Microsoft.Build.UnitTests.Logging
         {
             Assert.Throws<InternalErrorException>(() =>
             {
-                BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+                ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
                 service.LogFatalTaskError(s_buildEventContext, new Exception("SuperException"), fileInfo, null);
             });
@@ -376,7 +375,7 @@ namespace Microsoft.Build.UnitTests.Logging
         [Fact]
         public void LogFatalTaskError()
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
             Exception exception = new Exception("SuperException");
             string errorCode;
             string helpKeyword;
@@ -411,7 +410,7 @@ namespace Microsoft.Build.UnitTests.Logging
                     Subcategory.SolutionFile,
                     "WarningCode",
                     "HelpKeyword",
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     "Message");
             });
         }
@@ -443,7 +442,7 @@ namespace Microsoft.Build.UnitTests.Logging
                     Subcategory.SolutionFile,
                     "WarningCode",
                     "HelpKeyword",
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     null);
             });
         }
@@ -550,7 +549,7 @@ namespace Microsoft.Build.UnitTests.Logging
         {
             Assert.Throws<InternalErrorException>(() =>
             {
-                BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+                ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
                 service.LogTaskWarningFromException(s_buildEventContext, null, fileInfo, null);
             });
@@ -564,7 +563,7 @@ namespace Microsoft.Build.UnitTests.Logging
         {
             Assert.Throws<InternalErrorException>(() =>
             {
-                BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+                ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
                 ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
                 service.LogTaskWarningFromException(s_buildEventContext, null, fileInfo, null);
             });
@@ -577,7 +576,7 @@ namespace Microsoft.Build.UnitTests.Logging
         [Fact]
         public void LogTaskWarningFromException()
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
             string resourceName = "FatalTaskError";
             string parameters = "TaskName";
             string warningCode;
@@ -612,7 +611,7 @@ namespace Microsoft.Build.UnitTests.Logging
                 service.LogWarning(
                     s_buildEventContext,
                     Subcategory.SolutionFile,
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     null,
                     "MyTask");
             });
@@ -630,7 +629,7 @@ namespace Microsoft.Build.UnitTests.Logging
                 service.LogWarning(
                     s_buildEventContext,
                     Subcategory.SolutionFile,
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     string.Empty,
                     "MyTask");
             });
@@ -664,7 +663,7 @@ namespace Microsoft.Build.UnitTests.Logging
                     Subcategory.SolutionFile,
                     "WarningCode",
                     "HelpKeyword",
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     "Message");
             });
         }
@@ -696,7 +695,7 @@ namespace Microsoft.Build.UnitTests.Logging
                     Subcategory.SolutionFile,
                     "WarningCode",
                     "HelpKeyword",
-                    new BuildEventFileInfo(ElementLocation.Create("foo.cs")),
+                    ElementLocation.Create("foo.cs"),
                     null);
             });
         }
@@ -1449,7 +1448,7 @@ namespace Microsoft.Build.UnitTests.Logging
         /// <param name="message">Message to test</param>
         private void TestLogErrorFromText(string errorCode, string helpKeyword, Subcategory subcategory, string expectedSubcategory, string message)
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
 
             ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.LogErrorFromText(s_buildEventContext, subcategory, errorCode, helpKeyword, fileInfo, message);
@@ -1466,7 +1465,7 @@ namespace Microsoft.Build.UnitTests.Logging
         /// <param name="message">Message to test</param>
         private void TestLogWarningFromText(string warningCode, string helpKeyword, Subcategory subcategory, string expectedSubcategory, string message)
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
 
             ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
             service.LogWarningFromText(s_buildEventContext, subcategory, warningCode, helpKeyword, fileInfo, message);
@@ -1481,7 +1480,7 @@ namespace Microsoft.Build.UnitTests.Logging
         /// <param name="expectedSubcategory">The expected subcategory display string.</param>
         private void TestLogWarning(string taskName, Subcategory subcategory, string expectedSubcategory)
         {
-            BuildEventFileInfo fileInfo = new BuildEventFileInfo(ElementLocation.Create("foo.cs", 1, 2));
+            ElementLocation fileInfo = ElementLocation.Create("foo.cs", 1, 2);
             string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string warningCode, out string helpKeyword, "FatalTaskError", taskName);
             ProcessBuildEventHelper service = (ProcessBuildEventHelper)ProcessBuildEventHelper.CreateLoggingService(LoggerMode.Synchronous, 1);
 
@@ -1815,22 +1814,22 @@ namespace Microsoft.Build.UnitTests.Logging
         /// <summary>
         /// Create a buildWarning event to compare to the one which was passed into the ProcessedBuildEvent method.
         /// </summary>
-        /// <param name="fileInfo">FileInfo to create the comparison event with</param>
+        /// <param name="location">Location to create the comparison event with</param>
         /// <param name="warningCode">Warningcode to create the comparison event with c</param>
         /// <param name="helpKeyword">helpKeyword to create the comparison event with</param>
         /// <param name="message">message to create the comparison event with</param>
         /// <param name="service">LoggingService mock object which overrides ProcessBuildEvent and can provide a ProcessedBuildEvent (the event which would have been sent to the loggers)</param>
         /// <param name="subcategory">Subcategory to create the comparison event with</param>
-        private void VerifyBuildWarningEventArgs(BuildEventFileInfo fileInfo, string warningCode, string helpKeyword, string message, ProcessBuildEventHelper service, string subcategory)
+        private void VerifyBuildWarningEventArgs(IElementLocation location, string warningCode, string helpKeyword, string message, ProcessBuildEventHelper service, string subcategory)
         {
             BuildWarningEventArgs buildEvent = new BuildWarningEventArgs(
                     subcategory,
                     warningCode,
-                    fileInfo.File,
-                    fileInfo.Line,
-                    fileInfo.Column,
-                    fileInfo.EndLine,
-                    fileInfo.EndColumn,
+                    location.File,
+                    location.Line,
+                    location.Column,
+                    endLineNumber: 0,
+                    endColumnNumber: 0,
                     message,
                     helpKeyword,
                     "MSBuild",
@@ -1842,7 +1841,7 @@ namespace Microsoft.Build.UnitTests.Logging
         /// <summary>
         /// Create a buildError event to compare to the one which was passed into the ProcessedBuildEvent method.
         /// </summary>
-        /// <param name="fileInfo">FileInfo to create the comparison event with</param>
+        /// <param name="location">Location to create the comparison event with</param>
         /// <param name="errorCode">Errorcode to create the comparison event with c</param>
         /// <param name="helpKeyword">helpKeyword to create the comparison event with</param>
         /// <param name="message">message to create the comparison event with</param>
@@ -1851,7 +1850,7 @@ namespace Microsoft.Build.UnitTests.Logging
         /// <param name="endLine">Expected ending line number.</param>
         /// <param name="endColumn">Expected ending column number.</param>
         private void VerifyBuildErrorEventArgs(
-            BuildEventFileInfo fileInfo,
+            IElementLocation location,
             string errorCode,
             string helpKeyword,
             string message,
@@ -1863,9 +1862,9 @@ namespace Microsoft.Build.UnitTests.Logging
             BuildErrorEventArgs buildEvent = new BuildErrorEventArgs(
                     subcategory,
                     errorCode,
-                    fileInfo.File,
-                    fileInfo.Line,
-                    fileInfo.Column,
+                    location.File,
+                    location.Line,
+                    location.Column,
                     endLine,
                     endColumn,
                     message,

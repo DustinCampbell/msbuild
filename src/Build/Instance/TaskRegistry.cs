@@ -512,7 +512,7 @@ namespace Microsoft.Build.Execution
                     {
                         if (rec.RegisteredName.Equals(taskIdentity.Name, StringComparison.OrdinalIgnoreCase))
                         {
-                            loggingContext.LogError(new BuildEventFileInfo(projectUsingTaskInXml.OverrideLocation), "DuplicateOverrideUsingTaskElement", info.TaskName);
+                            loggingContext.LogError(projectUsingTaskInXml.OverrideLocation, "DuplicateOverrideUsingTaskElement", info.TaskName);
                             break;
                         }
                     }
@@ -1274,7 +1274,7 @@ namespace Microsoft.Build.Execution
                                     if (exception != null)
                                     {
                                         targetLoggingContext.LogError(
-                                            new BuildEventFileInfo(ElementLocation.Create(taskProjectFile)),
+                                            ElementLocation.Create(taskProjectFile),
                                             "TaskFactoryLoadFailure",
                                             TaskFactoryAttributeName,
                                             taskFactoryLoadInfo.AssemblyLocation,
@@ -1331,7 +1331,7 @@ namespace Microsoft.Build.Execution
                                         if (initialized && containsArchOrRuntimeParam)
                                         {
                                             targetLoggingContext.LogWarning(
-                                                new BuildEventFileInfo(elementLocation),
+                                                elementLocation,
                                                 "TaskFactoryWillIgnoreTaskFactoryParameters",
                                                 factory.FactoryName,
                                                 XMakeAttributes.runtime,
@@ -1369,7 +1369,7 @@ namespace Microsoft.Build.Execution
 
                                 // Could get an invalid cast when Creating Instance and UnWrap due to the framework assembly not being the same.
                                 targetLoggingContext.LogError(
-                                    new BuildEventFileInfo(elementLocation),
+                                    elementLocation,
                                     "TaskFactoryInstantiationFailureErrorInvalidCast",
                                     TaskFactoryAttributeName,
                                     taskFactoryLoadInfo.AssemblyLocation,

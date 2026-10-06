@@ -596,7 +596,7 @@ namespace Microsoft.Build.Evaluation
                 if (defaultTasksFiles.Length == 0)
                 {
                     loggingContext.LogWarning(
-                        BuildEventFileInfo.Empty,
+                        ElementLocation.Empty,
                         taskFileWarning,
                         taskPattern,
                         searchPath,
@@ -606,7 +606,7 @@ namespace Microsoft.Build.Evaluation
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
                 loggingContext.LogWarning(
-                    BuildEventFileInfo.Empty,
+                    ElementLocation.Empty,
                     taskFileWarning,
                     taskPattern,
                     searchPath,
@@ -863,7 +863,7 @@ namespace Microsoft.Build.Evaluation
             {
                 // This warning truly does not involve any file; it is just gathering properties.
                 loggingContext.LogError(
-                    BuildEventFileInfo.Empty,
+                    ElementLocation.Empty,
                     "TasksPropertyBagError",
                     e.Message);
             }
@@ -908,7 +908,7 @@ namespace Microsoft.Build.Evaluation
                                         string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", _overrideTasksPath);
                                         // This warning truly does not involve any file.
                                         loggingContext.LogWarning(
-                                            BuildEventFileInfo.Empty,
+                                            ElementLocation.Empty,
                                             "OverrideTasksFileFailure",
                                             rootedPathMessage);
                                     }
@@ -919,7 +919,7 @@ namespace Microsoft.Build.Evaluation
                                 string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskProblemWithPath", _overrideTasksPath, e.Message);
                                 // This warning truly does not involve any file.
                                 loggingContext.LogWarning(
-                                    BuildEventFileInfo.Empty,
+                                    ElementLocation.Empty,
                                     "OverrideTasksFileFailure",
                                     rootedPathMessage);
                             }
@@ -966,7 +966,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                loggingContext.LogError(new BuildEventFileInfo(ElementLocation.Create(currentTasksFile)),
+                loggingContext.LogError(ElementLocation.Create(currentTasksFile),
                     taskFileError, e.Message);
             }
 

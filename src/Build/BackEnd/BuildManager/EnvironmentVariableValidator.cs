@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
@@ -42,7 +43,7 @@ namespace Microsoft.Build.Execution
             {
                 if (FileSystems.Default.DirectoryExists(dotnetHostPath))
                 {
-                    loggingService.LogWarning(BuildEventContext.Invalid, BuildEventFileInfo.Empty, "DotnetHostPathIsDirectory", dotnetHostPath);
+                    loggingService.LogWarning(BuildEventContext.Invalid, ElementLocation.Empty, "DotnetHostPathIsDirectory", dotnetHostPath);
                 }
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))

@@ -12,15 +12,15 @@ internal static class ICheckContextExtensions
         this ICheckContext context,
         string? errorCode,
         string? helpKeyword,
-        BuildEventFileInfo file,
+        IElementLocation location,
         string message)
-        => context.DispatchAsErrorFromText(Subcategory.None, errorCode, helpKeyword, file, message);
+        => context.DispatchAsErrorFromText(Subcategory.None, errorCode, helpKeyword, location, message);
 
     public static void DispatchAsWarningFromText(
         this ICheckContext context,
         string? warningCode,
         string? helpKeyword,
-        BuildEventFileInfo file,
+        IElementLocation location,
         string message)
-        => context.DispatchAsWarningFromText(Subcategory.None, warningCode, helpKeyword, file, message);
+        => context.DispatchAsWarningFromText(Subcategory.None, warningCode, helpKeyword, location, message);
 }

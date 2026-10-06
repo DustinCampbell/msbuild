@@ -389,7 +389,7 @@ namespace Microsoft.Build.BackEnd
 #pragma warning restore SYSLIB0050
             {
                 _loggingContext.LogWarning(
-                    BuildEventFileInfo.Empty,
+                    ElementLocation.Empty,
                     "ExpectedEventToBeSerializable",
                     e.GetType().Name);
                 return false;

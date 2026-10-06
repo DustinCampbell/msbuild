@@ -14,6 +14,7 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.BackEnd.Components.Caching;
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.BackEnd.SdkResolution;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
@@ -627,7 +628,7 @@ namespace Microsoft.Build.Execution
 #else
                     _loggingService.LogWarning(
 #endif
-                        _loggingContext?.BuildEventContext ?? BuildEventContext.Invalid, BuildEventFileInfo.Empty,
+                        _loggingContext?.BuildEventContext ?? BuildEventContext.Invalid, ElementLocation.Empty,
                         "DeprecatedEventSerialization",
                         buildEvent?.GetType().Name ?? string.Empty);
                 }

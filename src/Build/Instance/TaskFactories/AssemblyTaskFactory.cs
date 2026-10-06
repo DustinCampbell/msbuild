@@ -283,7 +283,7 @@ namespace Microsoft.Build.BackEnd
                     if (exception != null)
                     {
                         targetLoggingContext.LogError(
-                            new BuildEventFileInfo(ElementLocation.Create(taskProjectFile)),
+                            ElementLocation.Create(taskProjectFile),
                             "TaskLoadFailure",
                             taskName,
                             loadInfo.AssemblyLocation,
@@ -402,7 +402,7 @@ namespace Microsoft.Build.BackEnd
                     taskLocation.Column,
                     new TaskLoader.LogError((taskLoc, taskLine, taskColumn, message, messageArgs) =>
                         taskLoggingContext.LogError(
-                            new BuildEventFileInfo(ElementLocation.Create(taskLoc, taskLine, taskColumn)),
+                            ElementLocation.Create(taskLoc, taskLine, taskColumn),
                             message,
                             messageArgs)),
                     taskEnvironment,
@@ -491,7 +491,7 @@ namespace Microsoft.Build.BackEnd
                     if (exception != null)
                     {
                         targetLoggingContext.LogError(
-                            new BuildEventFileInfo(ElementLocation.Create(taskProjectFile)),
+                            ElementLocation.Create(taskProjectFile),
                             "TaskLoadFailure",
                             taskName,
                             _loadedType.Assembly.AssemblyLocation,

@@ -3214,7 +3214,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     LoggingService.LogError(
                         s_buildEventContext,
-                        new BuildEventFileInfo(ElementLocation.Create(FullPath)),
+                        ElementLocation.Create(FullPath),
                         "SecurityProjectBuildDisabled");
                     if (LoggingService is LoggingService defaultLoggingService)
                     {

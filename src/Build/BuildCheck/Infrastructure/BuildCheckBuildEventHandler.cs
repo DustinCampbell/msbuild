@@ -159,7 +159,7 @@ internal class BuildCheckBuildEventHandler
             checkContext.DispatchAsErrorFromText(
                 errorCode,
                 helpKeyword,
-                new BuildEventFileInfo(ElementLocation.Create(acquisitionData.ProjectPath)),
+                ElementLocation.Create(acquisitionData.ProjectPath),
                 message);
         }
     }
