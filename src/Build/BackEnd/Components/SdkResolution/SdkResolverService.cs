@@ -290,7 +290,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                             // reported project error (so a host such as the AOT dotnet CLI can detect it and fall
                             // back to a JIT MSBuild) rather than attempting an Assembly.LoadFrom that cannot work here.
                             ProjectFileErrorUtilities.ThrowInvalidProjectFile(
-                                new BuildEventFileInfo(sdkReferenceLocation),
+                                sdkReferenceLocation,
                                 "SdkResolverDynamicLoadingNotSupported",
                                 sdk.Name,
                                 resolverManifest.DisplayName);
