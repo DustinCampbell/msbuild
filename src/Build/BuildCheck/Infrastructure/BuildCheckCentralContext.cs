@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Microsoft.Build.BuildCheck.Infrastructure;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Experimental.BuildCheck.Infrastructure;
@@ -304,7 +305,7 @@ internal sealed class BuildCheckCentralContext
                 checkContext.DispatchAsWarningFromText(
                     null,
                     null,
-                    new BuildEventFileInfo(projectFullPath),
+                    new BuildEventFileInfo(ElementLocation.Create(projectFullPath)),
                     $"The check '{checkCallback.Item1.Check.FriendlyName}' threw an exception while executing a registered action with message: {e.Message}");
 
                 checksToRemove = checksToRemove ?? new List<CheckWrapper>();

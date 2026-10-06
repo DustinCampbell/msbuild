@@ -432,7 +432,7 @@ namespace Microsoft.Build.Internal
             {
                 loggingService.LogWarning(
                     buildEventContext,
-                    new BuildEventFileInfo(buildEventFileInfoFullPath),
+                    new BuildEventFileInfo(ElementLocation.Create(buildEventFileInfoFullPath)),
                     DriveEnumeratingWildcardMessageResourceName,
                     filespecUnescaped,
                     XMakeAttributes.include,

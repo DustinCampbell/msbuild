@@ -306,7 +306,10 @@ namespace Microsoft.Build.BackEnd
                 if (!taskCleanedUp)
                 {
                     // This can happen when a task has locked us up.
-                    _projectLoggingContext.LogError(new BuildEventFileInfo(String.Empty), "FailedToReceiveTaskThreadStatus", BuildParameters.RequestBuilderShutdownTimeout);
+                    _projectLoggingContext.LogError(
+                        BuildEventFileInfo.Empty,
+                        "FailedToReceiveTaskThreadStatus",
+                        BuildParameters.RequestBuilderShutdownTimeout);
                     ErrorUtilities.ThrowInvalidOperation("UnableToCancel");
                 }
             }

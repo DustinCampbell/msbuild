@@ -1273,7 +1273,12 @@ namespace Microsoft.Build.Execution
                                 {
                                     if (exception != null)
                                     {
-                                        targetLoggingContext.LogError(new BuildEventFileInfo(taskProjectFile), "TaskFactoryLoadFailure", TaskFactoryAttributeName, taskFactoryLoadInfo.AssemblyLocation, exception.Message);
+                                        targetLoggingContext.LogError(
+                                            new BuildEventFileInfo(ElementLocation.Create(taskProjectFile)),
+                                            "TaskFactoryLoadFailure",
+                                            TaskFactoryAttributeName,
+                                            taskFactoryLoadInfo.AssemblyLocation,
+                                            exception.Message);
                                     }
                                 }
 
@@ -1364,7 +1369,7 @@ namespace Microsoft.Build.Execution
 
                                 // Could get an invalid cast when Creating Instance and UnWrap due to the framework assembly not being the same.
                                 targetLoggingContext.LogError(
-                                    new BuildEventFileInfo(elementLocation.File, elementLocation.Line, elementLocation.Column),
+                                    new BuildEventFileInfo(elementLocation),
                                     "TaskFactoryInstantiationFailureErrorInvalidCast",
                                     TaskFactoryAttributeName,
                                     taskFactoryLoadInfo.AssemblyLocation,

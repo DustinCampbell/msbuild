@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Experimental.BuildCheck.Acquisition;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -158,7 +159,7 @@ internal class BuildCheckBuildEventHandler
             checkContext.DispatchAsErrorFromText(
                 errorCode,
                 helpKeyword,
-                string.IsNullOrEmpty(acquisitionData.ProjectPath) ? BuildEventFileInfo.Empty : new BuildEventFileInfo(acquisitionData.ProjectPath),
+                new BuildEventFileInfo(ElementLocation.Create(acquisitionData.ProjectPath)),
                 message);
         }
     }

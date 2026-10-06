@@ -596,7 +596,7 @@ namespace Microsoft.Build.Evaluation
                 if (defaultTasksFiles.Length == 0)
                 {
                     loggingContext.LogWarning(
-                        new BuildEventFileInfo(/* this warning truly does not involve any file */ String.Empty),
+                        BuildEventFileInfo.Empty,
                         taskFileWarning,
                         taskPattern,
                         searchPath,
@@ -606,7 +606,7 @@ namespace Microsoft.Build.Evaluation
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
                 loggingContext.LogWarning(
-                    new BuildEventFileInfo(/* this warning truly does not involve any file */ String.Empty),
+                    BuildEventFileInfo.Empty,
                     taskFileWarning,
                     taskPattern,
                     searchPath,
@@ -861,7 +861,11 @@ namespace Microsoft.Build.Evaluation
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                loggingContext.LogError(new BuildEventFileInfo(/* this warning truly does not involve any file it is just gathering properties */String.Empty), "TasksPropertyBagError", e.Message);
+                // This warning truly does not involve any file; it is just gathering properties.
+                loggingContext.LogError(
+                    BuildEventFileInfo.Empty,
+                    "TasksPropertyBagError",
+                    e.Message);
             }
         }
 
@@ -902,14 +906,22 @@ namespace Microsoft.Build.Evaluation
                                     if (!overrideDirectoryExists)
                                     {
                                         string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", _overrideTasksPath);
-                                        loggingContext.LogWarning(new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), "OverrideTasksFileFailure", rootedPathMessage);
+                                        // This warning truly does not involve any file.
+                                        loggingContext.LogWarning(
+                                            BuildEventFileInfo.Empty,
+                                            "OverrideTasksFileFailure",
+                                            rootedPathMessage);
                                     }
                                 }
                             }
                             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                             {
                                 string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskProblemWithPath", _overrideTasksPath, e.Message);
-                                loggingContext.LogWarning(new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), "OverrideTasksFileFailure", rootedPathMessage);
+                                // This warning truly does not involve any file.
+                                loggingContext.LogWarning(
+                                    BuildEventFileInfo.Empty,
+                                    "OverrideTasksFileFailure",
+                                    rootedPathMessage);
                             }
 
                             if (overrideDirectoryExists)
@@ -954,7 +966,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                loggingContext.LogError(new BuildEventFileInfo(currentTasksFile),
+                loggingContext.LogError(new BuildEventFileInfo(ElementLocation.Create(currentTasksFile)),
                     taskFileError, e.Message);
             }
 

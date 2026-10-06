@@ -586,7 +586,7 @@ namespace Microsoft.Build.ProjectCache
         {
             Assumed.NotNull(buildRequest.ProjectInstance);
 
-            var buildEventFileInfo = new BuildEventFileInfo(buildRequest.ProjectFullPath);
+            var buildEventFileInfo = new BuildEventFileInfo(ElementLocation.Create(buildRequest.ProjectFullPath));
             var pluginLogger = new LoggingServiceToPluginLoggerAdapter(
                 _loggingService,
                 buildEventContext,
@@ -872,7 +872,7 @@ namespace Microsoft.Build.ProjectCache
             Experimental.ProjectCache.FileAccessContext experimentalFileAccessContext = new(requestConfiguration.ProjectFullPath, globalProperties, targets);
 #pragma warning restore CS0618 // Type or member is obsolete
 
-            var buildEventFileInfo = new BuildEventFileInfo(requestConfiguration.ProjectFullPath);
+            var buildEventFileInfo = new BuildEventFileInfo(ElementLocation.Create(requestConfiguration.ProjectFullPath));
             var pluginLogger = new LoggingServiceToPluginLoggerAdapter(
                 _loggingService,
                 buildEventContext,

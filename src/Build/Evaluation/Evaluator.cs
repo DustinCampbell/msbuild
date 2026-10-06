@@ -409,7 +409,10 @@ namespace Microsoft.Build.Evaluation
             }
             catch (PathTooLongException ex)
             {
-                evaluator._evaluationLoggingContext.LogErrorFromText(null, null, new BuildEventFileInfo(root.ProjectFileLocation.File),
+                evaluator._evaluationLoggingContext.LogErrorFromText(
+                    null,
+                    null,
+                    new BuildEventFileInfo(ElementLocation.Create(root.ProjectFileLocation.File)),
                     ex.Message);
             }
             finally
@@ -1267,10 +1270,19 @@ namespace Microsoft.Build.Evaluation
             switch (ChangeWaves.ConversionState)
             {
                 case ChangeWaveConversionState.InvalidFormat:
-                    _evaluationLoggingContext.LogWarning(new BuildEventFileInfo(""), "ChangeWave_InvalidFormat", Traits.Instance.MSBuildDisableFeaturesFromVersion, $"[{string.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
+                    _evaluationLoggingContext.LogWarning(
+                        BuildEventFileInfo.Empty,
+                        "ChangeWave_InvalidFormat",
+                        Traits.Instance.MSBuildDisableFeaturesFromVersion,
+                        $"[{string.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
                     break;
                 case ChangeWaveConversionState.OutOfRotation:
-                    _evaluationLoggingContext.LogWarning(new BuildEventFileInfo(""), "ChangeWave_OutOfRotation", ChangeWaves.DisabledWave, Traits.Instance.MSBuildDisableFeaturesFromVersion, $"[{string.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
+                    _evaluationLoggingContext.LogWarning(
+                        BuildEventFileInfo.Empty,
+                        "ChangeWave_OutOfRotation",
+                        ChangeWaves.DisabledWave,
+                        Traits.Instance.MSBuildDisableFeaturesFromVersion,
+                        $"[{string.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
                     break;
             }
         }
