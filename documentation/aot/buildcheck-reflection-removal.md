@@ -186,10 +186,10 @@ else
 {
     // The project asked for a custom check this host cannot load by reflection. Fail
     // observably instead of returning silently, so the host can detect it and fall back.
-    string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+    string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
         out string? errorCode,
         out string? helpKeyword,
-        "BuildCheckCustomCheckNotSupportedInTrimmedHost",
+        BuildStrings.BuildCheckCustomCheckNotSupportedInTrimmedHost,
         acquisitionData.AssemblyPath);
 
     checkContext.DispatchAsErrorFromText(

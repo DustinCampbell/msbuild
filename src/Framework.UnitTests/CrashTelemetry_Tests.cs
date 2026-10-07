@@ -364,7 +364,7 @@ public class CrashTelemetry_Tests
     public void ExtractStackCaller_ReturnsCallerFrame_WhenTopIsThrowHelper()
     {
         string fakeStack =
-            "   at Microsoft.Build.Shared.ErrorUtilities.ThrowInternalError(String message, Object[] args)\r\n" +
+            "   at Microsoft.Build.InternalError.Throw(String message)\r\n" +
             "   at Microsoft.Build.BackEnd.RequestBuilder.BuildProject(String projectFile)";
         Exception ex = CreateExceptionWithStack(fakeStack);
 
@@ -390,7 +390,7 @@ public class CrashTelemetry_Tests
     [Fact]
     public void ExtractStackCaller_ReturnsNull_WhenThrowHelperIsOnlyFrame()
     {
-        string fakeStack = "   at Microsoft.Build.Shared.ErrorUtilities.ThrowInternalError(String message, Object[] args)";
+        string fakeStack = "   at Microsoft.Build.InternalError.Throw(String message)";
         Exception ex = CreateExceptionWithStack(fakeStack);
 
         string? caller = CrashTelemetry.ExtractStackCaller(ex);
@@ -409,15 +409,16 @@ public class CrashTelemetry_Tests
     }
 
     [Theory]
-    [InlineData("ErrorUtilities.VerifyThrowInternalError(")]
-    [InlineData("ErrorUtilities.ThrowInternalErrorUnreachable(")]
-    [InlineData("ErrorUtilities.VerifyThrowInternalNull(")]
-    [InlineData("ErrorUtilities.ThrowInvalidOperation(")]
-    [InlineData("ErrorUtilities.VerifyThrow(")]
+    [InlineData("Microsoft.Build.InternalError.Throw(")]
+    [InlineData("Microsoft.Build.Shared.ErrorUtilities.VerifyThrowInternalError(")]
+    [InlineData("Microsoft.Build.Shared.ErrorUtilities.ThrowInternalErrorUnreachable(")]
+    [InlineData("Microsoft.Build.Shared.ErrorUtilities.VerifyThrowInternalNull(")]
+    [InlineData("Microsoft.Build.Shared.ErrorUtilities.ThrowInvalidOperation(")]
+    [InlineData("Microsoft.Build.Shared.ErrorUtilities.VerifyThrow(")]
     public void ExtractStackCaller_RecognizesAllThrowHelpers(string helperMethod)
     {
         string fakeStack =
-            $"   at Microsoft.Build.Shared.{helperMethod}String message)\r\n" +
+            $"   at {helperMethod}String message)\r\n" +
             "   at Microsoft.Build.Evaluation.Evaluator.Evaluate()";
         Exception ex = CreateExceptionWithStack(fakeStack);
 
@@ -431,7 +432,7 @@ public class CrashTelemetry_Tests
     public void ExtractStackCaller_RedactsFilePaths_InCallerFrame()
     {
         string fakeStack =
-            "   at Microsoft.Build.Shared.ErrorUtilities.ThrowInternalError(String message, Object[] args)\r\n" +
+            "   at Microsoft.Build.InternalError.Throw(String message)\r\n" +
             "   at Microsoft.Build.BackEnd.RequestBuilder.BuildProject(String projectFile) in C:\\Users\\username\\src\\file.cs:line 42";
         Exception ex = CreateExceptionWithStack(fakeStack);
 
@@ -450,14 +451,14 @@ public class CrashTelemetry_Tests
 
         // Simulate a throw-helper scenario using a fake stack trace.
         string fakeStack =
-            "   at Microsoft.Build.Shared.ErrorUtilities.ThrowInternalError(String message, Object[] args)\r\n" +
+            "   at Microsoft.Build.InternalError.Throw(String message)\r\n" +
             "   at Microsoft.Build.Scheduler.ScheduleRequest(BuildRequest request)";
         Exception ex = CreateExceptionWithStack(fakeStack);
 
         telemetry.PopulateFromException(ex);
 
         telemetry.StackTop.ShouldNotBeNull();
-        telemetry.StackTop!.ShouldContain("ErrorUtilities.ThrowInternalError");
+        telemetry.StackTop!.ShouldContain("InternalError.Throw");
         telemetry.StackCaller.ShouldNotBeNull();
         telemetry.StackCaller!.ShouldContain("Microsoft.Build.Scheduler.ScheduleRequest");
     }
@@ -571,7 +572,7 @@ public class CrashTelemetry_Tests
         {
             ExceptionType = "Microsoft.Build.Framework.InternalErrorException",
             IsUnhandled = true,
-            StackTop = "at Microsoft.Build.Shared.ErrorUtilities.ThrowInternalError(String message, Object[] args)",
+            StackTop = "at Microsoft.Build.InternalError.Throw(String message)",
             StackCaller = "at Microsoft.Build.BackEnd.RequestBuilder.BuildProject(String projectFile)",
             ExceptionMessage = "All submissions not yet complete.",
         };
@@ -603,7 +604,7 @@ public class CrashTelemetry_Tests
         {
             ExceptionType = "Microsoft.Build.Framework.InternalErrorException",
             IsUnhandled = true,
-            StackTop = "at Microsoft.Build.Shared.ErrorUtilities.ThrowInternalError(String message, Object[] args)",
+            StackTop = "at Microsoft.Build.InternalError.Throw(String message)",
             StackCaller = "at Microsoft.Build.BackEnd.RequestBuilder.BuildProject(String projectFile)",
         };
 
@@ -615,7 +616,7 @@ public class CrashTelemetry_Tests
     public void PopulateFromException_SetsFullStackTrace()
     {
         string fakeStack =
-            "   at Microsoft.Build.Shared.ErrorUtilities.ThrowInternalError(String message, Object[] args)\n" +
+            "   at Microsoft.Build.InternalError.Throw(String message)\n" +
             "   at Microsoft.Build.BackEnd.RequestBuilder.BuildProject(String projectFile) in C:\\Users\\user\\src\\file.cs:line 42\n" +
             "   at Microsoft.Build.BackEnd.BuildManager.Build() in C:\\Users\\user\\src\\mgr.cs:line 100";
         Exception ex = CreateExceptionWithStack(fakeStack);
@@ -625,7 +626,7 @@ public class CrashTelemetry_Tests
 
         telemetry.FullStackTrace.ShouldNotBeNull();
         // Should contain all frames
-        telemetry.FullStackTrace!.ShouldContain("ErrorUtilities.ThrowInternalError");
+        telemetry.FullStackTrace!.ShouldContain("InternalError.Throw");
         telemetry.FullStackTrace.ShouldContain("RequestBuilder.BuildProject");
         telemetry.FullStackTrace.ShouldContain("BuildManager.Build");
         // File paths should be redacted

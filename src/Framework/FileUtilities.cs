@@ -698,7 +698,7 @@ namespace Microsoft.Build.Framework
         /// Gets the canonicalized full path of the provided path.
         /// Guidance for use: call this on all paths accepted through public entry
         /// points that need normalization. After that point, only verify the path
-        /// is rooted, using ErrorUtilities.VerifyThrowPathRooted.
+        /// is rooted, using <see cref="FrameworkErrorUtilities.VerifyThrowInternalRooted"/>.
         /// ASSUMES INPUT IS ALREADY UNESCAPED.
         /// </summary>
         internal static string NormalizePath(string path)

@@ -196,7 +196,7 @@ namespace Microsoft.Build.Framework
         /// <returns>The formatted string.</returns>
         private static string FormatString([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string unformatted, params object[] args)
         {
-            // Based on the one in Shared/ResourceUtilities.
+            // Preserve the formatting behavior of the former shared resource helper.
             string formatted = unformatted;
 
             // NOTE: String.Format() does not allow a null arguments array

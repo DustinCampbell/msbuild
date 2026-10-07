@@ -18,7 +18,8 @@ Built-in tasks ship with MSBuild and cannot be independently versioned.
 * Extend `Task` or `ToolTask`. Use `TaskLoggingHelper` for logging, not `Console.WriteLine`.
 * Validate inputs early in `Execute()` — fail fast with `Log.LogError` using MSBxxxx codes.
 * `[Output]` properties must be set before returning `true`.
-* All user-facing strings go in `.resx` files; use `ResourceUtilities.FormatResourceStringStripCodeAndKeyword` for formatting.
+* All user-facing strings go in `.resx` files; use generated resource descriptors with
+  `ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword` for formatting.
 
 ## ResolveAssemblyReference (RAR)
 

@@ -136,14 +136,14 @@ internal class CrashTelemetry : TelemetryBase, IActivityTelemetryDataHolder
 
     /// <summary>
     /// The method at the top of the call stack where the exception originated.
-    /// When the top frame is a known throw-helper (e.g., ErrorUtilities.ThrowInternalError),
+    /// When the top frame is a known throw-helper (e.g., <see cref="global::Microsoft.Build.InternalError.Throw(string)"/>),
     /// this still contains that frame for backward compatibility.
     /// </summary>
     public string? StackTop { get; set; }
 
     /// <summary>
     /// The first meaningful caller frame, skipping known throw-helper methods.
-    /// For example, if the top frame is <c>ErrorUtilities.ThrowInternalError</c>,
+    /// For example, if the top frame is <see cref="global::Microsoft.Build.InternalError.Throw(string)"/>,
     /// this will contain the frame that called it — which is what you actually need for triage.
     /// Null if the stack trace has no frame beyond the throw-helper, or if the top frame
     /// is not a throw-helper (in which case <see cref="StackTop"/> already has the meaningful frame).
@@ -861,6 +861,8 @@ internal class CrashTelemetry : TelemetryBase, IActivityTelemetryDataHolder
     /// </summary>
     private static readonly string[] s_throwHelperSuffixes =
     [
+        "InternalError.Throw(",
+        // Preserve recognition of stack traces captured by older MSBuild assemblies.
         "ErrorUtilities.ThrowInternalError(",
         "ErrorUtilities.VerifyThrowInternalError(",
         "ErrorUtilities.ThrowInternalErrorUnreachable(",
@@ -911,7 +913,7 @@ internal class CrashTelemetry : TelemetryBase, IActivityTelemetryDataHolder
     }
 
     /// <summary>
-    /// If the top stack frame is a known throw-helper (e.g., ErrorUtilities.ThrowInternalError),
+    /// If the top stack frame is a known throw-helper (e.g., <see cref="global::Microsoft.Build.InternalError.Throw(string)"/>),
     /// extracts the next frame — the actual caller where the bug lives.
     /// Returns null if the top frame is not a throw-helper or no further frames exist.
     /// </summary>

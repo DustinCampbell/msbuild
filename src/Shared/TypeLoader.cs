@@ -262,7 +262,7 @@ namespace Microsoft.Build.Shared
             {
                 // Assembly.Load() and Assembly.LoadFrom() will throw an ArgumentException if the assembly name is invalid
                 // convert to a FileNotFoundException because it's more meaningful
-                // NOTE: don't use ErrorUtilities.VerifyThrowFileExists() here because that will hit the disk again
+                // Do not perform another file-existence assertion here because that would hit the disk again.
                 throw new FileNotFoundException(null, assemblyLoadInfo.AssemblyLocation, e);
             }
         }

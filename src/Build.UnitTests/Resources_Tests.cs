@@ -195,10 +195,10 @@ namespace Microsoft.Build.UnitTests
             // Patterns to match resource method calls with string literal arguments
             var patterns = new[]
             {
-                // ResourceUtilities.FormatResourceString*("ResourceName", ...)
+                // Reject legacy ResourceUtilities.FormatResourceString*("ResourceName", ...) calls.
                 @"ResourceUtilities\.FormatResourceString[A-Za-z]*\s*\(\s*""([A-Z][^""]+)""\s*[,\)]",
                 
-                // ResourceUtilities.GetResourceString("ResourceName")
+                // Reject legacy ResourceUtilities.GetResourceString("ResourceName") calls.
                 @"ResourceUtilities\.GetResourceString\s*\(\s*""([A-Z][^""]+)""\s*\)",
                 
                 // Log.LogErrorWithCodeFromResources("ResourceName", ...)
