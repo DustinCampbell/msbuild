@@ -55,11 +55,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ResourceStringGenerator\Microsoft.Build.ResourceStringGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <Using Include="Microsoft.Build.CommandLine.Resources.MSBuildStrings" Alias="MSBuildStrings" />
+    <Using Include="Microsoft.Build.Framework.FrameworkErrorUtilities" Alias="FrameworkErrorUtilities" />
+    <Using Include="Microsoft.Build.Framework.Resources.FrameworkStrings" Alias="FrameworkStrings" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceString" Alias="ResourceString" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceStringUtilities" Alias="ResourceStringUtilities" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\Shared\RegisteredTaskObjectCacheBase.cs">
       <Link>RegisteredTaskObjectCacheBase.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\ResourceUtilities.cs" />
-    <Compile Include="..\Shared\ErrorUtilities.cs" />
     <Compile Include="..\GlobalUsings.cs" Link="GlobalUsings.cs" />
     <Compile Include="..\Shared\INodeEndpoint.cs" />
     <Compile Include="..\Shared\NodeEndpointOutOfProcBase.cs" />
@@ -117,6 +126,11 @@
       <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <AdditionalFiles Include="Resources\Strings.resx"
+                     ResourceCatalogNamespace="Microsoft.Build.CommandLine.Resources"
+                     ResourceCatalogClass="MSBuildStrings"
+                     ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.PrimaryResources"
+                     ResourceCatalogHelpKeywordPrefix="MSBuild." />
     <!-- Content Files -->
     <Content Include="MSBuild.ico" Pack="false" />
     <Content Include="MSBuild.rsp" Pack="false">

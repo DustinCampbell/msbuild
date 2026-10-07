@@ -245,8 +245,8 @@ namespace Microsoft.Build.Engine.UnitTests
             _env.WithTransientProcess(serverPid);
             ParseNumber(output, "Process ID is ").ShouldNotBe(serverPid, "The build should have run on a separate server node.");
 
-            string spawnedMessage = GetServerStatusMessage("MSBuildServerNodeSpawned", serverPid);
-            string reusedMessage = GetServerStatusMessage("MSBuildServerNodeReused", serverPid);
+            string spawnedMessage = GetServerStatusMessage(MSBuildStrings.MSBuildServerNodeSpawned, serverPid);
+            string reusedMessage = GetServerStatusMessage(MSBuildStrings.MSBuildServerNodeReused, serverPid);
 
             output.ShouldContain(spawnedMessage);
             output.ShouldNotContain(reusedMessage);
@@ -275,7 +275,7 @@ namespace Microsoft.Build.Engine.UnitTests
             int serverPid = ParseNumber(output, "Server ID is ");
             _env.WithTransientProcess(serverPid);
 
-            string terminalLoggerMessage = ResourceUtilities.GetResourceString("TerminalLoggerNotUsedAutomated");
+            string terminalLoggerMessage = ResourceStringUtilities.GetResourceString(MSBuildStrings.TerminalLoggerNotUsedAutomated);
             int initialMessageCount = Regex.Matches(output, Regex.Escape(terminalLoggerMessage)).Count;
             initialMessageCount.ShouldBeGreaterThan(0);
 
@@ -325,8 +325,8 @@ namespace Microsoft.Build.Engine.UnitTests
             success.ShouldBeTrue();
             ParseNumber(output, "Process ID is ").ShouldBe(ParseNumber(output, "Server ID is "), "The build should have run in-process, not on a server node.");
 
-            string reason = GetServerStatusMessage("MSBuildServerReasonNodeReuseDisabled");
-            string notUsedMessage = GetServerStatusMessage("MSBuildServerNotUsedForBuild", reason);
+            string reason = GetServerStatusMessage(MSBuildStrings.MSBuildServerReasonNodeReuseDisabled);
+            string notUsedMessage = GetServerStatusMessage(MSBuildStrings.MSBuildServerNotUsedForBuild, reason);
 
             output.ShouldContain(notUsedMessage);
         }
@@ -349,9 +349,9 @@ namespace Microsoft.Build.Engine.UnitTests
             _env.WithTransientProcess(serverPid);
             ParseNumber(output, "Process ID is ").ShouldNotBe(serverPid, "The build should have run on a separate (short-lived) server node.");
 
-            output.ShouldContain(GetServerStatusMessage("MSBuildServerNodeSpawnedShortLived", serverPid));
+            output.ShouldContain(GetServerStatusMessage(MSBuildStrings.MSBuildServerNodeSpawnedShortLived, serverPid));
             // The ordinary (resident) spawn message must not appear for a short-lived server.
-            output.ShouldNotContain(GetServerStatusMessage("MSBuildServerNodeSpawned", serverPid));
+            output.ShouldNotContain(GetServerStatusMessage(MSBuildStrings.MSBuildServerNodeSpawned, serverPid));
         }
 
         [Fact]
@@ -366,10 +366,10 @@ namespace Microsoft.Build.Engine.UnitTests
             success.ShouldBeTrue();
             ParseNumber(output, "Process ID is ").ShouldBe(ParseNumber(output, "Server ID is "), "The build should have run in-process, not on a server node.");
 
-            output.ShouldNotContain(GetServerStatusMessage("MSBuildServerNodeSpawned", ParseNumber(output, "Server ID is ")));
-            output.ShouldNotContain(GetServerStatusMessage("MSBuildServerNodeReused", ParseNumber(output, "Server ID is ")));
+            output.ShouldNotContain(GetServerStatusMessage(MSBuildStrings.MSBuildServerNodeSpawned, ParseNumber(output, "Server ID is ")));
+            output.ShouldNotContain(GetServerStatusMessage(MSBuildStrings.MSBuildServerNodeReused, ParseNumber(output, "Server ID is ")));
             // The not-used template (with its substituted reason) must not appear because the server was never requested.
-            output.ShouldNotContain(GetServerStatusMessage("MSBuildServerNotUsedForBuild", GetServerStatusMessage("MSBuildServerReasonNodeReuseDisabled")));
+            output.ShouldNotContain(GetServerStatusMessage(MSBuildStrings.MSBuildServerNotUsedForBuild, GetServerStatusMessage(MSBuildStrings.MSBuildServerReasonNodeReuseDisabled)));
         }
 
         /// <summary>
@@ -1251,12 +1251,7 @@ namespace Microsoft.Build.Engine.UnitTests
         /// assertions stay locale-independent (the child build process and this resource lookup share the
         /// same culture and resource set).
         /// </summary>
-        private static string GetServerStatusMessage(string resourceName, params object[] args)
-        {
-            ResourceManager resourceManager = new("MSBuild.Strings", typeof(MSBuildApp).Assembly);
-            string format = resourceManager.GetString(resourceName, CultureInfo.CurrentUICulture)
-                ?? throw new InvalidOperationException($"Resource '{resourceName}' was not found in the MSBuild executable resources.");
-            return args.Length == 0 ? format : string.Format(CultureInfo.CurrentCulture, format, args);
-        }
+        private static string GetServerStatusMessage(ResourceString resource, params object[] args)
+            => ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(resource, args);
     }
 }

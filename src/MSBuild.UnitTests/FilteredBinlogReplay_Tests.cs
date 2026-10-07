@@ -673,7 +673,7 @@ public sealed class FilteredBinlogReplay_Tests : IDisposable
         else
         {
             result.ShouldBe(MSBuildApp.ExitType.Success, diagnostic);
-            diagnostic.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("DuplicateBinaryLoggerPathsIgnored", output));
+            diagnostic.ShouldContain(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.DuplicateBinaryLoggerPathsIgnored, output));
             BuildEventArgs[] events = ReadEvents(output);
             events.Count(e => e.Message == SourceMessage).ShouldBe(filterFirst ? 0 : 1);
             events.ShouldContain(e => e.Message == SourceWarning);

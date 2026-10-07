@@ -24,6 +24,9 @@
     <ProjectReference Include="..\Utilities\Microsoft.Build.Utilities.csproj" />
     <ProjectReference Include="..\Xunit.NetCore.Extensions\Xunit.NetCore.Extensions.csproj" />
     <ProjectReference Include="..\UnitTests.Shared\Microsoft.Build.UnitTests.Shared.csproj" />
+    <Using Include="Microsoft.Build.CommandLine.Resources.MSBuildStrings" Alias="MSBuildStrings" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceString" Alias="ResourceString" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceStringUtilities" Alias="ResourceStringUtilities" />
     
     <!-- Tasks are needed for some tests -->
     <ProjectReference Include="..\Tasks\Microsoft.Build.Tasks.csproj" />

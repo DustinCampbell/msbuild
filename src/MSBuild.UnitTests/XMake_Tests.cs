@@ -813,7 +813,7 @@ namespace Microsoft.Build.UnitTests
 
             results.Contains("MyTarget").ShouldBe(targetResultPresent);
             results.Contains("\"Result\": \"Success\"").ShouldBe(targetResultPresent || restoreOnly);
-            results.ShouldNotContain(ResourceUtilities.GetResourceString("BuildFailedWithPropertiesItemsOrTargetResultsRequested"));
+            results.ShouldNotContain(ResourceStringUtilities.GetResourceString(MSBuildStrings.BuildFailedWithPropertiesItemsOrTargetResultsRequested));
         }
 
         /// <summary>
@@ -2252,7 +2252,7 @@ namespace Microsoft.Build.UnitTests
                     MSBuildApp.ProcessProjectSwitch(new[] { projectDirectory }, extensionsToIgnore, projectHelper.GetFiles);
                 });
 
-                exception.Message.ShouldBe(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("AmbiguousProjectDirectoryError", projectDirectory));
+                exception.Message.ShouldBe(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.AmbiguousProjectDirectoryError, projectDirectory));
             }
             finally
             {
@@ -3173,7 +3173,7 @@ EndGlobal
             success.ShouldBeTrue();
 
             string expectedVersionString =
-                ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildVersionMessage",
+                ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.MSBuildVersionMessage,
                     ProjectCollection.DisplayVersion, NativeMethodsShared.FrameworkName);
 
             if (shouldContainVersionMessage)

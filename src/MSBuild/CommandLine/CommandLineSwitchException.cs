@@ -72,7 +72,7 @@ namespace Microsoft.Build.CommandLine.Experimental
                 }
                 else
                 {
-                    return base.Message + Environment.NewLine + ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidSwitchIndicator", commandLineArg);
+                    return base.Message + Environment.NewLine + ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.InvalidSwitchIndicator, commandLineArg);
                 }
             }
         }
@@ -112,18 +112,18 @@ namespace Microsoft.Build.CommandLine.Experimental
         /// Throws the exception if the specified condition is not met.
         /// </summary>
         /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="commandLineArg"></param>
-        internal static void VerifyThrow(bool condition, string messageResourceName, string commandLineArg)
+        internal static void VerifyThrow(bool condition, ResourceString messageResource, string commandLineArg)
         {
             if (!condition)
             {
-                Throw(messageResourceName, commandLineArg);
+                Throw(messageResource, commandLineArg);
             }
 #if DEBUG
             else
             {
-                ResourceUtilities.VerifyResourceStringExists(messageResourceName);
+                ResourceStringUtilities.VerifyResourceStringExists(messageResource);
             }
 #endif
         }
@@ -131,25 +131,21 @@ namespace Microsoft.Build.CommandLine.Experimental
         /// <summary>
         /// Throws the exception using the given message and the command line argument containing the switch error.
         /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="commandLineArg"></param>
-        internal static void Throw(string messageResourceName, string commandLineArg)
+        internal static void Throw(ResourceString messageResource, string commandLineArg)
         {
-            Throw(messageResourceName, commandLineArg, String.Empty);
+            Throw(messageResource, commandLineArg, String.Empty);
         }
 
         /// <summary>
         /// Throws the exception using the given message and the command line argument containing the switch error.
         /// </summary>
-        /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="messageArgs"></param>
-        internal static void Throw(string messageResourceName, string commandLineArg, params string[] messageArgs)
+        internal static void Throw(ResourceString messageResource, string commandLineArg, params string[] messageArgs)
         {
-            string errorMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(messageResourceName, messageArgs);
-
-            Assumed.NotNull(errorMessage, "The resource string must exist.");
+            string errorMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(messageResource, messageArgs);
 
             throw new CommandLineSwitchException(errorMessage, commandLineArg);
         }

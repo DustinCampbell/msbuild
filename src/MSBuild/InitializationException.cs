@@ -78,7 +78,7 @@ namespace Microsoft.Build.CommandLine
                 }
                 else
                 {
-                    return base.Message + Environment.NewLine + ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidSwitchIndicator", invalidSwitch);
+                    return base.Message + Environment.NewLine + ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.InvalidSwitchIndicator, invalidSwitch);
                 }
             }
         }
@@ -106,28 +106,28 @@ namespace Microsoft.Build.CommandLine
         /// Throws the exception if the specified condition is not met.
         /// </summary>
         /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
-        internal static void VerifyThrow(bool condition, string messageResourceName)
+        /// <param name="messageResource"></param>
+        internal static void VerifyThrow(bool condition, ResourceString messageResource)
         {
-            VerifyThrow(condition, messageResourceName, null);
+            VerifyThrow(condition, messageResource, null);
         }
 
         /// <summary>
         /// Throws the exception if the specified condition is not met.
         /// </summary>
         /// <param name="condition"></param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="invalidSwitch"></param>
-        internal static void VerifyThrow(bool condition, string messageResourceName, string invalidSwitch)
+        internal static void VerifyThrow(bool condition, ResourceString messageResource, string invalidSwitch)
         {
             if (!condition)
             {
-                Throw(messageResourceName, invalidSwitch, null, false);
+                Throw(messageResource, invalidSwitch, null, false);
             }
 #if DEBUG
             else
             {
-                ResourceUtilities.VerifyResourceStringExists(messageResourceName);
+                ResourceStringUtilities.VerifyResourceStringExists(messageResource);
             }
 #endif
         }
@@ -135,15 +135,13 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Throws the exception using the given exception context.
         /// </summary>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="invalidSwitch"></param>
         /// <param name="e"></param>
         /// <param name="showStackTrace"></param>
-        internal static void Throw(string messageResourceName, string invalidSwitch, Exception e, bool showStackTrace)
+        internal static void Throw(ResourceString messageResource, string invalidSwitch, Exception e, bool showStackTrace)
         {
-            string errorMessage = AssemblyResources.GetString(messageResourceName);
-
-            Assumed.NotNull(errorMessage, "The resource string must exist.");
+            string errorMessage = messageResource.Resolve().OriginalText;
 
             if (showStackTrace && e != null)
             {
@@ -161,16 +159,12 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Throws the exception using the given exception context and can include the logger name.
         /// </summary>
-        internal static void Throw(string messageResourceName, string invalidSwitch, Exception e, bool showStackTrace, params object[] formatArgs)
+        internal static void Throw(ResourceString messageResource, string invalidSwitch, Exception e, bool showStackTrace, params object[] formatArgs)
         {
-            string errorMessage = AssemblyResources.GetString(messageResourceName);
-
-            Assumed.NotNull(errorMessage, "The resource string must exist.");
-
             // the exception message can contain a format item i.e.
             // "{0}" to hold the logger name
             // "{1}" to hold the given exception's message
-            errorMessage = MessageFormatter.Format(errorMessage, formatArgs);
+            string errorMessage = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(messageResource, formatArgs);
 
             if (showStackTrace && e != null)
             {
@@ -183,15 +177,11 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Throws the exception if the specified condition is not met.
         /// </summary>
-        internal static void VerifyThrow(bool condition, string messageResourceName, string invalidSwitch, params object[] args)
+        internal static void VerifyThrow(bool condition, ResourceString messageResource, string invalidSwitch, params object[] args)
         {
             if (!condition)
             {
-                string errorMessage = AssemblyResources.GetString(messageResourceName);
-
-                Assumed.NotNull(errorMessage, "The resource string must exist.");
-
-                errorMessage = MessageFormatter.Format(errorMessage, args);
+                string errorMessage = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(messageResource, args);
 
                 InitializationException.Throw(errorMessage, invalidSwitch);
             }
@@ -200,10 +190,8 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Throws the exception using the given exception context.
         /// </summary>
-        /// <param name="messageResourceName"></param>
+        /// <param name="message"></param>
         /// <param name="invalidSwitch"></param>
-        /// <param name="e"></param>
-        /// <param name="showStackTrace"></param>
         internal static void Throw(string message, string invalidSwitch)
         {
             Assumed.NotNull(message, "The string must exist.");

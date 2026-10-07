@@ -172,20 +172,20 @@ namespace Microsoft.Build.CommandLine.Experimental
                 {
                     foreach (string invalidArg in invalidArgs)
                     {
-                        var message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string warningCode, out _, "LoggingArgsEnvVarUnsupportedArgument", invalidArg);
+                        var message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out string warningCode, out _, MSBuildStrings.LoggingArgsEnvVarUnsupportedArgument, invalidArg);
                         deferredBuildMessages.Add(new DeferredBuildMessage(message, warningCode, messageSeverity));
                     }
                 }
 
                 if (validArgs.Count > 0)
                 {
-                    deferredBuildMessages.Add(new DeferredBuildMessage(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("LoggingArgsEnvVarUsing", string.Join(" ", validArgs)), MessageImportance.Low));
+                    deferredBuildMessages.Add(new DeferredBuildMessage(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(MSBuildStrings.LoggingArgsEnvVarUsing, string.Join(" ", validArgs)), MessageImportance.Low));
                     GatherCommandLineSwitches(validArgs, switches, commandLine);
                 }
             }
             catch (Exception ex)
             {
-                var message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, "LoggingArgsEnvVarError", ex.ToString());
+                var message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out string errorCode, out _, MSBuildStrings.LoggingArgsEnvVarError, ex.ToString());
                 deferredBuildMessages.Add(new DeferredBuildMessage(message, errorCode, messageSeverity));
             }
         }
@@ -337,11 +337,11 @@ namespace Microsoft.Build.CommandLine.Experimental
 
                 if (responseFile.Length == 0)
                 {
-                    commandLineSwitches.SetSwitchError("MissingResponseFileError", unquotedCommandLineArg, commandLine);
+                    commandLineSwitches.SetSwitchError(MSBuildStrings.MissingResponseFileError, unquotedCommandLineArg, commandLine);
                 }
                 else if (!FileSystems.Default.FileExists(responseFile))
                 {
-                    commandLineSwitches.SetParameterError("ResponseFileNotFoundError", unquotedCommandLineArg, commandLine);
+                    commandLineSwitches.SetParameterError(MSBuildStrings.ResponseFileNotFoundError, unquotedCommandLineArg, commandLine);
                 }
                 else
                 {
@@ -355,7 +355,7 @@ namespace Microsoft.Build.CommandLine.Experimental
                     {
                         if (string.Equals(responseFile, includedResponseFile, StringComparison.OrdinalIgnoreCase))
                         {
-                            commandLineSwitches.SetParameterError("RepeatedResponseFileError", unquotedCommandLineArg, commandLine);
+                            commandLineSwitches.SetParameterError(MSBuildStrings.RepeatedResponseFileError, unquotedCommandLineArg, commandLine);
                             isRepeatedResponseFile = true;
                             break;
                         }
@@ -402,19 +402,19 @@ namespace Microsoft.Build.CommandLine.Experimental
             }
             catch (NotSupportedException e)
             {
-                commandLineSwitches.SetParameterError("ReadResponseFileError", unquotedCommandLineArg, e, commandLine);
+                commandLineSwitches.SetParameterError(MSBuildStrings.ReadResponseFileError, unquotedCommandLineArg, e, commandLine);
             }
             catch (SecurityException e)
             {
-                commandLineSwitches.SetParameterError("ReadResponseFileError", unquotedCommandLineArg, e, commandLine);
+                commandLineSwitches.SetParameterError(MSBuildStrings.ReadResponseFileError, unquotedCommandLineArg, e, commandLine);
             }
             catch (UnauthorizedAccessException e)
             {
-                commandLineSwitches.SetParameterError("ReadResponseFileError", unquotedCommandLineArg, e, commandLine);
+                commandLineSwitches.SetParameterError(MSBuildStrings.ReadResponseFileError, unquotedCommandLineArg, e, commandLine);
             }
             catch (IOException e)
             {
-                commandLineSwitches.SetParameterError("ReadResponseFileError", unquotedCommandLineArg, e, commandLine);
+                commandLineSwitches.SetParameterError(MSBuildStrings.ReadResponseFileError, unquotedCommandLineArg, e, commandLine);
             }
         }
 
@@ -430,7 +430,7 @@ namespace Microsoft.Build.CommandLine.Experimental
             CommandLineSwitches commandLineSwitches,
             CommandLineSwitches.ParameterlessSwitch parameterlessSwitch,
             string switchParameters,
-            string duplicateSwitchErrorMessage,
+            ResourceString duplicateSwitchErrorMessage,
             string unquotedCommandLineArg,
             string commandLine)
         {
@@ -470,9 +470,9 @@ namespace Microsoft.Build.CommandLine.Experimental
             CommandLineSwitches commandLineSwitches,
             CommandLineSwitches.ParameterizedSwitch parameterizedSwitch,
             string switchParameters,
-            string duplicateSwitchErrorMessage,
+            ResourceString duplicateSwitchErrorMessage,
             bool multipleParametersAllowed,
-            string missingParametersErrorMessage,
+            ResourceString missingParametersErrorMessage,
             bool unquoteParameters,
             string unquotedCommandLineArg,
             bool allowEmptyParameters,
@@ -491,7 +491,7 @@ namespace Microsoft.Build.CommandLine.Experimental
 
                 if (parameterizedSwitch == CommandLineSwitches.ParameterizedSwitch.Project && IsEnvironmentVariable(switchParameters))
                 {
-                    commandLineSwitches.SetSwitchError("EnvironmentVariableAsSwitch", unquotedCommandLineArg, commandLine);
+                    commandLineSwitches.SetSwitchError(MSBuildStrings.EnvironmentVariableAsSwitch, unquotedCommandLineArg, commandLine);
                 }
 
                 // check if switch is duplicated, and if that's allowed
@@ -567,7 +567,7 @@ namespace Microsoft.Build.CommandLine.Experimental
                 }
                 else
                 {
-                    InitializationException.VerifyThrow(FileSystems.Default.FileExists(projectFile), "ProjectNotFoundError", projectFile);
+                    InitializationException.VerifyThrow(FileSystems.Default.FileExists(projectFile), MSBuildStrings.ProjectNotFoundError, projectFile);
                     projectDirectory = Path.GetDirectoryName(Path.GetFullPath(projectFile));
                 }
             }
@@ -676,7 +676,7 @@ namespace Microsoft.Build.CommandLine.Experimental
                 // if the "/noautoresponse" switch was set in the auto-response file, flag an error
                 if (switchesFromAutoResponseFile[CommandLineSwitches.ParameterlessSwitch.NoAutoResponse])
                 {
-                    switchesFromAutoResponseFile.SetSwitchError("CannotAutoDisableAutoResponseFile",
+                    switchesFromAutoResponseFile.SetSwitchError(MSBuildStrings.CannotAutoDisableAutoResponseFile,
                         switchesFromAutoResponseFile.GetParameterlessSwitchCommandLineArg(CommandLineSwitches.ParameterlessSwitch.NoAutoResponse), commandLine);
                 }
 

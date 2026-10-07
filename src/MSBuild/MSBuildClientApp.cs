@@ -92,7 +92,7 @@ namespace Microsoft.Build.CommandLine
                 // the process (the DOTNET_CLI_USE_MSBUILD_SERVER=true regression in 10.0.300).
                 if (exitResult.MSBuildClientExitType != MSBuildClientExitType.ServerBusy)
                 {
-                    Console.Error.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerUnavailable", reason.Message));
+                    Console.Error.WriteLine(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.MSBuildServerUnavailable, reason.Message));
                 }
 
                 // Server is busy / unavailable, fallback to old behavior.
@@ -122,24 +122,24 @@ namespace Microsoft.Build.CommandLine
             return exitResult.MSBuildClientExitType switch
             {
                 MSBuildClientExitType.ServerBusy => new(
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerReasonBusy"),
+                    ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.MSBuildServerReasonBusy),
                     MSBuildApp.ServerNotUsedReasonCodeServerBusy),
                 MSBuildClientExitType.LaunchError => new(
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerLaunchError"),
+                    ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.MSBuildServerLaunchError),
                     MSBuildApp.ServerNotUsedReasonCodeServerCrashed),
                 MSBuildClientExitType.UnknownServerState => new(
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerStateUnknown"),
+                    ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.MSBuildServerStateUnknown),
                     MSBuildApp.ServerNotUsedReasonCodeServerStateUnknown),
                 MSBuildClientExitType.UnableToConnect when exitResult.ServerProcessExitCode is int code => new(
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                        "MSBuildServerCrashedOnLaunch",
+                    ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                        MSBuildStrings.MSBuildServerCrashedOnLaunch,
                         code.ToString(CultureInfo.InvariantCulture)),
                     MSBuildApp.ServerNotUsedReasonCodeServerCrashed),
                 // Default: UnableToConnect without a known exit code, or any future MSBuildClientExitType
                 // value the caller forwards here. Wording is deliberately neutral about whether the
                 // underlying failure was a timeout or a non-timeout connect error.
                 _ => new(
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword("MSBuildServerConnectFailed"),
+                    ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(MSBuildStrings.MSBuildServerConnectFailed),
                     MSBuildApp.ServerNotUsedReasonCodeServerUnreachable),
             };
         }
